@@ -18,7 +18,11 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,14 +53,34 @@ type MariaDBReconciler struct {
 func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	var mariadb databasev1alpha1.MariaDB
+	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	var existingSts appsv1.StatefulSet
+	if err := r.Get(ctx, req.NamespacedName, &existingSts); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("error getting StatefulSet: %v", err)
+		}
+
+		if err := r.createStatefulSet(&mariadb); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", err)
+		}
+	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) createStatefulSet(mariadb *databasev1alpha1.MariaDB) error {
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&databasev1alpha1.MariaDB{}).
+		Owns(&appsv1.StatefulSet{}).
+		Owns(&corev1.Service{}).
 		Complete(r)
 }

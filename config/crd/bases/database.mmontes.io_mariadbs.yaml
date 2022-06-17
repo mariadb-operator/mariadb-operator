@@ -37,11 +37,15 @@ spec:
             properties:
               database:
                 type: string
+              environment:
+                additionalProperties:
+                  type: string
+                type: object
               image:
                 properties:
                   pullPolicy:
-                    type: string
-                  registry:
+                    description: PullPolicy describes a policy for if/when to pull
+                      a container image
                     type: string
                   repository:
                     type: string
@@ -76,6 +80,9 @@ spec:
                 required:
                 - key
                 type: object
+              port:
+                format: int32
+                type: integer
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:
@@ -103,8 +110,7 @@ spec:
                     type: object
                 type: object
               rootPasswordSecretKeyRef:
-                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                  Important: Run "make" to regenerate code after modifying this file'
+                description: SecretKeySelector selects a key of a Secret.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a

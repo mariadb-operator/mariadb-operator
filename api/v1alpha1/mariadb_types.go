@@ -22,14 +22,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 type Image struct {
-	Repository string `json:"repository,omitempty"`
-	Registry   string `json:"registry,omitempty"`
-	PullPolicy string `json:"pullPolicy,omitempty"`
-	Tag        string `json:"tag,omitempty"`
+	Repository string            `json:"repository,omitempty"`
+	Tag        string            `json:"tag,omitempty"`
+	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
 }
 
 type Storage struct {
@@ -40,8 +36,6 @@ type Storage struct {
 
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef,omitempty"`
 
 	Database             string                   `json:"database,omitempty"`
@@ -51,9 +45,13 @@ type MariaDBSpec struct {
 	Image            Image                         `json:"image,omitempty"`
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	Port int32 `json:"port,omitempty"`
 
 	Storage Storage `json:"storage,omitempty"`
+
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	Environment map[string]string `json:"environment,omitempty"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
