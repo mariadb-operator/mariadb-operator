@@ -38,6 +38,7 @@ type MariaDBReconciler struct {
 	client.Client
 	Scheme             *runtime.Scheme
 	StatefulSetBuilder *builders.StatefulSetBuilder
+	ServiceBuilder     *builders.ServiceBuilder
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -72,6 +73,17 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
+	var existingSvc corev1.Service
+	if err := r.Get(ctx, req.NamespacedName, &existingSvc); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("error getting Service: %v", err)
+		}
+
+		if err := r.createService(ctx, &mariadb); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error creating Service: %v", err)
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -80,15 +92,25 @@ func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *data
 	if err != nil {
 		return fmt.Errorf("error building StatefulSet %v", err)
 	}
-
 	if err := controllerutil.SetControllerReference(mariadb, sts, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference: %v", err)
+		return fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
 
 	if err := r.Create(ctx, sts); err != nil {
 		return fmt.Errorf("error creating StatefulSet on API server: %v", err)
 	}
+	return nil
+}
 
+func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
+	svc := r.ServiceBuilder.Build(mariadb)
+	if err := controllerutil.SetControllerReference(mariadb, svc, r.Scheme); err != nil {
+		return fmt.Errorf("error setting controller reference to Service: %v", err)
+	}
+
+	if err := r.Create(ctx, svc); err != nil {
+		return fmt.Errorf("error creating Service on API server: %v", err)
+	}
 	return nil
 }
 
