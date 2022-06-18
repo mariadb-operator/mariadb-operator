@@ -33,6 +33,8 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/controllers"
+	"github.com/mmontes11/mariadb-operator/pkg/builders"
+	"github.com/mmontes11/mariadb-operator/pkg/refreader"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -78,9 +80,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	refReader := refreader.New(mgr.GetClient())
+
 	if err = (&controllers.MariaDBReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		StatefulSetBuilder: builders.NewStatefulSetBuilder(refReader),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
 		os.Exit(1)

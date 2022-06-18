@@ -114,11 +114,18 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 	}
 	in.Storage.DeepCopyInto(&out.Storage)
 	in.Resources.DeepCopyInto(&out.Resources)
-	if in.Environment != nil {
-		in, out := &in.Environment, &out.Environment
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
+	if in.Env != nil {
+		in, out := &in.Env, &out.Env
+		*out = make([]v1.EnvVar, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.EnvFrom != nil {
+		in, out := &in.EnvFrom, &out.EnvFrom
+		*out = make([]v1.EnvFromSource, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 }

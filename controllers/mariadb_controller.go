@@ -26,15 +26,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/builders"
 )
 
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme             *runtime.Scheme
+	StatefulSetBuilder *builders.StatefulSetBuilder
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -64,7 +67,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, fmt.Errorf("error getting StatefulSet: %v", err)
 		}
 
-		if err := r.createStatefulSet(&mariadb); err != nil {
+		if err := r.createStatefulSet(ctx, &mariadb); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", err)
 		}
 	}
@@ -72,7 +75,20 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) createStatefulSet(mariadb *databasev1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
+	sts, err := r.StatefulSetBuilder.Build(ctx, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building StatefulSet %v", err)
+	}
+
+	if err := controllerutil.SetControllerReference(mariadb, sts, r.Scheme); err != nil {
+		return fmt.Errorf("error setting controller reference: %v", err)
+	}
+
+	if err := r.Create(ctx, sts); err != nil {
+		return fmt.Errorf("error creating StatefulSet on API server: %v", err)
+	}
+
 	return nil
 }
 
