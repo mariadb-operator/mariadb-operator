@@ -119,8 +119,8 @@ func buildEnv(mariadb *databasev1alpha1.MariaDB) ([]v1.EnvVar, error) {
 		})
 	}
 
-	for _, e := range mariadb.Spec.Env {
-		env = append(env, e)
+	if mariadb.Spec.Env != nil {
+		env = append(env, mariadb.Spec.Env...)
 	}
 
 	return env, nil

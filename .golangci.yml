@@ -1,0 +1,36 @@
+linters-settings:
+  dupl:
+    threshold: 100
+  gocyclo:
+    min-complexity: 15
+  lll:
+    line-length: 140
+  misspell:
+    locale: US
+
+linters:
+  disable-all: true
+  enable:
+    - deadcode
+    - dupl
+    - errcheck
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nestif
+    - staticcheck
+    - typecheck
+    - unused
+    - varcheck
+    - bodyclose
+    - noctx
+    - structcheck
+
+run:
+  timeout: 5m
+  go: "1.17"
