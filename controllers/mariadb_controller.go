@@ -28,7 +28,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
@@ -47,15 +46,13 @@ type MariaDBReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
 	var mariadb databasev1alpha1.MariaDB
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	var existingSts appsv1.StatefulSet
-	if err := r.Get(ctx, req.NamespacedName, &existingSts); err != nil {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, req.NamespacedName, &sts); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, fmt.Errorf("error getting StatefulSet: %v", err)
 		}
@@ -65,8 +62,8 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	var existingSvc corev1.Service
-	if err := r.Get(ctx, req.NamespacedName, &existingSvc); err != nil {
+	var svc corev1.Service
+	if err := r.Get(ctx, req.NamespacedName, &svc); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, fmt.Errorf("error getting Service: %v", err)
 		}
@@ -76,8 +73,8 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	if err := r.patchMariaDBStatus(ctx, &mariadb, &existingSts); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error updating MariaDB status: %v", err)
+	if err := r.patchMariaDBStatus(ctx, &mariadb, &sts); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
 	return ctrl.Result{}, nil

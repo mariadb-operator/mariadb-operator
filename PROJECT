@@ -13,4 +13,13 @@ resources:
   kind: MariaDB
   path: github.com/mmontes11/mariadb-operator/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: mmontes.io
+  group: database
+  kind: BackupMariaDB
+  path: github.com/mmontes11/mariadb-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"

@@ -1,0 +1,20 @@
+# permissions for end users to view backupmariadbs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backupmariadb-viewer-role
+rules:
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - backupmariadbs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - backupmariadbs/status
+  verbs:
+  - get

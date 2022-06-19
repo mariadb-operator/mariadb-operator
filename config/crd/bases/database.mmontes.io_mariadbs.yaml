@@ -12,6 +12,8 @@ spec:
     kind: MariaDB
     listKind: MariaDBList
     plural: mariadbs
+    shortNames:
+    - mdb
     singular: mariadb
   scope: Namespaced
   versions:

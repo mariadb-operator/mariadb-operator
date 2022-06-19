@@ -87,6 +87,7 @@ func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:shortName=mdb
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"

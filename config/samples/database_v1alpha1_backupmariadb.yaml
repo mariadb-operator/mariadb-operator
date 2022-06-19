@@ -1,0 +1,6 @@
+apiVersion: database.mmontes.io/v1alpha1
+kind: BackupMariaDB
+metadata:
+  name: backupmariadb-sample
+spec:
+  # TODO(user): Add fields here

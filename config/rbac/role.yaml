@@ -8,6 +8,32 @@ rules:
 - apiGroups:
   - database.mmontes.io
   resources:
+  - backupmariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - backupmariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - backupmariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
   - mariadbs
   verbs:
   - create
