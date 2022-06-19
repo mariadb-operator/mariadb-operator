@@ -5,19 +5,15 @@ import (
 	"strconv"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/defaulter"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	app                  = "mariadb"
-	storageVolume        = "storage"
-	storageMountPath     = "/var/lib/mysql"
-	defaultImageTag      = "latest"
-	defaultContainerPort = 3306
+	app              = "mariadb"
+	storageVolume    = "storage"
+	storageMountPath = "/var/lib/mysql"
 )
 
 func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
@@ -54,10 +50,7 @@ func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB) (*appsv1.StatefulSet, e
 }
 
 func buildContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) {
-	image := fmt.Sprintf("%s:%s",
-		mariadb.Spec.Image.Repository,
-		defaulter.String(mariadb.Spec.Image.Tag, defaultImageTag),
-	)
+	image := fmt.Sprintf("%s:%s", mariadb.Spec.Image.Repository, mariadb.Spec.Image.Tag)
 	env, err := buildEnv(mariadb)
 	if err != nil {
 		return nil, err
@@ -66,12 +59,12 @@ func buildContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) 
 	container := v1.Container{
 		Name:            mariadb.Name,
 		Image:           image,
-		ImagePullPolicy: defaulter.PullPolicy(mariadb.Spec.Image.PullPolicy, corev1.PullIfNotPresent),
+		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
 		Env:             env,
 		EnvFrom:         mariadb.Spec.EnvFrom,
 		Ports: []v1.ContainerPort{
 			{
-				ContainerPort: defaulter.Int32(mariadb.Spec.Port, defaultContainerPort),
+				ContainerPort: mariadb.Spec.Port,
 			},
 		},
 		VolumeMounts: []v1.VolumeMount{
@@ -93,7 +86,7 @@ func buildEnv(mariadb *databasev1alpha1.MariaDB) ([]v1.EnvVar, error) {
 	env := []v1.EnvVar{
 		{
 			Name:  "MYSQL_TCP_PORT",
-			Value: strconv.Itoa(int(defaulter.Int32(mariadb.Spec.Port, defaultContainerPort))),
+			Value: strconv.Itoa(int(mariadb.Spec.Port)),
 		},
 		{
 			Name: "MARIADB_ROOT_PASSWORD",

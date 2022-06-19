@@ -189,12 +189,14 @@ spec:
               image:
                 properties:
                   pullPolicy:
+                    default: IfNotPresent
                     description: PullPolicy describes a policy for if/when to pull
                       a container image
                     type: string
                   repository:
                     type: string
                   tag:
+                    default: latest
                     type: string
                 required:
                 - repository
@@ -228,6 +230,7 @@ spec:
                 - key
                 type: object
               port:
+                default: 3306
                 format: int32
                 type: integer
               resources:
@@ -276,6 +279,8 @@ spec:
               storage:
                 properties:
                   accessModes:
+                    default:
+                    - ReadWriteOnce
                     items:
                       type: string
                     type: array

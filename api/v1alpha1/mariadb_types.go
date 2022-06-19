@@ -32,36 +32,40 @@ const (
 )
 
 type Image struct {
-	// +required
-	Repository string             `json:"repository"`
-	Tag        *string            `json:"tag,omitempty"`
-	PullPolicy *corev1.PullPolicy `json:"pullPolicy,omitempty"`
+	// +kubebuilder:validation:Required
+	Repository string `json:"repository"`
+	// +kubebuilder:default=latest
+	Tag string `json:"tag,omitempty"`
+	// +kubebuilder:default=IfNotPresent
+	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
 }
 
 type Storage struct {
-	// +required
+	// +kubebuilder:validation:Required
 	ClassName string `json:"className"`
-	// +required
-	Size        resource.Quantity                   `json:"size"`
+	// +kubebuilder:validation:Required
+	Size resource.Quantity `json:"size"`
+	// +kubebuilder:default={ReadWriteOnce}
 	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
-	// +required
+	// +kubebuilder:validation:Required
 	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef"`
 
 	Database             *string                   `json:"database,omitempty"`
 	Username             *string                   `json:"username,omitempty"`
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
 
-	// +required
+	// +kubebuilder:validation:Required
 	Image            Image                         `json:"image"`
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
-	Port *int32 `json:"port,omitempty"`
+	// +kubebuilder:default=3306
+	Port int32 `json:"port,omitempty"`
 
-	// +required
+	// +kubebuilder:validation:Required
 	Storage Storage `json:"storage"`
 
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`

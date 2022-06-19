@@ -2,13 +2,8 @@ package builders
 
 import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/defaulter"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-const (
-	defaultServicePort = 3306
 )
 
 func BuildService(mariadb *databasev1alpha1.MariaDB) *corev1.Service {
@@ -23,7 +18,7 @@ func BuildService(mariadb *databasev1alpha1.MariaDB) *corev1.Service {
 			Type: corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{
 				{
-					Port: defaulter.Int32(mariadb.Spec.Port, defaultServicePort),
+					Port: mariadb.Spec.Port,
 				},
 			},
 			Selector: labels,
