@@ -19,8 +19,16 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	ConditionTypeReady                  string = "Ready"
+	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
+	ConditionReasonStatefulSetReady     string = "StatefulSetReady"
+	ConditionReasonStatefulUnknownState string = "StatefulSetUnknownState"
 )
 
 type Image struct {
@@ -67,8 +75,19 @@ type MariaDBStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
+	if s.Conditions == nil {
+		s.Conditions = make([]metav1.Condition, 0)
+	}
+	meta.SetStatusCondition(&s.Conditions, condition)
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
+// +kubebuilder:printcolumn:name="Storage Class",type="string",JSONPath=".spec.storage.className"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // MariaDB is the Schema for the mariadbs API
 type MariaDB struct {

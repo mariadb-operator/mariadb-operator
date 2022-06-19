@@ -23,6 +23,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -82,6 +83,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
+	if err := r.patchMariaDBStatus(ctx, &mariadb, &existingSts); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error updating MariaDB status: %v", err)
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -110,6 +115,37 @@ func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *database
 		return fmt.Errorf("error creating Service on API server: %v", err)
 	}
 	return nil
+}
+
+func (r *MariaDBReconciler) patchMariaDBStatus(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+	sts *appsv1.StatefulSet) error {
+
+	patch := client.MergeFrom(mariadb.DeepCopy())
+
+	if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas < sts.Status.Replicas {
+		mariadb.Status.SetCondition(metav1.Condition{
+			Type:    databasev1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  databasev1alpha1.ConditionReasonStatefulSetNotReady,
+			Message: "Not ready",
+		})
+	} else if sts.Status.ReadyReplicas == sts.Status.Replicas {
+		mariadb.Status.SetCondition(metav1.Condition{
+			Type:    databasev1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionTrue,
+			Reason:  databasev1alpha1.ConditionReasonStatefulSetReady,
+			Message: "Running",
+		})
+	} else {
+		mariadb.Status.SetCondition(metav1.Condition{
+			Type:    databasev1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  databasev1alpha1.ConditionReasonStatefulUnknownState,
+			Message: "Unknown state",
+		})
+	}
+
+	return r.Client.Status().Patch(ctx, mariadb, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.
