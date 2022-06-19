@@ -38,9 +38,10 @@ help: ## Display this help.
 ##@ Development
 
 CLUSTER ?= maria
+KIND_IMAGE ?= kindest/node:v1.22.7
 .PHONY: cluster
 cluster: kind ### Create the kind cluster.
-	$(KIND) create cluster --name $(CLUSTER) --config kind.yml
+	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)
 
 .PHONY: cluster-delete
 cluster-delete: kind ### Delete the kind cluster.
