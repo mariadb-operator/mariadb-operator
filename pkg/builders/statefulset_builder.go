@@ -1,13 +1,11 @@
 package builders
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/defaulter"
-	"github.com/mmontes11/mariadb-operator/pkg/refreader"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -22,19 +20,9 @@ const (
 	defaultContainerPort = 3306
 )
 
-type StatefulSetBuilder struct {
-	refReader *refreader.RefReader
-}
-
-func NewStatefulSetBuilder(refReader *refreader.RefReader) *StatefulSetBuilder {
-	return &StatefulSetBuilder{
-		refReader: refReader,
-	}
-}
-
-func (b *StatefulSetBuilder) Build(ctx context.Context, mariadb *databasev1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
+func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
 	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
-	containers, err := b.buildContainers(ctx, mariadb)
+	containers, err := buildContainers(mariadb)
 	if err != nil {
 		return nil, err
 	}
@@ -60,17 +48,17 @@ func (b *StatefulSetBuilder) Build(ctx context.Context, mariadb *databasev1alpha
 					Containers: containers,
 				},
 			},
-			VolumeClaimTemplates: b.buildVolumeClaimTemplates(mariadb),
+			VolumeClaimTemplates: buildVolumeClaimTemplates(mariadb),
 		},
 	}, nil
 }
 
-func (b *StatefulSetBuilder) buildContainers(ctx context.Context, mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) {
+func buildContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) {
 	image := fmt.Sprintf("%s:%s",
 		mariadb.Spec.Image.Repository,
 		defaulter.String(mariadb.Spec.Image.Tag, defaultImageTag),
 	)
-	env, err := b.buildEnv(ctx, mariadb)
+	env, err := buildEnv(mariadb)
 	if err != nil {
 		return nil, err
 	}
@@ -101,20 +89,17 @@ func (b *StatefulSetBuilder) buildContainers(ctx context.Context, mariadb *datab
 	return []v1.Container{container}, nil
 }
 
-func (b *StatefulSetBuilder) buildEnv(ctx context.Context, mariadb *databasev1alpha1.MariaDB) ([]v1.EnvVar, error) {
-	rootPasswd, err := b.refReader.ReadSecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef, mariadb.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error reading root password secret: %v", err)
-	}
-
+func buildEnv(mariadb *databasev1alpha1.MariaDB) ([]v1.EnvVar, error) {
 	env := []v1.EnvVar{
 		{
 			Name:  "MYSQL_TCP_PORT",
 			Value: strconv.Itoa(int(defaulter.Int32(mariadb.Spec.Port, defaultContainerPort))),
 		},
 		{
-			Name:  "MARIADB_ROOT_PASSWORD",
-			Value: rootPasswd,
+			Name: "MARIADB_ROOT_PASSWORD",
+			ValueFrom: &v1.EnvVarSource{
+				SecretKeyRef: &mariadb.Spec.RootPasswordSecretKeyRef,
+			},
 		},
 	}
 
@@ -133,13 +118,11 @@ func (b *StatefulSetBuilder) buildEnv(ctx context.Context, mariadb *databasev1al
 	}
 
 	if mariadb.Spec.PasswordSecretKeyRef != nil {
-		passwd, err := b.refReader.ReadSecretKeyRef(ctx, *mariadb.Spec.PasswordSecretKeyRef, mariadb.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error reading password secret: %v", err)
-		}
 		env = append(env, v1.EnvVar{
-			Name:  "MARIADB_PASSWORD",
-			Value: passwd,
+			Name: "MARIADB_PASSWORD",
+			ValueFrom: &v1.EnvVarSource{
+				SecretKeyRef: mariadb.Spec.PasswordSecretKeyRef,
+			},
 		})
 	}
 
@@ -150,7 +133,7 @@ func (b *StatefulSetBuilder) buildEnv(ctx context.Context, mariadb *databasev1al
 	return env, nil
 }
 
-func (b *StatefulSetBuilder) buildVolumeClaimTemplates(mariadb *databasev1alpha1.MariaDB) []v1.PersistentVolumeClaim {
+func buildVolumeClaimTemplates(mariadb *databasev1alpha1.MariaDB) []v1.PersistentVolumeClaim {
 	accessModes := mariadb.Spec.Storage.AccessModes
 	if accessModes == nil {
 		accessModes = []v1.PersistentVolumeAccessMode{

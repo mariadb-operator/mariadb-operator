@@ -11,13 +11,7 @@ const (
 	defaultServicePort = 3306
 )
 
-type ServiceBuilder struct{}
-
-func NewServiceBuilder() *ServiceBuilder {
-	return &ServiceBuilder{}
-}
-
-func (b *ServiceBuilder) Build(mariadb *databasev1alpha1.MariaDB) *corev1.Service {
+func BuildService(mariadb *databasev1alpha1.MariaDB) *corev1.Service {
 	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{

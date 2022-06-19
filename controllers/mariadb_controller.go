@@ -36,9 +36,7 @@ import (
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	StatefulSetBuilder *builders.StatefulSetBuilder
-	ServiceBuilder     *builders.ServiceBuilder
+	Scheme *runtime.Scheme
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -88,7 +86,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
-	sts, err := r.StatefulSetBuilder.Build(ctx, mariadb)
+	sts, err := builders.BuildStatefulSet(mariadb)
 	if err != nil {
 		return fmt.Errorf("error building StatefulSet %v", err)
 	}
@@ -103,7 +101,7 @@ func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *data
 }
 
 func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
-	svc := r.ServiceBuilder.Build(mariadb)
+	svc := builders.BuildService(mariadb)
 	if err := controllerutil.SetControllerReference(mariadb, svc, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to Service: %v", err)
 	}
