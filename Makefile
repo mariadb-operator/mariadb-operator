@@ -46,7 +46,7 @@ lint: golangci-lint ### Lint.
 	$(GOLANGCI_LINT) run
 
 .PHONY: test
-test: manifests generate lint envtest ## Run tests.
+test: manifests generate envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
 .PHONY: cover
@@ -56,7 +56,7 @@ cover: test ### Run tests and generate coverage.
 ##@ Build
 
 .PHONY: build
-build: generate lint ## Build manager binary.
+build: generate ## Build manager binary.
 	go build -o bin/manager main.go
 
 .PHONY: run
