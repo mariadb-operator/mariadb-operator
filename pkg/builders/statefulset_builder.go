@@ -11,16 +11,20 @@ import (
 )
 
 const (
-	app              = "mariadb"
-	storageVolume    = "storage"
-	storageMountPath = "/var/lib/mysql"
+	app                 = "mariadb"
+	stsStorageVolume    = "storage"
+	stsStorageMountPath = "/var/lib/mysql"
 )
 
 func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
-	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
-	containers, err := buildContainers(mariadb)
+	containers, err := buildStsContainers(mariadb)
 	if err != nil {
 		return nil, err
+	}
+	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
+	pvcMeta := metav1.ObjectMeta{
+		Name:      stsStorageVolume,
+		Namespace: mariadb.Namespace,
 	}
 
 	return &appsv1.StatefulSet{
@@ -44,23 +48,42 @@ func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB) (*appsv1.StatefulSet, e
 					Containers: containers,
 				},
 			},
-			VolumeClaimTemplates: buildVolumeClaimTemplates(mariadb),
+			VolumeClaimTemplates: []v1.PersistentVolumeClaim{
+				*BuildPVC(pvcMeta, &mariadb.Spec.Storage),
+			},
 		},
 	}, nil
 }
 
-func buildContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) {
-	image := fmt.Sprintf("%s:%s", mariadb.Spec.Image.Repository, mariadb.Spec.Image.Tag)
-	env, err := buildEnv(mariadb)
-	if err != nil {
-		return nil, err
+func BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.Storage) *v1.PersistentVolumeClaim {
+	accessModes := storage.AccessModes
+	if accessModes == nil {
+		accessModes = []v1.PersistentVolumeAccessMode{
+			v1.ReadWriteOnce,
+		}
 	}
 
+	return &v1.PersistentVolumeClaim{
+		ObjectMeta: meta,
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes:      accessModes,
+			StorageClassName: &storage.ClassName,
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: storage.Size,
+				},
+			},
+		},
+	}
+}
+
+func buildStsContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) {
+	image := fmt.Sprintf("%s:%s", mariadb.Spec.Image.Repository, mariadb.Spec.Image.Tag)
 	container := v1.Container{
 		Name:            mariadb.Name,
 		Image:           image,
 		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
-		Env:             env,
+		Env:             buildStsEnv(mariadb),
 		EnvFrom:         mariadb.Spec.EnvFrom,
 		Ports: []v1.ContainerPort{
 			{
@@ -69,8 +92,8 @@ func buildContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) 
 		},
 		VolumeMounts: []v1.VolumeMount{
 			{
-				Name:      storageVolume,
-				MountPath: storageMountPath,
+				Name:      stsStorageVolume,
+				MountPath: stsStorageMountPath,
 			},
 		},
 	}
@@ -82,7 +105,7 @@ func buildContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) 
 	return []v1.Container{container}, nil
 }
 
-func buildEnv(mariadb *databasev1alpha1.MariaDB) ([]v1.EnvVar, error) {
+func buildStsEnv(mariadb *databasev1alpha1.MariaDB) []v1.EnvVar {
 	env := []v1.EnvVar{
 		{
 			Name:  "MYSQL_TCP_PORT",
@@ -123,31 +146,5 @@ func buildEnv(mariadb *databasev1alpha1.MariaDB) ([]v1.EnvVar, error) {
 		env = append(env, mariadb.Spec.Env...)
 	}
 
-	return env, nil
-}
-
-func buildVolumeClaimTemplates(mariadb *databasev1alpha1.MariaDB) []v1.PersistentVolumeClaim {
-	accessModes := mariadb.Spec.Storage.AccessModes
-	if accessModes == nil {
-		accessModes = []v1.PersistentVolumeAccessMode{
-			v1.ReadWriteOnce,
-		}
-	}
-
-	return []v1.PersistentVolumeClaim{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: storageVolume,
-			},
-			Spec: v1.PersistentVolumeClaimSpec{
-				AccessModes:      accessModes,
-				StorageClassName: &mariadb.Spec.Storage.ClassName,
-				Resources: v1.ResourceRequirements{
-					Requests: v1.ResourceList{
-						v1.ResourceStorage: mariadb.Spec.Storage.Size,
-					},
-				},
-			},
-		},
-	}
+	return env
 }

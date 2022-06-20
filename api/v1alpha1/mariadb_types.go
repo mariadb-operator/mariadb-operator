@@ -103,7 +103,7 @@ type MariaDB struct {
 	Status MariaDBStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB
 type MariaDBList struct {

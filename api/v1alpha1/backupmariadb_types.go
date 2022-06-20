@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,6 +28,10 @@ type BackupMariaDBSpec struct {
 	Storage Storage `json:"storage"`
 	// +kubebuilder:validation:Required
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
+	// +kubebuilder:default=3
+	BackoffLimit int32 `json:"backoffLimit"`
+	// +kubebuilder:default=OnFailure
+	RestartPolicy corev1.RestartPolicy `json:"restartPolicy"`
 
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
@@ -37,9 +42,18 @@ type BackupMariaDBStatus struct {
 	DumpFileName string             `json:"dumpFileName,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+func (b *BackupMariaDBStatus) SetCondition(condition metav1.Condition) {
+	if b.Conditions == nil {
+		b.Conditions = make([]metav1.Condition, 0)
+	}
+	meta.SetStatusCondition(&b.Conditions, condition)
+}
+
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=bmdb
-//+kubebuilder:subresource:status
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Storage Class",type="string",JSONPath=".spec.storage.className"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // BackupMariaDB is the Schema for the backupmariadbs API
 type BackupMariaDB struct {
@@ -50,7 +64,7 @@ type BackupMariaDB struct {
 	Status BackupMariaDBStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // BackupMariaDBList contains a list of BackupMariaDB
 type BackupMariaDBList struct {

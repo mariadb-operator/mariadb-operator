@@ -17,7 +17,14 @@ spec:
     singular: backupmariadb
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.storage.className
+      name: Storage Class
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: BackupMariaDB is the Schema for the backupmariadbs API
@@ -37,6 +44,10 @@ spec:
           spec:
             description: BackupMariaDBSpec defines the desired state of BackupMariaDB
             properties:
+              backoffLimit:
+                default: 3
+                format: int32
+                type: integer
               mariaDbRef:
                 description: LocalObjectReference contains enough information to let
                   you locate the referenced object inside the same namespace.
@@ -72,6 +83,13 @@ spec:
                       to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
                 type: object
+              restartPolicy:
+                default: OnFailure
+                description: RestartPolicy describes how the container should be restarted.
+                  Only one of the following restart policies may be specified. If
+                  none of the following policies is specified, the default one is
+                  RestartPolicyAlways.
+                type: string
               storage:
                 properties:
                   accessModes:
@@ -93,7 +111,9 @@ spec:
                 - size
                 type: object
             required:
+            - backoffLimit
             - mariaDbRef
+            - restartPolicy
             - storage
             type: object
           status:

@@ -1,6 +1,19 @@
 apiVersion: database.mmontes.io/v1alpha1
 kind: BackupMariaDB
 metadata:
-  name: backupmariadb-sample
+  name: backup
 spec:
-  # TODO(user): Add fields here
+  mariaDbRef:
+    name: mariadb
+  storage:
+    className: standard
+    size: 100Mi
+    accessModes:
+      - ReadWriteOnce
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi

@@ -23,11 +23,15 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/builders"
 )
 
 // BackupMariaDBReconciler reconciles a BackupMariaDB object
@@ -65,7 +69,12 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, fmt.Errorf("error getting Job: %v", err)
 		}
 
-		if err := r.createJob(ctx, &backup); err != nil {
+		mariadb, err := r.getMariaDB(ctx, &backup)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
+		}
+
+		if err := r.createJob(ctx, &backup, mariadb); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error creating PVC: %v", err)
 		}
 	}
@@ -78,15 +87,51 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *BackupMariaDBReconciler) createPVC(ctx context.Context, backup *databasev1alpha1.BackupMariaDB) error {
+	pvcMeta := metav1.ObjectMeta{
+		Name:      backup.Name,
+		Namespace: backup.Namespace,
+	}
+	pvc := builders.BuildPVC(pvcMeta, &backup.Spec.Storage)
+
+	if err := controllerutil.SetControllerReference(backup, pvc, r.Scheme); err != nil {
+		return fmt.Errorf("error setting controller reference to PVC: %v", err)
+	}
+
+	if err := r.Create(ctx, pvc); err != nil {
+		return fmt.Errorf("error creating PVC on API server: %v", err)
+	}
 	return nil
 }
 
-func (r *BackupMariaDBReconciler) createJob(ctx context.Context, backup *databasev1alpha1.BackupMariaDB) error {
+func (r *BackupMariaDBReconciler) createJob(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
+	mariadb *databasev1alpha1.MariaDB) error {
+	job := builders.BuildJob(backup, mariadb)
+
+	if err := controllerutil.SetControllerReference(backup, job, r.Scheme); err != nil {
+		return fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+
+	if err := r.Create(ctx, job); err != nil {
+		return fmt.Errorf("error creating PVC on API server: %v", err)
+	}
 	return nil
 }
 
 func (r *BackupMariaDBReconciler) patchBackupStatus(ctx context.Context, backup *databasev1alpha1.BackupMariaDB) error {
 	return nil
+}
+
+func (r *BackupMariaDBReconciler) getMariaDB(ctx context.Context,
+	backup *databasev1alpha1.BackupMariaDB) (*databasev1alpha1.MariaDB, error) {
+	var mariadb databasev1alpha1.MariaDB
+	nn := types.NamespacedName{
+		Name:      backup.Spec.MariaDBRef.Name,
+		Namespace: backup.Namespace,
+	}
+	if err := r.Get(ctx, nn, &mariadb); err != nil {
+		return nil, fmt.Errorf("error getting MariaDB on API server:: %v", err)
+	}
+	return &mariadb, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
