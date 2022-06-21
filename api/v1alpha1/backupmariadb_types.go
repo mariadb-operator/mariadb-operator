@@ -22,6 +22,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ConditionTypeComplete       string = "Complete"
+	ConditionReasonJobComplete  string = "JobComplete"
+	ConditionReasonJobSuspended string = "JobSuspended"
+	ConditionReasonJobFailed    string = "JobFailed"
+	ConditionReasonJobRunning   string = "JobRunning"
+)
+
 // BackupMariaDBSpec defines the desired state of BackupMariaDB
 type BackupMariaDBSpec struct {
 	// +kubebuilder:validation:Required
@@ -29,17 +37,16 @@ type BackupMariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
 	// +kubebuilder:default=3
-	BackoffLimit int32 `json:"backoffLimit"`
+	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=OnFailure
-	RestartPolicy corev1.RestartPolicy `json:"restartPolicy"`
+	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty"`
 
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // BackupMariaDBStatus defines the observed state of BackupMariaDB
 type BackupMariaDBStatus struct {
-	Conditions   []metav1.Condition `json:"conditions,omitempty"`
-	DumpFileName string             `json:"dumpFileName,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 func (b *BackupMariaDBStatus) SetCondition(condition metav1.Condition) {
@@ -52,6 +59,8 @@ func (b *BackupMariaDBStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=bmdb
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Complete",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].status"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].message"
 // +kubebuilder:printcolumn:name="Storage Class",type="string",JSONPath=".spec.storage.className"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 

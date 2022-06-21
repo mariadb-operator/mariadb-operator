@@ -109,7 +109,6 @@ func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *database
 
 func (r *MariaDBReconciler) patchMariaDBStatus(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	sts *appsv1.StatefulSet) error {
-
 	patch := client.MergeFrom(mariadb.DeepCopy())
 
 	if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas < sts.Status.Replicas {

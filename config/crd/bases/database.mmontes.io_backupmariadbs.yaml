@@ -18,6 +18,12 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=="Complete")].status
+      name: Complete
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Complete")].message
+      name: Status
+      type: string
     - jsonPath: .spec.storage.className
       name: Storage Class
       type: string
@@ -111,9 +117,7 @@ spec:
                 - size
                 type: object
             required:
-            - backoffLimit
             - mariaDbRef
-            - restartPolicy
             - storage
             type: object
           status:
@@ -187,8 +191,6 @@ spec:
                   - type
                   type: object
                 type: array
-              dumpFileName:
-                type: string
             type: object
         type: object
     served: true

@@ -24,7 +24,7 @@ help: ## Display this help.
 ##@ Development
 
 CLUSTER ?= maria
-KIND_IMAGE ?= kindest/node:v1.22.7
+KIND_IMAGE ?= kindest/node:v1.22.9
 .PHONY: cluster
 cluster: kind ### Create the kind cluster.
 	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)
