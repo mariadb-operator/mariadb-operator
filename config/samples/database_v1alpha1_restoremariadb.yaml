@@ -1,0 +1,6 @@
+apiVersion: database.mmontes.io/v1alpha1
+kind: RestoreMariaDB
+metadata:
+  name: restoremariadb-sample
+spec:
+  # TODO(user): Add fields here

@@ -76,7 +76,7 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 
 		if err := r.createJob(ctx, &backup, mariadb); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating PVC: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 		}
 	}
 
@@ -120,28 +120,28 @@ func (r *BackupMariaDBReconciler) patchBackupStatus(ctx context.Context, backup 
 
 	switch jobConditionType {
 	case batchv1.JobFailed:
-		backup.Status.SetCondition(metav1.Condition{
+		backup.Status.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionTrue,
 			Reason:  databasev1alpha1.ConditionReasonJobFailed,
 			Message: "Failed",
 		})
 	case batchv1.JobComplete:
-		backup.Status.SetCondition(metav1.Condition{
+		backup.Status.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionTrue,
 			Reason:  databasev1alpha1.ConditionReasonJobComplete,
 			Message: "Success",
 		})
 	case batchv1.JobSuspended:
-		backup.Status.SetCondition(metav1.Condition{
+		backup.Status.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionFalse,
 			Reason:  databasev1alpha1.ConditionReasonJobSuspended,
 			Message: "Suspended",
 		})
 	default:
-		backup.Status.SetCondition(metav1.Condition{
+		backup.Status.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionFalse,
 			Reason:  databasev1alpha1.ConditionReasonJobRunning,
@@ -160,7 +160,7 @@ func (r *BackupMariaDBReconciler) getMariaDB(ctx context.Context,
 		Namespace: backup.Namespace,
 	}
 	if err := r.Get(ctx, nn, &mariadb); err != nil {
-		return nil, fmt.Errorf("error getting MariaDB on API server:: %v", err)
+		return nil, fmt.Errorf("error getting MariaDB on API server: %v", err)
 	}
 	return &mariadb, nil
 }

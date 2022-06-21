@@ -112,21 +112,21 @@ func (r *MariaDBReconciler) patchMariaDBStatus(ctx context.Context, mariadb *dat
 	patch := client.MergeFrom(mariadb.DeepCopy())
 
 	if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas < sts.Status.Replicas {
-		mariadb.Status.SetCondition(metav1.Condition{
+		mariadb.Status.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionFalse,
 			Reason:  databasev1alpha1.ConditionReasonStatefulSetNotReady,
 			Message: "Not ready",
 		})
 	} else if sts.Status.ReadyReplicas == sts.Status.Replicas {
-		mariadb.Status.SetCondition(metav1.Condition{
+		mariadb.Status.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionTrue,
 			Reason:  databasev1alpha1.ConditionReasonStatefulSetReady,
 			Message: "Running",
 		})
 	} else {
-		mariadb.Status.SetCondition(metav1.Condition{
+		mariadb.Status.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionFalse,
 			Reason:  databasev1alpha1.ConditionReasonStatefulUnknownState,

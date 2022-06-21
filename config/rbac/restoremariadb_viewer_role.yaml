@@ -1,0 +1,20 @@
+# permissions for end users to view restoremariadbs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: restoremariadb-viewer-role
+rules:
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - restoremariadbs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - restoremariadbs/status
+  verbs:
+  - get
