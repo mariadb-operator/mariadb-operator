@@ -5,16 +5,16 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: backupmariadbs.database.mmontes.io
+  name: restoremariadbs.database.mmontes.io
 spec:
   group: database.mmontes.io
   names:
-    kind: BackupMariaDB
-    listKind: BackupMariaDBList
-    plural: backupmariadbs
+    kind: RestoreMariaDB
+    listKind: RestoreMariaDBList
+    plural: restoremariadbs
     shortNames:
-    - bmdb
-    singular: backupmariadb
+    - rmdb
+    singular: restoremariadb
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -27,8 +27,8 @@ spec:
     - jsonPath: .spec.mariaDbRef.name
       name: MariaDB
       type: string
-    - jsonPath: .spec.storage.className
-      name: Storage Class
+    - jsonPath: .spec.backupMariaDbRef.name
+      name: Backup
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -36,7 +36,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: BackupMariaDB is the Schema for the backupmariadbs API
+        description: RestoreMariaDB is the Schema for the restoremariadbs API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -51,12 +51,21 @@ spec:
           metadata:
             type: object
           spec:
-            description: BackupMariaDBSpec defines the desired state of BackupMariaDB
+            description: RestoreMariaDBSpec defines the desired state of RestoreMariaDB
             properties:
               backoffLimit:
                 default: 3
                 format: int32
                 type: integer
+              backupMariaDbRef:
+                description: LocalObjectReference contains enough information to let
+                  you locate the referenced object inside the same namespace.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
               mariaDbRef:
                 description: LocalObjectReference contains enough information to let
                   you locate the referenced object inside the same namespace.
@@ -99,32 +108,12 @@ spec:
                   none of the following policies is specified, the default one is
                   RestartPolicyAlways.
                 type: string
-              storage:
-                properties:
-                  accessModes:
-                    default:
-                    - ReadWriteOnce
-                    items:
-                      type: string
-                    type: array
-                  className:
-                    type: string
-                  size:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                required:
-                - className
-                - size
-                type: object
             required:
+            - backupMariaDbRef
             - mariaDbRef
-            - storage
             type: object
           status:
-            description: BackupMariaDBStatus defines the observed state of BackupMariaDB
+            description: RestoreMariaDBStatus defines the observed state of RestoreMariaDB
             properties:
               conditions:
                 items:

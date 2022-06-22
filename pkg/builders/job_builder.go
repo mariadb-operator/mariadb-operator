@@ -19,27 +19,57 @@ var (
 	dumpFilePath = fmt.Sprintf("%s/backup.sql", jobStorageMountPath)
 )
 
-func BuildJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB) *batchv1.Job {
+func BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB) *batchv1.Job {
 	labels := NewLabelsBuilder().WithObjectMeta(backup.ObjectMeta).WithApp(app).Build()
+	meta := metav1.ObjectMeta{
+		Name:      backup.Name,
+		Namespace: backup.Namespace,
+		Labels:    labels,
+	}
+	volumes := buildJobVolumes(backup)
+	cmd := fmt.Sprintf(
+		"mysqldump -h %s -P %d --lock-tables --all-databases > %s",
+		mariadb.Name,
+		mariadb.Spec.Port,
+		dumpFilePath,
+	)
+	containers := builJobContainers(mariadb, backup, cmd, backup.Spec.Resources)
 
+	return buildJob(meta, volumes, containers, &backup.Spec.BackoffLimit, backup.Spec.RestartPolicy)
+}
+
+func BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB,
+	mariadb *databasev1alpha1.MariaDB, backup *databasev1alpha1.BackupMariaDB) *batchv1.Job {
+	labels := NewLabelsBuilder().WithObjectMeta(restore.ObjectMeta).WithApp(app).Build()
+	meta := metav1.ObjectMeta{
+		Name:      restore.Name,
+		Namespace: restore.Namespace,
+		Labels:    labels,
+	}
+	volumes := buildJobVolumes(backup)
+	cmd := fmt.Sprintf(
+		"mysql -h %s -P %d < %s",
+		mariadb.Name,
+		mariadb.Spec.Port,
+		dumpFilePath,
+	)
+	containers := builJobContainers(mariadb, backup, cmd, restore.Spec.Resources)
+
+	return buildJob(meta, volumes, containers, &backup.Spec.BackoffLimit, backup.Spec.RestartPolicy)
+}
+
+func buildJob(meta metav1.ObjectMeta, volumes []corev1.Volume, containers []corev1.Container,
+	backoffLimit *int32, restartPolicy corev1.RestartPolicy) *batchv1.Job {
 	return &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      backup.Name,
-			Namespace: backup.Namespace,
-			Labels:    labels,
-		},
+		ObjectMeta: meta,
 		Spec: batchv1.JobSpec{
-			BackoffLimit: &backup.Spec.BackoffLimit,
+			BackoffLimit: backoffLimit,
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      backup.Name,
-					Namespace: backup.Namespace,
-					Labels:    labels,
-				},
+				ObjectMeta: meta,
 				Spec: corev1.PodSpec{
-					Volumes:       buildJobVolumes(backup),
-					Containers:    buildJobContainers(backup, mariadb),
-					RestartPolicy: backup.Spec.RestartPolicy,
+					Volumes:       volumes,
+					Containers:    containers,
+					RestartPolicy: restartPolicy,
 				},
 			},
 		},
@@ -59,18 +89,13 @@ func buildJobVolumes(backup *databasev1alpha1.BackupMariaDB) []corev1.Volume {
 	}
 }
 
-func buildJobContainers(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB) []corev1.Container {
+func builJobContainers(mariadb *databasev1alpha1.MariaDB, backup *databasev1alpha1.BackupMariaDB,
+	cmd string, resources *corev1.ResourceRequirements) []corev1.Container {
 	image := fmt.Sprintf("%s:%s", mariadb.Spec.Image.Repository, mariadb.Spec.Image.Tag)
-	cmd := fmt.Sprintf(
-		"mysqldump -h %s -P %d --lock-tables --all-databases > %s",
-		mariadb.Name,
-		mariadb.Spec.Port,
-		dumpFilePath,
-	)
 
 	return []corev1.Container{
 		{
-			Name:            backup.Name,
+			Name:            mariadb.ObjectMeta.Name,
 			Image:           image,
 			ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
 			Command:         []string{"sh", "-c"},
@@ -82,7 +107,7 @@ func buildJobContainers(backup *databasev1alpha1.BackupMariaDB, mariadb *databas
 					MountPath: jobStorageMountPath,
 				},
 			},
-			Resources: *backup.Spec.Resources,
+			Resources: *resources,
 		},
 	}
 }

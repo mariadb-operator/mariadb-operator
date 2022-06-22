@@ -24,13 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	ConditionTypeReady                  string = "Ready"
-	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
-	ConditionReasonStatefulSetReady     string = "StatefulSetReady"
-	ConditionReasonStatefulUnknownState string = "StatefulSetUnknownState"
-)
-
 type Image struct {
 	// +kubebuilder:validation:Required
 	Repository string `json:"repository"`

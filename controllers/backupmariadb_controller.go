@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +32,7 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
+	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 )
 
 // BackupMariaDBReconciler reconciles a BackupMariaDB object
@@ -101,54 +101,22 @@ func (r *BackupMariaDBReconciler) createPVC(ctx context.Context, backup *databas
 
 func (r *BackupMariaDBReconciler) createJob(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
 	mariadb *databasev1alpha1.MariaDB) error {
-	job := builders.BuildJob(backup, mariadb)
+	job := builders.BuildBackupJob(backup, mariadb)
 
 	if err := controllerutil.SetControllerReference(backup, job, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
 
 	if err := r.Create(ctx, job); err != nil {
-		return fmt.Errorf("error creating PVC on API server: %v", err)
+		return fmt.Errorf("error creating Job on API server: %v", err)
 	}
 	return nil
 }
 
 func (r *BackupMariaDBReconciler) patchBackupStatus(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
 	job *batchv1.Job) error {
-	jobConditionType := getJobConditionType(job)
 	patch := client.MergeFrom(backup.DeepCopy())
-
-	switch jobConditionType {
-	case batchv1.JobFailed:
-		backup.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
-			Status:  metav1.ConditionTrue,
-			Reason:  databasev1alpha1.ConditionReasonJobFailed,
-			Message: "Failed",
-		})
-	case batchv1.JobComplete:
-		backup.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
-			Status:  metav1.ConditionTrue,
-			Reason:  databasev1alpha1.ConditionReasonJobComplete,
-			Message: "Success",
-		})
-	case batchv1.JobSuspended:
-		backup.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
-			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonJobSuspended,
-			Message: "Suspended",
-		})
-	default:
-		backup.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
-			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonJobRunning,
-			Message: "Running",
-		})
-	}
-
+	conditions.AddConditionComplete(&backup.Status, job)
 	return r.Client.Status().Patch(ctx, backup, patch)
 }
 
@@ -163,16 +131,6 @@ func (r *BackupMariaDBReconciler) getMariaDB(ctx context.Context,
 		return nil, fmt.Errorf("error getting MariaDB on API server: %v", err)
 	}
 	return &mariadb, nil
-}
-
-func getJobConditionType(job *batchv1.Job) batchv1.JobConditionType {
-	for _, c := range job.Status.Conditions {
-		if c.Status == corev1.ConditionFalse {
-			continue
-		}
-		return c.Type
-	}
-	return ""
 }
 
 // SetupWithManager sets up the controller with the Manager.

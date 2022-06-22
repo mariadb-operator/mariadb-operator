@@ -22,14 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	ConditionTypeComplete       string = "Complete"
-	ConditionReasonJobComplete  string = "JobComplete"
-	ConditionReasonJobSuspended string = "JobSuspended"
-	ConditionReasonJobFailed    string = "JobFailed"
-	ConditionReasonJobRunning   string = "JobRunning"
-)
-
 // BackupMariaDBSpec defines the desired state of BackupMariaDB
 type BackupMariaDBSpec struct {
 	// +kubebuilder:validation:Required
@@ -61,6 +53,7 @@ func (b *BackupMariaDBStatus) AddCondition(condition metav1.Condition) {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Complete",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].message"
+// +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Storage Class",type="string",JSONPath=".spec.storage.className"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 

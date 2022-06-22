@@ -30,7 +30,7 @@ type RestoreMariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
 	// +kubebuilder:validation:Required
-	BackupMariaDBRef corev1.LocalObjectReference `json:"backupMariaDBRef"`
+	BackupMariaDBRef corev1.LocalObjectReference `json:"backupMariaDbRef"`
 	// +kubebuilder:default=3
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=OnFailure
@@ -51,8 +51,14 @@ func (r *RestoreMariaDBStatus) AddCondition(condition metav1.Condition) {
 	meta.SetStatusCondition(&r.Conditions, condition)
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:shortName=rmdb
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Complete",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].status"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].message"
+// +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
+// +kubebuilder:printcolumn:name="Backup",type="string",JSONPath=".spec.backupMariaDbRef.name"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // RestoreMariaDB is the Schema for the restoremariadbs API
 type RestoreMariaDB struct {
@@ -63,7 +69,7 @@ type RestoreMariaDB struct {
 	Status RestoreMariaDBStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // RestoreMariaDBList contains a list of RestoreMariaDB
 type RestoreMariaDBList struct {

@@ -1,6 +1,16 @@
 apiVersion: database.mmontes.io/v1alpha1
 kind: RestoreMariaDB
 metadata:
-  name: restoremariadb-sample
+  name: restore
 spec:
-  # TODO(user): Add fields here
+  mariaDbRef:
+    name: mariadb
+  backupMariaDbRef:
+    name: backup
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi

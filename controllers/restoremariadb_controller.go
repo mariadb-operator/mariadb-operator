@@ -26,8 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/builders"
+	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 )
 
 // RestoreMariaDBReconciler reconciles a RestoreMariaDB object
@@ -75,11 +78,24 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
+	if err := r.patchRestoreStatus(ctx, &restore, &job); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching RestoreMariaDB status: %v", err)
+	}
+
 	return ctrl.Result{}, nil
 }
 
 func (r *RestoreMariaDBReconciler) createJob(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
 	mariadb *databasev1alpha1.MariaDB, backup *databasev1alpha1.BackupMariaDB) error {
+	job := builders.BuildRestoreJob(restore, mariadb, backup)
+
+	if err := controllerutil.SetControllerReference(restore, job, r.Scheme); err != nil {
+		return fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+
+	if err := r.Create(ctx, job); err != nil {
+		return fmt.Errorf("error creating Job on API server: %v", err)
+	}
 	return nil
 }
 
@@ -107,6 +123,13 @@ func (r *RestoreMariaDBReconciler) getBackup(ctx context.Context,
 		return nil, fmt.Errorf("error getting BackupMariaDB on API server: %v", err)
 	}
 	return &backup, nil
+}
+
+func (r *RestoreMariaDBReconciler) patchRestoreStatus(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
+	job *batchv1.Job) error {
+	patch := client.MergeFrom(restore.DeepCopy())
+	conditions.AddConditionComplete(&restore.Status, job)
+	return r.Client.Status().Patch(ctx, restore, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.
