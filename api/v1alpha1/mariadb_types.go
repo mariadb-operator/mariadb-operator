@@ -42,6 +42,11 @@ type Storage struct {
 	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
 }
 
+type BootstrapFromBackup struct {
+	// +kubebuilder:validation:Required
+	BackupRef corev1.LocalObjectReference `json:"backupRef"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// +kubebuilder:validation:Required
@@ -60,6 +65,8 @@ type MariaDBSpec struct {
 
 	// +kubebuilder:validation:Required
 	Storage Storage `json:"storage"`
+
+	BootstrapFromBackup *BootstrapFromBackup `json:"bootstrapFromBackup,omitempty"`
 
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
@@ -94,6 +101,14 @@ type MariaDB struct {
 
 	Spec   MariaDBSpec   `json:"spec"`
 	Status MariaDBStatus `json:"status,omitempty"`
+}
+
+func (m *MariaDB) IsReady() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+}
+
+func (m *MariaDB) IsBootstrapped() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBootstrapped)
 }
 
 // +kubebuilder:object:root=true

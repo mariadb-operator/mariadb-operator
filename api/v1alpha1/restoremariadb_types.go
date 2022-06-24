@@ -69,6 +69,10 @@ type RestoreMariaDB struct {
 	Status RestoreMariaDBStatus `json:"status,omitempty"`
 }
 
+func (r *RestoreMariaDB) IsComplete() bool {
+	return meta.IsStatusConditionTrue(r.Status.Conditions, ConditionTypeComplete)
+}
+
 // +kubebuilder:object:root=true
 
 // RestoreMariaDBList contains a list of RestoreMariaDB

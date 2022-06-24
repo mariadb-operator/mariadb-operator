@@ -93,23 +93,25 @@ func builJobContainers(mariadb *databasev1alpha1.MariaDB, backup *databasev1alph
 	cmd string, resources *corev1.ResourceRequirements) []corev1.Container {
 	image := fmt.Sprintf("%s:%s", mariadb.Spec.Image.Repository, mariadb.Spec.Image.Tag)
 
-	return []corev1.Container{
-		{
-			Name:            mariadb.ObjectMeta.Name,
-			Image:           image,
-			ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
-			Command:         []string{"sh", "-c"},
-			Args:            []string{cmd},
-			Env:             builJobEnv(mariadb),
-			VolumeMounts: []corev1.VolumeMount{
-				{
-					Name:      jobStorageVolume,
-					MountPath: jobStorageMountPath,
-				},
+	container := corev1.Container{
+		Name:            mariadb.ObjectMeta.Name,
+		Image:           image,
+		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
+		Command:         []string{"sh", "-c"},
+		Args:            []string{cmd},
+		Env:             builJobEnv(mariadb),
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      jobStorageVolume,
+				MountPath: jobStorageMountPath,
 			},
-			Resources: *resources,
 		},
 	}
+	if resources != nil {
+		container.Resources = *resources
+	}
+
+	return []corev1.Container{container}
 }
 
 func builJobEnv(mariadb *databasev1alpha1.MariaDB) []v1.EnvVar {
