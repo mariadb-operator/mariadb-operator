@@ -7,35 +7,35 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type JobConditioner interface {
+type Conditioner interface {
 	AddCondition(condition metav1.Condition)
 }
 
-func AddConditionComplete(jb JobConditioner, job *batchv1.Job) {
+func AddConditionComplete(c Conditioner, job *batchv1.Job) {
 	switch getJobConditionType(job) {
 	case batchv1.JobFailed:
-		jb.AddCondition(metav1.Condition{
+		c.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionTrue,
 			Reason:  databasev1alpha1.ConditionReasonJobFailed,
 			Message: "Failed",
 		})
 	case batchv1.JobComplete:
-		jb.AddCondition(metav1.Condition{
+		c.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionTrue,
 			Reason:  databasev1alpha1.ConditionReasonJobComplete,
 			Message: "Success",
 		})
 	case batchv1.JobSuspended:
-		jb.AddCondition(metav1.Condition{
+		c.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionFalse,
 			Reason:  databasev1alpha1.ConditionReasonJobSuspended,
 			Message: "Suspended",
 		})
 	default:
-		jb.AddCondition(metav1.Condition{
+		c.AddCondition(metav1.Condition{
 			Type:    databasev1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionFalse,
 			Reason:  databasev1alpha1.ConditionReasonJobRunning,
