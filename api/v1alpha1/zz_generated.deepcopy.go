@@ -346,7 +346,7 @@ func (in *RestoreMariaDBList) DeepCopyObject() runtime.Object {
 func (in *RestoreMariaDBSpec) DeepCopyInto(out *RestoreMariaDBSpec) {
 	*out = *in
 	out.MariaDBRef = in.MariaDBRef
-	out.BackupMariaDBRef = in.BackupMariaDBRef
+	out.BackupRef = in.BackupRef
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
 		*out = new(v1.ResourceRequirements)

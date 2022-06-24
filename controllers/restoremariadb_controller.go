@@ -116,7 +116,7 @@ func (r *RestoreMariaDBReconciler) getBackup(ctx context.Context,
 	restore *databasev1alpha1.RestoreMariaDB) (*databasev1alpha1.BackupMariaDB, error) {
 	var backup databasev1alpha1.BackupMariaDB
 	nn := types.NamespacedName{
-		Name:      restore.Spec.BackupMariaDBRef.Name,
+		Name:      restore.Spec.BackupRef.Name,
 		Namespace: restore.Namespace,
 	}
 	if err := r.Get(ctx, nn, &backup); err != nil {

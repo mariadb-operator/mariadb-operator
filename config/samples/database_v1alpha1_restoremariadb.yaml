@@ -5,7 +5,7 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  backupMariaDbRef:
+  backupRef:
     name: backup
   resources:
     requests:

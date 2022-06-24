@@ -27,7 +27,7 @@ spec:
     - jsonPath: .spec.mariaDbRef.name
       name: MariaDB
       type: string
-    - jsonPath: .spec.backupMariaDbRef.name
+    - jsonPath: .spec.backupRef.name
       name: Backup
       type: string
     - jsonPath: .metadata.creationTimestamp
@@ -57,7 +57,7 @@ spec:
                 default: 3
                 format: int32
                 type: integer
-              backupMariaDbRef:
+              backupRef:
                 description: LocalObjectReference contains enough information to let
                   you locate the referenced object inside the same namespace.
                 properties:
@@ -109,7 +109,7 @@ spec:
                   RestartPolicyAlways.
                 type: string
             required:
-            - backupMariaDbRef
+            - backupRef
             - mariaDbRef
             type: object
           status:
