@@ -31,7 +31,7 @@ type RestoreMariaDBSpec struct {
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
 	// +kubebuilder:validation:Required
 	BackupRef corev1.LocalObjectReference `json:"backupRef"`
-	// +kubebuilder:default=3
+	// +kubebuilder:default=5
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=OnFailure
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty"`

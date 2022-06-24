@@ -54,7 +54,7 @@ spec:
             description: RestoreMariaDBSpec defines the desired state of RestoreMariaDB
             properties:
               backoffLimit:
-                default: 3
+                default: 5
                 format: int32
                 type: integer
               backupRef:
