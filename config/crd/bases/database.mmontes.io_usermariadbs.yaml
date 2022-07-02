@@ -50,7 +50,20 @@ spec:
           spec:
             description: UserMariaDBSpec defines the desired state of UserMariaDB
             properties:
-              identifiedBySecretKeyRef:
+              mariaDbRef:
+                description: LocalObjectReference contains enough information to let
+                  you locate the referenced object inside the same namespace.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+              maxUserConnections:
+                default: 10
+                format: int32
+                type: integer
+              passwordSecretKeyRef:
                 description: SecretKeySelector selects a key of a Secret.
                 properties:
                   key:
@@ -67,22 +80,9 @@ spec:
                 required:
                 - key
                 type: object
-              mariaDbRef:
-                description: LocalObjectReference contains enough information to let
-                  you locate the referenced object inside the same namespace.
-                properties:
-                  name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Add other useful fields. apiVersion, kind, uid?'
-                    type: string
-                type: object
-              maxUserConnections:
-                default: 10
-                format: int32
-                type: integer
             required:
-            - identifiedBySecretKeyRef
             - mariaDbRef
+            - passwordSecretKeyRef
             type: object
           status:
             description: UserMariaDBStatus defines the observed state of UserMariaDB

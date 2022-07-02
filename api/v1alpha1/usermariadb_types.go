@@ -30,7 +30,7 @@ type UserMariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
 	// +kubebuilder:validation:Required
-	IdentifiedBySecretKeyRef corev1.SecretKeySelector `json:"identifiedBySecretKeyRef"`
+	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef"`
 	// +kubebuilder:default=10
 	MaxUserConnections int32 `json:"maxUserConnections,omitempty"`
 }

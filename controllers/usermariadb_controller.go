@@ -59,6 +59,10 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 	defer client.Close()
 
+	if err := r.createUser(ctx, &user, client); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating UserMariaDB: %v", err)
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -74,6 +78,19 @@ func (r *UserMariaDBReconciler) getMariaDbClient(ctx context.Context, mariadb *d
 		Port:     mariadb.Spec.Port,
 	}
 	return mariadbclient.New(opts)
+}
+
+func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1alpha1.UserMariaDB,
+	client *mariadbclient.MariaDB) error {
+	password, err := r.RefResolver.ReadSecretKeyRef(ctx, user.Spec.PasswordSecretKeyRef, user.Namespace)
+	if err != nil {
+		return fmt.Errorf("error reading user password secret: %v", err)
+	}
+	opts := mariadbclient.CreateUserOpts{
+		Password:           password,
+		MaxUserConnections: user.Spec.MaxUserConnections,
+	}
+	return client.CreateUser(ctx, user.Name, opts)
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -5,7 +5,7 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  identifiedBySecretKeyRef:
+  passwordSecretKeyRef:
     name: exporter
     key: password
   maxUserConnections: 20

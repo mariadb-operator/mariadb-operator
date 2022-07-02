@@ -1,6 +1,7 @@
 package mariadb
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -43,6 +44,26 @@ func New(opts Opts) (*MariaDB, error) {
 
 func (m *MariaDB) Close() error {
 	return m.db.Close()
+}
+
+type CreateUserOpts struct {
+	Password           string
+	MaxUserConnections int32
+}
+
+func (m *MariaDB) CreateUser(ctx context.Context, username string, opts CreateUserOpts) error {
+	query := fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' ", username, "%")
+	if opts.Password != "" {
+		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.Password)
+	}
+	if opts.MaxUserConnections != 0 {
+		query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", opts.MaxUserConnections)
+	}
+	query += ";"
+
+	_, err := m.db.ExecContext(ctx, query)
+
+	return err
 }
 
 func buildDSN(opts Opts) (string, error) {
