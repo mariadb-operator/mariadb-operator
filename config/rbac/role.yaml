@@ -83,3 +83,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - usermariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - usermariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - usermariadbs/status
+  verbs:
+  - get
+  - patch
+  - update

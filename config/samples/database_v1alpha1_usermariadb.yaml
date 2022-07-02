@@ -1,0 +1,11 @@
+apiVersion: database.mmontes.io/v1alpha1
+kind: UserMariaDB
+metadata:
+  name: exporter
+spec:
+  mariaDbRef:
+    name: mariadb
+  identifiedBySecretKeyRef:
+    name: exporter
+    key: password
+  maxUserConnections: 20
