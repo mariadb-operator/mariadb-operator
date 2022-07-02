@@ -24,9 +24,6 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].message
       name: Status
       type: string
-    - jsonPath: .spec.username
-      name: Username
-      type: string
     - jsonPath: .spec.maxUserConnections
       name: MaxConnections
       type: string

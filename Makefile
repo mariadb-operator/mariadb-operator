@@ -26,12 +26,25 @@ help: ## Display this help.
 CLUSTER ?= maria
 KIND_IMAGE ?= kindest/node:v1.22.9
 .PHONY: cluster
-cluster: kind ### Create the kind cluster.
+cluster: kind ## Create the kind cluster.
 	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)
 
 .PHONY: cluster-delete
-cluster-delete: kind ### Delete the kind cluster.
+cluster-delete: kind ## Delete the kind cluster.
 	$(KIND) delete cluster --name $(CLUSTER)
+
+MARIADB_IP ?= 127.0.0.1
+MARIADB_HOST ?= mariadb
+.PHONY: add-host 
+mdb-add-host: ## Add mariadb host to /etc/hosts.
+	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_HOST)
+
+MARIADB_NAMESPACE ?= default
+MARIADB_POD ?= mariadb-0
+MARIADB_PORT ?= 3306
+.PHONY: port-forward 
+mdb-port-forward: ## Port forward mariadb pod.
+	@kubectl port-forward -n $(MARIADB_NAMESPACE) $(MARIADB_POD) $(MARIADB_PORT)
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -42,7 +55,7 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: lint
-lint: golangci-lint ### Lint.
+lint: golangci-lint ## Lint.
 	$(GOLANGCI_LINT) run
 
 .PHONY: test
@@ -50,7 +63,7 @@ test: manifests generate envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
 .PHONY: cover
-cover: test ### Run tests and generate coverage.
+cover: test ## Run tests and generate coverage.
 	@go tool cover -html=cover.out -o=cover.html
 
 ##@ Build

@@ -18,12 +18,14 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 )
 
@@ -46,7 +48,32 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	mariadb, err := r.RefResolver.GetMariaDB(ctx, user.Spec.MariaDBRef, user.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
+	}
+
+	client, err := r.getMariaDbClient(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB client: %v", err)
+	}
+	defer client.Close()
+
 	return ctrl.Result{}, nil
+}
+
+func (r *UserMariaDBReconciler) getMariaDbClient(ctx context.Context, mariadb *databasev1alpha1.MariaDB) (*mariadbclient.MariaDB, error) {
+	password, err := r.RefResolver.ReadSecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef, mariadb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error reading root password secret: %v", err)
+	}
+	opts := mariadbclient.Opts{
+		Username: "root",
+		Password: password,
+		Host:     mariadb.Name,
+		Port:     mariadb.Spec.Port,
+	}
+	return mariadbclient.New(opts)
 }
 
 // SetupWithManager sets up the controller with the Manager.
