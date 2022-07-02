@@ -23,7 +23,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -31,12 +30,14 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
+	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 )
 
 // RestoreMariaDBReconciler reconciles a RestoreMariaDB object
 type RestoreMariaDBReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme      *runtime.Scheme
+	RefResolver *refresolver.RefResolver
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=restoremariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -64,11 +65,11 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, fmt.Errorf("error getting Job: %v", err)
 		}
 
-		mariadb, err := r.getMariaDB(ctx, &restore)
+		mariadb, err := r.RefResolver.GetMariaDB(ctx, restore.Spec.MariaDBRef, restore.Namespace)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
 		}
-		backup, err := r.getBackup(ctx, &restore)
+		backup, err := r.RefResolver.GetBackupMariaDB(ctx, restore.Spec.BackupRef, restore.Namespace)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error getting BackupMariaDB: %v", err)
 		}
@@ -97,32 +98,6 @@ func (r *RestoreMariaDBReconciler) createJob(ctx context.Context, restore *datab
 		return fmt.Errorf("error creating Job on API server: %v", err)
 	}
 	return nil
-}
-
-func (r *RestoreMariaDBReconciler) getMariaDB(ctx context.Context,
-	restore *databasev1alpha1.RestoreMariaDB) (*databasev1alpha1.MariaDB, error) {
-	var mariadb databasev1alpha1.MariaDB
-	nn := types.NamespacedName{
-		Name:      restore.Spec.MariaDBRef.Name,
-		Namespace: restore.Namespace,
-	}
-	if err := r.Get(ctx, nn, &mariadb); err != nil {
-		return nil, fmt.Errorf("error getting MariaDB on API server: %v", err)
-	}
-	return &mariadb, nil
-}
-
-func (r *RestoreMariaDBReconciler) getBackup(ctx context.Context,
-	restore *databasev1alpha1.RestoreMariaDB) (*databasev1alpha1.BackupMariaDB, error) {
-	var backup databasev1alpha1.BackupMariaDB
-	nn := types.NamespacedName{
-		Name:      restore.Spec.BackupRef.Name,
-		Namespace: restore.Namespace,
-	}
-	if err := r.Get(ctx, nn, &backup); err != nil {
-		return nil, fmt.Errorf("error getting BackupMariaDB on API server: %v", err)
-	}
-	return &backup, nil
 }
 
 func (r *RestoreMariaDBReconciler) patchRestoreStatus(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,

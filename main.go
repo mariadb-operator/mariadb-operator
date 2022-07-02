@@ -33,6 +33,7 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/controllers"
+	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -78,6 +79,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	refResolver := refresolver.New(mgr.GetClient())
+
 	if err = (&controllers.MariaDBReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -86,22 +89,25 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.BackupMariaDBReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		RefResolver: refResolver,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BackupMariaDB")
 		os.Exit(1)
 	}
 	if err = (&controllers.RestoreMariaDBReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		RefResolver: refResolver,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RestoreMariaDB")
 		os.Exit(1)
 	}
 	if err = (&controllers.UserMariaDBReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		RefResolver: refResolver,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "UserMariaDB")
 		os.Exit(1)

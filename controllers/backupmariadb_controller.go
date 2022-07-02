@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,12 +32,14 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
+	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 )
 
 // BackupMariaDBReconciler reconciles a BackupMariaDB object
 type BackupMariaDBReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme      *runtime.Scheme
+	RefResolver *refresolver.RefResolver
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=backupmariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -70,7 +71,7 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, fmt.Errorf("error getting Job: %v", err)
 		}
 
-		mariadb, err := r.getMariaDB(ctx, &backup)
+		mariadb, err := r.RefResolver.GetMariaDB(ctx, backup.Spec.MariaDBRef, backup.Namespace)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
 		}
@@ -118,19 +119,6 @@ func (r *BackupMariaDBReconciler) patchBackupStatus(ctx context.Context, backup 
 	patch := client.MergeFrom(backup.DeepCopy())
 	conditions.AddConditionComplete(&backup.Status, job)
 	return r.Client.Status().Patch(ctx, backup, patch)
-}
-
-func (r *BackupMariaDBReconciler) getMariaDB(ctx context.Context,
-	backup *databasev1alpha1.BackupMariaDB) (*databasev1alpha1.MariaDB, error) {
-	var mariadb databasev1alpha1.MariaDB
-	nn := types.NamespacedName{
-		Name:      backup.Spec.MariaDBRef.Name,
-		Namespace: backup.Namespace,
-	}
-	if err := r.Get(ctx, nn, &mariadb); err != nil {
-		return nil, fmt.Errorf("error getting MariaDB on API server: %v", err)
-	}
-	return &mariadb, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
