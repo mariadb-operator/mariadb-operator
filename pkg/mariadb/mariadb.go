@@ -42,8 +42,8 @@ func NewClient(opts Opts) (*Client, error) {
 	}, nil
 }
 
-func (m *Client) Close() error {
-	return m.db.Close()
+func (c *Client) Close() error {
+	return c.db.Close()
 }
 
 type CreateUserOpts struct {
@@ -51,7 +51,7 @@ type CreateUserOpts struct {
 	MaxUserConnections int32
 }
 
-func (m *Client) CreateUser(ctx context.Context, username string, opts CreateUserOpts) error {
+func (c *Client) CreateUser(ctx context.Context, username string, opts CreateUserOpts) error {
 	query := fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' ", username, "%")
 	if opts.IdentifiedBy != "" {
 		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
@@ -61,7 +61,7 @@ func (m *Client) CreateUser(ctx context.Context, username string, opts CreateUse
 	}
 	query += ";"
 
-	_, err := m.db.ExecContext(ctx, query)
+	_, err := c.db.ExecContext(ctx, query)
 	return err
 }
 
@@ -80,7 +80,7 @@ type GrantOpts struct {
 	GrantOption bool
 }
 
-func (m *Client) Grant(ctx context.Context, opts GrantOpts) error {
+func (c *Client) Grant(ctx context.Context, opts GrantOpts) error {
 	query := fmt.Sprintf("GRANT %s ON %s.%s TO '%s'@'%s' ",
 		strings.Join(opts.Privileges, ","),
 		opts.Database,
@@ -93,7 +93,25 @@ func (m *Client) Grant(ctx context.Context, opts GrantOpts) error {
 	}
 	query += ";"
 
-	_, err := m.db.ExecContext(ctx, query)
+	_, err := c.db.ExecContext(ctx, query)
+	return err
+}
+
+func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
+	privileges := []string{}
+	privileges = append(privileges, opts.Privileges...)
+	if opts.GrantOption {
+		privileges = append(privileges, "GRANT OPTION")
+	}
+	query := fmt.Sprintf("REVOKE %s ON %s.%s FROM '%s'@'%s';",
+		strings.Join(privileges, ","),
+		opts.Database,
+		opts.Table,
+		opts.Username,
+		"%",
+	)
+
+	_, err := c.db.ExecContext(ctx, query)
 	return err
 }
 

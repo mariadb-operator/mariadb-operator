@@ -49,6 +49,8 @@ type UserMariaDBReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+// TODO: migrate to Go 1.18 and create a generic reconciler for this
+// nolint
 func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var user databasev1alpha1.UserMariaDB
 	if err := r.Get(ctx, req.NamespacedName, &user); err != nil {
@@ -73,7 +75,7 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.addFinalizer(ctx, &user); err != nil {
+	if err := r.addUserFinalizer(ctx, &user); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error adding finalizer to UserMariaDB: %v", err)
 	}
 
@@ -107,7 +109,7 @@ func (r *UserMariaDBReconciler) patchUserStatus(ctx context.Context, user *datab
 	return r.Client.Status().Patch(ctx, user, patch)
 }
 
-func (r *UserMariaDBReconciler) addFinalizer(ctx context.Context, user *databasev1alpha1.UserMariaDB) error {
+func (r *UserMariaDBReconciler) addUserFinalizer(ctx context.Context, user *databasev1alpha1.UserMariaDB) error {
 	if controllerutil.ContainsFinalizer(user, userFinalizerName) {
 		return nil
 	}
@@ -123,7 +125,7 @@ func (r *UserMariaDBReconciler) finalizeUser(ctx context.Context, user *database
 	}
 
 	if err := mdbClient.DropUser(ctx, user.Name); err != nil {
-		return fmt.Errorf("error droping user in MariaDB: %v", err)
+		return fmt.Errorf("error dropping user in MariaDB: %v", err)
 	}
 
 	patch := ctrlClient.MergeFrom(user.DeepCopy())

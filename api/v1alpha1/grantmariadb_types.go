@@ -71,6 +71,10 @@ type GrantMariaDB struct {
 	Status GrantMariaDBStatus `json:"status,omitempty"`
 }
 
+func (g *GrantMariaDB) IsBeingDeleted() bool {
+	return !g.DeletionTimestamp.IsZero()
+}
+
 //+kubebuilder:object:root=true
 
 // GrantMariaDBList contains a list of GrantMariaDB
