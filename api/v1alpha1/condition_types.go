@@ -8,6 +8,8 @@ const (
 	ConditionReasonStatefulUnknownState string = "StatefulSetUnknownState"
 	ConditionReasonRestoreNotComplete   string = "RestoreNotComplete"
 	ConditionReasonRestoreComplete      string = "RestoreComplete"
+	ConditionReasonCreated              string = "Created"
+	ConditionReasonFailed               string = "Failed"
 )
 
 const (

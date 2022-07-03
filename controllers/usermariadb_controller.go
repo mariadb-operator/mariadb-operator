@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,7 +60,11 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 	defer client.Close()
 
-	if err := r.createUser(ctx, &user, client); err != nil {
+	err = r.createUser(ctx, &user, client)
+	if patchErr := r.patchUserStatus(ctx, &user, err); patchErr != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching UserMariaDB status: %v", err)
+	}
+	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating UserMariaDB: %v", err)
 	}
 
@@ -91,6 +96,29 @@ func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1
 		MaxUserConnections: user.Spec.MaxUserConnections,
 	}
 	return client.CreateUser(ctx, user.Name, opts)
+}
+
+func (r *UserMariaDBReconciler) patchUserStatus(ctx context.Context, user *databasev1alpha1.UserMariaDB,
+	err error) error {
+	patch := client.MergeFrom(user.DeepCopy())
+
+	if err == nil {
+		user.Status.AddCondition(metav1.Condition{
+			Type:    databasev1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionTrue,
+			Reason:  databasev1alpha1.ConditionReasonCreated,
+			Message: "Created",
+		})
+	} else {
+		user.Status.AddCondition(metav1.Condition{
+			Type:    databasev1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  databasev1alpha1.ConditionReasonFailed,
+			Message: "Failed",
+		})
+	}
+
+	return r.Client.Status().Patch(ctx, user, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.
