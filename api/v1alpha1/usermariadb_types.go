@@ -61,6 +61,10 @@ type UserMariaDB struct {
 	Status UserMariaDBStatus `json:"status,omitempty"`
 }
 
+func (u *UserMariaDB) IsBeingDeleted() bool {
+	return !u.DeletionTimestamp.IsZero()
+}
+
 // +kubebuilder:object:root=true
 
 // UserMariaDBList contains a list of UserMariaDB

@@ -66,6 +66,12 @@ func (m *Client) CreateUser(ctx context.Context, username string, opts CreateUse
 	return err
 }
 
+func (m *Client) DropUser(ctx context.Context, username string) error {
+	query := fmt.Sprintf("DROP USER IF EXISTS '%s';", username)
+	_, err := m.db.ExecContext(ctx, query)
+	return err
+}
+
 type GrantParams struct {
 	Privileges []string
 	Database   string

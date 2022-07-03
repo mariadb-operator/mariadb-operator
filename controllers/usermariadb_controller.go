@@ -23,11 +23,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
+)
+
+const (
+	userFinalizerName = "user.database.mmontes.io/finalizer"
 )
 
 // UserMariaDBReconciler reconciles a UserMariaDB object
@@ -46,7 +52,7 @@ type UserMariaDBReconciler struct {
 func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var user databasev1alpha1.UserMariaDB
 	if err := r.Get(ctx, req.NamespacedName, &user); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		return ctrl.Result{}, ctrlClient.IgnoreNotFound(err)
 	}
 
 	mariadb, err := r.RefResolver.GetMariaDB(ctx, user.Spec.MariaDBRef, user.Namespace)
@@ -54,13 +60,24 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
 	}
 
-	client, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
+	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB client: %v", err)
 	}
-	defer client.Close()
+	defer mdbClient.Close()
 
-	err = r.createUser(ctx, &user, client)
+	if user.IsBeingDeleted() {
+		if err := r.finalizeUser(ctx, &user, mdbClient); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error finalizing UserMariaDB: %v", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if err := r.addFinalizer(ctx, &user); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error adding finalizer to UserMariaDB: %v", err)
+	}
+
+	err = r.createUser(ctx, &user, mdbClient)
 	if patchErr := r.patchUserStatus(ctx, &user, err); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching UserMariaDB status: %v", err)
 	}
@@ -71,7 +88,7 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return ctrl.Result{}, nil
 }
 
-func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1alpha1.UserMariaDB, client *mariadbclient.Client) error {
+func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1alpha1.UserMariaDB, mdbClient *mariadbclient.Client) error {
 	password, err := r.RefResolver.ReadSecretKeyRef(ctx, user.Spec.PasswordSecretKeyRef, user.Namespace)
 	if err != nil {
 		return fmt.Errorf("error reading user password secret: %v", err)
@@ -80,7 +97,7 @@ func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1
 		IdentifiedBy:       password,
 		MaxUserConnections: user.Spec.MaxUserConnections,
 	}
-	return client.CreateUser(ctx, user.Name, opts)
+	return mdbClient.CreateUser(ctx, user.Name, opts)
 }
 
 func (r *UserMariaDBReconciler) patchUserStatus(ctx context.Context, user *databasev1alpha1.UserMariaDB,
@@ -88,6 +105,30 @@ func (r *UserMariaDBReconciler) patchUserStatus(ctx context.Context, user *datab
 	patch := client.MergeFrom(user.DeepCopy())
 	conditions.AddConditionReady(&user.Status, err)
 	return r.Client.Status().Patch(ctx, user, patch)
+}
+
+func (r *UserMariaDBReconciler) addFinalizer(ctx context.Context, user *databasev1alpha1.UserMariaDB) error {
+	if controllerutil.ContainsFinalizer(user, userFinalizerName) {
+		return nil
+	}
+	patch := ctrlClient.MergeFrom(user.DeepCopy())
+	controllerutil.AddFinalizer(user, userFinalizerName)
+	return r.Client.Patch(ctx, user, patch)
+}
+
+func (r *UserMariaDBReconciler) finalizeUser(ctx context.Context, user *databasev1alpha1.UserMariaDB,
+	mdbClient *mariadbclient.Client) error {
+	if !controllerutil.ContainsFinalizer(user, userFinalizerName) {
+		return nil
+	}
+
+	if err := mdbClient.DropUser(ctx, user.Name); err != nil {
+		return fmt.Errorf("error droping user in MariaDB: %v", err)
+	}
+
+	patch := ctrlClient.MergeFrom(user.DeepCopy())
+	controllerutil.RemoveFinalizer(user, userFinalizerName)
+	return r.Client.Patch(ctx, user, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.
