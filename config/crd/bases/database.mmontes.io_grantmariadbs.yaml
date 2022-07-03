@@ -5,16 +5,16 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: usermariadbs.database.mmontes.io
+  name: grantmariadbs.database.mmontes.io
 spec:
   group: database.mmontes.io
   names:
-    kind: UserMariaDB
-    listKind: UserMariaDBList
-    plural: usermariadbs
+    kind: GrantMariaDB
+    listKind: GrantMariaDBList
+    plural: grantmariadbs
     shortNames:
-    - umdb
-    singular: usermariadb
+    - gmdb
+    singular: grantmariadb
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -24,8 +24,17 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].message
       name: Status
       type: string
-    - jsonPath: .spec.maxUserConnections
-      name: MaxConns
+    - jsonPath: .spec.database
+      name: Database
+      type: string
+    - jsonPath: .spec.table
+      name: Table
+      type: string
+    - jsonPath: .spec.user.username
+      name: Username
+      type: string
+    - jsonPath: .spec.grantOption
+      name: GrantOpt
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -33,7 +42,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: UserMariaDB is the Schema for the usermariadbs API
+        description: GrantMariaDB is the Schema for the grantmariadbs API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -48,8 +57,14 @@ spec:
           metadata:
             type: object
           spec:
-            description: UserMariaDBSpec defines the desired state of UserMariaDB
+            description: GrantMariaDBSpec defines the desired state of GrantMariaDB
             properties:
+              database:
+                default: '*'
+                type: string
+              grantOption:
+                default: false
+                type: boolean
               mariaDbRef:
                 description: LocalObjectReference contains enough information to let
                   you locate the referenced object inside the same namespace.
@@ -63,29 +78,46 @@ spec:
                 default: 10
                 format: int32
                 type: integer
-              passwordSecretKeyRef:
-                description: SecretKeySelector selects a key of a Secret.
+              privileges:
+                items:
+                  type: string
+                minItems: 1
+                type: array
+              table:
+                default: '*'
+                type: string
+              user:
                 properties:
-                  key:
-                    description: The key of the secret to select from.  Must be a
-                      valid secret key.
+                  passwordSecretKeyRef:
+                    description: SecretKeySelector selects a key of a Secret.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                  username:
                     type: string
-                  name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Add other useful fields. apiVersion, kind, uid?'
-                    type: string
-                  optional:
-                    description: Specify whether the Secret or its key must be defined
-                    type: boolean
                 required:
-                - key
+                - username
                 type: object
             required:
             - mariaDbRef
-            - passwordSecretKeyRef
+            - privileges
+            - user
             type: object
           status:
-            description: UserMariaDBStatus defines the observed state of UserMariaDB
+            description: GrantMariaDBStatus defines the observed state of GrantMariaDB
             properties:
               conditions:
                 items:

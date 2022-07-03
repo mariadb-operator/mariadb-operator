@@ -37,11 +37,11 @@ type UserMariaDBStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-func (r *UserMariaDBStatus) AddCondition(condition metav1.Condition) {
-	if r.Conditions == nil {
-		r.Conditions = make([]metav1.Condition, 0)
+func (u *UserMariaDBStatus) AddCondition(condition metav1.Condition) {
+	if u.Conditions == nil {
+		u.Conditions = make([]metav1.Condition, 0)
 	}
-	meta.SetStatusCondition(&r.Conditions, condition)
+	meta.SetStatusCondition(&u.Conditions, condition)
 }
 
 // +kubebuilder:object:root=true
@@ -49,7 +49,7 @@ func (r *UserMariaDBStatus) AddCondition(condition metav1.Condition) {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
-// +kubebuilder:printcolumn:name="MaxConnections",type="string",JSONPath=".spec.maxUserConnections"
+// +kubebuilder:printcolumn:name="MaxConns",type="string",JSONPath=".spec.maxUserConnections"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // UserMariaDB is the Schema for the usermariadbs API

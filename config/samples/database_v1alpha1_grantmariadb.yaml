@@ -1,0 +1,20 @@
+apiVersion: database.mmontes.io/v1alpha1
+kind: GrantMariaDB
+metadata:
+  name: user
+spec:
+  mariaDbRef:
+    name: mariadb
+  privileges:
+    - "SELECT"
+    - "INSERT"
+    - "UPDATE"
+  database: "*"
+  table: "*"
+  user:
+    username: user
+    passwordSecretKeyRef:
+      name: user
+      key: password
+  grantOption: true
+  maxUserConnections: 20

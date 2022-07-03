@@ -20,12 +20,12 @@ import (
 	"context"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 )
@@ -54,7 +54,7 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
 	}
 
-	client, err := r.getMariaDbClient(ctx, mariadb)
+	client, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB client: %v", err)
 	}
@@ -71,28 +71,13 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return ctrl.Result{}, nil
 }
 
-func (r *UserMariaDBReconciler) getMariaDbClient(ctx context.Context, mariadb *databasev1alpha1.MariaDB) (*mariadbclient.MariaDB, error) {
-	password, err := r.RefResolver.ReadSecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef, mariadb.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error reading root password secret: %v", err)
-	}
-	opts := mariadbclient.Opts{
-		Username: "root",
-		Password: password,
-		Host:     mariadb.Name,
-		Port:     mariadb.Spec.Port,
-	}
-	return mariadbclient.New(opts)
-}
-
-func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1alpha1.UserMariaDB,
-	client *mariadbclient.MariaDB) error {
+func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1alpha1.UserMariaDB, client *mariadbclient.Client) error {
 	password, err := r.RefResolver.ReadSecretKeyRef(ctx, user.Spec.PasswordSecretKeyRef, user.Namespace)
 	if err != nil {
 		return fmt.Errorf("error reading user password secret: %v", err)
 	}
 	opts := mariadbclient.CreateUserOpts{
-		Password:           password,
+		IdentifiedBy:       password,
 		MaxUserConnections: user.Spec.MaxUserConnections,
 	}
 	return client.CreateUser(ctx, user.Name, opts)
@@ -101,23 +86,7 @@ func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1
 func (r *UserMariaDBReconciler) patchUserStatus(ctx context.Context, user *databasev1alpha1.UserMariaDB,
 	err error) error {
 	patch := client.MergeFrom(user.DeepCopy())
-
-	if err == nil {
-		user.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionTrue,
-			Reason:  databasev1alpha1.ConditionReasonCreated,
-			Message: "Created",
-		})
-	} else {
-		user.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonFailed,
-			Message: "Failed",
-		})
-	}
-
+	conditions.AddConditionReady(&user.Status, err)
 	return r.Client.Status().Patch(ctx, user, patch)
 }
 

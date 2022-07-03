@@ -11,6 +11,24 @@ type Conditioner interface {
 	AddCondition(condition metav1.Condition)
 }
 
+func AddConditionReady(c Conditioner, err error) {
+	if err == nil {
+		c.AddCondition(metav1.Condition{
+			Type:    databasev1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionTrue,
+			Reason:  databasev1alpha1.ConditionReasonCreated,
+			Message: "Created",
+		})
+	} else {
+		c.AddCondition(metav1.Condition{
+			Type:    databasev1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  databasev1alpha1.ConditionReasonFailed,
+			Message: "Failed",
+		})
+	}
+}
+
 func AddConditionComplete(c Conditioner, job *batchv1.Job) {
 	switch getJobConditionType(job) {
 	case batchv1.JobFailed:
