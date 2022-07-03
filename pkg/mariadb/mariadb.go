@@ -62,53 +62,38 @@ func (m *Client) CreateUser(ctx context.Context, username string, opts CreateUse
 	query += ";"
 
 	_, err := m.db.ExecContext(ctx, query)
-
 	return err
 }
 
 func (m *Client) DropUser(ctx context.Context, username string) error {
 	query := fmt.Sprintf("DROP USER IF EXISTS '%s';", username)
+
 	_, err := m.db.ExecContext(ctx, query)
 	return err
 }
 
-type GrantParams struct {
-	Privileges []string
-	Database   string
-	Table      string
-	Username   string
-}
-
 type GrantOpts struct {
-	IdentifiedBy       string
-	GrantOption        bool
-	MaxUserConnections int32
+	Privileges  []string
+	Database    string
+	Table       string
+	Username    string
+	GrantOption bool
 }
 
-func (m *Client) Grant(ctx context.Context, params GrantParams, opts GrantOpts) error {
+func (m *Client) Grant(ctx context.Context, opts GrantOpts) error {
 	query := fmt.Sprintf("GRANT %s ON %s.%s TO '%s'@'%s' ",
-		strings.Join(params.Privileges, ","),
-		params.Database,
-		params.Table,
-		params.Username,
+		strings.Join(opts.Privileges, ","),
+		opts.Database,
+		opts.Table,
+		opts.Username,
 		"%",
 	)
-	if opts.IdentifiedBy != "" {
-		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
-	}
-	if opts.GrantOption || opts.MaxUserConnections != 0 {
-		query += "WITH "
-		if opts.GrantOption {
-			query += "GRANT OPTION "
-		}
-		if opts.MaxUserConnections != 0 {
-			query += fmt.Sprintf("MAX_USER_CONNECTIONS %d ", opts.MaxUserConnections)
-		}
+	if opts.GrantOption {
+		query += "WITH GRANT OPTION "
 	}
 	query += ";"
 
 	_, err := m.db.ExecContext(ctx, query)
-
 	return err
 }
 

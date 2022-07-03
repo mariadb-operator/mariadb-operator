@@ -72,22 +72,14 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 func (r *GrantMariaDBReconciler) grant(ctx context.Context, grant *databasev1alpha1.GrantMariaDB, client *mariadbclient.Client) error {
-	params := mariadbclient.GrantParams{
-		Privileges: grant.Spec.Privileges,
-		Database:   grant.Spec.Database,
-		Table:      grant.Spec.Table,
-		Username:   grant.Spec.User.Username,
-	}
-	var identifiedBy string
-	if grant.Spec.User.PasswordSecretKeyRef != nil {
-		identifiedBy, _ = r.RefResolver.ReadSecretKeyRef(ctx, *grant.Spec.User.PasswordSecretKeyRef, grant.Namespace)
-	}
 	opts := mariadbclient.GrantOpts{
-		IdentifiedBy:       identifiedBy,
-		GrantOption:        grant.Spec.GrantOption,
-		MaxUserConnections: grant.Spec.MaxUserConnections,
+		Privileges:  grant.Spec.Privileges,
+		Database:    grant.Spec.Database,
+		Table:       grant.Spec.Table,
+		Username:    grant.Spec.Username,
+		GrantOption: grant.Spec.GrantOption,
 	}
-	return client.Grant(ctx, params, opts)
+	return client.Grant(ctx, opts)
 }
 
 func (r *GrantMariaDBReconciler) patchGrantStatus(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,

@@ -30,7 +30,7 @@ spec:
     - jsonPath: .spec.table
       name: Table
       type: string
-    - jsonPath: .spec.user.username
+    - jsonPath: .spec.username
       name: Username
       type: string
     - jsonPath: .spec.grantOption
@@ -74,10 +74,6 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
-              maxUserConnections:
-                default: 10
-                format: int32
-                type: integer
               privileges:
                 items:
                   type: string
@@ -86,35 +82,12 @@ spec:
               table:
                 default: '*'
                 type: string
-              user:
-                properties:
-                  passwordSecretKeyRef:
-                    description: SecretKeySelector selects a key of a Secret.
-                    properties:
-                      key:
-                        description: The key of the secret to select from.  Must be
-                          a valid secret key.
-                        type: string
-                      name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?'
-                        type: string
-                      optional:
-                        description: Specify whether the Secret or its key must be
-                          defined
-                        type: boolean
-                    required:
-                    - key
-                    type: object
-                  username:
-                    type: string
-                required:
-                - username
-                type: object
+              username:
+                type: string
             required:
             - mariaDbRef
             - privileges
-            - user
+            - username
             type: object
           status:
             description: GrantMariaDBStatus defines the observed state of GrantMariaDB

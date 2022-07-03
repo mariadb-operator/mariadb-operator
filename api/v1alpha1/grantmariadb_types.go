@@ -22,13 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type User struct {
-	// +kubebuilder:validation:Required
-	Username string `json:"username"`
-	// +kubebuilder:validation:Optional
-	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
-}
-
 // GrantMariaDBSpec defines the desired state of GrantMariaDB
 type GrantMariaDBSpec struct {
 	// +kubebuilder:validation:Required
@@ -41,11 +34,9 @@ type GrantMariaDBSpec struct {
 	// +kubebuilder:default=*
 	Table string `json:"table,omitempty"`
 	// +kubebuilder:validation:Required
-	User User `json:"user"`
+	Username string `json:"username"`
 	// +kubebuilder:default=false
 	GrantOption bool `json:"grantOption,omitempty"`
-	// +kubebuilder:default=10
-	MaxUserConnections int32 `json:"maxUserConnections,omitempty"`
 }
 
 // GrantMariaDBStatus defines the observed state of GrantMariaDB
@@ -67,7 +58,7 @@ func (g *GrantMariaDBStatus) AddCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Database",type="string",JSONPath=".spec.database"
 // +kubebuilder:printcolumn:name="Table",type="string",JSONPath=".spec.table"
-// +kubebuilder:printcolumn:name="Username",type="string",JSONPath=".spec.user.username"
+// +kubebuilder:printcolumn:name="Username",type="string",JSONPath=".spec.username"
 // +kubebuilder:printcolumn:name="GrantOpt",type="string",JSONPath=".spec.grantOption"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 

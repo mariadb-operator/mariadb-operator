@@ -11,10 +11,5 @@ spec:
     - "UPDATE"
   database: "*"
   table: "*"
-  user:
-    username: user
-    passwordSecretKeyRef:
-      name: user
-      key: password
+  username: user
   grantOption: true
-  maxUserConnections: 20
