@@ -33,6 +33,14 @@ cluster: kind ## Create the kind cluster.
 cluster-delete: kind ## Delete the kind cluster.
 	$(KIND) delete cluster --name $(CLUSTER)
 
+.PHONY: cluster-ctx
+cluster-ctx: ## Sets cluster context.
+	@kubectl config use-context kind-$(CLUSTER)
+
+.PHONY: cluster-prom
+cluster-prom: cluster-ctx ## Install kube-prometheus-stack helm chart.
+	@./scripts/install_prometheus.sh
+
 MARIADB_IP ?= 127.0.0.1
 MARIADB_HOST ?= mariadb
 .PHONY: add-host 
@@ -119,6 +127,7 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KIND ?= $(LOCALBIN)/kind
+HELM ?= $(LOCALBIN)/helm
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
@@ -126,6 +135,7 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 KIND_VERSION := v0.14.0
+HELM_VERSION := v3.9.0
 KUSTOMIZE_VERSION := v3.8.7
 CONTROLLER_TOOLS_VERSION := v0.8.0
 ENVTEST_K8S_VERSION := 1.23
