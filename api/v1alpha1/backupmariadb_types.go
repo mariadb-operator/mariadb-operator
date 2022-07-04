@@ -32,7 +32,7 @@ type BackupMariaDBSpec struct {
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=OnFailure
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty"`
-
+	// +kubebuilder:validation:Optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 

@@ -115,6 +115,32 @@ func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
 	return err
 }
 
+type DatabaseOpts struct {
+	CharacterSet string
+	Collate      string
+}
+
+func (c *Client) CreateDatabase(ctx context.Context, database string, opts DatabaseOpts) error {
+	query := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s ", database)
+	if opts.CharacterSet != "" {
+		query += fmt.Sprintf("CHARACTER SET = '%s' ", opts.CharacterSet)
+	}
+	if opts.Collate != "" {
+		query += fmt.Sprintf("COLLATE = '%s' ", opts.Collate)
+	}
+	query += ";"
+
+	_, err := c.db.ExecContext(ctx, query)
+	return err
+}
+
+func (c *Client) DropDatabase(ctx context.Context, database string) error {
+	query := fmt.Sprintf("DROP DATABASE IF EXISTS %s;", database)
+
+	_, err := c.db.ExecContext(ctx, query)
+	return err
+}
+
 func buildDSN(opts Opts) (string, error) {
 	if opts.Host == "" || opts.Port == 0 {
 		return "", errors.New("invalid opts: host and port are mandatory")

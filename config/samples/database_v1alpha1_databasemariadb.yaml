@@ -1,0 +1,9 @@
+apiVersion: database.mmontes.io/v1alpha1
+kind: DatabaseMariaDB
+metadata:
+  name: data
+spec:
+  mariaDbRef:
+    name: mariadb
+  characterSet: utf8
+  collate: utf8_general_ci
