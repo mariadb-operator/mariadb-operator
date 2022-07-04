@@ -22,8 +22,6 @@ func New(client client.Client) *RefResolver {
 	}
 }
 
-// TODO: use generics when kubebuilder has support
-
 func (r *RefResolver) GetMariaDB(ctx context.Context, localRef corev1.LocalObjectReference,
 	namespace string) (*databasev1alpha1.MariaDB, error) {
 	nn := types.NamespacedName{

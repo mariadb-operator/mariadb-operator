@@ -49,8 +49,6 @@ type UserMariaDBReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO: migrate to Go 1.18 and create a generic reconciler for this
-// nolint
 func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var user databasev1alpha1.UserMariaDB
 	if err := r.Get(ctx, req.NamespacedName, &user); err != nil {

@@ -1,6 +1,4 @@
 linters-settings:
-  dupl:
-    threshold: 200
   gocyclo:
     min-complexity: 15
   lll:
@@ -12,7 +10,6 @@ linters:
   disable-all: true
   enable:
     - deadcode
-    - dupl
     - errcheck
     - gocyclo
     - gofmt
