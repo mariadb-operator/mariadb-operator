@@ -1,0 +1,25 @@
+grafana:
+  enabled: true
+  adminPassword: prom-operator
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: "default"
+          orgId: 1
+          folder: ""
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      mysql-overview:
+        gnetId: 7362
+        revision: 5
+        datasource: Prometheus
+      mysql-quickstart:
+        gnetId: 14057
+        revision: 1
+        datasource: Prometheus
