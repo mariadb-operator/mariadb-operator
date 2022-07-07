@@ -1,0 +1,9 @@
+apiVersion: database.mmontes.io/v1alpha1
+kind: MonitorMariaDB
+metadata:
+  name: monitor
+spec:
+  mariaDbRef:
+    name: mariadb
+  interval: 10s
+  scrapeTimeout: 10s
