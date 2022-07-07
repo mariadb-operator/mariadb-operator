@@ -65,6 +65,10 @@ func (u *UserMariaDB) IsBeingDeleted() bool {
 	return !u.DeletionTimestamp.IsZero()
 }
 
+func (m *UserMariaDB) IsReady() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+}
+
 // +kubebuilder:object:root=true
 
 // UserMariaDBList contains a list of UserMariaDB

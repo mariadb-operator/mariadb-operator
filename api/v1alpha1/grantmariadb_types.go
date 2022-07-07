@@ -75,6 +75,10 @@ func (g *GrantMariaDB) IsBeingDeleted() bool {
 	return !g.DeletionTimestamp.IsZero()
 }
 
+func (m *GrantMariaDB) IsReady() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+}
+
 //+kubebuilder:object:root=true
 
 // GrantMariaDBList contains a list of GrantMariaDB

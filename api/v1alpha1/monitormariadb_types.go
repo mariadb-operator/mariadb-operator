@@ -26,9 +26,9 @@ import (
 type MonitorMariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
-	// +kubebuilder:default=10s
+	// +kubebuilder:default='10s'
 	Interval string `json:"interval,omitempty"`
-	// +kubebuilder:default=10s
+	// +kubebuilder:default='10s'
 	ScrapeTimeout string `json:"scrapeTimeout,omitempty"`
 }
 

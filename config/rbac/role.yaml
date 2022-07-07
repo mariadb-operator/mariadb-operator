@@ -112,6 +112,32 @@ rules:
 - apiGroups:
   - database.mmontes.io
   resources:
+  - monitormariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - monitormariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - monitormariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
   - restoremariadbs
   verbs:
   - create
