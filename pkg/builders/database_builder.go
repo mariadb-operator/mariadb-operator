@@ -30,3 +30,33 @@ func BuildUser(mariadb *databasev1alpha1.MariaDB, opts UserOpts) *databasev1alph
 		},
 	}
 }
+
+type GrantOpts struct {
+	Name        string
+	Privileges  []string
+	Database    string
+	Table       string
+	Username    string
+	GrantOption bool
+}
+
+func BuildGrant(mariadb *databasev1alpha1.MariaDB, opts GrantOpts) *databasev1alpha1.GrantMariaDB {
+	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
+	return &databasev1alpha1.GrantMariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opts.Name,
+			Namespace: mariadb.Namespace,
+			Labels:    labels,
+		},
+		Spec: databasev1alpha1.GrantMariaDBSpec{
+			MariaDBRef: corev1.LocalObjectReference{
+				Name: mariadb.Name,
+			},
+			Privileges:  opts.Privileges,
+			Database:    opts.Database,
+			Table:       opts.Table,
+			Username:    opts.Username,
+			GrantOption: opts.GrantOption,
+		},
+	}
+}
