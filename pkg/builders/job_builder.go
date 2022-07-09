@@ -20,7 +20,11 @@ var (
 )
 
 func BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB) *batchv1.Job {
-	labels := NewLabelsBuilder().WithObjectMeta(backup.ObjectMeta).WithApp(app).Build()
+	labels :=
+		NewLabelsBuilder().
+			WithApp(appMariaDb).
+			WithInstance(mariadb.Name).
+			Build()
 	meta := metav1.ObjectMeta{
 		Name:      backup.Name,
 		Namespace: backup.Namespace,
@@ -40,7 +44,11 @@ func BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1a
 
 func BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB,
 	mariadb *databasev1alpha1.MariaDB, backup *databasev1alpha1.BackupMariaDB) *batchv1.Job {
-	labels := NewLabelsBuilder().WithObjectMeta(restore.ObjectMeta).WithApp(app).Build()
+	labels :=
+		NewLabelsBuilder().
+			WithApp(appMariaDb).
+			WithInstance(mariadb.Name).
+			Build()
 	meta := metav1.ObjectMeta{
 		Name:      restore.Name,
 		Namespace: restore.Namespace,

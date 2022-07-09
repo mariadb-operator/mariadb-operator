@@ -131,7 +131,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	exporterReconciler := reconcilers.NewExporterReonciler(mgr.GetClient(), mgr.GetScheme())
+	exporterReconciler := reconcilers.NewExporterReonciler(mgr.GetClient(), mgr.GetScheme(), refResolver)
 	if err = (&controllers.MonitorMariaDBReconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),

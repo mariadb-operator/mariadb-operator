@@ -1,12 +1,12 @@
 package builders
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 const (
-	appLabel      = "app.kubernetes.io/name"
-	instanceLabel = "app.kubernetes.io/instance"
+	appLabel          = "app.kubernetes.io/name"
+	instanceLabel     = "app.kubernetes.io/instance"
+	componentLabel    = "app.kubernetes.io/component"
+	appMariaDb        = "mariadb"
+	componentDatabase = "database"
+	componentExporter = "exporter"
 )
 
 type LabelsBuilder struct {
@@ -19,16 +19,18 @@ func NewLabelsBuilder() *LabelsBuilder {
 	}
 }
 
-func (b *LabelsBuilder) WithObjectMeta(meta metav1.ObjectMeta) *LabelsBuilder {
-	b.labels[instanceLabel] = meta.Name
-	for k, v := range meta.Labels {
-		b.labels[k] = v
-	}
+func (b *LabelsBuilder) WithApp(app string) *LabelsBuilder {
+	b.labels[appLabel] = app
 	return b
 }
 
-func (b *LabelsBuilder) WithApp(app string) *LabelsBuilder {
-	b.labels[appLabel] = app
+func (b *LabelsBuilder) WithInstance(instance string) *LabelsBuilder {
+	b.labels[instanceLabel] = instance
+	return b
+}
+
+func (b *LabelsBuilder) WithComponent(component string) *LabelsBuilder {
+	b.labels[componentLabel] = component
 	return b
 }
 

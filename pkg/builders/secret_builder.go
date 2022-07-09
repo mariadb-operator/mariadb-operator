@@ -12,7 +12,11 @@ type SecretOpts struct {
 }
 
 func BuildSecret(mariadb *databasev1alpha1.MariaDB, opts SecretOpts) *corev1.Secret {
-	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
+	labels :=
+		NewLabelsBuilder().
+			WithApp(appMariaDb).
+			WithInstance(mariadb.Name).
+			Build()
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      opts.Name,

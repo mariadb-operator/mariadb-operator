@@ -23,7 +23,7 @@ type Client struct {
 }
 
 func NewClient(opts Opts) (*Client, error) {
-	dsn, err := buildDSN(opts)
+	dsn, err := BuildDSN(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error building DNS: %v", err)
 	}
@@ -39,6 +39,25 @@ func NewClient(opts Opts) (*Client, error) {
 	return &Client{
 		db: db,
 	}, nil
+}
+
+func BuildDSN(opts Opts) (string, error) {
+	if opts.Host == "" || opts.Port == 0 {
+		return "", errors.New("invalid opts: host and port are mandatory")
+	}
+	config := mysql.NewConfig()
+	config.Net = "tcp"
+	config.Addr = fmt.Sprintf("%s:%d", opts.Host, opts.Port)
+
+	if opts.Username != "" && opts.Password != "" {
+		config.User = opts.Username
+		config.Passwd = opts.Password
+	}
+	if opts.Database != "" {
+		config.DBName = opts.Database
+	}
+
+	return config.FormatDSN(), nil
 }
 
 func (c *Client) Close() error {
@@ -181,23 +200,4 @@ func (c *Client) DropDatabase(ctx context.Context, database string) error {
 
 	_, err := c.db.ExecContext(ctx, query)
 	return err
-}
-
-func buildDSN(opts Opts) (string, error) {
-	if opts.Host == "" || opts.Port == 0 {
-		return "", errors.New("invalid opts: host and port are mandatory")
-	}
-	config := mysql.NewConfig()
-	config.Net = "tcp"
-	config.Addr = fmt.Sprintf("%s:%d", opts.Host, opts.Port)
-
-	if opts.Username != "" && opts.Password != "" {
-		config.User = opts.Username
-		config.Passwd = opts.Password
-	}
-	if opts.Database != "" {
-		config.DBName = opts.Database
-	}
-
-	return config.FormatDSN(), nil
 }

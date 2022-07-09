@@ -14,7 +14,11 @@ type UserOpts struct {
 }
 
 func BuildUser(mariadb *databasev1alpha1.MariaDB, opts UserOpts) *databasev1alpha1.UserMariaDB {
-	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
+	labels :=
+		NewLabelsBuilder().
+			WithApp(appMariaDb).
+			WithInstance(mariadb.Name).
+			Build()
 	return &databasev1alpha1.UserMariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      opts.Name,
@@ -41,7 +45,11 @@ type GrantOpts struct {
 }
 
 func BuildGrant(mariadb *databasev1alpha1.MariaDB, opts GrantOpts) *databasev1alpha1.GrantMariaDB {
-	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
+	labels :=
+		NewLabelsBuilder().
+			WithApp(appMariaDb).
+			WithInstance(mariadb.Name).
+			Build()
 	return &databasev1alpha1.GrantMariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      opts.Name,

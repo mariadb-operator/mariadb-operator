@@ -7,7 +7,12 @@ import (
 )
 
 func BuildService(mariadb *databasev1alpha1.MariaDB) *corev1.Service {
-	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
+	labels :=
+		NewLabelsBuilder().
+			WithApp(appMariaDb).
+			WithInstance(mariadb.Name).
+			WithComponent(componentDatabase).
+			Build()
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mariadb.Name,

@@ -26,6 +26,7 @@ type Exporter struct {
 	// +kubebuilder:validation:Required
 	Image            Image                         `json:"image"`
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	Resources        *corev1.ResourceRequirements  `json:"resources,omitempty"`
 }
 
 // MonitorMariaDBSpec defines the desired state of MonitorMariaDB

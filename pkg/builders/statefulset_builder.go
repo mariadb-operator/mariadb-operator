@@ -1,7 +1,6 @@
 package builders
 
 import (
-	"fmt"
 	"strconv"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
@@ -11,7 +10,6 @@ import (
 )
 
 const (
-	app                 = "mariadb"
 	stsStorageVolume    = "storage"
 	stsStorageMountPath = "/var/lib/mysql"
 )
@@ -21,7 +19,12 @@ func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB) (*appsv1.StatefulSet, e
 	if err != nil {
 		return nil, err
 	}
-	labels := NewLabelsBuilder().WithObjectMeta(mariadb.ObjectMeta).WithApp(app).Build()
+	labels :=
+		NewLabelsBuilder().
+			WithApp(appMariaDb).
+			WithInstance(mariadb.Name).
+			WithComponent(componentDatabase).
+			Build()
 	pvcMeta := metav1.ObjectMeta{
 		Name:      stsStorageVolume,
 		Namespace: mariadb.Namespace,
@@ -78,10 +81,9 @@ func BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.Storage) *v1.Per
 }
 
 func buildStsContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) {
-	image := fmt.Sprintf("%s:%s", mariadb.Spec.Image.Repository, mariadb.Spec.Image.Tag)
 	container := v1.Container{
 		Name:            mariadb.Name,
-		Image:           image,
+		Image:           mariadb.Spec.Image.String(),
 		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
 		Env:             buildStsEnv(mariadb),
 		EnvFrom:         mariadb.Spec.EnvFrom,
