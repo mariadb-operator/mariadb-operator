@@ -20,16 +20,15 @@ import (
 	"context"
 	"fmt"
 
+	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/conditions"
+	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
+	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/conditions"
-	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
-	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 )
 
 const (
