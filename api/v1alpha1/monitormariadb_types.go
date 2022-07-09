@@ -22,10 +22,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type Exporter struct {
+	// +kubebuilder:validation:Required
+	Image            Image                         `json:"image"`
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+}
+
 // MonitorMariaDBSpec defines the desired state of MonitorMariaDB
 type MonitorMariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
+	// +kubebuilder:validation:Required
+	Exporter Exporter `json:"exporter"`
 	// +kubebuilder:default='10s'
 	Interval string `json:"interval,omitempty"`
 	// +kubebuilder:default='10s'

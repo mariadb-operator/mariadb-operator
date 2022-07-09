@@ -5,5 +5,10 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
+  exporter:
+    image:
+      repository: prom/mysqld-exporter
+      tag: "v0.14.0"
+      pullPolicy: IfNotPresent
   interval: 10s
   scrapeTimeout: 10s
