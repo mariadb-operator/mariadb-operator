@@ -33,6 +33,7 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/controllers"
+	"github.com/mmontes11/mariadb-operator/pkg/reconcilers"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
@@ -129,10 +130,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "DatabaseMariaDB")
 		os.Exit(1)
 	}
+
+	exporterReconciler := reconcilers.NewExporterReonciler(mgr.GetClient(), mgr.GetScheme())
 	if err = (&controllers.MonitorMariaDBReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		RefResolver: refResolver,
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		RefResolver:       refResolver,
+		ExporterReconiler: exporterReconciler,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MonitorMariaDB")
 		os.Exit(1)
