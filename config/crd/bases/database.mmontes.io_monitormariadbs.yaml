@@ -27,6 +27,9 @@ spec:
     - jsonPath: .spec.mariaDbRef.name
       name: MariaDB
       type: string
+    - jsonPath: .spec.prometheusRelease
+      name: Prometheus
+      type: string
     - jsonPath: .spec.interval
       name: Interval
       type: string
@@ -126,6 +129,8 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              prometheusRelease:
+                type: string
               scrapeTimeout:
                 default: '''10s'''
                 type: string

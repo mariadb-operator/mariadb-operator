@@ -4,6 +4,7 @@ const (
 	appLabel          = "app.kubernetes.io/name"
 	instanceLabel     = "app.kubernetes.io/instance"
 	componentLabel    = "app.kubernetes.io/component"
+	releaseLabel      = "release"
 	appMariaDb        = "mariadb"
 	componentDatabase = "database"
 	componentExporter = "exporter"
@@ -31,6 +32,11 @@ func (b *LabelsBuilder) WithInstance(instance string) *LabelsBuilder {
 
 func (b *LabelsBuilder) WithComponent(component string) *LabelsBuilder {
 	b.labels[componentLabel] = component
+	return b
+}
+
+func (b *LabelsBuilder) WithRelease(release string) *LabelsBuilder {
+	b.labels[releaseLabel] = release
 	return b
 }
 

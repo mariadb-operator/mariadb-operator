@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/reconcilers"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
@@ -28,8 +29,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // MonitorMariaDBReconciler reconciles a MonitorMariaDB object
@@ -67,7 +70,36 @@ func (r *MonitorMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, fmt.Errorf("error creating exporter: %v", err)
 	}
 
+	if err := r.createPodMonitor(ctx, mariadb, &monitor); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating PodMonitor: %v", err)
+	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MonitorMariaDBReconciler) createPodMonitor(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+	monitor *databasev1alpha1.MonitorMariaDB) error {
+	var existingPodMonitor monitoringv1.PodMonitor
+	err := r.Get(ctx, podMonitorKey(mariadb), &existingPodMonitor)
+	if err == nil {
+		return nil
+	}
+
+	podMonitor := builders.BuildPodMonitor(mariadb, monitor)
+	if err := controllerutil.SetControllerReference(monitor, podMonitor, r.Scheme); err != nil {
+		return fmt.Errorf("error setting controller reference to PodMonitor: %v", err)
+	}
+
+	if err := r.Create(ctx, podMonitor); err != nil {
+		return fmt.Errorf("error creating PodMonitor in API server: %v", err)
+	}
+	return nil
+}
+
+func podMonitorKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      mariadb.Name,
+		Namespace: mariadb.Namespace,
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -35,6 +35,8 @@ type MonitorMariaDBSpec struct {
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
 	// +kubebuilder:validation:Required
 	Exporter Exporter `json:"exporter"`
+	// +kubebuilder:validation:Required
+	PrometheusRelease string `json:"prometheusRelease,omitempty"`
 	// +kubebuilder:default='10s'
 	Interval string `json:"interval,omitempty"`
 	// +kubebuilder:default='10s'
@@ -59,6 +61,7 @@ func (m *MonitorMariaDBStatus) AddCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
+// +kubebuilder:printcolumn:name="Prometheus",type="string",JSONPath=".spec.prometheusRelease"
 // +kubebuilder:printcolumn:name="Interval",type="string",JSONPath=".spec.interval"
 // +kubebuilder:printcolumn:name="ScrapeTimeout",type="string",JSONPath=".spec.scrapeTimeout"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
