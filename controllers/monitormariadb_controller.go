@@ -22,6 +22,7 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
+	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/reconcilers"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
@@ -70,7 +71,11 @@ func (r *MonitorMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, fmt.Errorf("error creating exporter: %v", err)
 	}
 
-	if err := r.createPodMonitor(ctx, mariadb, &monitor); err != nil {
+	err = r.createPodMonitor(ctx, mariadb, &monitor)
+	if patchErr := r.patchMonitorStatus(ctx, &monitor, err); patchErr != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MonitorMariaDB status: %v", err)
+	}
+	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating PodMonitor: %v", err)
 	}
 	return ctrl.Result{}, nil
@@ -93,6 +98,12 @@ func (r *MonitorMariaDBReconciler) createPodMonitor(ctx context.Context, mariadb
 		return fmt.Errorf("error creating PodMonitor in API server: %v", err)
 	}
 	return nil
+}
+
+func (r *MonitorMariaDBReconciler) patchMonitorStatus(ctx context.Context, monitor *databasev1alpha1.MonitorMariaDB, err error) error {
+	patch := client.MergeFrom(monitor.DeepCopy())
+	conditions.AddConditionReady(&monitor.Status, err)
+	return r.Client.Status().Patch(ctx, monitor, patch)
 }
 
 func podMonitorKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
