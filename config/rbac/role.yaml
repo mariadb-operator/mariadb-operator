@@ -60,6 +60,32 @@ rules:
 - apiGroups:
   - database.mmontes.io
   resources:
+  - exportermariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - exportermariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - exportermariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
   - grantmariadbs
   verbs:
   - create
