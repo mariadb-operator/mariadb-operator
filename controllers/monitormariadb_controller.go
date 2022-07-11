@@ -19,18 +19,16 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
-	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
-	"github.com/mmontes11/mariadb-operator/pkg/reconcilers"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -39,9 +37,8 @@ import (
 // MonitorMariaDBReconciler reconciles a MonitorMariaDB object
 type MonitorMariaDBReconciler struct {
 	client.Client
-	Scheme            *runtime.Scheme
-	RefResolver       *refresolver.RefResolver
-	ExporterReconiler *reconcilers.ExporterReconciler
+	Scheme      *runtime.Scheme
+	RefResolver *refresolver.RefResolver
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=monitormariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -61,13 +58,7 @@ func (r *MonitorMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
 	}
 
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB client: %v", err)
-	}
-	defer mdbClient.Close()
-
-	if err := r.ExporterReconiler.CreateExporter(ctx, mariadb, &monitor, mdbClient); err != nil {
+	if err := r.createExporter(ctx, mariadb, &monitor); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating exporter: %v", err)
 	}
 
@@ -81,10 +72,40 @@ func (r *MonitorMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
+func (r *MonitorMariaDBReconciler) createExporter(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+	monitor *databasev1alpha1.MonitorMariaDB) error {
+	key := objectKey(mariadb)
+	var existingExporter databasev1alpha1.ExporterMariaDB
+	if err := r.Get(ctx, key, &existingExporter); err == nil {
+		return nil
+	}
+
+	exporter := builders.BuildExporter(mariadb, &monitor.Spec.Exporter, key)
+	if err := controllerutil.SetControllerReference(monitor, exporter, r.Scheme); err != nil {
+		return fmt.Errorf("error setting controller reference to ExporterMariaDB: %v", err)
+	}
+	if err := r.Create(ctx, exporter); err != nil {
+		return fmt.Errorf("error creating ExporterMariaDB in API server: %v", err)
+	}
+
+	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 30*time.Second, func(ctx context.Context) (bool, error) {
+		var exporter databasev1alpha1.ExporterMariaDB
+		if r.Get(ctx, objectKey(mariadb), &exporter) != nil {
+			return false, nil
+		}
+		return exporter.IsReady(), nil
+	})
+	if err != nil {
+		return fmt.Errorf("error creating ExporterMariaDB: %v", err)
+	}
+
+	return nil
+}
+
 func (r *MonitorMariaDBReconciler) createPodMonitor(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	monitor *databasev1alpha1.MonitorMariaDB) error {
 	var existingPodMonitor monitoringv1.PodMonitor
-	err := r.Get(ctx, podMonitorKey(mariadb), &existingPodMonitor)
+	err := r.Get(ctx, objectKey(mariadb), &existingPodMonitor)
 	if err == nil {
 		return nil
 	}
@@ -106,7 +127,7 @@ func (r *MonitorMariaDBReconciler) patchMonitorStatus(ctx context.Context, monit
 	return r.Client.Status().Patch(ctx, monitor, patch)
 }
 
-func podMonitorKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
+func objectKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      mariadb.Name,
 		Namespace: mariadb.Namespace,
@@ -117,10 +138,7 @@ func podMonitorKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
 func (r *MonitorMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&databasev1alpha1.MonitorMariaDB{}).
-		Owns(&databasev1alpha1.UserMariaDB{}).
-		Owns(&databasev1alpha1.GrantMariaDB{}).
-		Owns(&corev1.Secret{}).
-		Owns(&appsv1.Deployment{}).
+		Owns(&databasev1alpha1.ExporterMariaDB{}).
 		Owns(&monitoringv1.PodMonitor{}).
 		Complete(r)
 }

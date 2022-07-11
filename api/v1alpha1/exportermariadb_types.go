@@ -66,6 +66,10 @@ type ExporterMariaDB struct {
 	Status ExporterMariaDBStatus `json:"status,omitempty"`
 }
 
+func (e *ExporterMariaDB) IsReady() bool {
+	return meta.IsStatusConditionTrue(e.Status.Conditions, ConditionTypeReady)
+}
+
 // +kubebuilder:object:root=true
 
 // ExporterMariaDBList contains a list of ExporterMariaDB

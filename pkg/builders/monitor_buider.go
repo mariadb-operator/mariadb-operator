@@ -1,32 +1,48 @@
 package builders
 
 import (
-	"fmt"
-
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
 	metricsPortName = "metrics"
 )
 
-func BuildExporterDeployment(mariadb *databasev1alpha1.MariaDB, monitor *databasev1alpha1.MonitorMariaDB,
-	dsn *corev1.SecretKeySelector) (*appsv1.Deployment, error) {
-	containers, err := buildExporterContainers(monitor, dsn)
+func BuildExporter(mariadb *databasev1alpha1.MariaDB, exporter *databasev1alpha1.Exporter,
+	key types.NamespacedName) *databasev1alpha1.ExporterMariaDB {
+	labels := getExporterLabels(mariadb)
+	return &databasev1alpha1.ExporterMariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+			Labels:    labels,
+		},
+		Spec: databasev1alpha1.ExporterMariaDBSpec{
+			MariaDBRef: corev1.LocalObjectReference{
+				Name: mariadb.Name,
+			},
+			Exporter: *exporter,
+		},
+	}
+}
+
+func BuildExporterDeployment(mariadb *databasev1alpha1.MariaDB, exporter *databasev1alpha1.ExporterMariaDB,
+	key types.NamespacedName, dsn *corev1.SecretKeySelector) (*appsv1.Deployment, error) {
+	containers, err := buildExporterContainers(exporter, dsn)
 	if err != nil {
 		return nil, err
 	}
-	name := fmt.Sprintf("%s-exporter", mariadb.Name)
 	labels := getExporterLabels(mariadb)
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: mariadb.Namespace,
+			Name:      key.Name,
+			Namespace: key.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -35,8 +51,8 @@ func BuildExporterDeployment(mariadb *databasev1alpha1.MariaDB, monitor *databas
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: mariadb.Namespace,
+					Name:      key.Name,
+					Namespace: key.Namespace,
 					Labels:    labels,
 				},
 				Spec: v1.PodSpec{
@@ -89,11 +105,11 @@ func getExporterLabels(mariadb *databasev1alpha1.MariaDB) map[string]string {
 		Build()
 }
 
-func buildExporterContainers(monitor *databasev1alpha1.MonitorMariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
+func buildExporterContainers(exporter *databasev1alpha1.ExporterMariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
 	container := v1.Container{
-		Name:            monitor.Name,
-		Image:           monitor.Spec.Exporter.Image.String(),
-		ImagePullPolicy: monitor.Spec.Exporter.Image.PullPolicy,
+		Name:            exporter.Name,
+		Image:           exporter.Spec.Exporter.Image.String(),
+		ImagePullPolicy: exporter.Spec.Exporter.Image.PullPolicy,
 		Ports: []v1.ContainerPort{
 			{
 				Name:          metricsPortName,
@@ -110,8 +126,8 @@ func buildExporterContainers(monitor *databasev1alpha1.MonitorMariaDB, dsn *core
 		},
 	}
 
-	if monitor.Spec.Exporter.Resources != nil {
-		container.Resources = *monitor.Spec.Exporter.Resources
+	if exporter.Spec.Exporter.Resources != nil {
+		container.Resources = *exporter.Spec.Exporter.Resources
 	}
 
 	return []v1.Container{container}, nil

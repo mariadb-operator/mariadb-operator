@@ -90,19 +90,6 @@ func (m *Client) DropUser(ctx context.Context, username string) error {
 	return err
 }
 
-func (m *Client) UserExists(ctx context.Context, username string) (bool, error) {
-	query := "SELECT 1 FROM mysql.user WHERE user = ?;"
-	err := m.db.QueryRowContext(ctx, query, username).Err()
-
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 type GrantOpts struct {
 	Privileges  []string
 	Database    string
@@ -144,36 +131,6 @@ func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
 
 	_, err := c.db.ExecContext(ctx, query)
 	return err
-}
-
-func (c *Client) UserHasPrivileges(ctx context.Context, username string, privileges []string) (bool, error) {
-	if username == "" || len(privileges) == 0 {
-		return false, nil
-	}
-	query := "SELECT COUNT(*) FROM information_schema.user_privileges WHERE grantee = ? "
-	query += fmt.Sprintf(
-		"AND privilege_type IN (%s)",
-		"?"+strings.Repeat(",?", len(privileges)-1),
-	)
-	query += ";"
-
-	userHost := fmt.Sprintf("'%s'@'%s'", username, "%")
-	args := []interface{}{
-		userHost,
-	}
-	for _, p := range privileges {
-		args = append(args, p)
-	}
-
-	var numPrivileges int
-	if err := c.db.QueryRowContext(ctx, query, args...).Scan(&numPrivileges); err != nil {
-		return false, fmt.Errorf("error querying user privileges: %v", err)
-	}
-
-	if numPrivileges != len(privileges) {
-		return false, nil
-	}
-	return true, nil
 }
 
 type DatabaseOpts struct {

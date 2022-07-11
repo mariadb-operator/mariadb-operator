@@ -137,6 +137,7 @@ spec:
             required:
             - exporter
             - mariaDbRef
+            - prometheusRelease
             type: object
           status:
             description: MonitorMariaDBStatus defines the observed state of MonitorMariaDB
