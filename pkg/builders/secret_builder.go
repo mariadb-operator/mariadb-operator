@@ -4,10 +4,11 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type SecretOpts struct {
-	Name string
+	Key  types.NamespacedName
 	Data map[string][]byte
 }
 
@@ -19,8 +20,8 @@ func BuildSecret(mariadb *databasev1alpha1.MariaDB, opts SecretOpts) *corev1.Sec
 			Build()
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      opts.Name,
-			Namespace: mariadb.Namespace,
+			Name:      opts.Key.Name,
+			Namespace: opts.Key.Namespace,
 			Labels:    labels,
 		},
 		Data: opts.Data,

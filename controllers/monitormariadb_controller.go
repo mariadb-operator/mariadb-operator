@@ -58,12 +58,16 @@ func (r *MonitorMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
 	}
 
-	if err := r.createExporter(ctx, mariadb, &monitor); err != nil {
+	err = r.createExporter(ctx, mariadb, &monitor)
+	if patchErr := r.patchStatus(ctx, &monitor, exporterPatcher(err)); patchErr != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MonitorMariaDB status: %v", err)
+	}
+	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating exporter: %v", err)
 	}
 
 	err = r.createPodMonitor(ctx, mariadb, &monitor)
-	if patchErr := r.patchMonitorStatus(ctx, &monitor, err); patchErr != nil {
+	if patchErr := r.patchStatus(ctx, &monitor, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MonitorMariaDB status: %v", err)
 	}
 	if err != nil {
@@ -104,13 +108,13 @@ func (r *MonitorMariaDBReconciler) createExporter(ctx context.Context, mariadb *
 
 func (r *MonitorMariaDBReconciler) createPodMonitor(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	monitor *databasev1alpha1.MonitorMariaDB) error {
+	key := objectKey(mariadb)
 	var existingPodMonitor monitoringv1.PodMonitor
-	err := r.Get(ctx, objectKey(mariadb), &existingPodMonitor)
-	if err == nil {
+	if err := r.Get(ctx, key, &existingPodMonitor); err == nil {
 		return nil
 	}
 
-	podMonitor := builders.BuildPodMonitor(mariadb, monitor)
+	podMonitor := builders.BuildPodMonitor(mariadb, monitor, key)
 	if err := controllerutil.SetControllerReference(monitor, podMonitor, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to PodMonitor: %v", err)
 	}
@@ -121,10 +125,21 @@ func (r *MonitorMariaDBReconciler) createPodMonitor(ctx context.Context, mariadb
 	return nil
 }
 
-func (r *MonitorMariaDBReconciler) patchMonitorStatus(ctx context.Context, monitor *databasev1alpha1.MonitorMariaDB, err error) error {
+func (r *MonitorMariaDBReconciler) patchStatus(ctx context.Context, monitor *databasev1alpha1.MonitorMariaDB,
+	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(monitor.DeepCopy())
-	conditions.AddConditionReady(&monitor.Status, err)
+	patcher(&monitor.Status)
 	return r.Client.Status().Patch(ctx, monitor, patch)
+}
+
+func exporterPatcher(err error) conditions.ConditionPatcher {
+	return func(c conditions.Conditioner) {
+		if err == nil {
+			conditions.SetConditionProvisioningWithMessage(c, "Created exporter")
+		} else {
+			conditions.SetConditionFailedWithMessage(c, "Failed creating exporter")
+		}
+	}
 }
 
 func objectKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {

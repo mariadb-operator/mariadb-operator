@@ -5,10 +5,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type UserOpts struct {
-	Name                 string
+	Key                  types.NamespacedName
 	PasswordSecretKeyRef v1.SecretKeySelector
 	MaxUserConnections   int32
 }
@@ -21,8 +22,8 @@ func BuildUser(mariadb *databasev1alpha1.MariaDB, opts UserOpts) *databasev1alph
 			Build()
 	return &databasev1alpha1.UserMariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      opts.Name,
-			Namespace: mariadb.Namespace,
+			Name:      opts.Key.Name,
+			Namespace: opts.Key.Namespace,
 			Labels:    labels,
 		},
 		Spec: databasev1alpha1.UserMariaDBSpec{
@@ -36,7 +37,7 @@ func BuildUser(mariadb *databasev1alpha1.MariaDB, opts UserOpts) *databasev1alph
 }
 
 type GrantOpts struct {
-	Name        string
+	Key         types.NamespacedName
 	Privileges  []string
 	Database    string
 	Table       string
@@ -52,8 +53,8 @@ func BuildGrant(mariadb *databasev1alpha1.MariaDB, opts GrantOpts) *databasev1al
 			Build()
 	return &databasev1alpha1.GrantMariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      opts.Name,
-			Namespace: mariadb.Namespace,
+			Name:      opts.Key.Name,
+			Namespace: opts.Key.Namespace,
 			Labels:    labels,
 		},
 		Spec: databasev1alpha1.GrantMariaDBSpec{

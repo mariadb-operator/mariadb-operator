@@ -66,18 +66,18 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	defer mdbClient.Close()
 
 	if database.IsBeingDeleted() {
-		if err := r.finalizeDatabase(ctx, &database, mdbClient); err != nil {
+		if err := r.finalize(ctx, &database, mdbClient); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error finalizing DatabaseMariaDB: %v", err)
 		}
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.addDatabaseFinalizer(ctx, &database); err != nil {
+	if err := r.addFinalizer(ctx, &database); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error adding finalizer to DatabaseMariaDB: %v", err)
 	}
 
 	err = r.createDatabase(ctx, &database, mdbClient)
-	if patchErr := r.patchDatabaseStatus(ctx, &database, err); patchErr != nil {
+	if patchErr := r.patchStatus(ctx, &database, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching DatabaseMariaDB status: %v", err)
 	}
 	if err != nil {
@@ -96,14 +96,7 @@ func (r *DatabaseMariaDBReconciler) createDatabase(ctx context.Context, database
 	return mdbClient.CreateDatabase(ctx, database.Name, opts)
 }
 
-func (r *DatabaseMariaDBReconciler) patchDatabaseStatus(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
-	err error) error {
-	patch := client.MergeFrom(database.DeepCopy())
-	conditions.AddConditionReady(&database.Status, err)
-	return r.Client.Status().Patch(ctx, database, patch)
-}
-
-func (r *DatabaseMariaDBReconciler) addDatabaseFinalizer(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB) error {
+func (r *DatabaseMariaDBReconciler) addFinalizer(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB) error {
 	if controllerutil.ContainsFinalizer(database, databaseFinalizerName) {
 		return nil
 	}
@@ -112,7 +105,7 @@ func (r *DatabaseMariaDBReconciler) addDatabaseFinalizer(ctx context.Context, da
 	return r.Client.Patch(ctx, database, patch)
 }
 
-func (r *DatabaseMariaDBReconciler) finalizeDatabase(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
+func (r *DatabaseMariaDBReconciler) finalize(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
 	mdbClient *mariadbclient.Client) error {
 	if !controllerutil.ContainsFinalizer(database, databaseFinalizerName) {
 		return nil
@@ -125,6 +118,13 @@ func (r *DatabaseMariaDBReconciler) finalizeDatabase(ctx context.Context, databa
 	patch := ctrlClient.MergeFrom(database.DeepCopy())
 	controllerutil.RemoveFinalizer(database, databaseFinalizerName)
 	return r.Client.Patch(ctx, database, patch)
+}
+
+func (r *DatabaseMariaDBReconciler) patchStatus(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
+	patcher conditions.ConditionPatcher) error {
+	patch := client.MergeFrom(database.DeepCopy())
+	patcher(&database.Status)
+	return r.Client.Status().Patch(ctx, database, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.

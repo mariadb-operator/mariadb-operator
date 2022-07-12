@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -19,15 +20,16 @@ var (
 	dumpFilePath = fmt.Sprintf("%s/backup.sql", jobStorageMountPath)
 )
 
-func BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB) *batchv1.Job {
+func BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB,
+	key types.NamespacedName) *batchv1.Job {
 	labels :=
 		NewLabelsBuilder().
 			WithApp(appMariaDb).
 			WithInstance(mariadb.Name).
 			Build()
 	meta := metav1.ObjectMeta{
-		Name:      backup.Name,
-		Namespace: backup.Namespace,
+		Name:      key.Name,
+		Namespace: key.Namespace,
 		Labels:    labels,
 	}
 	volumes := buildJobVolumes(backup)
@@ -42,16 +44,16 @@ func BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1a
 	return buildJob(meta, volumes, containers, &backup.Spec.BackoffLimit, backup.Spec.RestartPolicy)
 }
 
-func BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB,
-	mariadb *databasev1alpha1.MariaDB, backup *databasev1alpha1.BackupMariaDB) *batchv1.Job {
+func BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB, mariadb *databasev1alpha1.MariaDB,
+	backup *databasev1alpha1.BackupMariaDB, key types.NamespacedName) *batchv1.Job {
 	labels :=
 		NewLabelsBuilder().
 			WithApp(appMariaDb).
 			WithInstance(mariadb.Name).
 			Build()
 	meta := metav1.ObjectMeta{
-		Name:      restore.Name,
-		Namespace: restore.Namespace,
+		Name:      key.Name,
+		Namespace: key.Namespace,
 		Labels:    labels,
 	}
 	volumes := buildJobVolumes(backup)

@@ -42,7 +42,7 @@ type ExporterMariaDBStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-func (m *ExporterMariaDBStatus) AddCondition(condition metav1.Condition) {
+func (m *ExporterMariaDBStatus) SetCondition(condition metav1.Condition) {
 	if m.Conditions == nil {
 		m.Conditions = make([]metav1.Condition, 0)
 	}

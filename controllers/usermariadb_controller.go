@@ -66,18 +66,18 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	defer mdbClient.Close()
 
 	if user.IsBeingDeleted() {
-		if err := r.finalizeUser(ctx, &user, mdbClient); err != nil {
+		if err := r.finalize(ctx, &user, mdbClient); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error finalizing UserMariaDB: %v", err)
 		}
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.addUserFinalizer(ctx, &user); err != nil {
+	if err := r.addFinalizer(ctx, &user); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error adding finalizer to UserMariaDB: %v", err)
 	}
 
 	err = r.createUser(ctx, &user, mdbClient)
-	if patchErr := r.patchUserStatus(ctx, &user, err); patchErr != nil {
+	if patchErr := r.patchStatus(ctx, &user, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching UserMariaDB status: %v", err)
 	}
 	if err != nil {
@@ -99,14 +99,7 @@ func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1
 	return mdbClient.CreateUser(ctx, user.Name, opts)
 }
 
-func (r *UserMariaDBReconciler) patchUserStatus(ctx context.Context, user *databasev1alpha1.UserMariaDB,
-	err error) error {
-	patch := client.MergeFrom(user.DeepCopy())
-	conditions.AddConditionReady(&user.Status, err)
-	return r.Client.Status().Patch(ctx, user, patch)
-}
-
-func (r *UserMariaDBReconciler) addUserFinalizer(ctx context.Context, user *databasev1alpha1.UserMariaDB) error {
+func (r *UserMariaDBReconciler) addFinalizer(ctx context.Context, user *databasev1alpha1.UserMariaDB) error {
 	if controllerutil.ContainsFinalizer(user, userFinalizerName) {
 		return nil
 	}
@@ -115,7 +108,7 @@ func (r *UserMariaDBReconciler) addUserFinalizer(ctx context.Context, user *data
 	return r.Client.Patch(ctx, user, patch)
 }
 
-func (r *UserMariaDBReconciler) finalizeUser(ctx context.Context, user *databasev1alpha1.UserMariaDB,
+func (r *UserMariaDBReconciler) finalize(ctx context.Context, user *databasev1alpha1.UserMariaDB,
 	mdbClient *mariadbclient.Client) error {
 	if !controllerutil.ContainsFinalizer(user, userFinalizerName) {
 		return nil
@@ -128,6 +121,13 @@ func (r *UserMariaDBReconciler) finalizeUser(ctx context.Context, user *database
 	patch := ctrlClient.MergeFrom(user.DeepCopy())
 	controllerutil.RemoveFinalizer(user, userFinalizerName)
 	return r.Client.Patch(ctx, user, patch)
+}
+
+func (r *UserMariaDBReconciler) patchStatus(ctx context.Context, user *databasev1alpha1.UserMariaDB,
+	patcher conditions.ConditionPatcher) error {
+	patch := client.MergeFrom(user.DeepCopy())
+	patcher(&user.Status)
+	return r.Client.Status().Patch(ctx, user, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.

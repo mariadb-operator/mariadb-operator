@@ -22,6 +22,7 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
+	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,59 +47,55 @@ type MariaDBReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var mariadb databasev1alpha1.MariaDB
-	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
+	var mariaDb databasev1alpha1.MariaDB
+	if err := r.Get(ctx, req.NamespacedName, &mariaDb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, req.NamespacedName, &sts); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("error getting StatefulSet: %v", err)
-		}
-
-		if err := r.createStatefulSet(ctx, &mariadb); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", err)
+	err := r.createStatefulSet(ctx, &mariaDb, req.NamespacedName)
+	if !mariaDb.IsReady() {
+		if patchErr := r.patchStatus(ctx, &mariaDb, objectCreatedPatcher("StatefulSet", err)); patchErr != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %s", patchErr)
 		}
 	}
-
-	var svc corev1.Service
-	if err := r.Get(ctx, req.NamespacedName, &svc); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("error getting Service: %v", err)
-		}
-
-		if err := r.createService(ctx, &mariadb); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating Service: %v", err)
-		}
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", err)
 	}
 
-	var restore databasev1alpha1.RestoreMariaDB
-	restoreExists := true
-	if mariadb.Spec.BootstrapFromBackup != nil {
-		if err := r.Get(ctx, bootstrapRestoreKey(&mariadb), &restore); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, fmt.Errorf("error getting bootstrap Restore: %v", err)
-			}
-			restoreExists = false
+	if err := r.createService(ctx, &mariaDb, req.NamespacedName); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating Service: %v", err)
+	}
+	if !mariaDb.IsReady() {
+		if patchErr := r.patchStatus(ctx, &mariaDb, objectCreatedPatcher("Service", err)); patchErr != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %s", patchErr)
 		}
 	}
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating Service: %v", err)
+	}
 
-	if err := r.patchMariaDBStatus(ctx, &mariadb, &sts, &restore); err != nil {
+	if err := r.bootstrapFromBackup(ctx, &mariaDb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error bootstrapping MariaDB from backup: %v", err)
+	}
+
+	patcher, patchErr := r.patcher(ctx, &mariaDb, req.NamespacedName)
+	if patchErr != nil && !apierrors.IsNotFound(patchErr) {
+		return ctrl.Result{}, fmt.Errorf("error getting StatefulSet status: %s", patchErr)
+	}
+	if err := r.patchStatus(ctx, &mariaDb, patcher); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
-	}
-
-	if !restoreExists && shouldBootstrapFromBackup(&mariadb) {
-		if err := r.bootstrapFromBackup(ctx, &mariadb); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error bootstrapping MariaDB from backup: %v", err)
-		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
-	sts, err := builders.BuildStatefulSet(mariadb)
+func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+	key types.NamespacedName) error {
+	var existingSts appsv1.StatefulSet
+	if err := r.Get(ctx, key, &existingSts); err == nil {
+		return nil
+	}
+
+	sts, err := builders.BuildStatefulSet(mariadb, key)
 	if err != nil {
 		return fmt.Errorf("error building StatefulSet %v", err)
 	}
@@ -112,8 +109,14 @@ func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *data
 	return nil
 }
 
-func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
-	svc := builders.BuildService(mariadb)
+func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+	key types.NamespacedName) error {
+	var existingSvc corev1.Service
+	if err := r.Get(ctx, key, &existingSvc); err == nil {
+		return nil
+	}
+
+	svc := builders.BuildService(mariadb, key)
 	if err := controllerutil.SetControllerReference(mariadb, svc, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to Service: %v", err)
 	}
@@ -124,98 +127,126 @@ func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *database
 	return nil
 }
 
-func (r *MariaDBReconciler) patchMariaDBStatus(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
-	sts *appsv1.StatefulSet, restore *databasev1alpha1.RestoreMariaDB) error {
+func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
-
-	if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas < sts.Status.Replicas {
-		mariadb.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonStatefulSetNotReady,
-			Message: "Not ready",
-		})
-	} else if sts.Status.ReadyReplicas == sts.Status.Replicas {
-		setMariaDBStatusReady(mariadb, restore)
-	} else {
-		mariadb.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonStatefulUnknownState,
-			Message: "Unknown state",
-		})
-	}
-
+	patcher(&mariadb.Status)
 	return r.Client.Status().Patch(ctx, mariadb, patch)
 }
 
 func (r *MariaDBReconciler) bootstrapFromBackup(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
-	restoreKey := bootstrapRestoreKey(mariadb)
-	restore := databasev1alpha1.RestoreMariaDB{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      restoreKey.Name,
-			Namespace: restoreKey.Namespace,
-		},
-		Spec: databasev1alpha1.RestoreMariaDBSpec{
-			MariaDBRef: corev1.LocalObjectReference{
-				Name: mariadb.Name,
-			},
-			BackupRef: mariadb.Spec.BootstrapFromBackup.BackupRef,
-		},
+	if mariadb.Spec.BootstrapFromBackup == nil || !mariadb.IsReady() || mariadb.IsBootstrapped() {
+		return nil
 	}
-	if err := controllerutil.SetControllerReference(mariadb, &restore, r.Scheme); err != nil {
+	key := bootstrapRestoreKey(mariadb)
+	var existingRestore databasev1alpha1.RestoreMariaDB
+	if err := r.Get(ctx, key, &existingRestore); err == nil {
+		return nil
+	}
+
+	restore := builders.BuildRestoreMariaDb(
+		corev1.LocalObjectReference{
+			Name: mariadb.Name,
+		},
+		mariadb.Spec.BootstrapFromBackup.BackupRef,
+		key,
+	)
+	if err := controllerutil.SetControllerReference(mariadb, restore, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to bootstrap Restore: %v", err)
 	}
 
-	if err := r.Create(ctx, &restore); err != nil {
+	if err := r.Create(ctx, restore); err != nil {
 		return fmt.Errorf("error creating bootstrap Restore job: %v", err)
 	}
-
 	return nil
 }
 
-func setMariaDBStatusReady(mariadb *databasev1alpha1.MariaDB, restore *databasev1alpha1.RestoreMariaDB) {
-	if mariadb.Spec.BootstrapFromBackup == nil || mariadb.IsBootstrapped() {
-		mariadb.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionTrue,
-			Reason:  databasev1alpha1.ConditionReasonStatefulSetReady,
-			Message: "Running",
-		})
-		return
+func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *databasev1alpha1.MariaDB,
+	key types.NamespacedName) (conditions.ConditionPatcher, error) {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, key, &sts); err != nil {
+		return nil, err
 	}
 
-	if restore.IsComplete() {
-		mariadb.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionTrue,
-			Reason:  databasev1alpha1.ConditionReasonRestoreComplete,
-			Message: "Running",
-		})
-		mariadb.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeBootstrapped,
-			Status:  metav1.ConditionTrue,
-			Reason:  databasev1alpha1.ConditionReasonRestoreComplete,
-			Message: "Ready",
-		})
+	var restore databasev1alpha1.RestoreMariaDB
+	var restoreExists bool
+	if err := r.Get(ctx, bootstrapRestoreKey(mariaDb), &restore); err != nil {
+		if apierrors.IsNotFound(err) {
+			restoreExists = false
+		} else {
+			return nil, err
+		}
 	} else {
-		mariadb.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonRestoreNotComplete,
-			Message: "Restoring backup",
-		})
-		mariadb.Status.AddCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeBootstrapped,
-			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonRestoreNotComplete,
-			Message: "Not ready",
-		})
+		restoreExists = true
 	}
+
+	return func(c conditions.Conditioner) {
+		if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
+			c.SetCondition(metav1.Condition{
+				Type:    databasev1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  databasev1alpha1.ConditionReasonStatefulSetNotReady,
+				Message: "Not ready",
+			})
+			return
+		}
+		if !restoreExists {
+			c.SetCondition(metav1.Condition{
+				Type:    databasev1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionTrue,
+				Reason:  databasev1alpha1.ConditionReasonStatefulSetReady,
+				Message: "Running",
+			})
+			return
+		}
+
+		if mariaDb.IsBootstrapped() {
+			c.SetCondition(metav1.Condition{
+				Type:    databasev1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionTrue,
+				Reason:  databasev1alpha1.ConditionReasonStatefulSetReady,
+				Message: "Running",
+			})
+			return
+		}
+		if restore.IsComplete() {
+			c.SetCondition(metav1.Condition{
+				Type:    databasev1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionTrue,
+				Reason:  databasev1alpha1.ConditionReasonRestoreComplete,
+				Message: "Running",
+			})
+			c.SetCondition(metav1.Condition{
+				Type:    databasev1alpha1.ConditionTypeBootstrapped,
+				Status:  metav1.ConditionTrue,
+				Reason:  databasev1alpha1.ConditionReasonRestoreComplete,
+				Message: "Ready",
+			})
+		} else {
+			c.SetCondition(metav1.Condition{
+				Type:    databasev1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  databasev1alpha1.ConditionReasonRestoreNotComplete,
+				Message: "Restoring backup",
+			})
+			c.SetCondition(metav1.Condition{
+				Type:    databasev1alpha1.ConditionTypeBootstrapped,
+				Status:  metav1.ConditionFalse,
+				Reason:  databasev1alpha1.ConditionReasonRestoreNotComplete,
+				Message: "Not ready",
+			})
+		}
+	}, nil
 }
 
-func shouldBootstrapFromBackup(mariadb *databasev1alpha1.MariaDB) bool {
-	return mariadb.Spec.BootstrapFromBackup != nil && !mariadb.IsBootstrapped()
+func objectCreatedPatcher(object string, err error) conditions.ConditionPatcher {
+	return func(c conditions.Conditioner) {
+		if err == nil {
+			conditions.SetConditionProvisioningWithMessage(c, fmt.Sprintf("%s created", object))
+		} else {
+			conditions.SetConditionFailedWithMessage(c, fmt.Sprintf("Failed restoring %v", object))
+		}
+	}
 }
 
 func bootstrapRestoreKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {

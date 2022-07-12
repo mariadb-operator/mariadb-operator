@@ -1,21 +1,24 @@
 package v1alpha1
 
 const (
-	ConditionTypeReady                  string = "Ready"
-	ConditionTypeBootstrapped           string = "Bootstrapped"
-	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
-	ConditionReasonStatefulSetReady     string = "StatefulSetReady"
-	ConditionReasonStatefulUnknownState string = "StatefulSetUnknownState"
-	ConditionReasonRestoreNotComplete   string = "RestoreNotComplete"
-	ConditionReasonRestoreComplete      string = "RestoreComplete"
-	ConditionReasonCreated              string = "Created"
-	ConditionReasonFailed               string = "Failed"
+	ConditionTypeReady        string = "Ready"
+	ConditionTypeBootstrapped string = "Bootstrapped"
+	ConditionTypeComplete     string = "Complete"
 )
 
 const (
-	ConditionTypeComplete       string = "Complete"
+	ConditionReasonStatefulSetNotReady string = "StatefulSetNotReady"
+	ConditionReasonStatefulSetReady    string = "StatefulSetReady"
+
+	ConditionReasonRestoreNotComplete string = "RestoreNotComplete"
+	ConditionReasonRestoreComplete    string = "RestoreComplete"
+
 	ConditionReasonJobComplete  string = "JobComplete"
 	ConditionReasonJobSuspended string = "JobSuspended"
 	ConditionReasonJobFailed    string = "JobFailed"
 	ConditionReasonJobRunning   string = "JobRunning"
+
+	ConditionReasonCreated      string = "Created"
+	ConditionReasonProvisioning string = "Provisioning"
+	ConditionReasonFailed       string = "Failed"
 )

@@ -41,7 +41,7 @@ type BackupMariaDBStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-func (b *BackupMariaDBStatus) AddCondition(condition metav1.Condition) {
+func (b *BackupMariaDBStatus) SetCondition(condition metav1.Condition) {
 	if b.Conditions == nil {
 		b.Conditions = make([]metav1.Condition, 0)
 	}

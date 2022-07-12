@@ -82,13 +82,16 @@ func (r *ExporterMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	defer mdbClient.Close()
 
-	user, err := r.createExporterCredentials(ctx, mariadb, &exporter, mdbClient)
+	user, err := r.createCredentials(ctx, mariadb, &exporter, mdbClient)
+	if patchErr := r.patchStatus(ctx, &exporter, credentialsPatcher(err)); patchErr != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching ExporterMariaDB status: %v", err)
+	}
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating exporter credentials: %v", err)
 	}
 
-	err = r.createExporterDeployment(ctx, mariadb, &exporter, user)
-	if patchErr := r.patchExporterStatus(ctx, &exporter, err); patchErr != nil {
+	err = r.createDeployment(ctx, mariadb, &exporter, user)
+	if patchErr := r.patchStatus(ctx, &exporter, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching ExporterMariaDB status: %v", err)
 	}
 	if err != nil {
@@ -98,7 +101,7 @@ func (r *ExporterMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return ctrl.Result{}, nil
 }
 
-func (r *ExporterMariaDBReconciler) createExporterCredentials(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *ExporterMariaDBReconciler) createCredentials(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	exporter *databasev1alpha1.ExporterMariaDB, mdbClient *mariadb.Client) (*databasev1alpha1.UserMariaDB, error) {
 	key := exporterKey(mariadb)
 	if err := r.createUser(ctx, mariadb, exporter); err != nil {
@@ -134,7 +137,7 @@ func (r *ExporterMariaDBReconciler) createExporterCredentials(ctx context.Contex
 	return &user, nil
 }
 
-func (r *ExporterMariaDBReconciler) createExporterDeployment(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *ExporterMariaDBReconciler) createDeployment(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	exporter *databasev1alpha1.ExporterMariaDB, user *databasev1alpha1.UserMariaDB) error {
 	key := exporterKey(mariadb)
 	var existingDeploy v1.Deployment
@@ -174,7 +177,7 @@ func (r *ExporterMariaDBReconciler) createUser(ctx context.Context, mariadb *dat
 	}
 
 	opts := builders.UserOpts{
-		Name:                 key.Name,
+		Key:                  key,
 		PasswordSecretKeyRef: *secretKeySelector,
 		MaxUserConnections:   3,
 	}
@@ -199,7 +202,7 @@ func (r *ExporterMariaDBReconciler) createGrant(ctx context.Context, mariadb *da
 	}
 
 	opts := builders.GrantOpts{
-		Name:        key.Name,
+		Key:         key,
 		Privileges:  exporterPrivileges,
 		Database:    "*",
 		Table:       "*",
@@ -222,7 +225,7 @@ func (r *ExporterMariaDBReconciler) createPasswordSecret(ctx context.Context, ma
 	}
 
 	opts := builders.SecretOpts{
-		Name: passwordKey(mariadb).Name,
+		Key: passwordKey(mariadb),
 		Data: map[string][]byte{
 			passwordSecretKey: []byte(password),
 		},
@@ -261,7 +264,7 @@ func (r *ExporterMariaDBReconciler) createDsnSecret(ctx context.Context, mariadb
 	}
 
 	secretOpts := builders.SecretOpts{
-		Name: dsnKey(mariadb).Name,
+		Key: dsnKey(mariadb),
 		Data: map[string][]byte{
 			dsnSecretKey: []byte(dsn),
 		},
@@ -281,10 +284,21 @@ func (r *ExporterMariaDBReconciler) createDsnSecret(ctx context.Context, mariadb
 	}, nil
 }
 
-func (r *ExporterMariaDBReconciler) patchExporterStatus(ctx context.Context, exporter *databasev1alpha1.ExporterMariaDB, err error) error {
+func (r *ExporterMariaDBReconciler) patchStatus(ctx context.Context, exporter *databasev1alpha1.ExporterMariaDB,
+	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(exporter.DeepCopy())
-	conditions.AddConditionReady(&exporter.Status, err)
+	patcher(&exporter.Status)
 	return r.Client.Status().Patch(ctx, exporter, patch)
+}
+
+func credentialsPatcher(err error) conditions.ConditionPatcher {
+	return func(c conditions.Conditioner) {
+		if err == nil {
+			conditions.SetConditionProvisioningWithMessage(c, "Created credentials")
+		} else {
+			conditions.SetConditionFailedWithMessage(c, "Failed creating credentials")
+		}
+	}
 }
 
 func exporterKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {

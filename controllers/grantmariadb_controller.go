@@ -66,18 +66,18 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	defer mdbClient.Close()
 
 	if grant.IsBeingDeleted() {
-		if err := r.finalizeGrant(ctx, &grant, mdbClient); err != nil {
+		if err := r.finalize(ctx, &grant, mdbClient); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error finalizing GrantMariaDB: %v", err)
 		}
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.addGrantFinalizer(ctx, &grant); err != nil {
+	if err := r.addFinalizer(ctx, &grant); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error adding finalizer to GrantMariaDB: %v", err)
 	}
 
 	err = r.grant(ctx, &grant, mdbClient)
-	if patchErr := r.patchGrantStatus(ctx, &grant, err); patchErr != nil {
+	if patchErr := r.patchStatus(ctx, &grant, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching GrantMariaDB status: %v", err)
 	}
 	if err != nil {
@@ -98,14 +98,7 @@ func (r *GrantMariaDBReconciler) grant(ctx context.Context, grant *databasev1alp
 	return mdbClient.Grant(ctx, opts)
 }
 
-func (r *GrantMariaDBReconciler) patchGrantStatus(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
-	err error) error {
-	patch := client.MergeFrom(grant.DeepCopy())
-	conditions.AddConditionReady(&grant.Status, err)
-	return r.Client.Status().Patch(ctx, grant, patch)
-}
-
-func (r *GrantMariaDBReconciler) addGrantFinalizer(ctx context.Context, grant *databasev1alpha1.GrantMariaDB) error {
+func (r *GrantMariaDBReconciler) addFinalizer(ctx context.Context, grant *databasev1alpha1.GrantMariaDB) error {
 	if controllerutil.ContainsFinalizer(grant, grantFinalizerName) {
 		return nil
 	}
@@ -114,7 +107,7 @@ func (r *GrantMariaDBReconciler) addGrantFinalizer(ctx context.Context, grant *d
 	return r.Client.Patch(ctx, grant, patch)
 }
 
-func (r *GrantMariaDBReconciler) finalizeGrant(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
+func (r *GrantMariaDBReconciler) finalize(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
 	mdbClient *mariadbclient.Client) error {
 	if !controllerutil.ContainsFinalizer(grant, grantFinalizerName) {
 		return nil
@@ -150,6 +143,13 @@ func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1al
 		return fmt.Errorf("error revoking grants in MariaDB: %v", err)
 	}
 	return nil
+}
+
+func (r *GrantMariaDBReconciler) patchStatus(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
+	patcher conditions.ConditionPatcher) error {
+	patch := client.MergeFrom(grant.DeepCopy())
+	patcher(&grant.Status)
+	return r.Client.Status().Patch(ctx, grant, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.

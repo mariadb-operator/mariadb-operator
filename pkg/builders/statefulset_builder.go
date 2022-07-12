@@ -7,6 +7,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 	stsStorageMountPath = "/var/lib/mysql"
 )
 
-func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
+func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {
 	containers, err := buildStsContainers(mariadb)
 	if err != nil {
 		return nil, err
@@ -32,8 +33,8 @@ func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB) (*appsv1.StatefulSet, e
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      mariadb.Name,
-			Namespace: mariadb.Namespace,
+			Name:      key.Name,
+			Namespace: key.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.StatefulSetSpec{

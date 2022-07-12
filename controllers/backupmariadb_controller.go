@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -53,41 +54,36 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	var pvc v1.PersistentVolumeClaim
-	if err := r.Get(ctx, req.NamespacedName, &pvc); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("error getting PVC: %v", err)
-		}
-
-		if err := r.createPVC(ctx, &backup); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating PVC: %v", err)
-		}
-	}
-
-	var job batchv1.Job
-	if err := r.Get(ctx, req.NamespacedName, &job); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("error getting Job: %v", err)
-		}
-
-		mariadb, err := r.RefResolver.GetMariaDB(ctx, backup.Spec.MariaDBRef, backup.Namespace)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
-		}
-
-		if err := r.createJob(ctx, &backup, mariadb); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
-		}
-	}
-
-	if err := r.patchBackupStatus(ctx, &backup, &job); err != nil {
+	err := r.createPVC(ctx, &backup, req.NamespacedName)
+	if patchErr := r.patchStatus(ctx, &backup, pvcPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching BackupMariaDB status: %v", err)
+	}
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating PVC: %v", err)
+	}
+
+	err = r.createJob(ctx, &backup, req.NamespacedName)
+	jobPatcher, jobPatcherErr := r.jobPatcher(ctx, err, req.NamespacedName)
+	if jobPatcherErr != nil && apierrors.IsNotFound(jobPatcherErr) {
+		return ctrl.Result{}, fmt.Errorf("error getting patcher for BackupMariaDB: %v", jobPatcherErr)
+	}
+	if patchErr := r.patchStatus(ctx, &backup, jobPatcher); patchErr != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching BackupMariaDB: %v", patchErr)
+	}
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *BackupMariaDBReconciler) createPVC(ctx context.Context, backup *databasev1alpha1.BackupMariaDB) error {
+func (r *BackupMariaDBReconciler) createPVC(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
+	key types.NamespacedName) error {
+	var existingPvc v1.PersistentVolumeClaim
+	if err := r.Get(ctx, key, &existingPvc); err == nil {
+		return nil
+	}
+
 	pvcMeta := metav1.ObjectMeta{
 		Name:      backup.Name,
 		Namespace: backup.Namespace,
@@ -100,9 +96,18 @@ func (r *BackupMariaDBReconciler) createPVC(ctx context.Context, backup *databas
 }
 
 func (r *BackupMariaDBReconciler) createJob(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
-	mariadb *databasev1alpha1.MariaDB) error {
-	job := builders.BuildBackupJob(backup, mariadb)
+	key types.NamespacedName) error {
+	var existingJob batchv1.Job
+	if err := r.Get(ctx, key, &existingJob); err == nil {
+		return nil
+	}
 
+	mariadb, err := r.RefResolver.GetMariaDB(ctx, backup.Spec.MariaDBRef, backup.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting MariaDB: %v", err)
+	}
+
+	job := builders.BuildBackupJob(backup, mariadb, key)
 	if err := controllerutil.SetControllerReference(backup, job, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
@@ -113,11 +118,38 @@ func (r *BackupMariaDBReconciler) createJob(ctx context.Context, backup *databas
 	return nil
 }
 
-func (r *BackupMariaDBReconciler) patchBackupStatus(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
-	job *batchv1.Job) error {
+func (r *BackupMariaDBReconciler) patchStatus(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
+	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(backup.DeepCopy())
-	conditions.AddConditionComplete(&backup.Status, job)
+	patcher(&backup.Status)
 	return r.Client.Status().Patch(ctx, backup, patch)
+}
+
+func pvcPatcher(err error) conditions.ConditionPatcher {
+	return func(c conditions.Conditioner) {
+		if err == nil {
+			conditions.SetConditionProvisioningWithMessage(c, "Created PVC")
+		} else {
+			conditions.SetConditionFailedWithMessage(c, "Failed creating PVC")
+		}
+	}
+}
+
+func (r *BackupMariaDBReconciler) jobPatcher(ctx context.Context, err error,
+	jobKey types.NamespacedName) (conditions.ConditionPatcher, error) {
+	if err != nil {
+		return func(c conditions.Conditioner) {
+			conditions.SetConditionFailedWithMessage(c, "Failed creating Job")
+		}, nil
+	}
+
+	var job batchv1.Job
+	if getErr := r.Get(ctx, jobKey, &job); getErr != nil {
+		return nil, getErr
+	}
+	return func(c conditions.Conditioner) {
+		conditions.SetConditionCompleteWithJob(c, &job)
+	}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

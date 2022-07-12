@@ -63,7 +63,8 @@ func BuildExporterDeployment(mariadb *databasev1alpha1.MariaDB, exporter *databa
 	}, nil
 }
 
-func BuildPodMonitor(mariadb *databasev1alpha1.MariaDB, monitor *databasev1alpha1.MonitorMariaDB) *monitoringv1.PodMonitor {
+func BuildPodMonitor(mariadb *databasev1alpha1.MariaDB, monitor *databasev1alpha1.MonitorMariaDB,
+	key types.NamespacedName) *monitoringv1.PodMonitor {
 	labels :=
 		NewLabelsBuilder().
 			WithApp(appMariaDb).
@@ -73,8 +74,8 @@ func BuildPodMonitor(mariadb *databasev1alpha1.MariaDB, monitor *databasev1alpha
 	exporterLabels := getExporterLabels(mariadb)
 	return &monitoringv1.PodMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      mariadb.Name,
-			Namespace: mariadb.Namespace,
+			Name:      key.Name,
+			Namespace: key.Namespace,
 			Labels:    labels,
 		},
 		Spec: monitoringv1.PodMonitorSpec{

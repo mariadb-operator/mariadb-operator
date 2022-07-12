@@ -25,8 +25,8 @@ import (
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -58,37 +58,34 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	var job batchv1.Job
-	if err := r.Get(ctx, req.NamespacedName, &job); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("error getting Job: %v", err)
-		}
-
-		mariadb, err := r.RefResolver.GetMariaDB(ctx, restore.Spec.MariaDBRef, restore.Namespace)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
-		}
-		backup, err := r.RefResolver.GetBackupMariaDB(ctx, restore.Spec.BackupRef, restore.Namespace)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting BackupMariaDB: %v", err)
-		}
-
-		if err := r.createJob(ctx, &restore, mariadb, backup); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
-		}
+	err := r.createJob(ctx, &restore, req.NamespacedName)
+	if patchErr := r.patchStatus(ctx, &restore, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching RestoreMariaDB status: %v", patchErr)
 	}
-
-	if err := r.patchRestoreStatus(ctx, &restore, &job); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching RestoreMariaDB status: %v", err)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}
 
 	return ctrl.Result{}, nil
 }
 
 func (r *RestoreMariaDBReconciler) createJob(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
-	mariadb *databasev1alpha1.MariaDB, backup *databasev1alpha1.BackupMariaDB) error {
-	job := builders.BuildRestoreJob(restore, mariadb, backup)
+	key types.NamespacedName) error {
+	var existingJob batchv1.Job
+	if err := r.Get(ctx, key, &existingJob); err == nil {
+		return nil
+	}
 
+	mariadb, err := r.RefResolver.GetMariaDB(ctx, restore.Spec.MariaDBRef, restore.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting MariaDB: %v", err)
+	}
+	backup, err := r.RefResolver.GetBackupMariaDB(ctx, restore.Spec.BackupRef, restore.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting BackupMariaDB: %v", err)
+	}
+
+	job := builders.BuildRestoreJob(restore, mariadb, backup, key)
 	if err := controllerutil.SetControllerReference(restore, job, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
@@ -99,10 +96,10 @@ func (r *RestoreMariaDBReconciler) createJob(ctx context.Context, restore *datab
 	return nil
 }
 
-func (r *RestoreMariaDBReconciler) patchRestoreStatus(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
-	job *batchv1.Job) error {
+func (r *RestoreMariaDBReconciler) patchStatus(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
+	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(restore.DeepCopy())
-	conditions.AddConditionComplete(&restore.Status, job)
+	patcher(&restore.Status)
 	return r.Client.Status().Patch(ctx, restore, patch)
 }
 
