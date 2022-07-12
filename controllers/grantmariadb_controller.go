@@ -120,6 +120,25 @@ func (r *GrantMariaDBReconciler) finalizeGrant(ctx context.Context, grant *datab
 		return nil
 	}
 
+	if err := r.revoke(ctx, grant, mdbClient); err != nil {
+		return fmt.Errorf("error revoking grant: %v", err)
+	}
+
+	patch := ctrlClient.MergeFrom(grant.DeepCopy())
+	controllerutil.RemoveFinalizer(grant, grantFinalizerName)
+	return r.Client.Patch(ctx, grant, patch)
+}
+
+func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
+	mdbClient *mariadbclient.Client) error {
+	exists, err := mdbClient.UserExists(ctx, grant.Spec.Username)
+	if err != nil {
+		return fmt.Errorf("error checking if user exists: %v", err)
+	}
+	if !exists {
+		return nil
+	}
+
 	opts := mariadbclient.GrantOpts{
 		Privileges:  grant.Spec.Privileges,
 		Database:    grant.Spec.Database,
@@ -130,10 +149,7 @@ func (r *GrantMariaDBReconciler) finalizeGrant(ctx context.Context, grant *datab
 	if err := mdbClient.Revoke(ctx, opts); err != nil {
 		return fmt.Errorf("error revoking grants in MariaDB: %v", err)
 	}
-
-	patch := ctrlClient.MergeFrom(grant.DeepCopy())
-	controllerutil.RemoveFinalizer(grant, grantFinalizerName)
-	return r.Client.Patch(ctx, grant, patch)
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
