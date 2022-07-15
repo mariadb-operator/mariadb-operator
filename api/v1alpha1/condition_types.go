@@ -18,7 +18,6 @@ const (
 	ConditionReasonJobFailed    string = "JobFailed"
 	ConditionReasonJobRunning   string = "JobRunning"
 
-	ConditionReasonCreated      string = "Created"
-	ConditionReasonProvisioning string = "Provisioning"
-	ConditionReasonFailed       string = "Failed"
+	ConditionReasonCreated string = "Created"
+	ConditionReasonFailed  string = "Failed"
 )

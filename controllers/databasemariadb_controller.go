@@ -77,7 +77,7 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	err = r.createDatabase(ctx, &database, mdbClient)
-	if patchErr := r.patchStatus(ctx, &database, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
+	if patchErr := r.patchStatus(ctx, &database, conditions.NewConditionReadyPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching DatabaseMariaDB status: %v", err)
 	}
 	if err != nil {

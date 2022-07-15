@@ -25,6 +25,7 @@ import (
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,13 +46,6 @@ type RestoreMariaDBReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the RestoreMariaDB object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.2/pkg/reconcile
 func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var restore databasev1alpha1.RestoreMariaDB
 	if err := r.Get(ctx, req.NamespacedName, &restore); err != nil {
@@ -59,9 +53,18 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	err := r.createJob(ctx, &restore, req.NamespacedName)
-	if patchErr := r.patchStatus(ctx, &restore, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching RestoreMariaDB status: %v", patchErr)
+
+	completePatcher, completePatcherErr := conditions.NewConditionComplete(r.Client).Patcher(ctx, err, req.NamespacedName)
+	if completePatcherErr != nil {
+		if apierrors.IsNotFound(completePatcherErr) {
+			return ctrl.Result{}, client.IgnoreNotFound(completePatcherErr)
+		}
+		return ctrl.Result{}, fmt.Errorf("error getting patcher for RestoreMariaDB: %v", completePatcherErr)
 	}
+	if patchErr := r.patchStatus(ctx, &restore, completePatcher); patchErr != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching RestoreMariaDB: %v", patchErr)
+	}
+
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}

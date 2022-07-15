@@ -54,22 +54,23 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	err := r.createPVC(ctx, &backup, req.NamespacedName)
-	if patchErr := r.patchStatus(ctx, &backup, pvcPatcher(err)); patchErr != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching BackupMariaDB status: %v", err)
-	}
-	if err != nil {
+	if err := r.createPVC(ctx, &backup, req.NamespacedName); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating PVC: %v", err)
 	}
 
-	err = r.createJob(ctx, &backup, req.NamespacedName)
-	jobPatcher, jobPatcherErr := r.jobPatcher(ctx, err, req.NamespacedName)
-	if jobPatcherErr != nil && apierrors.IsNotFound(jobPatcherErr) {
-		return ctrl.Result{}, fmt.Errorf("error getting patcher for BackupMariaDB: %v", jobPatcherErr)
+	err := r.createJob(ctx, &backup, req.NamespacedName)
+
+	completePatcher, completePatcherErr := conditions.NewConditionComplete(r.Client).Patcher(ctx, err, req.NamespacedName)
+	if completePatcherErr != nil {
+		if apierrors.IsNotFound(completePatcherErr) {
+			return ctrl.Result{}, client.IgnoreNotFound(completePatcherErr)
+		}
+		return ctrl.Result{}, fmt.Errorf("error getting patcher for BackupMariaDB: %v", completePatcherErr)
 	}
-	if patchErr := r.patchStatus(ctx, &backup, jobPatcher); patchErr != nil {
+	if patchErr := r.patchStatus(ctx, &backup, completePatcher); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching BackupMariaDB: %v", patchErr)
 	}
+
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}
@@ -123,33 +124,6 @@ func (r *BackupMariaDBReconciler) patchStatus(ctx context.Context, backup *datab
 	patch := client.MergeFrom(backup.DeepCopy())
 	patcher(&backup.Status)
 	return r.Client.Status().Patch(ctx, backup, patch)
-}
-
-func pvcPatcher(err error) conditions.ConditionPatcher {
-	return func(c conditions.Conditioner) {
-		if err == nil {
-			conditions.SetConditionProvisioningWithMessage(c, "Created PVC")
-		} else {
-			conditions.SetConditionFailedWithMessage(c, "Failed creating PVC")
-		}
-	}
-}
-
-func (r *BackupMariaDBReconciler) jobPatcher(ctx context.Context, err error,
-	jobKey types.NamespacedName) (conditions.ConditionPatcher, error) {
-	if err != nil {
-		return func(c conditions.Conditioner) {
-			conditions.SetConditionFailedWithMessage(c, "Failed creating Job")
-		}, nil
-	}
-
-	var job batchv1.Job
-	if getErr := r.Get(ctx, jobKey, &job); getErr != nil {
-		return nil, getErr
-	}
-	return func(c conditions.Conditioner) {
-		conditions.SetConditionCompleteWithJob(c, &job)
-	}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

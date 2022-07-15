@@ -83,15 +83,12 @@ func (r *ExporterMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	defer mdbClient.Close()
 
 	user, err := r.createCredentials(ctx, mariadb, &exporter, mdbClient)
-	if patchErr := r.patchStatus(ctx, &exporter, credentialsPatcher(err)); patchErr != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching ExporterMariaDB status: %v", err)
-	}
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating exporter credentials: %v", err)
 	}
 
 	err = r.createDeployment(ctx, mariadb, &exporter, user)
-	if patchErr := r.patchStatus(ctx, &exporter, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
+	if patchErr := r.patchStatus(ctx, &exporter, conditions.NewConditionReadyPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching ExporterMariaDB status: %v", err)
 	}
 	if err != nil {
@@ -289,16 +286,6 @@ func (r *ExporterMariaDBReconciler) patchStatus(ctx context.Context, exporter *d
 	patch := client.MergeFrom(exporter.DeepCopy())
 	patcher(&exporter.Status)
 	return r.Client.Status().Patch(ctx, exporter, patch)
-}
-
-func credentialsPatcher(err error) conditions.ConditionPatcher {
-	return func(c conditions.Conditioner) {
-		if err == nil {
-			conditions.SetConditionProvisioningWithMessage(c, "Created credentials")
-		} else {
-			conditions.SetConditionFailedWithMessage(c, "Failed creating credentials")
-		}
-	}
 }
 
 func exporterKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {

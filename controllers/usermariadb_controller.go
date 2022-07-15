@@ -77,7 +77,7 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	err = r.createUser(ctx, &user, mdbClient)
-	if patchErr := r.patchStatus(ctx, &user, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
+	if patchErr := r.patchStatus(ctx, &user, conditions.NewConditionReadyPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching UserMariaDB status: %v", err)
 	}
 	if err != nil {

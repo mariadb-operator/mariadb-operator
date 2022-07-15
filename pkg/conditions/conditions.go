@@ -11,19 +11,6 @@ type Conditioner interface {
 	SetCondition(condition metav1.Condition)
 }
 
-type ConditionPatcher func(Conditioner)
-
-func NewConditionCreatedPatcher(err error) ConditionPatcher {
-	return func(c Conditioner) {
-		if err == nil {
-			SetConditionCreated(c)
-		} else {
-			SetConditionFailed(c)
-		}
-	}
-
-}
-
 func SetConditionCreatedWithMessage(c Conditioner, message string) {
 	c.SetCondition(metav1.Condition{
 		Type:    databasev1alpha1.ConditionTypeReady,
@@ -35,19 +22,6 @@ func SetConditionCreatedWithMessage(c Conditioner, message string) {
 
 func SetConditionCreated(c Conditioner) {
 	SetConditionCreatedWithMessage(c, "Created")
-}
-
-func SetConditionProvisioningWithMessage(c Conditioner, message string) {
-	c.SetCondition(metav1.Condition{
-		Type:    databasev1alpha1.ConditionTypeReady,
-		Status:  metav1.ConditionFalse,
-		Reason:  databasev1alpha1.ConditionReasonProvisioning,
-		Message: message,
-	})
-}
-
-func SetConditionProvisioning(c Conditioner) {
-	SetConditionProvisioningWithMessage(c, "Provisioning")
 }
 
 func SetConditionFailedWithMessage(c Conditioner, message string) {

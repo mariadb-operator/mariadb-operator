@@ -51,25 +51,12 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.Get(ctx, req.NamespacedName, &mariaDb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	err := r.createStatefulSet(ctx, &mariaDb, req.NamespacedName)
-	if !mariaDb.IsReady() {
-		if patchErr := r.patchStatus(ctx, &mariaDb, objectCreatedPatcher("StatefulSet", err)); patchErr != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %s", patchErr)
-		}
-	}
-	if err != nil {
+
+	if err := r.createStatefulSet(ctx, &mariaDb, req.NamespacedName); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", err)
 	}
 
 	if err := r.createService(ctx, &mariaDb, req.NamespacedName); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating Service: %v", err)
-	}
-	if !mariaDb.IsReady() {
-		if patchErr := r.patchStatus(ctx, &mariaDb, objectCreatedPatcher("Service", err)); patchErr != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %s", patchErr)
-		}
-	}
-	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Service: %v", err)
 	}
 
@@ -237,16 +224,6 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *databasev1alph
 			})
 		}
 	}, nil
-}
-
-func objectCreatedPatcher(object string, err error) conditions.ConditionPatcher {
-	return func(c conditions.Conditioner) {
-		if err == nil {
-			conditions.SetConditionProvisioningWithMessage(c, fmt.Sprintf("%s created", object))
-		} else {
-			conditions.SetConditionFailedWithMessage(c, fmt.Sprintf("Failed restoring %v", object))
-		}
-	}
 }
 
 func bootstrapRestoreKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {

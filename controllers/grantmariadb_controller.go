@@ -77,7 +77,7 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	err = r.grant(ctx, &grant, mdbClient)
-	if patchErr := r.patchStatus(ctx, &grant, conditions.NewConditionCreatedPatcher(err)); patchErr != nil {
+	if patchErr := r.patchStatus(ctx, &grant, conditions.NewConditionReadyPatcher(err)); patchErr != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching GrantMariaDB status: %v", err)
 	}
 	if err != nil {
