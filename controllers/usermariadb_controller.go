@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
@@ -76,11 +77,14 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, fmt.Errorf("error adding finalizer to UserMariaDB: %v", err)
 	}
 
+	var userErr *multierror.Error
 	err = r.createUser(ctx, &user, mdbClient)
-	if patchErr := r.patchStatus(ctx, &user, conditions.NewConditionReadyPatcher(err)); patchErr != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching UserMariaDB status: %v", err)
-	}
-	if err != nil {
+	userErr = multierror.Append(userErr, err)
+
+	err = r.patchStatus(ctx, &user, conditions.NewConditionReadyPatcher(err))
+	userErr = multierror.Append(userErr, err)
+
+	if err := userErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating UserMariaDB: %v", err)
 	}
 
@@ -127,7 +131,11 @@ func (r *UserMariaDBReconciler) patchStatus(ctx context.Context, user *databasev
 	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(user.DeepCopy())
 	patcher(&user.Status)
-	return r.Client.Status().Patch(ctx, user, patch)
+
+	if err := r.Client.Status().Patch(ctx, user, patch); err != nil {
+		return fmt.Errorf("error patching UserMariaDB on API server: %v", err)
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

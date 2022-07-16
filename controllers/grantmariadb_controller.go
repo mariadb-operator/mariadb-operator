@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
@@ -76,11 +77,14 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, fmt.Errorf("error adding finalizer to GrantMariaDB: %v", err)
 	}
 
+	var grantErr *multierror.Error
 	err = r.grant(ctx, &grant, mdbClient)
-	if patchErr := r.patchStatus(ctx, &grant, conditions.NewConditionReadyPatcher(err)); patchErr != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching GrantMariaDB status: %v", err)
-	}
-	if err != nil {
+	grantErr = multierror.Append(grantErr, err)
+
+	err = r.patchStatus(ctx, &grant, conditions.NewConditionReadyPatcher(err))
+	grantErr = multierror.Append(grantErr, err)
+
+	if err := grantErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating GrantMariaDB: %v", err)
 	}
 
