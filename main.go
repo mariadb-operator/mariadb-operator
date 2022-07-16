@@ -26,6 +26,7 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/controllers"
+	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -80,6 +81,7 @@ func main() {
 	}
 
 	refResolver := refresolver.New(mgr.GetClient())
+	conditionComplete := conditions.NewConditionComplete(mgr.GetClient())
 
 	if err = (&controllers.MariaDBReconciler{
 		Client: mgr.GetClient(),
@@ -89,17 +91,19 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.BackupMariaDBReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		RefResolver: refResolver,
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		RefResolver:       refResolver,
+		ConditionComplete: conditionComplete,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BackupMariaDB")
 		os.Exit(1)
 	}
 	if err = (&controllers.RestoreMariaDBReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		RefResolver: refResolver,
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		RefResolver:       refResolver,
+		ConditionComplete: conditionComplete,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RestoreMariaDB")
 		os.Exit(1)

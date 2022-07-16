@@ -11,7 +11,7 @@ type Conditioner interface {
 	SetCondition(condition metav1.Condition)
 }
 
-func SetConditionCreatedWithMessage(c Conditioner, message string) {
+func SetReadyCreatedWithMessage(c Conditioner, message string) {
 	c.SetCondition(metav1.Condition{
 		Type:    databasev1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
@@ -20,11 +20,11 @@ func SetConditionCreatedWithMessage(c Conditioner, message string) {
 	})
 }
 
-func SetConditionCreated(c Conditioner) {
-	SetConditionCreatedWithMessage(c, "Created")
+func SetReadyCreated(c Conditioner) {
+	SetReadyCreatedWithMessage(c, "Created")
 }
 
-func SetConditionFailedWithMessage(c Conditioner, message string) {
+func SetReadyFailedWithMessage(c Conditioner, message string) {
 	c.SetCondition(metav1.Condition{
 		Type:    databasev1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
@@ -33,11 +33,11 @@ func SetConditionFailedWithMessage(c Conditioner, message string) {
 	})
 }
 
-func SetConditionFailed(c Conditioner) {
-	SetConditionFailedWithMessage(c, "Failed")
+func SetReadyFailed(c Conditioner) {
+	SetReadyFailedWithMessage(c, "Failed")
 }
 
-func SetConditionCompleteWithJob(c Conditioner, job *batchv1.Job) {
+func SetCompleteWithJob(c Conditioner, job *batchv1.Job) {
 	switch getJobConditionType(job) {
 	case batchv1.JobFailed:
 		c.SetCondition(metav1.Condition{
@@ -68,6 +68,19 @@ func SetConditionCompleteWithJob(c Conditioner, job *batchv1.Job) {
 			Message: "Running",
 		})
 	}
+}
+
+func SetCompleteFailedWithMessage(c Conditioner, message string) {
+	c.SetCondition(metav1.Condition{
+		Type:    databasev1alpha1.ConditionTypeComplete,
+		Status:  metav1.ConditionFalse,
+		Reason:  databasev1alpha1.ConditionReasonFailed,
+		Message: message,
+	})
+}
+
+func SetCompleteFailed(c Conditioner) {
+	SetCompleteFailedWithMessage(c, "Failed")
 }
 
 func getJobConditionType(job *batchv1.Job) batchv1.JobConditionType {

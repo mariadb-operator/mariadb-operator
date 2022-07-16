@@ -13,9 +13,9 @@ type ConditionPatcher func(Conditioner)
 func NewConditionReadyPatcher(err error) ConditionPatcher {
 	return func(c Conditioner) {
 		if err == nil {
-			SetConditionCreated(c)
+			SetReadyCreated(c)
 		} else {
-			SetConditionFailed(c)
+			SetReadyFailed(c)
 		}
 	}
 }
@@ -30,18 +30,24 @@ func NewConditionComplete(client client.Client) *ConditionComplete {
 	}
 }
 
-func (p *ConditionComplete) Patcher(ctx context.Context, err error, jobKey types.NamespacedName) (ConditionPatcher, error) {
+func (p *ConditionComplete) FailedPatcher(msg string) ConditionPatcher {
+	return func(c Conditioner) {
+		SetCompleteFailedWithMessage(c, msg)
+	}
+}
+
+func (p *ConditionComplete) PatcherWithJob(ctx context.Context, err error, jobKey types.NamespacedName) (ConditionPatcher, error) {
 	if err != nil {
 		return func(c Conditioner) {
-			SetConditionFailedWithMessage(c, "Failed creating Job")
+			SetCompleteFailedWithMessage(c, "Failed creating Job")
 		}, nil
 	}
 
 	var job batchv1.Job
-	if getErr := p.client.Get(ctx, jobKey, &job); getErr != nil {
-		return nil, getErr
+	if err := p.client.Get(ctx, jobKey, &job); err != nil {
+		return nil, err
 	}
 	return func(c Conditioner) {
-		SetConditionCompleteWithJob(c, &job)
+		SetCompleteWithJob(c, &job)
 	}, nil
 }

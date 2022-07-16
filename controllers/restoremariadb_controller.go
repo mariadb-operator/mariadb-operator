@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
@@ -36,8 +37,9 @@ import (
 // RestoreMariaDBReconciler reconciles a RestoreMariaDB object
 type RestoreMariaDBReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	RefResolver *refresolver.RefResolver
+	Scheme            *runtime.Scheme
+	RefResolver       *refresolver.RefResolver
+	ConditionComplete *conditions.ConditionComplete
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=restoremariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -52,20 +54,22 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	var jobErr *multierror.Error
 	err := r.createJob(ctx, &restore, req.NamespacedName)
+	jobErr = multierror.Append(jobErr, err)
 
-	completePatcher, completePatcherErr := conditions.NewConditionComplete(r.Client).Patcher(ctx, err, req.NamespacedName)
-	if completePatcherErr != nil {
-		if apierrors.IsNotFound(completePatcherErr) {
-			return ctrl.Result{}, client.IgnoreNotFound(completePatcherErr)
-		}
-		return ctrl.Result{}, fmt.Errorf("error getting patcher for RestoreMariaDB: %v", completePatcherErr)
-	}
-	if patchErr := r.patchStatus(ctx, &restore, completePatcher); patchErr != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching RestoreMariaDB: %v", patchErr)
-	}
-
+	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, client.IgnoreNotFound(err)
+		}
+		return ctrl.Result{}, fmt.Errorf("error getting patcher for RestoreMariaDB: %v", err)
+	}
+
+	err = r.patchStatus(ctx, &restore, patcher)
+	jobErr = multierror.Append(jobErr, err)
+
+	if err := jobErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}
 
@@ -103,7 +107,11 @@ func (r *RestoreMariaDBReconciler) patchStatus(ctx context.Context, restore *dat
 	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(restore.DeepCopy())
 	patcher(&restore.Status)
-	return r.Client.Status().Patch(ctx, restore, patch)
+
+	if err := r.Client.Status().Patch(ctx, restore, patch); err != nil {
+		return fmt.Errorf("error patching BackupMariaDB on API server: %v", err)
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
