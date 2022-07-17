@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
@@ -82,17 +83,26 @@ func (r *ExporterMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	defer mdbClient.Close()
 
+	var userErr *multierror.Error
 	user, err := r.createCredentials(ctx, mariadb, &exporter, mdbClient)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating exporter credentials: %v", err)
+		userErr = multierror.Append(userErr, err)
+
+		err = r.patchStatus(ctx, &exporter, conditions.NewConditionReadyFailedPatcher("Failed creating exporter credentials"))
+		userErr = multierror.Append(userErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error creating exporter credentials: %v", userErr)
 	}
 
+	var deployErr *multierror.Error
 	err = r.createDeployment(ctx, mariadb, &exporter, user)
-	if patchErr := r.patchStatus(ctx, &exporter, conditions.NewConditionReadyPatcher(err)); patchErr != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching ExporterMariaDB status: %v", err)
-	}
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating exporter deployment: %v", err)
+	deployErr = multierror.Append(deployErr, err)
+
+	err = r.patchStatus(ctx, &exporter, conditions.NewConditionReadyPatcher(err))
+	deployErr = multierror.Append(deployErr, err)
+
+	if err := deployErr.ErrorOrNil(); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating exporter Deployment: %v", deployErr)
 	}
 
 	return ctrl.Result{}, nil
@@ -186,7 +196,6 @@ func (r *ExporterMariaDBReconciler) createUser(ctx context.Context, mariadb *dat
 	if err := r.Create(ctx, user); err != nil {
 		return fmt.Errorf("error creating UserMariaDB on API server: %v", err)
 	}
-
 	return nil
 }
 

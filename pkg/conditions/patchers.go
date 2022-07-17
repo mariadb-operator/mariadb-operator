@@ -20,6 +20,12 @@ func NewConditionReadyPatcher(err error) ConditionPatcher {
 	}
 }
 
+func NewConditionReadyFailedPatcher(msg string) ConditionPatcher {
+	return func(c Conditioner) {
+		SetReadyFailedWithMessage(c, msg)
+	}
+}
+
 type ConditionComplete struct {
 	client client.Client
 }
