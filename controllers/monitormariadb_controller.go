@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
@@ -58,15 +59,24 @@ func (r *MonitorMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
 	}
 
+	var exporterErr *multierror.Error
 	if err = r.createExporter(ctx, mariadb, &monitor); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating exporter: %v", err)
+		exporterErr = multierror.Append(exporterErr, err)
+
+		err := r.patchStatus(ctx, &monitor, conditions.NewConditionReadyFailedPatcher("Failed creating exporter"))
+		exporterErr = multierror.Append(exporterErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error creating exporter: %v", exporterErr)
 	}
 
+	var podMonitorErr *multierror.Error
 	err = r.createPodMonitor(ctx, mariadb, &monitor)
-	if patchErr := r.patchStatus(ctx, &monitor, conditions.NewConditionReadyPatcher(err)); patchErr != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching MonitorMariaDB status: %v", err)
-	}
-	if err != nil {
+	podMonitorErr = multierror.Append(podMonitorErr, err)
+
+	err = r.patchStatus(ctx, &monitor, conditions.NewConditionReadyPatcher(err))
+	podMonitorErr = multierror.Append(podMonitorErr, err)
+
+	if err := podMonitorErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating PodMonitor: %v", err)
 	}
 	return ctrl.Result{}, nil
