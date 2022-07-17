@@ -27,6 +27,7 @@ import (
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -90,23 +91,26 @@ func (r *MonitorMariaDBReconciler) createExporter(ctx context.Context, mariadb *
 		return nil
 	}
 
-	exporter := builders.BuildExporter(mariadb, &monitor.Spec.Exporter, key)
+	exporter := builders.BuildExporterMariaDB(mariadb, &monitor.Spec.Exporter, key)
 	if err := controllerutil.SetControllerReference(monitor, exporter, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to ExporterMariaDB: %v", err)
 	}
 	if err := r.Create(ctx, exporter); err != nil {
-		return fmt.Errorf("error creating ExporterMariaDB in API server: %v", err)
+		return fmt.Errorf("error creating ExporterMariaDB: %v", err)
 	}
 
-	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 30*time.Second, func(ctx context.Context) (bool, error) {
+	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 10*time.Second, func(ctx context.Context) (bool, error) {
 		var exporter databasev1alpha1.ExporterMariaDB
-		if r.Get(ctx, objectKey(mariadb), &exporter) != nil {
-			return false, nil
+		if err := r.Get(ctx, objectKey(mariadb), &exporter); err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return true, err
 		}
 		return exporter.IsReady(), nil
 	})
 	if err != nil {
-		return fmt.Errorf("error creating ExporterMariaDB: %v", err)
+		return fmt.Errorf("error waiting for ExporterMariaDB to be ready: %v", err)
 	}
 
 	return nil
@@ -126,7 +130,7 @@ func (r *MonitorMariaDBReconciler) createPodMonitor(ctx context.Context, mariadb
 	}
 
 	if err := r.Create(ctx, podMonitor); err != nil {
-		return fmt.Errorf("error creating PodMonitor in API server: %v", err)
+		return fmt.Errorf("error creating PodMonitor: %v", err)
 	}
 	return nil
 }
@@ -135,7 +139,11 @@ func (r *MonitorMariaDBReconciler) patchStatus(ctx context.Context, monitor *dat
 	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(monitor.DeepCopy())
 	patcher(&monitor.Status)
-	return r.Client.Status().Patch(ctx, monitor, patch)
+
+	if err := r.Client.Status().Patch(ctx, monitor, patch); err != nil {
+		return fmt.Errorf("error patching MonitorMariaDB status: %v", err)
+	}
+	return nil
 }
 
 func objectKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {

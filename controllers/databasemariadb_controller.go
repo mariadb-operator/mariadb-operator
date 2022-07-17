@@ -62,7 +62,7 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB client: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", err)
 	}
 	defer mdbClient.Close()
 
@@ -85,9 +85,8 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	databaseErr = multierror.Append(databaseErr, err)
 
 	if err := databaseErr.ErrorOrNil(); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating database: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating DatabaseMariaDB: %v", err)
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -97,7 +96,10 @@ func (r *DatabaseMariaDBReconciler) createDatabase(ctx context.Context, database
 		CharacterSet: database.Spec.CharacterSet,
 		Collate:      database.Spec.Collate,
 	}
-	return mdbClient.CreateDatabase(ctx, database.Name, opts)
+	if err := mdbClient.CreateDatabase(ctx, database.Name, opts); err != nil {
+		return fmt.Errorf("error creating database in MariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *DatabaseMariaDBReconciler) addFinalizer(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB) error {
@@ -106,7 +108,11 @@ func (r *DatabaseMariaDBReconciler) addFinalizer(ctx context.Context, database *
 	}
 	patch := ctrlClient.MergeFrom(database.DeepCopy())
 	controllerutil.AddFinalizer(database, databaseFinalizerName)
-	return r.Client.Patch(ctx, database, patch)
+
+	if err := r.Client.Patch(ctx, database, patch); err != nil {
+		return fmt.Errorf("error adding finalizer to DatabaseMariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *DatabaseMariaDBReconciler) finalize(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
@@ -121,7 +127,11 @@ func (r *DatabaseMariaDBReconciler) finalize(ctx context.Context, database *data
 
 	patch := ctrlClient.MergeFrom(database.DeepCopy())
 	controllerutil.RemoveFinalizer(database, databaseFinalizerName)
-	return r.Client.Patch(ctx, database, patch)
+
+	if err := r.Client.Patch(ctx, database, patch); err != nil {
+		return fmt.Errorf("error removing finalizer to DatabaseMariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *DatabaseMariaDBReconciler) patchStatus(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
@@ -130,7 +140,7 @@ func (r *DatabaseMariaDBReconciler) patchStatus(ctx context.Context, database *d
 	patcher(&database.Status)
 
 	if err := r.Client.Status().Patch(ctx, database, patch); err != nil {
-		return fmt.Errorf("error patching DatabaseMariaDB on API server: %v", err)
+		return fmt.Errorf("error patching DatabaseMariaDB status: %v", err)
 	}
 	return nil
 }

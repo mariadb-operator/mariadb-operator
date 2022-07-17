@@ -106,14 +106,14 @@ func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *data
 
 	sts, err := builders.BuildStatefulSet(mariadb, key)
 	if err != nil {
-		return fmt.Errorf("error building StatefulSet %v", err)
+		return fmt.Errorf("error building StatefulSet: %v", err)
 	}
 	if err := controllerutil.SetControllerReference(mariadb, sts, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
 
 	if err := r.Create(ctx, sts); err != nil {
-		return fmt.Errorf("error creating StatefulSet on API server: %v", err)
+		return fmt.Errorf("error creating StatefulSet: %v", err)
 	}
 	return nil
 }
@@ -131,7 +131,7 @@ func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *database
 	}
 
 	if err := r.Create(ctx, svc); err != nil {
-		return fmt.Errorf("error creating Service on API server: %v", err)
+		return fmt.Errorf("error creating Service: %v", err)
 	}
 	return nil
 }
@@ -140,7 +140,11 @@ func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *databasev1
 	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
-	return r.Client.Status().Patch(ctx, mariadb, patch)
+
+	if err := r.Client.Status().Patch(ctx, mariadb, patch); err != nil {
+		return fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+	return nil
 }
 
 func (r *MariaDBReconciler) bootstrapFromBackup(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
@@ -161,11 +165,11 @@ func (r *MariaDBReconciler) bootstrapFromBackup(ctx context.Context, mariadb *da
 		key,
 	)
 	if err := controllerutil.SetControllerReference(mariadb, restore, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to bootstrap Restore: %v", err)
+		return fmt.Errorf("error setting controller reference to bootstrapping restore Job: %v", err)
 	}
 
 	if err := r.Create(ctx, restore); err != nil {
-		return fmt.Errorf("error creating bootstrap Restore job: %v", err)
+		return fmt.Errorf("error creating bootstrapping restore Job: %v", err)
 	}
 	return nil
 }

@@ -62,7 +62,7 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB client: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", err)
 	}
 	defer mdbClient.Close()
 
@@ -87,7 +87,6 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if err := userErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating UserMariaDB: %v", err)
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -100,7 +99,11 @@ func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1
 		IdentifiedBy:       password,
 		MaxUserConnections: user.Spec.MaxUserConnections,
 	}
-	return mdbClient.CreateUser(ctx, user.Name, opts)
+
+	if err := mdbClient.CreateUser(ctx, user.Name, opts); err != nil {
+		return fmt.Errorf("error creating user in MariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *UserMariaDBReconciler) addFinalizer(ctx context.Context, user *databasev1alpha1.UserMariaDB) error {
@@ -109,7 +112,11 @@ func (r *UserMariaDBReconciler) addFinalizer(ctx context.Context, user *database
 	}
 	patch := ctrlClient.MergeFrom(user.DeepCopy())
 	controllerutil.AddFinalizer(user, userFinalizerName)
-	return r.Client.Patch(ctx, user, patch)
+
+	if err := r.Client.Patch(ctx, user, patch); err != nil {
+		return fmt.Errorf("error adding finalizer to UserMariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *UserMariaDBReconciler) finalize(ctx context.Context, user *databasev1alpha1.UserMariaDB,
@@ -124,7 +131,11 @@ func (r *UserMariaDBReconciler) finalize(ctx context.Context, user *databasev1al
 
 	patch := ctrlClient.MergeFrom(user.DeepCopy())
 	controllerutil.RemoveFinalizer(user, userFinalizerName)
-	return r.Client.Patch(ctx, user, patch)
+
+	if err := r.Client.Patch(ctx, user, patch); err != nil {
+		return fmt.Errorf("error removing finalizer to UserMariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *UserMariaDBReconciler) patchStatus(ctx context.Context, user *databasev1alpha1.UserMariaDB,
@@ -133,7 +144,7 @@ func (r *UserMariaDBReconciler) patchStatus(ctx context.Context, user *databasev
 	patcher(&user.Status)
 
 	if err := r.Client.Status().Patch(ctx, user, patch); err != nil {
-		return fmt.Errorf("error patching UserMariaDB on API server: %v", err)
+		return fmt.Errorf("error patching UserMariaDB status: %v", err)
 	}
 	return nil
 }

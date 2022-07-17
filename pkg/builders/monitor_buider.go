@@ -14,7 +14,7 @@ const (
 	metricsPortName = "metrics"
 )
 
-func BuildExporter(mariadb *databasev1alpha1.MariaDB, exporter *databasev1alpha1.Exporter,
+func BuildExporterMariaDB(mariadb *databasev1alpha1.MariaDB, exporter *databasev1alpha1.Exporter,
 	key types.NamespacedName) *databasev1alpha1.ExporterMariaDB {
 	labels := getExporterLabels(mariadb)
 	return &databasev1alpha1.ExporterMariaDB{

@@ -60,8 +60,8 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if err := r.createPVC(ctx, &backup, req.NamespacedName); err != nil {
 		pvcErr = multierror.Append(pvcErr, err)
 
-		patchErr := r.patchStatus(ctx, &backup, r.ConditionComplete.FailedPatcher("Failed creating PVC"))
-		pvcErr = multierror.Append(pvcErr, patchErr)
+		err = r.patchStatus(ctx, &backup, r.ConditionComplete.FailedPatcher("Failed creating PVC"))
+		pvcErr = multierror.Append(pvcErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error creating PVC: %v", pvcErr)
 	}
@@ -84,7 +84,6 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if err := jobErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -101,7 +100,7 @@ func (r *BackupMariaDBReconciler) createPVC(ctx context.Context, backup *databas
 	}
 	pvc := builders.BuildPVC(pvcMeta, &backup.Spec.Storage)
 	if err := r.Create(ctx, pvc); err != nil {
-		return fmt.Errorf("error creating PVC on API server: %v", err)
+		return fmt.Errorf("error creating PVC: %v", err)
 	}
 	return nil
 }
@@ -124,7 +123,7 @@ func (r *BackupMariaDBReconciler) createJob(ctx context.Context, backup *databas
 	}
 
 	if err := r.Create(ctx, job); err != nil {
-		return fmt.Errorf("error creating Job on API server: %v", err)
+		return fmt.Errorf("error creating Job: %v", err)
 	}
 	return nil
 }
@@ -135,7 +134,7 @@ func (r *BackupMariaDBReconciler) patchStatus(ctx context.Context, backup *datab
 	patcher(&backup.Status)
 
 	if err := r.Client.Status().Patch(ctx, backup, patch); err != nil {
-		return fmt.Errorf("error patching BackupMariaDB on API server: %v", err)
+		return fmt.Errorf("error patching BackupMariaDB status: %v", err)
 	}
 	return nil
 }

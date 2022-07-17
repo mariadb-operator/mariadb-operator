@@ -67,7 +67,7 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB client: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", err)
 	}
 	defer mdbClient.Close()
 
@@ -92,7 +92,6 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if err := grantErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating GrantMariaDB: %v", err)
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -104,7 +103,10 @@ func (r *GrantMariaDBReconciler) grant(ctx context.Context, grant *databasev1alp
 		Username:    grant.Spec.Username,
 		GrantOption: grant.Spec.GrantOption,
 	}
-	return mdbClient.Grant(ctx, opts)
+	if err := mdbClient.Grant(ctx, opts); err != nil {
+		return fmt.Errorf("error granting privileges in MariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *GrantMariaDBReconciler) addFinalizer(ctx context.Context, grant *databasev1alpha1.GrantMariaDB) error {
@@ -113,7 +115,11 @@ func (r *GrantMariaDBReconciler) addFinalizer(ctx context.Context, grant *databa
 	}
 	patch := ctrlClient.MergeFrom(grant.DeepCopy())
 	controllerutil.AddFinalizer(grant, grantFinalizerName)
-	return r.Client.Patch(ctx, grant, patch)
+
+	if err := r.Client.Patch(ctx, grant, patch); err != nil {
+		return fmt.Errorf("error adding finalizer to GrantMariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *GrantMariaDBReconciler) finalize(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
@@ -128,7 +134,11 @@ func (r *GrantMariaDBReconciler) finalize(ctx context.Context, grant *databasev1
 
 	patch := ctrlClient.MergeFrom(grant.DeepCopy())
 	controllerutil.RemoveFinalizer(grant, grantFinalizerName)
-	return r.Client.Patch(ctx, grant, patch)
+
+	if err := r.Client.Patch(ctx, grant, patch); err != nil {
+		return fmt.Errorf("error removing finalizer to GrantMariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
@@ -148,7 +158,7 @@ func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1al
 		return nil
 	}
 	if err != nil && !errors.Is(err, wait.ErrWaitTimeout) {
-		return fmt.Errorf("error checking if user exists: %v", err)
+		return fmt.Errorf("error checking if user exists in MariaDB: %v", err)
 	}
 
 	opts := mariadbclient.GrantOpts{
@@ -159,7 +169,7 @@ func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1al
 		GrantOption: grant.Spec.GrantOption,
 	}
 	if err := mdbClient.Revoke(ctx, opts); err != nil {
-		return fmt.Errorf("error revoking grants in MariaDB: %v", err)
+		return fmt.Errorf("error revoking grant in MariaDB: %v", err)
 	}
 	return nil
 }
@@ -168,7 +178,11 @@ func (r *GrantMariaDBReconciler) patchStatus(ctx context.Context, grant *databas
 	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(grant.DeepCopy())
 	patcher(&grant.Status)
-	return r.Client.Status().Patch(ctx, grant, patch)
+
+	if err := r.Client.Status().Patch(ctx, grant, patch); err != nil {
+		return fmt.Errorf("error patching GrantMariaDB status: %v", err)
+	}
+	return nil
 }
 
 func userKey(grant *databasev1alpha1.GrantMariaDB) types.NamespacedName {

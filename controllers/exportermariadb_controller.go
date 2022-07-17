@@ -32,6 +32,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -79,7 +80,7 @@ func (r *ExporterMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB client: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", err)
 	}
 	defer mdbClient.Close()
 
@@ -104,7 +105,6 @@ func (r *ExporterMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err := deployErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating exporter Deployment: %v", deployErr)
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -116,14 +116,17 @@ func (r *ExporterMariaDBReconciler) createCredentials(ctx context.Context, maria
 	}
 
 	var user databasev1alpha1.UserMariaDB
-	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 30*time.Second, func(ctx context.Context) (bool, error) {
-		if r.Get(ctx, key, &user) != nil {
-			return false, nil
+	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 10*time.Second, func(ctx context.Context) (bool, error) {
+		if err := r.Get(ctx, key, &user); err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return true, err
 		}
 		return user.IsReady(), nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error creating UserMariaDB: %v", err)
+		return nil, fmt.Errorf("error waiting for UserMariaDB to be ready: %v", err)
 	}
 
 	if err := r.createGrant(ctx, mariadb, exporter, &user); err != nil {
@@ -131,14 +134,17 @@ func (r *ExporterMariaDBReconciler) createCredentials(ctx context.Context, maria
 	}
 
 	var grant databasev1alpha1.GrantMariaDB
-	err = wait.PollImmediateWithContext(ctx, 1*time.Second, 30*time.Second, func(ctx context.Context) (bool, error) {
-		if r.Get(ctx, key, &grant) != nil {
-			return false, nil
+	err = wait.PollImmediateWithContext(ctx, 1*time.Second, 10*time.Second, func(ctx context.Context) (bool, error) {
+		if err := r.Get(ctx, key, &grant); err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return true, err
 		}
 		return grant.IsReady(), nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error creating GrantMariaDB: %v", err)
+		return nil, fmt.Errorf("error waiting for GrantMariaDB to be ready: %v", err)
 	}
 
 	return &user, nil
@@ -165,7 +171,7 @@ func (r *ExporterMariaDBReconciler) createDeployment(ctx context.Context, mariad
 	}
 
 	if err := r.Create(ctx, deploy); err != nil {
-		return fmt.Errorf("error creating exporter Deployment in API server: %v", err)
+		return fmt.Errorf("error creating exporter Deployment: %v", err)
 	}
 	return nil
 }
@@ -180,7 +186,7 @@ func (r *ExporterMariaDBReconciler) createUser(ctx context.Context, mariadb *dat
 
 	secretKeySelector, err := r.createPasswordSecret(ctx, mariadb, exporter)
 	if err != nil {
-		return fmt.Errorf("error creating user password: %v", err)
+		return fmt.Errorf("error creating user password Secret: %v", err)
 	}
 
 	opts := builders.UserOpts{
@@ -188,13 +194,13 @@ func (r *ExporterMariaDBReconciler) createUser(ctx context.Context, mariadb *dat
 		PasswordSecretKeyRef: *secretKeySelector,
 		MaxUserConnections:   3,
 	}
-	user := builders.BuildUser(mariadb, opts)
+	user := builders.BuildUserMariaDB(mariadb, opts)
 	if err := controllerutil.SetControllerReference(exporter, user, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to UserMariaDB: %v", err)
 	}
 
 	if err := r.Create(ctx, user); err != nil {
-		return fmt.Errorf("error creating UserMariaDB on API server: %v", err)
+		return fmt.Errorf("error creating UserMariaDB: %v", err)
 	}
 	return nil
 }
@@ -215,7 +221,7 @@ func (r *ExporterMariaDBReconciler) createGrant(ctx context.Context, mariadb *da
 		Username:    user.Name,
 		GrantOption: false,
 	}
-	grant := builders.BuildGrant(mariadb, opts)
+	grant := builders.BuildGrantMariaDB(mariadb, opts)
 	if err := controllerutil.SetControllerReference(exporter, grant, r.Scheme); err != nil {
 		return fmt.Errorf("error setting controller reference to GrantMariaDB: %v", err)
 	}
@@ -227,7 +233,7 @@ func (r *ExporterMariaDBReconciler) createPasswordSecret(ctx context.Context, ma
 	exporter *databasev1alpha1.ExporterMariaDB) (*corev1.SecretKeySelector, error) {
 	password, err := password.Generate(16, 4, 0, false, false)
 	if err != nil {
-		return nil, fmt.Errorf("error generating passowrd: %v", err)
+		return nil, fmt.Errorf("error generating password: %v", err)
 	}
 
 	opts := builders.SecretOpts{
@@ -241,7 +247,7 @@ func (r *ExporterMariaDBReconciler) createPasswordSecret(ctx context.Context, ma
 		return nil, fmt.Errorf("error setting controller reference to password Secret: %v", err)
 	}
 	if err := r.Create(ctx, secret); err != nil {
-		return nil, fmt.Errorf("error creating password Secret on API server: %v", err)
+		return nil, fmt.Errorf("error creating password Secret: %v", err)
 	}
 
 	return &corev1.SecretKeySelector{
@@ -280,7 +286,7 @@ func (r *ExporterMariaDBReconciler) createDsnSecret(ctx context.Context, mariadb
 		return nil, fmt.Errorf("error setting controller reference to DSN Secret: %v", err)
 	}
 	if err := r.Create(ctx, secret); err != nil {
-		return nil, fmt.Errorf("error creating DSN Secret on API server: %v", err)
+		return nil, fmt.Errorf("error creating DSN Secret: %v", err)
 	}
 	return &corev1.SecretKeySelector{
 		LocalObjectReference: corev1.LocalObjectReference{
@@ -294,7 +300,11 @@ func (r *ExporterMariaDBReconciler) patchStatus(ctx context.Context, exporter *d
 	patcher conditions.ConditionPatcher) error {
 	patch := client.MergeFrom(exporter.DeepCopy())
 	patcher(&exporter.Status)
-	return r.Client.Status().Patch(ctx, exporter, patch)
+
+	if err := r.Client.Status().Patch(ctx, exporter, patch); err != nil {
+		return fmt.Errorf("error patching ExporterMariaDB status: %v", err)
+	}
+	return nil
 }
 
 func exporterKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {

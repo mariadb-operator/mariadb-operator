@@ -14,7 +14,7 @@ type UserOpts struct {
 	MaxUserConnections   int32
 }
 
-func BuildUser(mariadb *databasev1alpha1.MariaDB, opts UserOpts) *databasev1alpha1.UserMariaDB {
+func BuildUserMariaDB(mariadb *databasev1alpha1.MariaDB, opts UserOpts) *databasev1alpha1.UserMariaDB {
 	labels :=
 		NewLabelsBuilder().
 			WithApp(appMariaDb).
@@ -45,7 +45,7 @@ type GrantOpts struct {
 	GrantOption bool
 }
 
-func BuildGrant(mariadb *databasev1alpha1.MariaDB, opts GrantOpts) *databasev1alpha1.GrantMariaDB {
+func BuildGrantMariaDB(mariadb *databasev1alpha1.MariaDB, opts GrantOpts) *databasev1alpha1.GrantMariaDB {
 	labels :=
 		NewLabelsBuilder().
 			WithApp(appMariaDb).

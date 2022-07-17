@@ -72,7 +72,6 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := jobErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -98,7 +97,7 @@ func (r *RestoreMariaDBReconciler) createJob(ctx context.Context, restore *datab
 	}
 
 	if err := r.Create(ctx, job); err != nil {
-		return fmt.Errorf("error creating Job on API server: %v", err)
+		return fmt.Errorf("error creating Job: %v", err)
 	}
 	return nil
 }
@@ -109,7 +108,7 @@ func (r *RestoreMariaDBReconciler) patchStatus(ctx context.Context, restore *dat
 	patcher(&restore.Status)
 
 	if err := r.Client.Status().Patch(ctx, restore, patch); err != nil {
-		return fmt.Errorf("error patching BackupMariaDB on API server: %v", err)
+		return fmt.Errorf("error patching BackupMariaDB status: %v", err)
 	}
 	return nil
 }
