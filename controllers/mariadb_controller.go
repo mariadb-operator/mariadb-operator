@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
@@ -52,24 +53,45 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	var stsErr *multierror.Error
 	if err := r.createStatefulSet(ctx, &mariaDb, req.NamespacedName); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", err)
+		stsErr = multierror.Append(stsErr, err)
+
+		err = r.patchStatus(ctx, &mariaDb, conditions.NewConditionReadyFailedPatcher("Failed creating StatefulSet"))
+		stsErr = multierror.Append(stsErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", stsErr)
 	}
 
+	var svcErr *multierror.Error
 	if err := r.createService(ctx, &mariaDb, req.NamespacedName); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating Service: %v", err)
+		svcErr = multierror.Append(svcErr, err)
+
+		err = r.patchStatus(ctx, &mariaDb, conditions.NewConditionReadyFailedPatcher("Failed creating Service"))
+		svcErr = multierror.Append(svcErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error creating Service: %v", svcErr)
 	}
 
+	var restoreErr *multierror.Error
 	if err := r.bootstrapFromBackup(ctx, &mariaDb); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error bootstrapping MariaDB from backup: %v", err)
+		restoreErr = multierror.Append(restoreErr, err)
+
+		err = r.patchStatus(ctx, &mariaDb, conditions.NewConditionReadyFailedPatcher("Failed creating bootstrapping RestoreMariaDB"))
+		restoreErr = multierror.Append(restoreErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error creating bootstrapping RestoreMariaDB: %v", restoreErr)
 	}
 
-	patcher, patchErr := r.patcher(ctx, &mariaDb, req.NamespacedName)
-	if patchErr != nil && !apierrors.IsNotFound(patchErr) {
-		return ctrl.Result{}, fmt.Errorf("error getting StatefulSet status: %s", patchErr)
+	patcher, err := r.patcher(ctx, &mariaDb, req.NamespacedName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, client.IgnoreNotFound(err)
+		}
+		return ctrl.Result{}, fmt.Errorf("error getting patcher for MariaDB: %v", err)
 	}
-	if err := r.patchStatus(ctx, &mariaDb, patcher); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+	if err = r.patchStatus(ctx, &mariaDb, patcher); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %s", err)
 	}
 
 	return ctrl.Result{}, nil
