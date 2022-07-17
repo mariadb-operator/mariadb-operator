@@ -98,20 +98,6 @@ type GrantOpts struct {
 	GrantOption bool
 }
 
-func (m *Client) UserExists(ctx context.Context, username string) (bool, error) {
-	query := "SELECT user FROM mysql.user WHERE user = ?;"
-	var user string
-	err := m.db.QueryRowContext(ctx, query, username).Scan(&user)
-
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 func (c *Client) Grant(ctx context.Context, opts GrantOpts) error {
 	query := fmt.Sprintf("GRANT %s ON %s.%s TO '%s'@'%s' ",
 		strings.Join(opts.Privileges, ","),

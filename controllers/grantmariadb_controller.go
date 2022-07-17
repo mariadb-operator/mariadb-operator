@@ -18,14 +18,19 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -128,12 +133,22 @@ func (r *GrantMariaDBReconciler) finalize(ctx context.Context, grant *databasev1
 
 func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
 	mdbClient *mariadbclient.Client) error {
-	exists, err := mdbClient.UserExists(ctx, grant.Spec.Username)
-	if err != nil {
-		return fmt.Errorf("error checking if user exists: %v", err)
-	}
-	if !exists {
+	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 5*time.Second, func(ctx context.Context) (bool, error) {
+		var user databasev1alpha1.UserMariaDB
+		if err := r.Get(ctx, userKey(grant), &user); err != nil {
+			if apierrors.IsNotFound(err) {
+				return true, nil
+			}
+			return true, err
+		}
+		return false, nil
+	})
+	// User does not exist
+	if err == nil {
 		return nil
+	}
+	if err != nil && !errors.Is(err, wait.ErrWaitTimeout) {
+		return fmt.Errorf("error checking if user exists: %v", err)
 	}
 
 	opts := mariadbclient.GrantOpts{
@@ -154,6 +169,13 @@ func (r *GrantMariaDBReconciler) patchStatus(ctx context.Context, grant *databas
 	patch := client.MergeFrom(grant.DeepCopy())
 	patcher(&grant.Status)
 	return r.Client.Status().Patch(ctx, grant, patch)
+}
+
+func userKey(grant *databasev1alpha1.GrantMariaDB) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      grant.Spec.Username,
+		Namespace: grant.Namespace,
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
