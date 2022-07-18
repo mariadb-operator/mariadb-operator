@@ -2,15 +2,31 @@ package conditions
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	batchv1 "k8s.io/api/batch/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ConditionPatcher func(Conditioner)
+type Patcher func(Conditioner)
 
-func NewConditionReadyPatcher(err error) ConditionPatcher {
+type Ready struct{}
+
+func NewReady() *Ready {
+	return &Ready{}
+}
+
+func (p *Ready) FailedPatcher(msg string) Patcher {
+	return func(c Conditioner) {
+		SetReadyFailedWithMessage(c, msg)
+	}
+}
+
+func (p *Ready) PatcherWithError(err error) Patcher {
 	return func(c Conditioner) {
 		if err == nil {
 			SetReadyCreated(c)
@@ -20,32 +36,39 @@ func NewConditionReadyPatcher(err error) ConditionPatcher {
 	}
 }
 
-func NewConditionReadyFailedPatcher(msg string) ConditionPatcher {
+func (p *Ready) RefResolverPatcher(err error, obj interface{}) Patcher {
 	return func(c Conditioner) {
-		SetReadyFailedWithMessage(c, msg)
+		if err == nil {
+			return
+		}
+		if apierrors.IsNotFound(err) {
+			SetReadyFailedWithMessage(c, fmt.Sprintf("%s not found", getType(obj)))
+			return
+		}
+		SetReadyFailedWithMessage(c, fmt.Sprintf("Error getting %s", getType(obj)))
 	}
 }
 
-type ConditionComplete struct {
+type Complete struct {
 	client client.Client
 }
 
-func NewConditionComplete(client client.Client) *ConditionComplete {
-	return &ConditionComplete{
+func NewComplete(client client.Client) *Complete {
+	return &Complete{
 		client: client,
 	}
 }
 
-func (p *ConditionComplete) FailedPatcher(msg string) ConditionPatcher {
+func (p *Complete) FailedPatcher(msg string) Patcher {
 	return func(c Conditioner) {
 		SetCompleteFailedWithMessage(c, msg)
 	}
 }
 
-func (p *ConditionComplete) PatcherWithJob(ctx context.Context, err error, jobKey types.NamespacedName) (ConditionPatcher, error) {
+func (p *Complete) PatcherWithJob(ctx context.Context, err error, jobKey types.NamespacedName) (Patcher, error) {
 	if err != nil {
 		return func(c Conditioner) {
-			SetCompleteFailedWithMessage(c, "Failed creating Job")
+			SetCompleteFailedWithMessage(c, "Error creating Job")
 		}, nil
 	}
 
@@ -56,4 +79,25 @@ func (p *ConditionComplete) PatcherWithJob(ctx context.Context, err error, jobKe
 	return func(c Conditioner) {
 		SetCompleteWithJob(c, &job)
 	}, nil
+}
+
+func (p *Complete) RefResolverPatcher(err error, obj runtime.Object) Patcher {
+	return func(c Conditioner) {
+		if err == nil {
+			return
+		}
+		if apierrors.IsNotFound(err) {
+			SetCompleteFailedWithMessage(c, fmt.Sprintf("%s not found", getType(obj)))
+			return
+		}
+		SetCompleteFailedWithMessage(c, fmt.Sprintf("Error getting %s", getType(obj)))
+	}
+}
+
+func getType(obj interface{}) string {
+	if t := reflect.TypeOf(obj); t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
+	} else {
+		return t.Name()
+	}
 }

@@ -38,7 +38,8 @@ import (
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme         *runtime.Scheme
+	ConditionReady *conditions.Ready
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -57,7 +58,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.createStatefulSet(ctx, &mariaDb, req.NamespacedName); err != nil {
 		stsErr = multierror.Append(stsErr, err)
 
-		err = r.patchStatus(ctx, &mariaDb, conditions.NewConditionReadyFailedPatcher("Failed creating StatefulSet"))
+		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creating StatefulSet"))
 		stsErr = multierror.Append(stsErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", stsErr)
@@ -67,7 +68,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.createService(ctx, &mariaDb, req.NamespacedName); err != nil {
 		svcErr = multierror.Append(svcErr, err)
 
-		err = r.patchStatus(ctx, &mariaDb, conditions.NewConditionReadyFailedPatcher("Failed creating Service"))
+		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creating Service"))
 		svcErr = multierror.Append(svcErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error creating Service: %v", svcErr)
@@ -77,7 +78,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.bootstrapFromBackup(ctx, &mariaDb); err != nil {
 		restoreErr = multierror.Append(restoreErr, err)
 
-		err = r.patchStatus(ctx, &mariaDb, conditions.NewConditionReadyFailedPatcher("Failed creating bootstrapping RestoreMariaDB"))
+		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creating bootstrapping RestoreMariaDB"))
 		restoreErr = multierror.Append(restoreErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error creating bootstrapping RestoreMariaDB: %v", restoreErr)
@@ -137,7 +138,7 @@ func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *database
 }
 
 func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
-	patcher conditions.ConditionPatcher) error {
+	patcher conditions.Patcher) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 
@@ -175,7 +176,7 @@ func (r *MariaDBReconciler) bootstrapFromBackup(ctx context.Context, mariadb *da
 }
 
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *databasev1alpha1.MariaDB,
-	key types.NamespacedName) (conditions.ConditionPatcher, error) {
+	key types.NamespacedName) (conditions.Patcher, error) {
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, key, &sts); err != nil {
 		return nil, err

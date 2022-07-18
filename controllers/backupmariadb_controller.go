@@ -41,7 +41,7 @@ type BackupMariaDBReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
 	RefResolver       *refresolver.RefResolver
-	ConditionComplete *conditions.ConditionComplete
+	ConditionComplete *conditions.Complete
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=backupmariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -60,7 +60,7 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if err := r.createPVC(ctx, &backup, req.NamespacedName); err != nil {
 		pvcErr = multierror.Append(pvcErr, err)
 
-		err = r.patchStatus(ctx, &backup, r.ConditionComplete.FailedPatcher("Failed creating PVC"))
+		err = r.patchStatus(ctx, &backup, r.ConditionComplete.FailedPatcher("Error creating PVC"))
 		pvcErr = multierror.Append(pvcErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error creating PVC: %v", pvcErr)
@@ -129,7 +129,7 @@ func (r *BackupMariaDBReconciler) createJob(ctx context.Context, backup *databas
 }
 
 func (r *BackupMariaDBReconciler) patchStatus(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
-	patcher conditions.ConditionPatcher) error {
+	patcher conditions.Patcher) error {
 	patch := client.MergeFrom(backup.DeepCopy())
 	patcher(&backup.Status)
 

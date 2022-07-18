@@ -39,7 +39,7 @@ type RestoreMariaDBReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
 	RefResolver       *refresolver.RefResolver
-	ConditionComplete *conditions.ConditionComplete
+	ConditionComplete *conditions.Complete
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=restoremariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -103,7 +103,7 @@ func (r *RestoreMariaDBReconciler) createJob(ctx context.Context, restore *datab
 }
 
 func (r *RestoreMariaDBReconciler) patchStatus(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
-	patcher conditions.ConditionPatcher) error {
+	patcher conditions.Patcher) error {
 	patch := client.MergeFrom(restore.DeepCopy())
 	patcher(&restore.Status)
 

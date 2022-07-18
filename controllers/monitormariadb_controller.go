@@ -39,8 +39,9 @@ import (
 // MonitorMariaDBReconciler reconciles a MonitorMariaDB object
 type MonitorMariaDBReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	RefResolver *refresolver.RefResolver
+	Scheme         *runtime.Scheme
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *conditions.Ready
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=monitormariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -64,7 +65,7 @@ func (r *MonitorMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err = r.createExporter(ctx, mariadb, &monitor); err != nil {
 		exporterErr = multierror.Append(exporterErr, err)
 
-		err := r.patchStatus(ctx, &monitor, conditions.NewConditionReadyFailedPatcher("Failed creating exporter"))
+		err := r.patchStatus(ctx, &monitor, r.ConditionReady.FailedPatcher("Error creating exporter"))
 		exporterErr = multierror.Append(exporterErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error creating exporter: %v", exporterErr)
@@ -74,7 +75,7 @@ func (r *MonitorMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	err = r.createPodMonitor(ctx, mariadb, &monitor)
 	podMonitorErr = multierror.Append(podMonitorErr, err)
 
-	err = r.patchStatus(ctx, &monitor, conditions.NewConditionReadyPatcher(err))
+	err = r.patchStatus(ctx, &monitor, r.ConditionReady.PatcherWithError(err))
 	podMonitorErr = multierror.Append(podMonitorErr, err)
 
 	if err := podMonitorErr.ErrorOrNil(); err != nil {
@@ -136,7 +137,7 @@ func (r *MonitorMariaDBReconciler) createPodMonitor(ctx context.Context, mariadb
 }
 
 func (r *MonitorMariaDBReconciler) patchStatus(ctx context.Context, monitor *databasev1alpha1.MonitorMariaDB,
-	patcher conditions.ConditionPatcher) error {
+	patcher conditions.Patcher) error {
 	patch := client.MergeFrom(monitor.DeepCopy())
 	patcher(&monitor.Status)
 

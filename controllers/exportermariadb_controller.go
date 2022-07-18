@@ -57,8 +57,9 @@ var (
 // ExporterMariaDBReconciler reconciles a ExporterMariaDB object
 type ExporterMariaDBReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	RefResolver *refresolver.RefResolver
+	Scheme         *runtime.Scheme
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *conditions.Ready
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=exportermariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -73,33 +74,45 @@ func (r *ExporterMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariadb, err := r.RefResolver.GetMariaDB(ctx, exporter.Spec.MariaDBRef, exporter.Namespace)
+	var mariaDbErr *multierror.Error
+	mariaDb, err := r.RefResolver.GetMariaDB(ctx, exporter.Spec.MariaDBRef, exporter.Namespace)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
+		mariaDbErr = multierror.Append(mariaDbErr, err)
+
+		err = r.patchStatus(ctx, &exporter, r.ConditionReady.RefResolverPatcher(err, mariaDb))
+		mariaDbErr = multierror.Append(mariaDbErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
+	var connErr *multierror.Error
+	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, r.RefResolver)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", err)
+		connErr = multierror.Append(connErr, err)
+
+		err = r.patchStatus(ctx, &exporter, r.ConditionReady.FailedPatcher("Error connecting to MariaDB"))
+		connErr = multierror.Append(connErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", connErr)
 	}
 	defer mdbClient.Close()
 
 	var userErr *multierror.Error
-	user, err := r.createCredentials(ctx, mariadb, &exporter, mdbClient)
+	user, err := r.createCredentials(ctx, mariaDb, &exporter, mdbClient)
 	if err != nil {
 		userErr = multierror.Append(userErr, err)
 
-		err = r.patchStatus(ctx, &exporter, conditions.NewConditionReadyFailedPatcher("Failed creating exporter credentials"))
+		err = r.patchStatus(ctx, &exporter, r.ConditionReady.FailedPatcher("Error creating exporter credentials"))
 		userErr = multierror.Append(userErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error creating exporter credentials: %v", userErr)
 	}
 
 	var deployErr *multierror.Error
-	err = r.createDeployment(ctx, mariadb, &exporter, user)
+	err = r.createDeployment(ctx, mariaDb, &exporter, user)
 	deployErr = multierror.Append(deployErr, err)
 
-	err = r.patchStatus(ctx, &exporter, conditions.NewConditionReadyPatcher(err))
+	err = r.patchStatus(ctx, &exporter, r.ConditionReady.PatcherWithError(err))
 	deployErr = multierror.Append(deployErr, err)
 
 	if err := deployErr.ErrorOrNil(); err != nil {
@@ -297,7 +310,7 @@ func (r *ExporterMariaDBReconciler) createDsnSecret(ctx context.Context, mariadb
 }
 
 func (r *ExporterMariaDBReconciler) patchStatus(ctx context.Context, exporter *databasev1alpha1.ExporterMariaDB,
-	patcher conditions.ConditionPatcher) error {
+	patcher conditions.Patcher) error {
 	patch := client.MergeFrom(exporter.DeepCopy())
 	patcher(&exporter.Status)
 

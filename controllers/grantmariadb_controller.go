@@ -44,8 +44,9 @@ const (
 // GrantMariaDBReconciler reconciles a GrantMariaDB object
 type GrantMariaDBReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	RefResolver *refresolver.RefResolver
+	Scheme         *runtime.Scheme
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *conditions.Ready
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=grantmariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -60,14 +61,26 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariadb, err := r.RefResolver.GetMariaDB(ctx, grant.Spec.MariaDBRef, grant.Namespace)
+	var mariaDbErr *multierror.Error
+	mariaDb, err := r.RefResolver.GetMariaDB(ctx, grant.Spec.MariaDBRef, grant.Namespace)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
+		mariaDbErr = multierror.Append(mariaDbErr, err)
+
+		err = r.patchStatus(ctx, &grant, r.ConditionReady.RefResolverPatcher(err, mariaDb))
+		mariaDbErr = multierror.Append(mariaDbErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
+	var connErr *multierror.Error
+	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, r.RefResolver)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", err)
+		connErr = multierror.Append(connErr, err)
+
+		err = r.patchStatus(ctx, &grant, r.ConditionReady.FailedPatcher("Error connecting to MariaDB"))
+		connErr = multierror.Append(connErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", connErr)
 	}
 	defer mdbClient.Close()
 
@@ -86,7 +99,7 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	err = r.grant(ctx, &grant, mdbClient)
 	grantErr = multierror.Append(grantErr, err)
 
-	err = r.patchStatus(ctx, &grant, conditions.NewConditionReadyPatcher(err))
+	err = r.patchStatus(ctx, &grant, r.ConditionReady.PatcherWithError(err))
 	grantErr = multierror.Append(grantErr, err)
 
 	if err := grantErr.ErrorOrNil(); err != nil {
@@ -175,7 +188,7 @@ func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1al
 }
 
 func (r *GrantMariaDBReconciler) patchStatus(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
-	patcher conditions.ConditionPatcher) error {
+	patcher conditions.Patcher) error {
 	patch := client.MergeFrom(grant.DeepCopy())
 	patcher(&grant.Status)
 

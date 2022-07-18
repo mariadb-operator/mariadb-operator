@@ -39,8 +39,9 @@ const (
 // DatabaseMariaDBReconciler reconciles a DatabaseMariaDB object
 type DatabaseMariaDBReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	RefResolver *refresolver.RefResolver
+	Scheme         *runtime.Scheme
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *conditions.Ready
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=databasemariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -55,14 +56,26 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariadb, err := r.RefResolver.GetMariaDB(ctx, database.Spec.MariaDBRef, database.Namespace)
+	var mariaDbErr *multierror.Error
+	mariaDb, err := r.RefResolver.GetMariaDB(ctx, database.Spec.MariaDBRef, database.Namespace)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
+		mariaDbErr = multierror.Append(mariaDbErr, err)
+
+		err = r.patchStatus(ctx, &database, r.ConditionReady.RefResolverPatcher(err, mariaDb))
+		mariaDbErr = multierror.Append(mariaDbErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariadb, r.RefResolver)
+	var connErr *multierror.Error
+	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, r.RefResolver)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", err)
+		connErr = multierror.Append(connErr, err)
+
+		err = r.patchStatus(ctx, &database, r.ConditionReady.FailedPatcher("Error connecting to MariaDB"))
+		connErr = multierror.Append(connErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", connErr)
 	}
 	defer mdbClient.Close()
 
@@ -81,7 +94,7 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	err = r.createDatabase(ctx, &database, mdbClient)
 	databaseErr = multierror.Append(databaseErr, err)
 
-	err = r.patchStatus(ctx, &database, conditions.NewConditionReadyPatcher(err))
+	err = r.patchStatus(ctx, &database, r.ConditionReady.PatcherWithError(err))
 	databaseErr = multierror.Append(databaseErr, err)
 
 	if err := databaseErr.ErrorOrNil(); err != nil {
@@ -135,7 +148,7 @@ func (r *DatabaseMariaDBReconciler) finalize(ctx context.Context, database *data
 }
 
 func (r *DatabaseMariaDBReconciler) patchStatus(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
-	patcher conditions.ConditionPatcher) error {
+	patcher conditions.Patcher) error {
 	patch := client.MergeFrom(database.DeepCopy())
 	patcher(&database.Status)
 
