@@ -137,7 +137,6 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "DatabaseMariaDB")
 		os.Exit(1)
 	}
-
 	if err = (&controllers.ExporterMariaDBReconciler{
 		Client:         mgr.GetClient(),
 		Scheme:         mgr.GetScheme(),
