@@ -59,7 +59,7 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 	useCluster := true
 
-	By("bootstrapping test environment")
+	By("Bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
@@ -104,7 +104,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	cancel()
-	By("tearing down the test environment")
+	By("Tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })

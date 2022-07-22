@@ -7,8 +7,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sethvargo/go-password/password"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,15 +34,14 @@ var _ = Describe("MariaDB controller", func() {
 	var mariaDb databasev1alpha1.MariaDB
 
 	BeforeEach(func() {
-		password, err := password.Generate(16, 4, 0, false, false)
-		Expect(err).NotTo(HaveOccurred())
-
-		By("creating root secret")
+		By("Creating root password Secret")
 
 		secretKey := types.NamespacedName{
 			Name:      rootPasswordSecretName,
 			Namespace: defaultNamespace,
 		}
+		password, err := password.Generate(16, 4, 0, false, false)
+		Expect(err).NotTo(HaveOccurred())
 		secret = v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretKey.Name,
@@ -52,15 +53,14 @@ var _ = Describe("MariaDB controller", func() {
 		}
 		Expect(k8sClient.Create(ctx, &secret)).To(Succeed())
 
-		storageSize, err := resource.ParseQuantity("100Mi")
-		Expect(err).ToNot(HaveOccurred())
-
-		By("creating MariaDB")
+		By("Creating MariaDB")
 
 		mariaDbKey = types.NamespacedName{
 			Name:      mariaDbName,
 			Namespace: defaultNamespace,
 		}
+		storageSize, err := resource.ParseQuantity("100Mi")
+		Expect(err).ToNot(HaveOccurred())
 		mariaDb = databasev1alpha1.MariaDB{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      mariaDbKey.Name,
@@ -77,7 +77,6 @@ var _ = Describe("MariaDB controller", func() {
 					Repository: "mariadb",
 					Tag:        "10.7.4",
 				},
-				Port: 3306,
 				Storage: databasev1alpha1.Storage{
 					ClassName: "standard",
 					Size:      storageSize,
@@ -88,7 +87,7 @@ var _ = Describe("MariaDB controller", func() {
 	})
 
 	AfterEach(func() {
-		By("tearing down initial resources")
+		By("Tearing down initial resources")
 		Expect(k8sClient.Delete(ctx, &mariaDb)).To(Succeed())
 		Expect(k8sClient.Delete(ctx, &secret)).To(Succeed())
 	})
@@ -97,12 +96,38 @@ var _ = Describe("MariaDB controller", func() {
 		It("Should reconcile", func() {
 			var mariaDb databasev1alpha1.MariaDB
 
+			By("Expecting to be ready eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(ctx, mariaDbKey, &mariaDb); err != nil {
 					return false
 				}
 				return mariaDb.IsReady()
 			}, timeout, interval).Should(BeTrue())
+
+			By("Expecting to have ready condition")
+			hasReadyCondition := meta.IsStatusConditionTrue(mariaDb.Status.Conditions, databasev1alpha1.ConditionTypeReady)
+			Expect(hasReadyCondition).To(BeTrue())
+
+			By("Expecting to have spec provided by user and defaults")
+			Expect(mariaDb.Spec.Image.String()).To(Equal("mariadb:10.7.4"))
+			Expect(mariaDb.Spec.Port).To(BeEquivalentTo(3306))
+			Expect(mariaDb.Spec.Storage.ClassName).To(Equal("standard"))
+			Expect(mariaDb.Spec.Storage.AccessModes).To(ConsistOf(corev1.ReadWriteOnce))
+
+			var sts appsv1.StatefulSet
+			By("Expecting to create a StatefulSet eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, mariaDbKey, &sts); err != nil {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+			Expect(sts).ToNot(BeNil())
+
+			By("Expecting to create a Service")
+			var svc corev1.Service
+			Expect(k8sClient.Get(ctx, mariaDbKey, &svc)).To(Succeed())
+			Expect(svc).ToNot(BeNil())
 		})
 	})
 })
