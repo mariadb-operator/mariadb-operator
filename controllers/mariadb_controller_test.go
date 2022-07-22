@@ -20,23 +20,28 @@ const (
 )
 
 var (
-	defaultNamespace      = "default"
-	rootPasswordSecretKey = "passsword"
+	defaultNamespace       = "default"
+	mariaDbName            = "mariadb-test"
+	rootPasswordSecretName = "root-test"
+	rootPasswordSecretKey  = "passsword"
 )
 
 var _ = Describe("MariaDB controller", func() {
-
+	var secret v1.Secret
 	var mariaDbKey types.NamespacedName
+	var mariaDb databasev1alpha1.MariaDB
 
 	BeforeEach(func() {
 		password, err := password.Generate(16, 4, 0, false, false)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("creating root secret")
+
 		secretKey := types.NamespacedName{
-			Name:      "root",
+			Name:      rootPasswordSecretName,
 			Namespace: defaultNamespace,
 		}
-		secret := &v1.Secret{
+		secret = v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretKey.Name,
 				Namespace: secretKey.Namespace,
@@ -45,16 +50,18 @@ var _ = Describe("MariaDB controller", func() {
 				rootPasswordSecretKey: []byte(password),
 			},
 		}
-		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+		Expect(k8sClient.Create(ctx, &secret)).To(Succeed())
 
 		storageSize, err := resource.ParseQuantity("100Mi")
 		Expect(err).ToNot(HaveOccurred())
 
+		By("creating MariaDB")
+
 		mariaDbKey = types.NamespacedName{
-			Name:      "mariadb",
+			Name:      mariaDbName,
 			Namespace: defaultNamespace,
 		}
-		mariaDb := &databasev1alpha1.MariaDB{
+		mariaDb = databasev1alpha1.MariaDB{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      mariaDbKey.Name,
 				Namespace: mariaDbKey.Namespace,
@@ -72,23 +79,29 @@ var _ = Describe("MariaDB controller", func() {
 				},
 				Port: 3306,
 				Storage: databasev1alpha1.Storage{
-					ClassName: "default",
+					ClassName: "standard",
 					Size:      storageSize,
 				},
 			},
 		}
-		Expect(k8sClient.Create(ctx, mariaDb)).To(Succeed())
+		Expect(k8sClient.Create(ctx, &mariaDb)).To(Succeed())
+	})
+
+	AfterEach(func() {
+		By("tearing down initial resources")
+		Expect(k8sClient.Delete(ctx, &mariaDb)).To(Succeed())
+		Expect(k8sClient.Delete(ctx, &secret)).To(Succeed())
 	})
 
 	Context("When creating a MariaDB", func() {
-		It("Should eventually be ready", func() {
+		It("Should reconcile", func() {
 			var mariaDb databasev1alpha1.MariaDB
 
 			Eventually(func() bool {
 				if err := k8sClient.Get(ctx, mariaDbKey, &mariaDb); err != nil {
 					return false
 				}
-				return true
+				return mariaDb.IsReady()
 			}, timeout, interval).Should(BeTrue())
 		})
 	})
