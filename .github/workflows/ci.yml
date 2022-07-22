@@ -59,6 +59,9 @@ jobs:
           make install
           make install-prom
 
+      - name: MariaDB hosts
+        run: sudo make mdb-add-test-hosts
+
       - name: Test
         run: make cover
 

@@ -43,14 +43,19 @@ cluster-prom: cluster-ctx ## Install kube-prometheus-stack helm chart.
 
 MARIADB_IP ?= 127.0.0.1
 MARIADB_HOST ?= mariadb
-.PHONY: add-host 
+.PHONY: mdb-add-host
 mdb-add-host: ## Add mariadb host to /etc/hosts.
 	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_HOST)
+
+.PHONY: mdb-add-test-hosts
+mdb-add-test-hosts: ## Add mariadb test hosts to /etc/hosts.
+	@./scripts/add_host.sh $(MARIADB_IP) "mariadb-test"
+	@./scripts/add_host.sh $(MARIADB_IP) "mariadb-backup"
 
 MARIADB_NAMESPACE ?= default
 MARIADB_POD ?= mariadb-0
 MARIADB_PORT ?= 3306
-.PHONY: port-forward 
+.PHONY: mdb-port-forward
 mdb-port-forward: ## Port forward mariadb pod.
 	@kubectl port-forward -n $(MARIADB_NAMESPACE) $(MARIADB_POD) $(MARIADB_PORT)
 
