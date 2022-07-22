@@ -105,6 +105,11 @@ endif
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
+PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0
+.PHONY: install-prom
+install-prom: ## Install Prometheus CRDs into the K8s cluster specified in ~/.kube/config.
+	kubectl apply -f https://raw.githubusercontent.com/prometheus-community/helm-charts/$(PROMETHEUS_VERSION)/charts/kube-prometheus-stack/crds/crd-podmonitors.yaml
+
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
