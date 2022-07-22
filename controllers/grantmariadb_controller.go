@@ -33,12 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-)
-
-const (
-	grantFinalizerName = "grant.database.mmontes.io/finalizer"
 )
 
 // GrantMariaDBReconciler reconciles a GrantMariaDB object
@@ -118,38 +112,6 @@ func (r *GrantMariaDBReconciler) grant(ctx context.Context, grant *databasev1alp
 	}
 	if err := mdbClient.Grant(ctx, opts); err != nil {
 		return fmt.Errorf("error granting privileges in MariaDB: %v", err)
-	}
-	return nil
-}
-
-func (r *GrantMariaDBReconciler) addFinalizer(ctx context.Context, grant *databasev1alpha1.GrantMariaDB) error {
-	if controllerutil.ContainsFinalizer(grant, grantFinalizerName) {
-		return nil
-	}
-	patch := ctrlClient.MergeFrom(grant.DeepCopy())
-	controllerutil.AddFinalizer(grant, grantFinalizerName)
-
-	if err := r.Client.Patch(ctx, grant, patch); err != nil {
-		return fmt.Errorf("error adding finalizer to GrantMariaDB: %v", err)
-	}
-	return nil
-}
-
-func (r *GrantMariaDBReconciler) finalize(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
-	mdbClient *mariadbclient.Client) error {
-	if !controllerutil.ContainsFinalizer(grant, grantFinalizerName) {
-		return nil
-	}
-
-	if err := r.revoke(ctx, grant, mdbClient); err != nil {
-		return fmt.Errorf("error revoking grant: %v", err)
-	}
-
-	patch := ctrlClient.MergeFrom(grant.DeepCopy())
-	controllerutil.RemoveFinalizer(grant, grantFinalizerName)
-
-	if err := r.Client.Patch(ctx, grant, patch); err != nil {
-		return fmt.Errorf("error removing finalizer to GrantMariaDB: %v", err)
 	}
 	return nil
 }

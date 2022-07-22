@@ -29,11 +29,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-)
-
-const (
-	userFinalizerName = "user.database.mmontes.io/finalizer"
 )
 
 // UserMariaDBReconciler reconciles a UserMariaDB object
@@ -115,38 +110,6 @@ func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1
 
 	if err := mdbClient.CreateUser(ctx, user.Name, opts); err != nil {
 		return fmt.Errorf("error creating user in MariaDB: %v", err)
-	}
-	return nil
-}
-
-func (r *UserMariaDBReconciler) addFinalizer(ctx context.Context, user *databasev1alpha1.UserMariaDB) error {
-	if controllerutil.ContainsFinalizer(user, userFinalizerName) {
-		return nil
-	}
-	patch := ctrlClient.MergeFrom(user.DeepCopy())
-	controllerutil.AddFinalizer(user, userFinalizerName)
-
-	if err := r.Client.Patch(ctx, user, patch); err != nil {
-		return fmt.Errorf("error adding finalizer to UserMariaDB: %v", err)
-	}
-	return nil
-}
-
-func (r *UserMariaDBReconciler) finalize(ctx context.Context, user *databasev1alpha1.UserMariaDB,
-	mdbClient *mariadbclient.Client) error {
-	if !controllerutil.ContainsFinalizer(user, userFinalizerName) {
-		return nil
-	}
-
-	if err := mdbClient.DropUser(ctx, user.Name); err != nil {
-		return fmt.Errorf("error dropping user in MariaDB: %v", err)
-	}
-
-	patch := ctrlClient.MergeFrom(user.DeepCopy())
-	controllerutil.RemoveFinalizer(user, userFinalizerName)
-
-	if err := r.Client.Patch(ctx, user, patch); err != nil {
-		return fmt.Errorf("error removing finalizer to UserMariaDB: %v", err)
 	}
 	return nil
 }

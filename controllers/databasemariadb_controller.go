@@ -28,12 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-)
-
-const (
-	databaseFinalizerName = "database.database.mmontes.io/finalizer"
 )
 
 // DatabaseMariaDBReconciler reconciles a DatabaseMariaDB object
@@ -111,38 +105,6 @@ func (r *DatabaseMariaDBReconciler) createDatabase(ctx context.Context, database
 	}
 	if err := mdbClient.CreateDatabase(ctx, database.Name, opts); err != nil {
 		return fmt.Errorf("error creating database in MariaDB: %v", err)
-	}
-	return nil
-}
-
-func (r *DatabaseMariaDBReconciler) addFinalizer(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB) error {
-	if controllerutil.ContainsFinalizer(database, databaseFinalizerName) {
-		return nil
-	}
-	patch := ctrlClient.MergeFrom(database.DeepCopy())
-	controllerutil.AddFinalizer(database, databaseFinalizerName)
-
-	if err := r.Client.Patch(ctx, database, patch); err != nil {
-		return fmt.Errorf("error adding finalizer to DatabaseMariaDB: %v", err)
-	}
-	return nil
-}
-
-func (r *DatabaseMariaDBReconciler) finalize(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
-	mdbClient *mariadbclient.Client) error {
-	if !controllerutil.ContainsFinalizer(database, databaseFinalizerName) {
-		return nil
-	}
-
-	if err := mdbClient.DropDatabase(ctx, database.Name); err != nil {
-		return fmt.Errorf("error dropping database in MariaDB: %v", err)
-	}
-
-	patch := ctrlClient.MergeFrom(database.DeepCopy())
-	controllerutil.RemoveFinalizer(database, databaseFinalizerName)
-
-	if err := r.Client.Patch(ctx, database, patch); err != nil {
-		return fmt.Errorf("error removing finalizer to DatabaseMariaDB: %v", err)
 	}
 	return nil
 }
