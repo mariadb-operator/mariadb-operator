@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"fmt"
 	"time"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/portforwarder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sethvargo/go-password/password"
@@ -23,6 +25,7 @@ const (
 
 var (
 	defaultNamespace       = "default"
+	defaultStorageClass    = "standard"
 	mariaDbName            = "mariadb-test"
 	rootPasswordSecretName = "root-test"
 	rootPasswordSecretKey  = "passsword"
@@ -78,7 +81,7 @@ var _ = Describe("MariaDB controller", func() {
 					Tag:        "10.7.4",
 				},
 				Storage: databasev1alpha1.Storage{
-					ClassName: "standard",
+					ClassName: defaultStorageClass,
 					Size:      storageSize,
 				},
 			},
@@ -128,6 +131,25 @@ var _ = Describe("MariaDB controller", func() {
 			var svc corev1.Service
 			Expect(k8sClient.Get(ctx, mariaDbKey, &svc)).To(Succeed())
 			Expect(svc).ToNot(BeNil())
+		})
+
+		It("Should bootstrap from backup", func() {
+			By("Creating a port forward to MariaDB")
+			pod := fmt.Sprintf("%s-0", mariaDbKey.Name)
+			pf, err := portforwarder.New().
+				WithPod(pod).
+				WithNamespace(mariaDbKey.Namespace).
+				WithPorts("3306").
+				WithOutputWriter(GinkgoWriter).
+				WithErrorWriter(GinkgoWriter).
+				Build()
+			Expect(err).ToNot(HaveOccurred())
+
+			go func() {
+				if err := pf.Run(ctx); err != nil {
+					Fail(fmt.Sprintf("failed creating port forward to Pod '%s': %v", pod, err))
+				}
+			}()
 		})
 	})
 })

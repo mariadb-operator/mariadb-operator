@@ -23,6 +23,7 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
+	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -86,12 +87,22 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	refResolver := refresolver.New(k8sManager.GetClient())
 	conditionReady := conditions.NewReady()
+	conditionComplete := conditions.NewComplete(k8sManager.GetClient())
 
 	err = (&MariaDBReconciler{
 		Client:         k8sManager.GetClient(),
 		Scheme:         k8sManager.GetScheme(),
 		ConditionReady: conditionReady,
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&BackupMariaDBReconciler{
+		Client:            k8sManager.GetClient(),
+		Scheme:            k8sManager.GetScheme(),
+		RefResolver:       refResolver,
+		ConditionComplete: conditionComplete,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
