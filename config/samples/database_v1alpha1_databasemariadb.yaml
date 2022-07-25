@@ -1,7 +1,7 @@
 apiVersion: database.mmontes.io/v1alpha1
 kind: DatabaseMariaDB
 metadata:
-  name: data
+  name: data-test
 spec:
   mariaDbRef:
     name: mariadb

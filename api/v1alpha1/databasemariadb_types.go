@@ -67,6 +67,10 @@ func (d *DatabaseMariaDB) IsBeingDeleted() bool {
 	return !d.DeletionTimestamp.IsZero()
 }
 
+func (m *DatabaseMariaDB) IsReady() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+}
+
 // +kubebuilder:object:root=true
 
 // DatabaseMariaDBList contains a list of DatabaseMariaDB

@@ -139,7 +139,7 @@ type DatabaseOpts struct {
 }
 
 func (c *Client) CreateDatabase(ctx context.Context, database string, opts DatabaseOpts) error {
-	query := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s ", database)
+	query := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` ", database)
 	if opts.CharacterSet != "" {
 		query += fmt.Sprintf("CHARACTER SET = '%s' ", opts.CharacterSet)
 	}
@@ -153,7 +153,7 @@ func (c *Client) CreateDatabase(ctx context.Context, database string, opts Datab
 }
 
 func (c *Client) DropDatabase(ctx context.Context, database string) error {
-	query := fmt.Sprintf("DROP DATABASE IF EXISTS %s;", database)
+	query := fmt.Sprintf("DROP DATABASE IF EXISTS `%s`;", database)
 
 	_, err := c.db.ExecContext(ctx, query)
 	return err
