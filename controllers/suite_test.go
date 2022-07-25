@@ -106,14 +106,26 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
+	err = (&RestoreMariaDBReconciler{
+		Client:            k8sManager.GetClient(),
+		Scheme:            k8sManager.GetScheme(),
+		RefResolver:       refResolver,
+		ConditionComplete: conditionComplete,
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
 	go func() {
 		defer GinkgoRecover()
 		err = k8sManager.Start(ctx)
 		Expect(err).ToNot(HaveOccurred())
 	}()
+
+	createTestData(ctx, k8sClient)
 }, 60)
 
 var _ = AfterSuite(func() {
+	deleteTestData(ctx, k8sClient)
+
 	cancel()
 	By("Tearing down the test environment")
 	err := testEnv.Stop()

@@ -66,6 +66,10 @@ type BackupMariaDB struct {
 	Status BackupMariaDBStatus `json:"status,omitempty"`
 }
 
+func (m *BackupMariaDB) IsComplete() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeComplete)
+}
+
 // +kubebuilder:object:root=true
 
 // BackupMariaDBList contains a list of BackupMariaDB

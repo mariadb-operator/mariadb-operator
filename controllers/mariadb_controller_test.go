@@ -1,116 +1,18 @@
 package controllers
 
 import (
-	"fmt"
-	"time"
-
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/portforwarder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sethvargo/go-password/password"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	timeout  = time.Second * 30
-	interval = time.Second * 1
-)
-
-var (
-	defaultNamespace       = "default"
-	defaultStorageClass    = "standard"
-	mariaDbName            = "mariadb-test"
-	rootPasswordSecretName = "root-test"
-	rootPasswordSecretKey  = "passsword"
-)
-
 var _ = Describe("MariaDB controller", func() {
-	var secret v1.Secret
-	var mariaDbKey types.NamespacedName
-	var mariaDb databasev1alpha1.MariaDB
-
-	BeforeEach(func() {
-		By("Creating root password Secret")
-
-		secretKey := types.NamespacedName{
-			Name:      rootPasswordSecretName,
-			Namespace: defaultNamespace,
-		}
-		password, err := password.Generate(16, 4, 0, false, false)
-		Expect(err).NotTo(HaveOccurred())
-		secret = v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretKey.Name,
-				Namespace: secretKey.Namespace,
-			},
-			Data: map[string][]byte{
-				rootPasswordSecretKey: []byte(password),
-			},
-		}
-		Expect(k8sClient.Create(ctx, &secret)).To(Succeed())
-
-		By("Creating MariaDB")
-
-		mariaDbKey = types.NamespacedName{
-			Name:      mariaDbName,
-			Namespace: defaultNamespace,
-		}
-		storageSize, err := resource.ParseQuantity("100Mi")
-		Expect(err).ToNot(HaveOccurred())
-		mariaDb = databasev1alpha1.MariaDB{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      mariaDbKey.Name,
-				Namespace: mariaDbKey.Namespace,
-			},
-			Spec: databasev1alpha1.MariaDBSpec{
-				RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretKey.Name,
-					},
-					Key: rootPasswordSecretKey,
-				},
-				Image: databasev1alpha1.Image{
-					Repository: "mariadb",
-					Tag:        "10.7.4",
-				},
-				Storage: databasev1alpha1.Storage{
-					ClassName: defaultStorageClass,
-					Size:      storageSize,
-				},
-			},
-		}
-		Expect(k8sClient.Create(ctx, &mariaDb)).To(Succeed())
-	})
-
-	AfterEach(func() {
-		By("Tearing down initial resources")
-		Expect(k8sClient.Delete(ctx, &mariaDb)).To(Succeed())
-		Expect(k8sClient.Delete(ctx, &secret)).To(Succeed())
-	})
-
 	Context("When creating a MariaDB", func() {
 		It("Should reconcile", func() {
-			var mariaDb databasev1alpha1.MariaDB
-
-			By("Expecting to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, mariaDbKey, &mariaDb); err != nil {
-					return false
-				}
-				return mariaDb.IsReady()
-			}, timeout, interval).Should(BeTrue())
-
-			By("Expecting to have ready condition")
-			hasReadyCondition := meta.IsStatusConditionTrue(mariaDb.Status.Conditions, databasev1alpha1.ConditionTypeReady)
-			Expect(hasReadyCondition).To(BeTrue())
-
 			By("Expecting to have spec provided by user and defaults")
 			Expect(mariaDb.Spec.Image.String()).To(Equal("mariadb:10.7.4"))
 			Expect(mariaDb.Spec.Port).To(BeEquivalentTo(3306))
@@ -134,22 +36,85 @@ var _ = Describe("MariaDB controller", func() {
 		})
 
 		It("Should bootstrap from backup", func() {
-			By("Creating a port forward to MariaDB")
-			pod := fmt.Sprintf("%s-0", mariaDbKey.Name)
-			pf, err := portforwarder.New().
-				WithPod(pod).
-				WithNamespace(mariaDbKey.Namespace).
-				WithPorts("3306").
-				WithOutputWriter(GinkgoWriter).
-				WithErrorWriter(GinkgoWriter).
-				Build()
-			Expect(err).ToNot(HaveOccurred())
+			By("Creating BackupMariaDB")
+			backupKey := types.NamespacedName{
+				Name:      "backup-test",
+				Namespace: defaultNamespace,
+			}
+			backup := databasev1alpha1.BackupMariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      backupKey.Name,
+					Namespace: backupKey.Namespace,
+				},
+				Spec: databasev1alpha1.BackupMariaDBSpec{
+					MariaDBRef: corev1.LocalObjectReference{
+						Name: mariaDbName,
+					},
+					Storage: databasev1alpha1.Storage{
+						ClassName: defaultStorageClass,
+						Size:      storageSize,
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, &backup)).To(Succeed())
 
-			go func() {
-				if err := pf.Run(ctx); err != nil {
-					Fail(fmt.Sprintf("failed creating port forward to Pod '%s': %v", pod, err))
+			By("Expecting BackupMariaDB to be complete eventually")
+			Eventually(func() bool {
+				var backup databasev1alpha1.BackupMariaDB
+				if err := k8sClient.Get(ctx, backupKey, &backup); err != nil {
+					return false
 				}
-			}()
+				return backup.IsComplete()
+			}, timeout, interval).Should(BeTrue())
+
+			By("Creating a MariaDB bootstrapping from backup")
+			mariaDbBackupKey := types.NamespacedName{
+				Name:      "mariadb-backup",
+				Namespace: defaultNamespace,
+			}
+			mariaDbBackup := databasev1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      mariaDbBackupKey.Name,
+					Namespace: mariaDbBackupKey.Namespace,
+				},
+				Spec: databasev1alpha1.MariaDBSpec{
+					BootstrapFromBackup: &databasev1alpha1.BootstrapFromBackup{
+						BackupRef: corev1.LocalObjectReference{
+							Name: backupKey.Name,
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: mariaDbRootPwdKey.Name,
+						},
+						Key: mariaDbRootPwdSecretKey,
+					},
+					Image: databasev1alpha1.Image{
+						Repository: "mariadb",
+						Tag:        "10.7.4",
+					},
+					Storage: databasev1alpha1.Storage{
+						ClassName: defaultStorageClass,
+						Size:      storageSize,
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, &mariaDbBackup)).To(Succeed())
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				var mariaDbBackup databasev1alpha1.MariaDB
+				if err := k8sClient.Get(ctx, mariaDbBackupKey, &mariaDbBackup); err != nil {
+					return false
+				}
+				return mariaDbBackup.IsReady()
+			}, timeout, interval).Should(BeTrue())
+
+			By("Deleting BackupMariaDB resources")
+			Expect(k8sClient.Delete(ctx, &backup)).To(Succeed())
+			var pvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, backupKey, &pvc)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
 		})
 	})
 })

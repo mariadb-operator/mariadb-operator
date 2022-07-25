@@ -47,10 +47,10 @@ MARIADB_HOST ?= mariadb
 mdb-add-host: ## Add mariadb host to /etc/hosts.
 	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_HOST)
 
-.PHONY: mdb-add-test-hosts
-mdb-add-test-hosts: ## Add mariadb test hosts to /etc/hosts.
-	@./scripts/add_host.sh $(MARIADB_IP) "mariadb-test"
-	@./scripts/add_host.sh $(MARIADB_IP) "mariadb-backup"
+MARIADB_TEST_HOST ?= mariadb-test
+.PHONY: mdb-add-test-host
+mdb-add-test-host: ## Add mariadb test hosts to /etc/hosts.
+	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_TEST_HOST)
 
 MARIADB_NAMESPACE ?= default
 MARIADB_POD ?= mariadb-0
