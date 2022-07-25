@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	timeout  = time.Second * 60
+	timeout  = time.Second * 30
 	interval = time.Second * 1
 )
 
