@@ -18,10 +18,10 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -115,10 +115,6 @@ func deleteTestData(ctx context.Context, k8sClient client.Client) {
 	Expect(k8sClient.Delete(ctx, &mariaDbRootPwd)).To(Succeed())
 
 	var pvc corev1.PersistentVolumeClaim
-	pvcKey := types.NamespacedName{
-		Name:      fmt.Sprintf("storage-%s-0", mariaDbKey.Name),
-		Namespace: defaultNamespace,
-	}
-	Expect(k8sClient.Get(ctx, pvcKey, &pvc)).To(Succeed())
+	Expect(k8sClient.Get(ctx, builders.GetPVCKey(&mariaDb), &pvc)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
 }

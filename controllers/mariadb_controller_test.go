@@ -2,6 +2,7 @@ package controllers
 
 import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -110,11 +111,17 @@ var _ = Describe("MariaDB controller", func() {
 				return mariaDbBackup.IsReady()
 			}, timeout, interval).Should(BeTrue())
 
+			By("Deleting MariaDB resources")
+			Expect(k8sClient.Delete(ctx, &mariaDbBackup)).To(Succeed())
+			var mariaDbPvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, builders.GetPVCKey(&mariaDbBackup), &mariaDbPvc)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &mariaDbPvc)).To(Succeed())
+
 			By("Deleting BackupMariaDB resources")
 			Expect(k8sClient.Delete(ctx, &backup)).To(Succeed())
-			var pvc corev1.PersistentVolumeClaim
-			Expect(k8sClient.Get(ctx, backupKey, &pvc)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
+			var backupPvc corev1.PersistentVolumeClaim
+			Expect(k8sClient.Get(ctx, backupKey, &backupPvc)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &backupPvc)).To(Succeed())
 		})
 	})
 })

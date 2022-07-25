@@ -1,6 +1,7 @@
 package builders
 
 import (
+	"fmt"
 	"strconv"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
@@ -14,6 +15,13 @@ const (
 	stsStorageVolume    = "storage"
 	stsStorageMountPath = "/var/lib/mysql"
 )
+
+func GetPVCKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-%s-0", stsStorageVolume, mariadb.Name),
+		Namespace: mariadb.Namespace,
+	}
+}
 
 func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {
 	containers, err := buildStsContainers(mariadb)
