@@ -1,8 +1,9 @@
 package controllers
 
 import (
+	"time"
+
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -113,15 +114,102 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Deleting MariaDB resources")
 			Expect(k8sClient.Delete(ctx, &mariaDbBackup)).To(Succeed())
-			var mariaDbPvc corev1.PersistentVolumeClaim
-			Expect(k8sClient.Get(ctx, builders.GetPVCKey(&mariaDbBackup), &mariaDbPvc)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, &mariaDbPvc)).To(Succeed())
 
 			By("Deleting BackupMariaDB resources")
 			Expect(k8sClient.Delete(ctx, &backup)).To(Succeed())
-			var backupPvc corev1.PersistentVolumeClaim
-			Expect(k8sClient.Get(ctx, backupKey, &backupPvc)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, &backupPvc)).To(Succeed())
+		})
+	})
+
+	Context("When creating an invalid MariaDB", func() {
+		It("Should report not ready status", func() {
+			By("Creating MariaDB")
+			invalidMariaDbKey := types.NamespacedName{
+				Name:      "mariadb-test-invalid",
+				Namespace: defaultNamespace,
+			}
+			invalidMariaDb := databasev1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      invalidMariaDbKey.Name,
+					Namespace: invalidMariaDbKey.Namespace,
+				},
+				Spec: databasev1alpha1.MariaDBSpec{
+					Image: databasev1alpha1.Image{
+						Repository: "mariadb",
+						Tag:        "10.7.4",
+					},
+					Storage: databasev1alpha1.Storage{
+						ClassName: defaultStorageClass,
+						Size:      storageSize,
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, &invalidMariaDb)).To(Succeed())
+
+			By("Expecting not ready status consistently")
+			Consistently(func() bool {
+				var existingMariaDb databasev1alpha1.MariaDB
+				if err := k8sClient.Get(ctx, invalidMariaDbKey, &existingMariaDb); err != nil {
+					return false
+				}
+				return !existingMariaDb.IsReady()
+			}, 5*time.Second, interval)
+
+			By("Deleting MariaDB resources")
+			var existingMariaDb databasev1alpha1.MariaDB
+			Expect(k8sClient.Get(ctx, invalidMariaDbKey, &existingMariaDb))
+			Expect(k8sClient.Delete(ctx, &existingMariaDb)).To(Succeed())
+		})
+	})
+
+	Context("When bootstrapping from a non existing backup", func() {
+		It("Should report not ready status", func() {
+			By("Creating MariaDB")
+			noBackupMariaDbKey := types.NamespacedName{
+				Name:      "mariadb-test-no-backup",
+				Namespace: defaultNamespace,
+			}
+			noBackupMariaDb := databasev1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      noBackupMariaDbKey.Name,
+					Namespace: noBackupMariaDbKey.Namespace,
+				},
+				Spec: databasev1alpha1.MariaDBSpec{
+					BootstrapFromBackup: &databasev1alpha1.BootstrapFromBackup{
+						BackupRef: corev1.LocalObjectReference{
+							Name: "foo",
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: mariaDbRootPwdKey.Name,
+						},
+						Key: mariaDbRootPwdSecretKey,
+					},
+					Image: databasev1alpha1.Image{
+						Repository: "mariadb",
+						Tag:        "10.7.4",
+					},
+					Storage: databasev1alpha1.Storage{
+						ClassName: defaultStorageClass,
+						Size:      storageSize,
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, &noBackupMariaDb)).To(Succeed())
+
+			By("Expecting not ready status consistently")
+			Consistently(func() bool {
+				var existingMariaDb databasev1alpha1.MariaDB
+				if err := k8sClient.Get(ctx, noBackupMariaDbKey, &existingMariaDb); err != nil {
+					return false
+				}
+				return !existingMariaDb.IsReady()
+			}, 5*time.Second, interval)
+
+			By("Deleting MariaDB resources")
+			var existingMariaDb databasev1alpha1.MariaDB
+			Expect(k8sClient.Get(ctx, noBackupMariaDbKey, &existingMariaDb))
+			Expect(k8sClient.Delete(ctx, &existingMariaDb)).To(Succeed())
 		})
 	})
 })
