@@ -17,10 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	"fmt"
-
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/portforwarder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -31,23 +28,6 @@ import (
 var _ = Describe("DatabaseMariaDB controller", func() {
 	Context("When creating a DatabaseMariaDB", func() {
 		It("Should reconcile", func() {
-			By("Creating a port forward to MariaDB")
-			pf, err :=
-				portforwarder.New().
-					WithPod(fmt.Sprintf("%s-0", mariaDb.Name)).
-					WithNamespace(mariaDb.Namespace).
-					WithPorts(fmt.Sprint(mariaDb.Spec.Port)).
-					WithOutputWriter(GinkgoWriter).
-					WithErrorWriter(GinkgoWriter).
-					Build()
-			Expect(err).NotTo(HaveOccurred())
-
-			go func() {
-				if err := pf.Run(ctx); err != nil {
-					Expect(err).NotTo(HaveOccurred())
-				}
-			}()
-
 			By("Creating a DatabaseMariaDB")
 			databaseKey := types.NamespacedName{
 				Name:      "data-test",
@@ -60,7 +40,7 @@ var _ = Describe("DatabaseMariaDB controller", func() {
 				},
 				Spec: databasev1alpha1.DatabaseMariaDBSpec{
 					MariaDBRef: corev1.LocalObjectReference{
-						Name: mariaDb.Name,
+						Name: mariaDbKey.Name,
 					},
 					CharacterSet: "utf8",
 					Collate:      "utf8_general_ci",
@@ -69,16 +49,16 @@ var _ = Describe("DatabaseMariaDB controller", func() {
 			Expect(k8sClient.Create(ctx, &database)).To(Succeed())
 
 			By("Expecting DatabaseMariaDB to be ready eventually")
+			var existingDatabase databasev1alpha1.DatabaseMariaDB
 			Eventually(func() bool {
-				var database databasev1alpha1.DatabaseMariaDB
-				if err := k8sClient.Get(ctx, databaseKey, &database); err != nil {
+				if err := k8sClient.Get(ctx, databaseKey, &existingDatabase); err != nil {
 					return false
 				}
-				return database.IsReady()
+				return existingDatabase.IsReady()
 			}, timeout, interval).Should(BeTrue())
 
 			By("Deleting DatabaseMariaDB")
-			Expect(k8sClient.Delete(ctx, &database)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &existingDatabase)).To(Succeed())
 		})
 	})
 })

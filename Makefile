@@ -24,7 +24,7 @@ help: ## Display this help.
 ##@ Development
 
 CLUSTER ?= maria
-KIND_IMAGE ?= kindest/node:v1.22.9
+KIND_IMAGE ?= kindest/node:v1.23.6
 .PHONY: cluster
 cluster: kind ## Create the kind cluster.
 	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)
@@ -107,7 +107,7 @@ ifndef ignore-not-found
 endif
 
 .PHONY: install
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+install: manifests kustomize install-prom ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
 PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0

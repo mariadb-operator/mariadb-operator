@@ -53,8 +53,6 @@ var mariaDbRootPwd v1.Secret
 var storageSize resource.Quantity
 
 func createTestData(ctx context.Context, k8sClient client.Client) {
-	By("Creating initial test data")
-
 	mariaDbRootPwdKey = types.NamespacedName{
 		Name:      mariaDbRootPwdSecretName,
 		Namespace: defaultNamespace,
@@ -109,8 +107,6 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 }
 
 func deleteTestData(ctx context.Context, k8sClient client.Client) {
-	By("Deleting initial test data")
-
 	Expect(k8sClient.Delete(ctx, &mariaDb)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &mariaDbRootPwd)).To(Succeed())
 

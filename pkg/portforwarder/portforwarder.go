@@ -8,7 +8,9 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/avast/retry-go/v4"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -27,10 +29,19 @@ func (pf *PortForwarder) Run(ctx context.Context) error {
 		<-ctx.Done()
 		close(pf.stopChan)
 	}()
-	if err := pf.forwarder.ForwardPorts(); err != nil {
-		return fmt.Errorf("error forwarding ports: %v", err)
-	}
-	return nil
+
+	return retry.Do(
+		func() error {
+			if err := pf.forwarder.ForwardPorts(); err != nil {
+				return fmt.Errorf("error forwarding ports: %v", err)
+			}
+			return nil
+		},
+		retry.Context(ctx),
+		retry.Attempts(10),
+		retry.Delay(1*time.Second),
+		retry.DelayType(retry.BackOffDelay),
+	)
 }
 
 func newRestConfig(customKubeconfig string) (*rest.Config, error) {

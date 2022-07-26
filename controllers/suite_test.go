@@ -18,11 +18,14 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
+	"github.com/mmontes11/mariadb-operator/pkg/portforwarder"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -45,6 +48,7 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var ctx context.Context
 var cancel context.CancelFunc
+var portForwarder *portforwarder.PortForwarder
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -128,14 +132,32 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
+	By("Creating initial test data")
 	createTestData(ctx, k8sClient)
+	time.Sleep(10 * time.Second)
+
+	By("Creating port forward to MariaDB")
+	portForwarder, err =
+		portforwarder.New().
+			WithPod(fmt.Sprintf("%s-0", mariaDbKey.Name)).
+			WithNamespace(mariaDbKey.Namespace).
+			WithPorts(fmt.Sprint(mariaDb.Spec.Port)).
+			WithOutputWriter(GinkgoWriter).
+			WithErrorWriter(GinkgoWriter).
+			Build()
+	Expect(err).NotTo(HaveOccurred())
+	go func() {
+		if err := portForwarder.Run(ctx); err != nil {
+			Expect(err).NotTo(HaveOccurred())
+		}
+	}()
 }, 60)
 
 var _ = AfterSuite(func() {
+	By("Deleting initial test data")
 	deleteTestData(ctx, k8sClient)
 
 	cancel()
 	By("Tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
+	Expect(testEnv.Stop()).To(Succeed())
 })

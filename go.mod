@@ -3,6 +3,7 @@ module github.com/mmontes11/mariadb-operator
 go 1.18
 
 require (
+	github.com/avast/retry-go/v4 v4.1.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/onsi/ginkgo v1.16.5
