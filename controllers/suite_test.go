@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"testing"
-	"time"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
@@ -134,7 +133,6 @@ var _ = BeforeSuite(func() {
 
 	By("Creating initial test data")
 	createTestData(ctx, k8sClient)
-	time.Sleep(10 * time.Second)
 
 	By("Creating port forward to MariaDB")
 	portForwarder, err =

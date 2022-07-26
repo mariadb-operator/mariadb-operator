@@ -9,6 +9,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -90,6 +91,16 @@ func BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.Storage) *v1.Per
 }
 
 func buildStsContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) {
+	probe := &v1.Probe{
+		ProbeHandler: v1.ProbeHandler{
+			TCPSocket: &v1.TCPSocketAction{
+				Port: intstr.FromInt(int(mariadb.Spec.Port)),
+			},
+		},
+		InitialDelaySeconds: 10,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+	}
 	container := v1.Container{
 		Name:            mariadb.Name,
 		Image:           mariadb.Spec.Image.String(),
@@ -107,6 +118,8 @@ func buildStsContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, erro
 				MountPath: stsStorageMountPath,
 			},
 		},
+		ReadinessProbe: probe,
+		LivenessProbe:  probe,
 	}
 
 	if mariadb.Spec.Resources != nil {
