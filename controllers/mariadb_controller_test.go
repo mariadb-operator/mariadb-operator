@@ -21,26 +21,24 @@ var _ = Describe("MariaDB controller", func() {
 			Expect(mariaDb.Spec.Storage.ClassName).To(Equal("standard"))
 			Expect(mariaDb.Spec.Storage.AccessModes).To(ConsistOf(corev1.ReadWriteOnce))
 
-			var sts appsv1.StatefulSet
 			By("Expecting to create a StatefulSet eventually")
 			Eventually(func() bool {
+				var sts appsv1.StatefulSet
 				if err := k8sClient.Get(ctx, mariaDbKey, &sts); err != nil {
 					return false
 				}
 				return true
 			}, timeout, interval).Should(BeTrue())
-			Expect(sts).ToNot(BeNil())
 
 			By("Expecting to create a Service")
 			var svc corev1.Service
 			Expect(k8sClient.Get(ctx, mariaDbKey, &svc)).To(Succeed())
-			Expect(svc).ToNot(BeNil())
 		})
 
 		It("Should bootstrap from backup", func() {
 			By("Creating BackupMariaDB")
 			backupKey := types.NamespacedName{
-				Name:      "backup-test",
+				Name:      "backup-mariadb-test",
 				Namespace: defaultNamespace,
 			}
 			backup := databasev1alpha1.BackupMariaDB{
@@ -62,7 +60,6 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Expecting BackupMariaDB to be complete eventually")
 			Eventually(func() bool {
-				var backup databasev1alpha1.BackupMariaDB
 				if err := k8sClient.Get(ctx, backupKey, &backup); err != nil {
 					return false
 				}
@@ -109,7 +106,7 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return backupMariaDb.IsReady()
-			}, timeout, interval).Should(BeTrue())
+			}, 60*time.Second, interval).Should(BeTrue())
 
 			Expect(k8sClient.Get(ctx, backupMariaDbKey, &backupMariaDb)).To(Succeed())
 			Expect(backupMariaDb.IsBootstrapped()).To(BeTrue())
@@ -159,7 +156,7 @@ var _ = Describe("MariaDB controller", func() {
 			Expect(invalidMariaDb.IsBootstrapped()).To(BeFalse())
 
 			By("Deleting MariaDB resources")
-			Expect(k8sClient.Get(ctx, invalidMariaDbKey, &invalidMariaDb))
+			Expect(k8sClient.Get(ctx, invalidMariaDbKey, &invalidMariaDb)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, &invalidMariaDb)).To(Succeed())
 		})
 	})
@@ -212,7 +209,7 @@ var _ = Describe("MariaDB controller", func() {
 			Expect(noBackupMariaDb.IsBootstrapped()).To(BeFalse())
 
 			By("Deleting MariaDB resources")
-			Expect(k8sClient.Get(ctx, noBackupMariaDbKey, &noBackupMariaDb))
+			Expect(k8sClient.Get(ctx, noBackupMariaDbKey, &noBackupMariaDb)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, &noBackupMariaDb)).To(Succeed())
 		})
 	})
