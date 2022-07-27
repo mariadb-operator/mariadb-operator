@@ -70,14 +70,14 @@ var _ = Describe("MariaDB controller", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			By("Creating a MariaDB bootstrapping from backup")
-			mariaDbBackupKey := types.NamespacedName{
+			backupMariaDbKey := types.NamespacedName{
 				Name:      "mariadb-backup",
 				Namespace: defaultNamespace,
 			}
-			mariaDbBackup := databasev1alpha1.MariaDB{
+			backupMariaDb := databasev1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      mariaDbBackupKey.Name,
-					Namespace: mariaDbBackupKey.Namespace,
+					Name:      backupMariaDbKey.Name,
+					Namespace: backupMariaDbKey.Namespace,
 				},
 				Spec: databasev1alpha1.MariaDBSpec{
 					BootstrapFromBackup: &databasev1alpha1.BootstrapFromBackup{
@@ -101,19 +101,21 @@ var _ = Describe("MariaDB controller", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, &mariaDbBackup)).To(Succeed())
+			Expect(k8sClient.Create(ctx, &backupMariaDb)).To(Succeed())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
-				var mariaDbBackup databasev1alpha1.MariaDB
-				if err := k8sClient.Get(ctx, mariaDbBackupKey, &mariaDbBackup); err != nil {
+				if err := k8sClient.Get(ctx, backupMariaDbKey, &backupMariaDb); err != nil {
 					return false
 				}
-				return mariaDbBackup.IsReady()
+				return backupMariaDb.IsReady()
 			}, timeout, interval).Should(BeTrue())
 
+			Expect(k8sClient.Get(ctx, backupMariaDbKey, &backupMariaDb)).To(Succeed())
+			Expect(backupMariaDb.IsBootstrapped()).To(BeTrue())
+
 			By("Deleting MariaDB resources")
-			Expect(k8sClient.Delete(ctx, &mariaDbBackup)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &backupMariaDb)).To(Succeed())
 
 			By("Deleting BackupMariaDB resources")
 			Expect(k8sClient.Delete(ctx, &backup)).To(Succeed())
@@ -147,17 +149,18 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Expecting not ready status consistently")
 			Consistently(func() bool {
-				var existingMariaDb databasev1alpha1.MariaDB
-				if err := k8sClient.Get(ctx, invalidMariaDbKey, &existingMariaDb); err != nil {
+				if err := k8sClient.Get(ctx, invalidMariaDbKey, &invalidMariaDb); err != nil {
 					return false
 				}
-				return !existingMariaDb.IsReady()
+				return !invalidMariaDb.IsReady()
 			}, 5*time.Second, interval)
 
+			Expect(k8sClient.Get(ctx, invalidMariaDbKey, &invalidMariaDb)).To(Succeed())
+			Expect(invalidMariaDb.IsBootstrapped()).To(BeFalse())
+
 			By("Deleting MariaDB resources")
-			var existingMariaDb databasev1alpha1.MariaDB
-			Expect(k8sClient.Get(ctx, invalidMariaDbKey, &existingMariaDb))
-			Expect(k8sClient.Delete(ctx, &existingMariaDb)).To(Succeed())
+			Expect(k8sClient.Get(ctx, invalidMariaDbKey, &invalidMariaDb))
+			Expect(k8sClient.Delete(ctx, &invalidMariaDb)).To(Succeed())
 		})
 	})
 
@@ -199,17 +202,18 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Expecting not ready status consistently")
 			Consistently(func() bool {
-				var existingMariaDb databasev1alpha1.MariaDB
-				if err := k8sClient.Get(ctx, noBackupMariaDbKey, &existingMariaDb); err != nil {
+				if err := k8sClient.Get(ctx, noBackupMariaDbKey, &noBackupMariaDb); err != nil {
 					return false
 				}
-				return !existingMariaDb.IsReady()
+				return !noBackupMariaDb.IsReady()
 			}, 5*time.Second, interval)
 
+			Expect(k8sClient.Get(ctx, noBackupMariaDbKey, &noBackupMariaDb)).To(Succeed())
+			Expect(noBackupMariaDb.IsBootstrapped()).To(BeFalse())
+
 			By("Deleting MariaDB resources")
-			var existingMariaDb databasev1alpha1.MariaDB
-			Expect(k8sClient.Get(ctx, noBackupMariaDbKey, &existingMariaDb))
-			Expect(k8sClient.Delete(ctx, &existingMariaDb)).To(Succeed())
+			Expect(k8sClient.Get(ctx, noBackupMariaDbKey, &noBackupMariaDb))
+			Expect(k8sClient.Delete(ctx, &noBackupMariaDb)).To(Succeed())
 		})
 	})
 })

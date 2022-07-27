@@ -49,16 +49,15 @@ var _ = Describe("DatabaseMariaDB controller", func() {
 			Expect(k8sClient.Create(ctx, &database)).To(Succeed())
 
 			By("Expecting DatabaseMariaDB to be ready eventually")
-			var existingDatabase databasev1alpha1.DatabaseMariaDB
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, databaseKey, &existingDatabase); err != nil {
+				if err := k8sClient.Get(ctx, databaseKey, &database); err != nil {
 					return false
 				}
-				return existingDatabase.IsReady()
+				return database.IsReady()
 			}, timeout, interval).Should(BeTrue())
 
 			By("Deleting DatabaseMariaDB")
-			Expect(k8sClient.Delete(ctx, &existingDatabase)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &database)).To(Succeed())
 		})
 	})
 })

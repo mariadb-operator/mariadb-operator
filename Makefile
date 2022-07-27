@@ -23,7 +23,7 @@ help: ## Display this help.
 
 ##@ Development
 
-CLUSTER ?= maria
+CLUSTER ?= mdb
 KIND_IMAGE ?= kindest/node:v1.23.6
 .PHONY: cluster
 cluster: kind ## Create the kind cluster.
