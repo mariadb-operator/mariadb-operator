@@ -70,7 +70,6 @@ var _ = Describe("BackupMariaDB controller", func() {
 
 			By("Deleting BackupMariaDB")
 			Expect(k8sClient.Get(ctx, backupKey, &backup)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, &backup)).To(Succeed())
 		})
 	})
 })

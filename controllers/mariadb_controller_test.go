@@ -111,10 +111,10 @@ var _ = Describe("MariaDB controller", func() {
 			Expect(k8sClient.Get(ctx, backupMariaDbKey, &backupMariaDb)).To(Succeed())
 			Expect(backupMariaDb.IsBootstrapped()).To(BeTrue())
 
-			By("Deleting MariaDB resources")
+			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(ctx, &backupMariaDb)).To(Succeed())
 
-			By("Deleting BackupMariaDB resources")
+			By("Deleting BackupMariaDB")
 			Expect(k8sClient.Delete(ctx, &backup)).To(Succeed())
 		})
 	})
@@ -155,8 +155,7 @@ var _ = Describe("MariaDB controller", func() {
 			Expect(k8sClient.Get(ctx, invalidMariaDbKey, &invalidMariaDb)).To(Succeed())
 			Expect(invalidMariaDb.IsBootstrapped()).To(BeFalse())
 
-			By("Deleting MariaDB resources")
-			Expect(k8sClient.Get(ctx, invalidMariaDbKey, &invalidMariaDb)).To(Succeed())
+			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(ctx, &invalidMariaDb)).To(Succeed())
 		})
 	})
@@ -208,8 +207,7 @@ var _ = Describe("MariaDB controller", func() {
 			Expect(k8sClient.Get(ctx, noBackupMariaDbKey, &noBackupMariaDb)).To(Succeed())
 			Expect(noBackupMariaDb.IsBootstrapped()).To(BeFalse())
 
-			By("Deleting MariaDB resources")
-			Expect(k8sClient.Get(ctx, noBackupMariaDbKey, &noBackupMariaDb)).To(Succeed())
+			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(ctx, &noBackupMariaDb)).To(Succeed())
 		})
 	})
