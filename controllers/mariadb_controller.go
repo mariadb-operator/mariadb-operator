@@ -24,6 +24,7 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builders"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
+	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,6 +40,7 @@ import (
 type MariaDBReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
+	RefResolver    *refresolver.RefResolver
 	ConditionReady *conditions.Ready
 }
 
@@ -54,8 +56,8 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	var stsErr *multierror.Error
 	if err := r.createStatefulSet(ctx, &mariaDb, req.NamespacedName); err != nil {
+		var stsErr *multierror.Error
 		stsErr = multierror.Append(stsErr, err)
 
 		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creating StatefulSet"))
@@ -64,8 +66,8 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", stsErr)
 	}
 
-	var svcErr *multierror.Error
 	if err := r.createService(ctx, &mariaDb, req.NamespacedName); err != nil {
+		var svcErr *multierror.Error
 		svcErr = multierror.Append(svcErr, err)
 
 		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creating Service"))
@@ -74,14 +76,24 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("error creating Service: %v", svcErr)
 	}
 
-	var restoreErr *multierror.Error
 	if err := r.bootstrapFromBackup(ctx, &mariaDb); err != nil {
+		var restoreErr *multierror.Error
 		restoreErr = multierror.Append(restoreErr, err)
 
 		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creating bootstrapping RestoreMariaDB"))
 		restoreErr = multierror.Append(restoreErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error creating bootstrapping RestoreMariaDB: %v", restoreErr)
+	}
+
+	if err := r.reconcileMetrics(ctx, req, &mariaDb); err != nil {
+		var metricsErr *multierror.Error
+		metricsErr = multierror.Append(metricsErr, err)
+
+		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error reconciling metrics"))
+		metricsErr = multierror.Append(metricsErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error reconciling metrics: %v", metricsErr)
 	}
 
 	patcher, err := r.patcher(ctx, &mariaDb, req.NamespacedName)
@@ -144,33 +156,6 @@ func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *databasev1
 
 	if err := r.Client.Status().Patch(ctx, mariadb, patch); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
-	}
-	return nil
-}
-
-func (r *MariaDBReconciler) bootstrapFromBackup(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
-	if mariadb.Spec.BootstrapFromBackup == nil || !mariadb.IsReady() || mariadb.IsBootstrapped() {
-		return nil
-	}
-	key := bootstrapRestoreKey(mariadb)
-	var existingRestore databasev1alpha1.RestoreMariaDB
-	if err := r.Get(ctx, key, &existingRestore); err == nil {
-		return nil
-	}
-
-	restore := builders.BuildRestoreMariaDb(
-		corev1.LocalObjectReference{
-			Name: mariadb.Name,
-		},
-		mariadb.Spec.BootstrapFromBackup.BackupRef,
-		key,
-	)
-	if err := controllerutil.SetControllerReference(mariadb, restore, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to bootstrapping restore Job: %v", err)
-	}
-
-	if err := r.Create(ctx, restore); err != nil {
-		return fmt.Errorf("error creating bootstrapping restore Job: %v", err)
 	}
 	return nil
 }
@@ -253,19 +238,13 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *databasev1alph
 	}, nil
 }
 
-func bootstrapRestoreKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("bootstrap-restore-%s", mariadb.Name),
-		Namespace: mariadb.Namespace,
-	}
-}
-
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&databasev1alpha1.MariaDB{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
+		Owns(&corev1.Secret{}).
 		Owns(&databasev1alpha1.RestoreMariaDB{}).
 		Complete(r)
 }

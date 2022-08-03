@@ -30,6 +30,21 @@ spec:
     backupRef:
       name: backup
 
+  metrics:
+    exporter:
+      image:
+        repository: prom/mysqld-exporter
+        tag: "v0.14.0"
+        pullPolicy: IfNotPresent
+      esources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi
+    createServiceMonitor: true
+
   resources:
     requests:
       cpu: 100m

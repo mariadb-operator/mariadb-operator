@@ -87,6 +87,7 @@ func main() {
 	if err = (&controllers.MariaDBReconciler{
 		Client:         mgr.GetClient(),
 		Scheme:         mgr.GetScheme(),
+		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
@@ -135,24 +136,6 @@ func main() {
 		ConditionReady: conditionReady,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DatabaseMariaDB")
-		os.Exit(1)
-	}
-	if err = (&controllers.ExporterMariaDBReconciler{
-		Client:         mgr.GetClient(),
-		Scheme:         mgr.GetScheme(),
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ExporterMariaDB")
-		os.Exit(1)
-	}
-	if err = (&controllers.MonitorMariaDBReconciler{
-		Client:         mgr.GetClient(),
-		Scheme:         mgr.GetScheme(),
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MonitorMariaDB")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

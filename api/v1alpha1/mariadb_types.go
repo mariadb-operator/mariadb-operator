@@ -28,6 +28,18 @@ type BootstrapFromBackup struct {
 	BackupRef corev1.LocalObjectReference `json:"backupRef"`
 }
 
+type Exporter struct {
+	// +kubebuilder:validation:Required
+	Image     Image                        `json:"image"`
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+type Metrics struct {
+	Exporter Exporter `json:"exporter"`
+	// +kubebuilder:default=false
+	CreateServiceMonitor bool `json:"createServiceMonitor"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// +kubebuilder:validation:Required
@@ -48,6 +60,8 @@ type MariaDBSpec struct {
 	Storage Storage `json:"storage"`
 
 	BootstrapFromBackup *BootstrapFromBackup `json:"bootstrapFromBackup,omitempty"`
+
+	Metrics *Metrics `json:"metrics,omitempty"`
 
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 

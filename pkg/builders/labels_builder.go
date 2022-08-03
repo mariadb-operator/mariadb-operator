@@ -7,7 +7,6 @@ const (
 	releaseLabel      = "release"
 	appMariaDb        = "mariadb"
 	componentDatabase = "database"
-	componentExporter = "exporter"
 )
 
 type LabelsBuilder struct {
