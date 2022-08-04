@@ -50,6 +50,17 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	if database.IsBeingDeleted() {
+		if err := r.finalize(ctx, &database); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error finalizing DatabaseMariaDB: %v", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if err := r.addFinalizer(ctx, &database); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error adding finalizer to DatabaseMariaDB: %v", err)
+	}
+
 	var mariaDbErr *multierror.Error
 	mariaDb, err := r.RefResolver.GetMariaDB(ctx, database.Spec.MariaDBRef, database.Namespace)
 	if err != nil {
@@ -72,17 +83,6 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", connErr)
 	}
 	defer mdbClient.Close()
-
-	if database.IsBeingDeleted() {
-		if err := r.finalize(ctx, &database, mdbClient); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error finalizing DatabaseMariaDB: %v", err)
-		}
-		return ctrl.Result{}, nil
-	}
-
-	if err := r.addFinalizer(ctx, &database); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error adding finalizer to DatabaseMariaDB: %v", err)
-	}
 
 	var databaseErr *multierror.Error
 	err = r.createDatabase(ctx, &database, mdbClient)
