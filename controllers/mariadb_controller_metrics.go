@@ -81,14 +81,9 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, req ctrl.Reque
 	}
 	defer mdbClient.Close()
 
-	user, err := r.createCredentials(ctx, mariadb, mdbClient)
+	dsn, err := r.createCredentials(ctx, mariadb, mdbClient)
 	if err != nil {
 		return fmt.Errorf("error creating credentials: %v", err)
-	}
-
-	dsn, err := r.createDsnSecret(ctx, mariadb, user)
-	if err != nil {
-		return fmt.Errorf("error creating DSN Secret: %v", err)
 	}
 
 	patchSts := func(sts *appsv1.StatefulSet) {
@@ -108,7 +103,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, req ctrl.Reque
 }
 
 func (r *MariaDBReconciler) createCredentials(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
-	mdbClient *mariadb.Client) (*databasev1alpha1.UserMariaDB, error) {
+	mdbClient *mariadb.Client) (*corev1.SecretKeySelector, error) {
 	key := exporterKey(mariadb)
 	if err := r.createUser(ctx, mariadb); err != nil {
 		return nil, fmt.Errorf("error creating UserMariaDB: %v", err)
@@ -146,11 +141,16 @@ func (r *MariaDBReconciler) createCredentials(ctx context.Context, mariadb *data
 		return nil, fmt.Errorf("error waiting for GrantMariaDB to be ready: %v", err)
 	}
 
-	return &user, nil
+	dsn, err := r.createDsnSecret(ctx, mariadb, &user)
+	if err != nil {
+		return nil, fmt.Errorf("error creating DSN Secret: %v", err)
+	}
+
+	return dsn, nil
 }
 
 func (r *MariaDBReconciler) patchStatefulSet(ctx context.Context, sts *appsv1.StatefulSet, patchFn func(*appsv1.StatefulSet)) error {
-	patch := client.MergeFrom(sts)
+	patch := client.MergeFrom(sts.DeepCopy())
 	patchFn(sts)
 	if err := r.Client.Patch(ctx, sts, patch); err != nil {
 		return fmt.Errorf("error patching StatefulSet on API server: %v", err)
@@ -159,7 +159,7 @@ func (r *MariaDBReconciler) patchStatefulSet(ctx context.Context, sts *appsv1.St
 }
 
 func (r *MariaDBReconciler) patchService(ctx context.Context, svc *v1.Service, patchFn func(*v1.Service)) error {
-	patch := client.MergeFrom(svc)
+	patch := client.MergeFrom(svc.DeepCopy())
 	patchFn(svc)
 	if err := r.Client.Patch(ctx, svc, patch); err != nil {
 		return fmt.Errorf("error patching Service on API server: %v", err)
@@ -277,6 +277,17 @@ func (r *MariaDBReconciler) createPasswordSecret(ctx context.Context,
 
 func (r *MariaDBReconciler) createDsnSecret(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	user *databasev1alpha1.UserMariaDB) (*corev1.SecretKeySelector, error) {
+	key := dsnKey(mariadb)
+	var existingSecret v1.Secret
+	if err := r.Get(ctx, key, &existingSecret); err == nil {
+		return &corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: existingSecret.Name,
+			},
+			Key: dsnSecretKey,
+		}, nil
+	}
+
 	password, err := r.RefResolver.ReadSecretKeyRef(ctx, user.Spec.PasswordSecretKeyRef, mariadb.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting password: %v", err)
@@ -293,7 +304,7 @@ func (r *MariaDBReconciler) createDsnSecret(ctx context.Context, mariadb *databa
 	}
 
 	secretOpts := builders.SecretOpts{
-		Key: dsnKey(mariadb),
+		Key: key,
 		Data: map[string][]byte{
 			dsnSecretKey: []byte(dsn),
 		},
