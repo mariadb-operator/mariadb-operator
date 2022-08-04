@@ -32,12 +32,18 @@ const (
 )
 
 func (r *DatabaseMariaDBReconciler) addFinalizer(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB) error {
+	if !controllerutil.ContainsFinalizer(database, databaseFinalizerName) {
+		return nil
+	}
 	return r.patch(ctx, database, func(database *databasev1alpha1.DatabaseMariaDB) {
 		controllerutil.AddFinalizer(database, databaseFinalizerName)
 	})
 }
 
 func (r *DatabaseMariaDBReconciler) removeFinalizer(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB) error {
+	if controllerutil.ContainsFinalizer(database, databaseFinalizerName) {
+		return nil
+	}
 	return r.patch(ctx, database, func(database *databasev1alpha1.DatabaseMariaDB) {
 		controllerutil.RemoveFinalizer(database, databaseFinalizerName)
 	})

@@ -18,19 +18,15 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -53,6 +49,17 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	var grant databasev1alpha1.GrantMariaDB
 	if err := r.Get(ctx, req.NamespacedName, &grant); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if grant.IsBeingDeleted() {
+		if err := r.finalize(ctx, &grant); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error finalizing GrantMariaDB: %v", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if err := r.addFinalizer(ctx, &grant); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error adding finalizer to GrantMariaDB: %v", err)
 	}
 
 	var mariaDbErr *multierror.Error
@@ -78,17 +85,6 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 	defer mdbClient.Close()
 
-	if grant.IsBeingDeleted() {
-		if err := r.finalize(ctx, &grant, mdbClient); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error finalizing GrantMariaDB: %v", err)
-		}
-		return ctrl.Result{}, nil
-	}
-
-	if err := r.addFinalizer(ctx, &grant); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error adding finalizer to GrantMariaDB: %v", err)
-	}
-
 	var grantErr *multierror.Error
 	err = r.grant(ctx, &grant, mdbClient)
 	grantErr = multierror.Append(grantErr, err)
@@ -112,39 +108,6 @@ func (r *GrantMariaDBReconciler) grant(ctx context.Context, grant *databasev1alp
 	}
 	if err := mdbClient.Grant(ctx, opts); err != nil {
 		return fmt.Errorf("error granting privileges in MariaDB: %v", err)
-	}
-	return nil
-}
-
-func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
-	mdbClient *mariadbclient.Client) error {
-	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 5*time.Second, func(ctx context.Context) (bool, error) {
-		var user databasev1alpha1.UserMariaDB
-		if err := r.Get(ctx, userKey(grant), &user); err != nil {
-			if apierrors.IsNotFound(err) {
-				return true, nil
-			}
-			return true, err
-		}
-		return false, nil
-	})
-	// User does not exist
-	if err == nil {
-		return nil
-	}
-	if err != nil && !errors.Is(err, wait.ErrWaitTimeout) {
-		return fmt.Errorf("error checking if user exists in MariaDB: %v", err)
-	}
-
-	opts := mariadbclient.GrantOpts{
-		Privileges:  grant.Spec.Privileges,
-		Database:    grant.Spec.Database,
-		Table:       grant.Spec.Table,
-		Username:    grant.Spec.Username,
-		GrantOption: grant.Spec.GrantOption,
-	}
-	if err := mdbClient.Revoke(ctx, opts); err != nil {
-		return fmt.Errorf("error revoking grant in MariaDB: %v", err)
 	}
 	return nil
 }

@@ -51,6 +51,17 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, ctrlClient.IgnoreNotFound(err)
 	}
 
+	if user.IsBeingDeleted() {
+		if err := r.finalize(ctx, &user); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error finalizing UserMariaDB: %v", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if err := r.addFinalizer(ctx, &user); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error adding finalizer to UserMariaDB: %v", err)
+	}
+
 	var mariaDbErr *multierror.Error
 	mariaDb, err := r.RefResolver.GetMariaDB(ctx, user.Spec.MariaDBRef, user.Namespace)
 	if err != nil {
@@ -73,17 +84,6 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", connErr)
 	}
 	defer mdbClient.Close()
-
-	if user.IsBeingDeleted() {
-		if err := r.finalize(ctx, &user, mdbClient); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error finalizing UserMariaDB: %v", err)
-		}
-		return ctrl.Result{}, nil
-	}
-
-	if err := r.addFinalizer(ctx, &user); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error adding finalizer to UserMariaDB: %v", err)
-	}
 
 	var userErr *multierror.Error
 	err = r.createUser(ctx, &user, mdbClient)
