@@ -58,7 +58,7 @@ var _ = Describe("BackupMariaDB controller", func() {
 					return false
 				}
 				return true
-			}, timeout, interval).Should(BeTrue())
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting BackupMariaDB to be complete eventually")
 			Eventually(func() bool {
@@ -66,7 +66,7 @@ var _ = Describe("BackupMariaDB controller", func() {
 					return false
 				}
 				return backup.IsComplete()
-			}, timeout, interval).Should(BeTrue())
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting BackupMariaDB")
 			Expect(k8sClient.Get(ctx, backupKey, &backup)).To(Succeed())

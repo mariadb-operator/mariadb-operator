@@ -33,7 +33,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -42,6 +41,8 @@ const (
 	exporterContainerName = "metrics"
 	exporterPortName      = "metrics"
 	exporterPort          = 9104
+	metricsInterval       = 1 * time.Second
+	metricsTimeout        = 30 * time.Second
 )
 
 var (
@@ -57,18 +58,22 @@ var (
 	dsnSecretKey      = "dsn"
 )
 
-func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, req ctrl.Request,
+func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context,
 	mariadb *databasev1alpha1.MariaDB) error {
 	if mariadb.Spec.Metrics == nil || !mariadb.IsReady() {
 		return nil
 	}
 
+	key := types.NamespacedName{
+		Name:      mariadb.Name,
+		Namespace: mariadb.Namespace,
+	}
 	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, req.NamespacedName, &sts); err != nil {
+	if err := r.Get(ctx, key, &sts); err != nil {
 		return nil
 	}
 	var svc v1.Service
-	if err := r.Get(ctx, req.NamespacedName, &svc); err != nil {
+	if err := r.Get(ctx, key, &svc); err != nil {
 		return nil
 	}
 	if hasContainer(&sts, exporterContainerName) && hasPort(&svc, exporterPortName) {
@@ -104,13 +109,13 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, req ctrl.Reque
 
 func (r *MariaDBReconciler) createCredentials(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	mdbClient *mariadb.Client) (*corev1.SecretKeySelector, error) {
-	key := exporterKey(mariadb)
 	if err := r.createUser(ctx, mariadb); err != nil {
 		return nil, fmt.Errorf("error creating UserMariaDB: %v", err)
 	}
 
+	key := exporterKey(mariadb)
 	var user databasev1alpha1.UserMariaDB
-	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 10*time.Second, func(ctx context.Context) (bool, error) {
+	err := wait.PollImmediateWithContext(ctx, metricsInterval, metricsTimeout, func(ctx context.Context) (bool, error) {
 		if err := r.Get(ctx, key, &user); err != nil {
 			if apierrors.IsNotFound(err) {
 				return false, nil
@@ -127,7 +132,7 @@ func (r *MariaDBReconciler) createCredentials(ctx context.Context, mariadb *data
 		return nil, fmt.Errorf("error creating GrantMariaDB: %v", err)
 	}
 
-	err = wait.PollImmediateWithContext(ctx, 1*time.Second, 10*time.Second, func(ctx context.Context) (bool, error) {
+	err = wait.PollImmediateWithContext(ctx, metricsInterval, metricsTimeout, func(ctx context.Context) (bool, error) {
 		var grant databasev1alpha1.GrantMariaDB
 		if err := r.Get(ctx, key, &grant); err != nil {
 			if apierrors.IsNotFound(err) {

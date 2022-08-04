@@ -58,7 +58,7 @@ var _ = Describe("UserMariaDB controller", func() {
 					return false
 				}
 				return user.IsReady()
-			}, timeout, interval).Should(BeTrue())
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting UserMariaDB")
 			Expect(k8sClient.Delete(ctx, &user)).To(Succeed())

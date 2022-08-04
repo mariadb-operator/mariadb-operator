@@ -56,6 +56,17 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	if mariaDb.IsBeingDeleted() {
+		if err := r.finalize(ctx, &mariaDb); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error finalizing MariaDB: %v", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if err := r.addFinalizer(ctx, &mariaDb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error adding finalizer to MariaDB: %v", err)
+	}
+
 	if err := r.createStatefulSet(ctx, &mariaDb, req.NamespacedName); err != nil {
 		var stsErr *multierror.Error
 		stsErr = multierror.Append(stsErr, err)
@@ -86,7 +97,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("error creating bootstrapping RestoreMariaDB: %v", restoreErr)
 	}
 
-	if err := r.reconcileMetrics(ctx, req, &mariaDb); err != nil {
+	if err := r.reconcileMetrics(ctx, &mariaDb); err != nil {
 		var metricsErr *multierror.Error
 		metricsErr = multierror.Append(metricsErr, err)
 

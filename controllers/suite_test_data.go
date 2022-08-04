@@ -34,8 +34,8 @@ import (
 )
 
 const (
-	timeout  = time.Second * 30
-	interval = time.Second * 1
+	testTimeout  = time.Second * 30
+	testInterval = time.Second * 1
 )
 
 var (
@@ -103,7 +103,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 			return false
 		}
 		return mariaDb.IsReady()
-	}, timeout, interval).Should(BeTrue())
+	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func deleteTestData(ctx context.Context, k8sClient client.Client) {

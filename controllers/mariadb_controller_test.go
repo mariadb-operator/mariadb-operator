@@ -28,7 +28,7 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return true
-			}, timeout, interval).Should(BeTrue())
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to create a Service")
 			var svc corev1.Service
@@ -64,7 +64,7 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return backup.IsComplete()
-			}, timeout, interval).Should(BeTrue())
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Creating a MariaDB bootstrapping from backup")
 			backupMariaDbKey := types.NamespacedName{
@@ -106,7 +106,7 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return backupMariaDb.IsReady()
-			}, 60*time.Second, interval).Should(BeTrue())
+			}, 60*time.Second, testInterval).Should(BeTrue())
 
 			Expect(k8sClient.Get(ctx, backupMariaDbKey, &backupMariaDb)).To(Succeed())
 			Expect(backupMariaDb.IsBootstrapped()).To(BeTrue())
@@ -150,7 +150,7 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return !invalidMariaDb.IsReady()
-			}, 5*time.Second, interval)
+			}, 5*time.Second, testInterval)
 
 			Expect(k8sClient.Get(ctx, invalidMariaDbKey, &invalidMariaDb)).To(Succeed())
 			Expect(invalidMariaDb.IsBootstrapped()).To(BeFalse())
@@ -202,7 +202,7 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return !noBackupMariaDb.IsReady()
-			}, 5*time.Second, interval)
+			}, 5*time.Second, testInterval)
 
 			Expect(k8sClient.Get(ctx, noBackupMariaDbKey, &noBackupMariaDb)).To(Succeed())
 			Expect(noBackupMariaDb.IsBootstrapped()).To(BeFalse())

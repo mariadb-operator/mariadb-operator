@@ -24,6 +24,7 @@ func BuildService(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName) *
 			Type: corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{
 				{
+					Name: "mariadb",
 					Port: mariadb.Spec.Port,
 				},
 			},

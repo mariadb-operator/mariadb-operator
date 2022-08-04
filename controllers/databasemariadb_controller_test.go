@@ -54,7 +54,7 @@ var _ = Describe("DatabaseMariaDB controller", func() {
 					return false
 				}
 				return database.IsReady()
-			}, timeout, interval).Should(BeTrue())
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting DatabaseMariaDB")
 			Expect(k8sClient.Delete(ctx, &database)).To(Succeed())
