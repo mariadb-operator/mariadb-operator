@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
@@ -70,6 +71,13 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+	}
+
+	if !mariaDb.IsReady() {
+		if err := r.patchStatus(ctx, &database, r.ConditionReady.FailedPatcher("MariaDB not ready")); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching DatabaseMariaDB: %v", err)
+		}
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
 	var connErr *multierror.Error
