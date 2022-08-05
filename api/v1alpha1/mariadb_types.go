@@ -106,10 +106,6 @@ func (m *MariaDB) IsBootstrapped() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBootstrapped)
 }
 
-func (m *MariaDB) IsBeingDeleted() bool {
-	return !m.DeletionTimestamp.IsZero()
-}
-
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB
