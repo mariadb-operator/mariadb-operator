@@ -10,7 +10,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -103,8 +102,12 @@ func buildStsContainers(mariadb *databasev1alpha1.MariaDB, dsn *corev1.SecretKey
 	var containers []v1.Container
 	probe := &v1.Probe{
 		ProbeHandler: v1.ProbeHandler{
-			TCPSocket: &v1.TCPSocketAction{
-				Port: intstr.FromInt(int(mariadb.Spec.Port)),
+			Exec: &v1.ExecAction{
+				Command: []string{
+					"bash",
+					"-c",
+					"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
+				},
 			},
 		},
 		InitialDelaySeconds: 10,
