@@ -34,10 +34,20 @@ type Exporter struct {
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
+type ServiceMonitor struct {
+	// +kubebuilder:validation:Required
+	PrometheusRelease string `json:"prometheusRelease"`
+	// +kubebuilder:default='10s'
+	Interval string `json:"interval,omitempty"`
+	// +kubebuilder:default='10s'
+	ScrapeTimeout string `json:"scrapeTimeout,omitempty"`
+}
+
 type Metrics struct {
+	// +kubebuilder:validation:Required
 	Exporter Exporter `json:"exporter"`
-	// +kubebuilder:default=false
-	CreateServiceMonitor bool `json:"createServiceMonitor"`
+	// +kubebuilder:validation:Required
+	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB

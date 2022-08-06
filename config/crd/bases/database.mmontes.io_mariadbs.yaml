@@ -230,9 +230,6 @@ spec:
                 type: array
               metrics:
                 properties:
-                  createServiceMonitor:
-                    default: false
-                    type: boolean
                   exporter:
                     properties:
                       image:
@@ -281,9 +278,22 @@ spec:
                     required:
                     - image
                     type: object
+                  serviceMonitor:
+                    properties:
+                      interval:
+                        default: '''10s'''
+                        type: string
+                      prometheusRelease:
+                        type: string
+                      scrapeTimeout:
+                        default: '''10s'''
+                        type: string
+                    required:
+                    - prometheusRelease
+                    type: object
                 required:
-                - createServiceMonitor
                 - exporter
+                - serviceMonitor
                 type: object
               passwordSecretKeyRef:
                 description: SecretKeySelector selects a key of a Secret.
