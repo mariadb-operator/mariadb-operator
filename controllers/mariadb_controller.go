@@ -45,6 +45,11 @@ type MariaDBReconciler struct {
 	ConditionReady *conditions.Ready
 }
 
+type MariaDBReconcilePhase struct {
+	Resource  string
+	Reconcile func(context.Context, *databasev1alpha1.MariaDB, types.NamespacedName) error
+}
+
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs/finalizers,verbs=update
@@ -57,44 +62,34 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if err := r.createStatefulSet(ctx, &mariaDb, req.NamespacedName); err != nil {
-		var stsErr *multierror.Error
-		stsErr = multierror.Append(stsErr, err)
-
-		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creating StatefulSet"))
-		stsErr = multierror.Append(stsErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", stsErr)
+	phases := []MariaDBReconcilePhase{
+		{
+			Resource:  "StatefulSet",
+			Reconcile: r.reconcileStatefulSet,
+		},
+		{
+			Resource:  "Service",
+			Reconcile: r.reconcileService,
+		},
+		{
+			Resource:  "ServiceMonitor",
+			Reconcile: r.reconcileServiceMonitor,
+		},
+		{
+			Resource:  "RestoreMariaDB",
+			Reconcile: r.reconcileBootstrapRestore,
+		},
 	}
+	for _, p := range phases {
+		if err := p.Reconcile(ctx, &mariaDb, req.NamespacedName); err != nil {
+			var errBundle *multierror.Error
+			errBundle = multierror.Append(errBundle, err)
 
-	if err := r.createService(ctx, &mariaDb, req.NamespacedName); err != nil {
-		var svcErr *multierror.Error
-		svcErr = multierror.Append(svcErr, err)
+			err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher(fmt.Sprintf("Error creating %s", p.Resource)))
+			errBundle = multierror.Append(errBundle, err)
 
-		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creating Service"))
-		svcErr = multierror.Append(svcErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error creating Service: %v", svcErr)
-	}
-
-	if err := r.createServiceMonitor(ctx, &mariaDb, req.NamespacedName); err != nil {
-		var monitorErr *multierror.Error
-		monitorErr = multierror.Append(monitorErr, err)
-
-		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creatin ServiceMonitor"))
-		monitorErr = multierror.Append(monitorErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error creating ServiceMonitor: %v", monitorErr)
-	}
-
-	if err := r.bootstrapFromBackup(ctx, &mariaDb); err != nil {
-		var restoreErr *multierror.Error
-		restoreErr = multierror.Append(restoreErr, err)
-
-		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error creating bootstrapping RestoreMariaDB"))
-		restoreErr = multierror.Append(restoreErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error creating bootstrapping RestoreMariaDB: %v", restoreErr)
+			return ctrl.Result{}, fmt.Errorf("error creating %s: %v", p.Resource, errBundle)
+		}
 	}
 
 	patcher, err := r.patcher(ctx, &mariaDb, req.NamespacedName)
@@ -111,7 +106,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	key types.NamespacedName) error {
 	var existingSts appsv1.StatefulSet
 	if err := r.Get(ctx, key, &existingSts); err == nil {
@@ -138,7 +133,7 @@ func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *data
 	return nil
 }
 
-func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	key types.NamespacedName) error {
 	var existingSvc corev1.Service
 	if err := r.Get(ctx, key, &existingSvc); err == nil {
@@ -156,7 +151,7 @@ func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *database
 	return nil
 }
 
-func (r *MariaDBReconciler) createServiceMonitor(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	key types.NamespacedName) error {
 	if mariadb.Spec.Metrics == nil {
 		return nil
@@ -173,6 +168,32 @@ func (r *MariaDBReconciler) createServiceMonitor(ctx context.Context, mariadb *d
 
 	if err := r.Create(ctx, serviceMonitor); err != nil {
 		return fmt.Errorf("error creating Service Monitor: %v", err)
+	}
+	return nil
+}
+
+func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+	mariaDbKey types.NamespacedName) error {
+	if mariadb.Spec.BootstrapFromBackup == nil || !mariadb.IsReady() || mariadb.IsBootstrapped() {
+		return nil
+	}
+	key := bootstrapRestoreKey(mariadb)
+	var existingRestore databasev1alpha1.RestoreMariaDB
+	if err := r.Get(ctx, key, &existingRestore); err == nil {
+		return nil
+	}
+
+	restore, err := r.Builder.BuildRestoreMariaDb(
+		mariadb,
+		mariadb.Spec.BootstrapFromBackup.BackupRef,
+		key,
+	)
+	if err != nil {
+		return fmt.Errorf("error building RestoreMariaDB: %v", err)
+	}
+
+	if err := r.Create(ctx, restore); err != nil {
+		return fmt.Errorf("error creating bootstrapping restore Job: %v", err)
 	}
 	return nil
 }
@@ -264,6 +285,13 @@ func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *databasev1
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	return nil
+}
+
+func bootstrapRestoreKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("bootstrap-restore-%s", mariadb.Name),
+		Namespace: mariadb.Namespace,
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
