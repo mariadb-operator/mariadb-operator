@@ -34,7 +34,7 @@ var _ = Describe("RestoreMariaDB controller", func() {
 			By("Creating BackupMariaDB")
 			backupKey := types.NamespacedName{
 				Name:      "restore-mariadb-test",
-				Namespace: defaultNamespace,
+				Namespace: testNamespace,
 			}
 			backup := databasev1alpha1.BackupMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -43,19 +43,19 @@ var _ = Describe("RestoreMariaDB controller", func() {
 				},
 				Spec: databasev1alpha1.BackupMariaDBSpec{
 					MariaDBRef: corev1.LocalObjectReference{
-						Name: mariaDbName,
+						Name: testMariaDbName,
 					},
 					Storage: databasev1alpha1.Storage{
-						ClassName: defaultStorageClass,
-						Size:      storageSize,
+						ClassName: testStorageClass,
+						Size:      testStorageSize,
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, &backup)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
 
 			By("Expecting BackupMariaDB to be complete eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, backupKey, &backup); err != nil {
+				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
 					return false
 				}
 				return backup.IsComplete()
@@ -64,7 +64,7 @@ var _ = Describe("RestoreMariaDB controller", func() {
 			By("Creating a MariaDB")
 			restoreMariaDbKey := types.NamespacedName{
 				Name:      "mariadb-restore",
-				Namespace: defaultNamespace,
+				Namespace: testNamespace,
 			}
 			restoreMariaDb := databasev1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -74,36 +74,36 @@ var _ = Describe("RestoreMariaDB controller", func() {
 				Spec: databasev1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: mariaDbRootPwdKey.Name,
+							Name: testRootPwdKey.Name,
 						},
-						Key: mariaDbRootPwdSecretKey,
+						Key: testRootPwdSecretKey,
 					},
 					Image: databasev1alpha1.Image{
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},
 					Storage: databasev1alpha1.Storage{
-						ClassName: defaultStorageClass,
-						Size:      storageSize,
+						ClassName: testStorageClass,
+						Size:      testStorageSize,
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, &restoreMariaDb)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &restoreMariaDb)).To(Succeed())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, restoreMariaDbKey, &restoreMariaDb); err != nil {
+				if err := k8sClient.Get(testCtx, restoreMariaDbKey, &restoreMariaDb); err != nil {
 					return false
 				}
 				return restoreMariaDb.IsReady()
 			}, 60*time.Second, testInterval).Should(BeTrue())
 
-			Expect(k8sClient.Get(ctx, restoreMariaDbKey, &restoreMariaDb)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, restoreMariaDbKey, &restoreMariaDb)).To(Succeed())
 
 			By("Creating RestoreMariaDB")
 			restoreKey := types.NamespacedName{
 				Name:      "restore-test",
-				Namespace: defaultNamespace,
+				Namespace: testNamespace,
 			}
 			restore := databasev1alpha1.RestoreMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -112,19 +112,19 @@ var _ = Describe("RestoreMariaDB controller", func() {
 				},
 				Spec: databasev1alpha1.RestoreMariaDBSpec{
 					MariaDBRef: corev1.LocalObjectReference{
-						Name: mariaDbName,
+						Name: testMariaDbName,
 					},
 					BackupRef: corev1.LocalObjectReference{
 						Name: backup.Name,
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, &restore)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &restore)).To(Succeed())
 
 			By("Expecting to create a Job eventually")
 			Eventually(func() bool {
 				var job batchv1.Job
-				if err := k8sClient.Get(ctx, restoreKey, &job); err != nil {
+				if err := k8sClient.Get(testCtx, restoreKey, &job); err != nil {
 					return false
 				}
 				return true
@@ -132,20 +132,20 @@ var _ = Describe("RestoreMariaDB controller", func() {
 
 			By("Expecting RestoreMariaDB to be complete eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, restoreKey, &restore); err != nil {
+				if err := k8sClient.Get(testCtx, restoreKey, &restore); err != nil {
 					return false
 				}
 				return restore.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting BackupMariaDB")
-			Expect(k8sClient.Delete(ctx, &backup)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
 
 			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(ctx, &restoreMariaDb)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &restoreMariaDb)).To(Succeed())
 
 			By("Deleting RestoreMariaDB")
-			Expect(k8sClient.Delete(ctx, &restore)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &restore)).To(Succeed())
 		})
 	})
 })

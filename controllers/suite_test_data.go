@@ -39,78 +39,78 @@ const (
 )
 
 var (
-	defaultNamespace         = "default"
-	defaultStorageClass      = "standard"
-	mariaDbName              = "mariadb-test"
-	mariaDbRootPwdSecretName = "root-test"
-	mariaDbRootPwdSecretKey  = "passsword"
+	testNamespace         = "default"
+	testStorageClass      = "standard"
+	testMariaDbName       = "mariadb-test"
+	testRootPwdSecretName = "root-test"
+	testRootPwdSecretKey  = "passsword"
 )
 
-var mariaDbKey types.NamespacedName
-var mariaDb databasev1alpha1.MariaDB
-var mariaDbRootPwdKey types.NamespacedName
-var mariaDbRootPwd v1.Secret
-var storageSize resource.Quantity
+var testMariaDbKey types.NamespacedName
+var testMariaDb databasev1alpha1.MariaDB
+var testRootPwdKey types.NamespacedName
+var testRootPwd v1.Secret
+var testStorageSize resource.Quantity
 
 func createTestData(ctx context.Context, k8sClient client.Client) {
-	mariaDbRootPwdKey = types.NamespacedName{
-		Name:      mariaDbRootPwdSecretName,
-		Namespace: defaultNamespace,
+	testRootPwdKey = types.NamespacedName{
+		Name:      testRootPwdSecretName,
+		Namespace: testNamespace,
 	}
-	mariaDbRootPwd = v1.Secret{
+	testRootPwd = v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      mariaDbRootPwdKey.Name,
-			Namespace: mariaDbRootPwdKey.Namespace,
+			Name:      testRootPwdKey.Name,
+			Namespace: testRootPwdKey.Namespace,
 		},
 		Data: map[string][]byte{
-			mariaDbRootPwdSecretKey: []byte("mariadb"),
+			testRootPwdSecretKey: []byte("mariadb"),
 		},
 	}
-	Expect(k8sClient.Create(ctx, &mariaDbRootPwd)).To(Succeed())
+	Expect(k8sClient.Create(ctx, &testRootPwd)).To(Succeed())
 
-	mariaDbKey = types.NamespacedName{
-		Name:      mariaDbName,
-		Namespace: defaultNamespace,
+	testMariaDbKey = types.NamespacedName{
+		Name:      testMariaDbName,
+		Namespace: testNamespace,
 	}
-	storageSize = resource.MustParse("100Mi")
-	mariaDb = databasev1alpha1.MariaDB{
+	testStorageSize = resource.MustParse("100Mi")
+	testMariaDb = databasev1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      mariaDbKey.Name,
-			Namespace: mariaDbKey.Namespace,
+			Name:      testMariaDbKey.Name,
+			Namespace: testMariaDbKey.Namespace,
 		},
 		Spec: databasev1alpha1.MariaDBSpec{
 			RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: mariaDbRootPwdKey.Name,
+					Name: testRootPwdKey.Name,
 				},
-				Key: mariaDbRootPwdSecretKey,
+				Key: testRootPwdSecretKey,
 			},
 			Image: databasev1alpha1.Image{
 				Repository: "mariadb",
 				Tag:        "10.7.4",
 			},
 			Storage: databasev1alpha1.Storage{
-				ClassName: defaultStorageClass,
-				Size:      storageSize,
+				ClassName: testStorageClass,
+				Size:      testStorageSize,
 			},
 		},
 	}
-	Expect(k8sClient.Create(ctx, &mariaDb)).To(Succeed())
+	Expect(k8sClient.Create(ctx, &testMariaDb)).To(Succeed())
 
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
-		if err := k8sClient.Get(ctx, mariaDbKey, &mariaDb); err != nil {
+		if err := k8sClient.Get(ctx, testMariaDbKey, &testMariaDb); err != nil {
 			return false
 		}
-		return mariaDb.IsReady()
+		return testMariaDb.IsReady()
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func deleteTestData(ctx context.Context, k8sClient client.Client) {
-	Expect(k8sClient.Delete(ctx, &mariaDb)).To(Succeed())
-	Expect(k8sClient.Delete(ctx, &mariaDbRootPwd)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &testMariaDb)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &testRootPwd)).To(Succeed())
 
 	var pvc corev1.PersistentVolumeClaim
-	Expect(k8sClient.Get(ctx, builders.GetPVCKey(&mariaDb), &pvc)).To(Succeed())
+	Expect(k8sClient.Get(ctx, builders.GetPVCKey(&testMariaDb), &pvc)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
 }

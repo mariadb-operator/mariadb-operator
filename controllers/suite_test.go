@@ -29,7 +29,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -42,12 +41,10 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
-var ctx context.Context
-var cancel context.CancelFunc
-var portForwarder *portforwarder.PortForwarder
+var testCtx context.Context
+var testCancel context.CancelFunc
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -60,7 +57,7 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-	ctx, cancel = context.WithCancel(context.Background())
+	testCtx, testCancel = context.WithCancel(context.Background())
 	useCluster := true
 
 	By("Bootstrapping test environment")
@@ -70,9 +67,7 @@ var _ = BeforeSuite(func() {
 		UseExistingCluster:    &useCluster,
 	}
 
-	var err error
-	// cfg is defined in this file globally.
-	cfg, err = testEnv.Start()
+	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
@@ -143,25 +138,25 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		defer GinkgoRecover()
-		err = k8sManager.Start(ctx)
+		err = k8sManager.Start(testCtx)
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
 	By("Creating initial test data")
-	createTestData(ctx, k8sClient)
+	createTestData(testCtx, k8sClient)
 
 	By("Creating port forward to MariaDB")
-	portForwarder, err =
+	portForwarder, err :=
 		portforwarder.New().
-			WithPod(fmt.Sprintf("%s-0", mariaDbKey.Name)).
-			WithNamespace(mariaDbKey.Namespace).
-			WithPorts(fmt.Sprint(mariaDb.Spec.Port)).
+			WithPod(fmt.Sprintf("%s-0", testMariaDbKey.Name)).
+			WithNamespace(testMariaDbKey.Namespace).
+			WithPorts(fmt.Sprint(testMariaDb.Spec.Port)).
 			WithOutputWriter(GinkgoWriter).
 			WithErrorWriter(GinkgoWriter).
 			Build()
 	Expect(err).NotTo(HaveOccurred())
 	go func() {
-		if err := portForwarder.Run(ctx); err != nil {
+		if err := portForwarder.Run(testCtx); err != nil {
 			Expect(err).NotTo(HaveOccurred())
 		}
 	}()
@@ -169,9 +164,9 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("Deleting initial test data")
-	deleteTestData(ctx, k8sClient)
+	deleteTestData(testCtx, k8sClient)
 
-	cancel()
+	testCancel()
 	By("Tearing down the test environment")
 	Expect(testEnv.Stop()).To(Succeed())
 })

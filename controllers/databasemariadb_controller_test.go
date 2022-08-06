@@ -31,7 +31,7 @@ var _ = Describe("DatabaseMariaDB controller", func() {
 			By("Creating a DatabaseMariaDB")
 			databaseKey := types.NamespacedName{
 				Name:      "data-test",
-				Namespace: defaultNamespace,
+				Namespace: testNamespace,
 			}
 			database := databasev1alpha1.DatabaseMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -40,24 +40,24 @@ var _ = Describe("DatabaseMariaDB controller", func() {
 				},
 				Spec: databasev1alpha1.DatabaseMariaDBSpec{
 					MariaDBRef: corev1.LocalObjectReference{
-						Name: mariaDbKey.Name,
+						Name: testMariaDbKey.Name,
 					},
 					CharacterSet: "utf8",
 					Collate:      "utf8_general_ci",
 				},
 			}
-			Expect(k8sClient.Create(ctx, &database)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
 
 			By("Expecting DatabaseMariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, databaseKey, &database); err != nil {
+				if err := k8sClient.Get(testCtx, databaseKey, &database); err != nil {
 					return false
 				}
 				return database.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting DatabaseMariaDB")
-			Expect(k8sClient.Delete(ctx, &database)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
 		})
 	})
 })

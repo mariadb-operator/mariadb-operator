@@ -31,7 +31,7 @@ var _ = Describe("GrantMariaDB controller", func() {
 			By("Creating a UserMariaDB")
 			userKey := types.NamespacedName{
 				Name:      "grant-user-test",
-				Namespace: defaultNamespace,
+				Namespace: testNamespace,
 			}
 			user := databasev1alpha1.UserMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -40,22 +40,22 @@ var _ = Describe("GrantMariaDB controller", func() {
 				},
 				Spec: databasev1alpha1.UserMariaDBSpec{
 					MariaDBRef: corev1.LocalObjectReference{
-						Name: mariaDbKey.Name,
+						Name: testMariaDbKey.Name,
 					},
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: mariaDbRootPwdKey.Name,
+							Name: testRootPwdKey.Name,
 						},
-						Key: mariaDbRootPwdSecretKey,
+						Key: testRootPwdSecretKey,
 					},
 					MaxUserConnections: 20,
 				},
 			}
-			Expect(k8sClient.Create(ctx, &user)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
 
 			By("Expecting UserMariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, userKey, &user); err != nil {
+				if err := k8sClient.Get(testCtx, userKey, &user); err != nil {
 					return false
 				}
 				return user.IsReady()
@@ -64,7 +64,7 @@ var _ = Describe("GrantMariaDB controller", func() {
 			By("Creating a GrantMariaDB")
 			grantKey := types.NamespacedName{
 				Name:      "grant-test",
-				Namespace: defaultNamespace,
+				Namespace: testNamespace,
 			}
 			grant := databasev1alpha1.GrantMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -73,7 +73,7 @@ var _ = Describe("GrantMariaDB controller", func() {
 				},
 				Spec: databasev1alpha1.GrantMariaDBSpec{
 					MariaDBRef: corev1.LocalObjectReference{
-						Name: mariaDbKey.Name,
+						Name: testMariaDbKey.Name,
 					},
 					Privileges: []string{
 						"SELECT",
@@ -86,21 +86,21 @@ var _ = Describe("GrantMariaDB controller", func() {
 					GrantOption: true,
 				},
 			}
-			Expect(k8sClient.Create(ctx, &grant)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &grant)).To(Succeed())
 
 			By("Expecting GrantMariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, grantKey, &grant); err != nil {
+				if err := k8sClient.Get(testCtx, grantKey, &grant); err != nil {
 					return false
 				}
 				return grant.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting UserMariaDB")
-			Expect(k8sClient.Delete(ctx, &user)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
 
 			By("Deleting GrantMariaDB")
-			Expect(k8sClient.Delete(ctx, &grant)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
 		})
 	})
 })

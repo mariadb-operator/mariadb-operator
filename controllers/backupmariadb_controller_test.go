@@ -32,7 +32,7 @@ var _ = Describe("BackupMariaDB controller", func() {
 			By("Creating BackupMariaDB")
 			backupKey := types.NamespacedName{
 				Name:      "backup-test",
-				Namespace: defaultNamespace,
+				Namespace: testNamespace,
 			}
 			backup := databasev1alpha1.BackupMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -41,20 +41,20 @@ var _ = Describe("BackupMariaDB controller", func() {
 				},
 				Spec: databasev1alpha1.BackupMariaDBSpec{
 					MariaDBRef: corev1.LocalObjectReference{
-						Name: mariaDbName,
+						Name: testMariaDbName,
 					},
 					Storage: databasev1alpha1.Storage{
-						ClassName: defaultStorageClass,
-						Size:      storageSize,
+						ClassName: testStorageClass,
+						Size:      testStorageSize,
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, &backup)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
 
 			By("Expecting to create a Job eventually")
 			Eventually(func() bool {
 				var job batchv1.Job
-				if err := k8sClient.Get(ctx, backupKey, &job); err != nil {
+				if err := k8sClient.Get(testCtx, backupKey, &job); err != nil {
 					return false
 				}
 				return true
@@ -62,14 +62,14 @@ var _ = Describe("BackupMariaDB controller", func() {
 
 			By("Expecting BackupMariaDB to be complete eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, backupKey, &backup); err != nil {
+				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
 					return false
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting BackupMariaDB")
-			Expect(k8sClient.Get(ctx, backupKey, &backup)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, backupKey, &backup)).To(Succeed())
 		})
 	})
 })

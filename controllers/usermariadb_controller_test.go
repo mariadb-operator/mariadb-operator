@@ -30,7 +30,7 @@ var _ = Describe("UserMariaDB controller", func() {
 		It("Should reconcile", func() {
 			userKey := types.NamespacedName{
 				Name:      "user-test",
-				Namespace: defaultNamespace,
+				Namespace: testNamespace,
 			}
 			user := databasev1alpha1.UserMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -39,29 +39,29 @@ var _ = Describe("UserMariaDB controller", func() {
 				},
 				Spec: databasev1alpha1.UserMariaDBSpec{
 					MariaDBRef: corev1.LocalObjectReference{
-						Name: mariaDbKey.Name,
+						Name: testMariaDbKey.Name,
 					},
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: mariaDbRootPwdKey.Name,
+							Name: testRootPwdKey.Name,
 						},
-						Key: mariaDbRootPwdSecretKey,
+						Key: testRootPwdSecretKey,
 					},
 					MaxUserConnections: 20,
 				},
 			}
-			Expect(k8sClient.Create(ctx, &user)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
 
 			By("Expecting UserMariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, userKey, &user); err != nil {
+				if err := k8sClient.Get(testCtx, userKey, &user); err != nil {
 					return false
 				}
 				return user.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting UserMariaDB")
-			Expect(k8sClient.Delete(ctx, &user)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
 		})
 	})
 })
