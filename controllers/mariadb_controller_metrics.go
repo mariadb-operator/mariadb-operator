@@ -204,14 +204,14 @@ func metricsKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
 
 func passwordKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-password", mariadb.Name),
+		Name:      fmt.Sprintf("%s-password", metricsKey(mariadb).Name),
 		Namespace: mariadb.Namespace,
 	}
 }
 
 func dsnKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-dsn", mariadb.Name),
+		Name:      fmt.Sprintf("%s-dsn", metricsKey(mariadb).Name),
 		Namespace: mariadb.Namespace,
 	}
 }
