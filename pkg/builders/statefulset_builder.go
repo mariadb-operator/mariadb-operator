@@ -6,6 +6,7 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,6 +16,13 @@ import (
 const (
 	stsStorageVolume    = "storage"
 	stsStorageMountPath = "/var/lib/mysql"
+
+	mariaDbContainerName = "mariadb"
+	mariaDbPortName      = "mariadb"
+
+	metricsContainerName = "metrics"
+	metricsPortName      = "metrics"
+	metricsPort          = 9104
 )
 
 func GetPVCKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
@@ -24,10 +32,11 @@ func GetPVCKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
 	}
 }
 
-func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {
-	containers, err := buildStsContainers(mariadb)
+func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName,
+	dsn *corev1.SecretKeySelector) (*appsv1.StatefulSet, error) {
+	containers, err := buildStsContainers(mariadb, dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
 	labels :=
 		NewLabelsBuilder().
@@ -90,7 +99,8 @@ func BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.Storage) *v1.Per
 	}
 }
 
-func buildStsContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, error) {
+func buildStsContainers(mariadb *databasev1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
+	var containers []v1.Container
 	probe := &v1.Probe{
 		ProbeHandler: v1.ProbeHandler{
 			TCPSocket: &v1.TCPSocketAction{
@@ -101,14 +111,15 @@ func buildStsContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, erro
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 	}
-	container := v1.Container{
-		Name:            mariadb.Name,
+	mariaDbContainer := v1.Container{
+		Name:            mariaDbContainerName,
 		Image:           mariadb.Spec.Image.String(),
 		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
 		Env:             buildStsEnv(mariadb),
 		EnvFrom:         mariadb.Spec.EnvFrom,
 		Ports: []v1.ContainerPort{
 			{
+				Name:          mariaDbPortName,
 				ContainerPort: mariadb.Spec.Port,
 			},
 		},
@@ -123,10 +134,20 @@ func buildStsContainers(mariadb *databasev1alpha1.MariaDB) ([]v1.Container, erro
 	}
 
 	if mariadb.Spec.Resources != nil {
-		container.Resources = *mariadb.Spec.Resources
+		mariaDbContainer.Resources = *mariadb.Spec.Resources
+	}
+	containers = append(containers, mariaDbContainer)
+
+	if mariadb.Spec.Metrics != nil {
+		if dsn == nil {
+			return nil, fmt.Errorf("DSN secret is mandatory when MariaDB specifies metrics")
+		}
+
+		metricsContainer := buildMetricsContainer(mariadb.Spec.Metrics, dsn)
+		containers = append(containers, metricsContainer)
 	}
 
-	return []v1.Container{container}, nil
+	return containers, nil
 }
 
 func buildStsEnv(mariadb *databasev1alpha1.MariaDB) []v1.EnvVar {
@@ -171,4 +192,32 @@ func buildStsEnv(mariadb *databasev1alpha1.MariaDB) []v1.EnvVar {
 	}
 
 	return env
+}
+
+func buildMetricsContainer(metrics *databasev1alpha1.Metrics, dsn *corev1.SecretKeySelector) v1.Container {
+	container := v1.Container{
+		Name:            metricsContainerName,
+		Image:           metrics.Exporter.Image.String(),
+		ImagePullPolicy: metrics.Exporter.Image.PullPolicy,
+		Ports: []v1.ContainerPort{
+			{
+				Name:          metricsPortName,
+				ContainerPort: metricsPort,
+			},
+		},
+		Env: []v1.EnvVar{
+			{
+				Name: "DATA_SOURCE_NAME",
+				ValueFrom: &v1.EnvVarSource{
+					SecretKeyRef: dsn,
+				},
+			},
+		},
+	}
+
+	if metrics.Exporter.Resources != nil {
+		container.Resources = *metrics.Exporter.Resources
+	}
+
+	return container
 }

@@ -86,15 +86,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("error creating bootstrapping RestoreMariaDB: %v", restoreErr)
 	}
 
-	if err := r.reconcileMetrics(ctx, &mariaDb); err != nil {
-		var metricsErr *multierror.Error
-		metricsErr = multierror.Append(metricsErr, err)
-
-		err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher("Error reconciling metrics"))
-		metricsErr = multierror.Append(metricsErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error reconciling metrics: %v", metricsErr)
-	}
+	// TODO: create ServiceMonitor
 
 	patcher, err := r.patcher(ctx, &mariaDb, req.NamespacedName)
 	if err != nil {
@@ -117,7 +109,16 @@ func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *data
 		return nil
 	}
 
-	sts, err := builders.BuildStatefulSet(mariadb, key)
+	var dsn *corev1.SecretKeySelector
+	if mariadb.Spec.Metrics != nil {
+		var err error
+		dsn, err = r.createMetricsCredentials(ctx, mariadb)
+		if err != nil {
+			return fmt.Errorf("error creating metrics credentials: %v", err)
+		}
+	}
+
+	sts, err := builders.BuildStatefulSet(mariadb, key, dsn)
 	if err != nil {
 		return fmt.Errorf("error building StatefulSet: %v", err)
 	}
@@ -145,17 +146,6 @@ func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *database
 
 	if err := r.Create(ctx, svc); err != nil {
 		return fmt.Errorf("error creating Service: %v", err)
-	}
-	return nil
-}
-
-func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
-	patcher conditions.Patcher) error {
-	patch := client.MergeFrom(mariadb.DeepCopy())
-	patcher(&mariadb.Status)
-
-	if err := r.Client.Status().Patch(ctx, mariadb, patch); err != nil {
-		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	return nil
 }
@@ -236,6 +226,17 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *databasev1alph
 			})
 		}
 	}, nil
+}
+
+func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+	patcher conditions.Patcher) error {
+	patch := client.MergeFrom(mariadb.DeepCopy())
+	patcher(&mariadb.Status)
+
+	if err := r.Client.Status().Patch(ctx, mariadb, patch); err != nil {
+		return fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
