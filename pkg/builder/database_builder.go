@@ -1,11 +1,15 @@
-package builders
+package builder
 
 import (
+	"fmt"
+
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type UserOpts struct {
@@ -14,17 +18,17 @@ type UserOpts struct {
 	MaxUserConnections   int32
 }
 
-func BuildUserMariaDB(mariadb *databasev1alpha1.MariaDB, opts UserOpts) *databasev1alpha1.UserMariaDB {
-	labels :=
-		NewLabelsBuilder().
+func (b *Builder) BuildUserMariaDB(mariadb *databasev1alpha1.MariaDB, opts UserOpts) (*databasev1alpha1.UserMariaDB, error) {
+	databaseLabels :=
+		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
 			WithInstance(mariadb.Name).
 			Build()
-	return &databasev1alpha1.UserMariaDB{
+	user := &databasev1alpha1.UserMariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      opts.Key.Name,
 			Namespace: opts.Key.Namespace,
-			Labels:    labels,
+			Labels:    databaseLabels,
 		},
 		Spec: databasev1alpha1.UserMariaDBSpec{
 			MariaDBRef: corev1.LocalObjectReference{
@@ -34,6 +38,11 @@ func BuildUserMariaDB(mariadb *databasev1alpha1.MariaDB, opts UserOpts) *databas
 			MaxUserConnections:   opts.MaxUserConnections,
 		},
 	}
+	if err := controllerutil.SetControllerReference(mariadb, user, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to UserMariaDB: %v", err)
+	}
+
+	return user, nil
 }
 
 type GrantOpts struct {
@@ -45,17 +54,17 @@ type GrantOpts struct {
 	GrantOption bool
 }
 
-func BuildGrantMariaDB(mariadb *databasev1alpha1.MariaDB, opts GrantOpts) *databasev1alpha1.GrantMariaDB {
-	labels :=
-		NewLabelsBuilder().
+func (b *Builder) BuildGrantMariaDB(mariadb *databasev1alpha1.MariaDB, opts GrantOpts) (*databasev1alpha1.GrantMariaDB, error) {
+	grantLabels :=
+		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
 			WithInstance(mariadb.Name).
 			Build()
-	return &databasev1alpha1.GrantMariaDB{
+	grant := &databasev1alpha1.GrantMariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      opts.Key.Name,
 			Namespace: opts.Key.Namespace,
-			Labels:    labels,
+			Labels:    grantLabels,
 		},
 		Spec: databasev1alpha1.GrantMariaDBSpec{
 			MariaDBRef: corev1.LocalObjectReference{
@@ -68,4 +77,9 @@ func BuildGrantMariaDB(mariadb *databasev1alpha1.MariaDB, opts GrantOpts) *datab
 			GrantOption: opts.GrantOption,
 		},
 	}
+	if err := controllerutil.SetControllerReference(mariadb, grant, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to GrantMariaDB: %v", err)
+	}
+
+	return grant, nil
 }

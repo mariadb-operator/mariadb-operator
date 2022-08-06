@@ -22,7 +22,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/builders"
+	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
@@ -33,13 +33,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // BackupMariaDBReconciler reconciles a BackupMariaDB object
 type BackupMariaDBReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
+	Builder           *builder.Builder
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *conditions.Complete
 }
@@ -98,7 +98,7 @@ func (r *BackupMariaDBReconciler) createPVC(ctx context.Context, backup *databas
 		Name:      backup.Name,
 		Namespace: backup.Namespace,
 	}
-	pvc := builders.BuildPVC(pvcMeta, &backup.Spec.Storage)
+	pvc := r.Builder.BuildPVC(pvcMeta, &backup.Spec.Storage)
 	if err := r.Create(ctx, pvc); err != nil {
 		return fmt.Errorf("error creating PVC: %v", err)
 	}
@@ -117,9 +117,9 @@ func (r *BackupMariaDBReconciler) createJob(ctx context.Context, backup *databas
 		return fmt.Errorf("error getting MariaDB: %v", err)
 	}
 
-	job := builders.BuildBackupJob(backup, mariadb, key)
-	if err := controllerutil.SetControllerReference(backup, job, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to Job: %v", err)
+	job, err := r.Builder.BuildBackupJob(backup, mariadb, key)
+	if err != nil {
+		return fmt.Errorf("error building backup Job: %v", err)
 	}
 
 	if err := r.Create(ctx, job); err != nil {

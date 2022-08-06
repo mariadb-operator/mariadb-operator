@@ -21,13 +21,12 @@ import (
 	"fmt"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/builders"
+	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var (
@@ -74,14 +73,14 @@ func (r *MariaDBReconciler) createMetricsUser(ctx context.Context,
 		return nil, fmt.Errorf("error creating user password Secret: %v", err)
 	}
 
-	opts := builders.UserOpts{
+	opts := builder.UserOpts{
 		Key:                  key,
 		PasswordSecretKeyRef: *secretKeySelector,
 		MaxUserConnections:   3,
 	}
-	user := builders.BuildUserMariaDB(mariadb, opts)
-	if err := controllerutil.SetControllerReference(mariadb, user, r.Scheme); err != nil {
-		return nil, fmt.Errorf("error setting controller reference to UserMariaDB: %v", err)
+	user, err := r.Builder.BuildUserMariaDB(mariadb, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error building UserMariaDB: %v", err)
 	}
 
 	if err := r.Create(ctx, user); err != nil {
@@ -98,7 +97,7 @@ func (r *MariaDBReconciler) createMetricsGrant(ctx context.Context, mariadb *dat
 		return nil
 	}
 
-	opts := builders.GrantOpts{
+	opts := builder.GrantOpts{
 		Key:         key,
 		Privileges:  exporterPrivileges,
 		Database:    "*",
@@ -106,9 +105,9 @@ func (r *MariaDBReconciler) createMetricsGrant(ctx context.Context, mariadb *dat
 		Username:    user.Name,
 		GrantOption: false,
 	}
-	grant := builders.BuildGrantMariaDB(mariadb, opts)
-	if err := controllerutil.SetControllerReference(mariadb, grant, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to GrantMariaDB: %v", err)
+	grant, err := r.Builder.BuildGrantMariaDB(mariadb, opts)
+	if err != nil {
+		return fmt.Errorf("error building GrantMariaDB: %v", err)
 	}
 
 	if err := r.Create(ctx, grant); err != nil {
@@ -124,15 +123,15 @@ func (r *MariaDBReconciler) createMetricsPasswordSecret(ctx context.Context,
 		return nil, fmt.Errorf("error generating password: %v", err)
 	}
 
-	opts := builders.SecretOpts{
+	opts := builder.SecretOpts{
 		Key: passwordKey(mariadb),
 		Data: map[string][]byte{
 			passwordSecretKey: []byte(password),
 		},
 	}
-	secret := builders.BuildSecret(mariadb, opts)
-	if err := controllerutil.SetControllerReference(mariadb, secret, r.Scheme); err != nil {
-		return nil, fmt.Errorf("error setting controller reference to password Secret: %v", err)
+	secret, err := r.Builder.BuildSecret(mariadb, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error building password Secret: %v", err)
 	}
 	if err := r.Create(ctx, secret); err != nil {
 		return nil, fmt.Errorf("error creating password Secret: %v", err)
@@ -174,15 +173,15 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *datab
 		return nil, fmt.Errorf("error building DSN: %v", err)
 	}
 
-	secretOpts := builders.SecretOpts{
+	secretOpts := builder.SecretOpts{
 		Key: key,
 		Data: map[string][]byte{
 			dsnSecretKey: []byte(dsn),
 		},
 	}
-	secret := builders.BuildSecret(mariadb, secretOpts)
-	if err := controllerutil.SetControllerReference(mariadb, secret, r.Scheme); err != nil {
-		return nil, fmt.Errorf("error setting controller reference to DSN Secret: %v", err)
+	secret, err := r.Builder.BuildSecret(mariadb, secretOpts)
+	if err != nil {
+		return nil, fmt.Errorf("error building DNS Secret: %v", err)
 	}
 	if err := r.Create(ctx, secret); err != nil {
 		return nil, fmt.Errorf("error creating DSN Secret: %v", err)

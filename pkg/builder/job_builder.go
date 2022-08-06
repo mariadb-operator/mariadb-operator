@@ -1,14 +1,16 @@
-package builders
+package builder
 
 import (
 	"fmt"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -20,17 +22,17 @@ var (
 	dumpFilePath = fmt.Sprintf("%s/backup.sql", jobStorageMountPath)
 )
 
-func BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB,
-	key types.NamespacedName) *batchv1.Job {
-	labels :=
-		NewLabelsBuilder().
+func (b *Builder) BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB,
+	key types.NamespacedName) (*batchv1.Job, error) {
+	backupLabels :=
+		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
 			WithInstance(mariadb.Name).
 			Build()
 	meta := metav1.ObjectMeta{
 		Name:      key.Name,
 		Namespace: key.Namespace,
-		Labels:    labels,
+		Labels:    backupLabels,
 	}
 	volumes := buildJobVolumes(backup)
 	cmd := fmt.Sprintf(
@@ -40,21 +42,25 @@ func BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1a
 		dumpFilePath,
 	)
 	containers := builJobContainers(mariadb, backup, cmd, backup.Spec.Resources)
+	job := buildJob(meta, volumes, containers, &backup.Spec.BackoffLimit, backup.Spec.RestartPolicy)
+	if err := controllerutil.SetControllerReference(backup, job, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
 
-	return buildJob(meta, volumes, containers, &backup.Spec.BackoffLimit, backup.Spec.RestartPolicy)
+	return job, nil
 }
 
-func BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB, mariadb *databasev1alpha1.MariaDB,
-	backup *databasev1alpha1.BackupMariaDB, key types.NamespacedName) *batchv1.Job {
-	labels :=
-		NewLabelsBuilder().
+func (b *Builder) BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB, mariadb *databasev1alpha1.MariaDB,
+	backup *databasev1alpha1.BackupMariaDB, key types.NamespacedName) (*batchv1.Job, error) {
+	restoreLabels :=
+		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
 			WithInstance(mariadb.Name).
 			Build()
 	meta := metav1.ObjectMeta{
 		Name:      key.Name,
 		Namespace: key.Namespace,
-		Labels:    labels,
+		Labels:    restoreLabels,
 	}
 	volumes := buildJobVolumes(backup)
 	cmd := fmt.Sprintf(
@@ -65,7 +71,12 @@ func BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB, mariadb *database
 	)
 	containers := builJobContainers(mariadb, backup, cmd, restore.Spec.Resources)
 
-	return buildJob(meta, volumes, containers, &backup.Spec.BackoffLimit, backup.Spec.RestartPolicy)
+	job := buildJob(meta, volumes, containers, &backup.Spec.BackoffLimit, backup.Spec.RestartPolicy)
+	if err := controllerutil.SetControllerReference(restore, job, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+
+	return job, nil
 }
 
 func buildJob(meta metav1.ObjectMeta, volumes []corev1.Volume, containers []corev1.Container,

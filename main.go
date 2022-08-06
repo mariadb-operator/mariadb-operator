@@ -26,6 +26,7 @@ import (
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/controllers"
+	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -80,6 +81,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	builder := builder.New(mgr.GetScheme())
 	refResolver := refresolver.New(mgr.GetClient())
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(mgr.GetClient())
@@ -87,6 +89,7 @@ func main() {
 	if err = (&controllers.MariaDBReconciler{
 		Client:         mgr.GetClient(),
 		Scheme:         mgr.GetScheme(),
+		Builder:        builder,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
 	}).SetupWithManager(mgr); err != nil {
@@ -96,6 +99,7 @@ func main() {
 	if err = (&controllers.BackupMariaDBReconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
+		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
 	}).SetupWithManager(mgr); err != nil {
@@ -105,6 +109,7 @@ func main() {
 	if err = (&controllers.RestoreMariaDBReconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
+		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
 	}).SetupWithManager(mgr); err != nil {

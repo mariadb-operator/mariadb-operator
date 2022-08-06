@@ -21,10 +21,7 @@ import (
 	"fmt"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/builders"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *MariaDBReconciler) bootstrapFromBackup(ctx context.Context, mariadb *databasev1alpha1.MariaDB) error {
@@ -37,15 +34,13 @@ func (r *MariaDBReconciler) bootstrapFromBackup(ctx context.Context, mariadb *da
 		return nil
 	}
 
-	restore := builders.BuildRestoreMariaDb(
-		corev1.LocalObjectReference{
-			Name: mariadb.Name,
-		},
+	restore, err := r.Builder.BuildRestoreMariaDb(
+		mariadb,
 		mariadb.Spec.BootstrapFromBackup.BackupRef,
 		key,
 	)
-	if err := controllerutil.SetControllerReference(mariadb, restore, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to bootstrapping restore Job: %v", err)
+	if err != nil {
+		return fmt.Errorf("error building RestoreMariaDB: %v", err)
 	}
 
 	if err := r.Create(ctx, restore); err != nil {

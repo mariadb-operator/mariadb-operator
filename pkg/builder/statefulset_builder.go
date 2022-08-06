@@ -1,15 +1,17 @@
-package builders
+package builder
 
 import (
 	"fmt"
 	"strconv"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -31,14 +33,14 @@ func GetPVCKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
 	}
 }
 
-func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName,
+func (b *Builder) BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName,
 	dsn *corev1.SecretKeySelector) (*appsv1.StatefulSet, error) {
 	containers, err := buildStsContainers(mariadb, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
-	labels :=
-		NewLabelsBuilder().
+	statefulSetLabels :=
+		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
 			WithInstance(mariadb.Name).
 			WithComponent(componentDatabase).
@@ -48,35 +50,40 @@ func BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.NamespacedNam
 		Namespace: mariadb.Namespace,
 	}
 
-	return &appsv1.StatefulSet{
+	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
-			Labels:    labels,
+			Labels:    statefulSetLabels,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: mariadb.Name,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: statefulSetLabels,
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      mariadb.Name,
 					Namespace: mariadb.Namespace,
-					Labels:    labels,
+					Labels:    statefulSetLabels,
 				},
 				Spec: v1.PodSpec{
 					Containers: containers,
 				},
 			},
 			VolumeClaimTemplates: []v1.PersistentVolumeClaim{
-				*BuildPVC(pvcMeta, &mariadb.Spec.Storage),
+				*b.BuildPVC(pvcMeta, &mariadb.Spec.Storage),
 			},
 		},
-	}, nil
+	}
+	if err := controllerutil.SetControllerReference(mariadb, sts, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
+	}
+
+	return sts, nil
 }
 
-func BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.Storage) *v1.PersistentVolumeClaim {
+func (b *Builder) BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.Storage) *v1.PersistentVolumeClaim {
 	accessModes := storage.AccessModes
 	if accessModes == nil {
 		accessModes = []v1.PersistentVolumeAccessMode{

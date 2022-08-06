@@ -1,12 +1,10 @@
-package builders
+package builder
 
 const (
-	appLabel          = "app.kubernetes.io/name"
-	instanceLabel     = "app.kubernetes.io/instance"
-	componentLabel    = "app.kubernetes.io/component"
-	releaseLabel      = "release"
-	appMariaDb        = "mariadb"
-	componentDatabase = "database"
+	appLabel       = "app.kubernetes.io/name"
+	instanceLabel  = "app.kubernetes.io/instance"
+	componentLabel = "app.kubernetes.io/component"
+	releaseLabel   = "release"
 )
 
 type LabelsBuilder struct {

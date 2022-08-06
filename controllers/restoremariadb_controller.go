@@ -22,7 +22,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/builders"
+	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
@@ -31,13 +31,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // RestoreMariaDBReconciler reconciles a RestoreMariaDB object
 type RestoreMariaDBReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
+	Builder           *builder.Builder
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *conditions.Complete
 }
@@ -91,9 +91,9 @@ func (r *RestoreMariaDBReconciler) createJob(ctx context.Context, restore *datab
 		return fmt.Errorf("error getting BackupMariaDB: %v", err)
 	}
 
-	job := builders.BuildRestoreJob(restore, mariadb, backup, key)
-	if err := controllerutil.SetControllerReference(restore, job, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to Job: %v", err)
+	job, err := r.Builder.BuildRestoreJob(restore, mariadb, backup, key)
+	if err != nil {
+		return fmt.Errorf("error building restore Job: %v", err)
 	}
 
 	if err := r.Create(ctx, job); err != nil {

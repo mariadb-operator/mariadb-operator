@@ -22,7 +22,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/builders"
+	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -34,13 +34,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
+	Builder        *builder.Builder
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *conditions.Ready
 }
@@ -127,12 +127,9 @@ func (r *MariaDBReconciler) createStatefulSet(ctx context.Context, mariadb *data
 		}
 	}
 
-	sts, err := builders.BuildStatefulSet(mariadb, key, dsn)
+	sts, err := r.Builder.BuildStatefulSet(mariadb, key, dsn)
 	if err != nil {
 		return fmt.Errorf("error building StatefulSet: %v", err)
-	}
-	if err := controllerutil.SetControllerReference(mariadb, sts, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
 
 	if err := r.Create(ctx, sts); err != nil {
@@ -148,9 +145,9 @@ func (r *MariaDBReconciler) createService(ctx context.Context, mariadb *database
 		return nil
 	}
 
-	svc := builders.BuildService(mariadb, key)
-	if err := controllerutil.SetControllerReference(mariadb, svc, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to Service: %v", err)
+	svc, err := r.Builder.BuildService(mariadb, key)
+	if err != nil {
+		return fmt.Errorf("error building Service: %v", err)
 	}
 
 	if err := r.Create(ctx, svc); err != nil {
@@ -169,12 +166,9 @@ func (r *MariaDBReconciler) createServiceMonitor(ctx context.Context, mariadb *d
 		return nil
 	}
 
-	serviceMonitor, err := builders.BuildServiceMonitor(mariadb, key)
+	serviceMonitor, err := r.Builder.BuildServiceMonitor(mariadb, key)
 	if err != nil {
 		return fmt.Errorf("error building Service Monitor: %v", err)
-	}
-	if err := controllerutil.SetControllerReference(mariadb, serviceMonitor, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to ServiceMonitor: %v", err)
 	}
 
 	if err := r.Create(ctx, serviceMonitor); err != nil {
