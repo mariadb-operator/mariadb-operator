@@ -69,7 +69,7 @@ var _ = Describe("BackupMariaDB controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting BackupMariaDB")
-			Expect(k8sClient.Get(testCtx, backupKey, &backup)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
 		})
 	})
 })
