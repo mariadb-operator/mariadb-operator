@@ -13,20 +13,10 @@ import (
 )
 
 type TemplateReconciler struct {
-	RefResolver    *refresolver.RefResolver
-	ConditionReady *conditions.Ready
-
+	RefResolver       *refresolver.RefResolver
+	ConditionReady    *conditions.Ready
 	WrappedReconciler WrappedReconciler
 	Finalizer         Finalizer
-}
-
-func NewTemplateReconciler(rr *refresolver.RefResolver, cr *conditions.Ready, wr WrappedReconciler, f Finalizer) Reconciler {
-	return &TemplateReconciler{
-		RefResolver:       rr,
-		ConditionReady:    cr,
-		WrappedReconciler: wr,
-		Finalizer:         f,
-	}
 }
 
 func (tr *TemplateReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.Result, error) {

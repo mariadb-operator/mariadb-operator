@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/controllers/template"
@@ -37,6 +38,11 @@ type UserMariaDBReconciler struct {
 	Scheme         *runtime.Scheme
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *conditions.Ready
+
+	wfPool sync.Pool
+	wrPool sync.Pool
+	tfPool sync.Pool
+	trPool sync.Pool
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=usermariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -51,10 +57,8 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, ctrlClient.IgnoreNotFound(err)
 	}
 
-	wr := newWrapperUserReconciler(r.Client, r.RefResolver, &user)
-	wf := newWrapperUserFinalizer(r.Client, &user)
-	tf := template.NewTemplateFinalizer(r.RefResolver, wf)
-	tr := template.NewTemplateReconciler(r.RefResolver, r.ConditionReady, wr, tf)
+	tr, backToPool := r.getTemplateReconciler(&user)
+	defer backToPool()
 
 	result, err := tr.Reconcile(ctx, &user)
 	if err != nil {
@@ -63,19 +67,74 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return result, nil
 }
 
+func (r *UserMariaDBReconciler) getTemplateReconciler(user *databasev1alpha1.UserMariaDB) (template.Reconciler, func()) {
+	wf := r.wfPool.Get().(*wrappedUserFinalizer)
+	wf.user = user
+
+	wr := r.wrPool.Get().(*wrappedUserReconciler)
+	wr.user = user
+
+	tf := r.tfPool.Get().(*template.TemplateFinalizer)
+	tf.WrappedFinalizer = wf
+
+	tr := r.trPool.Get().(*template.TemplateReconciler)
+	tr.WrappedReconciler = wr
+	tr.Finalizer = tf
+
+	return tr, func() {
+		r.wfPool.Put(wf)
+		r.wrPool.Put(wr)
+		r.tfPool.Put(tf)
+		r.trPool.Put(tr)
+	}
+}
+
+func (r *UserMariaDBReconciler) initPool() {
+	r.wfPool = sync.Pool{
+		New: func() interface{} {
+			return &wrappedUserFinalizer{
+				Client: r.Client,
+			}
+		},
+	}
+	r.wrPool = sync.Pool{
+		New: func() interface{} {
+			return &wrappedUserReconciler{
+				Client:      r.Client,
+				refResolver: r.RefResolver,
+			}
+		},
+	}
+	r.tfPool = sync.Pool{
+		New: func() interface{} {
+			return &template.TemplateFinalizer{
+				RefResolver: r.RefResolver,
+			}
+		},
+	}
+	r.trPool = sync.Pool{
+		New: func() interface{} {
+			return &template.TemplateReconciler{
+				RefResolver:    r.RefResolver,
+				ConditionReady: r.ConditionReady,
+			}
+		},
+	}
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *UserMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.initPool()
+
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&databasev1alpha1.UserMariaDB{}).
+		Complete(r)
+}
+
 type wrappedUserReconciler struct {
 	client.Client
 	refResolver *refresolver.RefResolver
 	user        *databasev1alpha1.UserMariaDB
-}
-
-func newWrapperUserReconciler(client client.Client, refResolver *refresolver.RefResolver,
-	user *databasev1alpha1.UserMariaDB) template.WrappedReconciler {
-	return &wrappedUserReconciler{
-		Client:      client,
-		refResolver: refResolver,
-		user:        user,
-	}
 }
 
 func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
@@ -101,11 +160,4 @@ func (wr *wrappedUserReconciler) PatchStatus(ctx context.Context, patcher condit
 		return fmt.Errorf("error patching UserMariaDB status: %v", err)
 	}
 	return nil
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *UserMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&databasev1alpha1.UserMariaDB{}).
-		Complete(r)
 }

@@ -10,16 +10,8 @@ import (
 )
 
 type TemplateFinalizer struct {
-	RefResolver *refresolver.RefResolver
-
+	RefResolver      *refresolver.RefResolver
 	WrappedFinalizer WrappedFinalizer
-}
-
-func NewTemplateFinalizer(rr *refresolver.RefResolver, wf WrappedFinalizer) Finalizer {
-	return &TemplateFinalizer{
-		RefResolver:      rr,
-		WrappedFinalizer: wf,
-	}
 }
 
 func (tf *TemplateFinalizer) AddFinalizer(ctx context.Context) error {

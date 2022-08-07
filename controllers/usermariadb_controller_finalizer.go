@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/controllers/template"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -34,13 +33,6 @@ const (
 type wrappedUserFinalizer struct {
 	client.Client
 	user *databasev1alpha1.UserMariaDB
-}
-
-func newWrapperUserFinalizer(client client.Client, user *databasev1alpha1.UserMariaDB) template.WrappedFinalizer {
-	return &wrappedUserFinalizer{
-		Client: client,
-		user:   user,
-	}
 }
 
 func (wf *wrappedUserFinalizer) AddFinalizer(ctx context.Context) error {
