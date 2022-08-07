@@ -19,10 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/controllers/template"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
@@ -52,82 +51,53 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, ctrlClient.IgnoreNotFound(err)
 	}
 
-	if user.IsBeingDeleted() {
-		if err := r.finalize(ctx, &user); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error finalizing UserMariaDB: %v", err)
-		}
-		return ctrl.Result{}, nil
-	}
+	wr := newWrapperUserReconciler(r.Client, r.RefResolver, &user)
+	wf := newWrapperUserFinalizer(r.Client, &user)
+	tf := template.NewTemplateFinalizer(r.RefResolver, wf)
+	tr := template.NewTemplateReconciler(r.RefResolver, r.ConditionReady, wr, tf)
 
-	if err := r.addFinalizer(ctx, &user); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error adding finalizer to UserMariaDB: %v", err)
-	}
-
-	var mariaDbErr *multierror.Error
-	mariaDb, err := r.RefResolver.GetMariaDB(ctx, user.Spec.MariaDBRef, user.Namespace)
+	result, err := tr.Reconcile(ctx, &user)
 	if err != nil {
-		mariaDbErr = multierror.Append(mariaDbErr, err)
-
-		err = r.patchStatus(ctx, &user, r.ConditionReady.RefResolverPatcher(err, mariaDb))
-		mariaDbErr = multierror.Append(mariaDbErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+		return result, fmt.Errorf("error reconciling in TemplateReconciler: %v", err)
 	}
-
-	if !mariaDb.IsReady() {
-		if err := r.patchStatus(ctx, &user, r.ConditionReady.FailedPatcher("MariaDB not ready")); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching UserMariaDB: %v", err)
-		}
-		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
-	}
-
-	var connErr *multierror.Error
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, r.RefResolver)
-	if err != nil {
-		connErr = multierror.Append(connErr, err)
-
-		err = r.patchStatus(ctx, &user, r.ConditionReady.FailedPatcher("Error connecting to MariaDB"))
-		connErr = multierror.Append(connErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", connErr)
-	}
-	defer mdbClient.Close()
-
-	var userErr *multierror.Error
-	err = r.createUser(ctx, &user, mdbClient)
-	userErr = multierror.Append(userErr, err)
-
-	err = r.patchStatus(ctx, &user, r.ConditionReady.PatcherWithError(err))
-	userErr = multierror.Append(userErr, err)
-
-	if err := userErr.ErrorOrNil(); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating UserMariaDB: %v", err)
-	}
-	return ctrl.Result{}, nil
+	return result, nil
 }
 
-func (r *UserMariaDBReconciler) createUser(ctx context.Context, user *databasev1alpha1.UserMariaDB, mdbClient *mariadbclient.Client) error {
-	password, err := r.RefResolver.ReadSecretKeyRef(ctx, user.Spec.PasswordSecretKeyRef, user.Namespace)
+type wrappedUserReconciler struct {
+	client.Client
+	refResolver *refresolver.RefResolver
+	user        *databasev1alpha1.UserMariaDB
+}
+
+func newWrapperUserReconciler(client client.Client, refResolver *refresolver.RefResolver,
+	user *databasev1alpha1.UserMariaDB) template.WrappedReconciler {
+	return &wrappedUserReconciler{
+		Client:      client,
+		refResolver: refResolver,
+		user:        user,
+	}
+}
+
+func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
+	password, err := wr.refResolver.ReadSecretKeyRef(ctx, wr.user.Spec.PasswordSecretKeyRef, wr.user.Namespace)
 	if err != nil {
 		return fmt.Errorf("error reading user password secret: %v", err)
 	}
 	opts := mariadbclient.CreateUserOpts{
 		IdentifiedBy:       password,
-		MaxUserConnections: user.Spec.MaxUserConnections,
+		MaxUserConnections: wr.user.Spec.MaxUserConnections,
 	}
-
-	if err := mdbClient.CreateUser(ctx, user.Name, opts); err != nil {
+	if err := mdbClient.CreateUser(ctx, wr.user.Name, opts); err != nil {
 		return fmt.Errorf("error creating user in MariaDB: %v", err)
 	}
 	return nil
 }
 
-func (r *UserMariaDBReconciler) patchStatus(ctx context.Context, user *databasev1alpha1.UserMariaDB,
-	patcher conditions.Patcher) error {
-	patch := client.MergeFrom(user.DeepCopy())
-	patcher(&user.Status)
+func (wr *wrappedUserReconciler) PatchStatus(ctx context.Context, patcher conditions.Patcher) error {
+	patch := client.MergeFrom(wr.user.DeepCopy())
+	patcher(&wr.user.Status)
 
-	if err := r.Client.Status().Patch(ctx, user, patch); err != nil {
+	if err := wr.Client.Status().Patch(ctx, wr.user, patch); err != nil {
 		return fmt.Errorf("error patching UserMariaDB status: %v", err)
 	}
 	return nil

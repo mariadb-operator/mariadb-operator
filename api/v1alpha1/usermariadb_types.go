@@ -65,8 +65,16 @@ func (u *UserMariaDB) IsBeingDeleted() bool {
 	return !u.DeletionTimestamp.IsZero()
 }
 
-func (m *UserMariaDB) IsReady() bool {
-	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+func (u *UserMariaDB) IsReady() bool {
+	return meta.IsStatusConditionTrue(u.Status.Conditions, ConditionTypeReady)
+}
+
+func (u *UserMariaDB) Meta() metav1.ObjectMeta {
+	return u.ObjectMeta
+}
+
+func (u *UserMariaDB) MariaDBRef() corev1.LocalObjectReference {
+	return u.Spec.MariaDBRef
 }
 
 // +kubebuilder:object:root=true
