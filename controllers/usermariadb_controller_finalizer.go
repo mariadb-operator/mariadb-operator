@@ -66,16 +66,8 @@ func (wf *wrappedUserFinalizer) ContainsFinalizer() bool {
 }
 
 func (wf *wrappedUserFinalizer) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
-	if !wf.ContainsFinalizer() {
-		return nil
-	}
-
 	if err := mdbClient.DropUser(ctx, wf.user.Name); err != nil {
 		return fmt.Errorf("error dropping user in MariaDB: %v", err)
-	}
-
-	if err := wf.RemoveFinalizer(ctx); err != nil {
-		return fmt.Errorf("error removing UserMariaDB finalizer: %v", err)
 	}
 	return nil
 }

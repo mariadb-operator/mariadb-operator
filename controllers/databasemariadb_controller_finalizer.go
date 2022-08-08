@@ -21,8 +21,9 @@ import (
 	"fmt"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/controllers/template"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -31,61 +32,53 @@ const (
 	databaseFinalizerName = "database.database.mmontes.io/finalizer"
 )
 
-func (r *DatabaseMariaDBReconciler) addFinalizer(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB) error {
-	if !controllerutil.ContainsFinalizer(database, databaseFinalizerName) {
+type wrappedDatabaseFinalizer struct {
+	client.Client
+	database *databasev1alpha1.DatabaseMariaDB
+}
+
+func newWrappedDatabaseFinalizer(client client.Client, database *databasev1alpha1.DatabaseMariaDB) template.WrappedFinalizer {
+	return &wrappedDatabaseFinalizer{
+		Client:   client,
+		database: database,
+	}
+}
+
+func (wf *wrappedDatabaseFinalizer) AddFinalizer(ctx context.Context) error {
+	if !wf.ContainsFinalizer() {
 		return nil
 	}
-	return r.patch(ctx, database, func(database *databasev1alpha1.DatabaseMariaDB) {
+	return wf.patch(ctx, wf.database, func(database *databasev1alpha1.DatabaseMariaDB) {
 		controllerutil.AddFinalizer(database, databaseFinalizerName)
 	})
 }
 
-func (r *DatabaseMariaDBReconciler) removeFinalizer(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB) error {
-	if controllerutil.ContainsFinalizer(database, databaseFinalizerName) {
+func (wf *wrappedDatabaseFinalizer) RemoveFinalizer(ctx context.Context) error {
+	if wf.ContainsFinalizer() {
 		return nil
 	}
-	return r.patch(ctx, database, func(database *databasev1alpha1.DatabaseMariaDB) {
+	return wf.patch(ctx, wf.database, func(database *databasev1alpha1.DatabaseMariaDB) {
 		controllerutil.RemoveFinalizer(database, databaseFinalizerName)
 	})
 }
 
-func (r *DatabaseMariaDBReconciler) finalize(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB) error {
-	if !controllerutil.ContainsFinalizer(database, databaseFinalizerName) {
-		return nil
-	}
+func (wr *wrappedDatabaseFinalizer) ContainsFinalizer() bool {
+	return controllerutil.ContainsFinalizer(wr.database, databaseFinalizerName)
+}
 
-	mariaDb, err := r.RefResolver.GetMariaDB(ctx, database.Spec.MariaDBRef, database.Namespace)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			if err := r.removeFinalizer(ctx, database); err != nil {
-				return fmt.Errorf("error removing DatabaseMariaDB finalizer: %v", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("error getting MariaDB: %v", err)
-	}
-
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, r.RefResolver)
-	if err != nil {
-		return fmt.Errorf("error connecting to MariaDB: %v", err)
-	}
-
-	if err := mdbClient.DropDatabase(ctx, database.Name); err != nil {
+func (wf *wrappedDatabaseFinalizer) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
+	if err := mdbClient.DropDatabase(ctx, wf.database.Name); err != nil {
 		return fmt.Errorf("error dropping database in MariaDB: %v", err)
-	}
-
-	if err := r.removeFinalizer(ctx, database); err != nil {
-		return fmt.Errorf("error removing DatabaseMariaDB finalizer: %v", err)
 	}
 	return nil
 }
 
-func (r *DatabaseMariaDBReconciler) patch(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
+func (wr *wrappedDatabaseFinalizer) patch(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
 	patchFn func(*databasev1alpha1.DatabaseMariaDB)) error {
 	patch := ctrlClient.MergeFrom(database.DeepCopy())
 	patchFn(database)
 
-	if err := r.Client.Patch(ctx, database, patch); err != nil {
+	if err := wr.Client.Patch(ctx, database, patch); err != nil {
 		return fmt.Errorf("error patching DatabaseMariaDB finalizer: %v", err)
 	}
 	return nil

@@ -19,10 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/controllers/template"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
@@ -51,78 +50,49 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if database.IsBeingDeleted() {
-		if err := r.finalize(ctx, &database); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error finalizing DatabaseMariaDB: %v", err)
-		}
-		return ctrl.Result{}, nil
-	}
+	wr := newWrappedDatabaseReconciler(r.Client, r.RefResolver, &database)
+	wf := newWrappedDatabaseFinalizer(r.Client, &database)
+	tf := template.NewTemplateFinalizer(r.RefResolver, wf)
+	tr := template.NewTemplateReconciler(r.RefResolver, r.ConditionReady, wr, tf)
 
-	if err := r.addFinalizer(ctx, &database); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error adding finalizer to DatabaseMariaDB: %v", err)
-	}
-
-	var mariaDbErr *multierror.Error
-	mariaDb, err := r.RefResolver.GetMariaDB(ctx, database.Spec.MariaDBRef, database.Namespace)
+	result, err := tr.Reconcile(ctx, &database)
 	if err != nil {
-		mariaDbErr = multierror.Append(mariaDbErr, err)
-
-		err = r.patchStatus(ctx, &database, r.ConditionReady.RefResolverPatcher(err, mariaDb))
-		mariaDbErr = multierror.Append(mariaDbErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+		return result, fmt.Errorf("error reconciling in TemplateReconciler: %v", err)
 	}
-
-	if !mariaDb.IsReady() {
-		if err := r.patchStatus(ctx, &database, r.ConditionReady.FailedPatcher("MariaDB not ready")); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching DatabaseMariaDB: %v", err)
-		}
-		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
-	}
-
-	var connErr *multierror.Error
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, r.RefResolver)
-	if err != nil {
-		connErr = multierror.Append(connErr, err)
-
-		err = r.patchStatus(ctx, &database, r.ConditionReady.FailedPatcher("Error connecting to MariaDB"))
-		connErr = multierror.Append(connErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", connErr)
-	}
-	defer mdbClient.Close()
-
-	var databaseErr *multierror.Error
-	err = r.createDatabase(ctx, &database, mdbClient)
-	databaseErr = multierror.Append(databaseErr, err)
-
-	err = r.patchStatus(ctx, &database, r.ConditionReady.PatcherWithError(err))
-	databaseErr = multierror.Append(databaseErr, err)
-
-	if err := databaseErr.ErrorOrNil(); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating DatabaseMariaDB: %v", err)
-	}
-	return ctrl.Result{}, nil
+	return result, nil
 }
 
-func (r *DatabaseMariaDBReconciler) createDatabase(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
-	mdbClient *mariadbclient.Client) error {
-	opts := mariadbclient.DatabaseOpts{
-		CharacterSet: database.Spec.CharacterSet,
-		Collate:      database.Spec.Collate,
+type wrappedDatabaseReconciler struct {
+	client.Client
+	refResolver *refresolver.RefResolver
+	database    *databasev1alpha1.DatabaseMariaDB
+}
+
+func newWrappedDatabaseReconciler(client client.Client, refResolver *refresolver.RefResolver,
+	database *databasev1alpha1.DatabaseMariaDB) template.WrappedReconciler {
+	return &wrappedDatabaseReconciler{
+		Client:      client,
+		refResolver: refResolver,
+		database:    database,
 	}
-	if err := mdbClient.CreateDatabase(ctx, database.Name, opts); err != nil {
+}
+
+func (wr *wrappedDatabaseReconciler) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
+	opts := mariadbclient.DatabaseOpts{
+		CharacterSet: wr.database.Spec.CharacterSet,
+		Collate:      wr.database.Spec.Collate,
+	}
+	if err := mdbClient.CreateDatabase(ctx, wr.database.Name, opts); err != nil {
 		return fmt.Errorf("error creating database in MariaDB: %v", err)
 	}
 	return nil
 }
 
-func (r *DatabaseMariaDBReconciler) patchStatus(ctx context.Context, database *databasev1alpha1.DatabaseMariaDB,
-	patcher conditions.Patcher) error {
-	patch := client.MergeFrom(database.DeepCopy())
-	patcher(&database.Status)
+func (wr *wrappedDatabaseReconciler) PatchStatus(ctx context.Context, patcher conditions.Patcher) error {
+	patch := client.MergeFrom(wr.database.DeepCopy())
+	patcher(&wr.database.Status)
 
-	if err := r.Client.Status().Patch(ctx, database, patch); err != nil {
+	if err := wr.Client.Status().Patch(ctx, wr.database, patch); err != nil {
 		return fmt.Errorf("error patching DatabaseMariaDB status: %v", err)
 	}
 	return nil

@@ -71,6 +71,14 @@ func (m *DatabaseMariaDB) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
 }
 
+func (m *DatabaseMariaDB) Meta() metav1.ObjectMeta {
+	return m.ObjectMeta
+}
+
+func (m *DatabaseMariaDB) MariaDBRef() corev1.LocalObjectReference {
+	return m.Spec.MariaDBRef
+}
+
 // +kubebuilder:object:root=true
 
 // DatabaseMariaDBList contains a list of DatabaseMariaDB
