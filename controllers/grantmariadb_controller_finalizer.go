@@ -23,11 +23,11 @@ import (
 	"time"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/controllers/template"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -35,74 +35,44 @@ const (
 	grantFinalizerName = "grant.database.mmontes.io/finalizer"
 )
 
-func (r *GrantMariaDBReconciler) addFinalizer(ctx context.Context, grant *databasev1alpha1.GrantMariaDB) error {
-	if !controllerutil.ContainsFinalizer(grant, grantFinalizerName) {
+type wrappedGrantFinalizer struct {
+	client.Client
+	grant *databasev1alpha1.GrantMariaDB
+}
+
+func newWrappedGrantFinalizer(client client.Client, grant *databasev1alpha1.GrantMariaDB) template.WrappedFinalizer {
+	return &wrappedGrantFinalizer{
+		Client: client,
+		grant:  grant,
+	}
+}
+
+func (wf *wrappedGrantFinalizer) AddFinalizer(ctx context.Context) error {
+	if !wf.ContainsFinalizer() {
 		return nil
 	}
-	return r.patch(ctx, grant, func(gmd *databasev1alpha1.GrantMariaDB) {
-		controllerutil.AddFinalizer(grant, grantFinalizerName)
+	return wf.patch(ctx, wf.grant, func(gmd *databasev1alpha1.GrantMariaDB) {
+		controllerutil.AddFinalizer(wf.grant, grantFinalizerName)
 	})
 }
 
-func (r *GrantMariaDBReconciler) removeFinalizer(ctx context.Context, grant *databasev1alpha1.GrantMariaDB) error {
-	if controllerutil.ContainsFinalizer(grant, grantFinalizerName) {
+func (wf *wrappedGrantFinalizer) RemoveFinalizer(ctx context.Context) error {
+	if wf.ContainsFinalizer() {
 		return nil
 	}
-	return r.patch(ctx, grant, func(gmd *databasev1alpha1.GrantMariaDB) {
-		controllerutil.RemoveFinalizer(grant, grantFinalizerName)
+	return wf.patch(ctx, wf.grant, func(gmd *databasev1alpha1.GrantMariaDB) {
+		controllerutil.RemoveFinalizer(wf.grant, grantFinalizerName)
 	})
 }
 
-func (r *GrantMariaDBReconciler) finalize(ctx context.Context, grant *databasev1alpha1.GrantMariaDB) error {
-	if !controllerutil.ContainsFinalizer(grant, grantFinalizerName) {
-		return nil
-	}
-
-	mariaDb, err := r.RefResolver.GetMariaDB(ctx, grant.Spec.MariaDBRef, grant.Namespace)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			if err := r.removeFinalizer(ctx, grant); err != nil {
-				return fmt.Errorf("error removing GrantMariaDB finalizer: %v", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("error getting MariaDB: %v", err)
-	}
-
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, r.RefResolver)
-	if err != nil {
-		return fmt.Errorf("error connecting to MariaDB: %v", err)
-	}
-
-	if err := r.revoke(ctx, grant, mdbClient); err != nil {
-		return fmt.Errorf("error revoking grant: %v", err)
-	}
-
-	patch := ctrlClient.MergeFrom(grant.DeepCopy())
-	controllerutil.RemoveFinalizer(grant, grantFinalizerName)
-
-	if err := r.Client.Patch(ctx, grant, patch); err != nil {
-		return fmt.Errorf("error removing GrantMariaDB finalizer: %v", err)
-	}
-	return nil
+func (wf *wrappedGrantFinalizer) ContainsFinalizer() bool {
+	return controllerutil.ContainsFinalizer(wf.grant, grantFinalizerName)
 }
 
-func (r *GrantMariaDBReconciler) patch(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
-	patchFn func(*databasev1alpha1.GrantMariaDB)) error {
-	patch := client.MergeFrom(grant.DeepCopy())
-	patchFn(grant)
-
-	if err := r.Client.Patch(ctx, grant, patch); err != nil {
-		return fmt.Errorf("error patching GrantMariaDB: %v", err)
-	}
-	return nil
-}
-
-func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
-	mdbClient *mariadbclient.Client) error {
+func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
 	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 5*time.Second, func(ctx context.Context) (bool, error) {
 		var user databasev1alpha1.UserMariaDB
-		if err := r.Get(ctx, userKey(grant), &user); err != nil {
+		if err := wf.Get(ctx, userKey(wf.grant), &user); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true, nil
 			}
@@ -119,14 +89,25 @@ func (r *GrantMariaDBReconciler) revoke(ctx context.Context, grant *databasev1al
 	}
 
 	opts := mariadbclient.GrantOpts{
-		Privileges:  grant.Spec.Privileges,
-		Database:    grant.Spec.Database,
-		Table:       grant.Spec.Table,
-		Username:    grant.Spec.Username,
-		GrantOption: grant.Spec.GrantOption,
+		Privileges:  wf.grant.Spec.Privileges,
+		Database:    wf.grant.Spec.Database,
+		Table:       wf.grant.Spec.Table,
+		Username:    wf.grant.Spec.Username,
+		GrantOption: wf.grant.Spec.GrantOption,
 	}
 	if err := mdbClient.Revoke(ctx, opts); err != nil {
 		return fmt.Errorf("error revoking grant in MariaDB: %v", err)
+	}
+	return nil
+}
+
+func (wf *wrappedGrantFinalizer) patch(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
+	patchFn func(*databasev1alpha1.GrantMariaDB)) error {
+	patch := client.MergeFrom(grant.DeepCopy())
+	patchFn(grant)
+
+	if err := wf.Client.Patch(ctx, grant, patch); err != nil {
+		return fmt.Errorf("error patching GrantMariaDB: %v", err)
 	}
 	return nil
 }

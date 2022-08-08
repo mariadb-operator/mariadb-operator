@@ -79,6 +79,14 @@ func (m *GrantMariaDB) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
 }
 
+func (g *GrantMariaDB) Meta() metav1.ObjectMeta {
+	return g.ObjectMeta
+}
+
+func (g *GrantMariaDB) MariaDBRef() corev1.LocalObjectReference {
+	return g.Spec.MariaDBRef
+}
+
 //+kubebuilder:object:root=true
 
 // GrantMariaDBList contains a list of GrantMariaDB

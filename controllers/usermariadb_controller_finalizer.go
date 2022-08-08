@@ -36,7 +36,7 @@ type wrappedUserFinalizer struct {
 	user *databasev1alpha1.UserMariaDB
 }
 
-func newWrapperUserFinalizer(client client.Client, user *databasev1alpha1.UserMariaDB) template.WrappedFinalizer {
+func newWrappedUserFinalizer(client client.Client, user *databasev1alpha1.UserMariaDB) template.WrappedFinalizer {
 	return &wrappedUserFinalizer{
 		Client: client,
 		user:   user,

@@ -19,10 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/controllers/template"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
@@ -52,67 +51,40 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if grant.IsBeingDeleted() {
-		if err := r.finalize(ctx, &grant); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error finalizing GrantMariaDB: %v", err)
-		}
-		return ctrl.Result{}, nil
-	}
+	wr := newWrappedGrantReconciler(r.Client, *r.RefResolver, &grant)
+	wf := newWrappedGrantFinalizer(r.Client, &grant)
+	tf := template.NewTemplateFinalizer(r.RefResolver, wf)
+	tr := template.NewTemplateReconciler(r.RefResolver, r.ConditionReady, wr, tf)
 
-	if err := r.addFinalizer(ctx, &grant); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error adding finalizer to GrantMariaDB: %v", err)
-	}
-
-	var mariaDbErr *multierror.Error
-	mariaDb, err := r.RefResolver.GetMariaDB(ctx, grant.Spec.MariaDBRef, grant.Namespace)
+	result, err := tr.Reconcile(ctx, &grant)
 	if err != nil {
-		mariaDbErr = multierror.Append(mariaDbErr, err)
-
-		err = r.patchStatus(ctx, &grant, r.ConditionReady.RefResolverPatcher(err, mariaDb))
-		mariaDbErr = multierror.Append(mariaDbErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+		return result, fmt.Errorf("error reconciling in TemplateReconciler: %v", err)
 	}
-
-	if !mariaDb.IsReady() {
-		if err := r.patchStatus(ctx, &grant, r.ConditionReady.FailedPatcher("MariaDB not ready")); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching GrantMariaDB: %v", err)
-		}
-		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
-	}
-
-	var connErr *multierror.Error
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, r.RefResolver)
-	if err != nil {
-		connErr = multierror.Append(connErr, err)
-
-		err = r.patchStatus(ctx, &grant, r.ConditionReady.FailedPatcher("Error connecting to MariaDB"))
-		connErr = multierror.Append(connErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", connErr)
-	}
-	defer mdbClient.Close()
-
-	var grantErr *multierror.Error
-	err = r.grant(ctx, &grant, mdbClient)
-	grantErr = multierror.Append(grantErr, err)
-
-	err = r.patchStatus(ctx, &grant, r.ConditionReady.PatcherWithError(err))
-	grantErr = multierror.Append(grantErr, err)
-
-	if err := grantErr.ErrorOrNil(); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating GrantMariaDB: %v", err)
-	}
-	return ctrl.Result{}, nil
+	return result, nil
 }
 
-func (r *GrantMariaDBReconciler) grant(ctx context.Context, grant *databasev1alpha1.GrantMariaDB, mdbClient *mariadbclient.Client) error {
+type wrappedGrantReconciler struct {
+	client.Client
+	refResolver *refresolver.RefResolver
+	grant       *databasev1alpha1.GrantMariaDB
+}
+
+func newWrappedGrantReconciler(client client.Client, refResolver refresolver.RefResolver,
+	grant *databasev1alpha1.GrantMariaDB) template.WrappedReconciler {
+	return &wrappedGrantReconciler{
+		Client:      client,
+		refResolver: &refResolver,
+		grant:       grant,
+	}
+}
+
+func (wr *wrappedGrantReconciler) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
 	opts := mariadbclient.GrantOpts{
-		Privileges:  grant.Spec.Privileges,
-		Database:    grant.Spec.Database,
-		Table:       grant.Spec.Table,
-		Username:    grant.Spec.Username,
-		GrantOption: grant.Spec.GrantOption,
+		Privileges:  wr.grant.Spec.Privileges,
+		Database:    wr.grant.Spec.Database,
+		Table:       wr.grant.Spec.Table,
+		Username:    wr.grant.Spec.Username,
+		GrantOption: wr.grant.Spec.GrantOption,
 	}
 	if err := mdbClient.Grant(ctx, opts); err != nil {
 		return fmt.Errorf("error granting privileges in MariaDB: %v", err)
@@ -120,12 +92,11 @@ func (r *GrantMariaDBReconciler) grant(ctx context.Context, grant *databasev1alp
 	return nil
 }
 
-func (r *GrantMariaDBReconciler) patchStatus(ctx context.Context, grant *databasev1alpha1.GrantMariaDB,
-	patcher conditions.Patcher) error {
-	patch := client.MergeFrom(grant.DeepCopy())
-	patcher(&grant.Status)
+func (wr *wrappedGrantReconciler) PatchStatus(ctx context.Context, patcher conditions.Patcher) error {
+	patch := client.MergeFrom(wr.grant.DeepCopy())
+	patcher(&wr.grant.Status)
 
-	if err := r.Client.Status().Patch(ctx, grant, patch); err != nil {
+	if err := wr.Client.Status().Patch(ctx, wr.grant, patch); err != nil {
 		return fmt.Errorf("error patching GrantMariaDB status: %v", err)
 	}
 	return nil

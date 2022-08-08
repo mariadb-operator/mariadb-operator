@@ -52,7 +52,7 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	wr := newWrapperUserReconciler(r.Client, r.RefResolver, &user)
-	wf := newWrapperUserFinalizer(r.Client, &user)
+	wf := newWrappedUserFinalizer(r.Client, &user)
 	tf := template.NewTemplateFinalizer(r.RefResolver, wf)
 	tr := template.NewTemplateReconciler(r.RefResolver, r.ConditionReady, wr, tf)
 
