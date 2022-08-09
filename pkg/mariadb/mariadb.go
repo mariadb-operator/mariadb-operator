@@ -90,6 +90,19 @@ func (m *Client) DropUser(ctx context.Context, username string) error {
 	return err
 }
 
+func (m *Client) UserExists(ctx context.Context, username string) (bool, error) {
+	query := "SELECT 1 FROM mysql.user WHERE user = ?;"
+	err := m.db.QueryRowContext(ctx, query, username).Err()
+
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 type GrantOpts struct {
 	Privileges  []string
 	Database    string

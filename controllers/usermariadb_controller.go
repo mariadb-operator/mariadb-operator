@@ -79,6 +79,16 @@ func newWrapperUserReconciler(client client.Client, refResolver *refresolver.Ref
 }
 
 func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
+	exists, err := mdbClient.UserExists(ctx, wr.user.Name)
+	if err != nil {
+		return fmt.Errorf("error checking if user exists: %v", err)
+	}
+	if exists {
+		if err := mdbClient.DropUser(ctx, wr.user.Name); err != nil {
+			return fmt.Errorf("error dropping user in MariaDB: %v", err)
+		}
+	}
+
 	password, err := wr.refResolver.ReadSecretKeyRef(ctx, wr.user.Spec.PasswordSecretKeyRef, wr.user.Namespace)
 	if err != nil {
 		return fmt.Errorf("error reading user password secret: %v", err)
