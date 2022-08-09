@@ -60,6 +60,8 @@ var _ = Describe("UserMariaDB controller", func() {
 				return user.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			Expect(user.ObjectMeta.Finalizers).To(ContainElement(userFinalizerName))
+
 			By("Deleting UserMariaDB")
 			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
 		})

@@ -96,6 +96,8 @@ var _ = Describe("GrantMariaDB controller", func() {
 				return grant.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			Expect(grant.ObjectMeta.Finalizers).To(ContainElement(grantFinalizerName))
+
 			By("Deleting UserMariaDB")
 			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
 

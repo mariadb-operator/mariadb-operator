@@ -56,6 +56,8 @@ var _ = Describe("DatabaseMariaDB controller", func() {
 				return database.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			Expect(database.ObjectMeta.Finalizers).To(ContainElement(databaseFinalizerName))
+
 			By("Deleting DatabaseMariaDB")
 			Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
 		})
