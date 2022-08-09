@@ -45,7 +45,7 @@ func newWrappedDatabaseFinalizer(client client.Client, database *databasev1alpha
 }
 
 func (wf *wrappedDatabaseFinalizer) AddFinalizer(ctx context.Context) error {
-	if !wf.ContainsFinalizer() {
+	if wf.ContainsFinalizer() {
 		return nil
 	}
 	return wf.patch(ctx, wf.database, func(database *databasev1alpha1.DatabaseMariaDB) {
@@ -54,7 +54,7 @@ func (wf *wrappedDatabaseFinalizer) AddFinalizer(ctx context.Context) error {
 }
 
 func (wf *wrappedDatabaseFinalizer) RemoveFinalizer(ctx context.Context) error {
-	if wf.ContainsFinalizer() {
+	if !wf.ContainsFinalizer() {
 		return nil
 	}
 	return wf.patch(ctx, wf.database, func(database *databasev1alpha1.DatabaseMariaDB) {

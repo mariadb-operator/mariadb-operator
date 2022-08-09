@@ -48,7 +48,7 @@ func newWrappedGrantFinalizer(client client.Client, grant *databasev1alpha1.Gran
 }
 
 func (wf *wrappedGrantFinalizer) AddFinalizer(ctx context.Context) error {
-	if !wf.ContainsFinalizer() {
+	if wf.ContainsFinalizer() {
 		return nil
 	}
 	return wf.patch(ctx, wf.grant, func(gmd *databasev1alpha1.GrantMariaDB) {
@@ -57,7 +57,7 @@ func (wf *wrappedGrantFinalizer) AddFinalizer(ctx context.Context) error {
 }
 
 func (wf *wrappedGrantFinalizer) RemoveFinalizer(ctx context.Context) error {
-	if wf.ContainsFinalizer() {
+	if !wf.ContainsFinalizer() {
 		return nil
 	}
 	return wf.patch(ctx, wf.grant, func(gmd *databasev1alpha1.GrantMariaDB) {
