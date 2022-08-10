@@ -63,6 +63,13 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return result, nil
 }
 
+// SetupWithManager sets up the controller with the Manager.
+func (r *GrantMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&databasev1alpha1.GrantMariaDB{}).
+		Complete(r)
+}
+
 type wrappedGrantReconciler struct {
 	client.Client
 	refResolver *refresolver.RefResolver
@@ -107,11 +114,4 @@ func userKey(grant *databasev1alpha1.GrantMariaDB) types.NamespacedName {
 		Name:      grant.Spec.Username,
 		Namespace: grant.Namespace,
 	}
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *GrantMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&databasev1alpha1.GrantMariaDB{}).
-		Complete(r)
 }

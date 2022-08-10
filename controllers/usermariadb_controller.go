@@ -63,6 +63,13 @@ func (r *UserMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return result, nil
 }
 
+// SetupWithManager sets up the controller with the Manager.
+func (r *UserMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&databasev1alpha1.UserMariaDB{}).
+		Complete(r)
+}
+
 type wrappedUserReconciler struct {
 	client.Client
 	refResolver *refresolver.RefResolver
@@ -101,11 +108,4 @@ func (wr *wrappedUserReconciler) PatchStatus(ctx context.Context, patcher condit
 		return fmt.Errorf("error patching UserMariaDB status: %v", err)
 	}
 	return nil
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *UserMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&databasev1alpha1.UserMariaDB{}).
-		Complete(r)
 }

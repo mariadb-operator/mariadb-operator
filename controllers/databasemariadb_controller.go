@@ -62,6 +62,13 @@ func (r *DatabaseMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return result, nil
 }
 
+// SetupWithManager sets up the controller with the Manager.
+func (r *DatabaseMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&databasev1alpha1.DatabaseMariaDB{}).
+		Complete(r)
+}
+
 type wrappedDatabaseReconciler struct {
 	client.Client
 	refResolver *refresolver.RefResolver
@@ -96,11 +103,4 @@ func (wr *wrappedDatabaseReconciler) PatchStatus(ctx context.Context, patcher co
 		return fmt.Errorf("error patching DatabaseMariaDB status: %v", err)
 	}
 	return nil
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *DatabaseMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&databasev1alpha1.DatabaseMariaDB{}).
-		Complete(r)
 }
