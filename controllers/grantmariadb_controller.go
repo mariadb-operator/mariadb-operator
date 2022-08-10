@@ -25,10 +25,21 @@ import (
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+)
+
+const (
+	usernameField = ".spec.username"
 )
 
 // GrantMariaDBReconciler reconciles a GrantMariaDB object
@@ -65,9 +76,59 @@ func (r *GrantMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *GrantMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := r.createIndex(mgr); err != nil {
+		return fmt.Errorf("error creating index: %v", err)
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&databasev1alpha1.GrantMariaDB{}).
+		Watches(
+			&source.Kind{Type: &databasev1alpha1.UserMariaDB{}},
+			handler.EnqueueRequestsFromMapFunc(r.mapGrantToRequests),
+			builder.WithPredicates(predicate.Funcs{
+				CreateFunc: func(ce event.CreateEvent) bool {
+					return true
+				},
+			}),
+		).
 		Complete(r)
+}
+
+func (r *GrantMariaDBReconciler) createIndex(mgr ctrl.Manager) error {
+	indexFn := func(rawObj client.Object) []string {
+		grant := rawObj.(*databasev1alpha1.GrantMariaDB)
+		if grant.Spec.Username == "" {
+			return nil
+		}
+		return []string{grant.Spec.Username}
+	}
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &databasev1alpha1.GrantMariaDB{}, usernameField, indexFn); err != nil {
+		return fmt.Errorf("error indexing '%s' field in GrantMariaDB: %v", usernameField, err)
+	}
+	return nil
+}
+
+func (r *GrantMariaDBReconciler) mapGrantToRequests(user client.Object) []reconcile.Request {
+	grantsToReconcile := &databasev1alpha1.GrantMariaDBList{}
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(usernameField, user.GetName()),
+		Namespace:     user.GetNamespace(),
+	}
+
+	if err := r.List(context.Background(), grantsToReconcile, listOpts); err != nil {
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(grantsToReconcile.Items))
+	for i, item := range grantsToReconcile.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      item.GetName(),
+				Namespace: item.GetNamespace(),
+			},
+		}
+	}
+	return requests
 }
 
 type wrappedGrantReconciler struct {
