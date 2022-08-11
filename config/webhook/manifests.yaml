@@ -1,0 +1,27 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-database-mmontes-io-v1alpha1-restoremariadb
+  failurePolicy: Fail
+  name: vrestoremariadb.kb.io
+  rules:
+  - apiGroups:
+    - database.mmontes.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - restoremariadbs
+  sideEffects: None

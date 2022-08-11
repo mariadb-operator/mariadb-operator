@@ -25,15 +25,15 @@ import (
 // RestoreMariaDBSpec defines the desired state of RestoreMariaDB
 type RestoreMariaDBSpec struct {
 	// +kubebuilder:validation:Required
-	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
+	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
-	BackupRef corev1.LocalObjectReference `json:"backupRef"`
+	BackupRef corev1.LocalObjectReference `json:"backupRef" webhook:"inmutable"`
 	// +kubebuilder:default=5
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=OnFailure
-	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty"`
+	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
 
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty" webhook:"inmutable"`
 }
 
 // RestoreMariaDBStatus defines the observed state of RestoreMariaDB

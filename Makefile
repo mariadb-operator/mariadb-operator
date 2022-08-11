@@ -59,6 +59,11 @@ MARIADB_PORT ?= 3306
 mdb-port-forward: ## Port forward mariadb pod.
 	@kubectl port-forward -n $(MARIADB_NAMESPACE) $(MARIADB_POD) $(MARIADB_PORT)
 
+CERTS_DIR=/tmp/k8s-webhook-server/serving-certs
+certs: ## Generates development certificates.
+	mkdir -p ${CERTS_DIR}
+	openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out ${CERTS_DIR}/tls.crt -keyout ${CERTS_DIR}/tls.key
+
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
@@ -107,13 +112,17 @@ ifndef ignore-not-found
 endif
 
 .PHONY: install
-install: manifests kustomize install-prom ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+install: manifests kustomize install-prom install-samples ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
 PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0
 .PHONY: install-prom
 install-prom: ## Install Prometheus CRDs into the K8s cluster specified in ~/.kube/config.
 	kubectl apply -f https://raw.githubusercontent.com/prometheus-community/helm-charts/$(PROMETHEUS_VERSION)/charts/kube-prometheus-stack/crds/crd-podmonitors.yaml
+
+.PHONY: install-samples
+install-samples: ## Install sample configuration.
+	kubectl apply -f config/samples/config
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
