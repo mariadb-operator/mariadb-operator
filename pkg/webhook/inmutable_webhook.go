@@ -62,8 +62,8 @@ func (w *InmutableWebhook[T]) ValidateUpdate(new, old T) error {
 
 	for i := 0; i < newSpec.NumField(); i++ {
 		newField := t.Field(i)
-		webhook := newField.Tag.Get(w.tagName)
-		if webhook != w.tagValue {
+		tag := newField.Tag.Get(w.tagName)
+		if tag != w.tagValue {
 			continue
 		}
 
@@ -95,17 +95,17 @@ func getSpecField[T runtime.Object](restore T) reflect.Value {
 }
 
 func getInmutableFieldError(structField reflect.StructField, value interface{}) *field.Error {
-	var path field.Path
+	var path *field.Path
 	json := structField.Tag.Get("json")
 	if json != "" {
 		parts := strings.Split(json, ",")
-		path = *field.NewPath("spec").Child(parts[0])
+		path = field.NewPath("spec").Child(parts[0])
 	} else {
-		path = *field.NewPath(structField.Name)
+		path = field.NewPath(structField.Name)
 	}
 
 	return field.Invalid(
-		&path,
+		path,
 		value,
 		fmt.Sprintf("'%s' field is inmutable", path.String()),
 	)
