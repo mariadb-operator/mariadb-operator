@@ -24,11 +24,9 @@ import (
 )
 
 var (
-	tagName          = "webhook"
-	tagValue         = "inmutable"
-	inmutableWebhook = webhook.NewInmutableWebhook[*RestoreMariaDB](
-		webhook.WithTagName(tagName),
-		webhook.WithTagValue(tagValue),
+	inmutableWebhook = webhook.NewInmutableWebhook(
+		webhook.WithTagName("webhook"),
+		webhook.WithTagValue("inmutable"),
 	)
 )
 

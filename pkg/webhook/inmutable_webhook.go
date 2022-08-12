@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,44 +16,37 @@ const (
 	defaultTagValue = "inmutable"
 )
 
-type options struct {
-	tagName  string
-	tagValue string
-}
-
-type Option func(o *options)
+type Option func(w *InmutableWebhook)
 
 func WithTagName(tagName string) Option {
-	return func(o *options) {
-		o.tagName = tagName
+	return func(w *InmutableWebhook) {
+		w.tagName = tagName
 	}
 }
 
 func WithTagValue(tagValue string) Option {
-	return func(o *options) {
-		o.tagValue = tagValue
+	return func(w *InmutableWebhook) {
+		w.tagValue = tagValue
 	}
 }
 
-type InmutableWebhook[T client.Object] struct {
-	options
+type InmutableWebhook struct {
+	tagName  string
+	tagValue string
 }
 
-func NewInmutableWebhook[T client.Object](opts ...Option) *InmutableWebhook[T] {
-	options := options{
+func NewInmutableWebhook(opts ...Option) *InmutableWebhook {
+	webhook := &InmutableWebhook{
 		tagName:  defaultTagName,
 		tagValue: defaultTagValue,
 	}
 	for _, setOpt := range opts {
-		setOpt(&options)
+		setOpt(webhook)
 	}
-
-	return &InmutableWebhook[T]{
-		options: options,
-	}
+	return webhook
 }
 
-func (w *InmutableWebhook[T]) ValidateUpdate(new, old T) error {
+func (w *InmutableWebhook) ValidateUpdate(new, old client.Object) error {
 	var errBundle field.ErrorList
 	newSpec := getSpecField(new)
 	oldSpec := getSpecField(old)
@@ -88,22 +80,20 @@ func (w *InmutableWebhook[T]) ValidateUpdate(new, old T) error {
 	)
 }
 
-func getSpecField[T runtime.Object](restore T) reflect.Value {
-	ptr := reflect.ValueOf(restore)
+func getSpecField(obj client.Object) reflect.Value {
+	ptr := reflect.ValueOf(obj)
 	val := reflect.Indirect(ptr)
 	return val.FieldByName("Spec")
 }
 
 func getInmutableFieldError(structField reflect.StructField, value interface{}) *field.Error {
 	var path *field.Path
-	json := structField.Tag.Get("json")
-	if json != "" {
+	if json := structField.Tag.Get("json"); json != "" {
 		parts := strings.Split(json, ",")
 		path = field.NewPath("spec").Child(parts[0])
 	} else {
 		path = field.NewPath(structField.Name)
 	}
-
 	return field.Invalid(
 		path,
 		value,
