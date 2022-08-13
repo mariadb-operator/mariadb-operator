@@ -25,25 +25,26 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("RestoreMariaDB webhook", func() {
-	Context("When updating a RestoreMariaDB", func() {
+var _ = Describe("BackupMariaDB webhook", func() {
+	Context("When updating a BackupMariaDB", func() {
 		It("Should validate", func() {
-			By("Creating RestoreMariaDB")
+			By("Creating BackupMariaDB")
 			key := types.NamespacedName{
-				Name:      "restore-mariadb-webhook",
+				Name:      "backup-mariadb-webhook",
 				Namespace: testNamespace,
 			}
-			initialRestore := RestoreMariaDB{
+			initialBackup := BackupMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: RestoreMariaDBSpec{
+				Spec: BackupMariaDBSpec{
+					Storage: Storage{
+						ClassName: "standard",
+						Size:      resource.MustParse("100Mi"),
+					},
 					MariaDBRef: corev1.LocalObjectReference{
 						Name: "mariadb-webhook",
-					},
-					BackupRef: corev1.LocalObjectReference{
-						Name: "backup-webhook",
 					},
 					BackoffLimit: 10,
 					Resources: &corev1.ResourceRequirements{
@@ -54,43 +55,44 @@ var _ = Describe("RestoreMariaDB webhook", func() {
 					RestartPolicy: corev1.RestartPolicyOnFailure,
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &initialRestore)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &initialBackup)).To(Succeed())
 
 			By("Updating BackoffLimit")
-			restore := initialRestore.DeepCopy()
-			restore.Spec.BackoffLimit = 20
-			Expect(k8sClient.Update(testCtx, restore)).To(Succeed())
+			backup := initialBackup.DeepCopy()
+			backup.Spec.BackoffLimit = 20
+			Expect(k8sClient.Update(testCtx, backup)).To(Succeed())
 
-			By("Updating MariaDBRef")
-			restore = initialRestore.DeepCopy()
-			restore.Spec.MariaDBRef = corev1.LocalObjectReference{
-				Name: "another-mariadb",
+			By("Updating Storage")
+			backup = initialBackup.DeepCopy()
+			backup.Spec.Storage = Storage{
+				ClassName: "fast-storage",
+				Size:      resource.MustParse("200Mi"),
 			}
-			err := k8sClient.Update(testCtx, restore)
+			err := k8sClient.Update(testCtx, backup)
 			Expect(err).To(HaveOccurred())
 
-			By("Updating BackupRef")
-			restore = initialRestore.DeepCopy()
-			restore.Spec.BackupRef = corev1.LocalObjectReference{
-				Name: "another-backup",
+			By("Updating MariaDBRef")
+			backup = initialBackup.DeepCopy()
+			backup.Spec.MariaDBRef = corev1.LocalObjectReference{
+				Name: "another-mariadb",
 			}
-			err = k8sClient.Update(testCtx, restore)
+			err = k8sClient.Update(testCtx, backup)
 			Expect(err).To(HaveOccurred())
 
 			By("Updating RestartPolicy")
-			restore = initialRestore.DeepCopy()
-			restore.Spec.RestartPolicy = corev1.RestartPolicyNever
-			err = k8sClient.Update(testCtx, restore)
+			backup = initialBackup.DeepCopy()
+			backup.Spec.RestartPolicy = corev1.RestartPolicyNever
+			err = k8sClient.Update(testCtx, backup)
 			Expect(err).To(HaveOccurred())
 
 			By("Updating Resources")
-			restore = initialRestore.DeepCopy()
-			restore.Spec.Resources = &corev1.ResourceRequirements{
+			backup = initialBackup.DeepCopy()
+			backup.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					"cpu": resource.MustParse("200m"),
 				},
 			}
-			err = k8sClient.Update(testCtx, restore)
+			err = k8sClient.Update(testCtx, backup)
 			Expect(err).To(HaveOccurred())
 		})
 	})

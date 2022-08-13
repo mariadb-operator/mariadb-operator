@@ -19,31 +19,31 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlWebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-func (r *RestoreMariaDB) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (r *BackupMariaDB) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
 }
 
 //nolint
-//+kubebuilder:webhook:path=/validate-database-mmontes-io-v1alpha1-restoremariadb,mutating=false,failurePolicy=fail,sideEffects=None,groups=database.mmontes.io,resources=restoremariadbs,verbs=create;update,versions=v1alpha1,name=vrestoremariadb.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-database-mmontes-io-v1alpha1-backupmariadb,mutating=false,failurePolicy=fail,sideEffects=None,groups=database.mmontes.io,resources=backupmariadbs,verbs=create;update,versions=v1alpha1,name=vbackupmariadb.kb.io,admissionReviewVersions=v1
 
-var _ ctrlWebhook.Validator = &RestoreMariaDB{}
+var _ webhook.Validator = &BackupMariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *RestoreMariaDB) ValidateCreate() error {
+func (r *BackupMariaDB) ValidateCreate() error {
 	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *RestoreMariaDB) ValidateUpdate(old runtime.Object) error {
-	return inmutableWebhook.ValidateUpdate(r, old.(*RestoreMariaDB))
+func (r *BackupMariaDB) ValidateUpdate(old runtime.Object) error {
+	return inmutableWebhook.ValidateUpdate(r, old.(*BackupMariaDB))
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *RestoreMariaDB) ValidateDelete() error {
+func (r *BackupMariaDB) ValidateDelete() error {
 	return nil
 }

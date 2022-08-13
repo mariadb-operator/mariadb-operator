@@ -3,8 +3,16 @@ package v1alpha1
 import (
 	"fmt"
 
+	"github.com/mmontes11/mariadb-operator/pkg/webhook"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+)
+
+var (
+	inmutableWebhook = webhook.NewInmutableWebhook(
+		webhook.WithTagName("webhook"),
+		webhook.WithTagValue("inmutable"),
+	)
 )
 
 type Image struct {

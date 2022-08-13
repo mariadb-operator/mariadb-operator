@@ -107,6 +107,9 @@ var _ = BeforeSuite(func() {
 	err = (&RestoreMariaDB{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = (&BackupMariaDB{}).SetupWebhookWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred())
+
 	//+kubebuilder:scaffold:webhook
 
 	go func() {
