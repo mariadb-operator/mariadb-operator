@@ -25,11 +25,11 @@ import (
 // DatabaseMariaDBSpec defines the desired state of DatabaseMariaDB
 type DatabaseMariaDBSpec struct {
 	// +kubebuilder:validation:Required
-	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
+	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:default=utf8
-	CharacterSet string `json:"characterSet,omitempty"`
+	CharacterSet string `json:"characterSet,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=utf8_general_ci
-	Collate string `json:"collate,omitempty"`
+	Collate string `json:"collate,omitempty" webhook:"inmutable"`
 }
 
 // DatabaseMariaDBStatus defines the observed state of DatabaseMariaDB
