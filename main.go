@@ -164,6 +164,10 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "UserMariaDB")
 		os.Exit(1)
 	}
+	if err = (&databasev1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MariaDB")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

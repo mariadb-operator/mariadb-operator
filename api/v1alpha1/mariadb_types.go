@@ -53,23 +53,23 @@ type Metrics struct {
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// +kubebuilder:validation:Required
-	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef"`
+	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef" webhook:"inmutable"`
 
-	Database             *string                   `json:"database,omitempty"`
-	Username             *string                   `json:"username,omitempty"`
-	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
+	Database             *string                   `json:"database,omitempty" webhook:"inmutable"`
+	Username             *string                   `json:"username,omitempty" webhook:"inmutable"`
+	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutable"`
 
 	// +kubebuilder:validation:Required
-	Image            Image                         `json:"image"`
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	Image            Image                         `json:"image" webhook:"inmutable"`
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 
 	// +kubebuilder:default=3306
 	Port int32 `json:"port,omitempty"`
 
 	// +kubebuilder:validation:Required
-	Storage Storage `json:"storage"`
+	Storage Storage `json:"storage" webhook:"inmutable"`
 
-	BootstrapFromBackup *BootstrapFromBackup `json:"bootstrapFromBackup,omitempty"`
+	BootstrapFromBackup *BootstrapFromBackup `json:"bootstrapFromBackup,omitempty" webhook:"inmutable"`
 
 	Metrics *Metrics `json:"metrics,omitempty"`
 

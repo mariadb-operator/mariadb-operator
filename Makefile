@@ -118,7 +118,7 @@ install: manifests kustomize install-prom install-samples ## Install CRDs into t
 PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0
 .PHONY: install-prom
 install-prom: ## Install Prometheus CRDs into the K8s cluster specified in ~/.kube/config.
-	kubectl apply -f https://raw.githubusercontent.com/prometheus-community/helm-charts/$(PROMETHEUS_VERSION)/charts/kube-prometheus-stack/crds/crd-podmonitors.yaml
+	kubectl apply -f https://raw.githubusercontent.com/prometheus-community/helm-charts/$(PROMETHEUS_VERSION)/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml
 
 .PHONY: install-samples
 install-samples: ## Install sample configuration.
