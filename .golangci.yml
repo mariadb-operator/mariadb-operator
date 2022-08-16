@@ -1,6 +1,6 @@
 linters-settings:
   gocyclo:
-    min-complexity: 15
+    min-complexity: 20
   lll:
     line-length: 140
   misspell:
