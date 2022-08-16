@@ -25,18 +25,18 @@ import (
 // GrantMariaDBSpec defines the desired state of GrantMariaDB
 type GrantMariaDBSpec struct {
 	// +kubebuilder:validation:Required
-	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef"`
+	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
-	Privileges []string `json:"privileges"`
+	Privileges []string `json:"privileges" webhook:"inmutable"`
 	// +kubebuilder:default=*
-	Database string `json:"database,omitempty"`
+	Database string `json:"database,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=*
-	Table string `json:"table,omitempty"`
+	Table string `json:"table,omitempty" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
-	Username string `json:"username"`
+	Username string `json:"username" webhook:"inmutable"`
 	// +kubebuilder:default=false
-	GrantOption bool `json:"grantOption,omitempty"`
+	GrantOption bool `json:"grantOption,omitempty" webhook:"inmutable"`
 }
 
 // GrantMariaDBStatus defines the observed state of GrantMariaDB

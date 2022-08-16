@@ -55,6 +55,9 @@ resources:
   kind: GrantMariaDB
   path: github.com/mmontes11/mariadb-operator/api/v1alpha1
   version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
