@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("DatabaseMariaDB webhook", func() {
@@ -32,7 +33,7 @@ var _ = Describe("DatabaseMariaDB webhook", func() {
 				Name:      "database-mariadb-webhook",
 				Namespace: testNamespace,
 			}
-			initialDatabase := DatabaseMariaDB{
+			database := DatabaseMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
@@ -45,27 +46,52 @@ var _ = Describe("DatabaseMariaDB webhook", func() {
 					Collate:      "utf8_general_ci",
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &initialDatabase)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
 
-			By("Updating MariaDBRef")
-			database := initialDatabase.DeepCopy()
-			database.Spec.MariaDBRef = corev1.LocalObjectReference{
-				Name: "another-mariadb",
+			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
+			// https://github.com/mmontes11/mariadb-operator/issues/3
+			tt := []struct {
+				by      string
+				patchFn func(mdb *DatabaseMariaDB)
+				wantErr bool
+			}{
+				{
+					by: "Updating MariaDBRef",
+					patchFn: func(dmdb *DatabaseMariaDB) {
+						dmdb.Spec.MariaDBRef.Name = "another-mariadb"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating CharacterSet",
+					patchFn: func(dmdb *DatabaseMariaDB) {
+						dmdb.Spec.CharacterSet = "utf16"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating Collate",
+					patchFn: func(dmdb *DatabaseMariaDB) {
+						dmdb.Spec.Collate = "latin2_general_ci"
+					},
+					wantErr: true,
+				},
 			}
-			err := k8sClient.Update(testCtx, database)
-			Expect(err).To(HaveOccurred())
 
-			By("Updating CharacterSet")
-			database = initialDatabase.DeepCopy()
-			database.Spec.CharacterSet = "utf16"
-			err = k8sClient.Update(testCtx, database)
-			Expect(err).To(HaveOccurred())
+			for _, t := range tt {
+				By(t.by)
+				Expect(k8sClient.Get(testCtx, key, &database)).To(Succeed())
 
-			By("Updating Collate")
-			database = initialDatabase.DeepCopy()
-			database.Spec.Collate = "latin2_general_ci"
-			err = k8sClient.Update(testCtx, database)
-			Expect(err).To(HaveOccurred())
+				patch := client.MergeFrom(database.DeepCopy())
+				t.patchFn(&database)
+
+				err := k8sClient.Patch(testCtx, &database, patch)
+				if t.wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
 		})
 	})
 })

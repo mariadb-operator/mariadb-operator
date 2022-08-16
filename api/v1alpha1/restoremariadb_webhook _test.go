@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("RestoreMariaDB webhook", func() {
@@ -33,7 +34,7 @@ var _ = Describe("RestoreMariaDB webhook", func() {
 				Name:      "restore-mariadb-webhook",
 				Namespace: testNamespace,
 			}
-			initialRestore := RestoreMariaDB{
+			restore := RestoreMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
@@ -54,44 +55,70 @@ var _ = Describe("RestoreMariaDB webhook", func() {
 					RestartPolicy: corev1.RestartPolicyOnFailure,
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &initialRestore)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &restore)).To(Succeed())
 
-			By("Updating BackoffLimit")
-			restore := initialRestore.DeepCopy()
-			restore.Spec.BackoffLimit = 20
-			Expect(k8sClient.Update(testCtx, restore)).To(Succeed())
-
-			By("Updating MariaDBRef")
-			restore = initialRestore.DeepCopy()
-			restore.Spec.MariaDBRef = corev1.LocalObjectReference{
-				Name: "another-mariadb",
-			}
-			err := k8sClient.Update(testCtx, restore)
-			Expect(err).To(HaveOccurred())
-
-			By("Updating BackupRef")
-			restore = initialRestore.DeepCopy()
-			restore.Spec.BackupRef = corev1.LocalObjectReference{
-				Name: "another-backup",
-			}
-			err = k8sClient.Update(testCtx, restore)
-			Expect(err).To(HaveOccurred())
-
-			By("Updating RestartPolicy")
-			restore = initialRestore.DeepCopy()
-			restore.Spec.RestartPolicy = corev1.RestartPolicyNever
-			err = k8sClient.Update(testCtx, restore)
-			Expect(err).To(HaveOccurred())
-
-			By("Updating Resources")
-			restore = initialRestore.DeepCopy()
-			restore.Spec.Resources = &corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					"cpu": resource.MustParse("200m"),
+			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
+			// https://github.com/mmontes11/mariadb-operator/issues/3
+			tt := []struct {
+				by      string
+				patchFn func(mdb *RestoreMariaDB)
+				wantErr bool
+			}{
+				{
+					by: "Updating BackoffLimit",
+					patchFn: func(rmdb *RestoreMariaDB) {
+						rmdb.Spec.BackoffLimit = 20
+					},
+					wantErr: false,
+				},
+				{
+					by: "Updating MariaDBRef",
+					patchFn: func(rmdb *RestoreMariaDB) {
+						rmdb.Spec.MariaDBRef.Name = "another-mariadb"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating BackupRef",
+					patchFn: func(rmdb *RestoreMariaDB) {
+						rmdb.Spec.BackupRef.Name = "another-backup"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating RestartPolicy",
+					patchFn: func(rmdb *RestoreMariaDB) {
+						rmdb.Spec.RestartPolicy = corev1.RestartPolicyNever
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating Resources",
+					patchFn: func(rmdb *RestoreMariaDB) {
+						rmdb.Spec.Resources = &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("200m"),
+							},
+						}
+					},
+					wantErr: true,
 				},
 			}
-			err = k8sClient.Update(testCtx, restore)
-			Expect(err).To(HaveOccurred())
+
+			for _, t := range tt {
+				By(t.by)
+				Expect(k8sClient.Get(testCtx, key, &restore)).To(Succeed())
+
+				patch := client.MergeFrom(restore.DeepCopy())
+				t.patchFn(&restore)
+
+				err := k8sClient.Patch(testCtx, &restore, patch)
+				if t.wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
 		})
 	})
 })

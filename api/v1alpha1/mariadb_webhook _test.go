@@ -105,8 +105,7 @@ var _ = Describe("MariaDB webhook", func() {
 			Expect(k8sClient.Create(testCtx, &mariaDb)).To(Succeed())
 
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/kubernetes-sigs/kubebuilder/issues/2532
-			// https://onsi.github.io/ginkgo/#table-specs-patterns
+			// https://github.com/mmontes11/mariadb-operator/issues/3
 			tt := []struct {
 				by      string
 				patchFn func(mdb *MariaDB)

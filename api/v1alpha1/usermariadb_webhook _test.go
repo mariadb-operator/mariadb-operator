@@ -22,14 +22,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("BackupMariaDB webhook", func() {
-	Context("When updating a BackupMariaDB", func() {
+var _ = Describe("UserMariaDB webhook", func() {
+	Context("When updating a UserMariaDB", func() {
 		It("Should validate", func() {
-			By("Creating BackupMariaDB")
+			By("Creating UserMariaDB")
 			key := types.NamespacedName{
-				Name:      "backup-mariadb-webhook",
+				Name:      "user-mariadb-webhook",
 				Namespace: testNamespace,
 			}
 			initialUser := UserMariaDB{
@@ -43,36 +44,59 @@ var _ = Describe("BackupMariaDB webhook", func() {
 					},
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "backup-mariadb-webhook-root",
+							Name: "user-mariadb-webhook-root",
 						},
-						Key: "passowrd",
+						Key: "password",
 					},
 					MaxUserConnections: 10,
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &initialUser)).To(Succeed())
 
-			By("Updating MariaDBRef")
-			user := initialUser.DeepCopy()
-			user.Spec.MariaDBRef = corev1.LocalObjectReference{
-				Name: "another-mariadb",
+			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
+			// https://github.com/mmontes11/mariadb-operator/issues/3
+			tt := []struct {
+				by      string
+				patchFn func(mdb *UserMariaDB)
+				wantErr bool
+			}{
+				{
+					by: "Updating MariaDBRef",
+					patchFn: func(umdb *UserMariaDB) {
+						umdb.Spec.MariaDBRef.Name = "another-mariadb"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating PasswordSecretKeyRef",
+					patchFn: func(umdb *UserMariaDB) {
+						umdb.Spec.PasswordSecretKeyRef.Name = "another-secret"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating MaxUserConnections",
+					patchFn: func(umdb *UserMariaDB) {
+						umdb.Spec.MaxUserConnections = 20
+					},
+					wantErr: true,
+				},
 			}
-			err := k8sClient.Update(testCtx, user)
-			Expect(err).To(HaveOccurred())
 
-			By("Updating PasswordSecretKeyRef")
-			user = initialUser.DeepCopy()
-			user.Spec.MariaDBRef = corev1.LocalObjectReference{
-				Name: "another-mariadb",
+			for _, t := range tt {
+				By(t.by)
+				Expect(k8sClient.Get(testCtx, key, &initialUser)).To(Succeed())
+
+				patch := client.MergeFrom(initialUser.DeepCopy())
+				t.patchFn(&initialUser)
+
+				err := k8sClient.Patch(testCtx, &initialUser, patch)
+				if t.wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
 			}
-			err = k8sClient.Update(testCtx, user)
-			Expect(err).To(HaveOccurred())
-
-			By("Updating MaxUserConnections")
-			user = initialUser.DeepCopy()
-			user.Spec.MaxUserConnections = 20
-			err = k8sClient.Update(testCtx, user)
-			Expect(err).To(HaveOccurred())
 		})
 	})
 })

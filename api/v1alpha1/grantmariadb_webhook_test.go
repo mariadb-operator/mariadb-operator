@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("GrantMariaDB webhook", func() {
@@ -32,7 +33,7 @@ var _ = Describe("GrantMariaDB webhook", func() {
 				Name:      "grant-mariadb-webhook",
 				Namespace: testNamespace,
 			}
-			initialGrant := GrantMariaDB{
+			grant := GrantMariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
@@ -50,48 +51,76 @@ var _ = Describe("GrantMariaDB webhook", func() {
 					GrantOption: false,
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &initialGrant)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &grant)).To(Succeed())
 
-			By("Updating MariaDBRef")
-			grant := initialGrant.DeepCopy()
-			grant.Spec.MariaDBRef = corev1.LocalObjectReference{
-				Name: "another-mariadb",
+			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
+			// https://github.com/mmontes11/mariadb-operator/issues/3
+			tt := []struct {
+				by      string
+				patchFn func(mdb *GrantMariaDB)
+				wantErr bool
+			}{
+				{
+					by: "Updating MariaDBRef",
+					patchFn: func(gmdb *GrantMariaDB) {
+						gmdb.Spec.MariaDBRef.Name = "another-mariadb"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating Privileges",
+					patchFn: func(gmdb *GrantMariaDB) {
+						gmdb.Spec.Privileges = []string{
+							"SELECT",
+							"UPDATE",
+						}
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating Database",
+					patchFn: func(gmdb *GrantMariaDB) {
+						gmdb.Spec.Database = "bar"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating Table",
+					patchFn: func(gmdb *GrantMariaDB) {
+						gmdb.Spec.Table = "bar"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating Username",
+					patchFn: func(gmdb *GrantMariaDB) {
+						gmdb.Spec.Username = "bar"
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating GrantOption",
+					patchFn: func(gmdb *GrantMariaDB) {
+						gmdb.Spec.GrantOption = true
+					},
+					wantErr: true,
+				},
 			}
-			err := k8sClient.Update(testCtx, grant)
-			Expect(err).To(HaveOccurred())
 
-			By("Updating Privileges")
-			grant = initialGrant.DeepCopy()
-			grant.Spec.Privileges = []string{
-				"SELECT",
-				"UPDATE",
+			for _, t := range tt {
+				By(t.by)
+				Expect(k8sClient.Get(testCtx, key, &grant)).To(Succeed())
+
+				patch := client.MergeFrom(grant.DeepCopy())
+				t.patchFn(&grant)
+
+				err := k8sClient.Patch(testCtx, &grant, patch)
+				if t.wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
 			}
-			err = k8sClient.Update(testCtx, grant)
-			Expect(err).To(HaveOccurred())
-
-			By("Updating Database")
-			grant = initialGrant.DeepCopy()
-			grant.Spec.Database = "bar"
-			err = k8sClient.Update(testCtx, grant)
-			Expect(err).To(HaveOccurred())
-
-			By("Updating Table")
-			grant = initialGrant.DeepCopy()
-			grant.Spec.Table = "bar"
-			err = k8sClient.Update(testCtx, grant)
-			Expect(err).To(HaveOccurred())
-
-			By("Updating Username")
-			grant = initialGrant.DeepCopy()
-			grant.Spec.Username = "bar"
-			err = k8sClient.Update(testCtx, grant)
-			Expect(err).To(HaveOccurred())
-
-			By("Updating GrantOption")
-			grant = initialGrant.DeepCopy()
-			grant.Spec.GrantOption = true
-			err = k8sClient.Update(testCtx, grant)
-			Expect(err).To(HaveOccurred())
 		})
 	})
 })
