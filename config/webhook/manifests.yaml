@@ -85,3 +85,23 @@ webhooks:
     resources:
     - restoremariadbs
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-database-mmontes-io-v1alpha1-usermariadb
+  failurePolicy: Fail
+  name: vusermariadb.kb.io
+  rules:
+  - apiGroups:
+    - database.mmontes.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - usermariadbs
+  sideEffects: None
