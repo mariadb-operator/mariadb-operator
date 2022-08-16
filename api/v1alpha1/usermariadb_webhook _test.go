@@ -26,7 +26,7 @@ import (
 
 var _ = Describe("BackupMariaDB webhook", func() {
 	Context("When updating a BackupMariaDB", func() {
-		FIt("Should validate", func() {
+		It("Should validate", func() {
 			By("Creating BackupMariaDB")
 			key := types.NamespacedName{
 				Name:      "backup-mariadb-webhook",

@@ -26,7 +26,7 @@ import (
 
 var _ = Describe("GrantMariaDB webhook", func() {
 	Context("When updating a GrantMariaDB", func() {
-		FIt("Should validate", func() {
+		It("Should validate", func() {
 			By("Creating GrantMariaDB")
 			key := types.NamespacedName{
 				Name:      "grant-mariadb-webhook",
