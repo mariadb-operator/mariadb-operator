@@ -4,6 +4,7 @@ import (
 	"time"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -209,6 +210,66 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &noBackupMariaDb)).To(Succeed())
+		})
+	})
+
+	Context("When updating a MariaDB", func() {
+		It("Should reconcile", func() {
+			By("Performing update")
+			updateMariaDBKey := types.NamespacedName{
+				Name:      "test-update-mariadb",
+				Namespace: testNamespace,
+			}
+			updateMariaDB := databasev1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      updateMariaDBKey.Name,
+					Namespace: updateMariaDBKey.Namespace,
+				},
+				Spec: databasev1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testRootPwdKey.Name,
+						},
+						Key: testRootPwdSecretKey,
+					},
+					Image: databasev1alpha1.Image{
+						Repository: "mariadb",
+						Tag:        "10.7.4",
+					},
+					Storage: databasev1alpha1.Storage{
+						ClassName: testStorageClass,
+						Size:      testStorageSize,
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &updateMariaDB)).To(Succeed())
+			updateMariaDB.Spec.Port = 3307
+			Expect(k8sClient.Update(testCtx, &updateMariaDB)).To(Succeed())
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
+					return false
+				}
+				return updateMariaDB.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting port to be updated in StatefulSet")
+			var sts appsv1.StatefulSet
+			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &sts)).To(Succeed())
+			containerPort, err := builder.GetSTSPort(&sts)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(containerPort.ContainerPort).To(BeEquivalentTo(3307))
+
+			By("Expecting port to be updated in Service")
+			var svc corev1.Service
+			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &svc)).To(Succeed())
+			svcPort, err := builder.GetServicePort(&svc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(svcPort.Port).To(BeEquivalentTo(3307))
+
+			By("Deleting MariaDB")
+			Expect(k8sClient.Delete(testCtx, &updateMariaDB)).To(Succeed())
 		})
 	})
 })

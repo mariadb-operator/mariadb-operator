@@ -108,45 +108,63 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	key types.NamespacedName) error {
-	var existingSts appsv1.StatefulSet
-	if err := r.Get(ctx, key, &existingSts); err == nil {
-		return nil
-	}
 
 	var dsn *corev1.SecretKeySelector
 	if mariadb.Spec.Metrics != nil {
 		var err error
-		dsn, err = r.createMetricsCredentials(ctx, mariadb)
+		dsn, err = r.reconcileMetricsCredentials(ctx, mariadb)
 		if err != nil {
 			return fmt.Errorf("error creating metrics credentials: %v", err)
 		}
 	}
 
-	sts, err := r.Builder.BuildStatefulSet(mariadb, key, dsn)
+	desiredSts, err := r.Builder.BuildStatefulSet(mariadb, key, dsn)
 	if err != nil {
 		return fmt.Errorf("error building StatefulSet: %v", err)
 	}
 
-	if err := r.Create(ctx, sts); err != nil {
-		return fmt.Errorf("error creating StatefulSet: %v", err)
+	var existingSts appsv1.StatefulSet
+	if err := r.Get(ctx, key, &existingSts); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error getting StatefulSet: %v", err)
+		}
+		if err := r.Create(ctx, desiredSts); err != nil {
+			return fmt.Errorf("error creating StatefulSet: %v", err)
+		}
+	}
+
+	patch := client.MergeFrom(existingSts.DeepCopy())
+	existingSts.Spec.Template = desiredSts.Spec.Template
+
+	if err := r.Patch(ctx, &existingSts, patch); err != nil {
+		return fmt.Errorf("error patching StatefulSet: %v", err)
 	}
 	return nil
 }
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	key types.NamespacedName) error {
-	var existingSvc corev1.Service
-	if err := r.Get(ctx, key, &existingSvc); err == nil {
-		return nil
-	}
 
-	svc, err := r.Builder.BuildService(mariadb, key)
+	desiredSvc, err := r.Builder.BuildService(mariadb, key)
 	if err != nil {
 		return fmt.Errorf("error building Service: %v", err)
 	}
 
-	if err := r.Create(ctx, svc); err != nil {
-		return fmt.Errorf("error creating Service: %v", err)
+	var existingSvc corev1.Service
+	if err := r.Get(ctx, key, &existingSvc); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error getting Service: %v", err)
+		}
+		if err := r.Create(ctx, desiredSvc); err != nil {
+			return fmt.Errorf("error creating Service: %v", err)
+		}
+	}
+
+	patch := client.MergeFrom(existingSvc.DeepCopy())
+	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
+
+	if err := r.Patch(ctx, &existingSvc, patch); err != nil {
+		return fmt.Errorf("error patching Service: %v", err)
 	}
 	return nil
 }

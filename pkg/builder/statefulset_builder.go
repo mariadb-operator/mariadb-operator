@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -31,6 +32,19 @@ func GetPVCKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
 		Name:      fmt.Sprintf("%s-%s-0", stsStorageVolume, mariadb.Name),
 		Namespace: mariadb.Namespace,
 	}
+}
+
+func GetSTSPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
+	for _, c := range sts.Spec.Template.Spec.Containers {
+		if c.Name == mariaDbContainerName {
+			for _, p := range c.Ports {
+				if p.Name == mariaDbPortName {
+					return &p, nil
+				}
+			}
+		}
+	}
+	return nil, errors.New("StatefulSet port not found")
 }
 
 func (b *Builder) BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName,

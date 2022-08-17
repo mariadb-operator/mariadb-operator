@@ -42,7 +42,7 @@ var (
 	dsnSecretKey      = "dsn"
 )
 
-func (r *MariaDBReconciler) createMetricsCredentials(ctx context.Context,
+func (r *MariaDBReconciler) reconcileMetricsCredentials(ctx context.Context,
 	mariaDb *databasev1alpha1.MariaDB) (*corev1.SecretKeySelector, error) {
 	user, err := r.createMetricsUser(ctx, mariaDb)
 	if err != nil {

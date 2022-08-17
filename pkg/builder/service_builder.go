@@ -12,6 +12,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+func GetServicePort(svc *corev1.Service) (*v1.ServicePort, error) {
+	for _, p := range svc.Spec.Ports {
+		if p.Name == mariaDbPortName {
+			return &p, nil
+		}
+	}
+	return nil, fmt.Errorf("Service port not found")
+}
+
 func (b *Builder) BuildService(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName) (*corev1.Service, error) {
 	serviceLabels :=
 		labels.NewLabelsBuilder().
