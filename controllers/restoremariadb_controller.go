@@ -24,6 +24,7 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/job"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +41,7 @@ type RestoreMariaDBReconciler struct {
 	Builder           *builder.Builder
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *conditions.Complete
+	JobReconciler     *job.JobReconciler
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=restoremariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -55,7 +57,7 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	var jobErr *multierror.Error
-	err := r.createJob(ctx, &restore, req.NamespacedName)
+	err := r.reconcileJob(ctx, &restore, req.NamespacedName)
 	jobErr = multierror.Append(jobErr, err)
 
 	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)
@@ -75,12 +77,8 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *RestoreMariaDBReconciler) createJob(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
+func (r *RestoreMariaDBReconciler) reconcileJob(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
 	key types.NamespacedName) error {
-	var existingJob batchv1.Job
-	if err := r.Get(ctx, key, &existingJob); err == nil {
-		return nil
-	}
 
 	mariadb, err := r.RefResolver.GetMariaDB(ctx, restore.Spec.MariaDBRef, restore.Namespace)
 	if err != nil {
@@ -91,13 +89,13 @@ func (r *RestoreMariaDBReconciler) createJob(ctx context.Context, restore *datab
 		return fmt.Errorf("error getting BackupMariaDB: %v", err)
 	}
 
-	job, err := r.Builder.BuildRestoreJob(restore, mariadb, backup, key)
+	desiredJob, err := r.Builder.BuildRestoreJob(restore, mariadb, backup, key)
 	if err != nil {
 		return fmt.Errorf("error building restore Job: %v", err)
 	}
 
-	if err := r.Create(ctx, job); err != nil {
-		return fmt.Errorf("error creating Job: %v", err)
+	if err := r.JobReconciler.Reconcile(ctx, key, desiredJob); err != nil {
+		return fmt.Errorf("error reconciling Job: %v", err)
 	}
 	return nil
 }

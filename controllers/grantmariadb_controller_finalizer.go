@@ -23,7 +23,7 @@ import (
 	"time"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/controllers/template"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/template"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"

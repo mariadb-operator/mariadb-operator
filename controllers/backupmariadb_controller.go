@@ -24,6 +24,7 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/job"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -42,6 +43,7 @@ type BackupMariaDBReconciler struct {
 	Builder           *builder.Builder
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *conditions.Complete
+	JobReconciler     *job.JobReconciler
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=backupmariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -57,7 +59,7 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	var pvcErr *multierror.Error
-	if err := r.createPVC(ctx, &backup, req.NamespacedName); err != nil {
+	if err := r.reconcilePVC(ctx, &backup, req.NamespacedName); err != nil {
 		pvcErr = multierror.Append(pvcErr, err)
 
 		err = r.patchStatus(ctx, &backup, r.ConditionComplete.FailedPatcher("Error creating PVC"))
@@ -67,7 +69,7 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	var jobErr *multierror.Error
-	err := r.createJob(ctx, &backup, req.NamespacedName)
+	err := r.reconcileJob(ctx, &backup, req.NamespacedName)
 	jobErr = multierror.Append(jobErr, err)
 
 	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)
@@ -87,7 +89,7 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{}, nil
 }
 
-func (r *BackupMariaDBReconciler) createPVC(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
+func (r *BackupMariaDBReconciler) reconcilePVC(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
 	key types.NamespacedName) error {
 	var existingPvc v1.PersistentVolumeClaim
 	if err := r.Get(ctx, key, &existingPvc); err == nil {
@@ -105,25 +107,21 @@ func (r *BackupMariaDBReconciler) createPVC(ctx context.Context, backup *databas
 	return nil
 }
 
-func (r *BackupMariaDBReconciler) createJob(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
+func (r *BackupMariaDBReconciler) reconcileJob(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
 	key types.NamespacedName) error {
-	var existingJob batchv1.Job
-	if err := r.Get(ctx, key, &existingJob); err == nil {
-		return nil
-	}
 
 	mariadb, err := r.RefResolver.GetMariaDB(ctx, backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting MariaDB: %v", err)
 	}
 
-	job, err := r.Builder.BuildBackupJob(backup, mariadb, key)
+	desiredJob, err := r.Builder.BuildBackupJob(backup, mariadb, key)
 	if err != nil {
 		return fmt.Errorf("error building backup Job: %v", err)
 	}
 
-	if err := r.Create(ctx, job); err != nil {
-		return fmt.Errorf("error creating Job: %v", err)
+	if err := r.JobReconciler.Reconcile(ctx, key, desiredJob); err != nil {
+		return fmt.Errorf("error reconciling Job: %v", err)
 	}
 	return nil
 }
