@@ -148,28 +148,29 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "DatabaseMariaDB")
 		os.Exit(1)
 	}
-	if err = (&databasev1alpha1.RestoreMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "RestoreMariaDB")
+
+	if err = (&databasev1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MariaDB")
 		os.Exit(1)
 	}
 	if err = (&databasev1alpha1.BackupMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "BackupMariaDB")
 		os.Exit(1)
 	}
-	if err = (&databasev1alpha1.DatabaseMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "DatabaseMariaDB")
-		os.Exit(1)
-	}
-	if err = (&databasev1alpha1.GrantMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "GrantMariaDB")
+	if err = (&databasev1alpha1.RestoreMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "RestoreMariaDB")
 		os.Exit(1)
 	}
 	if err = (&databasev1alpha1.UserMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "UserMariaDB")
 		os.Exit(1)
 	}
-	if err = (&databasev1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MariaDB")
+	if err = (&databasev1alpha1.GrantMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "GrantMariaDB")
+		os.Exit(1)
+	}
+	if err = (&databasev1alpha1.DatabaseMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "DatabaseMariaDB")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
