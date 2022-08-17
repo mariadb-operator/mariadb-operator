@@ -6,6 +6,36 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - pvc
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - svc
+  verbs:
+  - create
+  - patch
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - sts
+  verbs:
+  - create
+  - patch
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - patch
+  - watch
+- apiGroups:
   - database.mmontes.io
   resources:
   - backupmariadbs
@@ -17,12 +47,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - database.mmontes.io
-  resources:
-  - backupmariadbs/finalizers
-  verbs:
-  - update
 - apiGroups:
   - database.mmontes.io
   resources:
@@ -124,12 +148,6 @@ rules:
 - apiGroups:
   - database.mmontes.io
   resources:
-  - restoremariadbs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - database.mmontes.io
-  resources:
   - restoremariadbs/status
   verbs:
   - get
@@ -161,3 +179,11 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - create
+  - patch
+  - watch

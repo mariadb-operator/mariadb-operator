@@ -53,6 +53,10 @@ type MariaDBReconcilePhase struct {
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=apps,resources=sts,verbs=watch;create;patch
+//+kubebuilder:rbac:groups="",resources=svc,verbs=watch;create;patch
+//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=watch;create;patch
+//+kubebuilder:rbac:groups=database.mmontes.io,resources=restoremariadbs,verbs=watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -320,5 +324,6 @@ func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
 		Owns(&databasev1alpha1.RestoreMariaDB{}).
+		Owns(&monitoringv1.ServiceMonitor{}).
 		Complete(r)
 }
