@@ -1,7 +1,7 @@
 apiVersion: database.mmontes.io/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-bootstrap-backup
 spec:
   rootPasswordSecretKeyRef:
     name: mariadb

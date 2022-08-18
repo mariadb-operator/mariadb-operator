@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= mmontes11/mariadb-operator:latest
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -13,7 +13,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 .PHONY: all
-all: build
+all: help
 
 ##@ General
 
@@ -22,42 +22,6 @@ help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
-
-CLUSTER ?= mdb
-KIND_IMAGE ?= kindest/node:v1.23.6
-.PHONY: cluster
-cluster: kind ## Create the kind cluster.
-	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)
-
-.PHONY: cluster-delete
-cluster-delete: kind ## Delete the kind cluster.
-	$(KIND) delete cluster --name $(CLUSTER)
-
-.PHONY: cluster-ctx
-cluster-ctx: ## Sets cluster context.
-	@kubectl config use-context kind-$(CLUSTER)
-
-.PHONY: cluster-prom
-cluster-prom: cluster-ctx ## Install kube-prometheus-stack helm chart.
-	@./scripts/install_prometheus.sh
-
-MARIADB_IP ?= 127.0.0.1
-MARIADB_HOST ?= mariadb
-.PHONY: mdb-add-host
-mdb-add-host: ## Add mariadb host to /etc/hosts.
-	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_HOST)
-
-MARIADB_TEST_HOST ?= mariadb-test
-.PHONY: mdb-add-test-host
-mdb-add-test-host: ## Add mariadb test hosts to /etc/hosts.
-	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_TEST_HOST)
-
-MARIADB_NAMESPACE ?= default
-MARIADB_POD ?= mariadb-0
-MARIADB_PORT ?= 3306
-.PHONY: mdb-port-forward
-mdb-port-forward: ## Port forward mariadb pod.
-	@kubectl port-forward -n $(MARIADB_NAMESPACE) $(MARIADB_POD) $(MARIADB_PORT)
 
 CERTS_DIR=/tmp/k8s-webhook-server/serving-certs
 certs: ## Generates development certificates.
@@ -79,6 +43,10 @@ generate-all: generate manifests install ## Generate code and manifests.
 lint: golangci-lint ## Lint.
 	$(GOLANGCI_LINT) run
 
+.PHONY: run
+run: manifests generate lint ## Run a controller from your host.
+	go run ./main.go
+
 .PHONY: test
 test: manifests generate envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
@@ -87,15 +55,47 @@ test: manifests generate envtest ## Run tests.
 cover: test ## Run tests and generate coverage.
 	@go tool cover -html=cover.out -o=cover.html
 
+##@ Cluster
+
+CLUSTER ?= mdb
+KIND_IMAGE ?= kindest/node:v1.23.6
+.PHONY: cluster
+cluster: kind ## Create the kind cluster.
+	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)
+
+.PHONY: cluster-delete
+cluster-delete: kind ## Delete the kind cluster.
+	$(KIND) delete cluster --name $(CLUSTER)
+
+.PHONY: cluster-ctx
+cluster-ctx: ## Sets cluster context.
+	@kubectl config use-context kind-$(CLUSTER)
+
+##@ Networking
+
+MARIADB_IP ?= 127.0.0.1
+MARIADB_HOST ?= mariadb
+.PHONY: mdb-add-host
+mdb-add-host: ## Add mariadb host to /etc/hosts.
+	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_HOST)
+
+MARIADB_TEST_HOST ?= mariadb-test
+.PHONY: mdb-add-test-host
+mdb-add-test-host: ## Add mariadb test hosts to /etc/hosts.
+	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_TEST_HOST)
+
+MARIADB_NAMESPACE ?= default
+MARIADB_POD ?= mariadb-0
+MARIADB_PORT ?= 3306
+.PHONY: mdb-port-forward
+mdb-port-forward: ## Port forward mariadb pod.
+	@kubectl port-forward -n $(MARIADB_NAMESPACE) $(MARIADB_POD) $(MARIADB_PORT)
+
 ##@ Build
 
 .PHONY: build
 build: generate ## Build manager binary.
 	go build -o bin/manager main.go
-
-.PHONY: run
-run: manifests generate lint ## Run a controller from your host.
-	go run ./main.go
 
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
@@ -112,32 +112,40 @@ ifndef ignore-not-found
 endif
 
 .PHONY: install
-install: manifests kustomize install-prom install-samples ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+install: cluster-ctx manifests kustomize install-prometheus-crds install-samples ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
 PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0
-.PHONY: install-prom
-install-prom: ## Install Prometheus CRDs into the K8s cluster specified in ~/.kube/config.
+.PHONY: install-prometheus-crds
+install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs into the K8s cluster specified in ~/.kube/config.
 	kubectl apply -f https://raw.githubusercontent.com/prometheus-community/helm-charts/$(PROMETHEUS_VERSION)/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml
 
+.PHONY: install-prometheus
+install-prometheus: cluster-ctx ## Install kube-prometheus-stack helm chart.
+	@./scripts/install_prometheus.sh
+
+.PHONY: install-cert-manager
+install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
+	@./scripts/install_cert_manager.sh
+
 .PHONY: install-samples
-install-samples: ## Install sample configuration.
+install-samples: cluster-ctx  ## Install sample configuration.
 	kubectl apply -f config/samples/config
 
 .PHONY: uninstall
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+uninstall: cluster-ctx manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: deploy
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+deploy: cluster-ctx manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+undeploy: cluster-ctx ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
-##@ Build Dependencies
+##@ Tooling
 
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin

@@ -1,0 +1,1923 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  name: backupmariadbs.database.mmontes.io
+spec:
+  group: database.mmontes.io
+  names:
+    kind: BackupMariaDB
+    listKind: BackupMariaDBList
+    plural: backupmariadbs
+    shortNames:
+      - bmdb
+    singular: backupmariadb
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Complete")].status
+          name: Complete
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Complete")].message
+          name: Status
+          type: string
+        - jsonPath: .spec.mariaDbRef.name
+          name: MariaDB
+          type: string
+        - jsonPath: .spec.storage.className
+          name: Storage Class
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: BackupMariaDB is the Schema for the backupmariadbs API
+          properties:
+            apiVersion:
+              description:
+                "APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+              type: string
+            kind:
+              description:
+                "Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: BackupMariaDBSpec defines the desired state of BackupMariaDB
+              properties:
+                backoffLimit:
+                  default: 5
+                  format: int32
+                  type: integer
+                mariaDbRef:
+                  description:
+                    LocalObjectReference contains enough information to let
+                    you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                  type: object
+                resources:
+                  description: ResourceRequirements describes the compute resource requirements.
+                  properties:
+                    limits:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description:
+                        "Limits describes the maximum amount of compute resources
+                        allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                      type: object
+                    requests:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description:
+                        "Requests describes the minimum amount of compute
+                        resources required. If Requests is omitted for a container,
+                        it defaults to Limits if that is explicitly specified, otherwise
+                        to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                      type: object
+                  type: object
+                restartPolicy:
+                  default: OnFailure
+                  description:
+                    RestartPolicy describes how the container should be restarted.
+                    Only one of the following restart policies may be specified. If
+                    none of the following policies is specified, the default one is
+                    RestartPolicyAlways.
+                  type: string
+                storage:
+                  properties:
+                    accessModes:
+                      default:
+                        - ReadWriteOnce
+                      items:
+                        type: string
+                      type: array
+                    className:
+                      type: string
+                    size:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                  required:
+                    - className
+                    - size
+                  type: object
+              required:
+                - mariaDbRef
+                - storage
+              type: object
+            status:
+              description: BackupMariaDBStatus defines the observed state of BackupMariaDB
+              properties:
+                conditions:
+                  items:
+                    description:
+                      "Condition contains details for one aspect of the current
+                      state of this API Resource. --- This struct is intended for direct
+                      use as an array at the field path .status.conditions.  For example,
+                      type FooStatus struct{ // Represents the observations of a foo's
+                      current state. // Known .status.conditions.type are: \"Available\",
+                      \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                      // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                      `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                      protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                    properties:
+                      lastTransitionTime:
+                        description:
+                          lastTransitionTime is the last time the condition
+                          transitioned from one status to another. This should be when
+                          the underlying condition changed.  If that is not known, then
+                          using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description:
+                          message is a human readable message indicating
+                          details about the transition. This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description:
+                          observedGeneration represents the .metadata.generation
+                          that the condition was set based upon. For instance, if .metadata.generation
+                          is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current
+                          state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description:
+                          reason contains a programmatic identifier indicating
+                          the reason for the condition's last transition. Producers
+                          of specific condition types may define expected values and
+                          meanings for this field, and whether the values are considered
+                          a guaranteed API. The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description:
+                          type of condition in CamelCase or in foo.example.com/CamelCase.
+                          --- Many .condition.type values are consistent across resources
+                          like Available, but because arbitrary conditions can be useful
+                          (see .node.status.conditions), the ability to deconflict is
+                          important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  name: databasemariadbs.database.mmontes.io
+spec:
+  group: database.mmontes.io
+  names:
+    kind: DatabaseMariaDB
+    listKind: DatabaseMariaDBList
+    plural: databasemariadbs
+    shortNames:
+      - dmdb
+    singular: databasemariadb
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].message
+          name: Status
+          type: string
+        - jsonPath: .spec.characterSet
+          name: CharSet
+          type: string
+        - jsonPath: .spec.collate
+          name: Collate
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: DatabaseMariaDB is the Schema for the databasemariadbs API
+          properties:
+            apiVersion:
+              description:
+                "APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+              type: string
+            kind:
+              description:
+                "Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: DatabaseMariaDBSpec defines the desired state of DatabaseMariaDB
+              properties:
+                characterSet:
+                  default: utf8
+                  type: string
+                collate:
+                  default: utf8_general_ci
+                  type: string
+                mariaDbRef:
+                  description:
+                    LocalObjectReference contains enough information to let
+                    you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                  type: object
+              required:
+                - mariaDbRef
+              type: object
+            status:
+              description: DatabaseMariaDBStatus defines the observed state of DatabaseMariaDB
+              properties:
+                conditions:
+                  items:
+                    description:
+                      "Condition contains details for one aspect of the current
+                      state of this API Resource. --- This struct is intended for direct
+                      use as an array at the field path .status.conditions.  For example,
+                      type FooStatus struct{ // Represents the observations of a foo's
+                      current state. // Known .status.conditions.type are: \"Available\",
+                      \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                      // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                      `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                      protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                    properties:
+                      lastTransitionTime:
+                        description:
+                          lastTransitionTime is the last time the condition
+                          transitioned from one status to another. This should be when
+                          the underlying condition changed.  If that is not known, then
+                          using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description:
+                          message is a human readable message indicating
+                          details about the transition. This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description:
+                          observedGeneration represents the .metadata.generation
+                          that the condition was set based upon. For instance, if .metadata.generation
+                          is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current
+                          state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description:
+                          reason contains a programmatic identifier indicating
+                          the reason for the condition's last transition. Producers
+                          of specific condition types may define expected values and
+                          meanings for this field, and whether the values are considered
+                          a guaranteed API. The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description:
+                          type of condition in CamelCase or in foo.example.com/CamelCase.
+                          --- Many .condition.type values are consistent across resources
+                          like Available, but because arbitrary conditions can be useful
+                          (see .node.status.conditions), the ability to deconflict is
+                          important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  name: exportermariadbs.database.mmontes.io
+spec:
+  group: database.mmontes.io
+  names:
+    kind: ExporterMariaDB
+    listKind: ExporterMariaDBList
+    plural: exportermariadbs
+    shortNames:
+      - emdb
+    singular: exportermariadb
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].message
+          name: Status
+          type: string
+        - jsonPath: .spec.mariaDbRef.name
+          name: MariaDB
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: ExporterMariaDB is the Schema for the exportermariadbs API
+          properties:
+            apiVersion:
+              description:
+                "APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+              type: string
+            kind:
+              description:
+                "Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: ExporterMariaDBSpec defines the desired state of ExporterMariaDB
+              properties:
+                image:
+                  properties:
+                    pullPolicy:
+                      default: IfNotPresent
+                      description:
+                        PullPolicy describes a policy for if/when to pull
+                        a container image
+                      type: string
+                    repository:
+                      type: string
+                    tag:
+                      default: latest
+                      type: string
+                  required:
+                    - repository
+                  type: object
+                imagePullSecrets:
+                  items:
+                    description:
+                      LocalObjectReference contains enough information to
+                      let you locate the referenced object inside the same namespace.
+                    properties:
+                      name:
+                        description:
+                          "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?"
+                        type: string
+                    type: object
+                  type: array
+                mariaDbRef:
+                  description:
+                    LocalObjectReference contains enough information to let
+                    you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                  type: object
+                resources:
+                  description: ResourceRequirements describes the compute resource requirements.
+                  properties:
+                    limits:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description:
+                        "Limits describes the maximum amount of compute resources
+                        allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                      type: object
+                    requests:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description:
+                        "Requests describes the minimum amount of compute
+                        resources required. If Requests is omitted for a container,
+                        it defaults to Limits if that is explicitly specified, otherwise
+                        to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                      type: object
+                  type: object
+              required:
+                - image
+                - mariaDbRef
+              type: object
+            status:
+              description: ExporterMariaDBStatus defines the observed state of ExporterMariaDB
+              properties:
+                conditions:
+                  items:
+                    description:
+                      "Condition contains details for one aspect of the current
+                      state of this API Resource. --- This struct is intended for direct
+                      use as an array at the field path .status.conditions.  For example,
+                      type FooStatus struct{ // Represents the observations of a foo's
+                      current state. // Known .status.conditions.type are: \"Available\",
+                      \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                      // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                      `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                      protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                    properties:
+                      lastTransitionTime:
+                        description:
+                          lastTransitionTime is the last time the condition
+                          transitioned from one status to another. This should be when
+                          the underlying condition changed.  If that is not known, then
+                          using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description:
+                          message is a human readable message indicating
+                          details about the transition. This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description:
+                          observedGeneration represents the .metadata.generation
+                          that the condition was set based upon. For instance, if .metadata.generation
+                          is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current
+                          state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description:
+                          reason contains a programmatic identifier indicating
+                          the reason for the condition's last transition. Producers
+                          of specific condition types may define expected values and
+                          meanings for this field, and whether the values are considered
+                          a guaranteed API. The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description:
+                          type of condition in CamelCase or in foo.example.com/CamelCase.
+                          --- Many .condition.type values are consistent across resources
+                          like Available, but because arbitrary conditions can be useful
+                          (see .node.status.conditions), the ability to deconflict is
+                          important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  name: grantmariadbs.database.mmontes.io
+spec:
+  group: database.mmontes.io
+  names:
+    kind: GrantMariaDB
+    listKind: GrantMariaDBList
+    plural: grantmariadbs
+    shortNames:
+      - gmdb
+    singular: grantmariadb
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].message
+          name: Status
+          type: string
+        - jsonPath: .spec.database
+          name: Database
+          type: string
+        - jsonPath: .spec.table
+          name: Table
+          type: string
+        - jsonPath: .spec.username
+          name: Username
+          type: string
+        - jsonPath: .spec.grantOption
+          name: GrantOpt
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: GrantMariaDB is the Schema for the grantmariadbs API
+          properties:
+            apiVersion:
+              description:
+                "APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+              type: string
+            kind:
+              description:
+                "Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: GrantMariaDBSpec defines the desired state of GrantMariaDB
+              properties:
+                database:
+                  default: "*"
+                  type: string
+                grantOption:
+                  default: false
+                  type: boolean
+                mariaDbRef:
+                  description:
+                    LocalObjectReference contains enough information to let
+                    you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                  type: object
+                privileges:
+                  items:
+                    type: string
+                  minItems: 1
+                  type: array
+                table:
+                  default: "*"
+                  type: string
+                username:
+                  type: string
+              required:
+                - mariaDbRef
+                - privileges
+                - username
+              type: object
+            status:
+              description: GrantMariaDBStatus defines the observed state of GrantMariaDB
+              properties:
+                conditions:
+                  items:
+                    description:
+                      "Condition contains details for one aspect of the current
+                      state of this API Resource. --- This struct is intended for direct
+                      use as an array at the field path .status.conditions.  For example,
+                      type FooStatus struct{ // Represents the observations of a foo's
+                      current state. // Known .status.conditions.type are: \"Available\",
+                      \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                      // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                      `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                      protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                    properties:
+                      lastTransitionTime:
+                        description:
+                          lastTransitionTime is the last time the condition
+                          transitioned from one status to another. This should be when
+                          the underlying condition changed.  If that is not known, then
+                          using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description:
+                          message is a human readable message indicating
+                          details about the transition. This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description:
+                          observedGeneration represents the .metadata.generation
+                          that the condition was set based upon. For instance, if .metadata.generation
+                          is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current
+                          state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description:
+                          reason contains a programmatic identifier indicating
+                          the reason for the condition's last transition. Producers
+                          of specific condition types may define expected values and
+                          meanings for this field, and whether the values are considered
+                          a guaranteed API. The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description:
+                          type of condition in CamelCase or in foo.example.com/CamelCase.
+                          --- Many .condition.type values are consistent across resources
+                          like Available, but because arbitrary conditions can be useful
+                          (see .node.status.conditions), the ability to deconflict is
+                          important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  name: mariadbs.database.mmontes.io
+spec:
+  group: database.mmontes.io
+  names:
+    kind: MariaDB
+    listKind: MariaDBList
+    plural: mariadbs
+    shortNames:
+      - mdb
+    singular: mariadb
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].message
+          name: Status
+          type: string
+        - jsonPath: .spec.storage.className
+          name: Storage Class
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: MariaDB is the Schema for the mariadbs API
+          properties:
+            apiVersion:
+              description:
+                "APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+              type: string
+            kind:
+              description:
+                "Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: MariaDBSpec defines the desired state of MariaDB
+              properties:
+                bootstrapFromBackup:
+                  properties:
+                    backupRef:
+                      description:
+                        LocalObjectReference contains enough information
+                        to let you locate the referenced object inside the same namespace.
+                      properties:
+                        name:
+                          description:
+                            "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            TODO: Add other useful fields. apiVersion, kind, uid?"
+                          type: string
+                      type: object
+                  required:
+                    - backupRef
+                  type: object
+                database:
+                  type: string
+                env:
+                  items:
+                    description:
+                      EnvVar represents an environment variable present in
+                      a Container.
+                    properties:
+                      name:
+                        description: Name of the environment variable. Must be a C_IDENTIFIER.
+                        type: string
+                      value:
+                        description:
+                          'Variable references $(VAR_NAME) are expanded using
+                          the previously defined environment variables in the container
+                          and any service environment variables. If a variable cannot
+                          be resolved, the reference in the input string will be unchanged.
+                          Double $$ are reduced to a single $, which allows for escaping
+                          the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the
+                          string literal "$(VAR_NAME)". Escaped references will never
+                          be expanded, regardless of whether the variable exists or
+                          not. Defaults to "".'
+                        type: string
+                      valueFrom:
+                        description:
+                          Source for the environment variable's value. Cannot
+                          be used if value is not empty.
+                        properties:
+                          configMapKeyRef:
+                            description: Selects a key of a ConfigMap.
+                            properties:
+                              key:
+                                description: The key to select.
+                                type: string
+                              name:
+                                description:
+                                  "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  TODO: Add other useful fields. apiVersion, kind, uid?"
+                                type: string
+                              optional:
+                                description:
+                                  Specify whether the ConfigMap or its key
+                                  must be defined
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          fieldRef:
+                            description:
+                              "Selects a field of the pod: supports metadata.name,
+                              metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                              spec.nodeName, spec.serviceAccountName, status.hostIP,
+                              status.podIP, status.podIPs."
+                            properties:
+                              apiVersion:
+                                description:
+                                  Version of the schema the FieldPath is
+                                  written in terms of, defaults to "v1".
+                                type: string
+                              fieldPath:
+                                description:
+                                  Path of the field to select in the specified
+                                  API version.
+                                type: string
+                            required:
+                              - fieldPath
+                            type: object
+                          resourceFieldRef:
+                            description:
+                              "Selects a resource of the container: only
+                              resources limits and requests (limits.cpu, limits.memory,
+                              limits.ephemeral-storage, requests.cpu, requests.memory
+                              and requests.ephemeral-storage) are currently supported."
+                            properties:
+                              containerName:
+                                description:
+                                  "Container name: required for volumes,
+                                  optional for env vars"
+                                type: string
+                              divisor:
+                                anyOf:
+                                  - type: integer
+                                  - type: string
+                                description:
+                                  Specifies the output format of the exposed
+                                  resources, defaults to "1"
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              resource:
+                                description: "Required: resource to select"
+                                type: string
+                            required:
+                              - resource
+                            type: object
+                          secretKeyRef:
+                            description: Selects a key of a secret in the pod's namespace
+                            properties:
+                              key:
+                                description:
+                                  The key of the secret to select from.  Must
+                                  be a valid secret key.
+                                type: string
+                              name:
+                                description:
+                                  "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  TODO: Add other useful fields. apiVersion, kind, uid?"
+                                type: string
+                              optional:
+                                description:
+                                  Specify whether the Secret or its key must
+                                  be defined
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                        type: object
+                    required:
+                      - name
+                    type: object
+                  type: array
+                envFrom:
+                  items:
+                    description: EnvFromSource represents the source of a set of ConfigMaps
+                    properties:
+                      configMapRef:
+                        description: The ConfigMap to select from
+                        properties:
+                          name:
+                            description:
+                              "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?"
+                            type: string
+                          optional:
+                            description: Specify whether the ConfigMap must be defined
+                            type: boolean
+                        type: object
+                      prefix:
+                        description:
+                          An optional identifier to prepend to each key in
+                          the ConfigMap. Must be a C_IDENTIFIER.
+                        type: string
+                      secretRef:
+                        description: The Secret to select from
+                        properties:
+                          name:
+                            description:
+                              "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?"
+                            type: string
+                          optional:
+                            description: Specify whether the Secret must be defined
+                            type: boolean
+                        type: object
+                    type: object
+                  type: array
+                image:
+                  properties:
+                    pullPolicy:
+                      default: IfNotPresent
+                      description:
+                        PullPolicy describes a policy for if/when to pull
+                        a container image
+                      type: string
+                    repository:
+                      type: string
+                    tag:
+                      default: latest
+                      type: string
+                  required:
+                    - repository
+                  type: object
+                imagePullSecrets:
+                  items:
+                    description:
+                      LocalObjectReference contains enough information to
+                      let you locate the referenced object inside the same namespace.
+                    properties:
+                      name:
+                        description:
+                          "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?"
+                        type: string
+                    type: object
+                  type: array
+                metrics:
+                  properties:
+                    exporter:
+                      properties:
+                        image:
+                          properties:
+                            pullPolicy:
+                              default: IfNotPresent
+                              description:
+                                PullPolicy describes a policy for if/when
+                                to pull a container image
+                              type: string
+                            repository:
+                              type: string
+                            tag:
+                              default: latest
+                              type: string
+                          required:
+                            - repository
+                          type: object
+                        resources:
+                          description:
+                            ResourceRequirements describes the compute resource
+                            requirements.
+                          properties:
+                            limits:
+                              additionalProperties:
+                                anyOf:
+                                  - type: integer
+                                  - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description:
+                                "Limits describes the maximum amount of compute
+                                resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                              type: object
+                            requests:
+                              additionalProperties:
+                                anyOf:
+                                  - type: integer
+                                  - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description:
+                                "Requests describes the minimum amount of
+                                compute resources required. If Requests is omitted for
+                                a container, it defaults to Limits if that is explicitly
+                                specified, otherwise to an implementation-defined value.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                              type: object
+                          type: object
+                      required:
+                        - image
+                      type: object
+                    serviceMonitor:
+                      properties:
+                        interval:
+                          default: "'10s'"
+                          type: string
+                        prometheusRelease:
+                          type: string
+                        scrapeTimeout:
+                          default: "'10s'"
+                          type: string
+                      required:
+                        - prometheusRelease
+                      type: object
+                  required:
+                    - exporter
+                    - serviceMonitor
+                  type: object
+                passwordSecretKeyRef:
+                  description: SecretKeySelector selects a key of a Secret.
+                  properties:
+                    key:
+                      description:
+                        The key of the secret to select from.  Must be a
+                        valid secret key.
+                      type: string
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                    optional:
+                      description: Specify whether the Secret or its key must be defined
+                      type: boolean
+                  required:
+                    - key
+                  type: object
+                port:
+                  default: 3306
+                  format: int32
+                  type: integer
+                resources:
+                  description: ResourceRequirements describes the compute resource requirements.
+                  properties:
+                    limits:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description:
+                        "Limits describes the maximum amount of compute resources
+                        allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                      type: object
+                    requests:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description:
+                        "Requests describes the minimum amount of compute
+                        resources required. If Requests is omitted for a container,
+                        it defaults to Limits if that is explicitly specified, otherwise
+                        to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                      type: object
+                  type: object
+                rootPasswordSecretKeyRef:
+                  description: SecretKeySelector selects a key of a Secret.
+                  properties:
+                    key:
+                      description:
+                        The key of the secret to select from.  Must be a
+                        valid secret key.
+                      type: string
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                    optional:
+                      description: Specify whether the Secret or its key must be defined
+                      type: boolean
+                  required:
+                    - key
+                  type: object
+                storage:
+                  properties:
+                    accessModes:
+                      default:
+                        - ReadWriteOnce
+                      items:
+                        type: string
+                      type: array
+                    className:
+                      type: string
+                    size:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                  required:
+                    - className
+                    - size
+                  type: object
+                username:
+                  type: string
+              required:
+                - image
+                - rootPasswordSecretKeyRef
+                - storage
+              type: object
+            status:
+              description: MariaDBStatus defines the observed state of MariaDB
+              properties:
+                conditions:
+                  items:
+                    description:
+                      "Condition contains details for one aspect of the current
+                      state of this API Resource. --- This struct is intended for direct
+                      use as an array at the field path .status.conditions.  For example,
+                      type FooStatus struct{ // Represents the observations of a foo's
+                      current state. // Known .status.conditions.type are: \"Available\",
+                      \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                      // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                      `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                      protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                    properties:
+                      lastTransitionTime:
+                        description:
+                          lastTransitionTime is the last time the condition
+                          transitioned from one status to another. This should be when
+                          the underlying condition changed.  If that is not known, then
+                          using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description:
+                          message is a human readable message indicating
+                          details about the transition. This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description:
+                          observedGeneration represents the .metadata.generation
+                          that the condition was set based upon. For instance, if .metadata.generation
+                          is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current
+                          state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description:
+                          reason contains a programmatic identifier indicating
+                          the reason for the condition's last transition. Producers
+                          of specific condition types may define expected values and
+                          meanings for this field, and whether the values are considered
+                          a guaranteed API. The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description:
+                          type of condition in CamelCase or in foo.example.com/CamelCase.
+                          --- Many .condition.type values are consistent across resources
+                          like Available, but because arbitrary conditions can be useful
+                          (see .node.status.conditions), the ability to deconflict is
+                          important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          required:
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  name: monitormariadbs.database.mmontes.io
+spec:
+  group: database.mmontes.io
+  names:
+    kind: MonitorMariaDB
+    listKind: MonitorMariaDBList
+    plural: monitormariadbs
+    shortNames:
+      - mmdb
+    singular: monitormariadb
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].message
+          name: Status
+          type: string
+        - jsonPath: .spec.mariaDbRef.name
+          name: MariaDB
+          type: string
+        - jsonPath: .spec.prometheusRelease
+          name: Prometheus
+          type: string
+        - jsonPath: .spec.interval
+          name: Interval
+          type: string
+        - jsonPath: .spec.scrapeTimeout
+          name: ScrapeTimeout
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: MonitorMariaDB is the Schema for the monitormariadbs API
+          properties:
+            apiVersion:
+              description:
+                "APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+              type: string
+            kind:
+              description:
+                "Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: MonitorMariaDBSpec defines the desired state of MonitorMariaDB
+              properties:
+                exporter:
+                  properties:
+                    image:
+                      properties:
+                        pullPolicy:
+                          default: IfNotPresent
+                          description:
+                            PullPolicy describes a policy for if/when to
+                            pull a container image
+                          type: string
+                        repository:
+                          type: string
+                        tag:
+                          default: latest
+                          type: string
+                      required:
+                        - repository
+                      type: object
+                    imagePullSecrets:
+                      items:
+                        description:
+                          LocalObjectReference contains enough information
+                          to let you locate the referenced object inside the same namespace.
+                        properties:
+                          name:
+                            description:
+                              "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?"
+                            type: string
+                        type: object
+                      type: array
+                    resources:
+                      description:
+                        ResourceRequirements describes the compute resource
+                        requirements.
+                      properties:
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description:
+                            "Limits describes the maximum amount of compute
+                            resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                          type: object
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description:
+                            "Requests describes the minimum amount of compute
+                            resources required. If Requests is omitted for a container,
+                            it defaults to Limits if that is explicitly specified, otherwise
+                            to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                          type: object
+                      type: object
+                  required:
+                    - image
+                  type: object
+                interval:
+                  default: "'10s'"
+                  type: string
+                mariaDbRef:
+                  description:
+                    LocalObjectReference contains enough information to let
+                    you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                  type: object
+                prometheusRelease:
+                  type: string
+                scrapeTimeout:
+                  default: "'10s'"
+                  type: string
+              required:
+                - exporter
+                - mariaDbRef
+                - prometheusRelease
+              type: object
+            status:
+              description: MonitorMariaDBStatus defines the observed state of MonitorMariaDB
+              properties:
+                conditions:
+                  items:
+                    description:
+                      "Condition contains details for one aspect of the current
+                      state of this API Resource. --- This struct is intended for direct
+                      use as an array at the field path .status.conditions.  For example,
+                      type FooStatus struct{ // Represents the observations of a foo's
+                      current state. // Known .status.conditions.type are: \"Available\",
+                      \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                      // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                      `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                      protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                    properties:
+                      lastTransitionTime:
+                        description:
+                          lastTransitionTime is the last time the condition
+                          transitioned from one status to another. This should be when
+                          the underlying condition changed.  If that is not known, then
+                          using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description:
+                          message is a human readable message indicating
+                          details about the transition. This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description:
+                          observedGeneration represents the .metadata.generation
+                          that the condition was set based upon. For instance, if .metadata.generation
+                          is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current
+                          state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description:
+                          reason contains a programmatic identifier indicating
+                          the reason for the condition's last transition. Producers
+                          of specific condition types may define expected values and
+                          meanings for this field, and whether the values are considered
+                          a guaranteed API. The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description:
+                          type of condition in CamelCase or in foo.example.com/CamelCase.
+                          --- Many .condition.type values are consistent across resources
+                          like Available, but because arbitrary conditions can be useful
+                          (see .node.status.conditions), the ability to deconflict is
+                          important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  name: restoremariadbs.database.mmontes.io
+spec:
+  group: database.mmontes.io
+  names:
+    kind: RestoreMariaDB
+    listKind: RestoreMariaDBList
+    plural: restoremariadbs
+    shortNames:
+      - rmdb
+    singular: restoremariadb
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Complete")].status
+          name: Complete
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Complete")].message
+          name: Status
+          type: string
+        - jsonPath: .spec.mariaDbRef.name
+          name: MariaDB
+          type: string
+        - jsonPath: .spec.backupRef.name
+          name: Backup
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: RestoreMariaDB is the Schema for the restoremariadbs API
+          properties:
+            apiVersion:
+              description:
+                "APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+              type: string
+            kind:
+              description:
+                "Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: RestoreMariaDBSpec defines the desired state of RestoreMariaDB
+              properties:
+                backoffLimit:
+                  default: 5
+                  format: int32
+                  type: integer
+                backupRef:
+                  description:
+                    LocalObjectReference contains enough information to let
+                    you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                  type: object
+                mariaDbRef:
+                  description:
+                    LocalObjectReference contains enough information to let
+                    you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                  type: object
+                resources:
+                  description: ResourceRequirements describes the compute resource requirements.
+                  properties:
+                    limits:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description:
+                        "Limits describes the maximum amount of compute resources
+                        allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                      type: object
+                    requests:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description:
+                        "Requests describes the minimum amount of compute
+                        resources required. If Requests is omitted for a container,
+                        it defaults to Limits if that is explicitly specified, otherwise
+                        to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                      type: object
+                  type: object
+                restartPolicy:
+                  default: OnFailure
+                  description:
+                    RestartPolicy describes how the container should be restarted.
+                    Only one of the following restart policies may be specified. If
+                    none of the following policies is specified, the default one is
+                    RestartPolicyAlways.
+                  type: string
+              required:
+                - backupRef
+                - mariaDbRef
+              type: object
+            status:
+              description: RestoreMariaDBStatus defines the observed state of RestoreMariaDB
+              properties:
+                conditions:
+                  items:
+                    description:
+                      "Condition contains details for one aspect of the current
+                      state of this API Resource. --- This struct is intended for direct
+                      use as an array at the field path .status.conditions.  For example,
+                      type FooStatus struct{ // Represents the observations of a foo's
+                      current state. // Known .status.conditions.type are: \"Available\",
+                      \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                      // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                      `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                      protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                    properties:
+                      lastTransitionTime:
+                        description:
+                          lastTransitionTime is the last time the condition
+                          transitioned from one status to another. This should be when
+                          the underlying condition changed.  If that is not known, then
+                          using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description:
+                          message is a human readable message indicating
+                          details about the transition. This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description:
+                          observedGeneration represents the .metadata.generation
+                          that the condition was set based upon. For instance, if .metadata.generation
+                          is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current
+                          state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description:
+                          reason contains a programmatic identifier indicating
+                          the reason for the condition's last transition. Producers
+                          of specific condition types may define expected values and
+                          meanings for this field, and whether the values are considered
+                          a guaranteed API. The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description:
+                          type of condition in CamelCase or in foo.example.com/CamelCase.
+                          --- Many .condition.type values are consistent across resources
+                          like Available, but because arbitrary conditions can be useful
+                          (see .node.status.conditions), the ability to deconflict is
+                          important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  name: usermariadbs.database.mmontes.io
+spec:
+  group: database.mmontes.io
+  names:
+    kind: UserMariaDB
+    listKind: UserMariaDBList
+    plural: usermariadbs
+    shortNames:
+      - umdb
+    singular: usermariadb
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].message
+          name: Status
+          type: string
+        - jsonPath: .spec.maxUserConnections
+          name: MaxConns
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: UserMariaDB is the Schema for the usermariadbs API
+          properties:
+            apiVersion:
+              description:
+                "APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+              type: string
+            kind:
+              description:
+                "Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: UserMariaDBSpec defines the desired state of UserMariaDB
+              properties:
+                mariaDbRef:
+                  description:
+                    LocalObjectReference contains enough information to let
+                    you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                  type: object
+                maxUserConnections:
+                  default: 10
+                  format: int32
+                  type: integer
+                passwordSecretKeyRef:
+                  description: SecretKeySelector selects a key of a Secret.
+                  properties:
+                    key:
+                      description:
+                        The key of the secret to select from.  Must be a
+                        valid secret key.
+                      type: string
+                    name:
+                      description:
+                        "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?"
+                      type: string
+                    optional:
+                      description: Specify whether the Secret or its key must be defined
+                      type: boolean
+                  required:
+                    - key
+                  type: object
+              required:
+                - mariaDbRef
+                - passwordSecretKeyRef
+              type: object
+            status:
+              description: UserMariaDBStatus defines the observed state of UserMariaDB
+              properties:
+                conditions:
+                  items:
+                    description:
+                      "Condition contains details for one aspect of the current
+                      state of this API Resource. --- This struct is intended for direct
+                      use as an array at the field path .status.conditions.  For example,
+                      type FooStatus struct{ // Represents the observations of a foo's
+                      current state. // Known .status.conditions.type are: \"Available\",
+                      \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                      // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                      `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                      protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                    properties:
+                      lastTransitionTime:
+                        description:
+                          lastTransitionTime is the last time the condition
+                          transitioned from one status to another. This should be when
+                          the underlying condition changed.  If that is not known, then
+                          using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description:
+                          message is a human readable message indicating
+                          details about the transition. This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description:
+                          observedGeneration represents the .metadata.generation
+                          that the condition was set based upon. For instance, if .metadata.generation
+                          is currently 12, but the .status.conditions[x].observedGeneration
+                          is 9, the condition is out of date with respect to the current
+                          state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description:
+                          reason contains a programmatic identifier indicating
+                          the reason for the condition's last transition. Producers
+                          of specific condition types may define expected values and
+                          meanings for this field, and whether the values are considered
+                          a guaranteed API. The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description:
+                          type of condition in CamelCase or in foo.example.com/CamelCase.
+                          --- Many .condition.type values are consistent across resources
+                          like Available, but because arbitrary conditions can be useful
+                          (see .node.status.conditions), the ability to deconflict is
+                          important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
