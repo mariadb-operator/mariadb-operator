@@ -3,7 +3,7 @@ fullnameOverride: ""
 
 image:
   repository: mmontes11/mariadb-operator
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   tag: v0.0.1
 
 logLevel: INFO
