@@ -8,6 +8,8 @@ image:
 
 logLevel: INFO
 
+clusterName: cluster.local
+
 ha:
   enabled: true
   replicas: 3
