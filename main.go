@@ -22,6 +22,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -55,13 +56,15 @@ func init() {
 
 func main() {
 	var metricsAddr string
-	var enableLeaderElection bool
 	var probeAddr string
+	var leaderElection bool
+	var leaderElectionId string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+	flag.BoolVar(&leaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&leaderElectionId, "leader-elect-id", "e5c434f5.mmontes.io", "Leader election ID for controller manager.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -75,8 +78,8 @@ func main() {
 		MetricsBindAddress:     metricsAddr,
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "e5c434f5.mmontes.io",
+		LeaderElection:         leaderElection,
+		LeaderElectionID:       leaderElectionId,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
