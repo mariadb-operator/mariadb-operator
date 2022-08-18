@@ -1,6 +1,7 @@
 # 🦭 mariadb-operator
 [![CI](https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml)
 [![Release](https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mmontes)](https://artifacthub.io/packages/search?repo=mmontes)
 
 Run and operate MariaDB in a cloud native way.
 
@@ -21,7 +22,7 @@ helm install cert-manager jetstack/cert-manager \
   -n cert-manager --create-namespace \
   --set installCRDs=true 
 ```
-- Install `mariadb-operator`
+- Install `mariadb-operator` 🦭
 ```bash
 helm repo add mmontes https://charts.mmontes-dev.duckdns.org
 helm repo update
