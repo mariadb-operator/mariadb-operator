@@ -1,3 +1,4 @@
+{{ if .Values.monitoring.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,6 +13,7 @@ spec:
       targetPort: https
   selector:
     {{- include "mariadb-operator.selectorLabels" . | nindent 4 }}
+{{ end }}
 ---
 apiVersion: v1
 kind: Service

@@ -5,7 +5,9 @@ metadata:
   labels:
     {{- include "mariadb-operator.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  {{ if .Values.ha.enabled }}
+  replicas: {{ .Values.ha.replicas}}
+  {{ end }}
   selector:
     matchLabels:
       {{- include "mariadb-operator.selectorLabels" . | nindent 6 }}
@@ -13,17 +15,34 @@ spec:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
+        {{ with .Values.podAnnotations }}
+        {{ toYaml . | nindent 8 }}
+        {{ end }}
       labels:
         {{- include "mariadb-operator.selectorLabels" . | nindent 8 }}
     spec:
+      {{ with .Values.nodeSelector }}
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.tolerations }}
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.affinity }}
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
       containers:
         - args:
+            {{ if .Values.ha.enabled }}
             - --leader-elect
+            - --leader-elect-id={{ .Values.ha.leaseId }}
+            {{ end }}
             - --metrics-bind-address=:8080
             - --health-probe-bind-address=:8081
+            - --zap-log-level={{ .Values.logLevel }}
           command:
             - /manager
-          image: mmontes11/mariadb-operator:v0.0.1
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           livenessProbe:
             httpGet:
               path: /healthz
@@ -41,22 +60,18 @@ spec:
               port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
+          {{ with .Values.resources.manager }}
           resources:
-            limits:
-              cpu: 500m
-              memory: 128Mi
-            requests:
-              cpu: 10m
-              memory: 64Mi
+            {{ toYaml . | nindent 12 }}
+          {{ end }}
+          {{ with .Values.podSecurityContext}}
           securityContext:
-            allowPrivilegeEscalation: false
+            {{ toYaml . | nindent 12 }}
+          {{ end }}
           volumeMounts:
             - mountPath: /tmp/k8s-webhook-server/serving-certs
               name: cert
               readOnly: true
-            - mountPath: /controller_manager_config.yaml
-              name: manager-config
-              subPath: controller_manager_config.yaml
         - args:
             - --secure-listen-address=0.0.0.0:8443
             - --upstream=http://127.0.0.1:8080/
@@ -68,15 +83,18 @@ spec:
             - containerPort: 8443
               name: https
               protocol: TCP
+          {{ with .Values.resources.rbacProxy }}
           resources:
-            limits:
-              cpu: 500m
-              memory: 128Mi
-            requests:
-              cpu: 5m
-              memory: 64Mi
+            {{ toYaml . | nindent 12 }}
+          {{ end }}
+          {{ with .Values.podSecurityContext}}
+          securityContext:
+            {{ toYaml . | nindent 12 }}
+          {{ end }}
+      {{ with .Values.securityContext }}
       securityContext:
-        runAsNonRoot: true
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
       serviceAccountName: {{ include "mariadb-operator.fullname" . }}-controller-manager
       terminationGracePeriodSeconds: 10
       volumes:
@@ -84,6 +102,3 @@ spec:
           secret:
             defaultMode: 420
             secretName: {{ include "mariadb-operator.fullname" . }}-webhook-server-cert
-        - configMap:
-            name: {{ include "mariadb-operator.fullname" . }}-manager-config
-          name: manager-config
