@@ -8,23 +8,28 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pvc
+  - persistentvolumeclaims
   verbs:
   - create
+  - list
+  - patch
+  - watch
 - apiGroups:
   - ""
   resources:
-  - svc
+  - services
   verbs:
   - create
+  - list
   - patch
   - watch
 - apiGroups:
   - apps
   resources:
-  - sts
+  - statefulsets
   verbs:
   - create
+  - list
   - patch
   - watch
 - apiGroups:
@@ -33,6 +38,7 @@ rules:
   - jobs
   verbs:
   - create
+  - list
   - patch
   - watch
 - apiGroups:
@@ -185,5 +191,6 @@ rules:
   - servicemonitors
   verbs:
   - create
+  - list
   - patch
   - watch
