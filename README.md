@@ -44,7 +44,7 @@ helm install mariadb-operator mmontes/mariadb-operator \
 
 ### Quickstart
 
-Let's see `mariadb-operator` in action!. First of all, install the following configuration manifests that will be referenced by the CRDs further:
+Let's see `mariadb-operator` in action! First of all, install the following configuration manifests that will be referenced by the CRDs further:
 ```bash
 kubectl apply -f config/samples/config
 ```
