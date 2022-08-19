@@ -5,13 +5,13 @@
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 
-- MariaDB server provisioning
-- Seamless upgrades without data loss
+- Provisioning highly configurable MariaDB servers
 - Take and restore backups
 - Bootstrap new instances from a backup
 - Support for managing users, grants and logical databases
 - Prometheus metrics
-- Validation wehhooks to provide CRD inmutability
+- Validation webhooks to provide CRD inmutability
+- Additional printer columns to report the current CRD status
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [GitOps](https://opengitops.dev/) friendly
 - Multi-arch [Docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
@@ -42,8 +42,88 @@ helm install mariadb-operator mmontes/mariadb-operator \
   -n mariadb-system --create-namespace
 ```
 
-### Getting started
+### Quickstart
 
+Let's see `mariadb-operator` in action!. First of all, install the following configuration manifests that will be referenced by the CRDs further:
+```bash
+kubectl apply -f config/samples/config
+```
+
+To start with, let's provision a `MariaDB` server with Prometheus metrics:
+```bash
+kubectl apply -f config/samples/database_v1alpha1_mariadb.yaml
+```
+```bash
+kubectl get mariadbs
+NAME      READY   STATUS    STORAGE CLASS   AGE
+mariadb   True    Running   standard        75s
+
+kubectl get statefulsets
+NAME      READY   AGE
+mariadb   1/1     2m12s
+
+kubectl get services
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
+mariadb      ClusterIP   10.96.235.145   <none>        3306/TCP,9104/TCP   2m17s
+
+kubectl get servicemonitors
+NAME      AGE
+mariadb   2m37s
+```
+Up and running 🚀, we can now create our first logical database and grant access to users:
+```bash
+kubectl apply -f config/samples/database_v1alpha1_databasemariadb.yaml
+kubectl apply -f config/samples/database_v1alpha1_usermariadb.yaml
+kubectl apply -f config/samples/database_v1alpha1_grantmariadb.yaml
+```
+```bash
+kubectl get databasemariadbs
+NAME        READY   STATUS    CHARSET   COLLATE           AGE
+data-test   True    Created   utf8      utf8_general_ci   22s
+
+kubectl get usermariadbs
+NAME              READY   STATUS    MAXCONNS   AGE
+mariadb-metrics   True    Created   3          19m
+user              True    Created   20         29s
+
+kubectl get grantmariadbs
+NAME              READY   STATUS    DATABASE   TABLE   USERNAME          GRANTOPT   AGE
+mariadb-metrics   True    Created   *          *       mariadb-metrics   false      19m
+user              True    Created   *          *       user              true       36s
+```
+Now that everything seems to be in place, let's take a backup:
+```bash
+kubectl apply -f config/samples/database_v1alpha1_backupmariadb.yaml
+```
+```bash
+kubectl get backupmariadbs
+NAME     COMPLETE   STATUS    MARIADB   STORAGE CLASS   AGE
+backup   True       Success   mariadb   standard        18s
+
+kubectl get jobs
+NAME     COMPLETIONS   DURATION   AGE
+backup   1/1           9s         83s
+```
+Last but not least, let's provision a second `MariaDB` instance bootstrapping from the previous backup:
+```bash
+kubectl apply -f config/samples/database_v1alpha1_mariadb_from_backup.yaml
+``` 
+```bash
+kubectl get mariadbs
+NAME                       READY   STATUS    STORAGE CLASS   AGE
+mariadb                    True    Running   standard        39m
+mariadb-from-backup        True    Running   standard        85s
+
+kubectl get restoremariadbs
+NAME                                         COMPLETE   STATUS    MARIADB                    BACKUP   AGE
+bootstrap-restore-mariadb-from-backup        True       Success   mariadb-from-backup        backup   72s
+
+kubectl get jobs
+NAME                                         COMPLETIONS   DURATION   AGE
+backup                                       1/1           9s         12m
+bootstrap-restore-mariadb-from-backup        1/1           5s         84s
+``` 
+You can take a look at the whole suite of example CRDs available in [config/samples](./config/samples/).  
 
 ### Contributing
 
