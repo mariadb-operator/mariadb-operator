@@ -12,8 +12,8 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Support for managing users, grants and logical databases
 - Prometheus metrics
 - Validation wehhooks to provide CRD inmutability
-- [GitOps](https://opengitops.dev/) friendly
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
+- [GitOps](https://opengitops.dev/) friendly
 - Multi-arch [Docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
 - [Helm](./helm/mariadb-operator/) chart 
 
