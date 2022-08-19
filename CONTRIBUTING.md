@@ -1,4 +1,4 @@
-## Contributing to `mariadb-operator` 🦭
+## Contributing to mariadb-operator 🦭 
 
 All contributions are welcome. Ideas, code, documentation, production experiences, bugfixes... we only need to define some key
 ideas in order to make this more efficient.
