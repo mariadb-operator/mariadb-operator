@@ -21,6 +21,11 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 
 ### Installation
 
+- Provision a Kubernetes cluster. If you don't have one already, you can easily create a [KIND](https://kind.sigs.k8s.io/) cluster by running:
+```bash
+make cluster
+``` 
+
 - Install [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
