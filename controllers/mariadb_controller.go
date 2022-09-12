@@ -135,6 +135,7 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *d
 		if err := r.Create(ctx, desiredSts); err != nil {
 			return fmt.Errorf("error creating StatefulSet: %v", err)
 		}
+		return nil
 	}
 
 	patch := client.MergeFrom(existingSts.DeepCopy())
@@ -162,6 +163,7 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *datab
 		if err := r.Create(ctx, desiredSvc); err != nil {
 			return fmt.Errorf("error creating Service: %v", err)
 		}
+		return nil
 	}
 
 	patch := client.MergeFrom(existingSvc.DeepCopy())
