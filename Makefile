@@ -24,9 +24,10 @@ help: ## Display this help.
 ##@ Development
 
 CERTS_DIR=/tmp/k8s-webhook-server/serving-certs
+CERTS_CONFIG=./hack/config/openssl.conf
 certs: ## Generates development certificates.
-	mkdir -p ${CERTS_DIR}
-	openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out ${CERTS_DIR}/tls.crt -keyout ${CERTS_DIR}/tls.key
+	@mkdir -p ${CERTS_DIR}
+	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -config ${CERTS_CONFIG} -out ${CERTS_DIR}/tls.crt -keyout ${CERTS_DIR}/tls.key
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -112,7 +113,7 @@ ifndef ignore-not-found
 endif
 
 .PHONY: install
-install: cluster-ctx manifests kustomize install-prometheus-crds install-samples ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+install: cluster-ctx manifests kustomize install-prometheus-crds install-samples certs ## Install dependencies to run locally.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
 PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0
