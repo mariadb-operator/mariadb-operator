@@ -77,12 +77,12 @@ MARIADB_IP ?= 127.0.0.1
 MARIADB_HOST ?= mariadb.default.svc.cluster.local
 .PHONY: mdb-add-host
 mdb-add-host: ## Add mariadb host to /etc/hosts.
-	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_HOST)
+	@./hack/add_host.sh $(MARIADB_IP) $(MARIADB_HOST)
 
 MARIADB_TEST_HOST ?= mariadb-test.default.svc.cluster.local
 .PHONY: mdb-add-test-host
 mdb-add-test-host: ## Add mariadb test hosts to /etc/hosts.
-	@./scripts/add_host.sh $(MARIADB_IP) $(MARIADB_TEST_HOST)
+	@./hack/add_host.sh $(MARIADB_IP) $(MARIADB_TEST_HOST)
 
 MARIADB_NAMESPACE ?= default
 MARIADB_POD ?= mariadb-0
@@ -122,11 +122,11 @@ install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs into the K8s cl
 
 .PHONY: install-prometheus
 install-prometheus: cluster-ctx ## Install kube-prometheus-stack helm chart.
-	@./scripts/install_prometheus.sh
+	@./hack/install_prometheus.sh
 
 .PHONY: install-cert-manager
 install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
-	@./scripts/install_cert_manager.sh
+	@./hack/install_cert_manager.sh
 
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.
