@@ -33,9 +33,8 @@ var (
 	exporterPrivileges = []string{
 		"SELECT",
 		"PROCESS",
-		// TODO: check MariaDB version and use 'REPLICATION CLIENT' instead
-		// see: https://mariadb.com/kb/en/grant/#binlog-monitor
-		"BINLOG MONITOR",
+		"REPLICATION CLIENT",
+		"REPLICA MONITOR",
 		"SLAVE MONITOR",
 	}
 	passwordSecretKey = "password"
