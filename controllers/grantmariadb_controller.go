@@ -84,7 +84,7 @@ func (r *GrantMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&databasev1alpha1.GrantMariaDB{}).
 		Watches(
 			&source.Kind{Type: &databasev1alpha1.UserMariaDB{}},
-			handler.EnqueueRequestsFromMapFunc(r.mapGrantToRequests),
+			handler.EnqueueRequestsFromMapFunc(r.mapUserToRequests),
 			builder.WithPredicates(predicate.Funcs{
 				CreateFunc: func(ce event.CreateEvent) bool {
 					return true
@@ -108,7 +108,7 @@ func (r *GrantMariaDBReconciler) createIndex(mgr ctrl.Manager) error {
 	return nil
 }
 
-func (r *GrantMariaDBReconciler) mapGrantToRequests(user client.Object) []reconcile.Request {
+func (r *GrantMariaDBReconciler) mapUserToRequests(user client.Object) []reconcile.Request {
 	grantsToReconcile := &databasev1alpha1.GrantMariaDBList{}
 	listOpts := &client.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(usernameField, user.GetName()),
