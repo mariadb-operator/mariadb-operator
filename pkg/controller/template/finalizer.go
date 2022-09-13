@@ -52,6 +52,7 @@ func (tf *TemplateFinalizer) Finalize(ctx context.Context, resource Resource) er
 	if err != nil {
 		return fmt.Errorf("error connecting to MariaDB: %v", err)
 	}
+	defer mdbClient.Close()
 
 	if err := tf.WrappedFinalizer.Reconcile(ctx, mdbClient); err != nil {
 		return fmt.Errorf("error reconciling in TemplateFinalizer: %v", err)
