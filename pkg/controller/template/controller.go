@@ -59,6 +59,7 @@ func (tr *TemplateReconciler) Reconcile(ctx context.Context, resource Resource) 
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
+	// TODO: connection pooling. See https://github.com/mmontes11/mariadb-operator/issues/7.
 	var connErr *multierror.Error
 	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, tr.RefResolver)
 	if err != nil {
