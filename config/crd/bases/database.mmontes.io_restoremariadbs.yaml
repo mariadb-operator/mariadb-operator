@@ -108,9 +108,13 @@ spec:
                   none of the following policies is specified, the default one is
                   RestartPolicyAlways.
                 type: string
+              waitForMariaDb:
+                default: true
+                type: boolean
             required:
             - backupRef
             - mariaDbRef
+            - waitForMariaDb
             type: object
           status:
             description: RestoreMariaDBStatus defines the observed state of RestoreMariaDB

@@ -43,6 +43,7 @@ var _ = Describe("BackupMariaDB controller", func() {
 					MariaDBRef: corev1.LocalObjectReference{
 						Name: testMariaDbName,
 					},
+					WaitForMariaDB: true,
 					Storage: databasev1alpha1.Storage{
 						ClassName: testStorageClass,
 						Size:      testStorageSize,

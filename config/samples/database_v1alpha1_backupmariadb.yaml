@@ -5,6 +5,7 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
+  waitForMariaDb: true
   storage:
     className: standard
     size: 100Mi

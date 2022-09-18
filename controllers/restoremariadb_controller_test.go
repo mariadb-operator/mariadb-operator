@@ -45,6 +45,7 @@ var _ = Describe("RestoreMariaDB controller", func() {
 					MariaDBRef: corev1.LocalObjectReference{
 						Name: testMariaDbName,
 					},
+					WaitForMariaDB: true,
 					Storage: databasev1alpha1.Storage{
 						ClassName: testStorageClass,
 						Size:      testStorageSize,
@@ -117,6 +118,7 @@ var _ = Describe("RestoreMariaDB controller", func() {
 					BackupRef: corev1.LocalObjectReference{
 						Name: backup.Name,
 					},
+					WaitForMariaDB: true,
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &restore)).To(Succeed())

@@ -28,12 +28,12 @@ func (b *Builder) BuildRestoreMariaDb(mariaDb *databasev1alpha1.MariaDB, backupR
 			MariaDBRef: corev1.LocalObjectReference{
 				Name: mariaDb.Name,
 			},
-			BackupRef: backupRef,
+			BackupRef:      backupRef,
+			WaitForMariaDB: true,
 		},
 	}
 	if err := controllerutil.SetControllerReference(mariaDb, restore, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to bootstrapping restore Job: %v", err)
 	}
-
 	return restore, nil
 }

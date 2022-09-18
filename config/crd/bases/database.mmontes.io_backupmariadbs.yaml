@@ -119,9 +119,13 @@ spec:
                 - className
                 - size
                 type: object
+              waitForMariaDb:
+                default: true
+                type: boolean
             required:
             - mariaDbRef
             - storage
+            - waitForMariaDb
             type: object
           status:
             description: BackupMariaDBStatus defines the observed state of BackupMariaDB

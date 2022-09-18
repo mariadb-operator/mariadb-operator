@@ -28,6 +28,8 @@ type BackupMariaDBSpec struct {
 	Storage Storage `json:"storage" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef" webhook:"inmutable"`
+	// +kubebuilder:default=true
+	WaitForMariaDB bool `json:"waitForMariaDb" webhook:"inmutable"`
 	// +kubebuilder:default=5
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=OnFailure
