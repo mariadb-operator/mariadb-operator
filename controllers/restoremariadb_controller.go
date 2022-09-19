@@ -69,12 +69,8 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
-	if !mariaDb.IsReady() {
-		if err := r.patchStatus(ctx, &restore, r.ConditionComplete.FailedPatcher("MariaDB not ready")); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching BackupMariaDB: %v", err)
-		}
-		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
-	}
+	// We cannot check if mariaDb.IsReady() here and update the status accordingly
+	// because we would be creating a deadlock when bootstrapping from backup
 
 	backup, err := r.RefResolver.GetBackupMariaDB(ctx, restore.Spec.BackupRef, restore.Namespace)
 	if err != nil {
