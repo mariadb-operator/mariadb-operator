@@ -117,7 +117,7 @@ func (b *Builder) BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB, mari
 
 func addJobInitContainersOpt(mariadb *databasev1alpha1.MariaDB, opts []jobOption) []jobOption {
 	initCmd := fmt.Sprintf(
-		"mysqladmin ping -h %s -P %d --protocol tcp",
+		"while ! mysqladmin ping -h %s -P %d --protocol tcp --silent; do echo 'waiting for mariadb...'; sleep 1s; done",
 		mariadb.Name,
 		mariadb.Spec.Port,
 	)
