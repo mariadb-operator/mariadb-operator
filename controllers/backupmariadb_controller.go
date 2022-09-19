@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
@@ -59,6 +60,24 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	mariaDb, err := r.RefResolver.GetMariaDB(ctx, backup.Spec.MariaDBRef, backup.Namespace)
+	if err != nil {
+		var mariaDbErr *multierror.Error
+		mariaDbErr = multierror.Append(mariaDbErr, err)
+
+		err = r.patchStatus(ctx, &backup, r.ConditionComplete.RefResolverPatcher(err, mariaDb))
+		mariaDbErr = multierror.Append(mariaDbErr, err)
+
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+	}
+
+	if !mariaDb.IsReady() {
+		if err := r.patchStatus(ctx, &backup, r.ConditionComplete.FailedPatcher("MariaDB not ready")); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching BackupMariaDB: %v", err)
+		}
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+	}
+
 	var pvcErr *multierror.Error
 	if err := r.reconcilePVC(ctx, &backup, req.NamespacedName); err != nil {
 		pvcErr = multierror.Append(pvcErr, err)
@@ -70,7 +89,7 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	var jobErr *multierror.Error
-	err := r.reconcileJob(ctx, &backup, req.NamespacedName)
+	err = r.reconcileJob(ctx, &backup, mariaDb, req.NamespacedName)
 	jobErr = multierror.Append(jobErr, err)
 
 	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)
@@ -109,14 +128,9 @@ func (r *BackupMariaDBReconciler) reconcilePVC(ctx context.Context, backup *data
 }
 
 func (r *BackupMariaDBReconciler) reconcileJob(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
-	key types.NamespacedName) error {
+	mariaDb *databasev1alpha1.MariaDB, key types.NamespacedName) error {
 
-	mariadb, err := r.RefResolver.GetMariaDB(ctx, backup.Spec.MariaDBRef, backup.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting MariaDB: %v", err)
-	}
-
-	desiredJob, err := r.Builder.BuildBackupJob(backup, mariadb, key)
+	desiredJob, err := r.Builder.BuildBackupJob(backup, mariaDb, key)
 	if err != nil {
 		return fmt.Errorf("error building backup Job: %v", err)
 	}
