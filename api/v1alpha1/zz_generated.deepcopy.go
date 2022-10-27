@@ -465,7 +465,7 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = make([]v1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
-	in.Storage.DeepCopyInto(&out.Storage)
+	in.VolumeClaimTemplate.DeepCopyInto(&out.VolumeClaimTemplate)
 	if in.BootstrapFromBackup != nil {
 		in, out := &in.BootstrapFromBackup, &out.BootstrapFromBackup
 		*out = new(BootstrapFromBackup)

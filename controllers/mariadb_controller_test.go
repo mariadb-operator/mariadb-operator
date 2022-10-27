@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -19,8 +20,6 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting to have spec provided by user and defaults")
 			Expect(testMariaDb.Spec.Image.String()).To(Equal("mariadb:10.7.4"))
 			Expect(testMariaDb.Spec.Port).To(BeEquivalentTo(3306))
-			Expect(testMariaDb.Spec.Storage.ClassName).To(Equal("standard"))
-			Expect(testMariaDb.Spec.Storage.AccessModes).To(ConsistOf(corev1.ReadWriteOnce))
 
 			By("Expecting to create a StatefulSet eventually")
 			Eventually(func() bool {
@@ -52,8 +51,8 @@ var _ = Describe("MariaDB controller", func() {
 						Name: testMariaDbName,
 					},
 					Storage: databasev1alpha1.Storage{
-						ClassName: testStorageClass,
-						Size:      testStorageSize,
+						ClassName: testStorageClassName,
+						Size:      resource.MustParse("100Mi"),
 					},
 				},
 			}
@@ -93,9 +92,16 @@ var _ = Describe("MariaDB controller", func() {
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},
-					Storage: databasev1alpha1.Storage{
-						ClassName: testStorageClass,
-						Size:      testStorageSize,
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
 					},
 				},
 			}
@@ -137,9 +143,16 @@ var _ = Describe("MariaDB controller", func() {
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},
-					Storage: databasev1alpha1.Storage{
-						ClassName: testStorageClass,
-						Size:      testStorageSize,
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
 					},
 				},
 			}
@@ -189,9 +202,16 @@ var _ = Describe("MariaDB controller", func() {
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},
-					Storage: databasev1alpha1.Storage{
-						ClassName: testStorageClass,
-						Size:      testStorageSize,
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
 					},
 				},
 			}
@@ -236,9 +256,16 @@ var _ = Describe("MariaDB controller", func() {
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},
-					Storage: databasev1alpha1.Storage{
-						ClassName: testStorageClass,
-						Size:      testStorageSize,
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
 					},
 				},
 			}

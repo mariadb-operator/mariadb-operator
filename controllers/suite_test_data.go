@@ -40,7 +40,7 @@ const (
 
 var (
 	testNamespace         = "default"
-	testStorageClass      = "standard"
+	testStorageClassName  = "standard"
 	testMariaDbName       = "mariadb-test"
 	testRootPwdSecretName = "root-test"
 	testRootPwdSecretKey  = "passsword"
@@ -50,7 +50,6 @@ var testMariaDbKey types.NamespacedName
 var testMariaDb databasev1alpha1.MariaDB
 var testRootPwdKey types.NamespacedName
 var testRootPwd v1.Secret
-var testStorageSize resource.Quantity
 
 func createTestData(ctx context.Context, k8sClient client.Client) {
 	testRootPwdKey = types.NamespacedName{
@@ -72,7 +71,6 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 		Name:      testMariaDbName,
 		Namespace: testNamespace,
 	}
-	testStorageSize = resource.MustParse("100Mi")
 	testMariaDb = databasev1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testMariaDbKey.Name,
@@ -89,9 +87,16 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 				Repository: "mariadb",
 				Tag:        "10.7.4",
 			},
-			Storage: databasev1alpha1.Storage{
-				ClassName: testStorageClass,
-				Size:      testStorageSize,
+			VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+				StorageClassName: &testStorageClassName,
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						"storage": resource.MustParse("100Mi"),
+					},
+				},
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
 			},
 		},
 	}

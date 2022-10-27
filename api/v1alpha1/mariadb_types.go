@@ -67,7 +67,7 @@ type MariaDBSpec struct {
 	Port int32 `json:"port,omitempty"`
 
 	// +kubebuilder:validation:Required
-	Storage Storage `json:"storage" webhook:"inmutable"`
+	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 
 	BootstrapFromBackup *BootstrapFromBackup `json:"bootstrapFromBackup,omitempty" webhook:"inmutable"`
 
@@ -96,7 +96,6 @@ func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
-// +kubebuilder:printcolumn:name="Storage Class",type="string",JSONPath=".spec.storage.className"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // MariaDB is the Schema for the mariadbs API

@@ -20,9 +20,11 @@ spec:
 
   port: 3306
 
-  storage:
-    className: standard
-    size: 100Mi
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 100Mi
+    storageClassName: standard
     accessModes:
       - ReadWriteOnce
 

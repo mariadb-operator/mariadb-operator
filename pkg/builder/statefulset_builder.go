@@ -86,7 +86,10 @@ func (b *Builder) BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.
 				},
 			},
 			VolumeClaimTemplates: []v1.PersistentVolumeClaim{
-				*b.BuildPVC(pvcMeta, &mariadb.Spec.Storage),
+				corev1.PersistentVolumeClaim{
+					ObjectMeta: pvcMeta,
+					Spec:       mariadb.Spec.VolumeClaimTemplate,
+				},
 			},
 		},
 	}
@@ -95,28 +98,6 @@ func (b *Builder) BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.
 	}
 
 	return sts, nil
-}
-
-func (b *Builder) BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.Storage) *v1.PersistentVolumeClaim {
-	accessModes := storage.AccessModes
-	if accessModes == nil {
-		accessModes = []v1.PersistentVolumeAccessMode{
-			v1.ReadWriteOnce,
-		}
-	}
-
-	return &v1.PersistentVolumeClaim{
-		ObjectMeta: meta,
-		Spec: v1.PersistentVolumeClaimSpec{
-			AccessModes:      accessModes,
-			StorageClassName: &storage.ClassName,
-			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
-					v1.ResourceStorage: storage.Size,
-				},
-			},
-		},
-	}
 }
 
 func buildStsContainers(mariadb *databasev1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {

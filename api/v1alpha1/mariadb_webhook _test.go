@@ -35,6 +35,7 @@ var _ = Describe("MariaDB webhook", func() {
 				Namespace: testNamespace,
 			}
 			test := "test"
+			storageClassName := "standard"
 			mariaDb := MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
@@ -60,9 +61,16 @@ var _ = Describe("MariaDB webhook", func() {
 						Tag:        "10.7.4",
 					},
 					Port: 3306,
-					Storage: Storage{
-						ClassName: "standard",
-						Size:      resource.MustParse("100Mi"),
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &storageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
 					},
 					BootstrapFromBackup: &BootstrapFromBackup{
 						BackupRef: corev1.LocalObjectReference{
@@ -158,7 +166,8 @@ var _ = Describe("MariaDB webhook", func() {
 				{
 					by: "Updating Storage",
 					patchFn: func(mdb *MariaDB) {
-						mdb.Spec.Storage.ClassName = "fast-storage"
+						newClass := "fast-storage"
+						mdb.Spec.VolumeClaimTemplate.StorageClassName = &newClass
 					},
 					wantErr: true,
 				},

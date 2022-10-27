@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -47,8 +48,8 @@ var _ = Describe("RestoreMariaDB controller", func() {
 					},
 					WaitForMariaDB: true,
 					Storage: databasev1alpha1.Storage{
-						ClassName: testStorageClass,
-						Size:      testStorageSize,
+						ClassName: testStorageClassName,
+						Size:      resource.MustParse("100Mi"),
 					},
 				},
 			}
@@ -83,9 +84,16 @@ var _ = Describe("RestoreMariaDB controller", func() {
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},
-					Storage: databasev1alpha1.Storage{
-						ClassName: testStorageClass,
-						Size:      testStorageSize,
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
 					},
 				},
 			}

@@ -62,8 +62,8 @@ kubectl apply -f config/samples/database_v1alpha1_mariadb.yaml
 ```
 ```bash
 kubectl get mariadbs
-NAME      READY   STATUS    STORAGE CLASS   AGE
-mariadb   True    Running   standard        75s
+NAME      READY   STATUS    AGE
+mariadb   True    Running   75s
 
 kubectl get statefulsets
 NAME      READY   AGE
