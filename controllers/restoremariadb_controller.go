@@ -30,7 +30,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -80,7 +79,7 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		err = r.patchStatus(ctx, &restore, r.ConditionComplete.RefResolverPatcher(err, backup))
 		backupErr = multierror.Append(backupErr, err)
 
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", backupErr)
+		return ctrl.Result{}, fmt.Errorf("error getting BackupMariaDB: %v", backupErr)
 	}
 
 	if !backup.IsComplete() {
@@ -91,7 +90,7 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	var jobErr *multierror.Error
-	err = r.reconcileJob(ctx, &restore, mariaDb, backup, req.NamespacedName)
+	err = r.JobReconciler.Reconcile(ctx, &restore, mariaDb)
 	jobErr = multierror.Append(jobErr, err)
 
 	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)
@@ -109,20 +108,6 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *RestoreMariaDBReconciler) reconcileJob(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
-	mariaDb *databasev1alpha1.MariaDB, backup *databasev1alpha1.BackupMariaDB, key types.NamespacedName) error {
-
-	desiredJob, err := r.Builder.BuildRestoreJob(restore, mariaDb, backup, key)
-	if err != nil {
-		return fmt.Errorf("error building restore Job: %v", err)
-	}
-
-	if err := r.JobReconciler.Reconcile(ctx, key, desiredJob); err != nil {
-		return fmt.Errorf("error reconciling Job: %v", err)
-	}
-	return nil
 }
 
 func (r *RestoreMariaDBReconciler) patchStatus(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,

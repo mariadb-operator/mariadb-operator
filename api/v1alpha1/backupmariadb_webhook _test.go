@@ -28,10 +28,10 @@ import (
 
 var _ = Describe("BackupMariaDB webhook", func() {
 	Context("When updating a BackupMariaDB", func() {
-		It("Should validate", func() {
+		It("Should validate creates", func() {
 			By("Creating BackupMariaDB")
 			key := types.NamespacedName{
-				Name:      "backup-mariadb-webhook",
+				Name:      "invalid-backup-mariadb-webhook",
 				Namespace: testNamespace,
 			}
 			backup := BackupMariaDB{
@@ -40,9 +40,46 @@ var _ = Describe("BackupMariaDB webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: BackupMariaDBSpec{
+					Storage: Storage{},
+					MariaDBRef: corev1.LocalObjectReference{
+						Name: "mariadb-webhook",
+					},
+					BackoffLimit: 10,
+					Resources: &corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"cpu": resource.MustParse("100m"),
+						},
+					},
+					RestartPolicy: corev1.RestartPolicyOnFailure,
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &backup)).NotTo(Succeed())
+		})
+		It("Should validate updates", func() {
+			By("Creating BackupMariaDB")
+			key := types.NamespacedName{
+				Name:      "backup-mariadb-webhook",
+				Namespace: testNamespace,
+			}
+			storageClassName := "standard"
+			backup := BackupMariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      key.Name,
+					Namespace: key.Namespace,
+				},
+				Spec: BackupMariaDBSpec{
 					Storage: Storage{
-						ClassName: "standard",
-						Size:      resource.MustParse("100Mi"),
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+							StorageClassName: &storageClassName,
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
 					},
 					MariaDBRef: corev1.LocalObjectReference{
 						Name: "mariadb-webhook",
@@ -75,7 +112,8 @@ var _ = Describe("BackupMariaDB webhook", func() {
 				{
 					by: "Updating Storage",
 					patchFn: func(bmdb *BackupMariaDB) {
-						bmdb.Spec.Storage.ClassName = "fast-storage"
+						newStorageClass := "fast-storage"
+						bmdb.Spec.Storage.PersistentVolumeClaim.StorageClassName = &newStorageClass
 					},
 					wantErr: true,
 				},

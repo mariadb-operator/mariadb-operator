@@ -1,11 +1,11 @@
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/mmontes11/mariadb-operator/pkg/webhook"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 var (
@@ -29,10 +29,13 @@ func (i *Image) String() string {
 }
 
 type Storage struct {
-	// +kubebuilder:validation:Required
-	ClassName string `json:"className"`
-	// +kubebuilder:validation:Required
-	Size resource.Quantity `json:"size"`
-	// +kubebuilder:default={ReadWriteOnce}
-	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
+	Volume                *corev1.VolumeSource              `json:"volume,omitempty"`
+	PersistentVolumeClaim *corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+}
+
+func (s *Storage) Validate() error {
+	if s.Volume == nil && s.PersistentVolumeClaim == nil {
+		return errors.New("no storage type provided")
+	}
+	return nil
 }

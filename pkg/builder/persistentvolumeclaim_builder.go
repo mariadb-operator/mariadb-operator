@@ -7,23 +7,8 @@ import (
 )
 
 func (b *Builder) BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.Storage) *v1.PersistentVolumeClaim {
-	accessModes := storage.AccessModes
-	if accessModes == nil {
-		accessModes = []v1.PersistentVolumeAccessMode{
-			v1.ReadWriteOnce,
-		}
-	}
-
 	return &v1.PersistentVolumeClaim{
 		ObjectMeta: meta,
-		Spec: v1.PersistentVolumeClaimSpec{
-			AccessModes:      accessModes,
-			StorageClassName: &storage.ClassName,
-			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
-					v1.ResourceStorage: storage.Size,
-				},
-			},
-		},
+		Spec:       *storage.PersistentVolumeClaim,
 	}
 }

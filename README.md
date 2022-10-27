@@ -104,8 +104,8 @@ kubectl apply -f config/samples/database_v1alpha1_backupmariadb.yaml
 ```
 ```bash
 kubectl get backupmariadbs
-NAME     COMPLETE   STATUS    MARIADB   STORAGE CLASS   AGE
-backup   True       Success   mariadb   standard        18s
+NAME     COMPLETE   STATUS    MARIADB   AGE
+backup   True       Success   mariadb   18s
 
 kubectl get jobs
 NAME     COMPLETIONS   DURATION   AGE
@@ -117,9 +117,9 @@ kubectl apply -f config/samples/database_v1alpha1_mariadb_from_backup.yaml
 ``` 
 ```bash
 kubectl get mariadbs
-NAME                       READY   STATUS    STORAGE CLASS   AGE
-mariadb                    True    Running   standard        39m
-mariadb-from-backup        True    Running   standard        85s
+NAME                       READY   STATUS    AGE
+mariadb                    True    Running   39m
+mariadb-from-backup        True    Running   85s
 
 kubectl get restoremariadbs
 NAME                                         COMPLETE   STATUS    MARIADB                    BACKUP   AGE

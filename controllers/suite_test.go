@@ -95,7 +95,7 @@ var _ = BeforeSuite(func() {
 	refResolver := refresolver.New(k8sManager.GetClient())
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(k8sManager.GetClient())
-	jobReconciler := job.NewJobReconciler(k8sManager.GetClient())
+	jobReconciler := job.NewJobReconciler(k8sManager.GetClient(), refResolver, builder)
 
 	err = (&MariaDBReconciler{
 		Client:         k8sManager.GetClient(),

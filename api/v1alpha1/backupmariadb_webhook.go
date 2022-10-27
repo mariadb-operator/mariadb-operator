@@ -17,7 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -35,15 +38,35 @@ var _ webhook.Validator = &BackupMariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *BackupMariaDB) ValidateCreate() error {
+	if err := r.validateStorage(); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *BackupMariaDB) ValidateUpdate(old runtime.Object) error {
-	return inmutableWebhook.ValidateUpdate(r, old.(*BackupMariaDB))
+	if err := inmutableWebhook.ValidateUpdate(r, old.(*BackupMariaDB)); err != nil {
+		return err
+	}
+	if err := r.validateStorage(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *BackupMariaDB) ValidateDelete() error {
+	return nil
+}
+
+func (r *BackupMariaDB) validateStorage() error {
+	if err := r.Spec.Storage.Validate(); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("storage"),
+			r.Spec.Storage,
+			fmt.Sprintf("invalid storage: %v", err),
+		)
+	}
 	return nil
 }

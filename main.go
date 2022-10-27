@@ -90,7 +90,7 @@ func main() {
 	refResolver := refresolver.New(mgr.GetClient())
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(mgr.GetClient())
-	jobReconciler := job.NewJobReconciler(mgr.GetClient())
+	jobReconciler := job.NewJobReconciler(mgr.GetClient(), refResolver, builder)
 
 	if err = (&controllers.MariaDBReconciler{
 		Client:         mgr.GetClient(),

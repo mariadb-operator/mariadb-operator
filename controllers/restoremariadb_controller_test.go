@@ -48,8 +48,17 @@ var _ = Describe("RestoreMariaDB controller", func() {
 					},
 					WaitForMariaDB: true,
 					Storage: databasev1alpha1.Storage{
-						ClassName: testStorageClassName,
-						Size:      resource.MustParse("100Mi"),
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+							StorageClassName: &testStorageClassName,
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
 					},
 				},
 			}

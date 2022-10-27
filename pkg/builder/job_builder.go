@@ -23,12 +23,12 @@ var (
 	dumpFilePath = fmt.Sprintf("%s/backup.sql", jobStorageMountPath)
 )
 
-func (b *Builder) BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB,
-	key types.NamespacedName) (*batchv1.Job, error) {
+func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alpha1.BackupMariaDB,
+	mariaDB *databasev1alpha1.MariaDB) (*batchv1.Job, error) {
 	backupLabels :=
 		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
-			WithInstance(mariadb.Name).
+			WithInstance(mariaDB.Name).
 			Build()
 	meta := metav1.ObjectMeta{
 		Name:      key.Name,
@@ -37,8 +37,8 @@ func (b *Builder) BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb
 	}
 	cmd := fmt.Sprintf(
 		"mysqldump -h %s -P %d --lock-tables --all-databases > %s",
-		mariadb.Name,
-		mariadb.Spec.Port,
+		mariaDB.Name,
+		mariaDB.Spec.Port,
 		dumpFilePath,
 	)
 
@@ -48,13 +48,13 @@ func (b *Builder) BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb
 			jobVolumes(backup),
 		),
 		withJobContainers(
-			jobContainers(mariadb, cmd, backup.Spec.Resources),
+			jobContainers(mariaDB, cmd, backup.Spec.Resources),
 		),
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
 		withJobRestartPolicy(backup.Spec.RestartPolicy),
 	}
 	if backup.Spec.WaitForMariaDB {
-		opts = addJobInitContainersOpt(mariadb, opts)
+		opts = addJobInitContainersOpt(mariaDB, opts)
 	}
 
 	builder, err := newJobBuilder(opts...)
@@ -69,12 +69,12 @@ func (b *Builder) BuildBackupJob(backup *databasev1alpha1.BackupMariaDB, mariadb
 	return job, nil
 }
 
-func (b *Builder) BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB, mariadb *databasev1alpha1.MariaDB,
-	backup *databasev1alpha1.BackupMariaDB, key types.NamespacedName) (*batchv1.Job, error) {
+func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1alpha1.RestoreMariaDB,
+	backup *databasev1alpha1.BackupMariaDB, mariaDB *databasev1alpha1.MariaDB) (*batchv1.Job, error) {
 	restoreLabels :=
 		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
-			WithInstance(mariadb.Name).
+			WithInstance(mariaDB.Name).
 			Build()
 	meta := metav1.ObjectMeta{
 		Name:      key.Name,
@@ -83,8 +83,8 @@ func (b *Builder) BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB, mari
 	}
 	cmd := fmt.Sprintf(
 		"mysql -h %s -P %d < %s",
-		mariadb.Name,
-		mariadb.Spec.Port,
+		mariaDB.Name,
+		mariaDB.Spec.Port,
 		dumpFilePath,
 	)
 
@@ -94,13 +94,13 @@ func (b *Builder) BuildRestoreJob(restore *databasev1alpha1.RestoreMariaDB, mari
 			jobVolumes(backup),
 		),
 		withJobContainers(
-			jobContainers(mariadb, cmd, backup.Spec.Resources),
+			jobContainers(mariaDB, cmd, backup.Spec.Resources),
 		),
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
 		withJobRestartPolicy(backup.Spec.RestartPolicy),
 	}
 	if restore.Spec.WaitForMariaDB {
-		opts = addJobInitContainersOpt(mariadb, opts)
+		opts = addJobInitContainersOpt(mariaDB, opts)
 	}
 
 	builder, err := newJobBuilder(opts...)
@@ -221,14 +221,22 @@ func (b *jobBuilder) build() *batchv1.Job {
 }
 
 func jobVolumes(backup *databasev1alpha1.BackupMariaDB) []corev1.Volume {
+	var volumeSource corev1.VolumeSource
+	if backup.Spec.Storage.Volume != nil {
+		volumeSource = *backup.Spec.Storage.Volume
+	}
+	if backup.Spec.Storage.PersistentVolumeClaim != nil {
+		volumeSource = corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: backup.Name,
+			},
+		}
+	}
+
 	return []corev1.Volume{
 		{
-			Name: jobStorageVolume,
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: backup.Name,
-				},
-			},
+			Name:         jobStorageVolume,
+			VolumeSource: volumeSource,
 		},
 	}
 }
