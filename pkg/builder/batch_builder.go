@@ -3,6 +3,7 @@ package builder
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
@@ -15,12 +16,8 @@ import (
 )
 
 const (
-	jobStorageVolume    = "storage"
-	jobStorageMountPath = "/data"
-)
-
-var (
-	dumpFilePath = fmt.Sprintf("%s/backup.sql", jobStorageMountPath)
+	batchStorageVolume    = "storage"
+	batchStorageMountPath = "/data"
 )
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alpha1.BackupMariaDB,
@@ -35,12 +32,33 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 		Namespace: key.Namespace,
 		Labels:    backupLabels,
 	}
-	cmd := fmt.Sprintf(
-		"mysqldump -h %s -P %d --lock-tables --all-databases > %s",
-		mariaDB.Name,
-		mariaDB.Spec.Port,
-		dumpFilePath,
+	backupFile := fmt.Sprintf(
+		"%s/backup.$(date -u +'%s').sql",
+		batchStorageMountPath,
+		"%Y-%m-%dT%H:%M:%SZ",
 	)
+	cmds := []string{
+		"echo '💾 Taking backup'",
+		fmt.Sprintf(
+			"mysqldump -h %s -P %d --lock-tables --all-databases > %s",
+			mariaDB.Name,
+			mariaDB.Spec.Port,
+			backupFile,
+		),
+		"echo '🧹 Cleaning up old backups'",
+		fmt.Sprintf(
+			"find %s -name *.sql -type f -mtime +%d -exec rm {} ';'",
+			batchStorageMountPath,
+			backup.Spec.MaxBackupRetainDays,
+		),
+		"echo '📜 Backup history (last 10):'",
+		fmt.Sprintf(
+			"find %s -name *.sql -type f -printf '%s' | sort | tail -n 10",
+			batchStorageMountPath,
+			"%f\n",
+		),
+	}
+	cmd := strings.Join(cmds, ";")
 
 	opts := []jobOption{
 		withJobMeta(meta),
@@ -113,12 +131,25 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1a
 		Namespace: key.Namespace,
 		Labels:    restoreLabels,
 	}
-	cmd := fmt.Sprintf(
-		"mysql -h %s -P %d < %s",
-		mariaDB.Name,
-		mariaDB.Spec.Port,
-		dumpFilePath,
+	mostRecentBackup := fmt.Sprintf(
+		"find %s -name *.sql -type f -printf '%s' | sort | tail -n 1",
+		batchStorageMountPath,
+		"%f\n",
 	)
+	cmds := []string{
+		fmt.Sprintf(
+			"export LATEST_BACKUP=%s/$(%s)",
+			batchStorageMountPath,
+			mostRecentBackup,
+		),
+		"echo '💾 Restoring most recent backup: '$LATEST_BACKUP''",
+		fmt.Sprintf(
+			"mysql -h %s -P %d < $LATEST_BACKUP",
+			mariaDB.Name,
+			mariaDB.Spec.Port,
+		),
+	}
+	cmd := strings.Join(cmds, ";")
 
 	opts := []jobOption{
 		withJobMeta(meta),
@@ -267,7 +298,7 @@ func jobVolumes(backup *databasev1alpha1.BackupMariaDB) []corev1.Volume {
 
 	return []corev1.Volume{
 		{
-			Name:         jobStorageVolume,
+			Name:         batchStorageVolume,
 			VolumeSource: volumeSource,
 		},
 	}
@@ -296,8 +327,8 @@ func jobContainers(mariadb *databasev1alpha1.MariaDB, cmd string, resources *cor
 		Env:             jobEnv(mariadb),
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      jobStorageVolume,
-				MountPath: jobStorageMountPath,
+				Name:      batchStorageVolume,
+				MountPath: batchStorageMountPath,
 			},
 		},
 	}

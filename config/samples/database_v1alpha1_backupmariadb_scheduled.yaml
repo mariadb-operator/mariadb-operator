@@ -9,6 +9,7 @@ spec:
   schedule:
     cron: "*/1 * * * *"
     suspend: false
+  maxBackupRetainDays: 30
   storage:
     persistentVolumeClaim:
       resources:

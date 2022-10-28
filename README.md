@@ -8,8 +8,7 @@
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 
 - Provisioning highly configurable MariaDB servers
-- Take and restore backups
-- Scheduled backups
+- Take and restore backups. Scheduled backups. Backup rotation
 - Bootstrap new instances from a backup
 - Support for managing users, grants and logical databases
 - Prometheus metrics

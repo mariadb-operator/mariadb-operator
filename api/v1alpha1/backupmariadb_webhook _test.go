@@ -214,6 +214,13 @@ var _ = Describe("BackupMariaDB webhook", func() {
 					wantErr: false,
 				},
 				{
+					by: "Updating MaxBackupRetainDays",
+					patchFn: func(bmdb *BackupMariaDB) {
+						bmdb.Spec.MaxBackupRetainDays = 40
+					},
+					wantErr: true,
+				},
+				{
 					by: "Updating Storage",
 					patchFn: func(bmdb *BackupMariaDB) {
 						newStorageClass := "fast-storage"

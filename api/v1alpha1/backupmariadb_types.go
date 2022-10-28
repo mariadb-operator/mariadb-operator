@@ -41,6 +41,8 @@ type BackupMariaDBSpec struct {
 	Schedule *BackupSchedule `json:"schedule,omitempty"`
 	// +kubebuilder:default=5
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
+	// +kubebuilder:default=30
+	MaxBackupRetainDays int32 `json:"maxBackupRetainDays,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=OnFailure
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
 	// +kubebuilder:validation:Optional

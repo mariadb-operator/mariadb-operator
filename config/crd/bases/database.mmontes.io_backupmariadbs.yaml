@@ -63,6 +63,10 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              maxBackupRetainDays:
+                default: 30
+                format: int32
+                type: integer
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:
