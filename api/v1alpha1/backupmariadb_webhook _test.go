@@ -27,38 +27,133 @@ import (
 )
 
 var _ = Describe("BackupMariaDB webhook", func() {
-	Context("When updating a BackupMariaDB", func() {
-		It("Should validate creates", func() {
-			By("Creating BackupMariaDB")
-			key := types.NamespacedName{
-				Name:      "invalid-backup-mariadb-webhook",
-				Namespace: testNamespace,
-			}
-			backup := BackupMariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      key.Name,
-					Namespace: key.Namespace,
-				},
-				Spec: BackupMariaDBSpec{
-					Storage: Storage{},
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: "mariadb-webhook",
-					},
-					BackoffLimit: 10,
-					Resources: &corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							"cpu": resource.MustParse("100m"),
+	Context("When creating a BackupMariaDB", func() {
+		It("Should validate", func() {
+			storageClassName := "standard"
+			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
+			// https://github.com/mmontes11/mariadb-operator/issues/3
+			tt := []struct {
+				by      string
+				backup  BackupMariaDB
+				wantErr bool
+			}{
+				{
+					by: "Creating a BackupMariaDB with invalid storage",
+					backup: BackupMariaDB{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "backup-invalid-storage",
+							Namespace: testNamespace,
+						},
+						Spec: BackupMariaDBSpec{
+							Storage: Storage{},
+							MariaDBRef: corev1.LocalObjectReference{
+								Name: "mariadb-webhook",
+							},
+							BackoffLimit: 10,
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+							RestartPolicy: corev1.RestartPolicyOnFailure,
 						},
 					},
-					RestartPolicy: corev1.RestartPolicyOnFailure,
+					wantErr: true,
+				},
+				{
+					by: "Creating a BackupMariaDB with invalid schedule",
+					backup: BackupMariaDB{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "backup-invalid-schedule",
+							Namespace: testNamespace,
+						},
+						Spec: BackupMariaDBSpec{
+							Schedule: &BackupSchedule{
+								Cron: "foo",
+							},
+							Storage: Storage{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+									StorageClassName: &storageClassName,
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("100Mi"),
+										},
+									},
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
+								},
+							},
+							MariaDBRef: corev1.LocalObjectReference{
+								Name: "mariadb-webhook",
+							},
+							BackoffLimit: 10,
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+							RestartPolicy: corev1.RestartPolicyOnFailure,
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "Creating a valid BackupMariaDB",
+					backup: BackupMariaDB{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "backup-valid",
+							Namespace: testNamespace,
+						},
+						Spec: BackupMariaDBSpec{
+							Schedule: &BackupSchedule{
+								Cron: "*/1 * * * *",
+							},
+							Storage: Storage{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+									StorageClassName: &storageClassName,
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("100Mi"),
+										},
+									},
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
+								},
+							},
+							MariaDBRef: corev1.LocalObjectReference{
+								Name: "mariadb-webhook",
+							},
+							BackoffLimit: 10,
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+							RestartPolicy: corev1.RestartPolicyOnFailure,
+						},
+					},
+					wantErr: false,
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &backup)).NotTo(Succeed())
+
+			for _, t := range tt {
+				By(t.by)
+				err := k8sClient.Create(testCtx, &t.backup)
+				if t.wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
 		})
-		It("Should validate updates", func() {
+	})
+	Context("When updating a BackupMariaDB", func() {
+		It("Should validate", func() {
 			By("Creating BackupMariaDB")
 			key := types.NamespacedName{
-				Name:      "backup-mariadb-webhook",
+				Name:      "backup-update",
 				Namespace: testNamespace,
 			}
 			storageClassName := "standard"
@@ -106,6 +201,15 @@ var _ = Describe("BackupMariaDB webhook", func() {
 					by: "Updating BackoffLimit",
 					patchFn: func(bmdb *BackupMariaDB) {
 						bmdb.Spec.BackoffLimit = 20
+					},
+					wantErr: false,
+				},
+				{
+					by: "Updating Schedule",
+					patchFn: func(bmdb *BackupMariaDB) {
+						bmdb.Spec.Schedule = &BackupSchedule{
+							Cron: "*/1 * * * *",
+						}
 					},
 					wantErr: false,
 				},

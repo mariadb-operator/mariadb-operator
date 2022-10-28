@@ -37,6 +37,53 @@ func SetReadyFailed(c Conditioner) {
 	SetReadyFailedWithMessage(c, "Failed")
 }
 
+func SetCompleteWithCronJob(c Conditioner, cronJob *batchv1.CronJob) {
+	setScheduled := func() {
+		c.SetCondition(metav1.Condition{
+			Type:    databasev1alpha1.ConditionTypeComplete,
+			Status:  metav1.ConditionFalse,
+			Reason:  databasev1alpha1.ConditionReasonCronJobScheduled,
+			Message: "Scheduled",
+		})
+	}
+
+	if cronJob.Status.LastScheduleTime == nil || cronJob.Status.LastSuccessfulTime == nil {
+		setScheduled()
+		return
+	}
+	if cronJob.Status.LastSuccessfulTime.Before(cronJob.Status.LastScheduleTime) {
+		if len(cronJob.Status.Active) > 0 {
+			c.SetCondition(metav1.Condition{
+				Type:    databasev1alpha1.ConditionTypeComplete,
+				Status:  metav1.ConditionFalse,
+				Reason:  databasev1alpha1.ConditionReasonCronJobRunning,
+				Message: "Running",
+			})
+		} else {
+			c.SetCondition(metav1.Condition{
+				Type:    databasev1alpha1.ConditionTypeComplete,
+				Status:  metav1.ConditionFalse,
+				Reason:  databasev1alpha1.ConditionReasonCronJobFailed,
+				Message: "Failed",
+			})
+		}
+		return
+	}
+
+	if cronJob.Status.LastScheduleTime.Equal(cronJob.Status.LastSuccessfulTime) ||
+		cronJob.Status.LastScheduleTime.Before(cronJob.Status.LastSuccessfulTime) {
+		c.SetCondition(metav1.Condition{
+			Type:    databasev1alpha1.ConditionTypeComplete,
+			Status:  metav1.ConditionTrue,
+			Reason:  databasev1alpha1.ConditionReasonCronJobSuccess,
+			Message: "Success",
+		})
+		return
+	}
+
+	setScheduled()
+}
+
 func SetCompleteWithJob(c Conditioner, job *batchv1.Job) {
 	switch getJobConditionType(job) {
 	case batchv1.JobFailed:

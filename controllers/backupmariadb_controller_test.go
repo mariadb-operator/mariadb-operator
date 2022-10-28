@@ -29,7 +29,7 @@ import (
 
 var _ = Describe("BackupMariaDB controller", func() {
 	Context("When creating a BackupMariaDB", func() {
-		It("Should reconcile", func() {
+		It("Should reconcile a Job", func() {
 			By("Creating BackupMariaDB")
 			backupKey := types.NamespacedName{
 				Name:      "backup-test",
@@ -77,6 +77,55 @@ var _ = Describe("BackupMariaDB controller", func() {
 					return false
 				}
 				return backup.IsComplete()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Deleting BackupMariaDB")
+			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+		})
+
+		It("Should reconcile a CronJob", func() {
+			By("Creating a scheduled BackupMariaDB")
+			backupKey := types.NamespacedName{
+				Name:      "backup-test-scheduled",
+				Namespace: testNamespace,
+			}
+			backup := databasev1alpha1.BackupMariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      backupKey.Name,
+					Namespace: backupKey.Namespace,
+				},
+				Spec: databasev1alpha1.BackupMariaDBSpec{
+					MariaDBRef: corev1.LocalObjectReference{
+						Name: testMariaDbName,
+					},
+					WaitForMariaDB: true,
+					Schedule: &databasev1alpha1.BackupSchedule{
+						Cron: "*/1 * * * *",
+					},
+					Storage: databasev1alpha1.Storage{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+							StorageClassName: &testStorageClassName,
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
+
+			By("Expecting to create a CronJob eventually")
+			Eventually(func() bool {
+				var job batchv1.CronJob
+				if err := k8sClient.Get(testCtx, backupKey, &job); err != nil {
+					return false
+				}
+				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting BackupMariaDB")

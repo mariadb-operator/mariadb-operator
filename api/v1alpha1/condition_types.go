@@ -18,6 +18,11 @@ const (
 	ConditionReasonJobFailed    string = "JobFailed"
 	ConditionReasonJobRunning   string = "JobRunning"
 
+	ConditionReasonCronJobScheduled string = "CronJobScheduled"
+	ConditionReasonCronJobFailed    string = "CronJobScheduled"
+	ConditionReasonCronJobRunning   string = "CronJobRunning"
+	ConditionReasonCronJobSuccess   string = "CronJobSucess"
+
 	ConditionReasonCreated string = "Created"
 	ConditionReasonFailed  string = "Failed"
 )

@@ -25,7 +25,7 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
-	"github.com/mmontes11/mariadb-operator/pkg/controller/job"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/batch"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -41,7 +41,7 @@ type RestoreMariaDBReconciler struct {
 	Builder           *builder.Builder
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *conditions.Complete
-	JobReconciler     *job.JobReconciler
+	BatchReconciler   *batch.BatchReconciler
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=restoremariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -90,7 +90,7 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	var jobErr *multierror.Error
-	err = r.JobReconciler.Reconcile(ctx, &restore, mariaDb)
+	err = r.BatchReconciler.Reconcile(ctx, &restore, mariaDb)
 	jobErr = multierror.Append(jobErr, err)
 
 	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)

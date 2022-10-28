@@ -22,6 +22,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type BackupSchedule struct {
+	// +kubebuilder:validation:Required
+	Cron string `json:"cron"`
+	// +kubebuilder:default=false
+	Supend bool `json:"suspend,omitempty"`
+}
+
 // BackupMariaDBSpec defines the desired state of BackupMariaDB
 type BackupMariaDBSpec struct {
 	// +kubebuilder:validation:Required
@@ -30,6 +37,8 @@ type BackupMariaDBSpec struct {
 	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:default=true
 	WaitForMariaDB bool `json:"waitForMariaDb" webhook:"inmutable"`
+
+	Schedule *BackupSchedule `json:"schedule,omitempty"`
 	// +kubebuilder:default=5
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=OnFailure

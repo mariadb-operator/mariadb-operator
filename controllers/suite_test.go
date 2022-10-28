@@ -25,7 +25,7 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
-	"github.com/mmontes11/mariadb-operator/pkg/controller/job"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/batch"
 	"github.com/mmontes11/mariadb-operator/pkg/portforwarder"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
@@ -95,7 +95,7 @@ var _ = BeforeSuite(func() {
 	refResolver := refresolver.New(k8sManager.GetClient())
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(k8sManager.GetClient())
-	jobReconciler := job.NewJobReconciler(k8sManager.GetClient(), refResolver, builder)
+	batchReconciler := batch.NewBatchReconciler(k8sManager.GetClient(), refResolver, builder)
 
 	err = (&MariaDBReconciler{
 		Client:         k8sManager.GetClient(),
@@ -111,7 +111,7 @@ var _ = BeforeSuite(func() {
 		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
-		JobReconciler:     jobReconciler,
+		BatchReconciler:   batchReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -121,7 +121,7 @@ var _ = BeforeSuite(func() {
 		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
-		JobReconciler:     jobReconciler,
+		BatchReconciler:   batchReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

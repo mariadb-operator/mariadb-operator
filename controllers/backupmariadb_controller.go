@@ -25,11 +25,12 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
-	"github.com/mmontes11/mariadb-operator/pkg/controller/job"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/batch"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -41,7 +42,7 @@ type BackupMariaDBReconciler struct {
 	Builder           *builder.Builder
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *conditions.Complete
-	JobReconciler     *job.JobReconciler
+	BatchReconciler   *batch.BatchReconciler
 }
 
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=backupmariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -75,11 +76,11 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
-	var jobErr *multierror.Error
-	err = r.JobReconciler.Reconcile(ctx, &backup, mariaDb)
-	jobErr = multierror.Append(jobErr, err)
+	var batchErr *multierror.Error
+	err = r.BatchReconciler.Reconcile(ctx, &backup, mariaDb)
+	batchErr = multierror.Append(batchErr, err)
 
-	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)
+	patcher, err := r.patcher(ctx, err, req.NamespacedName, &backup)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -88,12 +89,21 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	err = r.patchStatus(ctx, &backup, patcher)
-	jobErr = multierror.Append(jobErr, err)
+	batchErr = multierror.Append(batchErr, err)
 
-	if err := jobErr.ErrorOrNil(); err != nil {
+	if err := batchErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *BackupMariaDBReconciler) patcher(ctx context.Context, err error,
+	key types.NamespacedName, backup *databasev1alpha1.BackupMariaDB) (conditions.Patcher, error) {
+
+	if backup.Spec.Schedule != nil {
+		return r.ConditionComplete.PatcherWithCronJob(ctx, err, key)
+	}
+	return r.ConditionComplete.PatcherWithJob(ctx, err, key)
 }
 
 func (r *BackupMariaDBReconciler) patchStatus(ctx context.Context, backup *databasev1alpha1.BackupMariaDB,
@@ -111,6 +121,7 @@ func (r *BackupMariaDBReconciler) patchStatus(ctx context.Context, backup *datab
 func (r *BackupMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&databasev1alpha1.BackupMariaDB{}).
+		Owns(&batchv1.CronJob{}).
 		Owns(&batchv1.Job{}).
 		Complete(r)
 }

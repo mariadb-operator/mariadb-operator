@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 
+	cron "github.com/robfig/cron/v3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,8 +37,15 @@ func (r *BackupMariaDB) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 var _ webhook.Validator = &BackupMariaDB{}
 
+var cronParser = cron.NewParser(
+	cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
+)
+
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *BackupMariaDB) ValidateCreate() error {
+	if err := r.validateSchedule(); err != nil {
+		return err
+	}
 	if err := r.validateStorage(); err != nil {
 		return err
 	}
@@ -49,6 +57,9 @@ func (r *BackupMariaDB) ValidateUpdate(old runtime.Object) error {
 	if err := inmutableWebhook.ValidateUpdate(r, old.(*BackupMariaDB)); err != nil {
 		return err
 	}
+	if err := r.validateSchedule(); err != nil {
+		return err
+	}
 	if err := r.validateStorage(); err != nil {
 		return err
 	}
@@ -57,6 +68,20 @@ func (r *BackupMariaDB) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *BackupMariaDB) ValidateDelete() error {
+	return nil
+}
+
+func (r *BackupMariaDB) validateSchedule() error {
+	if r.Spec.Schedule == nil {
+		return nil
+	}
+	if _, err := cronParser.Parse(r.Spec.Schedule.Cron); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("schedule").Child("cron"),
+			r.Spec.Schedule,
+			fmt.Sprintf("invalid schedule: %v", err),
+		)
+	}
 	return nil
 }
 

@@ -37,7 +37,7 @@ import (
 	"github.com/mmontes11/mariadb-operator/controllers"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
-	"github.com/mmontes11/mariadb-operator/pkg/controller/job"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/batch"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	//+kubebuilder:scaffold:imports
 )
@@ -90,7 +90,7 @@ func main() {
 	refResolver := refresolver.New(mgr.GetClient())
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(mgr.GetClient())
-	jobReconciler := job.NewJobReconciler(mgr.GetClient(), refResolver, builder)
+	batchReconciler := batch.NewBatchReconciler(mgr.GetClient(), refResolver, builder)
 
 	if err = (&controllers.MariaDBReconciler{
 		Client:         mgr.GetClient(),
@@ -108,7 +108,7 @@ func main() {
 		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
-		JobReconciler:     jobReconciler,
+		BatchReconciler:   batchReconciler,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BackupMariaDB")
 		os.Exit(1)
@@ -119,7 +119,7 @@ func main() {
 		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
-		JobReconciler:     jobReconciler,
+		BatchReconciler:   batchReconciler,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RestoreMariaDB")
 		os.Exit(1)

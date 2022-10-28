@@ -65,7 +65,23 @@ func (p *Complete) FailedPatcher(msg string) Patcher {
 	}
 }
 
-func (p *Complete) PatcherWithJob(ctx context.Context, err error, jobKey types.NamespacedName) (Patcher, error) {
+func (p *Complete) PatcherWithCronJob(ctx context.Context, err error, key types.NamespacedName) (Patcher, error) {
+	if err != nil {
+		return func(c Conditioner) {
+			SetCompleteFailedWithMessage(c, "Error creating CronJob")
+		}, nil
+	}
+
+	var cronJob batchv1.CronJob
+	if err := p.client.Get(ctx, key, &cronJob); err != nil {
+		return nil, err
+	}
+	return func(c Conditioner) {
+		SetCompleteWithCronJob(c, &cronJob)
+	}, nil
+}
+
+func (p *Complete) PatcherWithJob(ctx context.Context, err error, key types.NamespacedName) (Patcher, error) {
 	if err != nil {
 		return func(c Conditioner) {
 			SetCompleteFailedWithMessage(c, "Error creating Job")
@@ -73,7 +89,7 @@ func (p *Complete) PatcherWithJob(ctx context.Context, err error, jobKey types.N
 	}
 
 	var job batchv1.Job
-	if err := p.client.Get(ctx, jobKey, &job); err != nil {
+	if err := p.client.Get(ctx, key, &job); err != nil {
 		return nil, err
 	}
 	return func(c Conditioner) {

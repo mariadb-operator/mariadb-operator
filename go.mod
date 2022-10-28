@@ -9,6 +9,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.57.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/sethvargo/go-password v0.2.0
 	k8s.io/api v0.24.2
 	k8s.io/apimachinery v0.24.2
