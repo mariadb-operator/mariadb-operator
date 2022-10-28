@@ -9,6 +9,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 
 - Provisioning highly configurable MariaDB servers
 - Take and restore backups
+- Scheduled backups
 - Bootstrap new instances from a backup
 - Support for managing users, grants and logical databases
 - Prometheus metrics
@@ -100,16 +101,21 @@ user              True    Created   *          *       user              true   
 ```
 Now that everything seems to be in place, let's take a backup:
 ```bash
-kubectl apply -f config/samples/database_v1alpha1_backupmariadb.yaml
+kubectl apply -f config/samples/database_v1alpha1_backupmariadb_scheduled.yaml
 ```
+After one minute, the backup should have completed:
 ```bash
 kubectl get backupmariadbs
-NAME     COMPLETE   STATUS    MARIADB   AGE
-backup   True       Success   mariadb   18s
+NAME               COMPLETE   STATUS    MARIADB   AGE
+backup-scheduled   True       Success   mariadb   15m
+
+kubectl get cronjobs
+NAME               SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+backup-scheduled   */1 * * * *   False     0        56s             15m
 
 kubectl get jobs
-NAME     COMPLETIONS   DURATION   AGE
-backup   1/1           9s         83s
+NAME                                    COMPLETIONS   DURATION   AGE
+backup-scheduled-27782894               1/1           4s         3m2s
 ```
 Last but not least, let's provision a second `MariaDB` instance bootstrapping from the previous backup:
 ```bash
