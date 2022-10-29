@@ -51,9 +51,9 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 			batchStorageMountPath,
 			backup.Spec.MaxRetentionDays,
 		),
-		"echo '📜 Backup history (last 10):'",
+		"echo '📜 Backup history'",
 		fmt.Sprintf(
-			"find %s -name *.sql -type f -printf '%s' | sort | tail -n 10",
+			"find %s -name *.sql -type f -printf '%s' | sort",
 			batchStorageMountPath,
 			"%f\n",
 		),
