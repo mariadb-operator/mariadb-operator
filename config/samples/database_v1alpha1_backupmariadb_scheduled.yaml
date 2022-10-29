@@ -5,11 +5,10 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  waitForMariaDb: true
   schedule:
     cron: "*/1 * * * *"
     suspend: false
-  maxBackupRetainDays: 30
+  maxRetentionDays: 30
   storage:
     persistentVolumeClaim:
       resources:

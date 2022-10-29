@@ -57,7 +57,7 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariaDb, err := r.RefResolver.GetMariaDB(ctx, restore.Spec.MariaDBRef, restore.Namespace)
+	mariaDb, err := r.RefResolver.GetMariaDB(ctx, &restore.Spec.MariaDBRef, restore.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
@@ -70,8 +70,9 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// We cannot check if mariaDb.IsReady() here and update the status accordingly
 	// because we would be creating a deadlock when bootstrapping from backup
+	// TODO: add a IsBootstrapping() method to MariaDB?
 
-	backup, err := r.RefResolver.GetBackupMariaDB(ctx, restore.Spec.BackupRef, restore.Namespace)
+	backup, err := r.RefResolver.GetBackupMariaDB(ctx, &restore.Spec.BackupRef, restore.Namespace)
 	if err != nil {
 		var backupErr *multierror.Error
 		backupErr = multierror.Append(backupErr, err)

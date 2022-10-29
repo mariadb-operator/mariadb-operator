@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -25,7 +24,7 @@ import (
 // GrantMariaDBSpec defines the desired state of GrantMariaDB
 type GrantMariaDBSpec struct {
 	// +kubebuilder:validation:Required
-	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef" webhook:"inmutable"`
+	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
 	Privileges []string `json:"privileges" webhook:"inmutable"`
@@ -83,8 +82,8 @@ func (g *GrantMariaDB) Meta() metav1.ObjectMeta {
 	return g.ObjectMeta
 }
 
-func (g *GrantMariaDB) MariaDBRef() corev1.LocalObjectReference {
-	return g.Spec.MariaDBRef
+func (g *GrantMariaDB) MariaDBRef() *MariaDBRef {
+	return &g.Spec.MariaDBRef
 }
 
 //+kubebuilder:object:root=true

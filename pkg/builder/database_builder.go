@@ -31,8 +31,11 @@ func (b *Builder) BuildUserMariaDB(mariadb *databasev1alpha1.MariaDB, opts UserO
 			Labels:    databaseLabels,
 		},
 		Spec: databasev1alpha1.UserMariaDBSpec{
-			MariaDBRef: corev1.LocalObjectReference{
-				Name: mariadb.Name,
+			MariaDBRef: databasev1alpha1.MariaDBRef{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: mariadb.Name,
+				},
+				WaitForIt: true,
 			},
 			PasswordSecretKeyRef: opts.PasswordSecretKeyRef,
 			MaxUserConnections:   opts.MaxUserConnections,
@@ -67,8 +70,11 @@ func (b *Builder) BuildGrantMariaDB(mariadb *databasev1alpha1.MariaDB, opts Gran
 			Labels:    grantLabels,
 		},
 		Spec: databasev1alpha1.GrantMariaDBSpec{
-			MariaDBRef: corev1.LocalObjectReference{
-				Name: mariadb.Name,
+			MariaDBRef: databasev1alpha1.MariaDBRef{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: mariadb.Name,
+				},
+				WaitForIt: true,
 			},
 			Privileges:  opts.Privileges,
 			Database:    opts.Database,

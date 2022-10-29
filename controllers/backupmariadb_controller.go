@@ -58,7 +58,7 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariaDb, err := r.RefResolver.GetMariaDB(ctx, backup.Spec.MariaDBRef, backup.Namespace)
+	mariaDb, err := r.RefResolver.GetMariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
@@ -69,7 +69,7 @@ func (r *BackupMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
-	if !mariaDb.IsReady() {
+	if backup.Spec.MariaDBRef.WaitForIt && !mariaDb.IsReady() {
 		if err := r.patchStatus(ctx, &backup, r.ConditionComplete.FailedPatcher("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching BackupMariaDB: %v", err)
 		}

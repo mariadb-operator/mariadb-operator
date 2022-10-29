@@ -39,8 +39,11 @@ var _ = Describe("UserMariaDB webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: UserMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: "mariadb-webhook",
+					MariaDBRef: MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "mariadb-webhook",
+						},
+						WaitForIt: true,
 					},
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{

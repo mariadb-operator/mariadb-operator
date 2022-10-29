@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -25,7 +24,7 @@ import (
 // DatabaseMariaDBSpec defines the desired state of DatabaseMariaDB
 type DatabaseMariaDBSpec struct {
 	// +kubebuilder:validation:Required
-	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef" webhook:"inmutable"`
+	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:default=utf8
 	CharacterSet string `json:"characterSet,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=utf8_general_ci
@@ -75,8 +74,8 @@ func (m *DatabaseMariaDB) Meta() metav1.ObjectMeta {
 	return m.ObjectMeta
 }
 
-func (m *DatabaseMariaDB) MariaDBRef() corev1.LocalObjectReference {
-	return m.Spec.MariaDBRef
+func (m *DatabaseMariaDB) MariaDBRef() *MariaDBRef {
+	return &m.Spec.MariaDBRef
 }
 
 // +kubebuilder:object:root=true

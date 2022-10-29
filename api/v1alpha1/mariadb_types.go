@@ -23,11 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type BootstrapFromBackup struct {
-	// +kubebuilder:validation:Required
-	BackupRef corev1.LocalObjectReference `json:"backupRef"`
-}
-
 type Exporter struct {
 	// +kubebuilder:validation:Required
 	Image     Image                        `json:"image"`
@@ -69,7 +64,7 @@ type MariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 
-	BootstrapFromBackup *BootstrapFromBackup `json:"bootstrapFromBackup,omitempty" webhook:"inmutable"`
+	BootstrapFromBackupRef *BackupMariaDBRef `json:"bootstrapFromBackupRef,omitempty" webhook:"inmutable"`
 
 	Metrics *Metrics `json:"metrics,omitempty"`
 

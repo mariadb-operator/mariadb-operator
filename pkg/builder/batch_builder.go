@@ -49,7 +49,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 		fmt.Sprintf(
 			"find %s -name *.sql -type f -mtime +%d -exec rm {} ';'",
 			batchStorageMountPath,
-			backup.Spec.MaxBackupRetainDays,
+			backup.Spec.MaxRetentionDays,
 		),
 		"echo '📜 Backup history (last 10):'",
 		fmt.Sprintf(
@@ -71,7 +71,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
 		withJobRestartPolicy(backup.Spec.RestartPolicy),
 	}
-	if backup.Spec.WaitForMariaDB {
+	if backup.Spec.MariaDBRef.WaitForIt {
 		opts = addJobInitContainersOpt(mariaDB, opts)
 	}
 
@@ -162,7 +162,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1a
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
 		withJobRestartPolicy(backup.Spec.RestartPolicy),
 	}
-	if restore.Spec.WaitForMariaDB {
+	if restore.Spec.MariaDBRef.WaitForIt {
 		opts = addJobInitContainersOpt(mariaDB, opts)
 	}
 

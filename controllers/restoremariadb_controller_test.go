@@ -43,10 +43,12 @@ var _ = Describe("RestoreMariaDB controller", func() {
 					Namespace: backupKey.Namespace,
 				},
 				Spec: databasev1alpha1.BackupMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: testMariaDbName,
+					MariaDBRef: databasev1alpha1.MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testMariaDbName,
+						},
+						WaitForIt: true,
 					},
-					WaitForMariaDB: true,
 					Storage: databasev1alpha1.Storage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
 							StorageClassName: &testStorageClassName,
@@ -129,13 +131,17 @@ var _ = Describe("RestoreMariaDB controller", func() {
 					Namespace: restoreKey.Namespace,
 				},
 				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: testMariaDbName,
+					MariaDBRef: databasev1alpha1.MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testMariaDbName,
+						},
+						WaitForIt: true,
 					},
-					BackupRef: corev1.LocalObjectReference{
-						Name: backup.Name,
+					BackupRef: databasev1alpha1.BackupMariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: backup.Name,
+						},
 					},
-					WaitForMariaDB: true,
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &restore)).To(Succeed())

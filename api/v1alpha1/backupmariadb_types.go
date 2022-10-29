@@ -32,17 +32,15 @@ type BackupSchedule struct {
 // BackupMariaDBSpec defines the desired state of BackupMariaDB
 type BackupMariaDBSpec struct {
 	// +kubebuilder:validation:Required
-	Storage Storage `json:"storage" webhook:"inmutable"`
+	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
-	MariaDBRef corev1.LocalObjectReference `json:"mariaDbRef" webhook:"inmutable"`
-	// +kubebuilder:default=true
-	WaitForMariaDB bool `json:"waitForMariaDb" webhook:"inmutable"`
+	Storage Storage `json:"storage" webhook:"inmutable"`
 
 	Schedule *BackupSchedule `json:"schedule,omitempty"`
 	// +kubebuilder:default=5
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=30
-	MaxBackupRetainDays int32 `json:"maxBackupRetainDays,omitempty" webhook:"inmutable"`
+	MaxRetentionDays int32 `json:"maxRetentionDays,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=OnFailure
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
 	// +kubebuilder:validation:Optional

@@ -52,7 +52,7 @@ func (tr *TemplateReconciler) Reconcile(ctx context.Context, resource Resource) 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
-	if !mariaDb.IsReady() {
+	if resource.MariaDBRef().WaitForIt && !mariaDb.IsReady() {
 		if err := tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.FailedPatcher("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching %s: %v", resource.Meta().Name, err)
 		}

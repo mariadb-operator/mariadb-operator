@@ -106,7 +106,7 @@ func (r *BatchReconciler) buildBatch(ctx context.Context, key types.NamespacedNa
 	}
 
 	if restore, ok := parentObj.(*databasev1alpha1.RestoreMariaDB); ok {
-		backup, err := r.refResolver.GetBackupMariaDB(ctx, restore.Spec.BackupRef, key.Namespace)
+		backup, err := r.refResolver.GetBackupMariaDB(ctx, &restore.Spec.BackupRef, key.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error getting BackupMariaDB: %v", err)
 		}

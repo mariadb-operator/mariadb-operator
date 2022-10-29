@@ -72,8 +72,8 @@ var _ = Describe("MariaDB webhook", func() {
 							corev1.ReadWriteOnce,
 						},
 					},
-					BootstrapFromBackup: &BootstrapFromBackup{
-						BackupRef: corev1.LocalObjectReference{
+					BootstrapFromBackupRef: &BackupMariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "backup",
 						},
 					},
@@ -174,7 +174,7 @@ var _ = Describe("MariaDB webhook", func() {
 				{
 					by: "Updating BootstrapFromBackup",
 					patchFn: func(mdb *MariaDB) {
-						mdb.Spec.BootstrapFromBackup.BackupRef.Name = "another-backup"
+						mdb.Spec.BootstrapFromBackupRef.Name = "another-backup"
 					},
 					wantErr: true,
 				},

@@ -47,8 +47,11 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: backupKey.Namespace,
 				},
 				Spec: databasev1alpha1.BackupMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: testMariaDbName,
+					MariaDBRef: databasev1alpha1.MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testMariaDbName,
+						},
+						WaitForIt: true,
 					},
 					Storage: databasev1alpha1.Storage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
@@ -86,8 +89,8 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: backupMariaDbKey.Namespace,
 				},
 				Spec: databasev1alpha1.MariaDBSpec{
-					BootstrapFromBackup: &databasev1alpha1.BootstrapFromBackup{
-						BackupRef: corev1.LocalObjectReference{
+					BootstrapFromBackupRef: &databasev1alpha1.BackupMariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
 							Name: backupKey.Name,
 						},
 					},
@@ -196,8 +199,8 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: noBackupMariaDbKey.Namespace,
 				},
 				Spec: databasev1alpha1.MariaDBSpec{
-					BootstrapFromBackup: &databasev1alpha1.BootstrapFromBackup{
-						BackupRef: corev1.LocalObjectReference{
+					BootstrapFromBackupRef: &databasev1alpha1.BackupMariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "foo",
 						},
 					},

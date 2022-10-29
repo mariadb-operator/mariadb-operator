@@ -21,10 +21,10 @@ func New(client client.Client) *RefResolver {
 	}
 }
 
-func (r *RefResolver) GetMariaDB(ctx context.Context, localRef corev1.LocalObjectReference,
+func (r *RefResolver) GetMariaDB(ctx context.Context, ref *databasev1alpha1.MariaDBRef,
 	namespace string) (*databasev1alpha1.MariaDB, error) {
 	nn := types.NamespacedName{
-		Name:      localRef.Name,
+		Name:      ref.Name,
 		Namespace: namespace,
 	}
 	var mariadb databasev1alpha1.MariaDB
@@ -34,10 +34,10 @@ func (r *RefResolver) GetMariaDB(ctx context.Context, localRef corev1.LocalObjec
 	return &mariadb, nil
 }
 
-func (r *RefResolver) GetBackupMariaDB(ctx context.Context, localRef corev1.LocalObjectReference,
+func (r *RefResolver) GetBackupMariaDB(ctx context.Context, ref *databasev1alpha1.BackupMariaDBRef,
 	namespace string) (*databasev1alpha1.BackupMariaDB, error) {
 	nn := types.NamespacedName{
-		Name:      localRef.Name,
+		Name:      ref.Name,
 		Namespace: namespace,
 	}
 	var backup databasev1alpha1.BackupMariaDB

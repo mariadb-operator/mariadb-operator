@@ -39,8 +39,11 @@ var _ = Describe("GrantMariaDB webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: GrantMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: "mariadb-webhook",
+					MariaDBRef: MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "mariadb-webhook",
+						},
+						WaitForIt: true,
 					},
 					Privileges: []string{
 						"SELECT",

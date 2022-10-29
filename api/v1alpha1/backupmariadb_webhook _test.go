@@ -46,8 +46,11 @@ var _ = Describe("BackupMariaDB webhook", func() {
 						},
 						Spec: BackupMariaDBSpec{
 							Storage: Storage{},
-							MariaDBRef: corev1.LocalObjectReference{
-								Name: "mariadb-webhook",
+							MariaDBRef: MariaDBRef{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-webhook",
+								},
+								WaitForIt: true,
 							},
 							BackoffLimit: 10,
 							Resources: &corev1.ResourceRequirements{
@@ -84,8 +87,11 @@ var _ = Describe("BackupMariaDB webhook", func() {
 									},
 								},
 							},
-							MariaDBRef: corev1.LocalObjectReference{
-								Name: "mariadb-webhook",
+							MariaDBRef: MariaDBRef{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-webhook",
+								},
+								WaitForIt: true,
 							},
 							BackoffLimit: 10,
 							Resources: &corev1.ResourceRequirements{
@@ -122,8 +128,11 @@ var _ = Describe("BackupMariaDB webhook", func() {
 									},
 								},
 							},
-							MariaDBRef: corev1.LocalObjectReference{
-								Name: "mariadb-webhook",
+							MariaDBRef: MariaDBRef{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-webhook",
+								},
+								WaitForIt: true,
 							},
 							BackoffLimit: 10,
 							Resources: &corev1.ResourceRequirements{
@@ -176,8 +185,11 @@ var _ = Describe("BackupMariaDB webhook", func() {
 							},
 						},
 					},
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: "mariadb-webhook",
+					MariaDBRef: MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "mariadb-webhook",
+						},
+						WaitForIt: true,
 					},
 					BackoffLimit: 10,
 					Resources: &corev1.ResourceRequirements{
@@ -216,7 +228,7 @@ var _ = Describe("BackupMariaDB webhook", func() {
 				{
 					by: "Updating MaxBackupRetainDays",
 					patchFn: func(bmdb *BackupMariaDB) {
-						bmdb.Spec.MaxBackupRetainDays = 40
+						bmdb.Spec.MaxRetentionDays = 40
 					},
 					wantErr: true,
 				},

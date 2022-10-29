@@ -39,8 +39,11 @@ var _ = Describe("DatabaseMariaDB controller", func() {
 					Namespace: databaseKey.Namespace,
 				},
 				Spec: databasev1alpha1.DatabaseMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: testMariaDbKey.Name,
+					MariaDBRef: databasev1alpha1.MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testMariaDbKey.Name,
+						},
+						WaitForIt: true,
 					},
 					CharacterSet: "utf8",
 					Collate:      "utf8_general_ci",

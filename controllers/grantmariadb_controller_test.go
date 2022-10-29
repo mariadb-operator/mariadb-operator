@@ -39,8 +39,11 @@ var _ = Describe("GrantMariaDB controller", func() {
 					Namespace: userKey.Namespace,
 				},
 				Spec: databasev1alpha1.UserMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: testMariaDbKey.Name,
+					MariaDBRef: databasev1alpha1.MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testMariaDbKey.Name,
+						},
+						WaitForIt: true,
 					},
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -72,8 +75,11 @@ var _ = Describe("GrantMariaDB controller", func() {
 					Namespace: grantKey.Namespace,
 				},
 				Spec: databasev1alpha1.GrantMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: testMariaDbKey.Name,
+					MariaDBRef: databasev1alpha1.MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testMariaDbKey.Name,
+						},
+						WaitForIt: true,
 					},
 					Privileges: []string{
 						"SELECT",

@@ -28,9 +28,8 @@ spec:
     accessModes:
       - ReadWriteOnce
 
-  bootstrapFromBackup:
-    backupRef:
-      name: backup-scheduled
+  bootstrapFromBackupRef:
+    name: backup-scheduled
 
   resources:
     requests:

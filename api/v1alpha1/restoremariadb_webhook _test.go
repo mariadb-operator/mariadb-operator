@@ -40,11 +40,16 @@ var _ = Describe("RestoreMariaDB webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: RestoreMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: "mariadb-webhook",
+					MariaDBRef: MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "mariadb-webhook",
+						},
+						WaitForIt: true,
 					},
-					BackupRef: corev1.LocalObjectReference{
-						Name: "backup-webhook",
+					BackupRef: BackupMariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "backup-webhook",
+						},
 					},
 					BackoffLimit: 10,
 					Resources: &corev1.ResourceRequirements{

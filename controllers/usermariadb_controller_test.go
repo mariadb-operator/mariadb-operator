@@ -38,8 +38,11 @@ var _ = Describe("UserMariaDB controller", func() {
 					Namespace: userKey.Namespace,
 				},
 				Spec: databasev1alpha1.UserMariaDBSpec{
-					MariaDBRef: corev1.LocalObjectReference{
-						Name: testMariaDbKey.Name,
+					MariaDBRef: databasev1alpha1.MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testMariaDbKey.Name,
+						},
+						WaitForIt: true,
 					},
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{

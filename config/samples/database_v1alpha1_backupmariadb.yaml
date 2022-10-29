@@ -5,7 +5,6 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  waitForMariaDb: true
   storage:
     persistentVolumeClaim:
       resources:

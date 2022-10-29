@@ -58,8 +58,6 @@ spec:
                 format: int32
                 type: integer
               backupRef:
-                description: LocalObjectReference contains enough information to let
-                  you locate the referenced object inside the same namespace.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -67,13 +65,14 @@ spec:
                     type: string
                 type: object
               mariaDbRef:
-                description: LocalObjectReference contains enough information to let
-                  you locate the referenced object inside the same namespace.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
+                  waitForIt:
+                    default: true
+                    type: boolean
                 type: object
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
@@ -108,13 +107,9 @@ spec:
                   none of the following policies is specified, the default one is
                   RestartPolicyAlways.
                 type: string
-              waitForMariaDb:
-                default: true
-                type: boolean
             required:
             - backupRef
             - mariaDbRef
-            - waitForMariaDb
             type: object
           status:
             description: RestoreMariaDBStatus defines the observed state of RestoreMariaDB

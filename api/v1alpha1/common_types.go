@@ -39,3 +39,16 @@ func (s *Storage) Validate() error {
 	}
 	return nil
 }
+
+type MariaDBRef struct {
+	// +kubebuilder:validation:Required
+	corev1.LocalObjectReference `json:",inline"`
+
+	// +kubebuilder:default=true
+	WaitForIt bool `json:"waitForIt,omitempty"`
+}
+
+type BackupMariaDBRef struct {
+	// +kubebuilder:validation:Required
+	corev1.LocalObjectReference `json:",inline"`
+}

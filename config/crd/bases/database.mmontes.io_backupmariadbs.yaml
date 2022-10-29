@@ -55,15 +55,16 @@ spec:
                 format: int32
                 type: integer
               mariaDbRef:
-                description: LocalObjectReference contains enough information to let
-                  you locate the referenced object inside the same namespace.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
+                  waitForIt:
+                    default: true
+                    type: boolean
                 type: object
-              maxBackupRetainDays:
+              maxRetentionDays:
                 default: 30
                 format: int32
                 type: integer
@@ -1795,13 +1796,9 @@ spec:
                         type: object
                     type: object
                 type: object
-              waitForMariaDb:
-                default: true
-                type: boolean
             required:
             - mariaDbRef
             - storage
-            - waitForMariaDb
             type: object
           status:
             description: BackupMariaDBStatus defines the observed state of BackupMariaDB
