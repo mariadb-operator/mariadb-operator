@@ -146,6 +146,10 @@ deploy: cluster-ctx manifests kustomize ## Deploy controller to the K8s cluster 
 undeploy: cluster-ctx ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
+.PHONY: helm-crds 
+helm-crds: manifests ## Generate CRDs for Helm chart.
+	$(KUSTOMIZE) build config/crd > helm/mariadb-operator/crds/crds.yaml
+
 ##@ Tooling
 
 ## Location to install dependencies to
