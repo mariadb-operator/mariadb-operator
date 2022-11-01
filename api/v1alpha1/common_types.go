@@ -51,4 +51,6 @@ type MariaDBRef struct {
 type BackupMariaDBRef struct {
 	// +kubebuilder:validation:Required
 	corev1.LocalObjectReference `json:",inline"`
+
+	FileName *string `json:"fileName,omitempty"`
 }

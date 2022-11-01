@@ -120,7 +120,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *databasev
 }
 
 func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1alpha1.RestoreMariaDB,
-	backup *databasev1alpha1.BackupMariaDB, mariaDB *databasev1alpha1.MariaDB) (*batchv1.Job, error) {
+	backup *databasev1alpha1.BackupMariaDB, mariaDB *databasev1alpha1.MariaDB, restoreFileName *string) (*batchv1.Job, error) {
 	restoreLabels :=
 		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
@@ -131,16 +131,21 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1a
 		Namespace: key.Namespace,
 		Labels:    restoreLabels,
 	}
-	mostRecentBackup := fmt.Sprintf(
-		"find %s -name *.sql -type f -printf '%s' | sort | tail -n 1",
-		batchStorageMountPath,
-		"%f\n",
-	)
+	restoreFile := func() string {
+		if restoreFileName != nil {
+			return *restoreFileName
+		}
+		return fmt.Sprintf(
+			"$(find %s -name *.sql -type f -printf '%s' | sort | tail -n 1)",
+			batchStorageMountPath,
+			"%f\n",
+		)
+	}()
 	cmds := []string{
 		fmt.Sprintf(
-			"export LATEST_BACKUP=%s/$(%s)",
+			"export LATEST_BACKUP=%s/%s",
 			batchStorageMountPath,
-			mostRecentBackup,
+			restoreFile,
 		),
 		"echo '💾 Restoring most recent backup: '$LATEST_BACKUP''",
 		fmt.Sprintf(
