@@ -152,7 +152,7 @@ helm-crds: ## Generate CRDs for Helm chart.
 
 .PHONY: helm-rbac
 helm-rbac: ## Generate RBAC for Helm chart.
-	$(KUSTOMIZE) build config/rbac > helm/mariadb-operator/templates/rbac.yaml
+	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > helm/mariadb-operator/templates/rbac.yaml
 
 .PHONY: helm
 helm: manifests helm-crds helm-rbac ## Generate manifests for Helm chart.
