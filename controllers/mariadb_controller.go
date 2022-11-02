@@ -55,6 +55,7 @@ type MariaDBReconcilePhase struct {
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=restoremariadbs,verbs=list;watch;create;patch
 

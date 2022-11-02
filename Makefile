@@ -31,7 +31,7 @@ certs: ## Generates development certificates.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=mariadb-manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -147,8 +147,15 @@ undeploy: cluster-ctx ## Undeploy controller from the K8s cluster specified in ~
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: helm-crds 
-helm-crds: manifests ## Generate CRDs for Helm chart.
+helm-crds: ## Generate CRDs for Helm chart.
 	$(KUSTOMIZE) build config/crd > helm/mariadb-operator/crds/crds.yaml
+
+.PHONY: helm-rbac
+helm-rbac: ## Generate RBAC for Helm chart.
+	$(KUSTOMIZE) build config/rbac > helm/mariadb-operator/templates/rbac.yaml
+
+.PHONY: helm
+helm: manifests helm-crds helm-rbac ## Generate manifests for Helm chart.
 
 ##@ Tooling
 

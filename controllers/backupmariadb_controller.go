@@ -48,6 +48,7 @@ type BackupMariaDBReconciler struct {
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=backupmariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=database.mmontes.io,resources=backupmariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

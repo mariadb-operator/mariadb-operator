@@ -4,12 +4,12 @@ metadata:
   labels:
     control-plane: controller-manager
   name: controller-manager-metrics-service
-  namespace: system
+  namespace: mariadb-system
 spec:
   ports:
-  - name: https
-    port: 8443
-    protocol: TCP
-    targetPort: https
+    - name: https
+      port: 8443
+      protocol: TCP
+      targetPort: https
   selector:
     control-plane: controller-manager

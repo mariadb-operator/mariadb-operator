@@ -98,7 +98,7 @@ spec:
       securityContext:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      serviceAccountName: {{ include "mariadb-operator.fullname" . }}-controller-manager
+      serviceAccountName: mariadb-controller-manager
       terminationGracePeriodSeconds: 10
       volumes:
         - name: cert
