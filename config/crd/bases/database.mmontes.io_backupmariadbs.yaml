@@ -68,6 +68,9 @@ spec:
                 default: 30
                 format: int32
                 type: integer
+              physical:
+                default: false
+                type: boolean
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:

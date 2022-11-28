@@ -147,11 +147,11 @@ undeploy: cluster-ctx ## Undeploy controller from the K8s cluster specified in ~
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: helm-crds 
-helm-crds: ## Generate CRDs for Helm chart.
+helm-crds: kustomize ## Generate CRDs for Helm chart.
 	$(KUSTOMIZE) build config/crd > helm/mariadb-operator/crds/crds.yaml
 
 .PHONY: helm-rbac
-helm-rbac: ## Generate RBAC for Helm chart.
+helm-rbac: kustomize ## Generate RBAC for Helm chart.
 	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > helm/mariadb-operator/templates/rbac.yaml
 
 .PHONY: helm
