@@ -6,13 +6,6 @@ import (
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 )
 
-type BackupType int
-
-const (
-	Logical BackupType = iota
-	Physical
-)
-
 type Option func(*CommandOpts)
 
 func WithMariaDB(mdb *databasev1alpha1.MariaDB) Option {
@@ -21,9 +14,9 @@ func WithMariaDB(mdb *databasev1alpha1.MariaDB) Option {
 	}
 }
 
-func WithBackupType(t BackupType) Option {
+func WithBackupPhysical(p bool) Option {
 	return func(co *CommandOpts) {
-		co.BackupType = t
+		co.BackupPhysical = p
 	}
 }
 
@@ -52,18 +45,16 @@ func WithPasswordEnv(p string) Option {
 }
 
 type CommandOpts struct {
-	MariaDB     *databasev1alpha1.MariaDB
-	BackupType  BackupType
-	BackupFile  string
-	BasePath    string
-	UserEnv     string
-	PasswordEnv string
+	MariaDB        *databasev1alpha1.MariaDB
+	BackupPhysical bool
+	BackupFile     string
+	BasePath       string
+	UserEnv        string
+	PasswordEnv    string
 }
 
 func New(userOpts ...Option) (Commander, error) {
-	opts := &CommandOpts{
-		BackupType: Logical,
-	}
+	opts := &CommandOpts{}
 
 	for _, setOpt := range userOpts {
 		setOpt(opts)
@@ -82,7 +73,7 @@ func New(userOpts ...Option) (Commander, error) {
 	}
 
 	var commander Commander
-	if opts.BackupType == Physical {
+	if opts.BackupPhysical {
 		commander = &physicalBackup{opts}
 	} else {
 		commander = &logicalBackup{opts}

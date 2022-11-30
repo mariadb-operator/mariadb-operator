@@ -26,7 +26,7 @@ func execCommand(args []string) *Command {
 
 func authFlags(co *CommandOpts) string {
 	return fmt.Sprintf(
-		"--user=${%s} --password=${%s} -h %s -P %d",
+		"--user=${%s} --password=${%s} --host=%s --port=%d",
 		co.UserEnv,
 		co.PasswordEnv,
 		co.MariaDB.Name,

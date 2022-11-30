@@ -12,7 +12,7 @@ type logicalBackup struct {
 
 func (l *logicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB) *Command {
 	cmds := []string{
-		"echo '💾 Taking backup'",
+		"echo '💾 Taking logical backup'",
 		fmt.Sprintf(
 			"mysqldump %s --lock-tables --all-databases > %s",
 			authFlags(l.CommandOpts),
@@ -38,7 +38,7 @@ func (l *logicalBackup) RestoreCommand() *Command {
 	restorePath := l.restorePath()
 	cmds := []string{
 		fmt.Sprintf(
-			"echo '💾 Restoring backup: '%s''",
+			"echo '💾 Restoring physical backup: '%s''",
 			restorePath,
 		),
 		fmt.Sprintf(
