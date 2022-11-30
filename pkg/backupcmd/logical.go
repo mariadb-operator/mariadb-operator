@@ -10,12 +10,13 @@ type logicalBackup struct {
 	*CommandOpts
 }
 
-func (l *logicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB) *Command {
+func (l *logicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB,
+	mariadb *databasev1alpha1.MariaDB) *Command {
 	cmds := []string{
 		"echo '💾 Taking logical backup'",
 		fmt.Sprintf(
 			"mysqldump %s --lock-tables --all-databases > %s",
-			authFlags(l.CommandOpts),
+			authFlags(l.CommandOpts, mariadb),
 			l.backupPath(),
 		),
 		"echo '🧹 Cleaning up old backups'",
@@ -34,7 +35,7 @@ func (l *logicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB) *C
 	return execCommand(cmds)
 }
 
-func (l *logicalBackup) RestoreCommand() *Command {
+func (l *logicalBackup) RestoreCommand(mariadb *databasev1alpha1.MariaDB) *Command {
 	restorePath := l.restorePath()
 	cmds := []string{
 		fmt.Sprintf(
@@ -43,7 +44,7 @@ func (l *logicalBackup) RestoreCommand() *Command {
 		),
 		fmt.Sprintf(
 			"mysql %s < %s",
-			authFlags(l.CommandOpts),
+			authFlags(l.CommandOpts, mariadb),
 			restorePath,
 		),
 	}

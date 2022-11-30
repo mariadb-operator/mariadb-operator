@@ -10,12 +10,13 @@ type physicalBackup struct {
 	*CommandOpts
 }
 
-func (l *physicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB) *Command {
+func (l *physicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB,
+	mariadb *databasev1alpha1.MariaDB) *Command {
 	cmds := []string{
 		"echo '💾 Taking physical backup'",
 		fmt.Sprintf(
 			"mariabackup %s --backup --target-dir=%s",
-			authFlags(l.CommandOpts),
+			authFlags(l.CommandOpts, mariadb),
 			l.backupPath(),
 		),
 		"echo '🧹 Cleaning up old backups'",
@@ -34,7 +35,7 @@ func (l *physicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB) *
 	return execCommand(cmds)
 }
 
-func (l *physicalBackup) RestoreCommand() *Command {
+func (l *physicalBackup) RestoreCommand(mariadb *databasev1alpha1.MariaDB) *Command {
 	restorePath := l.restorePath()
 	cmds := []string{
 		fmt.Sprintf(
@@ -43,7 +44,7 @@ func (l *physicalBackup) RestoreCommand() *Command {
 		),
 		fmt.Sprintf(
 			"mariabackup %s --prepare --target-dir=%s",
-			authFlags(l.CommandOpts),
+			authFlags(l.CommandOpts, mariadb),
 			restorePath,
 		),
 	}

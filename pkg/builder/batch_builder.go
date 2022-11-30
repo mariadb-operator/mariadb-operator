@@ -38,7 +38,6 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 	}
 
 	cmdOpts := []backupcmd.Option{
-		backupcmd.WithMariaDB(mariaDB),
 		backupcmd.WithBasePath(batchStorageMountPath),
 		backupcmd.WithUserEnv(backupUserEnv),
 		backupcmd.WithPasswordEnv(backupPasswordEnv),
@@ -57,7 +56,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 			jobVolumes(backup, mariaDB),
 		),
 		withJobContainers(
-			jobContainers(backup, mariaDB, cmd.BackupCommand(backup), backup.Spec.Resources),
+			jobContainers(backup, mariaDB, cmd.BackupCommand(backup, mariaDB), backup.Spec.Resources),
 		),
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
 		withJobRestartPolicy(backup.Spec.RestartPolicy),
@@ -124,7 +123,6 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1a
 	}
 
 	cmdOpts := []backupcmd.Option{
-		backupcmd.WithMariaDB(mariaDB),
 		backupcmd.WithBasePath(batchStorageMountPath),
 		backupcmd.WithUserEnv(backupUserEnv),
 		backupcmd.WithPasswordEnv(backupPasswordEnv),
@@ -146,7 +144,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1a
 			jobVolumes(backup, mariaDB),
 		),
 		withJobContainers(
-			jobContainers(backup, mariaDB, cmd.RestoreCommand(), backup.Spec.Resources),
+			jobContainers(backup, mariaDB, cmd.RestoreCommand(mariaDB), backup.Spec.Resources),
 		),
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
 		withJobRestartPolicy(backup.Spec.RestartPolicy),

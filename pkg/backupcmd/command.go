@@ -13,8 +13,8 @@ type Command struct {
 }
 
 type Commander interface {
-	BackupCommand(backup *databasev1alpha1.BackupMariaDB) *Command
-	RestoreCommand() *Command
+	BackupCommand(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB) *Command
+	RestoreCommand(mariadb *databasev1alpha1.MariaDB) *Command
 }
 
 func execCommand(args []string) *Command {
@@ -24,12 +24,12 @@ func execCommand(args []string) *Command {
 	}
 }
 
-func authFlags(co *CommandOpts) string {
+func authFlags(co *CommandOpts, mariadb *databasev1alpha1.MariaDB) string {
 	return fmt.Sprintf(
 		"--user=${%s} --password=${%s} --host=%s --port=%d",
 		co.UserEnv,
 		co.PasswordEnv,
-		co.MariaDB.Name,
-		co.MariaDB.Spec.Port,
+		mariadb.Name,
+		mariadb.Spec.Port,
 	)
 }
