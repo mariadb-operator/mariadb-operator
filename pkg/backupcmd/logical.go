@@ -14,50 +14,37 @@ func (l *logicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB) *C
 	cmds := []string{
 		"echo '💾 Taking backup'",
 		fmt.Sprintf(
-			"mysqldump -h %s -P %d --lock-tables --all-databases > %s",
-			l.MariaDB.Name,
-			l.MariaDB.Spec.Port,
+			"mysqldump %s --lock-tables --all-databases > %s",
+			authFlags(l.CommandOpts),
 			l.backupPath(),
 		),
+		"echo '🧹 Cleaning up old backups'",
+		fmt.Sprintf(
+			"find %s -name *.sql -type f -mtime +%d -exec rm {} ';'",
+			l.BasePath,
+			backup.Spec.MaxRetentionDays,
+		),
+		"echo '📜 Backup history'",
+		fmt.Sprintf(
+			"find %s -name *.sql -type f -printf '%s' | sort",
+			l.BasePath,
+			"%f\n",
+		),
 	}
-
-	if l.Cleanup {
-		cmds = append(cmds,
-			"echo '🧹 Cleaning up old backups'",
-			fmt.Sprintf(
-				"find %s -name *.sql -type f -mtime +%d -exec rm {} ';'",
-				l.BasePath,
-				backup.Spec.MaxRetentionDays,
-			),
-		)
-	}
-
-	if l.History {
-		cmds = append(cmds,
-			"echo '📜 Backup history'",
-			fmt.Sprintf(
-				"find %s -name *.sql -type f -printf '%s' | sort",
-				l.BasePath,
-				"%f\n",
-			),
-		)
-	}
-
 	return execCommand(cmds)
 }
 
 func (l *logicalBackup) RestoreCommand() *Command {
+	restorePath := l.restorePath()
 	cmds := []string{
 		fmt.Sprintf(
-			"export RESTORE_BACKUP=%s/%s",
-			l.BasePath,
-			l.restorePath(),
+			"echo '💾 Restoring backup: '%s''",
+			restorePath,
 		),
-		"echo '💾 Restoring backup: '$RESTORE_BACKUP''",
 		fmt.Sprintf(
-			"mysql -h %s -P %d < $RESTORE_BACKUP",
-			l.MariaDB.Name,
-			l.MariaDB.Spec.Port,
+			"mysql %s < %s",
+			authFlags(l.CommandOpts),
+			restorePath,
 		),
 	}
 	return execCommand(cmds)
@@ -81,7 +68,7 @@ func (l *logicalBackup) restorePath() string {
 	return fmt.Sprintf(
 		"%s/$(find %s -name *.sql -type f -printf '%s' | sort | tail -n 1)",
 		l.BasePath,
-		l.BackupFile,
+		l.BasePath,
 		"%f\n",
 	)
 }

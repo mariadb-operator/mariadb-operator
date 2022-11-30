@@ -39,46 +39,30 @@ func WithBasePath(p string) Option {
 	}
 }
 
-func WithUser(u string) Option {
+func WithUserEnv(u string) Option {
 	return func(co *CommandOpts) {
-		co.User = u
+		co.UserEnv = u
 	}
 }
 
-func WithPassword(p string) Option {
+func WithPasswordEnv(p string) Option {
 	return func(co *CommandOpts) {
-		co.Password = p
-	}
-}
-
-func WithCleanup(c bool) Option {
-	return func(co *CommandOpts) {
-		co.Cleanup = c
-	}
-}
-
-func WithHistory(h bool) Option {
-	return func(co *CommandOpts) {
-		co.History = h
+		co.PasswordEnv = p
 	}
 }
 
 type CommandOpts struct {
-	MariaDB    *databasev1alpha1.MariaDB
-	BackupType BackupType
-	BackupFile string
-	BasePath   string
-	User       string
-	Password   string
-	Cleanup    bool
-	History    bool
+	MariaDB     *databasev1alpha1.MariaDB
+	BackupType  BackupType
+	BackupFile  string
+	BasePath    string
+	UserEnv     string
+	PasswordEnv string
 }
 
 func New(userOpts ...Option) (Commander, error) {
 	opts := &CommandOpts{
 		BackupType: Logical,
-		Cleanup:    true,
-		History:    true,
 	}
 
 	for _, setOpt := range userOpts {
@@ -90,11 +74,11 @@ func New(userOpts ...Option) (Commander, error) {
 	if opts.BasePath == "" {
 		return nil, errors.New("base path not provided")
 	}
-	if opts.User == "" {
-		return nil, errors.New("user not provided")
+	if opts.UserEnv == "" {
+		return nil, errors.New("user environment variable not provided")
 	}
-	if opts.Password == "" {
-		return nil, errors.New("password not provided")
+	if opts.PasswordEnv == "" {
+		return nil, errors.New("password environment variable not provided")
 	}
 
 	var commander Commander

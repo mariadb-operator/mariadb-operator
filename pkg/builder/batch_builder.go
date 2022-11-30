@@ -38,8 +38,8 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 		backupcmd.WithMariaDB(mariaDB),
 		backupcmd.WithBackupType(backupcmd.Logical),
 		backupcmd.WithBasePath(batchStorageMountPath),
-		backupcmd.WithUser(fmt.Sprintf("$%v", backupUserEnv)),
-		backupcmd.WithPassword(fmt.Sprintf("$%v", backupPasswordEnv)),
+		backupcmd.WithUserEnv(backupUserEnv),
+		backupcmd.WithPasswordEnv(backupPasswordEnv),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
@@ -120,8 +120,8 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1a
 		backupcmd.WithMariaDB(mariaDB),
 		backupcmd.WithBackupType(backupcmd.Logical),
 		backupcmd.WithBasePath(batchStorageMountPath),
-		backupcmd.WithUser(fmt.Sprintf("$%v", backupUserEnv)),
-		backupcmd.WithPassword(fmt.Sprintf("$%v", backupPasswordEnv)),
+		backupcmd.WithUserEnv(backupUserEnv),
+		backupcmd.WithPasswordEnv(backupPasswordEnv),
 	}
 	if restoreFileName != nil {
 		cmdOpts = append(cmdOpts, backupcmd.WithFile(*restoreFileName))

@@ -1,6 +1,7 @@
 package backupcmd
 
 import (
+	"fmt"
 	"strings"
 
 	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
@@ -11,6 +12,11 @@ type Command struct {
 	Args    []string
 }
 
+type Commander interface {
+	BackupCommand(backup *databasev1alpha1.BackupMariaDB) *Command
+	RestoreCommand() *Command
+}
+
 func execCommand(args []string) *Command {
 	return &Command{
 		Command: []string{"sh", "-c"},
@@ -18,7 +24,12 @@ func execCommand(args []string) *Command {
 	}
 }
 
-type Commander interface {
-	BackupCommand(backup *databasev1alpha1.BackupMariaDB) *Command
-	RestoreCommand() *Command
+func authFlags(co *CommandOpts) string {
+	return fmt.Sprintf(
+		"--user=${%s} --password=${%s} -h %s -P %d",
+		co.UserEnv,
+		co.PasswordEnv,
+		co.MariaDB.Name,
+		co.MariaDB.Spec.Port,
+	)
 }
