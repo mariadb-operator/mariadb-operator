@@ -1,0 +1,12 @@
+builds:
+  - id: mariadb-operator
+    main: cmd/operator/main.go
+    binary: "mariadb-operator_{{ .Version }}_{{ .Arch }}"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
