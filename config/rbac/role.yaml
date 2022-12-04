@@ -74,6 +74,12 @@ rules:
 - apiGroups:
   - database.mmontes.io
   resources:
+  - backupmariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
   - backupmariadbs/status
   verbs:
   - get
@@ -193,12 +199,6 @@ rules:
   - database.mmontes.io
   resources:
   - usermariadbs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - database.mmontes.io
-  resources:
-  - backupmariadbs/finalizers
   verbs:
   - update
 - apiGroups:
