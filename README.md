@@ -43,7 +43,7 @@ helm install cert-manager jetstack/cert-manager \
 ```
 - Install `mariadb-operator` 🦭
 ```bash
-helm install mariadb-operator ./helm/mariadb-operator \
+helm install mariadb-operator https://charts.mmontes.duckdns.org \
   -n mariadb-system --create-namespace
 ```
 
