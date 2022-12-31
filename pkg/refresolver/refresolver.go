@@ -34,7 +34,7 @@ func (r *RefResolver) GetMariaDB(ctx context.Context, ref *databasev1alpha1.Mari
 	return &mariadb, nil
 }
 
-func (r *RefResolver) GetBackupMariaDB(ctx context.Context, ref *databasev1alpha1.BackupMariaDBRef,
+func (r *RefResolver) GetBackupMariaDB(ctx context.Context, ref *corev1.LocalObjectReference,
 	namespace string) (*databasev1alpha1.BackupMariaDB, error) {
 	nn := types.NamespacedName{
 		Name:      ref.Name,

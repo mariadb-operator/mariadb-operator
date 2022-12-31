@@ -49,7 +49,7 @@ var _ = Describe("RestoreMariaDB controller", func() {
 						},
 						WaitForIt: true,
 					},
-					Storage: databasev1alpha1.Storage{
+					Storage: databasev1alpha1.BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
 							StorageClassName: &testStorageClassName,
 							Resources: corev1.ResourceRequirements{
@@ -137,8 +137,8 @@ var _ = Describe("RestoreMariaDB controller", func() {
 						},
 						WaitForIt: true,
 					},
-					BackupRef: databasev1alpha1.BackupMariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+					RestoreSource: databasev1alpha1.RestoreSource{
+						BackupRef: &corev1.LocalObjectReference{
 							Name: backup.Name,
 						},
 					},

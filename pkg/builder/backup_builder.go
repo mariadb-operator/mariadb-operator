@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (b *Builder) BuildRestoreMariaDb(mariaDb *databasev1alpha1.MariaDB, backupRef *databasev1alpha1.BackupMariaDBRef,
+func (b *Builder) BuildRestoreMariaDb(mariaDb *databasev1alpha1.MariaDB, restoreSource *databasev1alpha1.RestoreSource,
 	key types.NamespacedName) (*databasev1alpha1.RestoreMariaDB, error) {
 	restoreLabels :=
 		labels.NewLabelsBuilder().
@@ -25,13 +25,13 @@ func (b *Builder) BuildRestoreMariaDb(mariaDb *databasev1alpha1.MariaDB, backupR
 			Labels:    restoreLabels,
 		},
 		Spec: databasev1alpha1.RestoreMariaDBSpec{
+			RestoreSource: *restoreSource,
 			MariaDBRef: databasev1alpha1.MariaDBRef{
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: mariaDb.Name,
 				},
 				WaitForIt: true,
 			},
-			BackupRef: *backupRef,
 		},
 	}
 	if err := controllerutil.SetControllerReference(mariaDb, restore, b.scheme); err != nil {

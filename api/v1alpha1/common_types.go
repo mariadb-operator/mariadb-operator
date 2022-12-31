@@ -11,7 +11,6 @@ import (
 var (
 	inmutableWebhook = webhook.NewInmutableWebhook(
 		webhook.WithTagName("webhook"),
-		webhook.WithTagValue("inmutable"),
 	)
 )
 
@@ -28,18 +27,6 @@ func (i *Image) String() string {
 	return fmt.Sprintf("%s:%s", i.Repository, i.Tag)
 }
 
-type Storage struct {
-	Volume                *corev1.VolumeSource              `json:"volume,omitempty"`
-	PersistentVolumeClaim *corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
-}
-
-func (s *Storage) Validate() error {
-	if s.Volume == nil && s.PersistentVolumeClaim == nil {
-		return errors.New("no storage type provided")
-	}
-	return nil
-}
-
 type MariaDBRef struct {
 	// +kubebuilder:validation:Required
 	corev1.LocalObjectReference `json:",inline"`
@@ -48,9 +35,39 @@ type MariaDBRef struct {
 	WaitForIt bool `json:"waitForIt,omitempty"`
 }
 
-type BackupMariaDBRef struct {
-	// +kubebuilder:validation:Required
-	corev1.LocalObjectReference `json:",inline"`
+type RestoreSource struct {
+	// It will be used to init the rest of the fields if specified
+	BackupRef *corev1.LocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
+	Volume    *corev1.VolumeSource         `json:"volume,omitempty" webhook:"inmutableinit"`
+	// +kubebuilder:default=false
+	Physical *bool   `json:"physical,omitempty" webhook:"inmutableinit"`
+	FileName *string `json:"fileName,omitempty" webhook:"inmutableinit"`
+}
 
-	FileName *string `json:"fileName,omitempty"`
+func (r *RestoreSource) IsInit() bool {
+	return r.Volume != nil && r.Physical != nil
+}
+
+func (r *RestoreSource) Init(backup *BackupMariaDB) {
+	if backup.Spec.Storage.Volume != nil {
+		r.Volume = backup.Spec.Storage.Volume
+	}
+	if backup.Spec.Storage.PersistentVolumeClaim != nil {
+		r.Volume = &corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: backup.Name,
+			},
+		}
+	}
+	r.Physical = &backup.Spec.Physical
+}
+
+func (r *RestoreSource) Validate() error {
+	if r.BackupRef != nil {
+		return nil
+	}
+	if r.Volume == nil || r.Physical == nil {
+		return errors.New("unable to determine restore source")
+	}
+	return nil
 }

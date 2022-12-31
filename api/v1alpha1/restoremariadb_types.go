@@ -24,10 +24,9 @@ import (
 
 // RestoreMariaDBSpec defines the desired state of RestoreMariaDB
 type RestoreMariaDBSpec struct {
+	RestoreSource `json:",inline"`
 	// +kubebuilder:validation:Required
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
-	// +kubebuilder:validation:Required
-	BackupRef BackupMariaDBRef `json:"backupRef" webhook:"inmutable"`
 	// +kubebuilder:default=5
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=OnFailure
@@ -54,7 +53,6 @@ func (r *RestoreMariaDBStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Complete",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].message"
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
-// +kubebuilder:printcolumn:name="Backup",type="string",JSONPath=".spec.backupRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // RestoreMariaDB is the Schema for the restoremariadbs API

@@ -1,7 +1,7 @@
 apiVersion: database.mmontes.io/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb-from-backup
+  name: mariadb-from-pvc
 spec:
   rootPasswordSecretKeyRef:
     name: mariadb
@@ -29,8 +29,10 @@ spec:
       - ReadWriteOnce
 
   bootstrapFrom:
-    backupRef:
-      name: backup-scheduled
+    volume:
+      persistentVolumeClaim:
+        claimName: backup-scheduled
+    physical: true
 
   resources:
     requests:

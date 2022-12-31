@@ -7,10 +7,10 @@
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 
-- Provisioning highly configurable MariaDB servers
-- Take and restore backups. Scheduled backups. Backup rotation
-- Bootstrap new instances from a backup
-- Support for managing users, grants and logical databases
+- [Provisioning](./config/samples/database_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
+- [Take](./config/samples/database_v1alpha1_backupmariadb.yaml) and [restore](./config/samples/database_v1alpha1_restoremariadb.yaml) backups. [Scheduled](./config/samples/database_v1alpha1_backupmariadb_scheduled.yaml) backups. Backup rotation
+- Bootstrap new instances from [backups](./config/samples/database_v1alpha1_mariadb_from_backup.yaml) and volumes ([PVCs](./config/samples/database_v1alpha1_mariadb_from_pvc.yaml), [NFS](./config/samples/database_v1alpha1_mariadb_from_nfs.yaml) ...)
+- Support for managing [users](./config/samples/database_v1alpha1_usermariadb.yaml), [grants](./config/samples/database_v1alpha1_grantmariadb.yaml) and logical [databases](./config/samples/database_v1alpha1_databasemariadb.yaml)
 - Prometheus metrics
 - Validation webhooks to provide CRD inmutability
 - Additional printer columns to report the current CRD status
@@ -126,8 +126,8 @@ mariadb                    True    Running   39m
 mariadb-from-backup        True    Running   85s
 
 kubectl get restoremariadbs
-NAME                                         COMPLETE   STATUS    MARIADB                    BACKUP   AGE
-bootstrap-restore-mariadb-from-backup        True       Success   mariadb-from-backup        backup   72s
+NAME                                         COMPLETE   STATUS    MARIADB               AGE
+bootstrap-restore-mariadb-from-backup        True       Success   mariadb-from-backup   72s
 
 kubectl get jobs
 NAME                                         COMPLETIONS   DURATION   AGE
@@ -138,5 +138,4 @@ You can take a look at the whole suite of example CRDs available in [config/samp
 
 ### Contributing
 
-Contributions are welcome! If you think something could be improved, request a new feature or just want to leave some feedback,
-please check our [contributing](./CONTRIBUTING.md) guide and take a look at our open [issues](https://github.com/mmontes11/mariadb-operator/issues).
+Contributions are welcome! If you think something could be improved, request a new feature or just want to leave some feedback, please check our [contributing](./CONTRIBUTING.md) guide and take a look at our open [issues](https://github.com/mmontes11/mariadb-operator/issues).

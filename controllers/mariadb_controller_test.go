@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -53,7 +54,7 @@ var _ = Describe("MariaDB controller", func() {
 						},
 						WaitForIt: true,
 					},
-					Storage: databasev1alpha1.Storage{
+					Storage: databasev1alpha1.BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
 							StorageClassName: &testStorageClassName,
 							Resources: corev1.ResourceRequirements{
@@ -89,8 +90,8 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: backupMariaDbKey.Namespace,
 				},
 				Spec: databasev1alpha1.MariaDBSpec{
-					BootstrapFromBackupRef: &databasev1alpha1.BackupMariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+					BootstrapFrom: &databasev1alpha1.RestoreSource{
+						BackupRef: &corev1.LocalObjectReference{
 							Name: backupKey.Name,
 						},
 					},
@@ -199,8 +200,8 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: noBackupMariaDbKey.Namespace,
 				},
 				Spec: databasev1alpha1.MariaDBSpec{
-					BootstrapFromBackupRef: &databasev1alpha1.BackupMariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+					BootstrapFrom: &databasev1alpha1.RestoreSource{
+						BackupRef: &v1.LocalObjectReference{
 							Name: "foo",
 						},
 					},
