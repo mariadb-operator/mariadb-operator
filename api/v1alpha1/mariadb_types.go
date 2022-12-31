@@ -64,7 +64,7 @@ type MariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 
-	BootstrapFromBackupRef *BackupMariaDBRef `json:"bootstrapFromBackupRef,omitempty" webhook:"inmutable"`
+	BootstrapFrom *RestoreSource `json:"bootstrapFrom,omitempty" webhook:"inmutable"`
 
 	Metrics *Metrics `json:"metrics,omitempty"`
 

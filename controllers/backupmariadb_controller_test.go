@@ -47,7 +47,7 @@ var _ = Describe("BackupMariaDB controller", func() {
 						},
 						WaitForIt: true,
 					},
-					Storage: databasev1alpha1.Storage{
+					Storage: databasev1alpha1.BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
 							StorageClassName: &testStorageClassName,
 							Resources: corev1.ResourceRequirements{
@@ -106,7 +106,7 @@ var _ = Describe("BackupMariaDB controller", func() {
 					Schedule: &databasev1alpha1.BackupSchedule{
 						Cron: "*/1 * * * *",
 					},
-					Storage: databasev1alpha1.Storage{
+					Storage: databasev1alpha1.BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
 							StorageClassName: &testStorageClassName,
 							Resources: corev1.ResourceRequirements{

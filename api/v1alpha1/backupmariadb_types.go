@@ -17,10 +17,24 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"errors"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type BackupStorage struct {
+	Volume                *corev1.VolumeSource              `json:"volume,omitempty"`
+	PersistentVolumeClaim *corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+}
+
+func (s *BackupStorage) Validate() error {
+	if s.Volume == nil && s.PersistentVolumeClaim == nil {
+		return errors.New("no storage type provided")
+	}
+	return nil
+}
 
 type BackupSchedule struct {
 	// +kubebuilder:validation:Required
@@ -34,15 +48,15 @@ type BackupMariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
-	Storage Storage `json:"storage" webhook:"inmutable"`
+	Storage BackupStorage `json:"storage" webhook:"inmutable"`
+	// +kubebuilder:default=false
+	Physical bool `json:"physical,omitempty" webhook:"inmutable"`
 
 	Schedule *BackupSchedule `json:"schedule,omitempty"`
 	// +kubebuilder:default=5
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=30
 	MaxRetentionDays int32 `json:"maxRetentionDays,omitempty" webhook:"inmutable"`
-	// +kubebuilder:default=false
-	Physical bool `json:"physical,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=OnFailure
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
 	// +kubebuilder:validation:Optional
@@ -78,8 +92,22 @@ type BackupMariaDB struct {
 	Status BackupMariaDBStatus `json:"status,omitempty"`
 }
 
-func (m *BackupMariaDB) IsComplete() bool {
-	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeComplete)
+func (b *BackupMariaDB) IsComplete() bool {
+	return meta.IsStatusConditionTrue(b.Status.Conditions, ConditionTypeComplete)
+}
+
+func (b *BackupMariaDB) Volume() (*corev1.VolumeSource, error) {
+	if b.Spec.Storage.Volume != nil {
+		return b.Spec.Storage.Volume, nil
+	}
+	if b.Spec.Storage.PersistentVolumeClaim != nil {
+		return &corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: b.Name,
+			},
+		}, nil
+	}
+	return nil, errors.New("unable to get volume from BackupMariaDB")
 }
 
 // +kubebuilder:object:root=true

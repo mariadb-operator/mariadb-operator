@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (b *Builder) BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.Storage) *v1.PersistentVolumeClaim {
+func (b *Builder) BuildPVC(meta metav1.ObjectMeta, storage *databasev1alpha1.BackupStorage) *v1.PersistentVolumeClaim {
 	return &v1.PersistentVolumeClaim{
 		ObjectMeta: meta,
 		Spec:       *storage.PersistentVolumeClaim,

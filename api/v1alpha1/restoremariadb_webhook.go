@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlWebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -35,11 +37,17 @@ var _ ctrlWebhook.Validator = &RestoreMariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *RestoreMariaDB) ValidateCreate() error {
+	if err := r.Spec.RestoreSource.Validate(); err != nil {
+		return fmt.Errorf("invalid RestoreMariaDB: %v", err)
+	}
 	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *RestoreMariaDB) ValidateUpdate(old runtime.Object) error {
+	if err := r.Spec.RestoreSource.Validate(); err != nil {
+		return fmt.Errorf("invalid RestoreMariaDB: %v", err)
+	}
 	return inmutableWebhook.ValidateUpdate(r, old.(*RestoreMariaDB))
 }
 

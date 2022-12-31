@@ -27,11 +27,78 @@ import (
 )
 
 var _ = Describe("MariaDB webhook", func() {
+	Context("When creating a MariaDB", func() {
+		It("Should validate", func() {
+			meta := metav1.ObjectMeta{
+				Name:      "mariadb-create-webhook",
+				Namespace: testNamespace,
+			}
+			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
+			// https://github.com/mmontes11/mariadb-operator/issues/3
+			tt := []struct {
+				by      string
+				mdb     MariaDB
+				wantErr bool
+			}{
+				{
+					by: "no source",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							BootstrapFrom: nil,
+						},
+					},
+					wantErr: false,
+				},
+				{
+					by: "valid source",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							BootstrapFrom: &RestoreSource{
+								BackupRef: &corev1.LocalObjectReference{
+									Name: "backup-webhook",
+								},
+							},
+						},
+					},
+					wantErr: false,
+				},
+				{
+					by: "invalid source",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							BootstrapFrom: &RestoreSource{
+								Physical: func() *bool {
+									p := true
+									return &p
+								}(),
+							},
+						},
+					},
+					wantErr: true,
+				},
+			}
+
+			for _, t := range tt {
+				By(t.by)
+				_ = k8sClient.Delete(testCtx, &t.mdb)
+				err := k8sClient.Create(testCtx, &t.mdb)
+				if t.wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
+		})
+	})
+
 	Context("When updating a MariaDB", func() {
 		It("Should validate", func() {
 			By("Creating MariaDB")
 			key := types.NamespacedName{
-				Name:      "mariadb-webhook",
+				Name:      "mariadb-update-webhook",
 				Namespace: testNamespace,
 			}
 			test := "test"
@@ -72,8 +139,8 @@ var _ = Describe("MariaDB webhook", func() {
 							corev1.ReadWriteOnce,
 						},
 					},
-					BootstrapFromBackupRef: &BackupMariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+					BootstrapFrom: &RestoreSource{
+						BackupRef: &corev1.LocalObjectReference{
 							Name: "backup",
 						},
 					},
@@ -174,7 +241,7 @@ var _ = Describe("MariaDB webhook", func() {
 				{
 					by: "Updating BootstrapFromBackup",
 					patchFn: func(mdb *MariaDB) {
-						mdb.Spec.BootstrapFromBackupRef.Name = "another-backup"
+						mdb.Spec.BootstrapFrom.BackupRef.Name = "another-backup"
 					},
 					wantErr: true,
 				},

@@ -45,7 +45,7 @@ var _ = Describe("BackupMariaDB webhook", func() {
 							Namespace: testNamespace,
 						},
 						Spec: BackupMariaDBSpec{
-							Storage: Storage{},
+							Storage: BackupStorage{},
 							MariaDBRef: MariaDBRef{
 								LocalObjectReference: corev1.LocalObjectReference{
 									Name: "mariadb-webhook",
@@ -74,7 +74,7 @@ var _ = Describe("BackupMariaDB webhook", func() {
 							Schedule: &BackupSchedule{
 								Cron: "foo",
 							},
-							Storage: Storage{
+							Storage: BackupStorage{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
 									StorageClassName: &storageClassName,
 									Resources: corev1.ResourceRequirements{
@@ -115,7 +115,7 @@ var _ = Describe("BackupMariaDB webhook", func() {
 							Schedule: &BackupSchedule{
 								Cron: "*/1 * * * *",
 							},
-							Storage: Storage{
+							Storage: BackupStorage{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
 									StorageClassName: &storageClassName,
 									Resources: corev1.ResourceRequirements{
@@ -172,7 +172,7 @@ var _ = Describe("BackupMariaDB webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: BackupMariaDBSpec{
-					Storage: Storage{
+					Storage: BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
 							StorageClassName: &storageClassName,
 							Resources: corev1.ResourceRequirements{

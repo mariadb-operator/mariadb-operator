@@ -1,7 +1,7 @@
 ##@ Cluster
 
 CLUSTER ?= mdb
-KIND_IMAGE ?= kindest/node:v1.23.6
+KIND_IMAGE ?= kindest/node:v1.26.0
 .PHONY: cluster
 cluster: kind ## Create the kind cluster.
 	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)

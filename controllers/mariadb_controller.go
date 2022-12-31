@@ -199,7 +199,7 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 
 func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
 	mariaDbKey types.NamespacedName) error {
-	if mariadb.Spec.BootstrapFromBackupRef == nil || !mariadb.IsReady() || mariadb.IsBootstrapped() {
+	if mariadb.Spec.BootstrapFrom == nil || !mariadb.IsReady() || mariadb.IsBootstrapped() {
 		return nil
 	}
 	key := bootstrapRestoreKey(mariadb)
@@ -210,7 +210,7 @@ func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, maria
 
 	restore, err := r.Builder.BuildRestoreMariaDb(
 		mariadb,
-		mariadb.Spec.BootstrapFromBackupRef,
+		mariadb.Spec.BootstrapFrom,
 		key,
 	)
 	if err != nil {

@@ -50,13 +50,23 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
 
+	volume, err := backup.Volume()
+	if err != nil {
+		return nil, fmt.Errorf("error getting volume from BackupMariaDB: %v", err)
+	}
+
 	opts := []jobOption{
 		withJobMeta(meta),
 		withJobVolumes(
-			jobVolumes(backup, mariaDB),
+			jobVolumes(volume, backup.Spec.Physical, mariaDB),
 		),
 		withJobContainers(
-			jobContainers(backup, mariaDB, cmd.BackupCommand(backup, mariaDB), backup.Spec.Resources),
+			jobContainers(
+				cmd.BackupCommand(backup, mariaDB),
+				backup.Spec.Physical,
+				backup.Spec.Resources,
+				mariaDB,
+			),
 		),
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
 		withJobRestartPolicy(backup.Spec.RestartPolicy),
@@ -110,7 +120,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *databasev
 }
 
 func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1alpha1.RestoreMariaDB,
-	backup *databasev1alpha1.BackupMariaDB, mariaDB *databasev1alpha1.MariaDB, restoreFileName *string) (*batchv1.Job, error) {
+	mariaDB *databasev1alpha1.MariaDB) (*batchv1.Job, error) {
 	restoreLabels :=
 		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
@@ -127,11 +137,11 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1a
 		backupcmd.WithUserEnv(backupUserEnv),
 		backupcmd.WithPasswordEnv(backupPasswordEnv),
 	}
-	if restoreFileName != nil {
-		cmdOpts = append(cmdOpts, backupcmd.WithFile(*restoreFileName))
+	if restore.Spec.RestoreSource.FileName != nil {
+		cmdOpts = append(cmdOpts, backupcmd.WithFile(*restore.Spec.RestoreSource.FileName))
 	}
-	if backup.Spec.Physical {
-		cmdOpts = append(cmdOpts, backupcmd.WithBackupPhysical(backup.Spec.Physical))
+	if restore.Spec.RestoreSource.Physical != nil {
+		cmdOpts = append(cmdOpts, backupcmd.WithBackupPhysical(*restore.Spec.RestoreSource.Physical))
 	}
 	cmd, err := backupcmd.New(cmdOpts...)
 	if err != nil {
@@ -141,13 +151,22 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1a
 	jobOpts := []jobOption{
 		withJobMeta(meta),
 		withJobVolumes(
-			jobVolumes(backup, mariaDB),
+			jobVolumes(
+				restore.Spec.RestoreSource.Volume,
+				*restore.Spec.RestoreSource.Physical,
+				mariaDB,
+			),
 		),
 		withJobContainers(
-			jobContainers(backup, mariaDB, cmd.RestoreCommand(mariaDB), backup.Spec.Resources),
+			jobContainers(
+				cmd.RestoreCommand(mariaDB),
+				*restore.Spec.RestoreSource.Physical,
+				restore.Spec.Resources,
+				mariaDB,
+			),
 		),
-		withJobBackoffLimit(backup.Spec.BackoffLimit),
-		withJobRestartPolicy(backup.Spec.RestartPolicy),
+		withJobBackoffLimit(restore.Spec.BackoffLimit),
+		withJobRestartPolicy(restore.Spec.RestartPolicy),
 	}
 	if restore.Spec.MariaDBRef.WaitForIt {
 		jobOpts = addJobInitContainersOpt(mariaDB, jobOpts)
@@ -173,7 +192,7 @@ func addJobInitContainersOpt(mariadb *databasev1alpha1.MariaDB, opts []jobOption
 	)
 	return append(opts,
 		withJobInitContainers(
-			jobInitContainers(mariadb, initCmd),
+			jobInitContainers(initCmd, mariadb),
 		),
 	)
 }
@@ -270,26 +289,14 @@ func (b *jobBuilder) build() *batchv1.Job {
 	return job
 }
 
-func jobVolumes(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB) []corev1.Volume {
-	var volumeSource corev1.VolumeSource
-	if backup.Spec.Storage.Volume != nil {
-		volumeSource = *backup.Spec.Storage.Volume
-	}
-	if backup.Spec.Storage.PersistentVolumeClaim != nil {
-		volumeSource = corev1.VolumeSource{
-			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-				ClaimName: backup.Name,
-			},
-		}
-	}
-
+func jobVolumes(volume *corev1.VolumeSource, physical bool, mariadb *databasev1alpha1.MariaDB) []corev1.Volume {
 	volumes := []corev1.Volume{
 		{
 			Name:         batchStorageVolume,
-			VolumeSource: volumeSource,
+			VolumeSource: *volume,
 		},
 	}
-	if backup.Spec.Physical {
+	if physical {
 		volumes = append(volumes, corev1.Volume{
 			Name: batchDataVolume,
 			VolumeSource: corev1.VolumeSource{
@@ -303,7 +310,23 @@ func jobVolumes(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha
 	return volumes
 }
 
-func jobInitContainers(mariadb *databasev1alpha1.MariaDB, cmd string) []corev1.Container {
+func jobVolumeMounts(physical bool) []corev1.VolumeMount {
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      batchStorageVolume,
+			MountPath: batchStorageMountPath,
+		},
+	}
+	if physical {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      batchDataVolume,
+			MountPath: batchDataMountPath,
+		})
+	}
+	return volumeMounts
+}
+
+func jobInitContainers(cmd string, mariadb *databasev1alpha1.MariaDB) []corev1.Container {
 	return []corev1.Container{
 		{
 			Name:            "wait-for-mariadb",
@@ -316,20 +339,9 @@ func jobInitContainers(mariadb *databasev1alpha1.MariaDB, cmd string) []corev1.C
 	}
 }
 
-func jobContainers(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB,
-	cmd *backupcmd.Command, resources *corev1.ResourceRequirements) []corev1.Container {
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      batchStorageVolume,
-			MountPath: batchStorageMountPath,
-		},
-	}
-	if backup.Spec.Physical {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      batchDataVolume,
-			MountPath: batchDataMountPath,
-		})
-	}
+func jobContainers(cmd *backupcmd.Command, physical bool, resources *corev1.ResourceRequirements,
+	mariadb *databasev1alpha1.MariaDB) []corev1.Container {
+
 	container := corev1.Container{
 		Name:            "mariadb",
 		Image:           mariadb.Spec.Image.String(),
@@ -337,7 +349,7 @@ func jobContainers(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1al
 		Command:         cmd.Command,
 		Args:            cmd.Args,
 		Env:             jobEnv(mariadb),
-		VolumeMounts:    volumeMounts,
+		VolumeMounts:    jobVolumeMounts(physical),
 	}
 	if resources != nil {
 		container.Resources = *resources

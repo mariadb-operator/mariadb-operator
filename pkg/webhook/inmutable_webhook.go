@@ -12,8 +12,10 @@ import (
 )
 
 const (
-	defaultTagName  = "webhook"
-	defaultTagValue = "inmutable"
+	defaultTagName        = "webhook"
+	jsonTagName           = "json"
+	inmutableTagValue     = "inmutable"
+	inmutableInitTagValue = "inmutableinit"
 )
 
 type Option func(w *InmutableWebhook)
@@ -24,21 +26,13 @@ func WithTagName(tagName string) Option {
 	}
 }
 
-func WithTagValue(tagValue string) Option {
-	return func(w *InmutableWebhook) {
-		w.tagValue = tagValue
-	}
-}
-
 type InmutableWebhook struct {
-	tagName  string
-	tagValue string
+	tagName string
 }
 
 func NewInmutableWebhook(opts ...Option) *InmutableWebhook {
 	webhook := &InmutableWebhook{
-		tagName:  defaultTagName,
-		tagValue: defaultTagValue,
+		tagName: defaultTagName,
 	}
 	for _, setOpt := range opts {
 		setOpt(webhook)
@@ -47,24 +41,10 @@ func NewInmutableWebhook(opts ...Option) *InmutableWebhook {
 }
 
 func (w *InmutableWebhook) ValidateUpdate(new, old client.Object) error {
-	var errBundle field.ErrorList
-	newSpec := getSpecField(new)
-	oldSpec := getSpecField(old)
-	t := newSpec.Type()
+	specVal := specValue(new)
+	oldSpecVal := specValue(old)
 
-	for i := 0; i < newSpec.NumField(); i++ {
-		newField := t.Field(i)
-		tag := newField.Tag.Get(w.tagName)
-		if tag != w.tagValue {
-			continue
-		}
-
-		newVal := newSpec.Field(i).Interface()
-		oldVal := oldSpec.Field(i).Interface()
-		if !reflect.DeepEqual(newVal, oldVal) {
-			errBundle = append(errBundle, getInmutableFieldError(newField, newVal))
-		}
-	}
+	errBundle := w.validateInmutable(specVal, oldSpecVal, "spec")
 
 	if len(errBundle) == 0 {
 		return nil
@@ -80,17 +60,49 @@ func (w *InmutableWebhook) ValidateUpdate(new, old client.Object) error {
 	)
 }
 
-func getSpecField(obj client.Object) reflect.Value {
-	ptr := reflect.ValueOf(obj)
-	val := reflect.Indirect(ptr)
-	return val.FieldByName("Spec")
+func (w *InmutableWebhook) validateInmutable(val, oldVal reflect.Value, pathElements ...string) field.ErrorList {
+	var errBundle field.ErrorList
+
+	for i := 0; i < val.NumField(); i++ {
+		fieldStruct := val.Type().Field(i)
+		fieldVal := val.Field(i)
+		oldFieldVal := oldVal.Field(i)
+
+		_, modifier := jsonParts(fieldStruct)
+		if modifier == "inline" {
+			inlineErrors := w.validateInmutable(fieldVal, oldFieldVal, pathElements...)
+			if inlineErrors != nil {
+				errBundle = append(errBundle, inlineErrors...)
+			}
+		}
+
+		fieldIface := fieldVal.Interface()
+		oldFieldIface := oldFieldVal.Interface()
+
+		tag := fieldStruct.Tag.Get(w.tagName)
+		switch tag {
+		case inmutableTagValue:
+			if !reflect.DeepEqual(fieldIface, oldFieldIface) {
+				errBundle = append(errBundle, inmutableFieldError(fieldStruct, fieldIface, pathElements...))
+			}
+		case inmutableInitTagValue:
+			if !oldFieldVal.IsNil() && !reflect.DeepEqual(fieldIface, oldFieldIface) {
+				errBundle = append(errBundle, inmutableFieldError(fieldStruct, fieldIface, pathElements...))
+			}
+		}
+	}
+	return errBundle
 }
 
-func getInmutableFieldError(structField reflect.StructField, value interface{}) *field.Error {
+func inmutableFieldError(structField reflect.StructField, value interface{}, pathElements ...string) *field.Error {
 	var path *field.Path
-	if json := structField.Tag.Get("json"); json != "" {
-		parts := strings.Split(json, ",")
-		path = field.NewPath("spec").Child(parts[0])
+	jsonField, _ := jsonParts(structField)
+	if jsonField != "" && len(pathElements) > 0 {
+		var moreNames []string
+		if len(pathElements) > 1 {
+			moreNames = pathElements[1:]
+		}
+		path = field.NewPath(pathElements[0], moreNames...).Child(jsonField)
 	} else {
 		path = field.NewPath(structField.Name)
 	}
@@ -99,4 +111,22 @@ func getInmutableFieldError(structField reflect.StructField, value interface{}) 
 		value,
 		fmt.Sprintf("'%s' field is inmutable", path.String()),
 	)
+}
+
+func specValue(obj client.Object) reflect.Value {
+	ptr := reflect.ValueOf(obj)
+	val := reflect.Indirect(ptr)
+	return val.FieldByName("Spec")
+}
+
+func jsonParts(structField reflect.StructField) (field string, modifier string) {
+	json := structField.Tag.Get(jsonTagName)
+	if json == "" {
+		return "", ""
+	}
+	parts := strings.Split(json, ",")
+	if len(parts) < 2 {
+		return "", ""
+	}
+	return parts[0], parts[1]
 }

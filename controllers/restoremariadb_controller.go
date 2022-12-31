@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -32,6 +33,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	errBackupNotComplete = errors.New("BackupMariaDB not complete")
 )
 
 // RestoreMariaDBReconciler reconciles a RestoreMariaDB object
@@ -72,22 +77,11 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// because we would be creating a deadlock when bootstrapping from backup
 	// TODO: add a IsBootstrapping() method to MariaDB?
 
-	backup, err := r.RefResolver.GetBackupMariaDB(ctx, &restore.Spec.BackupRef, restore.Namespace)
-	if err != nil {
-		var backupErr *multierror.Error
-		backupErr = multierror.Append(backupErr, err)
-
-		err = r.patchStatus(ctx, &restore, r.ConditionComplete.RefResolverPatcher(err, backup))
-		backupErr = multierror.Append(backupErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error getting BackupMariaDB: %v", backupErr)
-	}
-
-	if !backup.IsComplete() {
-		if err := r.patchStatus(ctx, &restore, r.ConditionComplete.FailedPatcher("BackupMariaDB not complete")); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching RestoreMariaDB: %v", err)
+	if err := r.initSource(ctx, &restore); err != nil {
+		if errors.Is(err, errBackupNotComplete) {
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 		}
-		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+		return ctrl.Result{}, fmt.Errorf("error initializing source: %v", err)
 	}
 
 	var jobErr *multierror.Error
@@ -111,13 +105,65 @@ func (r *RestoreMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
+func (r *RestoreMariaDBReconciler) initSource(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB) error {
+	if restore.Spec.RestoreSource.IsInit() {
+		return nil
+	}
+	if restore.Spec.RestoreSource.BackupRef == nil {
+		var restoreErr *multierror.Error
+		restoreErr = multierror.Append(restoreErr, errors.New("unable to determine restore source, 'backupRef' is nil"))
+
+		err := r.patchStatus(ctx, restore, r.ConditionComplete.FailedPatcher("Unable to determine restore source"))
+		restoreErr = multierror.Append(restoreErr, err)
+
+		return restoreErr
+	}
+
+	backup, err := r.RefResolver.GetBackupMariaDB(ctx, restore.Spec.RestoreSource.BackupRef, restore.Namespace)
+	if err != nil {
+		var backupErr *multierror.Error
+		backupErr = multierror.Append(backupErr, err)
+
+		err = r.patchStatus(ctx, restore, r.ConditionComplete.RefResolverPatcher(err, backup))
+		backupErr = multierror.Append(backupErr, err)
+
+		return fmt.Errorf("error getting BackupMariaDB: %v", backupErr)
+	}
+
+	if !backup.IsComplete() {
+		if err := r.patchStatus(ctx, restore, r.ConditionComplete.FailedPatcher("BackupMariaDB not complete")); err != nil {
+			return fmt.Errorf("error patching RestoreMariaDB: %v", err)
+		}
+		return errBackupNotComplete
+	}
+
+	patcher := func(r *databasev1alpha1.RestoreMariaDB) {
+		r.Spec.RestoreSource.Init(backup)
+	}
+	if err := r.patch(ctx, restore, patcher); err != nil {
+		return fmt.Errorf("error patching RestoreMariaDB: %v", err)
+	}
+	return nil
+}
+
 func (r *RestoreMariaDBReconciler) patchStatus(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
 	patcher conditions.Patcher) error {
 	patch := client.MergeFrom(restore.DeepCopy())
 	patcher(&restore.Status)
 
 	if err := r.Client.Status().Patch(ctx, restore, patch); err != nil {
-		return fmt.Errorf("error patching BackupMariaDB status: %v", err)
+		return fmt.Errorf("error patching RestoreMariaDB status: %v", err)
+	}
+	return nil
+}
+
+func (r *RestoreMariaDBReconciler) patch(ctx context.Context, restore *databasev1alpha1.RestoreMariaDB,
+	patcher func(*databasev1alpha1.RestoreMariaDB)) error {
+	patch := client.MergeFrom(restore.DeepCopy())
+	patcher(restore)
+
+	if err := r.Client.Patch(ctx, restore, patch); err != nil {
+		return fmt.Errorf("error patching RestoreMariaDB: %v", err)
 	}
 	return nil
 }

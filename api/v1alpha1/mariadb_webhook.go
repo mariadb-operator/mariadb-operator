@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -35,15 +36,35 @@ var _ webhook.Validator = &MariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateCreate() error {
+	if err := r.validateBootstrapFrom(); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
+	if err := r.validateBootstrapFrom(); err != nil {
+		return err
+	}
 	return inmutableWebhook.ValidateUpdate(r, old.(*MariaDB))
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateDelete() error {
+	return nil
+}
+
+func (r *MariaDB) validateBootstrapFrom() error {
+	if r.Spec.BootstrapFrom == nil {
+		return nil
+	}
+	if err := r.Spec.BootstrapFrom.Validate(); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("bootstrapFrom"),
+			r.Spec.BootstrapFrom,
+			err.Error(),
+		)
+	}
 	return nil
 }
