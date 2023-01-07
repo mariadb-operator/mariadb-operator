@@ -3,7 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - "*"
+      - "v*"
+
+env:
+  HELM_VERSION: "v3.10.2"
+  GORELEASER_VERSION: "v1.14.1"
 
 jobs:
   release:
@@ -24,6 +28,11 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
         id: buildx
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v1
@@ -61,20 +70,26 @@ jobs:
             org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
             org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
 
-      - name: Publish Helm chart to Chartmuseum
-        uses: goodsmileduck/helm-push-action@v3
-        env:
-          SOURCE_DIR: "helm"
-          CHART_FOLDER: "mariadb-operator"
-          FORCE: "True"
-          CHARTMUSEUM_URL: "https://charts.mmontes-dev.duckdns.org"
-          CHARTMUSEUM_USER: "${{ secrets.CHARTMUSEUM_USER }}"
-          CHARTMUSEUM_PASSWORD: ${{ secrets.CHARTMUSEUM_PASSWORD }}
-
       - name: GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v4
         with:
-          version: latest
+          version: ${{ env.GORELEASER_VERSION }}
           args: release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Generate bundles
+        run: make bundle
+        env:
+          BUNDLE_CRDS_DIR: dist/crds
+          BUNDLE_MANIFESTS_DIR: dist/manifests
+
+      - name: Update Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.prep.outputs.VERSION }}
+          files: |
+            dist/crds/crds.yaml
+            dist/manifests/manifests.yaml
+        env:
+          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"

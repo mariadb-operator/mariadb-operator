@@ -1,0 +1,84 @@
+name: Helm
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "deploy/charts/**"
+  pull_request:
+    paths:
+      - "deploy/charts/**"
+
+env:
+  HELM_VERSION: "v3.10.2"
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.3.1
+
+      - name: List changed
+        id: list-changed
+        run: |
+          changed=$(ct list-changed --config=.github/config/ct.yml)
+          if [[ -n "$changed" ]]; then
+            echo "::set-output name=changed::true"
+          fi
+
+      - name: Lint
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct lint --config=.github/config/ct.yml
+
+      - name: Cluster
+        if: steps.list-changed.outputs.changed == 'true'
+        run: |
+          make cluster
+          make install
+          make install-cert-manager
+
+      - name: Test install
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct install --config=.github/config/ct.yml
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.5.0
+        if: github.ref == 'refs/heads/main'
+        env:
+          CR_TOKEN: "${{ secrets.GH_TOKEN }}"
+          CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
+        with:
+          charts_dir: deploy/charts
+          charts_repo_url: https://mmontes11.github.io/mariadb-operator
