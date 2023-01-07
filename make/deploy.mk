@@ -28,11 +28,11 @@ codegen: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and 
 
 .PHONY: helmcrds 
 helm-crds: kustomize ## Generate CRDs for Helm chart.
-	$(KUSTOMIZE) build config/crd > deploy/mariadb-operator/crds/crds.yaml
+	$(KUSTOMIZE) build config/crd > charts/mariadb-operator/crds/crds.yaml
 
 .PHONY: helm-rbac
 helm-rbac: kustomize ## Generate RBAC for Helm chart.
-	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > deploy/mariadb-operator/templates/rbac.yaml
+	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > charts/mariadb-operator/templates/rbac.yaml
 
 .PHONY: helm
 helm: helm-crds helm-rbac ## Generate manifests for Helm chart.
