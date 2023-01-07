@@ -1,9 +1,5 @@
 ##@ Dev
 
-.PHONY: check-diff
-check-diff: ## Ensure that the branch is clean
-	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)")
-
 CERTS_DIR=/tmp/k8s-webhook-server/serving-certs
 CERTS_CONFIG=./hack/config/openssl.conf
 certs: ## Generates development certificates.

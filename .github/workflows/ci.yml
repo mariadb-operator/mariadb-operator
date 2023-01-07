@@ -78,9 +78,7 @@ jobs:
       - name: Generate manifests
         run: make manifests
 
-      - name: Error if changes detected
-        run: |
-          if [ "$(make check-diff)" ]; then
-            echo "Manifests are not up do date. Make sure you run 'make manifests' and commit the changes"
-            exit 1
-          fi
+      - name: Check diff
+        uses: ./.github/actions/check-diff
+        with:
+          message: Manifests are not up do date. Make sure you run 'make manifests' and commit the changes
