@@ -14,6 +14,32 @@ cluster-delete: kind ## Delete the kind cluster.
 cluster-ctx: ## Sets cluster context.
 	@kubectl config use-context kind-$(CLUSTER)
 
+##@ Controller gen
+
+.PHONY: manifests
+manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	$(CONTROLLER_GEN) rbac:roleName=mariadb-manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
+.PHONY: generate
+generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+.PHONY: generate-all
+generate-all: generate manifests install ## Generate code and manifests.
+
+##@ Helm
+
+.PHONY: helmcrds 
+helm-crds: kustomize ## Generate CRDs for Helm chart.
+	$(KUSTOMIZE) build config/crd > helm/mariadb-operator/crds/crds.yaml
+
+.PHONY: helm-rbac
+helm-rbac: kustomize ## Generate RBAC for Helm chart.
+	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > helm/mariadb-operator/templates/rbac.yaml
+
+.PHONY: helm
+helm: manifests helm-crds helm-rbac ## Generate manifests for Helm chart.
+
 ##@ Deploy
 
 ifndef ignore-not-found
@@ -54,13 +80,3 @@ deploy: cluster-ctx manifests kustomize ## Deploy controller to the K8s cluster 
 undeploy: cluster-ctx ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
-.PHONY: helm-crds 
-helm-crds: kustomize ## Generate CRDs for Helm chart.
-	$(KUSTOMIZE) build config/crd > helm/mariadb-operator/crds/crds.yaml
-
-.PHONY: helm-rbac
-helm-rbac: kustomize ## Generate RBAC for Helm chart.
-	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > helm/mariadb-operator/templates/rbac.yaml
-
-.PHONY: helm
-helm: manifests helm-crds helm-rbac ## Generate manifests for Helm chart.

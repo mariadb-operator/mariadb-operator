@@ -67,3 +67,23 @@ jobs:
         with:
           name: cover
           path: ./cover.html
+
+  manifests:
+    name: Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Generate manifests
+        run: make manifests
+
+      - name: Check changes
+        id: changes
+        uses: UnicornGlobal/has-changes-action@v1.0.11
+
+      - name: Error if needed
+        if: steps.changes.outputs.changed == 1
+        run: |
+          echo "Manifests are not up do date. Make sure you run 'make manifests' and commit the changes"
+          exit 1
