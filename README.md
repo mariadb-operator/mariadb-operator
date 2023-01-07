@@ -1,9 +1,10 @@
 # 🦭 mariadb-operator
 [![CI](https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml)
+[![Helm](https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml)
 [![Release](https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mmontes11/mariadb-operator)](https://goreportcard.com/report/github.com/mmontes11/mariadb-operator)
 [![Go Reference](https://pkg.go.dev/badge/github.com/mmontes11/mariadb-operator.svg)](https://pkg.go.dev/github.com/mmontes11/mariadb-operator)
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mmontes)](https://artifacthub.io/packages/search?repo=mmontes)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mariadb-operator)](https://artifacthub.io/packages/search?repo=mariadb-operator)
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 
@@ -16,8 +17,8 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Additional printer columns to report the current CRD status
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [GitOps](https://opengitops.dev/) friendly
-- Multi-arch [Docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
-- [Helm](./helm/mariadb-operator/) chart 
+- Multi-arch [docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
+- [Helm](./deploy/charts/mariadb-operator/) chart
 
 ### Installation
 
@@ -25,7 +26,6 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 ```bash
 make cluster
 ``` 
-
 - Install [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -43,8 +43,8 @@ helm install cert-manager jetstack/cert-manager \
 ```
 - Install `mariadb-operator` 🦭
 ```bash
-helm repo add mmontes https://charts.mmontes.duckdns.org
-helm install mariadb-operator mmontes/mariadb-operator \
+helm repo add mariadb-operator https://mmontes11.github.io/mariadb-operator
+helm install mariadb-operator mariadb-operator/mariadb-operator \
   -n mariadb-system --create-namespace
 ```
 

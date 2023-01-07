@@ -1,0 +1,658 @@
+---
+# Source: mariadb-operator/templates/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mariadb-controller-manager
+  namespace: default
+---
+# Source: mariadb-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: mariadb-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - backupmariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - backupmariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - backupmariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - databasemariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - databasemariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - databasemariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - grantmariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - grantmariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - grantmariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - mariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - mariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - mariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - restoremariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - restoremariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - usermariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - usermariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.mmontes.io
+  resources:
+  - usermariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+---
+# Source: mariadb-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mariadb-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+# Source: mariadb-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mariadb-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+# Source: mariadb-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mariadb-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mariadb-manager-role
+subjects:
+- kind: ServiceAccount
+  name: mariadb-controller-manager
+  namespace: default
+---
+# Source: mariadb-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mariadb-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mariadb-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: mariadb-controller-manager
+  namespace: default
+---
+# Source: mariadb-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mariadb-leader-election-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+# Source: mariadb-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mariadb-leader-election-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: mariadb-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: mariadb-controller-manager
+  namespace: default
+---
+# Source: mariadb-operator/templates/rbac.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: controller-manager-metrics-service
+  namespace: default
+spec:
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+# Source: mariadb-operator/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-operator-metrics-service
+  labels:
+    helm.sh/chart: mariadb-operator-0.2.0
+    app.kubernetes.io/name: mariadb-operator
+    app.kubernetes.io/instance: mariadb-operator
+    app.kubernetes.io/version: "v0.0.4"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ports:
+    - name: https
+      port: 8443
+      protocol: TCP
+      targetPort: https
+  selector:
+    app.kubernetes.io/name: mariadb-operator
+    app.kubernetes.io/instance: mariadb-operator
+---
+# Source: mariadb-operator/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-operator-webhook-service
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 9443
+  selector:
+    app.kubernetes.io/name: mariadb-operator
+    app.kubernetes.io/instance: mariadb-operator
+---
+# Source: mariadb-operator/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-operator-controller-manager
+  labels:
+    helm.sh/chart: mariadb-operator-0.2.0
+    app.kubernetes.io/name: mariadb-operator
+    app.kubernetes.io/instance: mariadb-operator
+    app.kubernetes.io/version: "v0.0.4"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  
+  replicas: 3
+  
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mariadb-operator
+      app.kubernetes.io/instance: mariadb-operator
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+        
+      labels:
+        app.kubernetes.io/name: mariadb-operator
+        app.kubernetes.io/instance: mariadb-operator
+    spec:
+      
+      
+      
+      containers:
+        - args:
+            
+            - --leader-elect
+            - --leader-elect-id=database.mmontes.io
+            
+            - --metrics-bind-address=:8080
+            - --health-probe-bind-address=:8081
+            - --zap-log-level=INFO
+          command:
+            - /manager
+          image: "mmontes11/mariadb-operator:v0.0.4"
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          name: manager
+          ports:
+            - containerPort: 9443
+              name: webhook-server
+              protocol: TCP
+          env: 
+            - name: CLUSTER_NAME
+              value: cluster.local
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          
+          
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+        - args:
+            - --secure-listen-address=0.0.0.0:8443
+            - --upstream=http://127.0.0.1:8080/
+            - --logtostderr=true
+            - --v=0
+          image: gcr.io/kubebuilder/kube-rbac-proxy:v0.11.0
+          name: kube-rbac-proxy
+          ports:
+            - containerPort: 8443
+              name: https
+              protocol: TCP
+          
+          
+      
+      serviceAccountName: mariadb-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: mariadb-operator-webhook-server-cert
+---
+# Source: mariadb-operator/templates/certificate.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mariadb-operator-serving-cert
+spec:
+  dnsNames:
+    - mariadb-operator-webhook-service.default.svc
+    - mariadb-operator-webhook-service.default.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: mariadb-operator-selfsigned-issuer
+  secretName: mariadb-operator-webhook-server-cert
+---
+# Source: mariadb-operator/templates/certificate.yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: mariadb-operator-selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+# Source: mariadb-operator/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mariadb-operator-metrics-monitor
+  labels:
+    helm.sh/chart: mariadb-operator-0.2.0
+    app.kubernetes.io/name: mariadb-operator
+    app.kubernetes.io/instance: mariadb-operator
+    app.kubernetes.io/version: "v0.0.4"
+    app.kubernetes.io/managed-by: Helm
+    release: 
+spec:
+  endpoints:
+    - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      path: /metrics
+      port: https
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mariadb-operator
+      app.kubernetes.io/instance: mariadb-operator
+---
+# Source: mariadb-operator/templates/webhook.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: mariadb-operator-validating-webhook-configuration
+  annotations:
+    cert-manager.io/inject-ca-from: default/mariadb-operator-serving-cert
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: mariadb-operator-webhook-service
+        namespace: default
+        path: /validate-database-mmontes-io-v1alpha1-backupmariadb
+    failurePolicy: Fail
+    name: vbackupmariadb.kb.io
+    rules:
+      - apiGroups:
+          - database.mmontes.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - backupmariadbs
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: mariadb-operator-webhook-service
+        namespace: default
+        path: /validate-database-mmontes-io-v1alpha1-databasemariadb
+    failurePolicy: Fail
+    name: vdatabasemariadb.kb.io
+    rules:
+      - apiGroups:
+          - database.mmontes.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - databasemariadbs
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: mariadb-operator-webhook-service
+        namespace: default
+        path: /validate-database-mmontes-io-v1alpha1-grantmariadb
+    failurePolicy: Fail
+    name: vgrantmariadb.kb.io
+    rules:
+      - apiGroups:
+          - database.mmontes.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - grantmariadbs
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: mariadb-operator-webhook-service
+        namespace: default
+        path: /validate-database-mmontes-io-v1alpha1-mariadb
+    failurePolicy: Fail
+    name: vmariadb.kb.io
+    rules:
+      - apiGroups:
+          - database.mmontes.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - mariadbs
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: mariadb-operator-webhook-service
+        namespace: default
+        path: /validate-database-mmontes-io-v1alpha1-restoremariadb
+    failurePolicy: Fail
+    name: vrestoremariadb.kb.io
+    rules:
+      - apiGroups:
+          - database.mmontes.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - restoremariadbs
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: mariadb-operator-webhook-service
+        namespace: default
+        path: /validate-database-mmontes-io-v1alpha1-usermariadb
+    failurePolicy: Fail
+    name: vusermariadb.kb.io
+    rules:
+      - apiGroups:
+          - database.mmontes.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - usermariadbs
+    sideEffects: None

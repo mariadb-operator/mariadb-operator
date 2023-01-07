@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: grantmariadbs.database.mmontes.io
 spec:
@@ -75,6 +75,7 @@ spec:
                     default: true
                     type: boolean
                 type: object
+                x-kubernetes-map-type: atomic
               privileges:
                 items:
                   type: string
@@ -167,9 +168,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
