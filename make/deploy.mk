@@ -26,7 +26,7 @@ codegen: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and 
 
 ##@ Helm
 
-.PHONY: helmcrds 
+.PHONY: helm-crds 
 helm-crds: kustomize ## Generate CRDs for Helm chart.
 	$(KUSTOMIZE) build config/crd > charts/mariadb-operator/crds/crds.yaml
 
