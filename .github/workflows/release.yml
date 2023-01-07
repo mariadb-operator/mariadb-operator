@@ -3,7 +3,10 @@ name: Release
 on:
   push:
     tags:
-      - "*"
+      - "v*"
+
+env:
+  GORELEASER_VERSION: "v1.14.1"
 
 jobs:
   release:
@@ -64,7 +67,7 @@ jobs:
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v3
         with:
-          version: latest
+          version: ${{ env.GORELEASER_VERSION }}
           args: release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

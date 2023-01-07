@@ -17,3 +17,7 @@ test: envtest ## Run tests.
 .PHONY: cover
 cover: test ## Run tests and generate coverage.
 	@go tool cover -html=cover.out -o=cover.html
+
+.PHONY: release
+release: goreleaser ## Test release locally.
+	$(GORELEASER) release --snapshot --rm-dist
