@@ -62,8 +62,8 @@ jobs:
       - name: Test
         run: make test
 
-  check-generated:
-    name: Check generated
+  check-diff:
+    name: Check diff
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
