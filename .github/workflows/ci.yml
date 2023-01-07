@@ -6,6 +6,9 @@ on:
       - main
   pull_request: {}
 
+env:
+  GOLANGCI_VERSION: "v1.50.1"
+
 jobs:
   detect-noop:
     runs-on: ubuntu-latest
@@ -38,7 +41,7 @@ jobs:
       - name: GolangCI Lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.46.2
+          version: ${{ env.GOLANGCI_VERSION }}
 
   build:
     name: Build
