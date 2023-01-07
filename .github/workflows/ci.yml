@@ -81,4 +81,34 @@ jobs:
       - name: Check diff
         uses: ./.github/actions/check-diff
         with:
-          message: Manifests are not up do date. Make sure you run 'make manifests' and commit the changes
+          message: Manifests are not up do date. Run 'make manifests' and commit the changes.
+
+  codegen:
+    name: Codegen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Generate code
+        run: make generate
+
+      - name: Check diff
+        uses: ./.github/actions/check-diff
+        with:
+          message: Generated code is not up do date. Run 'make generate' and commit the changes.
+
+  helm:
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Generate helm chart
+        run: make helm
+
+      - name: Check diff
+        uses: ./.github/actions/check-diff
+        with:
+          message: Helm chart is not up do date. Run 'make helm' and commit the changes.
