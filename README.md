@@ -17,7 +17,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [GitOps](https://opengitops.dev/) friendly
 - Multi-arch [Docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
-- [Helm](./helm/mariadb-operator/) chart 
+- [Helm](./deploy/mariadb-operator/) chart 
 
 ### Installation
 

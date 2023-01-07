@@ -61,16 +61,6 @@ jobs:
             org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
             org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
 
-      - name: Publish Helm chart to Chartmuseum
-        uses: goodsmileduck/helm-push-action@v3
-        env:
-          SOURCE_DIR: "helm"
-          CHART_FOLDER: "mariadb-operator"
-          FORCE: "True"
-          CHARTMUSEUM_URL: "https://charts.mmontes-dev.duckdns.org"
-          CHARTMUSEUM_USER: "${{ secrets.CHARTMUSEUM_USER }}"
-          CHARTMUSEUM_PASSWORD: ${{ secrets.CHARTMUSEUM_PASSWORD }}
-
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v3
         with:
