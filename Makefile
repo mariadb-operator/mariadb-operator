@@ -23,11 +23,11 @@ build: build ## Build all.
 ##@ Operator
 
 .PHONY: run
-run: manifests generate lint ## Run a controller from your host.
+run: lint ## Run a controller from your host.
 	go run ./cmd/operator/main.go
 
 .PHONY: build
-build: generate ## Build manager binary.
+build: ## Build manager binary.
 	go build -o bin/manager cmd/operator/main.go
 
 # Image URL to use all building/pushing image targets

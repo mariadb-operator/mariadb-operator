@@ -11,7 +11,7 @@ lint: golangci-lint ## Lint.
 	$(GOLANGCI_LINT) run
 
 .PHONY: test
-test: manifests generate envtest ## Run tests.
+test: envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
 .PHONY: cover
