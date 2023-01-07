@@ -27,13 +27,13 @@ jobs:
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
-
-      - name: Checkout code
-        uses: actions/checkout@v3
+          go-version-file: "go.mod"
 
       - name: GolangCI Lint
         uses: golangci/golangci-lint-action@v3
@@ -46,13 +46,13 @@ jobs:
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
-
-      - name: Checkout code
-        uses: actions/checkout@v2
+          go-version-file: "go.mod"
 
       - name: Build
         run: make build
@@ -63,13 +63,13 @@ jobs:
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
-
-      - name: Checkout code
-        uses: actions/checkout@v2
+          go-version-file: "go.mod"
 
       - name: Cluster
         run: |
