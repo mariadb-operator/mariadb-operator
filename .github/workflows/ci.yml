@@ -75,21 +75,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Configure Git
-        run: |
-          git config --global --add safe.directory /github/workspace
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
       - name: Generate manifests
         run: make manifests
 
-      - name: Check changes
-        id: changes
-        uses: UnicornGlobal/has-changes-action@v1.0.11
-
-      - name: Error if needed
-        if: steps.changes.outputs.changed == 1
+      - name: Error if changes detected
         run: |
-          echo "Manifests are not up do date. Make sure you run 'make manifests' and commit the changes"
-          exit 1
+          if [ "$(make check-diff)" ]; then
+            echo "Manifests are not up do date. Make sure you run 'make manifests' and commit the changes"
+            exit 1
+          fi
