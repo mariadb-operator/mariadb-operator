@@ -38,11 +38,11 @@ helm-rbac: kustomize ## Generate RBAC for Helm chart.
 CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0 
 
 .PHONY: helm-lint
-helm-lint: kustomize ## Lint Helm charts.
-	docker run -it ${CT_IMG} --volume ./.github/config/ct.yml:/config/ct.yml --volume ./deploy/charts:/deploy/charts ct lint --config /config/ct.yml 
+helm-lint: ## Lint Helm charts.
+	docker run --workdir /repo --volume $(shell pwd):/repo -it ${CT_IMG} ct lint --config .github/config/ct.yml 
 
 .PHONY: helm
-helm: helm-crds helm-rbac ## Generate manifests for Helm chart.
+helm: helm-crds helm-rbac ## Generate manifests for Helm chart
 
 ##@ Bundle
 

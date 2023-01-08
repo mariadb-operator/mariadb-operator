@@ -4,7 +4,7 @@ fullnameOverride: ""
 image:
   repository: mmontes11/mariadb-operator
   pullPolicy: IfNotPresent
-  tag: "" # Defaults to chart appVersion
+  tag: ""
 
 logLevel: INFO
 
