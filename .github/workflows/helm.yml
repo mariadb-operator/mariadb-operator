@@ -51,6 +51,7 @@ jobs:
         run: |
           make cluster
           make install
+          make install-cert-manager
 
       - name: Test install
         if: steps.list-changed.outputs.changed == 'true'

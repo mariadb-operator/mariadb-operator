@@ -70,6 +70,22 @@ bundle: bundle-crds bundle-manifests ## Generate bundles.
 .PHONY: generate
 generate: manifests code helm bundle ## Generate manifests, code, helm chart and manifests bundle.
 
+##@ Dependencies
+
+PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0
+.PHONY: install-prometheus-crds
+install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs.
+	kubectl apply -f https://raw.githubusercontent.com/prometheus-community/helm-charts/$(PROMETHEUS_VERSION)/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml
+
+.PHONY: install-prometheus
+install-prometheus: cluster-ctx ## Install kube-prometheus-stack helm chart.
+	@./hack/install_prometheus.sh
+
+CERT_MANAGER_VERSION ?= "v1.9.1"
+.PHONY: install-cert-manager
+install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
+	@./hack/install_cert_manager.sh
+
 ##@ Deploy
 
 ifndef ignore-not-found
@@ -79,19 +95,6 @@ endif
 .PHONY: install
 install: cluster-ctx manifests kustomize install-prometheus-crds install-samples certs ## Install dependencies to run locally.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
-
-PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0
-.PHONY: install-prometheus-crds
-install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs into the K8s cluster specified in ~/.kube/config.
-	kubectl apply -f https://raw.githubusercontent.com/prometheus-community/helm-charts/$(PROMETHEUS_VERSION)/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml
-
-.PHONY: install-prometheus
-install-prometheus: cluster-ctx ## Install kube-prometheus-stack helm chart.
-	@./hack/install_prometheus.sh
-
-.PHONY: install-cert-manager
-install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
-	@./hack/install_cert_manager.sh
 
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.
