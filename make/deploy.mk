@@ -34,26 +34,33 @@ helm-crds: kustomize ## Generate CRDs for Helm chart.
 helm-rbac: kustomize ## Generate RBAC for Helm chart.
 	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > deploy/charts/mariadb-operator/templates/rbac.yaml
 
+
+CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0 
+
+.PHONY: helm-lint
+helm-lint: kustomize ## Lint Helm charts.
+	docker run -it ${CT_IMG} --volume ./.github/config/ct.yml:/config/ct.yml --volume ./deploy/charts:/deploy/charts ct lint --config /config/ct.yml 
+
 .PHONY: helm
 helm: helm-crds helm-rbac ## Generate manifests for Helm chart.
 
 ##@ Bundle
 
-BUNDLE_CRDS_DIR ?= deploy/crds/
+BUNDLE_CRDS_DIR ?= deploy/crds
 
 .PHONY: bundle-crds
-bundle-crds: manifests ## Generate CRDs bundle.
+bundle-crds: manifests kustomize ## Generate CRDs bundle.
 	mkdir -p ${BUNDLE_CRDS_DIR}
-	$(KUSTOMIZE) build config/crd > ${BUNDLE_CRDS_DIR}/bundle.yaml
+	$(KUSTOMIZE) build config/crd > ${BUNDLE_CRDS_DIR}/crds.yaml
 
 CHART_DIR ?= deploy/charts/mariadb-operator
 CHART_VALUES ?= deploy/manifests/helm-values.yaml 
-BUNDLE_MANIFESTS_DIR ?= deploy/manifests/
+BUNDLE_MANIFESTS_DIR ?= deploy/manifests
 
 .PHONY: bundle-manifests
-bundle-manifests: manifests helm ## Generate manifests bundle.
+bundle-manifests: manifests ## Generate manifests bundle.
 	mkdir -p ${BUNDLE_MANIFESTS_DIR}
-	helm template mariadb-operator ${CHART_DIR} -f ${CHART_VALUES} > ${BUNDLE_MANIFESTS_DIR}/bundle.yaml
+	helm template mariadb-operator ${CHART_DIR} -f ${CHART_VALUES} > ${BUNDLE_MANIFESTS_DIR}/manifests.yaml
 
 .PHONY: bundle
 bundle: bundle-crds bundle-manifests ## Generate bundles.

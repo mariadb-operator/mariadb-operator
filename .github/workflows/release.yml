@@ -6,6 +6,7 @@ on:
       - "v*"
 
 env:
+  HELM_VERSION: "v3.10.2"
   GORELEASER_VERSION: "v1.14.1"
 
 jobs:
@@ -28,6 +29,11 @@ jobs:
         uses: docker/setup-buildx-action@v1
         id: buildx
 
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+
       - name: Login to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -44,49 +50,47 @@ jobs:
           echo ::set-output name=BUILD_DATE::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           echo ::set-output name=VERSION::${VERSION}
 
-      - name: Publish multi-arch Docker image
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          builder: ${{ steps.buildx.outputs.name }}
-          context: .
-          file: ./Dockerfile
-          platforms: linux/arm64,linux/amd64
-          tags: |
-            docker.io/mmontes11/mariadb-operator:${{ steps.prep.outputs.VERSION }}
-            docker.io/mmontes11/mariadb-operator:latest
-          labels: |
-            org.opencontainers.image.title=${{ github.event.repository.name }}
-            org.opencontainers.image.description=${{ github.event.repository.description }}
-            org.opencontainers.image.source=${{ github.event.repository.html_url }}
-            org.opencontainers.image.url=${{ github.event.repository.html_url }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
-            org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
+      # TODO: uncomment when done
+      # - name: Publish multi-arch Docker image
+      #   uses: docker/build-push-action@v2
+      #   with:
+      #     push: true
+      #     builder: ${{ steps.buildx.outputs.name }}
+      #     context: .
+      #     file: ./Dockerfile
+      #     platforms: linux/arm64,linux/amd64
+      #     tags: |
+      #       docker.io/mmontes11/mariadb-operator:${{ steps.prep.outputs.VERSION }}
+      #       docker.io/mmontes11/mariadb-operator:latest
+      #     labels: |
+      #       org.opencontainers.image.title=${{ github.event.repository.name }}
+      #       org.opencontainers.image.description=${{ github.event.repository.description }}
+      #       org.opencontainers.image.source=${{ github.event.repository.html_url }}
+      #       org.opencontainers.image.url=${{ github.event.repository.html_url }}
+      #       org.opencontainers.image.revision=${{ github.sha }}
+      #       org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
+      #       org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
 
       - name: GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v4
         with:
           version: ${{ env.GORELEASER_VERSION }}
           args: release
-          workdir: artifacts
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Generate bundles
         run: make bundle
         env:
-          BUNDLE_CRDS_DIR: artifacts/dist/crds
-          BUNDLE_MANIFESTS_DIR: artifacts/dist/manifests
+          BUNDLE_CRDS_DIR: dist/crds
+          BUNDLE_MANIFESTS_DIR: dist/manifests
 
-      - name: Upload CRDs bundle
-        uses: actions/upload-artifact@v3
+      - name: Update Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: crds.yaml
-          path: artifacts/dist/crds/bundle.yaml
-
-      - name: Upload manifests bundle
-        uses: actions/upload-artifact@v3
-        with:
-          name: manifests.yaml
-          path: artifacts/dist/manifests/bundle.yaml
+          tag_name: ${{ steps.prep.outputs.VERSION }}
+          files: |
+            dist/crds/crds.yaml
+            dist/manifests/manifests.yaml
+        env:
+          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
