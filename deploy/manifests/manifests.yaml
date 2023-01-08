@@ -363,7 +363,7 @@ metadata:
     helm.sh/chart: mariadb-operator-0.2.0
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
-    app.kubernetes.io/version: "v0.0.5"
+    app.kubernetes.io/version: "v0.0.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   ports:
@@ -398,7 +398,7 @@ metadata:
     helm.sh/chart: mariadb-operator-0.2.0
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
-    app.kubernetes.io/version: "v0.0.5"
+    app.kubernetes.io/version: "v0.0.4"
     app.kubernetes.io/managed-by: Helm
 spec:
   
@@ -431,7 +431,7 @@ spec:
             - --zap-log-level=INFO
           command:
             - /manager
-          image: "mmontes11/mariadb-operator:v0.0.5"
+          image: "mmontes11/mariadb-operator:v0.0.4"
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
@@ -542,7 +542,7 @@ metadata:
     helm.sh/chart: mariadb-operator-0.2.0
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
-    app.kubernetes.io/version: "v0.0.5"
+    app.kubernetes.io/version: "v0.0.4"
     app.kubernetes.io/managed-by: Helm
     release: kube-prometheus-stack
 spec:
