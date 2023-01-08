@@ -37,6 +37,7 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version-file: "go.mod"
+          cache: true
 
       - name: GolangCI Lint
         uses: golangci/golangci-lint-action@v3
@@ -56,6 +57,7 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version-file: "go.mod"
+          cache: true
 
       - name: Build
         run: make build
@@ -73,6 +75,7 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version-file: "go.mod"
+          cache: true
 
       - name: Cluster
         run: |
