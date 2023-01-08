@@ -50,26 +50,25 @@ jobs:
           echo ::set-output name=BUILD_DATE::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           echo ::set-output name=VERSION::${VERSION}
 
-      # TODO: uncomment when done
-      # - name: Publish multi-arch Docker image
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     push: true
-      #     builder: ${{ steps.buildx.outputs.name }}
-      #     context: .
-      #     file: ./Dockerfile
-      #     platforms: linux/arm64,linux/amd64
-      #     tags: |
-      #       docker.io/mmontes11/mariadb-operator:${{ steps.prep.outputs.VERSION }}
-      #       docker.io/mmontes11/mariadb-operator:latest
-      #     labels: |
-      #       org.opencontainers.image.title=${{ github.event.repository.name }}
-      #       org.opencontainers.image.description=${{ github.event.repository.description }}
-      #       org.opencontainers.image.source=${{ github.event.repository.html_url }}
-      #       org.opencontainers.image.url=${{ github.event.repository.html_url }}
-      #       org.opencontainers.image.revision=${{ github.sha }}
-      #       org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
-      #       org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
+      - name: Publish multi-arch Docker image
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64,linux/amd64
+          tags: |
+            docker.io/mmontes11/mariadb-operator:${{ steps.prep.outputs.VERSION }}
+            docker.io/mmontes11/mariadb-operator:latest
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
+            org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
 
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v4
