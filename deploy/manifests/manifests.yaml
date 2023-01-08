@@ -4,7 +4,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: mariadb-controller-manager
-  namespace: iot
+  namespace: default
 ---
 # Source: mariadb-operator/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -269,7 +269,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: mariadb-controller-manager
-  namespace: iot
+  namespace: default
 ---
 # Source: mariadb-operator/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -283,7 +283,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: mariadb-controller-manager
-  namespace: iot
+  namespace: default
 ---
 # Source: mariadb-operator/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -335,7 +335,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: mariadb-controller-manager
-  namespace: iot
+  namespace: default
 ---
 # Source: mariadb-operator/templates/rbac.yaml
 apiVersion: v1
@@ -344,7 +344,7 @@ metadata:
   labels:
     control-plane: controller-manager
   name: controller-manager-metrics-service
-  namespace: iot
+  namespace: default
 spec:
   ports:
   - name: https
@@ -518,8 +518,8 @@ metadata:
   name: mariadb-operator-serving-cert
 spec:
   dnsNames:
-    - mariadb-operator-webhook-service.iot.svc
-    - mariadb-operator-webhook-service.iot.svc.cluster.local
+    - mariadb-operator-webhook-service.default.svc
+    - mariadb-operator-webhook-service.default.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: mariadb-operator-selfsigned-issuer
@@ -564,14 +564,14 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: mariadb-operator-validating-webhook-configuration
   annotations:
-    cert-manager.io/inject-ca-from: iot/mariadb-operator-serving-cert
+    cert-manager.io/inject-ca-from: default/mariadb-operator-serving-cert
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
         name: mariadb-operator-webhook-service
-        namespace: iot
+        namespace: default
         path: /validate-database-mmontes-io-v1alpha1-backupmariadb
     failurePolicy: Fail
     name: vbackupmariadb.kb.io
@@ -591,7 +591,7 @@ webhooks:
     clientConfig:
       service:
         name: mariadb-operator-webhook-service
-        namespace: iot
+        namespace: default
         path: /validate-database-mmontes-io-v1alpha1-databasemariadb
     failurePolicy: Fail
     name: vdatabasemariadb.kb.io
@@ -611,7 +611,7 @@ webhooks:
     clientConfig:
       service:
         name: mariadb-operator-webhook-service
-        namespace: iot
+        namespace: default
         path: /validate-database-mmontes-io-v1alpha1-grantmariadb
     failurePolicy: Fail
     name: vgrantmariadb.kb.io
@@ -631,7 +631,7 @@ webhooks:
     clientConfig:
       service:
         name: mariadb-operator-webhook-service
-        namespace: iot
+        namespace: default
         path: /validate-database-mmontes-io-v1alpha1-mariadb
     failurePolicy: Fail
     name: vmariadb.kb.io
@@ -651,7 +651,7 @@ webhooks:
     clientConfig:
       service:
         name: mariadb-operator-webhook-service
-        namespace: iot
+        namespace: default
         path: /validate-database-mmontes-io-v1alpha1-restoremariadb
     failurePolicy: Fail
     name: vrestoremariadb.kb.io
@@ -671,7 +671,7 @@ webhooks:
     clientConfig:
       service:
         name: mariadb-operator-webhook-service
-        namespace: iot
+        namespace: default
         path: /validate-database-mmontes-io-v1alpha1-usermariadb
     failurePolicy: Fail
     name: vusermariadb.kb.io

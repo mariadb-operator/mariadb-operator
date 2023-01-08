@@ -60,7 +60,7 @@ BUNDLE_MANIFESTS_DIR ?= deploy/manifests
 .PHONY: bundle-manifests
 bundle-manifests: manifests ## Generate manifests bundle.
 	mkdir -p ${BUNDLE_MANIFESTS_DIR}
-	helm template mariadb-operator ${CHART_DIR} -f ${CHART_VALUES} > ${BUNDLE_MANIFESTS_DIR}/manifests.yaml
+	helm template -n default mariadb-operator ${CHART_DIR} -f ${CHART_VALUES} > ${BUNDLE_MANIFESTS_DIR}/manifests.yaml
 
 .PHONY: bundle
 bundle: bundle-crds bundle-manifests ## Generate bundles.
