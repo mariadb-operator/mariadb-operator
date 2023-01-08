@@ -20,27 +20,48 @@ cluster-ctx: ## Sets cluster context.
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=mariadb-manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-.PHONY: codegen
-codegen: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+.PHONY: code
+code: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 ##@ Helm
 
 .PHONY: helm-crds 
 helm-crds: kustomize ## Generate CRDs for Helm chart.
-	$(KUSTOMIZE) build config/crd > charts/mariadb-operator/crds/crds.yaml
+	$(KUSTOMIZE) build config/crd > deploy/charts/mariadb-operator/crds/crds.yaml
 
 .PHONY: helm-rbac
 helm-rbac: kustomize ## Generate RBAC for Helm chart.
-	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > charts/mariadb-operator/templates/rbac.yaml
+	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > deploy/charts/mariadb-operator/templates/rbac.yaml
 
 .PHONY: helm
 helm: helm-crds helm-rbac ## Generate manifests for Helm chart.
 
+##@ Bundle
+
+BUNDLE_CRDS_DIR ?= deploy/crds/
+
+.PHONY: bundle-crds
+bundle-crds: manifests ## Generate CRDs bundle.
+	mkdir -p ${BUNDLE_CRDS_DIR}
+	$(KUSTOMIZE) build config/crd > ${BUNDLE_CRDS_DIR}/bundle.yaml
+
+CHART_DIR ?= deploy/charts/mariadb-operator
+CHART_VALUES ?= deploy/manifests/helm-values.yaml 
+BUNDLE_MANIFESTS_DIR ?= deploy/manifests/
+
+.PHONY: bundle-manifests
+bundle-manifests: manifests helm ## Generate manifests bundle.
+	mkdir -p ${BUNDLE_MANIFESTS_DIR}
+	helm template mariadb-operator ${CHART_DIR} -f ${CHART_VALUES} > ${BUNDLE_MANIFESTS_DIR}/bundle.yaml
+
+.PHONY: bundle
+bundle: bundle-crds bundle-manifests ## Generate bundles.
+
 ##@ Generate
 
 .PHONY: generate
-generate: manifests codegen helm ## Generate manifests, code and helm chart.
+generate: manifests code helm bundle ## Generate manifests, code, helm chart and manifests bundle.
 
 ##@ Deploy
 

@@ -69,5 +69,24 @@ jobs:
         with:
           version: ${{ env.GORELEASER_VERSION }}
           args: release
+          workdir: artifacts
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Generate bundles
+        run: make bundle
+        env:
+          BUNDLE_CRDS_DIR: artifacts/dist/crds
+          BUNDLE_MANIFESTS_DIR: artifacts/dist/manifests
+
+      - name: Upload CRDs bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: crds.yaml
+          path: artifacts/dist/crds/bundle.yaml
+
+      - name: Upload manifests bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: manifests.yaml
+          path: artifacts/dist/manifests/bundle.yaml

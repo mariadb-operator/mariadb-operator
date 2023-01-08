@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - "charts/**"
+      - "deploy/charts/**"
   pull_request:
     paths:
-      - "charts/**"
+      - "deploy/charts/**"
 
 env:
   HELM_VERSION: "v3.10.2"
