@@ -35,11 +35,11 @@ IMG ?= mmontes11/mariadb-operator:latest
 
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	docker build -t ${IMG} .
+	docker build -t $(IMG) .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
-	docker push ${OP_IMG}
+	docker push $(IMG)
 
 include make/deploy.mk
 include make/dev.mk

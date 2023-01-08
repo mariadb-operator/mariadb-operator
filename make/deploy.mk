@@ -1,3 +1,5 @@
+HELM_DIR ?= deploy/charts/mariadb-operator
+
 ##@ Cluster
 
 CLUSTER ?= mdb
@@ -34,33 +36,33 @@ helm-crds: kustomize ## Generate CRDs for Helm chart.
 helm-rbac: kustomize ## Generate RBAC for Helm chart.
 	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > deploy/charts/mariadb-operator/templates/rbac.yaml
 
+DOCS_IMG ?= jnorwood/helm-docs:v1.11.0
+.PHONY: helm-docs
+helm-docs: ## Generate Helm chart docs.
+	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) $(DOCS_IMG)
 
 CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0 
-
 .PHONY: helm-lint
 helm-lint: ## Lint Helm charts.
-	docker run --workdir /repo --volume $(shell pwd):/repo -it ${CT_IMG} ct lint --config .github/config/ct.yml 
+	docker run --rm --workdir /repo -v $(shell pwd):/repo $(CT_IMG) ct lint --config .github/config/ct.yml 
 
 .PHONY: helm
-helm: helm-crds helm-rbac ## Generate manifests for Helm chart
+helm: helm-crds helm-rbac helm-docs ## Generate manifests for Helm chart.
 
 ##@ Bundle
 
 BUNDLE_CRDS_DIR ?= deploy/crds
-
 .PHONY: bundle-crds
 bundle-crds: manifests kustomize ## Generate CRDs bundle.
-	mkdir -p ${BUNDLE_CRDS_DIR}
-	$(KUSTOMIZE) build config/crd > ${BUNDLE_CRDS_DIR}/crds.yaml
+	mkdir -p $(BUNDLE_CRDS_DIR)
+	$(KUSTOMIZE) build config/crd > $(BUNDLE_CRDS_DIR)/crds.yaml
 
-CHART_DIR ?= deploy/charts/mariadb-operator
-CHART_VALUES ?= deploy/manifests/helm-values.yaml 
+BUNDLE_VALUES ?= deploy/manifests/helm-values.yaml 
 BUNDLE_MANIFESTS_DIR ?= deploy/manifests
-
 .PHONY: bundle-manifests
 bundle-manifests: manifests ## Generate manifests bundle.
-	mkdir -p ${BUNDLE_MANIFESTS_DIR}
-	helm template -n default mariadb-operator ${CHART_DIR} -f ${CHART_VALUES} > ${BUNDLE_MANIFESTS_DIR}/manifests.yaml
+	mkdir -p $(BUNDLE_MANIFESTS_DIR)
+	helm template -n default mariadb-operator $(HELM_DIR) -f $(BUNDLE_VALUES) > $(BUNDLE_MANIFESTS_DIR)/manifests.yaml
 
 .PHONY: bundle
 bundle: bundle-crds bundle-manifests ## Generate bundles.
@@ -106,7 +108,7 @@ uninstall: cluster-ctx manifests kustomize ## Uninstall CRDs from the K8s cluste
 
 .PHONY: deploy
 deploy: cluster-ctx manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy

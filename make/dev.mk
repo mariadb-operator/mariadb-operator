@@ -3,8 +3,8 @@
 CERTS_DIR=/tmp/k8s-webhook-server/serving-certs
 CERTS_CONFIG=./hack/config/openssl.conf
 certs: ## Generates development certificates.
-	@mkdir -p ${CERTS_DIR}
-	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -config ${CERTS_CONFIG} -out ${CERTS_DIR}/tls.crt -keyout ${CERTS_DIR}/tls.key
+	@mkdir -p $(CERTS_DIR)
+	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -config $(CERTS_CONFIG) -out $(CERTS_DIR)/tls.crt -keyout $(CERTS_DIR)/tls.key
 
 .PHONY: lint
 lint: golangci-lint ## Lint.
