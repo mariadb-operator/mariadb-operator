@@ -4,44 +4,47 @@ fullnameOverride: ""
 image:
   repository: mmontes11/mariadb-operator
   pullPolicy: IfNotPresent
+  # -- The image tag to use. The default is the chart appVersion.
   tag: ""
 
+# -- Controller log level
 logLevel: INFO
 
+# -- Cluster DNS name
 clusterName: cluster.local
 
 ha:
+  # -- Enable high availability
   enabled: true
+  # -- Number of replicas
   replicas: 3
+  # -- Lease resource name to be used for leader election
   leaseId: database.mmontes.io
 
 monitoring:
-  enabled: true
-  prometheusRelease: kube-prometheus-stack
+  # -- Enable prometheus metrics
+  enabled: false
+  # -- 'release' label to include in Prometheus resources
+  prometheusRelease: ""
 
+# -- Annotations to add to controller Pod
 podAnnotations: {}
 
-podSecurityContext:
-  allowPrivilegeEscalation: false
+podSecurityContext: {}
 
-securityContext:
-  runAsNonRoot: true
+securityContext: {}
 
 resources:
-  manager:
-    limits:
-      cpu: 500m
-      memory: 128Mi
-    requests:
-      cpu: 10m
-      memory: 64Mi
-  rbacProxy:
-    limits:
-      cpu: 500m
-      memory: 128Mi
-    requests:
-      cpu: 5m
-      memory: 64Mi
+  # -- Resources to be added to the controller manager container
+  manager: {}
+  # requests:
+  #   cpu: 10m
+  #   memory: 32Mi
+  # -- Resources to be added to the rbac proxy container
+  rbacProxy: {}
+  # requests:
+  #   cpu: 10m
+  #   memory: 32Mi
 
 nodeSelector: {}
 
