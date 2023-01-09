@@ -17,7 +17,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [GitOps](https://opengitops.dev/) friendly
 - Multi-arch [Docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
-- [Helm](./helm/mariadb-operator/) chart 
+- [Helm](./deploy/charts/mariadb-operator/) chart 
 
 ### Installation
 
@@ -26,7 +26,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 make cluster
 ``` 
 
-- Install [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
+- Install [kube-prometheus-stack](https://github.com/prometheus-community/helm-deploy/charts/tree/main/deploy/charts/kube-prometheus-stack)
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
