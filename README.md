@@ -20,6 +20,8 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Multi-arch [docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
 - [Helm](./deploy/charts/mariadb-operator/) chart
 
+Take a look at our [🛣️ roadmap](./ROADMAP.md) and feel free to open an issue to suggest new features.
+
 ### Installation
 
 - Provision a Kubernetes cluster. If you don't have one already, you can easily create a [KIND](https://kind.sigs.k8s.io/) cluster by running:
