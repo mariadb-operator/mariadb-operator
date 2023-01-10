@@ -21,8 +21,6 @@ jobs:
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           paths_ignore: '["**.md"]'
-          do_not_skip: '["workflow_dispatch", "schedule", "push"]'
-          concurrent_skipping: false
 
   lint:
     name: Lint
