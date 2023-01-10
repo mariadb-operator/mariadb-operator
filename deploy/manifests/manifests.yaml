@@ -360,7 +360,7 @@ kind: Service
 metadata:
   name: mariadb-operator-metrics-service
   labels:
-    helm.sh/chart: mariadb-operator-0.2.0
+    helm.sh/chart: mariadb-operator-0.2.2
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
     app.kubernetes.io/version: "v0.0.4"
@@ -395,7 +395,7 @@ kind: Deployment
 metadata:
   name: mariadb-operator-controller-manager
   labels:
-    helm.sh/chart: mariadb-operator-0.2.0
+    helm.sh/chart: mariadb-operator-0.2.2
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
     app.kubernetes.io/version: "v0.0.4"
@@ -509,7 +509,7 @@ kind: ServiceMonitor
 metadata:
   name: mariadb-operator-metrics-monitor
   labels:
-    helm.sh/chart: mariadb-operator-0.2.0
+    helm.sh/chart: mariadb-operator-0.2.2
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
     app.kubernetes.io/version: "v0.0.4"
