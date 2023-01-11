@@ -4,7 +4,7 @@ fullnameOverride: ""
 image:
   repository: mmontes11/mariadb-operator
   pullPolicy: IfNotPresent
-  # -- The image tag to use. The default is the chart appVersion.
+  # -- The image tag to use. By default the chart appVersion is used
   tag: ""
 
 # -- Controller log level
@@ -15,39 +15,52 @@ clusterName: cluster.local
 
 ha:
   # -- Enable high availability
-  enabled: true
+  enabled: false
   # -- Number of replicas
   replicas: 3
   # -- Lease resource name to be used for leader election
   leaseId: database.mmontes.io
 
-monitoring:
-  # -- Enable prometheus metrics
-  enabled: true
-  # -- 'release' label to include in Prometheus resources
-  prometheusRelease: ""
+metrics:
+  # -- Enable prometheus metrics. Prometheus must be installed in the cluster
+  enabled: false
+  serviceMonitor:
+    # -- Enable controller ServiceMonitor
+    enabled: true
+    # -- Labels to be added to the controller ServiceMonitor
+    additionalLabels: {}
+    # release: kube-prometheus-stack
+
+webhook:
+  # -- Enable webhooks. Cert-manager must be installed in the cluster
+  enabled: false
 
 # -- Annotations to add to controller Pod
 podAnnotations: {}
 
+# -- Security context to add to controller container
 podSecurityContext: {}
 
+# -- Security context to add to controller Pod
 securityContext: {}
 
 resources:
-  # -- Resources to be added to the controller manager container
+  # -- Resources to add to controller container
   manager: {}
   # requests:
   #   cpu: 10m
   #   memory: 32Mi
-  # -- Resources to be added to the rbac proxy container
+  # -- Resources to add to rbac proxy container
   rbacProxy: {}
   # requests:
   #   cpu: 10m
   #   memory: 32Mi
 
+# -- Node selectors to add to controller Pod
 nodeSelector: {}
 
+# -- Tolerations to add to controller Pod
 tolerations: []
 
+# -- Affinity to add to controller Pod
 affinity: {}

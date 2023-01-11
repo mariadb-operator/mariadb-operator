@@ -9,7 +9,7 @@ linters-settings:
 linters:
   disable-all: true
   enable:
-    - deadcode
+    - unused
     - errcheck
     - gocyclo
     - gofmt
@@ -23,11 +23,8 @@ linters:
     - staticcheck
     - typecheck
     - unused
-    - varcheck
-    # not compatible with go 1.18 yet
-    # - bodyclose
-    # - noctx
-    # - structcheck
+    - bodyclose
+    - noctx
 
 run:
   timeout: 5m

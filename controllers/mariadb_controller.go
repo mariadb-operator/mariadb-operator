@@ -43,6 +43,7 @@ type MariaDBReconciler struct {
 	Builder        *builder.Builder
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *conditions.Ready
+	ServiceMonitor bool
 }
 
 type MariaDBReconcilePhase struct {
@@ -76,15 +77,18 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Resource:  "Service",
 			Reconcile: r.reconcileService,
 		},
-		{
+	}
+	if r.ServiceMonitor {
+		phases = append(phases, MariaDBReconcilePhase{
 			Resource:  "ServiceMonitor",
 			Reconcile: r.reconcileServiceMonitor,
-		},
-		{
-			Resource:  "RestoreMariaDB",
-			Reconcile: r.reconcileBootstrapRestore,
-		},
+		})
 	}
+	phases = append(phases, MariaDBReconcilePhase{
+		Resource:  "RestoreMariaDB",
+		Reconcile: r.reconcileBootstrapRestore,
+	})
+
 	for _, p := range phases {
 		if err := p.Reconcile(ctx, &mariaDb, req.NamespacedName); err != nil {
 			var errBundle *multierror.Error
@@ -321,12 +325,14 @@ func bootstrapRestoreKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&databasev1alpha1.MariaDB{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
-		Owns(&databasev1alpha1.RestoreMariaDB{}).
-		Owns(&monitoringv1.ServiceMonitor{}).
-		Complete(r)
+		Owns(&databasev1alpha1.RestoreMariaDB{})
+	if r.ServiceMonitor {
+		builder = builder.Owns(&monitoringv1.ServiceMonitor{})
+	}
+	return builder.Complete(r)
 }

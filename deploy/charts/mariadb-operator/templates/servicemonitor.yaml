@@ -1,11 +1,13 @@
-{{ if .Values.monitoring.enabled }}
+{{ if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ include "mariadb-operator.fullname" . }}-metrics-monitor
   labels:
-    {{- include "mariadb-operator.labels" . | nindent 4 }}
-    release: {{ .Values.monitoring.prometheusRelease }}
+    {{ include "mariadb-operator.labels" . | nindent 4 }}
+    {{ with .Values.metrics.serviceMonitor.additionalLabels }}
+    {{ toYaml . | nindent 4 }}
+    {{ end }}
 spec:
   endpoints:
     - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
@@ -16,5 +18,5 @@ spec:
         insecureSkipVerify: true
   selector:
     matchLabels:
-      {{- include "mariadb-operator.selectorLabels" . | nindent 6 }}
+      {{ include "mariadb-operator.selectorLabels" . | nindent 6 }}
 {{ end }}

@@ -102,6 +102,7 @@ var _ = BeforeSuite(func() {
 		Scheme:         k8sManager.GetScheme(),
 		Builder:        builder,
 		ConditionReady: conditionReady,
+		ServiceMonitor: true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

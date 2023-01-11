@@ -21,3 +21,13 @@ cover: test ## Run tests and generate coverage.
 .PHONY: release
 release: goreleaser ## Test release locally.
 	$(GORELEASER) release --snapshot --rm-dist
+
+##@ Operator
+
+.PHONY: run
+run: lint ## Run a controller from your host.
+	go run main.go --service-monitor --webhook
+
+.PHONY: build
+build: ## Build manager binary.
+	go build -o bin/manager main.go

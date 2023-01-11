@@ -1,1 +1,9 @@
 fullnameOverride: "mariadb-operator"
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+webhook:
+  enabled: true

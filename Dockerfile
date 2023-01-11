@@ -6,12 +6,13 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download
 
-COPY cmd/operator cmd/operator
+COPY main.go main.go
+COPY cmd/ cmd/
 COPY api/ api/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
 
-RUN CGO_ENABLED=0 go build -a -o manager cmd/operator/main.go
+RUN CGO_ENABLED=0 go build -a -o manager main.go
 
 FROM alpine:3.16.0
 
