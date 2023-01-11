@@ -91,5 +91,6 @@ jobs:
           files: |
             dist/crds/crds.yaml
             dist/manifests/manifests.yaml
+            dist/manifests/manifests.min.yaml
         env:
           GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"

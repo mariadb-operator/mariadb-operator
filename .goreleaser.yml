@@ -1,6 +1,6 @@
 builds:
   - id: mariadb-operator
-    main: cmd/operator/main.go
+    main: main.go
     binary: "mariadb-operator_{{ .Version }}_{{ .Arch }}"
     env:
       - CGO_ENABLED=0

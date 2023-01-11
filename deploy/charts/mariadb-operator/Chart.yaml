@@ -3,8 +3,8 @@ name: mariadb-operator
 description: Run and operate MariaDB in a cloud native way
 home: https://github.com/mmontes11/mariadb-operator
 type: application
-version: 0.2.2
-appVersion: "v0.0.4"
+version: 0.3.0
+appVersion: "v0.0.5"
 maintainers:
   - name: mmontes11
     email: martin11lrx@gmail.com

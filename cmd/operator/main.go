@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package operator
 
 import (
 	"flag"
@@ -39,7 +39,6 @@ import (
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/controller/batch"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
-	//+kubebuilder:scaffold:imports
 )
 
 var (
@@ -51,26 +50,31 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(databasev1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
 }
 
-func main() {
+func Run() {
 	var metricsAddr string
 	var probeAddr string
 	var leaderElection bool
 	var leaderElectionId string
+	var serviceMonitor bool
+	var webhook bool
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&leaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&leaderElectionId, "leader-elect-id", "e5c434f5.mmontes.io", "Leader election ID for controller manager.")
+	flag.BoolVar(&serviceMonitor, "service-monitor", false,
+		"Enabling service monitors reconciliation."+
+			"Enabling this requires Prometheus CRDs installed in the cluster.")
+	flag.BoolVar(&webhook, "webhook", false,
+		"Enabling mutating and validating webhooks.")
 	opts := zap.Options{
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -98,6 +102,7 @@ func main() {
 		Builder:        builder,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
+		ServiceMonitor: serviceMonitor,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
 		os.Exit(1)
@@ -152,31 +157,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&databasev1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MariaDB")
-		os.Exit(1)
+	//nolint:nestif
+	if webhook {
+		if err = (&databasev1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MariaDB")
+			os.Exit(1)
+		}
+		if err = (&databasev1alpha1.BackupMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BackupMariaDB")
+			os.Exit(1)
+		}
+		if err = (&databasev1alpha1.RestoreMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "RestoreMariaDB")
+			os.Exit(1)
+		}
+		if err = (&databasev1alpha1.UserMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "UserMariaDB")
+			os.Exit(1)
+		}
+		if err = (&databasev1alpha1.GrantMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "GrantMariaDB")
+			os.Exit(1)
+		}
+		if err = (&databasev1alpha1.DatabaseMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "DatabaseMariaDB")
+			os.Exit(1)
+		}
 	}
-	if err = (&databasev1alpha1.BackupMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BackupMariaDB")
-		os.Exit(1)
-	}
-	if err = (&databasev1alpha1.RestoreMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "RestoreMariaDB")
-		os.Exit(1)
-	}
-	if err = (&databasev1alpha1.UserMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "UserMariaDB")
-		os.Exit(1)
-	}
-	if err = (&databasev1alpha1.GrantMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "GrantMariaDB")
-		os.Exit(1)
-	}
-	if err = (&databasev1alpha1.DatabaseMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "DatabaseMariaDB")
-		os.Exit(1)
-	}
-	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

@@ -1,8 +1,30 @@
 HELM_DIR ?= deploy/charts/mariadb-operator
+CLUSTER ?= mdb
+
+##@ Docker
+
+PLATFORM ?= linux/amd64,linux/arm64
+IMG ?= mmontes11/mariadb-operator:latest
+BUILD ?= docker buildx build --platform $(PLATFORM) -t $(IMG)
+
+.PHONY: docker-build
+docker-build: ## Build docker image.
+	$(BUILD) .
+
+.PHONY: docker-push
+docker-push: ## Build docker image and push it to the registry.
+	$(BUILD) --push .
+
+.PHONY: docker-inspect
+docker-inspect: ## Inspect docker image.
+	docker buildx imagetools inspect $(IMG)
+
+.PHONY: docker-load
+docker-load: docker-build ## Load docker image in KIND.
+	kind load docker-image --name ${CLUSTER} ${IMG}
 
 ##@ Cluster
 
-CLUSTER ?= mdb
 KIND_IMAGE ?= kindest/node:v1.26.0
 .PHONY: cluster
 cluster: kind ## Create the kind cluster.
@@ -57,15 +79,24 @@ bundle-crds: manifests kustomize ## Generate CRDs bundle.
 	mkdir -p $(BUNDLE_CRDS_DIR)
 	$(KUSTOMIZE) build config/crd > $(BUNDLE_CRDS_DIR)/crds.yaml
 
-BUNDLE_VALUES ?= deploy/manifests/helm-values.yaml 
 BUNDLE_MANIFESTS_DIR ?= deploy/manifests
+
+BUNDLE_VALUES ?= deploy/manifests/helm-values.yaml 
 .PHONY: bundle-manifests
-bundle-manifests: manifests ## Generate manifests bundle.
+bundle-manifests: manifests bundle-crds ## Generate manifests bundle.
 	mkdir -p $(BUNDLE_MANIFESTS_DIR)
-	helm template -n default mariadb-operator $(HELM_DIR) -f $(BUNDLE_VALUES) > $(BUNDLE_MANIFESTS_DIR)/manifests.yaml
+	cat $(BUNDLE_CRDS_DIR)/crds.yaml > $(BUNDLE_MANIFESTS_DIR)/manifests.yaml
+	helm template -n default mariadb-operator $(HELM_DIR) -f $(BUNDLE_VALUES) >> $(BUNDLE_MANIFESTS_DIR)/manifests.yaml
+
+BUNDLE_MIN_VALUES ?= deploy/manifests/helm-values.min.yaml 
+.PHONY: bundle-min-manifests
+bundle-min-manifests: manifests bundle-crds ## Generate minimal manifests bundle.
+	mkdir -p $(BUNDLE_MANIFESTS_DIR)
+	cat $(BUNDLE_CRDS_DIR)/crds.yaml > $(BUNDLE_MANIFESTS_DIR)/manifests.min.yaml
+	helm template -n default mariadb-operator $(HELM_DIR) -f $(BUNDLE_MIN_VALUES) >> $(BUNDLE_MANIFESTS_DIR)/manifests.min.yaml
 
 .PHONY: bundle
-bundle: bundle-crds bundle-manifests ## Generate bundles.
+bundle: bundle-crds bundle-manifests bundle-min-manifests ## Generate bundles.
 
 ##@ Generate
 
@@ -94,9 +125,12 @@ ifndef ignore-not-found
   ignore-not-found = false
 endif
 
-.PHONY: install
-install: cluster-ctx manifests kustomize install-prometheus-crds install-samples certs ## Install dependencies to run locally.
+.PHONY: install-crds
+install-crds: cluster-ctx manifests kustomize ## Install CRDs.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
+
+.PHONY: install
+install: cluster-ctx install-crds install-prometheus-crds install-samples certs ## Install CRDs and dependencies.
 
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.
@@ -114,4 +148,3 @@ deploy: cluster-ctx manifests kustomize ## Deploy controller to the K8s cluster 
 .PHONY: undeploy
 undeploy: cluster-ctx ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-

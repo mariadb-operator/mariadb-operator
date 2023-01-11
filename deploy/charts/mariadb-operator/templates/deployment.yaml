@@ -32,13 +32,19 @@ spec:
       {{ end }}
       containers:
         - args:
+            - --metrics-bind-address=:8080
+            - --health-probe-bind-address=:8081
+            - --zap-log-level={{ .Values.logLevel }}
             {{ if .Values.ha.enabled }}
             - --leader-elect
             - --leader-elect-id={{ .Values.ha.leaseId }}
             {{ end }}
-            - --metrics-bind-address=:8080
-            - --health-probe-bind-address=:8081
-            - --zap-log-level={{ .Values.logLevel }}
+            {{ if .Values.metrics.enabled }}
+            - --service-monitor
+            {{ end }}
+            {{ if .Values.webhook.enabled }}
+            - --webhook
+            {{ end }}
           command:
             - /manager
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -71,10 +77,12 @@ spec:
           securityContext:
             {{ toYaml . | nindent 12 }}
           {{ end }}
+          {{ if .Values.webhook.enabled }}
           volumeMounts:
             - mountPath: /tmp/k8s-webhook-server/serving-certs
               name: cert
               readOnly: true
+          {{ end }}
         - args:
             - --secure-listen-address=0.0.0.0:8443
             - --upstream=http://127.0.0.1:8080/
@@ -100,8 +108,10 @@ spec:
       {{ end }}
       serviceAccountName: mariadb-controller-manager
       terminationGracePeriodSeconds: 10
+      {{ if .Values.webhook.enabled }}
       volumes:
         - name: cert
           secret:
             defaultMode: 420
             secretName: {{ include "mariadb-operator.fullname" . }}-webhook-server-cert
+      {{ end }}

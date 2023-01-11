@@ -1,3 +1,4 @@
+{{ if .Values.webhook.enabled }}
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -17,3 +18,4 @@ spec:
     kind: Issuer
     name: {{ include "mariadb-operator.fullname" . }}-selfsigned-issuer
   secretName: {{ include "mariadb-operator.fullname" . }}-webhook-server-cert
+{{ end }}

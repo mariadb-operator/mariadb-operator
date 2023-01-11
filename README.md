@@ -18,41 +18,44 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [GitOps](https://opengitops.dev/) friendly
 - Multi-arch [docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
-- [Helm](./deploy/charts/mariadb-operator/) chart
+- Install using [helm](./deploy/charts/mariadb-operator) or just [kubectl](./deploy/manifests)
 
-Take a look at our [🛣️ roadmap](./ROADMAP.md) and feel free to open an issue to suggest new features.
+## Bare minimum installation
 
-### Installation
+This installation flavour provides the minimum resources required to run mariadb operator. You can install it using the helm chart:
 
-- Provision a Kubernetes cluster. If you don't have one already, you can easily create a [KIND](https://kind.sigs.k8s.io/) cluster by running:
 ```bash
-make cluster
-``` 
-- Install [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
-```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  -n kube-prometheus-stack --create-namespace
-``` 
-- Install [cert-manager](https://github.com/cert-manager/cert-manager) 
-```bash
-helm repo add jetstack https://charts.jetstack.io
-helm repo update
-helm install cert-manager jetstack/cert-manager \
-  -n cert-manager --create-namespace \
-  --set installCRDs=true 
+helm repo add mariadb-operator https://mmontes11.github.io/mariadb-operator
+helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
-- Install `mariadb-operator` 🦭
+or alternatively just kubectl apply the manifests bundle:
+
+```bash
+MDB_VERSION=v0.0.5
+kubectl apply -f https://github.com/mmontes11/mariadb-operator/releases/download/$MDB_VERSION/manifests.min.yaml
+```
+
+
+## Recommended installation
+
+The recommended installation includes the following features to provide a better user experiende and reliability:
+- **Validation WebHooks**: To ensure resource inmutability and provide more accurate validations. To enable this feature, [cert-manager](https://cert-manager.io/docs/installation/) should be installed in the cluster in order to reconcile `Certificate` resources for the webhooks.
+- **Metrics**: To provide observability in both the mariadb controller and the provisioned MariaDB instances. To enable this feature, [prometheus operator](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) should be present in the cluster to reconcile `ServiceMonitor` resources.
+
 ```bash
 helm repo add mariadb-operator https://mmontes11.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator \
-  -n mariadb-system --create-namespace
+  --set webhook.enabled=true --set metrics.enabled=true 
 ```
 
-### Quickstart
+```bash
+MDB_VERSION=v0.0.5
+kubectl apply -f https://github.com/mmontes11/mariadb-operator/releases/download/$MDB_VERSION/manifests.yaml
+```
 
-Let's see `mariadb-operator` in action! First of all, install the following configuration manifests that will be referenced by the CRDs further:
+## Quickstart
+
+Let's see `mariadb-operator`🦭 in action! First of all, install the following configuration manifests that will be referenced by the CRDs further:
 ```bash
 kubectl apply -f config/samples/config
 ```
@@ -138,6 +141,11 @@ bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
 You can take a look at the whole suite of example CRDs available in [config/samples](./config/samples/).  
 
-### Contributing
+## Roadmap
 
-Contributions are welcome! If you think something could be improved, request a new feature or just want to leave some feedback, please check our [contributing](./CONTRIBUTING.md) guide and take a look at our open [issues](https://github.com/mmontes11/mariadb-operator/issues).
+Take a look at our [🛣️ roadmap](./ROADMAP.md) and feel free to open an issue to suggest new features.
+
+
+## Contributing
+
+If you want to report a 🐛 or you think something can be improved, please check our [contributing](./CONTRIBUTING.md) guide and take a look at our open [issues](https://github.com/mmontes11/mariadb-operator/issues). PRs are welcome!
