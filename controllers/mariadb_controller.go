@@ -39,11 +39,11 @@ import (
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	Builder        *builder.Builder
-	RefResolver    *refresolver.RefResolver
-	ConditionReady *conditions.Ready
-	ServiceMonitor bool
+	Scheme                   *runtime.Scheme
+	Builder                  *builder.Builder
+	RefResolver              *refresolver.RefResolver
+	ConditionReady           *conditions.Ready
+	ServiceMonitorReconciler bool
 }
 
 type MariaDBReconcilePhase struct {
@@ -78,7 +78,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileService,
 		},
 	}
-	if r.ServiceMonitor {
+	if r.ServiceMonitorReconciler {
 		phases = append(phases, MariaDBReconcilePhase{
 			Resource:  "ServiceMonitor",
 			Reconcile: r.reconcileServiceMonitor,
@@ -331,7 +331,7 @@ func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
 		Owns(&databasev1alpha1.RestoreMariaDB{})
-	if r.ServiceMonitor {
+	if r.ServiceMonitorReconciler {
 		builder = builder.Owns(&monitoringv1.ServiceMonitor{})
 	}
 	return builder.Complete(r)

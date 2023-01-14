@@ -98,11 +98,11 @@ var _ = BeforeSuite(func() {
 	batchReconciler := batch.NewBatchReconciler(k8sManager.GetClient(), refResolver, builder)
 
 	err = (&MariaDBReconciler{
-		Client:         k8sManager.GetClient(),
-		Scheme:         k8sManager.GetScheme(),
-		Builder:        builder,
-		ConditionReady: conditionReady,
-		ServiceMonitor: true,
+		Client:                   k8sManager.GetClient(),
+		Scheme:                   k8sManager.GetScheme(),
+		Builder:                  builder,
+		ConditionReady:           conditionReady,
+		ServiceMonitorReconciler: true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
