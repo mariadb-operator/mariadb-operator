@@ -12,12 +12,12 @@ COPY api/ api/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
 
-RUN CGO_ENABLED=0 go build -a -o manager main.go
+RUN CGO_ENABLED=0 go build -a -o mariadb-operator main.go
 
 FROM alpine:3.16.0
 
 WORKDIR /
-COPY --from=builder /workspace/manager .
+COPY --from=builder /workspace/mariadb-operator .
 USER 65532:65532
 
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["/mariadb-operator"]

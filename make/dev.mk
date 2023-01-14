@@ -10,6 +10,10 @@ certs: ## Generates development certificates.
 lint: golangci-lint ## Lint.
 	$(GOLANGCI_LINT) run
 
+.PHONY: build
+build: ## Build binary.
+	go build -o bin/mariadb-operator main.go
+
 .PHONY: test
 test: envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
@@ -24,10 +28,14 @@ release: goreleaser ## Test release locally.
 
 ##@ Operator
 
+RUN_FLAGS ?= --service-monitor-reconciler --log-dev
 .PHONY: run
 run: lint ## Run a controller from your host.
-	go run main.go --service-monitor --webhook
+	go run main.go $(RUN_FLAGS)
 
-.PHONY: build
-build: ## Build manager binary.
-	go build -o bin/manager main.go
+##@ Webhook
+
+WEBHOOK_FLAGS ?= --log-dev
+.PHONY: webhook
+webhook: lint ## Run a webhook from your host.
+	go run main.go webhook $(WEBHOOK_FLAGS)
