@@ -49,3 +49,23 @@ Selector labels
 app.kubernetes.io/name: {{ include "mariadb-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Webhook common labels
+*/}}
+{{- define "mariadb-operator-webhook.labels" -}}
+helm.sh/chart: {{ include "mariadb-operator.chart" . }}
+{{ include "mariadb-operator-webhook.selectorLabels" . }}
+{{ if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{ end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Webhook selector labels
+*/}}
+{{- define "mariadb-operator-webhook.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "mariadb-operator.name" . }}-webhook
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

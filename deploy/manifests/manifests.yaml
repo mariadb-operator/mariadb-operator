@@ -6652,6 +6652,21 @@ metadata:
   name: mariadb-controller-manager
   namespace: default
 ---
+# Source: mariadb-operator/templates/webhook-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mariadb-operator-webhook
+  labels:
+    
+    helm.sh/chart: mariadb-operator-0.4.0
+    app.kubernetes.io/name: mariadb-operator-webhook
+    app.kubernetes.io/instance: mariadb-operator
+    
+    app.kubernetes.io/version: "v0.0.6"
+    
+    app.kubernetes.io/managed-by: Helm
+---
 # Source: mariadb-operator/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -6875,36 +6890,6 @@ rules:
 ---
 # Source: mariadb-operator/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: mariadb-metrics-reader
-rules:
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
----
-# Source: mariadb-operator/templates/rbac.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: mariadb-proxy-role
-rules:
-- apiGroups:
-  - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups:
-  - authorization.k8s.io
-  resources:
-  - subjectaccessreviews
-  verbs:
-  - create
----
-# Source: mariadb-operator/templates/rbac.yaml
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: mariadb-manager-rolebinding
@@ -6912,20 +6897,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: mariadb-manager-role
-subjects:
-- kind: ServiceAccount
-  name: mariadb-controller-manager
-  namespace: default
----
-# Source: mariadb-operator/templates/rbac.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: mariadb-proxy-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: mariadb-proxy-role
 subjects:
 - kind: ServiceAccount
   name: mariadb-controller-manager
@@ -6983,173 +6954,238 @@ subjects:
   name: mariadb-controller-manager
   namespace: default
 ---
-# Source: mariadb-operator/templates/rbac.yaml
+# Source: mariadb-operator/templates/servicemonitor.yaml
 apiVersion: v1
 kind: Service
 metadata:
+  name: mariadb-operator-metrics
   labels:
-    control-plane: controller-manager
-  name: controller-manager-metrics-service
-  namespace: default
-spec:
-  ports:
-  - name: https
-    port: 8443
-    protocol: TCP
-    targetPort: https
-  selector:
-    control-plane: controller-manager
----
-# Source: mariadb-operator/templates/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: mariadb-operator-metrics-service
-  labels:
-    helm.sh/chart: mariadb-operator-0.3.0
+    
+    helm.sh/chart: mariadb-operator-0.4.0
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
-    app.kubernetes.io/version: "v0.0.5"
+    app.kubernetes.io/version: "v0.0.6"
     app.kubernetes.io/managed-by: Helm
 spec:
   ports:
-    - name: https
-      port: 8443
+    - port: 8080
       protocol: TCP
-      targetPort: https
+      name: metrics
   selector:
+    
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
 ---
-# Source: mariadb-operator/templates/service.yaml
+# Source: mariadb-operator/templates/webhook-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: mariadb-operator-webhook-service
+  name: mariadb-operator-webhook
+  labels:
+    
+    helm.sh/chart: mariadb-operator-0.4.0
+    app.kubernetes.io/name: mariadb-operator-webhook
+    app.kubernetes.io/instance: mariadb-operator
+    
+    app.kubernetes.io/version: "v0.0.6"
+    
+    app.kubernetes.io/managed-by: Helm
 spec:
   ports:
     - port: 443
       protocol: TCP
-      targetPort: 9443
+      targetPort: 10250
   selector:
-    app.kubernetes.io/name: mariadb-operator
+    
+    app.kubernetes.io/name: mariadb-operator-webhook
+    app.kubernetes.io/instance: mariadb-operator
+---
+# Source: mariadb-operator/templates/webhook-servicemonitor.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-operator-webhook-metrics
+  labels:
+    
+    helm.sh/chart: mariadb-operator-0.4.0
+    app.kubernetes.io/name: mariadb-operator-webhook
+    app.kubernetes.io/instance: mariadb-operator
+    
+    app.kubernetes.io/version: "v0.0.6"
+    
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ports:
+    - port: 8080
+      protocol: TCP
+      name: metrics
+  selector:
+    
+    app.kubernetes.io/name: mariadb-operator-webhook
     app.kubernetes.io/instance: mariadb-operator
 ---
 # Source: mariadb-operator/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mariadb-operator-controller-manager
+  name: mariadb-operator
   labels:
-    helm.sh/chart: mariadb-operator-0.3.0
+    
+    helm.sh/chart: mariadb-operator-0.4.0
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
-    app.kubernetes.io/version: "v0.0.5"
+    app.kubernetes.io/version: "v0.0.6"
     app.kubernetes.io/managed-by: Helm
 spec:
   
   selector:
     matchLabels:
+      
       app.kubernetes.io/name: mariadb-operator
       app.kubernetes.io/instance: mariadb-operator
   template:
     metadata:
-      annotations:
-        kubectl.kubernetes.io/default-container: manager
-        
+      
       labels:
+        
         app.kubernetes.io/name: mariadb-operator
         app.kubernetes.io/instance: mariadb-operator
     spec:
+      serviceAccountName: mariadb-controller-manager
+      terminationGracePeriodSeconds: 10
+      
       
       
       
       containers:
-        - args:
-            - --metrics-bind-address=:8080
-            - --health-probe-bind-address=:8081
-            - --zap-log-level=INFO
-            
-            
-            - --service-monitor
-            
-            
-            - --webhook
-            
-          command:
-            - /manager
-          image: "mmontes11/mariadb-operator:v0.0.5"
+        - image: "mmontes11/mariadb-operator:v0.0.6"
           imagePullPolicy: IfNotPresent
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8081
-            initialDelaySeconds: 15
-            periodSeconds: 20
-          name: manager
+          name: controller
+          args:
+            - --metrics-addr=:8080
+            - --log-level=INFO
+            
+            
+            - --service-monitor-reconciler
+            
           ports:
-            - containerPort: 9443
-              name: webhook-server
+            - containerPort: 8080
               protocol: TCP
+              name: metrics
           env: 
             - name: CLUSTER_NAME
               value: cluster.local
+---
+# Source: mariadb-operator/templates/webhook-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-operator-webhook
+  labels:
+    
+    helm.sh/chart: mariadb-operator-0.4.0
+    app.kubernetes.io/name: mariadb-operator-webhook
+    app.kubernetes.io/instance: mariadb-operator
+    
+    app.kubernetes.io/version: "v0.0.6"
+    
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      
+      app.kubernetes.io/name: mariadb-operator-webhook
+      app.kubernetes.io/instance: mariadb-operator
+  template:
+    metadata:
+      
+      labels:
+        
+        app.kubernetes.io/name: mariadb-operator-webhook
+        app.kubernetes.io/instance: mariadb-operator
+    spec:
+      serviceAccountName: mariadb-operator-webhook
+      
+      
+      
+      
+      hostNetwork: false
+      containers:
+        - image: "mmontes11/mariadb-operator:v0.0.6"
+          imagePullPolicy: IfNotPresent
+          name: webhook
+          args:
+            - webhook
+            - --cert-dir=/tmp/k8s-webhook-server/serving-certs
+            - --port=10250
+            - --metrics-addr=:8080
+            - --health-addr=:8081
+            - --log-level=INFO
+          ports:
+            - containerPort: 10250
+              protocol: TCP
+              name: https
+            - containerPort: 8080
+              protocol: TCP
+              name: metrics
+            - containerPort: 8081
+              protocol: TCP
+              name: health
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
           readinessProbe:
             httpGet:
-              path: /readyz
+              path: /healthz
               port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
           
           
-          
-          volumeMounts:
-            - mountPath: /tmp/k8s-webhook-server/serving-certs
-              name: cert
-              readOnly: true
-          
-        - args:
-            - --secure-listen-address=0.0.0.0:8443
-            - --upstream=http://127.0.0.1:8080/
-            - --logtostderr=true
-            - --v=0
-          image: gcr.io/kubebuilder/kube-rbac-proxy:v0.11.0
-          name: kube-rbac-proxy
-          ports:
-            - containerPort: 8443
-              name: https
-              protocol: TCP
-          
-          
-      
-      serviceAccountName: mariadb-controller-manager
-      terminationGracePeriodSeconds: 10
-      
       volumes:
         - name: cert
           secret:
             defaultMode: 420
-            secretName: mariadb-operator-webhook-server-cert
+            secretName: mariadb-operator-webhook-cert
 ---
-# Source: mariadb-operator/templates/certificate.yaml
+# Source: mariadb-operator/templates/webhook-certificate.yaml
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: mariadb-operator-serving-cert
+  name: mariadb-operator-webhook-cert
+  labels:
+    
+    helm.sh/chart: mariadb-operator-0.4.0
+    app.kubernetes.io/name: mariadb-operator-webhook
+    app.kubernetes.io/instance: mariadb-operator
+    
+    app.kubernetes.io/version: "v0.0.6"
+    
+    app.kubernetes.io/managed-by: Helm
 spec:
   dnsNames:
-    - mariadb-operator-webhook-service.default.svc
-    - mariadb-operator-webhook-service.default.svc.cluster.local
+    - mariadb-operator-webhook.default.svc
+    - mariadb-operator-webhook.default.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: mariadb-operator-selfsigned-issuer
-  secretName: mariadb-operator-webhook-server-cert
+  secretName: mariadb-operator-webhook-cert
 ---
-# Source: mariadb-operator/templates/certificate.yaml
+# Source: mariadb-operator/templates/webhook-certificate.yaml
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: mariadb-operator-selfsigned-issuer
+  labels:
+    
+    helm.sh/chart: mariadb-operator-0.4.0
+    app.kubernetes.io/name: mariadb-operator-webhook
+    app.kubernetes.io/instance: mariadb-operator
+    
+    app.kubernetes.io/version: "v0.0.6"
+    
+    app.kubernetes.io/managed-by: Helm
 spec:
   selfSigned: {}
 ---
@@ -7157,42 +7193,86 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: mariadb-operator-metrics-monitor
+  name: mariadb-operator
   labels:
     
-    helm.sh/chart: mariadb-operator-0.3.0
+    helm.sh/chart: mariadb-operator-0.4.0
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
-    app.kubernetes.io/version: "v0.0.5"
+    app.kubernetes.io/version: "v0.0.6"
     app.kubernetes.io/managed-by: Helm
     
+    
+    release: kube-prometheus-stack
+    
 spec:
-  endpoints:
-    - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-      path: /metrics
-      port: https
-      scheme: https
-      tlsConfig:
-        insecureSkipVerify: true
   selector:
     matchLabels:
       
       app.kubernetes.io/name: mariadb-operator
       app.kubernetes.io/instance: mariadb-operator
+  namespaceSelector:
+    matchNames:
+    - "default"
+  endpoints:
+  - port: metrics
+    interval: 30s
+    scrapeTimeout: 25s
 ---
-# Source: mariadb-operator/templates/webhook.yaml
+# Source: mariadb-operator/templates/webhook-servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mariadb-operator-webhook
+  labels:
+    
+    helm.sh/chart: mariadb-operator-0.4.0
+    app.kubernetes.io/name: mariadb-operator-webhook
+    app.kubernetes.io/instance: mariadb-operator
+    
+    app.kubernetes.io/version: "v0.0.6"
+    
+    app.kubernetes.io/managed-by: Helm
+    
+    
+    release: kube-prometheus-stack
+    
+spec:
+  selector:
+    matchLabels:
+      
+      app.kubernetes.io/name: mariadb-operator-webhook
+      app.kubernetes.io/instance: mariadb-operator
+  namespaceSelector:
+    matchNames:
+    - "default"
+  endpoints:
+  - port: metrics
+    interval: 30s
+    scrapeTimeout: 25s
+---
+# Source: mariadb-operator/templates/webhook-config.yaml
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: mariadb-operator-validating-webhook-configuration
+  name: mariadb-operator-webhook
+  labels:
+    
+    helm.sh/chart: mariadb-operator-0.4.0
+    app.kubernetes.io/name: mariadb-operator-webhook
+    app.kubernetes.io/instance: mariadb-operator
+    
+    app.kubernetes.io/version: "v0.0.6"
+    
+    app.kubernetes.io/managed-by: Helm
   annotations:
-    cert-manager.io/inject-ca-from: default/mariadb-operator-serving-cert
+    cert-manager.io/inject-ca-from: default/mariadb-operator-webhook-cert
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
-        name: mariadb-operator-webhook-service
+        name: mariadb-operator-webhook
         namespace: default
         path: /validate-database-mmontes-io-v1alpha1-backupmariadb
     failurePolicy: Fail
@@ -7212,7 +7292,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: mariadb-operator-webhook-service
+        name: mariadb-operator-webhook
         namespace: default
         path: /validate-database-mmontes-io-v1alpha1-databasemariadb
     failurePolicy: Fail
@@ -7232,7 +7312,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: mariadb-operator-webhook-service
+        name: mariadb-operator-webhook
         namespace: default
         path: /validate-database-mmontes-io-v1alpha1-grantmariadb
     failurePolicy: Fail
@@ -7252,7 +7332,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: mariadb-operator-webhook-service
+        name: mariadb-operator-webhook
         namespace: default
         path: /validate-database-mmontes-io-v1alpha1-mariadb
     failurePolicy: Fail
@@ -7272,7 +7352,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: mariadb-operator-webhook-service
+        name: mariadb-operator-webhook
         namespace: default
         path: /validate-database-mmontes-io-v1alpha1-restoremariadb
     failurePolicy: Fail
@@ -7292,7 +7372,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: mariadb-operator-webhook-service
+        name: mariadb-operator-webhook
         namespace: default
         path: /validate-database-mmontes-io-v1alpha1-usermariadb
     failurePolicy: Fail

@@ -2,15 +2,17 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: {{ include "mariadb-operator.fullname" . }}-validating-webhook-configuration
+  name: {{ include "mariadb-operator.fullname" . }}-webhook
+  labels:
+    {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
   annotations:
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-serving-cert
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
-        name: {{ include "mariadb-operator.fullname" . }}-webhook-service
+        name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-backupmariadb
     failurePolicy: Fail
@@ -30,7 +32,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "mariadb-operator.fullname" . }}-webhook-service
+        name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-databasemariadb
     failurePolicy: Fail
@@ -50,7 +52,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "mariadb-operator.fullname" . }}-webhook-service
+        name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-grantmariadb
     failurePolicy: Fail
@@ -70,7 +72,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "mariadb-operator.fullname" . }}-webhook-service
+        name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-mariadb
     failurePolicy: Fail
@@ -90,7 +92,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "mariadb-operator.fullname" . }}-webhook-service
+        name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-restoremariadb
     failurePolicy: Fail
@@ -110,7 +112,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "mariadb-operator.fullname" . }}-webhook-service
+        name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-usermariadb
     failurePolicy: Fail

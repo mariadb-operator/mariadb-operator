@@ -1,117 +1,68 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "mariadb-operator.fullname" . }}-controller-manager
+  name: {{ include "mariadb-operator.fullname" . }}
   labels:
-    {{- include "mariadb-operator.labels" . | nindent 4 }}
+    {{ include "mariadb-operator.labels" . | nindent 4 }}
 spec:
   {{ if .Values.ha.enabled }}
   replicas: {{ .Values.ha.replicas}}
   {{ end }}
   selector:
     matchLabels:
-      {{- include "mariadb-operator.selectorLabels" . | nindent 6 }}
+      {{ include "mariadb-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{ with .Values.podAnnotations }}
       annotations:
-        kubectl.kubernetes.io/default-container: manager
-        {{ with .Values.podAnnotations }}
         {{ toYaml . | nindent 8 }}
-        {{ end }}
+      {{ end }}
       labels:
-        {{- include "mariadb-operator.selectorLabels" . | nindent 8 }}
+        {{ include "mariadb-operator.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: mariadb-controller-manager
+      terminationGracePeriodSeconds: 10
       {{ with .Values.nodeSelector }}
+      nodeSelector:
         {{ toYaml . | nindent 8 }}
       {{ end }}
       {{ with .Values.tolerations }}
+      tolerations:
         {{ toYaml . | nindent 8 }}
       {{ end }}
       {{ with .Values.affinity }}
+      affinity:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      containers:
-        - args:
-            - --metrics-bind-address=:8080
-            - --health-probe-bind-address=:8081
-            - --zap-log-level={{ .Values.logLevel }}
-            {{ if .Values.ha.enabled }}
-            - --leader-elect
-            - --leader-elect-id={{ .Values.ha.leaseId }}
-            {{ end }}
-            {{ if .Values.metrics.enabled }}
-            - --service-monitor
-            {{ end }}
-            {{ if .Values.webhook.enabled }}
-            - --webhook
-            {{ end }}
-          command:
-            - /manager
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8081
-            initialDelaySeconds: 15
-            periodSeconds: 20
-          name: manager
-          ports:
-            - containerPort: 9443
-              name: webhook-server
-              protocol: TCP
-          env: 
-            - name: CLUSTER_NAME
-              value: {{ .Values.clusterName }}
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 8081
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          {{ with .Values.resources.manager }}
-          resources:
-            {{ toYaml . | nindent 12 }}
-          {{ end }}
-          {{ with .Values.podSecurityContext}}
-          securityContext:
-            {{ toYaml . | nindent 12 }}
-          {{ end }}
-          {{ if .Values.webhook.enabled }}
-          volumeMounts:
-            - mountPath: /tmp/k8s-webhook-server/serving-certs
-              name: cert
-              readOnly: true
-          {{ end }}
-        - args:
-            - --secure-listen-address=0.0.0.0:8443
-            - --upstream=http://127.0.0.1:8080/
-            - --logtostderr=true
-            - --v=0
-          image: gcr.io/kubebuilder/kube-rbac-proxy:v0.11.0
-          name: kube-rbac-proxy
-          ports:
-            - containerPort: 8443
-              name: https
-              protocol: TCP
-          {{ with .Values.resources.rbacProxy }}
-          resources:
-            {{ toYaml . | nindent 12 }}
-          {{ end }}
-          {{ with .Values.podSecurityContext}}
-          securityContext:
-            {{ toYaml . | nindent 12 }}
-          {{ end }}
       {{ with .Values.securityContext }}
       securityContext:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      serviceAccountName: mariadb-controller-manager
-      terminationGracePeriodSeconds: 10
-      {{ if .Values.webhook.enabled }}
-      volumes:
-        - name: cert
-          secret:
-            defaultMode: 420
-            secretName: {{ include "mariadb-operator.fullname" . }}-webhook-server-cert
-      {{ end }}
+      containers:
+        - image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          name: controller
+          args:
+            - --metrics-addr=:8080
+            - --log-level={{ .Values.logLevel }}
+            {{ if .Values.ha.enabled }}
+            - --leader-elect
+            {{ end }}
+            {{ if .Values.metrics.enabled }}
+            - --service-monitor-reconciler
+            {{ end }}
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+              name: metrics
+          env: 
+            - name: CLUSTER_NAME
+              value: {{ .Values.clusterName }}
+          {{ with .Values.resources }}
+          resources:
+            {{ toYaml . | nindent 12 }}
+          {{ end }}
+          {{ with .Values.podSecurityContext}}
+          securityContext:
+            {{ toYaml . | nindent 12 }}
+          {{ end }}
