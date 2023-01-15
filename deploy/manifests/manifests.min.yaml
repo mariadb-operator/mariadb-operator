@@ -6875,36 +6875,6 @@ rules:
 ---
 # Source: mariadb-operator/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: mariadb-metrics-reader
-rules:
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
----
-# Source: mariadb-operator/templates/rbac.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: mariadb-proxy-role
-rules:
-- apiGroups:
-  - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups:
-  - authorization.k8s.io
-  resources:
-  - subjectaccessreviews
-  verbs:
-  - create
----
-# Source: mariadb-operator/templates/rbac.yaml
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: mariadb-manager-rolebinding
@@ -6912,20 +6882,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: mariadb-manager-role
-subjects:
-- kind: ServiceAccount
-  name: mariadb-controller-manager
-  namespace: default
----
-# Source: mariadb-operator/templates/rbac.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: mariadb-proxy-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: mariadb-proxy-role
 subjects:
 - kind: ServiceAccount
   name: mariadb-controller-manager
@@ -6983,114 +6939,52 @@ subjects:
   name: mariadb-controller-manager
   namespace: default
 ---
-# Source: mariadb-operator/templates/rbac.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: controller-manager-metrics-service
-  namespace: default
-spec:
-  ports:
-  - name: https
-    port: 8443
-    protocol: TCP
-    targetPort: https
-  selector:
-    control-plane: controller-manager
----
-# Source: mariadb-operator/templates/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: mariadb-operator-webhook-service
-spec:
-  ports:
-    - port: 443
-      protocol: TCP
-      targetPort: 9443
-  selector:
-    app.kubernetes.io/name: mariadb-operator
-    app.kubernetes.io/instance: mariadb-operator
----
 # Source: mariadb-operator/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mariadb-operator-controller-manager
+  name: mariadb-operator
   labels:
-    helm.sh/chart: mariadb-operator-0.3.0
+    
+    helm.sh/chart: mariadb-operator-0.4.0
     app.kubernetes.io/name: mariadb-operator
     app.kubernetes.io/instance: mariadb-operator
-    app.kubernetes.io/version: "v0.0.5"
+    app.kubernetes.io/version: "v0.0.6"
     app.kubernetes.io/managed-by: Helm
 spec:
   
   selector:
     matchLabels:
+      
       app.kubernetes.io/name: mariadb-operator
       app.kubernetes.io/instance: mariadb-operator
   template:
     metadata:
-      annotations:
-        kubectl.kubernetes.io/default-container: manager
-        
+      
       labels:
+        
         app.kubernetes.io/name: mariadb-operator
         app.kubernetes.io/instance: mariadb-operator
     spec:
+      serviceAccountName: mariadb-controller-manager
+      terminationGracePeriodSeconds: 10
+      
       
       
       
       containers:
-        - args:
-            - --metrics-bind-address=:8080
-            - --health-probe-bind-address=:8081
-            - --zap-log-level=INFO
-            
-            
-            
-          command:
-            - /manager
-          image: "mmontes11/mariadb-operator:v0.0.5"
+        - image: "mmontes11/mariadb-operator:v0.0.6"
           imagePullPolicy: IfNotPresent
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8081
-            initialDelaySeconds: 15
-            periodSeconds: 20
-          name: manager
+          name: controller
+          args:
+            - --metrics-addr=:8080
+            - --log-level=INFO
+            
+            
           ports:
-            - containerPort: 9443
-              name: webhook-server
+            - containerPort: 8080
               protocol: TCP
+              name: metrics
           env: 
             - name: CLUSTER_NAME
               value: cluster.local
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 8081
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          
-          
-          
-        - args:
-            - --secure-listen-address=0.0.0.0:8443
-            - --upstream=http://127.0.0.1:8080/
-            - --logtostderr=true
-            - --v=0
-          image: gcr.io/kubebuilder/kube-rbac-proxy:v0.11.0
-          name: kube-rbac-proxy
-          ports:
-            - containerPort: 8443
-              name: https
-              protocol: TCP
-          
-          
-      
-      serviceAccountName: mariadb-controller-manager
-      terminationGracePeriodSeconds: 10

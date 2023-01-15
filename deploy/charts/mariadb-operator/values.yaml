@@ -4,7 +4,7 @@ fullnameOverride: ""
 image:
   repository: mmontes11/mariadb-operator
   pullPolicy: IfNotPresent
-  # -- The image tag to use. By default the chart appVersion is used
+  # -- Image tag to use. By default the chart appVersion is used
   tag: ""
 
 # -- Controller log level
@@ -28,12 +28,54 @@ metrics:
     # -- Enable controller ServiceMonitor
     enabled: true
     # -- Labels to be added to the controller ServiceMonitor
-    additionalLabels: {}
-    # release: kube-prometheus-stack
+    additionalLabels:
+      release: kube-prometheus-stack
+    # --  Interval to scrape metrics
+    interval: 30s
+    # -- Timeout if metrics can't be retrieved in given time interval
+    scrapeTimeout: 25s
 
 webhook:
   # -- Enable webhooks. Cert-manager must be installed in the cluster
   enabled: false
+  image:
+    repository: mmontes11/mariadb-operator
+    pullPolicy: IfNotPresent
+    # -- Image tag to use. By default the chart appVersion is used
+    tag: ""
+  # -- Path containing the TLS certificate for the webhook server
+  certDir: /tmp/k8s-webhook-server/serving-certs
+  # -- Port to be used by the webhook server
+  port: 10250
+  # -- Expose the webhook server in the host network
+  hostNetwork: false
+  serviceMonitor:
+    # -- Enable webhook ServiceMonitor. Metrics must be enabled
+    enabled: true
+    # -- Labels to be added to the webhook ServiceMonitor
+    additionalLabels:
+      release: kube-prometheus-stack
+    # --  Interval to scrape metrics
+    interval: 30s
+    # -- Timeout if metrics can't be retrieved in given time interval
+    scrapeTimeout: 25s
+  # -- Annotations to add to webhook Pod
+  podAnnotations: {}
+  # -- Security context to add to webhook container
+  podSecurityContext: {}
+  # -- Security context to add to webhook Pod
+  securityContext: {}
+  # -- Resources to add to webhook container
+  resources: {}
+  # requests:
+  #   cpu: 10m
+  #   memory: 32Mi
+  # -- Node selectors to add to controller Pod
+  nodeSelector: {}
+  # -- Tolerations to add to controller Pod
+  tolerations: []
+  # -- Affinity to add to controller Pod
+  affinity: {}
 
 # -- Annotations to add to controller Pod
 podAnnotations: {}
@@ -44,17 +86,11 @@ podSecurityContext: {}
 # -- Security context to add to controller Pod
 securityContext: {}
 
-resources:
-  # -- Resources to add to controller container
-  manager: {}
-  # requests:
-  #   cpu: 10m
-  #   memory: 32Mi
-  # -- Resources to add to rbac proxy container
-  rbacProxy: {}
-  # requests:
-  #   cpu: 10m
-  #   memory: 32Mi
+resources: {}
+# -- Resources to add to controller container
+# requests:
+#   cpu: 10m
+#   memory: 32Mi
 
 # -- Node selectors to add to controller Pod
 nodeSelector: {}
