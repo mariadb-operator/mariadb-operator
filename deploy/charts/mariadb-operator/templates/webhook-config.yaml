@@ -1,12 +1,29 @@
 {{ if .Values.webhook.enabled }}
+{{ $subjectName := include "mariadb-operator-webhook.subjectName" . }}
+{{ $altNames := list }}
+{{ $altNames := append $altNames $subjectName }}
+{{ $altNames := append $altNames (include "mariadb-operator-webhook.altName" . ) }}
+{{ $cert := genSelfSignedCert $subjectName nil $altNames 100000000 }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "mariadb-operator.fullname" . }}-webhook-default-cert
+  labels:
+    {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
+data:
+  tls.crt: {{ $cert.Cert | b64enc }}
+  tls.key: {{ $cert.Key | b64enc }} 
+---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: {{ include "mariadb-operator.fullname" . }}-webhook
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
+  {{ if .Values.webhook.certificate.certManager }}
   annotations:
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
+  {{ end }}
 webhooks:
   - admissionReviewVersions:
       - v1
@@ -15,6 +32,9 @@ webhooks:
         name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-backupmariadb
+      {{ if not .Values.webhook.certificate.certManager }}
+      caBundle: {{ $cert.Cert | b64enc }}
+      {{ end }}
     failurePolicy: Fail
     name: vbackupmariadb.kb.io
     rules:
@@ -35,6 +55,9 @@ webhooks:
         name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-databasemariadb
+      {{ if not .Values.webhook.certificate.certManager }}
+      caBundle: {{ $cert.Cert | b64enc }}
+      {{ end }}
     failurePolicy: Fail
     name: vdatabasemariadb.kb.io
     rules:
@@ -55,6 +78,9 @@ webhooks:
         name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-grantmariadb
+      {{ if not .Values.webhook.certificate.certManager }}
+      caBundle: {{ $cert.Cert | b64enc }}
+      {{ end }}
     failurePolicy: Fail
     name: vgrantmariadb.kb.io
     rules:
@@ -75,6 +101,9 @@ webhooks:
         name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-mariadb
+      {{ if not .Values.webhook.certificate.certManager }}
+      caBundle: {{ $cert.Cert | b64enc }}
+      {{ end }}
     failurePolicy: Fail
     name: vmariadb.kb.io
     rules:
@@ -95,6 +124,9 @@ webhooks:
         name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-restoremariadb
+      {{ if not .Values.webhook.certificate.certManager }}
+      caBundle: {{ $cert.Cert | b64enc }}
+      {{ end }}
     failurePolicy: Fail
     name: vrestoremariadb.kb.io
     rules:
@@ -115,6 +147,9 @@ webhooks:
         name: {{ include "mariadb-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate-database-mmontes-io-v1alpha1-usermariadb
+      {{ if not .Values.webhook.certificate.certManager }}
+      caBundle: {{ $cert.Cert | b64enc }}
+      {{ end }}
     failurePolicy: Fail
     name: vusermariadb.kb.io
     rules:

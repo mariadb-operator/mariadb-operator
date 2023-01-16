@@ -1,4 +1,4 @@
-{{ if .Values.webhook.enabled }}
+{{ if .Values.webhook.certificate.certManager }}
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -16,8 +16,8 @@ metadata:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
 spec:
   dnsNames:
-    - {{ include "mariadb-operator.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
-    - {{ include "mariadb-operator.fullname" . }}-webhook.{{ .Release.Namespace }}.svc.{{ .Values.clusterName }}
+    - {{ include "mariadb-operator-webhook.subjectName" . }}
+    - {{ include "mariadb-operator-webhook.altName" . }}
   issuerRef:
     kind: Issuer
     name: {{ include "mariadb-operator.fullname" . }}-selfsigned-issuer

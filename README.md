@@ -22,7 +22,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 
 ## Bare minimum installation
 
-This installation flavour provides the minimum resources required to run mariadb operator. You can install it using the helm chart:
+This installation flavour provides the minimum resources required to run `mariadb-operator`. You can install it using the helm chart:
 
 ```bash
 helm repo add mariadb-operator https://mmontes11.github.io/mariadb-operator
@@ -39,13 +39,13 @@ kubectl apply -f https://github.com/mmontes11/mariadb-operator/releases/download
 ## Recommended installation
 
 The recommended installation includes the following features to provide a better user experiende and reliability:
-- **Validation WebHooks**: To ensure resource inmutability and provide more accurate validations. To enable this feature, [cert-manager](https://cert-manager.io/docs/installation/) should be installed in the cluster in order to reconcile `Certificate` resources for the webhooks.
-- **Metrics**: To provide observability in both the mariadb controller and the provisioned MariaDB instances. To enable this feature, [prometheus operator](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) should be present in the cluster to reconcile `ServiceMonitor` resources.
+- **Metrics**: Leverage [prometheus operator](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) to scrape metrics from both the mariadb controller and the provisioned `MariaDB` instances.
+- **Webhook certificate renewal**: Automatic webhook certificate issuance and renewal using  [cert-manager](https://cert-manager.io/docs/installation/). By default, a static self-signed certificate is generated.
 
 ```bash
 helm repo add mariadb-operator https://mmontes11.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator \
-  --set webhook.enabled=true --set metrics.enabled=true 
+  --set metrics.enabled=true --set webhook.certificate.certManager=true
 ```
 
 ```bash
