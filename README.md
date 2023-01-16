@@ -39,7 +39,7 @@ kubectl apply -f https://github.com/mmontes11/mariadb-operator/releases/download
 ## Recommended installation
 
 The recommended installation includes the following features to provide a better user experiende and reliability:
-- **Metrics**: Leverage [prometheus operator](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) to scrape metrics from both the mariadb controller and the provisioned `MariaDB` instances.
+- **Metrics**: Leverage [prometheus operator](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) to scrape metrics from both the `mariadb-operator` and the provisioned `MariaDB` instances.
 - **Webhook certificate renewal**: Automatic webhook certificate issuance and renewal using  [cert-manager](https://cert-manager.io/docs/installation/). By default, a static self-signed certificate is generated.
 
 ```bash
