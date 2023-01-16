@@ -69,3 +69,28 @@ Webhook selector labels
 app.kubernetes.io/name: {{ include "mariadb-operator.name" . }}-webhook
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Webhook certificate
+*/}}
+{{- define "mariadb-operator-webhook.certificate" -}}
+{{- if .Values.webhook.certificate.certManager }}
+{{- include "mariadb-operator.fullname" . }}-webhook-cert
+{{- else }}
+{{- include "mariadb-operator.fullname" . }}-webhook-default-cert
+{{- end }}
+{{- end }}
+
+{{/*
+Webhook certificate subject name
+*/}}
+{{- define "mariadb-operator-webhook.subjectName" -}}
+{{- include "mariadb-operator.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
+{{- end }}
+
+{{/*
+Webhook certificate subject alternative name
+*/}}
+{{- define "mariadb-operator-webhook.altName" -}}
+{{- include "mariadb-operator.fullname" . }}-webhook.{{ .Release.Namespace }}.svc.{{ .Values.clusterName }}
+{{- end }}

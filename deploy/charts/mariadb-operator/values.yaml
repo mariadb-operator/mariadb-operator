@@ -28,8 +28,8 @@ metrics:
     # -- Enable controller ServiceMonitor
     enabled: true
     # -- Labels to be added to the controller ServiceMonitor
-    additionalLabels:
-      release: kube-prometheus-stack
+    additionalLabels: {}
+    # release: kube-prometheus-stack
     # --  Interval to scrape metrics
     interval: 30s
     # -- Timeout if metrics can't be retrieved in given time interval
@@ -37,14 +37,17 @@ metrics:
 
 webhook:
   # -- Enable webhooks. Cert-manager must be installed in the cluster
-  enabled: false
+  enabled: true
   image:
     repository: mmontes11/mariadb-operator
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
     tag: ""
-  # -- Path containing the TLS certificate for the webhook server
-  certDir: /tmp/k8s-webhook-server/serving-certs
+  certificate:
+    # -- Use cert-manager to issue and rotate the certificate. If set to false, a default certificate will be used.
+    certManager: false
+    # -- Path used to mount the certificate.
+    path: /tmp/k8s-webhook-server/serving-certs
   # -- Port to be used by the webhook server
   port: 10250
   # -- Expose the webhook server in the host network
@@ -53,8 +56,8 @@ webhook:
     # -- Enable webhook ServiceMonitor. Metrics must be enabled
     enabled: true
     # -- Labels to be added to the webhook ServiceMonitor
-    additionalLabels:
-      release: kube-prometheus-stack
+    additionalLabels: {}
+    # release: kube-prometheus-stack
     # --  Interval to scrape metrics
     interval: 30s
     # -- Timeout if metrics can't be retrieved in given time interval

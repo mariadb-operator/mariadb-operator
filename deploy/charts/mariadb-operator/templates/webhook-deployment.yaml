@@ -42,7 +42,7 @@ spec:
           name: webhook
           args:
             - webhook
-            - --cert-dir={{ .Values.webhook.certDir }}
+            - --cert-dir={{ .Values.webhook.certificate.path }}
             - --port={{ .Values.webhook.port }}
             - --metrics-addr=:8080
             - --health-addr=:8081
@@ -58,7 +58,7 @@ spec:
               protocol: TCP
               name: health
           volumeMounts:
-            - mountPath: {{ .Values.webhook.certDir }}
+            - mountPath: {{ .Values.webhook.certificate.path }}
               name: cert
               readOnly: true
           readinessProbe:
@@ -79,5 +79,5 @@ spec:
         - name: cert
           secret:
             defaultMode: 420
-            secretName: {{ include "mariadb-operator.fullname" . }}-webhook-cert
+            secretName: {{ include "mariadb-operator-webhook.certificate" . }}
 {{ end }}
