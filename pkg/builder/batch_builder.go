@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/backupcmd"
 	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
 	batchv1 "k8s.io/api/batch/v1"
@@ -24,8 +24,8 @@ const (
 	backupPasswordEnv     = "BACKUP_PASSWORD"
 )
 
-func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alpha1.BackupMariaDB,
-	mariaDB *databasev1alpha1.MariaDB) (*batchv1.Job, error) {
+func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
+	mariaDB *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	backupLabels :=
 		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
@@ -52,7 +52,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 
 	volume, err := backup.Volume()
 	if err != nil {
-		return nil, fmt.Errorf("error getting volume from BackupMariaDB: %v", err)
+		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
 
 	opts := []jobOption{
@@ -87,15 +87,15 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *databasev1alp
 	return job, nil
 }
 
-func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *databasev1alpha1.BackupMariaDB,
-	mariaDB *databasev1alpha1.MariaDB) (*batchv1.CronJob, error) {
+func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
+	mariaDB *mariadbv1alpha1.MariaDB) (*batchv1.CronJob, error) {
 	if backup.Spec.Schedule == nil {
 		return nil, errors.New("schedule field is mandatory when building a CronJob")
 	}
 
 	job, err := b.BuildBackupJob(key, backup, mariaDB)
 	if err != nil {
-		return nil, fmt.Errorf("error building BackupMariaDB: %v", err)
+		return nil, fmt.Errorf("error building Backup: %v", err)
 	}
 
 	cronJob := &batchv1.CronJob{
@@ -119,8 +119,8 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *databasev
 	return cronJob, nil
 }
 
-func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1alpha1.RestoreMariaDB,
-	mariaDB *databasev1alpha1.MariaDB) (*batchv1.Job, error) {
+func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1alpha1.Restore,
+	mariaDB *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	restoreLabels :=
 		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
@@ -184,7 +184,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *databasev1a
 	return job, nil
 }
 
-func addJobInitContainersOpt(mariadb *databasev1alpha1.MariaDB, opts []jobOption) []jobOption {
+func addJobInitContainersOpt(mariadb *mariadbv1alpha1.MariaDB, opts []jobOption) []jobOption {
 	initCmd := fmt.Sprintf(
 		"while ! mysqladmin ping -h %s -P %d --protocol tcp --silent; do echo 'waiting for mariadb...'; sleep 1s; done",
 		mariadb.Name,
@@ -289,7 +289,7 @@ func (b *jobBuilder) build() *batchv1.Job {
 	return job
 }
 
-func jobVolumes(volume *corev1.VolumeSource, physical bool, mariadb *databasev1alpha1.MariaDB) []corev1.Volume {
+func jobVolumes(volume *corev1.VolumeSource, physical bool, mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 	volumes := []corev1.Volume{
 		{
 			Name:         batchStorageVolume,
@@ -326,7 +326,7 @@ func jobVolumeMounts(physical bool) []corev1.VolumeMount {
 	return volumeMounts
 }
 
-func jobInitContainers(cmd string, mariadb *databasev1alpha1.MariaDB) []corev1.Container {
+func jobInitContainers(cmd string, mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 	return []corev1.Container{
 		{
 			Name:            "wait-for-mariadb",
@@ -340,7 +340,7 @@ func jobInitContainers(cmd string, mariadb *databasev1alpha1.MariaDB) []corev1.C
 }
 
 func jobContainers(cmd *backupcmd.Command, physical bool, resources *corev1.ResourceRequirements,
-	mariadb *databasev1alpha1.MariaDB) []corev1.Container {
+	mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 
 	container := corev1.Container{
 		Name:            "mariadb",
@@ -357,7 +357,7 @@ func jobContainers(cmd *backupcmd.Command, physical bool, resources *corev1.Reso
 	return []corev1.Container{container}
 }
 
-func jobEnv(mariadb *databasev1alpha1.MariaDB) []v1.EnvVar {
+func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name:  backupUserEnv,

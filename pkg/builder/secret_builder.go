@@ -3,7 +3,7 @@ package builder
 import (
 	"fmt"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +16,7 @@ type SecretOpts struct {
 	Data map[string][]byte
 }
 
-func (b *Builder) BuildSecret(mariadb *databasev1alpha1.MariaDB, opts SecretOpts) (*corev1.Secret, error) {
+func (b *Builder) BuildSecret(mariadb *mariadbv1alpha1.MariaDB, opts SecretOpts) (*corev1.Secret, error) {
 	secretLabels :=
 		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).

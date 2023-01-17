@@ -42,7 +42,7 @@ func (tr *TemplateReconciler) Reconcile(ctx context.Context, resource Resource) 
 	}
 
 	var mariaDbErr *multierror.Error
-	mariaDb, err := tr.RefResolver.GetMariaDB(ctx, resource.MariaDBRef(), resource.Meta().Namespace)
+	mariaDb, err := tr.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.Meta().Namespace)
 	if err != nil {
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 

@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -47,7 +47,7 @@ var (
 )
 
 var testMariaDbKey types.NamespacedName
-var testMariaDb databasev1alpha1.MariaDB
+var testMariaDb mariadbv1alpha1.MariaDB
 var testRootPwdKey types.NamespacedName
 var testRootPwd v1.Secret
 
@@ -71,19 +71,19 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 		Name:      testMariaDbName,
 		Namespace: testNamespace,
 	}
-	testMariaDb = databasev1alpha1.MariaDB{
+	testMariaDb = mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testMariaDbKey.Name,
 			Namespace: testMariaDbKey.Namespace,
 		},
-		Spec: databasev1alpha1.MariaDBSpec{
+		Spec: mariadbv1alpha1.MariaDBSpec{
 			RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: testRootPwdKey.Name,
 				},
 				Key: testRootPwdSecretKey,
 			},
-			Image: databasev1alpha1.Image{
+			Image: mariadbv1alpha1.Image{
 				Repository: "mariadb",
 				Tag:        "10.7.4",
 			},

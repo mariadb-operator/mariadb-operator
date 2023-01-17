@@ -108,19 +108,19 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&RestoreMariaDB{}).SetupWebhookWithManager(mgr)
+	err = (&Restore{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&BackupMariaDB{}).SetupWebhookWithManager(mgr)
+	err = (&Backup{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&DatabaseMariaDB{}).SetupWebhookWithManager(mgr)
+	err = (&Database{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&GrantMariaDB{}).SetupWebhookWithManager(mgr)
+	err = (&Grant{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&UserMariaDB{}).SetupWebhookWithManager(mgr)
+	err = (&User{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = (&MariaDB{}).SetupWebhookWithManager(mgr)

@@ -1,0 +1,11 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: User
+metadata:
+  name: user
+spec:
+  mariaDbRef:
+    name: mariadb
+  passwordSecretKeyRef:
+    name: user
+    key: password
+  maxUserConnections: 20

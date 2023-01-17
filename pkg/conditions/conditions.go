@@ -1,7 +1,7 @@
 package conditions
 
 import (
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,9 +13,9 @@ type Conditioner interface {
 
 func SetReadyCreatedWithMessage(c Conditioner, message string) {
 	c.SetCondition(metav1.Condition{
-		Type:    databasev1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
-		Reason:  databasev1alpha1.ConditionReasonCreated,
+		Reason:  mariadbv1alpha1.ConditionReasonCreated,
 		Message: message,
 	})
 }
@@ -26,9 +26,9 @@ func SetReadyCreated(c Conditioner) {
 
 func SetReadyFailedWithMessage(c Conditioner, message string) {
 	c.SetCondition(metav1.Condition{
-		Type:    databasev1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  databasev1alpha1.ConditionReasonFailed,
+		Reason:  mariadbv1alpha1.ConditionReasonFailed,
 		Message: message,
 	})
 }
@@ -40,9 +40,9 @@ func SetReadyFailed(c Conditioner) {
 func SetCompleteWithCronJob(c Conditioner, cronJob *batchv1.CronJob) {
 	setScheduled := func() {
 		c.SetCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
+			Type:    mariadbv1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonCronJobScheduled,
+			Reason:  mariadbv1alpha1.ConditionReasonCronJobScheduled,
 			Message: "Scheduled",
 		})
 	}
@@ -54,16 +54,16 @@ func SetCompleteWithCronJob(c Conditioner, cronJob *batchv1.CronJob) {
 	if cronJob.Status.LastSuccessfulTime.Before(cronJob.Status.LastScheduleTime) {
 		if len(cronJob.Status.Active) > 0 {
 			c.SetCondition(metav1.Condition{
-				Type:    databasev1alpha1.ConditionTypeComplete,
+				Type:    mariadbv1alpha1.ConditionTypeComplete,
 				Status:  metav1.ConditionFalse,
-				Reason:  databasev1alpha1.ConditionReasonCronJobRunning,
+				Reason:  mariadbv1alpha1.ConditionReasonCronJobRunning,
 				Message: "Running",
 			})
 		} else {
 			c.SetCondition(metav1.Condition{
-				Type:    databasev1alpha1.ConditionTypeComplete,
+				Type:    mariadbv1alpha1.ConditionTypeComplete,
 				Status:  metav1.ConditionFalse,
-				Reason:  databasev1alpha1.ConditionReasonCronJobFailed,
+				Reason:  mariadbv1alpha1.ConditionReasonCronJobFailed,
 				Message: "Failed",
 			})
 		}
@@ -73,9 +73,9 @@ func SetCompleteWithCronJob(c Conditioner, cronJob *batchv1.CronJob) {
 	if cronJob.Status.LastScheduleTime.Equal(cronJob.Status.LastSuccessfulTime) ||
 		cronJob.Status.LastScheduleTime.Before(cronJob.Status.LastSuccessfulTime) {
 		c.SetCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
+			Type:    mariadbv1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionTrue,
-			Reason:  databasev1alpha1.ConditionReasonCronJobSuccess,
+			Reason:  mariadbv1alpha1.ConditionReasonCronJobSuccess,
 			Message: "Success",
 		})
 		return
@@ -88,30 +88,30 @@ func SetCompleteWithJob(c Conditioner, job *batchv1.Job) {
 	switch getJobConditionType(job) {
 	case batchv1.JobFailed:
 		c.SetCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
+			Type:    mariadbv1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionTrue,
-			Reason:  databasev1alpha1.ConditionReasonJobFailed,
+			Reason:  mariadbv1alpha1.ConditionReasonJobFailed,
 			Message: "Failed",
 		})
 	case batchv1.JobComplete:
 		c.SetCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
+			Type:    mariadbv1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionTrue,
-			Reason:  databasev1alpha1.ConditionReasonJobComplete,
+			Reason:  mariadbv1alpha1.ConditionReasonJobComplete,
 			Message: "Success",
 		})
 	case batchv1.JobSuspended:
 		c.SetCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
+			Type:    mariadbv1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonJobSuspended,
+			Reason:  mariadbv1alpha1.ConditionReasonJobSuspended,
 			Message: "Suspended",
 		})
 	default:
 		c.SetCondition(metav1.Condition{
-			Type:    databasev1alpha1.ConditionTypeComplete,
+			Type:    mariadbv1alpha1.ConditionTypeComplete,
 			Status:  metav1.ConditionFalse,
-			Reason:  databasev1alpha1.ConditionReasonJobRunning,
+			Reason:  mariadbv1alpha1.ConditionReasonJobRunning,
 			Message: "Running",
 		})
 	}
@@ -119,9 +119,9 @@ func SetCompleteWithJob(c Conditioner, job *batchv1.Job) {
 
 func SetCompleteFailedWithMessage(c Conditioner, message string) {
 	c.SetCondition(metav1.Condition{
-		Type:    databasev1alpha1.ConditionTypeComplete,
+		Type:    mariadbv1alpha1.ConditionTypeComplete,
 		Status:  metav1.ConditionFalse,
-		Reason:  databasev1alpha1.ConditionReasonFailed,
+		Reason:  mariadbv1alpha1.ConditionReasonFailed,
 		Message: message,
 	})
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 )
 
 type Command struct {
@@ -13,8 +13,8 @@ type Command struct {
 }
 
 type Commander interface {
-	BackupCommand(backup *databasev1alpha1.BackupMariaDB, mariadb *databasev1alpha1.MariaDB) *Command
-	RestoreCommand(mariadb *databasev1alpha1.MariaDB) *Command
+	BackupCommand(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) *Command
+	RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *Command
 }
 
 func execCommand(args []string) *Command {
@@ -24,7 +24,7 @@ func execCommand(args []string) *Command {
 	}
 }
 
-func authFlags(co *CommandOpts, mariadb *databasev1alpha1.MariaDB) string {
+func authFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) string {
 	return fmt.Sprintf(
 		"--user=${%s} --password=${%s} --host=%s --port=%d",
 		co.UserEnv,

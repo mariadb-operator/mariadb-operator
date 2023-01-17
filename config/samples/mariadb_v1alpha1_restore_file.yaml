@@ -1,0 +1,17 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: restore
+metadata:
+  name: restore
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: backup-scheduled
+  fileName: backup.2023-01-02T21:35:01Z.sql
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi

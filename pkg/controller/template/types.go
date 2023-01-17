@@ -3,7 +3,7 @@ package template
 import (
 	"context"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,7 +12,7 @@ import (
 
 type Resource interface {
 	Meta() metav1.ObjectMeta
-	MariaDBRef() *databasev1alpha1.MariaDBRef
+	MariaDBRef() *mariadbv1alpha1.MariaDBRef
 	IsBeingDeleted() bool
 }
 

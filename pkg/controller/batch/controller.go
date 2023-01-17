@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
@@ -30,7 +30,7 @@ func NewBatchReconciler(client client.Client, refResolver *refresolver.RefResolv
 }
 
 func (r *BatchReconciler) Reconcile(ctx context.Context, parentObj client.Object,
-	mariaDB *databasev1alpha1.MariaDB) error {
+	mariaDB *mariadbv1alpha1.MariaDB) error {
 
 	key := types.NamespacedName{
 		Name:      parentObj.GetName(),
@@ -48,7 +48,7 @@ func (r *BatchReconciler) Reconcile(ctx context.Context, parentObj client.Object
 func (r *BatchReconciler) reconcileStorage(ctx context.Context, key types.NamespacedName,
 	parentObj client.Object) error {
 
-	backup, ok := parentObj.(*databasev1alpha1.BackupMariaDB)
+	backup, ok := parentObj.(*mariadbv1alpha1.Backup)
 	if !ok {
 		return nil
 	}
@@ -78,7 +78,7 @@ func (r *BatchReconciler) reconcileStorage(ctx context.Context, key types.Namesp
 }
 
 func (r *BatchReconciler) reconcileBatch(ctx context.Context, key types.NamespacedName,
-	parentObj client.Object, mariaDB *databasev1alpha1.MariaDB) error {
+	parentObj client.Object, mariaDB *mariadbv1alpha1.MariaDB) error {
 
 	desiredBatch, err := r.buildBatch(ctx, key, parentObj, mariaDB)
 	if err != nil {
@@ -96,16 +96,16 @@ func (r *BatchReconciler) reconcileBatch(ctx context.Context, key types.Namespac
 }
 
 func (r *BatchReconciler) buildBatch(ctx context.Context, key types.NamespacedName, parentObj client.Object,
-	mariaDB *databasev1alpha1.MariaDB) (client.Object, error) {
+	mariaDB *mariadbv1alpha1.MariaDB) (client.Object, error) {
 
-	if backup, ok := parentObj.(*databasev1alpha1.BackupMariaDB); ok {
+	if backup, ok := parentObj.(*mariadbv1alpha1.Backup); ok {
 		if backup.Spec.Schedule != nil {
 			return r.builder.BuildBackupCronJob(key, backup, mariaDB)
 		}
 		return r.builder.BuildBackupJob(key, backup, mariaDB)
 	}
 
-	if restore, ok := parentObj.(*databasev1alpha1.RestoreMariaDB); ok {
+	if restore, ok := parentObj.(*mariadbv1alpha1.Restore); ok {
 		return r.builder.BuildRestoreJob(key, restore, mariaDB)
 	}
 

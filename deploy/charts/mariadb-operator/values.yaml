@@ -19,7 +19,7 @@ ha:
   # -- Number of replicas
   replicas: 3
   # -- Lease resource name to be used for leader election
-  leaseId: database.mmontes.io
+  leaseId: mariadb.mmontes.io
 
 metrics:
   # -- Enable prometheus metrics. Prometheus must be installed in the cluster

@@ -11,19 +11,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-database-mmontes-io-v1alpha1-backupmariadb
+      path: /validate-mariadb-mmontes-io-v1alpha1-backup
   failurePolicy: Fail
-  name: vbackupmariadb.kb.io
+  name: vbackup.kb.io
   rules:
   - apiGroups:
-    - database.mmontes.io
+    - mariadb.mmontes.io
     apiVersions:
     - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - backupmariadbs
+    - backups
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -31,19 +31,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-database-mmontes-io-v1alpha1-databasemariadb
+      path: /validate-mariadb-mmontes-io-v1alpha1-database
   failurePolicy: Fail
-  name: vdatabasemariadb.kb.io
+  name: vdatabase.kb.io
   rules:
   - apiGroups:
-    - database.mmontes.io
+    - mariadb.mmontes.io
     apiVersions:
     - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - databasemariadbs
+    - databases
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -51,19 +51,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-database-mmontes-io-v1alpha1-grantmariadb
+      path: /validate-mariadb-mmontes-io-v1alpha1-grant
   failurePolicy: Fail
-  name: vgrantmariadb.kb.io
+  name: vgrant.kb.io
   rules:
   - apiGroups:
-    - database.mmontes.io
+    - mariadb.mmontes.io
     apiVersions:
     - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - grantmariadbs
+    - grants
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -71,12 +71,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-database-mmontes-io-v1alpha1-mariadb
+      path: /validate-mariadb-mmontes-io-v1alpha1-mariadb
   failurePolicy: Fail
   name: vmariadb.kb.io
   rules:
   - apiGroups:
-    - database.mmontes.io
+    - mariadb.mmontes.io
     apiVersions:
     - v1alpha1
     operations:
@@ -91,19 +91,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-database-mmontes-io-v1alpha1-restoremariadb
+      path: /validate-mariadb-mmontes-io-v1alpha1-restore
   failurePolicy: Fail
-  name: vrestoremariadb.kb.io
+  name: vrestore.kb.io
   rules:
   - apiGroups:
-    - database.mmontes.io
+    - mariadb.mmontes.io
     apiVersions:
     - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - restoremariadbs
+    - restores
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -111,17 +111,17 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-database-mmontes-io-v1alpha1-usermariadb
+      path: /validate-mariadb-mmontes-io-v1alpha1-user
   failurePolicy: Fail
-  name: vusermariadb.kb.io
+  name: vuser.kb.io
   rules:
   - apiGroups:
-    - database.mmontes.io
+    - mariadb.mmontes.io
     apiVersions:
     - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - usermariadbs
+    - users
   sideEffects: None

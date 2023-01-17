@@ -3,7 +3,7 @@ package webhook_test
 import (
 	"testing"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/webhook"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,15 +26,15 @@ func TestInmutableWebhook(t *testing.T) {
 	}{
 		{
 			name: "update mutable field",
-			old: &databasev1alpha1.RestoreMariaDB{
+			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
+				Spec: mariadbv1alpha1.RestoreSpec{
 					BackoffLimit: 10,
 				},
 			},
-			new: &databasev1alpha1.RestoreMariaDB{
+			new: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
+				Spec: mariadbv1alpha1.RestoreSpec{
 					BackoffLimit: 20,
 				},
 			},
@@ -42,15 +42,15 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "update inmutable field",
-			old: &databasev1alpha1.RestoreMariaDB{
+			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
+				Spec: mariadbv1alpha1.RestoreSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
 				},
 			},
-			new: &databasev1alpha1.RestoreMariaDB{
+			new: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
+				Spec: mariadbv1alpha1.RestoreSpec{
 					RestartPolicy: corev1.RestartPolicyAlways,
 				},
 			},
@@ -58,10 +58,10 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "update inmutableinit primitive field",
-			old: &databasev1alpha1.RestoreMariaDB{
+			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Physical: func() *bool {
 							p := true
 							return &p
@@ -69,10 +69,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &databasev1alpha1.RestoreMariaDB{
+			new: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Physical: func() *bool {
 							p := false
 							return &p
@@ -84,18 +84,18 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "init inmutableinit primitive field",
-			old: &databasev1alpha1.RestoreMariaDB{
+			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Physical: nil,
 					},
 				},
 			},
-			new: &databasev1alpha1.RestoreMariaDB{
+			new: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Physical: func() *bool {
 							p := false
 							return &p
@@ -107,20 +107,20 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "update inmutableinit object field",
-			old: &databasev1alpha1.RestoreMariaDB{
+			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "foo",
 						},
 					},
 				},
 			},
-			new: &databasev1alpha1.RestoreMariaDB{
+			new: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "bar",
 						},
@@ -131,18 +131,18 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "init inmutableinit object field",
-			old: &databasev1alpha1.RestoreMariaDB{
+			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						BackupRef: nil,
 					},
 				},
 			},
-			new: &databasev1alpha1.RestoreMariaDB{
+			new: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "bar",
 						},
@@ -153,20 +153,20 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "controller init",
-			old: &databasev1alpha1.RestoreMariaDB{
+			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "foo",
 						},
 					},
 				},
 			},
-			new: &databasev1alpha1.RestoreMariaDB{
+			new: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "foo",
 						},
@@ -187,10 +187,10 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "complex update",
-			old: &databasev1alpha1.RestoreMariaDB{
+			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &corev1.VolumeSource{
 							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 								ClaimName: "foo",
@@ -201,7 +201,7 @@ func TestInmutableWebhook(t *testing.T) {
 							return &p
 						}(),
 					},
-					MariaDBRef: databasev1alpha1.MariaDBRef{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "foo",
 						},
@@ -209,10 +209,10 @@ func TestInmutableWebhook(t *testing.T) {
 					BackoffLimit: 10,
 				},
 			},
-			new: &databasev1alpha1.RestoreMariaDB{
+			new: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
-				Spec: databasev1alpha1.RestoreMariaDBSpec{
-					RestoreSource: databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &corev1.VolumeSource{
 							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 								ClaimName: "foo",
@@ -223,7 +223,7 @@ func TestInmutableWebhook(t *testing.T) {
 							return &p
 						}(),
 					},
-					MariaDBRef: databasev1alpha1.MariaDBRef{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "foo",
 						},

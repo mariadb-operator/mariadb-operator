@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,33 +21,33 @@ func New(client client.Client) *RefResolver {
 	}
 }
 
-func (r *RefResolver) GetMariaDB(ctx context.Context, ref *databasev1alpha1.MariaDBRef,
-	namespace string) (*databasev1alpha1.MariaDB, error) {
+func (r *RefResolver) MariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
+	namespace string) (*mariadbv1alpha1.MariaDB, error) {
 	nn := types.NamespacedName{
 		Name:      ref.Name,
 		Namespace: namespace,
 	}
-	var mariadb databasev1alpha1.MariaDB
+	var mariadb mariadbv1alpha1.MariaDB
 	if err := r.client.Get(ctx, nn, &mariadb); err != nil {
 		return nil, err
 	}
 	return &mariadb, nil
 }
 
-func (r *RefResolver) GetBackupMariaDB(ctx context.Context, ref *corev1.LocalObjectReference,
-	namespace string) (*databasev1alpha1.BackupMariaDB, error) {
+func (r *RefResolver) Backup(ctx context.Context, ref *corev1.LocalObjectReference,
+	namespace string) (*mariadbv1alpha1.Backup, error) {
 	nn := types.NamespacedName{
 		Name:      ref.Name,
 		Namespace: namespace,
 	}
-	var backup databasev1alpha1.BackupMariaDB
+	var backup mariadbv1alpha1.Backup
 	if err := r.client.Get(ctx, nn, &backup); err != nil {
 		return nil, err
 	}
 	return &backup, nil
 }
 
-func (r *RefResolver) ReadSecretKeyRef(ctx context.Context, selector corev1.SecretKeySelector,
+func (r *RefResolver) SecretKeyRef(ctx context.Context, selector corev1.SecretKeySelector,
 	namespace string) (string, error) {
 	nn := types.NamespacedName{
 		Name:      selector.Name,

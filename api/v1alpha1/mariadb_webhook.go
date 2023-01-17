@@ -30,7 +30,7 @@ func (r *MariaDB) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 //nolint
-//+kubebuilder:webhook:path=/validate-database-mmontes-io-v1alpha1-mariadb,mutating=false,failurePolicy=fail,sideEffects=None,groups=database.mmontes.io,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=vmariadb.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-mariadb-mmontes-io-v1alpha1-mariadb,mutating=false,failurePolicy=fail,sideEffects=None,groups=mariadb.mmontes.io,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=vmariadb.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &MariaDB{}
 
