@@ -102,9 +102,9 @@ rules:
   - patch
   - watch
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - backupmariadbs
+  - backups
   verbs:
   - create
   - delete
@@ -114,23 +114,23 @@ rules:
   - update
   - watch
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - backupmariadbs/finalizers
+  - backups/finalizers
   verbs:
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - backupmariadbs/status
+  - backups/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - databasemariadbs
+  - databases
   verbs:
   - create
   - delete
@@ -140,23 +140,23 @@ rules:
   - update
   - watch
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - databasemariadbs/finalizers
+  - databases/finalizers
   verbs:
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - databasemariadbs/status
+  - databases/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - grantmariadbs
+  - grants
   verbs:
   - create
   - delete
@@ -166,21 +166,21 @@ rules:
   - update
   - watch
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - grantmariadbs/finalizers
+  - grants/finalizers
   verbs:
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - grantmariadbs/status
+  - grants/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
   - mariadbs
   verbs:
@@ -192,13 +192,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
   - mariadbs/finalizers
   verbs:
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
   - mariadbs/status
   verbs:
@@ -206,9 +206,9 @@ rules:
   - patch
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - restoremariadbs
+  - restores
   verbs:
   - create
   - delete
@@ -218,17 +218,17 @@ rules:
   - update
   - watch
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - restoremariadbs/status
+  - restores/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - usermariadbs
+  - users
   verbs:
   - create
   - delete
@@ -238,15 +238,15 @@ rules:
   - update
   - watch
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - usermariadbs/finalizers
+  - users/finalizers
   verbs:
   - update
 - apiGroups:
-  - database.mmontes.io
+  - mariadb.mmontes.io
   resources:
-  - usermariadbs/status
+  - users/status
   verbs:
   - get
   - patch

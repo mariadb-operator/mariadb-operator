@@ -3,7 +3,7 @@ package controllers
 import (
 	"time"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,24 +37,24 @@ var _ = Describe("MariaDB controller", func() {
 		})
 
 		It("Should bootstrap from backup", func() {
-			By("Creating BackupMariaDB")
+			By("Creating Backup")
 			backupKey := types.NamespacedName{
 				Name:      "backup-mariadb-test",
 				Namespace: testNamespace,
 			}
-			backup := databasev1alpha1.BackupMariaDB{
+			backup := mariadbv1alpha1.Backup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      backupKey.Name,
 					Namespace: backupKey.Namespace,
 				},
-				Spec: databasev1alpha1.BackupMariaDBSpec{
-					MariaDBRef: databasev1alpha1.MariaDBRef{
+				Spec: mariadbv1alpha1.BackupSpec{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,
 					},
-					Storage: databasev1alpha1.BackupStorage{
+					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
 							StorageClassName: &testStorageClassName,
 							Resources: corev1.ResourceRequirements{
@@ -71,7 +71,7 @@ var _ = Describe("MariaDB controller", func() {
 			}
 			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
 
-			By("Expecting BackupMariaDB to be complete eventually")
+			By("Expecting Backup to be complete eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
 					return false
@@ -80,17 +80,17 @@ var _ = Describe("MariaDB controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Creating a MariaDB bootstrapping from backup")
-			backupMariaDbKey := types.NamespacedName{
+			bootstrapMariaDBKey := types.NamespacedName{
 				Name:      "mariadb-backup",
 				Namespace: testNamespace,
 			}
-			backupMariaDb := databasev1alpha1.MariaDB{
+			bootstrapMariaDB := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      backupMariaDbKey.Name,
-					Namespace: backupMariaDbKey.Namespace,
+					Name:      bootstrapMariaDBKey.Name,
+					Namespace: bootstrapMariaDBKey.Namespace,
 				},
-				Spec: databasev1alpha1.MariaDBSpec{
-					BootstrapFrom: &databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: backupKey.Name,
 						},
@@ -101,7 +101,7 @@ var _ = Describe("MariaDB controller", func() {
 						},
 						Key: testRootPwdSecretKey,
 					},
-					Image: databasev1alpha1.Image{
+					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},
@@ -118,23 +118,23 @@ var _ = Describe("MariaDB controller", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &backupMariaDb)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &bootstrapMariaDB)).To(Succeed())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupMariaDbKey, &backupMariaDb); err != nil {
+				if err := k8sClient.Get(testCtx, bootstrapMariaDBKey, &bootstrapMariaDB); err != nil {
 					return false
 				}
-				return backupMariaDb.IsReady()
+				return bootstrapMariaDB.IsReady()
 			}, 60*time.Second, testInterval).Should(BeTrue())
 
-			Expect(k8sClient.Get(testCtx, backupMariaDbKey, &backupMariaDb)).To(Succeed())
-			Expect(backupMariaDb.IsBootstrapped()).To(BeTrue())
+			Expect(k8sClient.Get(testCtx, bootstrapMariaDBKey, &bootstrapMariaDB)).To(Succeed())
+			Expect(bootstrapMariaDB.IsBootstrapped()).To(BeTrue())
 
 			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &backupMariaDb)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &bootstrapMariaDB)).To(Succeed())
 
-			By("Deleting BackupMariaDB")
+			By("Deleting Backup")
 			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
 		})
 	})
@@ -146,13 +146,13 @@ var _ = Describe("MariaDB controller", func() {
 				Name:      "mariadb-test-invalid",
 				Namespace: testNamespace,
 			}
-			invalidMariaDb := databasev1alpha1.MariaDB{
+			invalidMariaDb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      invalidMariaDbKey.Name,
 					Namespace: invalidMariaDbKey.Namespace,
 				},
-				Spec: databasev1alpha1.MariaDBSpec{
-					Image: databasev1alpha1.Image{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},
@@ -190,17 +190,17 @@ var _ = Describe("MariaDB controller", func() {
 	Context("When bootstrapping from a non existing backup", func() {
 		It("Should report not ready status", func() {
 			By("Creating MariaDB")
-			noBackupMariaDbKey := types.NamespacedName{
+			noBackupKey := types.NamespacedName{
 				Name:      "mariadb-test-no-backup",
 				Namespace: testNamespace,
 			}
-			noBackupMariaDb := databasev1alpha1.MariaDB{
+			noBackup := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      noBackupMariaDbKey.Name,
-					Namespace: noBackupMariaDbKey.Namespace,
+					Name:      noBackupKey.Name,
+					Namespace: noBackupKey.Namespace,
 				},
-				Spec: databasev1alpha1.MariaDBSpec{
-					BootstrapFrom: &databasev1alpha1.RestoreSource{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
 						BackupRef: &v1.LocalObjectReference{
 							Name: "foo",
 						},
@@ -211,7 +211,7 @@ var _ = Describe("MariaDB controller", func() {
 						},
 						Key: testRootPwdSecretKey,
 					},
-					Image: databasev1alpha1.Image{
+					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},
@@ -228,21 +228,21 @@ var _ = Describe("MariaDB controller", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &noBackupMariaDb)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &noBackup)).To(Succeed())
 
 			By("Expecting not ready status consistently")
 			Consistently(func() bool {
-				if err := k8sClient.Get(testCtx, noBackupMariaDbKey, &noBackupMariaDb); err != nil {
+				if err := k8sClient.Get(testCtx, noBackupKey, &noBackup); err != nil {
 					return false
 				}
-				return !noBackupMariaDb.IsReady()
+				return !noBackup.IsReady()
 			}, 5*time.Second, testInterval)
 
-			Expect(k8sClient.Get(testCtx, noBackupMariaDbKey, &noBackupMariaDb)).To(Succeed())
-			Expect(noBackupMariaDb.IsBootstrapped()).To(BeFalse())
+			Expect(k8sClient.Get(testCtx, noBackupKey, &noBackup)).To(Succeed())
+			Expect(noBackup.IsBootstrapped()).To(BeFalse())
 
 			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &noBackupMariaDb)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &noBackup)).To(Succeed())
 		})
 	})
 
@@ -253,19 +253,19 @@ var _ = Describe("MariaDB controller", func() {
 				Name:      "test-update-mariadb",
 				Namespace: testNamespace,
 			}
-			updateMariaDB := databasev1alpha1.MariaDB{
+			updateMariaDB := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      updateMariaDBKey.Name,
 					Namespace: updateMariaDBKey.Namespace,
 				},
-				Spec: databasev1alpha1.MariaDBSpec{
+				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testRootPwdKey.Name,
 						},
 						Key: testRootPwdSecretKey,
 					},
-					Image: databasev1alpha1.Image{
+					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
 						Tag:        "10.7.4",
 					},

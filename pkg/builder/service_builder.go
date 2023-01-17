@@ -3,7 +3,7 @@ package builder
 import (
 	"fmt"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -21,7 +21,7 @@ func GetServicePort(svc *corev1.Service) (*v1.ServicePort, error) {
 	return nil, fmt.Errorf("Service port not found")
 }
 
-func (b *Builder) BuildService(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName) (*corev1.Service, error) {
+func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*corev1.Service, error) {
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithApp(appMariaDb).
@@ -46,7 +46,7 @@ func (b *Builder) BuildService(mariadb *databasev1alpha1.MariaDB, key types.Name
 	return svc, nil
 }
 
-func buildPorts(mariadb *databasev1alpha1.MariaDB) []v1.ServicePort {
+func buildPorts(mariadb *mariadbv1alpha1.MariaDB) []v1.ServicePort {
 	ports := []v1.ServicePort{
 		{
 			Name: mariaDbPortName,

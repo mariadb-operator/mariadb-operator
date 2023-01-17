@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (b *Builder) BuildServiceMonitor(mariaDb *databasev1alpha1.MariaDB, key types.NamespacedName) (*monitoringv1.ServiceMonitor, error) {
+func (b *Builder) BuildServiceMonitor(mariaDb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*monitoringv1.ServiceMonitor, error) {
 	if mariaDb.Spec.Metrics == nil {
 		return nil, errors.New("MariaDB instance does not specify Metrics")
 	}

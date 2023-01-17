@@ -3,15 +3,15 @@ package backupcmd
 import (
 	"fmt"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 )
 
 type physicalBackup struct {
 	*CommandOpts
 }
 
-func (l *physicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB,
-	mariadb *databasev1alpha1.MariaDB) *Command {
+func (l *physicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
+	mariadb *mariadbv1alpha1.MariaDB) *Command {
 	cmds := []string{
 		"echo '💾 Taking physical backup'",
 		fmt.Sprintf(
@@ -35,7 +35,7 @@ func (l *physicalBackup) BackupCommand(backup *databasev1alpha1.BackupMariaDB,
 	return execCommand(cmds)
 }
 
-func (l *physicalBackup) RestoreCommand(mariadb *databasev1alpha1.MariaDB) *Command {
+func (l *physicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *Command {
 	restorePath := l.restorePath()
 	cmds := []string{
 		fmt.Sprintf(

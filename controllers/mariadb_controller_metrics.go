@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/sethvargo/go-password/password"
@@ -42,14 +42,14 @@ var (
 )
 
 func (r *MariaDBReconciler) reconcileMetricsCredentials(ctx context.Context,
-	mariaDb *databasev1alpha1.MariaDB) (*corev1.SecretKeySelector, error) {
+	mariaDb *mariadbv1alpha1.MariaDB) (*corev1.SecretKeySelector, error) {
 	user, err := r.createMetricsUser(ctx, mariaDb)
 	if err != nil {
-		return nil, fmt.Errorf("error creating metrics UserMariaDB: %v", err)
+		return nil, fmt.Errorf("error creating metrics User: %v", err)
 	}
 
 	if err := r.createMetricsGrant(ctx, mariaDb, user); err != nil {
-		return nil, fmt.Errorf("error creating metrics GrantMariaDB: %v", err)
+		return nil, fmt.Errorf("error creating metrics Grant: %v", err)
 	}
 
 	dsn, err := r.createMetricsDsn(ctx, mariaDb, user)
@@ -60,9 +60,9 @@ func (r *MariaDBReconciler) reconcileMetricsCredentials(ctx context.Context,
 }
 
 func (r *MariaDBReconciler) createMetricsUser(ctx context.Context,
-	mariadb *databasev1alpha1.MariaDB) (*databasev1alpha1.UserMariaDB, error) {
+	mariadb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.User, error) {
 	key := metricsKey(mariadb)
-	var existingUser databasev1alpha1.UserMariaDB
+	var existingUser mariadbv1alpha1.User
 	if err := r.Get(ctx, key, &existingUser); err == nil {
 		return &existingUser, nil
 	}
@@ -77,22 +77,22 @@ func (r *MariaDBReconciler) createMetricsUser(ctx context.Context,
 		PasswordSecretKeyRef: *secretKeySelector,
 		MaxUserConnections:   3,
 	}
-	user, err := r.Builder.BuildUserMariaDB(mariadb, opts)
+	user, err := r.Builder.BuildUser(mariadb, opts)
 	if err != nil {
-		return nil, fmt.Errorf("error building UserMariaDB: %v", err)
+		return nil, fmt.Errorf("error building User: %v", err)
 	}
 
 	if err := r.Create(ctx, user); err != nil {
-		return nil, fmt.Errorf("error creating UserMariaDB: %v", err)
+		return nil, fmt.Errorf("error creating User: %v", err)
 	}
 	return user, nil
 }
 
-func (r *MariaDBReconciler) createMetricsGrant(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
-	user *databasev1alpha1.UserMariaDB) error {
+func (r *MariaDBReconciler) createMetricsGrant(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	user *mariadbv1alpha1.User) error {
 	key := metricsKey(mariadb)
-	var grantMariaDB databasev1alpha1.GrantMariaDB
-	if err := r.Get(ctx, key, &grantMariaDB); err == nil {
+	var existingGrant mariadbv1alpha1.Grant
+	if err := r.Get(ctx, key, &existingGrant); err == nil {
 		return nil
 	}
 
@@ -104,19 +104,19 @@ func (r *MariaDBReconciler) createMetricsGrant(ctx context.Context, mariadb *dat
 		Username:    user.Name,
 		GrantOption: false,
 	}
-	grant, err := r.Builder.BuildGrantMariaDB(mariadb, opts)
+	grant, err := r.Builder.BuildGrant(mariadb, opts)
 	if err != nil {
-		return fmt.Errorf("error building GrantMariaDB: %v", err)
+		return fmt.Errorf("error building Grant: %v", err)
 	}
 
 	if err := r.Create(ctx, grant); err != nil {
-		return fmt.Errorf("error creating GrantMariaDB: %v", err)
+		return fmt.Errorf("error creating Grant: %v", err)
 	}
 	return nil
 }
 
 func (r *MariaDBReconciler) createMetricsPasswordSecret(ctx context.Context,
-	mariadb *databasev1alpha1.MariaDB) (*corev1.SecretKeySelector, error) {
+	mariadb *mariadbv1alpha1.MariaDB) (*corev1.SecretKeySelector, error) {
 	password, err := password.Generate(16, 4, 0, false, false)
 	if err != nil {
 		return nil, fmt.Errorf("error generating password: %v", err)
@@ -144,8 +144,8 @@ func (r *MariaDBReconciler) createMetricsPasswordSecret(ctx context.Context,
 	}, nil
 }
 
-func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
-	user *databasev1alpha1.UserMariaDB) (*corev1.SecretKeySelector, error) {
+func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	user *mariadbv1alpha1.User) (*corev1.SecretKeySelector, error) {
 	key := dsnKey(mariadb)
 	var existingSecret v1.Secret
 	if err := r.Get(ctx, key, &existingSecret); err == nil {
@@ -157,7 +157,7 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *datab
 		}, nil
 	}
 
-	password, err := r.RefResolver.ReadSecretKeyRef(ctx, user.Spec.PasswordSecretKeyRef, mariadb.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, user.Spec.PasswordSecretKeyRef, mariadb.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting password: %v", err)
 	}
@@ -193,21 +193,21 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *datab
 	}, nil
 }
 
-func metricsKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
+func metricsKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-metrics", mariadb.Name),
 		Namespace: mariadb.Namespace,
 	}
 }
 
-func passwordKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
+func passwordKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-password", metricsKey(mariadb).Name),
 		Namespace: mariadb.Namespace,
 	}
 }
 
-func dsnKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
+func dsnKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-dsn", metricsKey(mariadb).Name),
 		Namespace: mariadb.Namespace,

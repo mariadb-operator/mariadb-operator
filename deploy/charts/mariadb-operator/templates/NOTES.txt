@@ -1,6 +1,4 @@
 mariadb-operator has been successfully deployed! 🦭
 
-To start with, you can create a MariaDB CRD to provision a database instance.
-
-More information about the CRDs and a quickstart guide can be found in our GitHub:
-{{ .Chart.Home }}
+Not sure what to do next? 😅 Check out:
+https://github.com/mmontes11/mariadb-operator#quickstart

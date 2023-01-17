@@ -8,10 +8,10 @@
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 
-- [Provisioning](./config/samples/database_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
-- [Take](./config/samples/database_v1alpha1_backupmariadb.yaml) and [restore](./config/samples/database_v1alpha1_restoremariadb.yaml) backups. [Scheduled](./config/samples/database_v1alpha1_backupmariadb_scheduled.yaml) backups. Backup rotation
-- Bootstrap new instances from [backups](./config/samples/database_v1alpha1_mariadb_from_backup.yaml) and volumes ([PVCs](./config/samples/database_v1alpha1_mariadb_from_pvc.yaml), [NFS](./config/samples/database_v1alpha1_mariadb_from_nfs.yaml) ...)
-- Support for managing [users](./config/samples/database_v1alpha1_usermariadb.yaml), [grants](./config/samples/database_v1alpha1_grantmariadb.yaml) and logical [databases](./config/samples/database_v1alpha1_databasemariadb.yaml)
+- [Provisioning](./config/samples/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
+- [Take](./config/samples/mariadb_v1alpha1_backup.yaml) and [restore](./config/samples/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./config/samples/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
+- Bootstrap new instances from [backups](./config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes ([PVCs](./config/samples/mariadb_v1alpha1_mariadb_from_pvc.yaml), [NFS](./config/samples/mariadb_v1alpha1_mariadb_from_nfs.yaml) ...)
+- Support for managing [users](./config/samples/mariadb_v1alpha1_user.yaml), [grants](./config/samples/mariadb_v1alpha1_grant.yaml) and logical [databases](./config/samples/mariadb_v1alpha1_database.yaml)
 - Prometheus metrics
 - Validation webhooks to provide CRD inmutability
 - Additional printer columns to report the current CRD status
@@ -62,7 +62,7 @@ kubectl apply -f config/samples/config
 
 To start with, let's provision a `MariaDB` server with Prometheus metrics:
 ```bash
-kubectl apply -f config/samples/database_v1alpha1_mariadb.yaml
+kubectl apply -f config/samples/mariadb_v1alpha1_mariadb.yaml
 ```
 ```bash
 kubectl get mariadbs
@@ -83,32 +83,32 @@ mariadb   2m37s
 ```
 Up and running 🚀, we can now create our first logical database and grant access to users:
 ```bash
-kubectl apply -f config/samples/database_v1alpha1_databasemariadb.yaml
-kubectl apply -f config/samples/database_v1alpha1_usermariadb.yaml
-kubectl apply -f config/samples/database_v1alpha1_grantmariadb.yaml
+kubectl apply -f config/samples/mariadb_v1alpha1_database.yaml
+kubectl apply -f config/samples/mariadb_v1alpha1_user.yaml
+kubectl apply -f config/samples/mariadb_v1alpha1_grant.yaml
 ```
 ```bash
-kubectl get databasemariadbs
+kubectl get databases
 NAME        READY   STATUS    CHARSET   COLLATE           AGE
 data-test   True    Created   utf8      utf8_general_ci   22s
 
-kubectl get usermariadbs
+kubectl get users
 NAME              READY   STATUS    MAXCONNS   AGE
 mariadb-metrics   True    Created   3          19m
 user              True    Created   20         29s
 
-kubectl get grantmariadbs
+kubectl get grants
 NAME              READY   STATUS    DATABASE   TABLE   USERNAME          GRANTOPT   AGE
 mariadb-metrics   True    Created   *          *       mariadb-metrics   false      19m
 user              True    Created   *          *       user              true       36s
 ```
 Now that everything seems to be in place, let's take a backup:
 ```bash
-kubectl apply -f config/samples/database_v1alpha1_backupmariadb_scheduled.yaml
+kubectl apply -f config/samples/mariadb_v1alpha1_backup_scheduled.yaml
 ```
 After one minute, the backup should have completed:
 ```bash
-kubectl get backupmariadbs
+kubectl get backups
 NAME               COMPLETE   STATUS    MARIADB   AGE
 backup-scheduled   True       Success   mariadb   15m
 
@@ -122,7 +122,7 @@ backup-scheduled-27782894               1/1           4s         3m2s
 ```
 Last but not least, let's provision a second `MariaDB` instance bootstrapping from the previous backup:
 ```bash
-kubectl apply -f config/samples/database_v1alpha1_mariadb_from_backup.yaml
+kubectl apply -f config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml
 ``` 
 ```bash
 kubectl get mariadbs
@@ -130,7 +130,7 @@ NAME                       READY   STATUS    AGE
 mariadb                    True    Running   39m
 mariadb-from-backup        True    Running   85s
 
-kubectl get restoremariadbs
+kubectl get restores
 NAME                                         COMPLETE   STATUS    MARIADB               AGE
 bootstrap-restore-mariadb-from-backup        True       Success   mariadb-from-backup   72s
 

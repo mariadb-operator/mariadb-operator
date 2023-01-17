@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,7 +27,7 @@ const (
 	metricsPort          = 9104
 )
 
-func GetPVCKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
+func GetPVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-%s-0", stsStorageVolume, mariadb.Name),
 		Namespace: mariadb.Namespace,
@@ -47,7 +47,7 @@ func GetSTSPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
 	return nil, errors.New("StatefulSet port not found")
 }
 
-func (b *Builder) BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.NamespacedName,
+func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
 	dsn *corev1.SecretKeySelector) (*appsv1.StatefulSet, error) {
 	containers, err := buildStsContainers(mariadb, dsn)
 	if err != nil {
@@ -100,7 +100,7 @@ func (b *Builder) BuildStatefulSet(mariadb *databasev1alpha1.MariaDB, key types.
 	return sts, nil
 }
 
-func buildStsContainers(mariadb *databasev1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
+func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
 	var containers []v1.Container
 	probe := &v1.Probe{
 		ProbeHandler: v1.ProbeHandler{
@@ -155,7 +155,7 @@ func buildStsContainers(mariadb *databasev1alpha1.MariaDB, dsn *corev1.SecretKey
 	return containers, nil
 }
 
-func buildStsEnv(mariadb *databasev1alpha1.MariaDB) []v1.EnvVar {
+func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	env := []v1.EnvVar{
 		{
 			Name:  "MYSQL_TCP_PORT",
@@ -199,7 +199,7 @@ func buildStsEnv(mariadb *databasev1alpha1.MariaDB) []v1.EnvVar {
 	return env
 }
 
-func buildMetricsContainer(metrics *databasev1alpha1.Metrics, dsn *corev1.SecretKeySelector) v1.Container {
+func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretKeySelector) v1.Container {
 	container := v1.Container{
 		Name:            metricsContainerName,
 		Image:           metrics.Exporter.Image.String(),

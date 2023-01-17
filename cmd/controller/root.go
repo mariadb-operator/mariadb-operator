@@ -24,7 +24,7 @@ package controller
 import (
 	"os"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/controllers"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
@@ -54,7 +54,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(databasev1alpha1.AddToScheme(scheme))
+	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 }
 
@@ -96,7 +96,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
 		}
-		if err = (&controllers.BackupMariaDBReconciler{
+		if err = (&controllers.BackupReconciler{
 			Client:            mgr.GetClient(),
 			Scheme:            mgr.GetScheme(),
 			Builder:           builder,
@@ -104,10 +104,10 @@ var rootCmd = &cobra.Command{
 			ConditionComplete: conditionComplete,
 			BatchReconciler:   batchReconciler,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "BackupMariaDB")
+			setupLog.Error(err, "unable to create controller", "controller", "Backup")
 			os.Exit(1)
 		}
-		if err = (&controllers.RestoreMariaDBReconciler{
+		if err = (&controllers.RestoreReconciler{
 			Client:            mgr.GetClient(),
 			Scheme:            mgr.GetScheme(),
 			Builder:           builder,
@@ -115,34 +115,34 @@ var rootCmd = &cobra.Command{
 			ConditionComplete: conditionComplete,
 			BatchReconciler:   batchReconciler,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "RestoreMariaDB")
+			setupLog.Error(err, "unable to create controller", "controller", "restore")
 			os.Exit(1)
 		}
-		if err = (&controllers.UserMariaDBReconciler{
+		if err = (&controllers.UserReconciler{
 			Client:         mgr.GetClient(),
 			Scheme:         mgr.GetScheme(),
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "UserMariaDB")
+			setupLog.Error(err, "unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
-		if err = (&controllers.GrantMariaDBReconciler{
+		if err = (&controllers.GrantReconciler{
 			Client:         mgr.GetClient(),
 			Scheme:         mgr.GetScheme(),
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "GrantMariaDB")
+			setupLog.Error(err, "unable to create controller", "controller", "Grant")
 			os.Exit(1)
 		}
-		if err = (&controllers.DatabaseMariaDBReconciler{
+		if err = (&controllers.DatabaseReconciler{
 			Client:         mgr.GetClient(),
 			Scheme:         mgr.GetScheme(),
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "DatabaseMariaDB")
+			setupLog.Error(err, "unable to create controller", "controller", "Database")
 			os.Exit(1)
 		}
 

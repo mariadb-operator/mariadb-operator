@@ -48,7 +48,7 @@ func (r *RestoreSource) IsInit() bool {
 	return r.Volume != nil && r.Physical != nil
 }
 
-func (r *RestoreSource) Init(backup *BackupMariaDB) {
+func (r *RestoreSource) Init(backup *Backup) {
 	if backup.Spec.Storage.Volume != nil {
 		r.Volume = backup.Spec.Storage.Volume
 	}

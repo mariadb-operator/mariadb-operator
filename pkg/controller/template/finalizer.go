@@ -37,7 +37,7 @@ func (tf *TemplateFinalizer) Finalize(ctx context.Context, resource Resource) er
 		return nil
 	}
 
-	mariaDb, err := tf.RefResolver.GetMariaDB(ctx, resource.MariaDBRef(), resource.Meta().Namespace)
+	mariaDb, err := tf.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.Meta().Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			if err := tf.WrappedFinalizer.RemoveFinalizer(ctx); err != nil {

@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
@@ -48,22 +48,22 @@ type MariaDBReconciler struct {
 
 type MariaDBReconcilePhase struct {
 	Resource  string
-	Reconcile func(context.Context, *databasev1alpha1.MariaDB, types.NamespacedName) error
+	Reconcile func(context.Context, *mariadbv1alpha1.MariaDB, types.NamespacedName) error
 }
 
-//+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=database.mmontes.io,resources=mariadbs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups=database.mmontes.io,resources=restoremariadbs,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=restores,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var mariaDb databasev1alpha1.MariaDB
+	var mariaDb mariadbv1alpha1.MariaDB
 	if err := r.Get(ctx, req.NamespacedName, &mariaDb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -85,7 +85,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		})
 	}
 	phases = append(phases, MariaDBReconcilePhase{
-		Resource:  "RestoreMariaDB",
+		Resource:  "restore",
 		Reconcile: r.reconcileBootstrapRestore,
 	})
 
@@ -115,7 +115,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName) error {
 
 	var dsn *corev1.SecretKeySelector
@@ -152,7 +152,7 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *d
 	return nil
 }
 
-func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName) error {
 
 	desiredSvc, err := r.Builder.BuildService(mariadb, key)
@@ -180,7 +180,7 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *datab
 	return nil
 }
 
-func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName) error {
 	if mariadb.Spec.Metrics == nil {
 		return nil
@@ -201,24 +201,24 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 	return nil
 }
 
-func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	mariaDbKey types.NamespacedName) error {
 	if mariadb.Spec.BootstrapFrom == nil || !mariadb.IsReady() || mariadb.IsBootstrapped() {
 		return nil
 	}
 	key := bootstrapRestoreKey(mariadb)
-	var existingRestore databasev1alpha1.RestoreMariaDB
+	var existingRestore mariadbv1alpha1.Restore
 	if err := r.Get(ctx, key, &existingRestore); err == nil {
 		return nil
 	}
 
-	restore, err := r.Builder.BuildRestoreMariaDb(
+	restore, err := r.Builder.BuildRestore(
 		mariadb,
 		mariadb.Spec.BootstrapFrom,
 		key,
 	)
 	if err != nil {
-		return fmt.Errorf("error building RestoreMariaDB: %v", err)
+		return fmt.Errorf("error building restore: %v", err)
 	}
 
 	if err := r.Create(ctx, restore); err != nil {
@@ -227,14 +227,14 @@ func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, maria
 	return nil
 }
 
-func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *databasev1alpha1.MariaDB,
+func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName) (conditions.Patcher, error) {
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, key, &sts); err != nil {
 		return nil, err
 	}
 
-	var restore databasev1alpha1.RestoreMariaDB
+	var restore mariadbv1alpha1.Restore
 	var restoreExists bool
 	if err := r.Get(ctx, bootstrapRestoreKey(mariaDb), &restore); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -249,18 +249,18 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *databasev1alph
 	return func(c conditions.Conditioner) {
 		if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
 			c.SetCondition(metav1.Condition{
-				Type:    databasev1alpha1.ConditionTypeReady,
+				Type:    mariadbv1alpha1.ConditionTypeReady,
 				Status:  metav1.ConditionFalse,
-				Reason:  databasev1alpha1.ConditionReasonStatefulSetNotReady,
+				Reason:  mariadbv1alpha1.ConditionReasonStatefulSetNotReady,
 				Message: "Not ready",
 			})
 			return
 		}
 		if !restoreExists {
 			c.SetCondition(metav1.Condition{
-				Type:    databasev1alpha1.ConditionTypeReady,
+				Type:    mariadbv1alpha1.ConditionTypeReady,
 				Status:  metav1.ConditionTrue,
-				Reason:  databasev1alpha1.ConditionReasonStatefulSetReady,
+				Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
 				Message: "Running",
 			})
 			return
@@ -268,44 +268,44 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *databasev1alph
 
 		if mariaDb.IsBootstrapped() {
 			c.SetCondition(metav1.Condition{
-				Type:    databasev1alpha1.ConditionTypeReady,
+				Type:    mariadbv1alpha1.ConditionTypeReady,
 				Status:  metav1.ConditionTrue,
-				Reason:  databasev1alpha1.ConditionReasonStatefulSetReady,
+				Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
 				Message: "Running",
 			})
 			return
 		}
 		if restore.IsComplete() {
 			c.SetCondition(metav1.Condition{
-				Type:    databasev1alpha1.ConditionTypeReady,
+				Type:    mariadbv1alpha1.ConditionTypeReady,
 				Status:  metav1.ConditionTrue,
-				Reason:  databasev1alpha1.ConditionReasonRestoreComplete,
+				Reason:  mariadbv1alpha1.ConditionReasonRestoreComplete,
 				Message: "Running",
 			})
 			c.SetCondition(metav1.Condition{
-				Type:    databasev1alpha1.ConditionTypeBootstrapped,
+				Type:    mariadbv1alpha1.ConditionTypeBootstrapped,
 				Status:  metav1.ConditionTrue,
-				Reason:  databasev1alpha1.ConditionReasonRestoreComplete,
+				Reason:  mariadbv1alpha1.ConditionReasonRestoreComplete,
 				Message: "Ready",
 			})
 		} else {
 			c.SetCondition(metav1.Condition{
-				Type:    databasev1alpha1.ConditionTypeReady,
+				Type:    mariadbv1alpha1.ConditionTypeReady,
 				Status:  metav1.ConditionFalse,
-				Reason:  databasev1alpha1.ConditionReasonRestoreNotComplete,
+				Reason:  mariadbv1alpha1.ConditionReasonRestoreNotComplete,
 				Message: "Restoring backup",
 			})
 			c.SetCondition(metav1.Condition{
-				Type:    databasev1alpha1.ConditionTypeBootstrapped,
+				Type:    mariadbv1alpha1.ConditionTypeBootstrapped,
 				Status:  metav1.ConditionFalse,
-				Reason:  databasev1alpha1.ConditionReasonRestoreNotComplete,
+				Reason:  mariadbv1alpha1.ConditionReasonRestoreNotComplete,
 				Message: "Not ready",
 			})
 		}
 	}, nil
 }
 
-func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *databasev1alpha1.MariaDB,
+func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	patcher conditions.Patcher) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
@@ -316,7 +316,7 @@ func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *databasev1
 	return nil
 }
 
-func bootstrapRestoreKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName {
+func bootstrapRestoreKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("bootstrap-restore-%s", mariadb.Name),
 		Namespace: mariadb.Namespace,
@@ -326,11 +326,11 @@ func bootstrapRestoreKey(mariadb *databasev1alpha1.MariaDB) types.NamespacedName
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&databasev1alpha1.MariaDB{}).
+		For(&mariadbv1alpha1.MariaDB{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
-		Owns(&databasev1alpha1.RestoreMariaDB{})
+		Owns(&mariadbv1alpha1.Restore{})
 	if r.ServiceMonitorReconciler {
 		builder = builder.Owns(&monitoringv1.ServiceMonitor{})
 	}

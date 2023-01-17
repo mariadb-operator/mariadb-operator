@@ -24,7 +24,7 @@ package controller
 import (
 	"os"
 
-	databasev1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -57,28 +57,28 @@ var webhookCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if err = (&databasev1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&mariadbv1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MariaDB")
 			os.Exit(1)
 		}
-		if err = (&databasev1alpha1.BackupMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BackupMariaDB")
+		if err = (&mariadbv1alpha1.Backup{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Backup")
 			os.Exit(1)
 		}
-		if err = (&databasev1alpha1.RestoreMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "RestoreMariaDB")
+		if err = (&mariadbv1alpha1.Restore{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "restore")
 			os.Exit(1)
 		}
-		if err = (&databasev1alpha1.UserMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "UserMariaDB")
+		if err = (&mariadbv1alpha1.User{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "User")
 			os.Exit(1)
 		}
-		if err = (&databasev1alpha1.GrantMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "GrantMariaDB")
+		if err = (&mariadbv1alpha1.Grant{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Grant")
 			os.Exit(1)
 		}
-		if err = (&databasev1alpha1.DatabaseMariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "DatabaseMariaDB")
+		if err = (&mariadbv1alpha1.Database{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Database")
 			os.Exit(1)
 		}
 
