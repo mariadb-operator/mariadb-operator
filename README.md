@@ -31,10 +31,9 @@ helm install mariadb-operator mariadb-operator/mariadb-operator
 or alternatively just kubectl apply the manifests bundle:
 
 ```bash
-MDB_VERSION=v0.0.5
+MDB_VERSION=v0.0.6
 kubectl apply -f https://github.com/mmontes11/mariadb-operator/releases/download/$MDB_VERSION/manifests.min.yaml
 ```
-
 
 ## Recommended installation
 
@@ -49,7 +48,7 @@ helm install mariadb-operator mariadb-operator/mariadb-operator \
 ```
 
 ```bash
-MDB_VERSION=v0.0.5
+MDB_VERSION=v0.0.6
 kubectl apply -f https://github.com/mmontes11/mariadb-operator/releases/download/$MDB_VERSION/manifests.yaml
 ```
 
