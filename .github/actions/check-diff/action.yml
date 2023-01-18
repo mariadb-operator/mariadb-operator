@@ -12,8 +12,7 @@ runs:
   steps:
     - name: Display changes
       shell: bash
-      run: |
-        git status --porcelain
+      run: git status --porcelain
 
     - name: Error if changes detected
       shell: bash

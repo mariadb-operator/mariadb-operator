@@ -70,6 +70,9 @@ jobs:
             org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
             org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
 
+      - name: Set GORELEASER_PREVIOUS_TAG
+        run: echo "GORELEASER_PREVIOUS_TAG=$(git tag -l "v*" --sort=-version:refname | head -n 2 | tail -n 1)" >> $GITHUB_ENV
+
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
