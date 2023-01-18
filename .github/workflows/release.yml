@@ -70,6 +70,10 @@ jobs:
             org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
             org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
 
+      - id: changelog-tags
+        name: Changelog tags
+        uses: ./.github/actions/changelog-tags
+
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
@@ -77,6 +81,8 @@ jobs:
           args: release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ steps.changelog-tags.outputs.current-tag }}
+          GORELEASER_PREVIOUS_TAG: ${{ steps.changelog-tags.outputs.previous-tag }}
 
       - name: Generate bundles
         run: make bundle

@@ -1,0 +1,26 @@
+name: "Changelog tags"
+
+description: "Gets the tags to be used to build the changelog"
+
+outputs:
+  current_tag:
+    description: "Current tag"
+    value: ${{ steps.current-tag.outputs.tag }}
+  previous_tag:
+    description: "Previous tag"
+    value: ${{ steps.previous-tag.outputs.tag }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Fetch tags
+      shell: bash
+      run: git fetch --force --tags
+
+    - id: current-tag
+      run: echo "tag=$(git tag --list 'v*' | sort | tail -n 2 | tail -n 1)" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - id: previous-tag
+      run: echo "tag=$(git tag --list 'v*' | sort | tail -n 2 | head -n 1)" >> $GITHUB_OUTPUT
+      shell: bash
