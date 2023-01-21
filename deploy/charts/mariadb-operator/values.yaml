@@ -38,6 +38,8 @@ metrics:
 webhook:
   # -- Enable webhooks. Cert-manager must be installed in the cluster
   enabled: true
+  # -- Annotations for webhook configurations.
+  annotations: {}
   image:
     repository: mmontes11/mariadb-operator
     pullPolicy: IfNotPresent
