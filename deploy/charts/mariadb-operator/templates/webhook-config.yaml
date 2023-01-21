@@ -13,12 +13,10 @@ metadata:
   name: {{ $fullName }}-webhook-default-cert
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
+  {{ with .Values.webhook.certificate.default.annotations }}
   annotations:
-    "helm.sh/hook": "pre-install,pre-upgrade"
-    "helm.sh/hook-delete-policy": "before-hook-creation"
-    {{ with .Values.webhook.certificate.default.annotations }}
     {{ toYaml . | nindent 4 }}
-    {{ end}}
+  {{ end}}
 data:
   tls.crt: {{ $cert.Cert | b64enc }}
   tls.key: {{ $cert.Key | b64enc }} 
@@ -29,9 +27,14 @@ metadata:
   name: {{ $fullName }}-webhook
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
-  {{ if .Values.webhook.certificate.certManager }}
+  {{ if or .Values.webhook.annotations .Values.webhook.certificate.certManager }}
   annotations:
+    {{ with .Values.webhook.annotations }}
+    {{ toYaml . | indent 4 }}
+    {{ end }}
+    {{ if .Values.webhook.certificate.certManager }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
+    {{ end }}
   {{ end }}
 webhooks:
   - admissionReviewVersions:
