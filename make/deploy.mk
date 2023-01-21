@@ -119,7 +119,7 @@ CERT_MANAGER_VERSION ?= "v1.9.1"
 install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
 	@./hack/install_cert_manager.sh
 
-##@ Deploy
+##@ Install
 
 ifndef ignore-not-found
   ignore-not-found = false
@@ -129,22 +129,13 @@ endif
 install-crds: cluster-ctx manifests kustomize ## Install CRDs.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
+.PHONY: uninstall-crds
+uninstall-crds: cluster-ctx manifests kustomize ## Uninstall CRDs.
+	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
 .PHONY: install
 install: cluster-ctx install-crds install-prometheus-crds install-samples certs ## Install CRDs and dependencies.
 
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.
 	kubectl apply -f config/samples/config
-
-.PHONY: uninstall
-uninstall: cluster-ctx manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-
-.PHONY: deploy
-deploy: cluster-ctx manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
-
-.PHONY: undeploy
-undeploy: cluster-ctx ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
