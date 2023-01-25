@@ -1,5 +1,5 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
-kind: restore
+kind: Restore
 metadata:
   name: restore
 spec:

@@ -1,7 +1,7 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: Grant
 metadata:
-  name: user
+  name: grant
 spec:
   mariaDbRef:
     name: mariadb
