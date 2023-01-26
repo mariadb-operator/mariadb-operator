@@ -105,6 +105,6 @@ jobs:
         run: make generate
 
       - name: Check diff
-        uses: ./.github/actions/check-diff
+        uses: mmontes11/diff-porcelain@v0.0.1
         with:
           message: Generated artifacts are not up to date. Run 'make generate' and commit the changes.
