@@ -8,6 +8,10 @@
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 
+<p align="center">
+<img src="https://mmontes11.github.io/mariadb-operator/assets/mariadb-operator.png" alt="mariadb" width="250"/>
+</p>
+
 - [Provisioning](./config/samples/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
 - [Take](./config/samples/mariadb_v1alpha1_backup.yaml) and [restore](./config/samples/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./config/samples/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
 - Bootstrap new instances from [backups](./config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes ([PVCs](./config/samples/mariadb_v1alpha1_mariadb_from_pvc.yaml), [NFS](./config/samples/mariadb_v1alpha1_mariadb_from_nfs.yaml) ...)
