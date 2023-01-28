@@ -3,6 +3,27 @@ entries:
   mariadb-operator:
   - apiVersion: v2
     appVersion: v0.0.6
+    created: "2023-01-28T16:10:09.862949594Z"
+    description: Run and operate MariaDB in a cloud native way
+    digest: f58f7a241018c8c5b9b3d8e24ed332f897e26165790a7f7062c9a55dcf5ca6fb
+    home: https://github.com/mmontes11/mariadb-operator
+    icon: https://mmontes11.github.io/mariadb-operator/assets/mariadb.png
+    keywords:
+    - mariadb
+    - operator
+    - mariadb-operator
+    - database
+    kubeVersion: '>= 1.16.0-0'
+    maintainers:
+    - email: martin11lrx@gmail.com
+      name: mmontes11
+    name: mariadb-operator
+    type: application
+    urls:
+    - https://github.com/mmontes11/mariadb-operator/releases/download/helm-chart-0.6.3/mariadb-operator-0.6.3.tgz
+    version: 0.6.3
+  - apiVersion: v2
+    appVersion: v0.0.6
     created: "2023-01-21T18:53:43.933341095Z"
     description: Run and operate MariaDB in a cloud native way
     digest: b0d257aa37eeb5fdaca68155295e6efcfcc8a04a7df5d0c9c19c459f7c7fd5be
@@ -166,4 +187,4 @@ entries:
     urls:
     - https://github.com/mmontes11/mariadb-operator/releases/download/helm-chart-0.2.0/mariadb-operator-0.2.0.tgz
     version: 0.2.0
-generated: "2023-01-21T18:53:43.933370696Z"
+generated: "2023-01-28T16:10:09.862987595Z"
