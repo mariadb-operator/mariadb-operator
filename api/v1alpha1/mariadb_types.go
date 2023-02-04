@@ -32,10 +32,8 @@ type Exporter struct {
 type ServiceMonitor struct {
 	// +kubebuilder:validation:Required
 	PrometheusRelease string `json:"prometheusRelease"`
-	// +kubebuilder:default='10s'
-	Interval string `json:"interval,omitempty"`
-	// +kubebuilder:default='10s'
-	ScrapeTimeout string `json:"scrapeTimeout,omitempty"`
+	Interval          string `json:"interval,omitempty"`
+	ScrapeTimeout     string `json:"scrapeTimeout,omitempty"`
 }
 
 type Metrics struct {
