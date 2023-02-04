@@ -4047,12 +4047,10 @@ spec:
                   serviceMonitor:
                     properties:
                       interval:
-                        default: '''10s'''
                         type: string
                       prometheusRelease:
                         type: string
                       scrapeTimeout:
-                        default: '''10s'''
                         type: string
                     required:
                     - prometheusRelease
