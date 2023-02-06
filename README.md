@@ -1,16 +1,19 @@
+<p align="center">
+<img src="https://mmontes11.github.io/mariadb-operator/assets/mariadb-operator.png" alt="mariadb" width="250"/>
+</p>
+
 # 🦭 mariadb-operator
+
 [![CI](https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml)
 [![Helm](https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml)
 [![Release](https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mmontes11/mariadb-operator)](https://goreportcard.com/report/github.com/mmontes11/mariadb-operator)
 [![Go Reference](https://pkg.go.dev/badge/github.com/mmontes11/mariadb-operator.svg)](https://pkg.go.dev/github.com/mmontes11/mariadb-operator)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mariadb-operator)](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator)
+[![Operator Hub](https://img.shields.io/badge/Operator%20Hub-mariadb--operator-red)](https://operatorhub.io/operator/mariadb-operator)
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 
-<p align="center">
-<img src="https://mmontes11.github.io/mariadb-operator/assets/mariadb-operator.png" alt="mariadb" width="250"/>
-</p>
 
 - [Provisioning](./config/samples/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
 - [Take](./config/samples/mariadb_v1alpha1_backup.yaml) and [restore](./config/samples/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./config/samples/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
@@ -22,21 +25,15 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [GitOps](https://opengitops.dev/) friendly
 - Multi-arch [docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
-- Install using [helm](./deploy/charts/mariadb-operator) or just [kubectl](./deploy/manifests)
+- Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator) 
 
 ## Bare minimum installation
 
-This installation flavour provides the minimum resources required to run `mariadb-operator`. You can install it using the helm chart:
+This installation flavour provides the minimum resources required to run `mariadb-operator` in your cluster.
 
 ```bash
 helm repo add mariadb-operator https://mmontes11.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
-```
-or alternatively just kubectl apply the manifests bundle:
-
-```bash
-MDB_VERSION=v0.0.6
-kubectl apply -f https://github.com/mmontes11/mariadb-operator/releases/download/$MDB_VERSION/manifests.min.yaml
 ```
 
 ## Recommended installation
@@ -51,10 +48,9 @@ helm install mariadb-operator mariadb-operator/mariadb-operator \
   --set metrics.enabled=true --set webhook.certificate.certManager=true
 ```
 
-```bash
-MDB_VERSION=v0.0.6
-kubectl apply -f https://github.com/mmontes11/mariadb-operator/releases/download/$MDB_VERSION/manifests.yaml
-```
+## Openshift
+
+The Openshift installation is managed separately in the [mariadb-operator-helm](https://github.com/mmontes11/mariadb-operator-helm) repository, which contains a [helm based operator](https://sdk.operatorframework.io/docs/building-operators/helm/) that allows you to install `mariadb-operator` via [OLM](https://olm.operatorframework.io/docs/).
 
 ## Quickstart
 
