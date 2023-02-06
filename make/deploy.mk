@@ -73,7 +73,7 @@ helm: helm-crds helm-rbac helm-docs ## Generate manifests for Helm chart.
 
 .PHONY: helm-chart-version
 helm-chart-version: yq ## Get helm chart version.
-	@cat $(HELM_DIR)/Chart.yaml | yq e ".version"
+	@cat $(HELM_DIR)/Chart.yaml | $(YQ) e ".version"
 
 ##@ Bundle
 
