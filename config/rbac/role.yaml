@@ -178,6 +178,12 @@ rules:
 - apiGroups:
   - mariadb.mmontes.io
   resources:
+  - restores/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
   - restores/status
   verbs:
   - get
