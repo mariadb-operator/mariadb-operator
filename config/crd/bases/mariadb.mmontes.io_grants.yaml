@@ -13,7 +13,7 @@ spec:
     listKind: GrantList
     plural: grants
     shortNames:
-    - grt
+    - gmdb
     singular: grant
   scope: Namespaced
   versions:

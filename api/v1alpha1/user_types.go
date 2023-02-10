@@ -45,7 +45,7 @@ func (u *UserStatus) SetCondition(condition metav1.Condition) {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:shortName=usr
+// +kubebuilder:resource:shortName=umdb
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"

@@ -13,7 +13,7 @@ spec:
     listKind: DatabaseList
     plural: databases
     shortNames:
-    - db
+    - dmdb
     singular: database
   scope: Namespaced
   versions:
