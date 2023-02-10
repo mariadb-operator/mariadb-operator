@@ -2,19 +2,22 @@
 <img src="https://mmontes11.github.io/mariadb-operator/assets/mariadb-operator.png" alt="mariadb" width="250"/>
 </p>
 
+<p align="center">
+<a href="https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml"><img src="https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml"><img src="https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml/badge.svg" alt="Helm"></a>
+<a href="https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml"><img src="https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+<a href="https://goreportcard.com/report/github.com/mmontes11/mariadb-operator"><img src="https://goreportcard.com/badge/github.com/mmontes11/mariadb-operator" alt="Go Report Card"></a>
+<a href="https://pkg.go.dev/github.com/mmontes11/mariadb-operator"><img src="https://pkg.go.dev/badge/github.com/mmontes11/mariadb-operator.svg" alt="Go Reference"></a>
+</p>
+
+<p align="center">
+<a href="https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mariadb-operator" alt="Artifact Hub"></a>
+<a href="https://operatorhub.io/operator/mariadb-operator"><img src="https://img.shields.io/badge/Operator%20Hub-mariadb--operator-red" alt="Operator Hub"></a>
+</p>
+
 # 🦭 mariadb-operator
 
-[![CI](https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml)
-[![Helm](https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml)
-[![Release](https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml/badge.svg)](https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mmontes11/mariadb-operator)](https://goreportcard.com/report/github.com/mmontes11/mariadb-operator)
-[![Go Reference](https://pkg.go.dev/badge/github.com/mmontes11/mariadb-operator.svg)](https://pkg.go.dev/github.com/mmontes11/mariadb-operator)
-
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mariadb-operator)](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator)
-[![Operator Hub](https://img.shields.io/badge/Operator%20Hub-mariadb--operator-red)](https://operatorhub.io/operator/mariadb-operator)
-
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-
 
 - [Provisioning](./config/samples/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
 - [Take](./config/samples/mariadb_v1alpha1_backup.yaml) and [restore](./config/samples/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./config/samples/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
