@@ -13,7 +13,7 @@ spec:
     listKind: UserList
     plural: users
     shortNames:
-    - usr
+    - umdb
     singular: user
   scope: Namespaced
   versions:

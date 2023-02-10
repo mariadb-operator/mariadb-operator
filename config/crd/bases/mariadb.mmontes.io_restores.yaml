@@ -13,7 +13,7 @@ spec:
     listKind: RestoreList
     plural: restores
     shortNames:
-    - rest
+    - rmdb
     singular: restore
   scope: Namespaced
   versions:

@@ -13,7 +13,7 @@ spec:
     listKind: BackupList
     plural: backups
     shortNames:
-    - back
+    - bmdb
     singular: backup
   scope: Namespaced
   versions:
