@@ -66,6 +66,29 @@ webhooks:
       service:
         name: {{ $fullName }}-webhook
         namespace: {{ .Release.Namespace }}
+        path: /validate-mariadb-mmontes-io-v1alpha1-connection
+      {{ if not .Values.webhook.certificate.certManager }}
+      caBundle: {{ $ca.Cert | b64enc }}
+      {{ end }}
+    failurePolicy: Fail
+    name: vconnection.kb.io
+    rules:
+      - apiGroups:
+          - mariadb.mmontes.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - connections
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: {{ $fullName }}-webhook
+        namespace: {{ .Release.Namespace }}
         path: /validate-mariadb-mmontes-io-v1alpha1-database
       {{ if not .Values.webhook.certificate.certManager }}
       caBundle: {{ $ca.Cert | b64enc }}

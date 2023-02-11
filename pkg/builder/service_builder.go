@@ -24,8 +24,7 @@ func GetServicePort(svc *corev1.Service) (*v1.ServicePort, error) {
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*corev1.Service, error) {
 	serviceLabels :=
 		labels.NewLabelsBuilder().
-			WithApp(appMariaDb).
-			WithInstance(mariadb.Name).
+			WithMariaDB(mariadb).
 			WithComponent(componentDatabase).
 			Build()
 	svc := &corev1.Service{

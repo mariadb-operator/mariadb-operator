@@ -6,6 +6,7 @@ import (
 
 	"github.com/mmontes11/mariadb-operator/pkg/webhook"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -30,9 +31,25 @@ func (i *Image) String() string {
 type MariaDBRef struct {
 	// +kubebuilder:validation:Required
 	corev1.LocalObjectReference `json:",inline"`
-
 	// +kubebuilder:default=true
 	WaitForIt bool `json:"waitForIt,omitempty"`
+}
+
+type SecretTemplate struct {
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Key         *string           `json:"key,omitempty"`
+}
+
+type HealthCheck struct {
+	Interval      *metav1.Duration `json:"interval,omitempty"`
+	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
+}
+
+type ConnectionTemplate struct {
+	SecretName     *string         `json:"secretName,omitempty" webhook:"inmutableinit"`
+	SecretTemplate *SecretTemplate `json:"secretTemplate,omitempty" webhook:"inmutableinit"`
+	HealthCheck    *HealthCheck    `json:"healthCheck,omitempty"`
 }
 
 type RestoreSource struct {

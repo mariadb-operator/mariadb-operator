@@ -51,6 +51,7 @@ func (d *DatabaseStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="CharSet",type="string",JSONPath=".spec.characterSet"
 // +kubebuilder:printcolumn:name="Collate",type="string",JSONPath=".spec.collate"
+// +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Database is the Schema for the databases API

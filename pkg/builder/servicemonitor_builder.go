@@ -18,14 +18,12 @@ func (b *Builder) BuildServiceMonitor(mariaDb *mariadbv1alpha1.MariaDB, key type
 	}
 	serviceMonitorLabels :=
 		labels.NewLabelsBuilder().
-			WithApp(appMariaDb).
-			WithInstance(mariaDb.Name).
+			WithMariaDB(mariaDb).
 			WithRelease(mariaDb.Spec.Metrics.ServiceMonitor.PrometheusRelease).
 			Build()
 	serviceLabels :=
 		labels.NewLabelsBuilder().
-			WithApp(appMariaDb).
-			WithInstance(mariaDb.Name).
+			WithMariaDB(mariaDb).
 			Build()
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{

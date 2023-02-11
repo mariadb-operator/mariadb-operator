@@ -17,13 +17,13 @@ func NewRootClientWithCrd(ctx context.Context, crd *mariadbv1alpha1.MariaDB, ref
 	opts := Opts{
 		Username: "root",
 		Password: password,
-		Host:     GetDNS(crd),
+		Host:     FQDN(crd),
 		Port:     crd.Spec.Port,
 	}
 	return NewClient(opts)
 }
 
-func GetDNS(crd *mariadbv1alpha1.MariaDB) string {
+func FQDN(crd *mariadbv1alpha1.MariaDB) string {
 	clusterName := os.Getenv("CLUSTER_NAME")
 	if clusterName == "" {
 		clusterName = "cluster.local"

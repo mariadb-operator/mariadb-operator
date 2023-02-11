@@ -7,12 +7,6 @@ spec:
     name: mariadb
     key: root-password
 
-  database: mariadb
-  username: mariadb
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
-
   image:
     repository: mariadb
     tag: "10.7.4"
@@ -28,18 +22,20 @@ spec:
     accessModes:
       - ReadWriteOnce
 
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 512Mi
-
-  env:
-    - name: TZ
-      value: SYSTEM
-
-  envFrom:
-    - configMapRef:
-        name: mariadb
+  metrics:
+    exporter:
+      image:
+        repository: prom/mysqld-exporter
+        tag: "v0.14.0"
+        pullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi
+    serviceMonitor:
+      prometheusRelease: kube-prometheus-stack
+      interval: 10s
+      scrapeTimeout: 10s

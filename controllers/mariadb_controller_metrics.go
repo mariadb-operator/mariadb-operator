@@ -22,6 +22,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
+	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
@@ -127,8 +128,9 @@ func (r *MariaDBReconciler) createMetricsPasswordSecret(ctx context.Context,
 		Data: map[string][]byte{
 			passwordSecretKey: []byte(password),
 		},
+		Labels: labels.NewLabelsBuilder().WithMariaDB(mariadb).Build(),
 	}
-	secret, err := r.Builder.BuildSecret(mariadb, opts)
+	secret, err := r.Builder.BuildSecret(opts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building password Secret: %v", err)
 	}
@@ -164,7 +166,7 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *maria
 	mdbOpts := mariadbclient.Opts{
 		Username: user.Name,
 		Password: password,
-		Host:     mariadbclient.GetDNS(mariadb),
+		Host:     mariadbclient.FQDN(mariadb),
 		Port:     mariadb.Spec.Port,
 	}
 	dsn, err := mariadbclient.BuildDSN(mdbOpts)
@@ -177,8 +179,9 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *maria
 		Data: map[string][]byte{
 			dsnSecretKey: []byte(dsn),
 		},
+		Labels: labels.NewLabelsBuilder().WithMariaDB(mariadb).Build(),
 	}
-	secret, err := r.Builder.BuildSecret(mariadb, secretOpts)
+	secret, err := r.Builder.BuildSecret(secretOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building DNS Secret: %v", err)
 	}

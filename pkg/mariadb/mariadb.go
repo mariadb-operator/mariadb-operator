@@ -27,15 +27,10 @@ func NewClient(opts Opts) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error building DNS: %v", err)
 	}
-
-	db, err := sql.Open("mysql", dsn)
+	db, err := Connect(dsn)
 	if err != nil {
 		return nil, err
 	}
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-
 	return &Client{
 		db: db,
 	}, nil
@@ -58,6 +53,17 @@ func BuildDSN(opts Opts) (string, error) {
 	}
 
 	return config.FormatDSN(), nil
+}
+
+func Connect(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
 func (c *Client) Close() error {

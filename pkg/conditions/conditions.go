@@ -11,6 +11,24 @@ type Conditioner interface {
 	SetCondition(condition metav1.Condition)
 }
 
+func SetReadyHealthty(c Conditioner) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionTrue,
+		Reason:  mariadbv1alpha1.ConditionReasonHealthy,
+		Message: "Healthy",
+	})
+}
+
+func SetReadyUnhealthtyWithError(c Conditioner, err error) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonHealthy,
+		Message: err.Error(),
+	})
+}
+
 func SetReadyCreatedWithMessage(c Conditioner, message string) {
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReady,

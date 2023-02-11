@@ -145,6 +145,16 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "Database")
 			os.Exit(1)
 		}
+		if err = (&controllers.ConnectionReconciler{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			Builder:        builder,
+			RefResolver:    refResolver,
+			ConditionReady: conditionReady,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Connection")
+			os.Exit(1)
+		}
 
 		setupLog.Info("starting manager")
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

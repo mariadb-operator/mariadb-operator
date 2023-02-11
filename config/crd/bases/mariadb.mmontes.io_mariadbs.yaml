@@ -1598,6 +1598,31 @@ spec:
                         type: object
                     type: object
                 type: object
+              connection:
+                properties:
+                  healthCheck:
+                    properties:
+                      interval:
+                        type: string
+                      retryInterval:
+                        type: string
+                    type: object
+                  secretName:
+                    type: string
+                  secretTemplate:
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      key:
+                        type: string
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                    type: object
+                type: object
               database:
                 type: string
               env:

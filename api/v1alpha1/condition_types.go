@@ -23,6 +23,9 @@ const (
 	ConditionReasonCronJobRunning   string = "CronJobRunning"
 	ConditionReasonCronJobSuccess   string = "CronJobSucess"
 
+	ConditionReasonConnectionFailed string = "ConnectionFailed"
+
 	ConditionReasonCreated string = "Created"
+	ConditionReasonHealthy string = "Healthy"
 	ConditionReasonFailed  string = "Failed"
 )

@@ -34,6 +34,15 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting to create a Service")
 			var svc corev1.Service
 			Expect(k8sClient.Get(testCtx, testMariaDbKey, &svc)).To(Succeed())
+
+			By("Expecting Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, connectionKey(&testMariaDb), &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
 		})
 
 		It("Should bootstrap from backup", func() {
@@ -97,9 +106,9 @@ var _ = Describe("MariaDB controller", func() {
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testRootPwdKey.Name,
+							Name: testPwdKey.Name,
 						},
-						Key: testRootPwdSecretKey,
+						Key: testPwdSecretKey,
 					},
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
@@ -207,9 +216,9 @@ var _ = Describe("MariaDB controller", func() {
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testRootPwdKey.Name,
+							Name: testPwdKey.Name,
 						},
-						Key: testRootPwdSecretKey,
+						Key: testPwdSecretKey,
 					},
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
@@ -261,9 +270,9 @@ var _ = Describe("MariaDB controller", func() {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testRootPwdKey.Name,
+							Name: testPwdKey.Name,
 						},
-						Key: testRootPwdSecretKey,
+						Key: testPwdSecretKey,
 					},
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",

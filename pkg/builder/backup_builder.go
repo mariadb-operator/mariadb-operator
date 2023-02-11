@@ -15,8 +15,7 @@ func (b *Builder) BuildRestore(mariaDb *mariadbv1alpha1.MariaDB, restoreSource *
 	key types.NamespacedName) (*mariadbv1alpha1.Restore, error) {
 	restoreLabels :=
 		labels.NewLabelsBuilder().
-			WithApp(appMariaDb).
-			WithInstance(mariaDb.Name).
+			WithMariaDB(mariaDb).
 			Build()
 	restore := &mariadbv1alpha1.Restore{
 		ObjectMeta: metav1.ObjectMeta{

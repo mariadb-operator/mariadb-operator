@@ -39,33 +39,38 @@ const (
 )
 
 var (
-	testNamespace         = "default"
-	testStorageClassName  = "standard"
-	testMariaDbName       = "mariadb-test"
-	testRootPwdSecretName = "root-test"
-	testRootPwdSecretKey  = "passsword"
+	testNamespace        = "default"
+	testStorageClassName = "standard"
+	testMariaDbName      = "mariadb-test"
+
+	testUser           = "test"
+	testPwdSecretKey   = "passsword"
+	testPwdSecretName  = "password-test"
+	testDatabase       = "test"
+	testConnSecretName = "test-conn"
+	testConnSecretKey  = "dsn"
 )
 
 var testMariaDbKey types.NamespacedName
 var testMariaDb mariadbv1alpha1.MariaDB
-var testRootPwdKey types.NamespacedName
-var testRootPwd v1.Secret
+var testPwdKey types.NamespacedName
+var testPwd v1.Secret
 
 func createTestData(ctx context.Context, k8sClient client.Client) {
-	testRootPwdKey = types.NamespacedName{
-		Name:      testRootPwdSecretName,
+	testPwdKey = types.NamespacedName{
+		Name:      testPwdSecretName,
 		Namespace: testNamespace,
 	}
-	testRootPwd = v1.Secret{
+	testPwd = v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      testRootPwdKey.Name,
-			Namespace: testRootPwdKey.Namespace,
+			Name:      testPwdKey.Name,
+			Namespace: testPwdKey.Namespace,
 		},
 		Data: map[string][]byte{
-			testRootPwdSecretKey: []byte("mariadb"),
+			testPwdSecretKey: []byte("mariadb"),
 		},
 	}
-	Expect(k8sClient.Create(ctx, &testRootPwd)).To(Succeed())
+	Expect(k8sClient.Create(ctx, &testPwd)).To(Succeed())
 
 	testMariaDbKey = types.NamespacedName{
 		Name:      testMariaDbName,
@@ -79,9 +84,23 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: testRootPwdKey.Name,
+					Name: testPwdKey.Name,
 				},
-				Key: testRootPwdSecretKey,
+				Key: testPwdSecretKey,
+			},
+			Username: &testUser,
+			PasswordSecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: testPwdKey.Name,
+				},
+				Key: testPwdSecretKey,
+			},
+			Database: &testDatabase,
+			Connection: &mariadbv1alpha1.ConnectionTemplate{
+				SecretName: &testConnSecretName,
+				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+					Key: &testConnSecretKey,
+				},
 			},
 			Image: mariadbv1alpha1.Image{
 				Repository: "mariadb",
@@ -113,7 +132,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 
 func deleteTestData(ctx context.Context, k8sClient client.Client) {
 	Expect(k8sClient.Delete(ctx, &testMariaDb)).To(Succeed())
-	Expect(k8sClient.Delete(ctx, &testRootPwd)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &testPwd)).To(Succeed())
 
 	var pvc corev1.PersistentVolumeClaim
 	Expect(k8sClient.Get(ctx, builder.GetPVCKey(&testMariaDb), &pvc)).To(Succeed())

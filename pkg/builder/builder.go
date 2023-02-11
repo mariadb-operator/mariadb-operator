@@ -3,7 +3,6 @@ package builder
 import "k8s.io/apimachinery/pkg/runtime"
 
 const (
-	appMariaDb        = "mariadb"
 	componentDatabase = "database"
 )
 

@@ -51,6 +51,7 @@ type MariaDBSpec struct {
 	Database             *string                   `json:"database,omitempty" webhook:"inmutable"`
 	Username             *string                   `json:"username,omitempty" webhook:"inmutable"`
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutable"`
+	Connection           *ConnectionTemplate       `json:"connection,omitempty" webhook:"inmutable"`
 
 	// +kubebuilder:validation:Required
 	Image            Image                         `json:"image" webhook:"inmutable"`

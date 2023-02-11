@@ -28,8 +28,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	mariaDB *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	backupLabels :=
 		labels.NewLabelsBuilder().
-			WithApp(appMariaDb).
-			WithInstance(mariaDB.Name).
+			WithMariaDB(mariaDB).
 			Build()
 	meta := metav1.ObjectMeta{
 		Name:      key.Name,
@@ -123,8 +122,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	mariaDB *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	restoreLabels :=
 		labels.NewLabelsBuilder().
-			WithApp(appMariaDb).
-			WithInstance(mariaDB.Name).
+			WithMariaDB(mariaDB).
 			Build()
 	meta := metav1.ObjectMeta{
 		Name:      key.Name,
