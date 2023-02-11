@@ -5,16 +5,16 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: users.mariadb.mmontes.io
+  name: connections.mariadb.mmontes.io
 spec:
   group: mariadb.mmontes.io
   names:
-    kind: User
-    listKind: UserList
-    plural: users
+    kind: Connection
+    listKind: ConnectionList
+    plural: connections
     shortNames:
-    - umdb
-    singular: user
+    - cmdb
+    singular: connection
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -24,8 +24,8 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].message
       name: Status
       type: string
-    - jsonPath: .spec.maxUserConnections
-      name: MaxConns
+    - jsonPath: .spec.secretName
+      name: Secret
       type: string
     - jsonPath: .spec.mariaDbRef.name
       name: MariaDB
@@ -36,7 +36,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: User is the Schema for the users API
+        description: Connection is the Schema for the connections API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -51,8 +51,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: UserSpec defines the desired state of User
+            description: ConnectionSpec defines the desired state of Connection
             properties:
+              database:
+                type: string
+              healthCheck:
+                properties:
+                  interval:
+                    type: string
+                  retryInterval:
+                    type: string
+                type: object
               mariaDbRef:
                 properties:
                   name:
@@ -64,10 +73,6 @@ spec:
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
-              maxUserConnections:
-                default: 10
-                format: int32
-                type: integer
               passwordSecretKeyRef:
                 description: SecretKeySelector selects a key of a Secret.
                 properties:
@@ -86,12 +91,30 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              secretName:
+                type: string
+              secretTemplate:
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  key:
+                    type: string
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
+                type: object
+              username:
+                type: string
             required:
             - mariaDbRef
             - passwordSecretKeyRef
+            - username
             type: object
           status:
-            description: UserStatus defines the observed state of User
+            description: ConnectionStatus defines the observed state of Connection
             properties:
               conditions:
                 items:

@@ -49,6 +49,16 @@ func (p *Ready) RefResolverPatcher(err error, obj interface{}) Patcher {
 	}
 }
 
+func (p *Ready) HealthyPatcher(err error) Patcher {
+	return func(c Conditioner) {
+		if err == nil {
+			SetReadyHealthty(c)
+		} else {
+			SetReadyUnhealthtyWithError(c, err)
+		}
+	}
+}
+
 type Complete struct {
 	client client.Client
 }

@@ -47,9 +47,9 @@ var _ = Describe("Grant controller", func() {
 					},
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testRootPwdKey.Name,
+							Name: testPwdKey.Name,
 						},
-						Key: testRootPwdSecretKey,
+						Key: testPwdSecretKey,
 					},
 					MaxUserConnections: 20,
 				},

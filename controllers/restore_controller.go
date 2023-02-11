@@ -79,10 +79,20 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// TODO: add a IsBootstrapping() method to MariaDB?
 
 	if err := r.initSource(ctx, &restore); err != nil {
+		var sourceErr *multierror.Error
+		sourceErr = multierror.Append(sourceErr, err)
+
+		patchErr := r.patchStatus(
+			ctx,
+			&restore,
+			r.ConditionComplete.FailedPatcher(fmt.Sprintf("error initializing source: %v", err)),
+		)
+		sourceErr = multierror.Append(sourceErr, patchErr)
+
 		if errors.Is(err, errBackupNotComplete) {
-			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, sourceErr
 		}
-		return ctrl.Result{}, fmt.Errorf("error initializing source: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error initializing source: %v", sourceErr)
 	}
 
 	var jobErr *multierror.Error

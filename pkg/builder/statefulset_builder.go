@@ -55,8 +55,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 	}
 	statefulSetLabels :=
 		labels.NewLabelsBuilder().
-			WithApp(appMariaDb).
-			WithInstance(mariadb.Name).
+			WithMariaDB(mariadb).
 			WithComponent(componentDatabase).
 			Build()
 	pvcMeta := metav1.ObjectMeta{

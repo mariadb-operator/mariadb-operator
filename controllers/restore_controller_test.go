@@ -87,9 +87,9 @@ var _ = Describe("restore controller", func() {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testRootPwdKey.Name,
+							Name: testPwdKey.Name,
 						},
-						Key: testRootPwdSecretKey,
+						Key: testPwdSecretKey,
 					},
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",

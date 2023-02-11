@@ -23,6 +23,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Take](./config/samples/mariadb_v1alpha1_backup.yaml) and [restore](./config/samples/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./config/samples/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
 - Bootstrap new instances from [backups](./config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes ([PVCs](./config/samples/mariadb_v1alpha1_mariadb_from_pvc.yaml), [NFS](./config/samples/mariadb_v1alpha1_mariadb_from_nfs.yaml) ...)
 - Support for managing [users](./config/samples/mariadb_v1alpha1_user.yaml), [grants](./config/samples/mariadb_v1alpha1_grant.yaml) and logical [databases](./config/samples/mariadb_v1alpha1_database.yaml)
+- Configure [connections](./config/samples/mariadb_v1alpha1_connection.yaml) for your applications
 - Prometheus metrics
 - Validation webhooks to provide CRD inmutability
 - Additional printer columns to report the current CRD status
@@ -63,7 +64,7 @@ Let's see `mariadb-operator`🦭 in action! First of all, install the following 
 kubectl apply -f config/samples/config
 ```
 
-To start with, let's provision a `MariaDB` server with Prometheus metrics:
+To start with, let's provision a `MariaDB` instance:
 ```bash
 kubectl apply -f config/samples/mariadb_v1alpha1_mariadb.yaml
 ```
@@ -79,10 +80,6 @@ mariadb   1/1     2m12s
 kubectl get services
 NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
 mariadb      ClusterIP   10.96.235.145   <none>        3306/TCP,9104/TCP   2m17s
-
-kubectl get servicemonitors
-NAME      AGE
-mariadb   2m37s
 ```
 Up and running 🚀, we can now create our first logical database and grant access to users:
 ```bash

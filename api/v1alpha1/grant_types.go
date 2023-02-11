@@ -59,6 +59,7 @@ func (g *GrantStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Table",type="string",JSONPath=".spec.table"
 // +kubebuilder:printcolumn:name="Username",type="string",JSONPath=".spec.username"
 // +kubebuilder:printcolumn:name="GrantOpt",type="string",JSONPath=".spec.grantOption"
+// +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Grant is the Schema for the grants API

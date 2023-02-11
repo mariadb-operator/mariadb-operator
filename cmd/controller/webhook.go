@@ -81,6 +81,10 @@ var webhookCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create webhook", "webhook", "Database")
 			os.Exit(1)
 		}
+		if err = (&mariadbv1alpha1.Connection{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
+			os.Exit(1)
+		}
 
 		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 			setupLog.Error(err, "unable to set up health check")

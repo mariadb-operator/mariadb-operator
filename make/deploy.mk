@@ -6,6 +6,11 @@ CLUSTER ?= mdb
 PLATFORM ?= linux/amd64,linux/arm64
 IMG ?= mmontes11/mariadb-operator:latest
 BUILD ?= docker buildx build --platform $(PLATFORM) -t $(IMG)
+BUILDER ?= mariadb-operator
+
+.PHONY: docker-builder
+docker-builder: ## Configure docker builder.
+	docker buildx create --name $(BUILDER) --use --platform $(PLATFORM)
 
 .PHONY: docker-build
 docker-build: ## Build docker image.

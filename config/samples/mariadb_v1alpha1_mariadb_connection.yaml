@@ -12,6 +12,13 @@ spec:
   passwordSecretKeyRef:
     name: mariadb
     key: password
+  connection:
+    secretName: connection-mariadb
+    secretTemplate:
+      key: dsn
+    healthCheck:
+      interval: 10s
+      retryInterval: 3s
 
   image:
     repository: mariadb
@@ -27,19 +34,3 @@ spec:
     storageClassName: standard
     accessModes:
       - ReadWriteOnce
-
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 512Mi
-
-  env:
-    - name: TZ
-      value: SYSTEM
-
-  envFrom:
-    - configMapRef:
-        name: mariadb

@@ -77,6 +77,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Resource:  "Service",
 			Reconcile: r.reconcileService,
 		},
+		{
+			Resource:  "Connection",
+			Reconcile: r.reconcileConnection,
+		},
 	}
 	if r.ServiceMonitorReconciler {
 		phases = append(phases, MariaDBReconcilePhase{
@@ -85,7 +89,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		})
 	}
 	phases = append(phases, MariaDBReconcilePhase{
-		Resource:  "restore",
+		Resource:  "Restore",
 		Reconcile: r.reconcileBootstrapRestore,
 	})
 
@@ -227,6 +231,42 @@ func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, maria
 	return nil
 }
 
+func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	mariaDbKey types.NamespacedName) error {
+	if mariadb.Spec.Connection == nil || mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
+		!mariadb.IsReady() {
+		return nil
+	}
+	key := connectionKey(mariadb)
+	var existingConn mariadbv1alpha1.Connection
+	if err := r.Get(ctx, key, &existingConn); err == nil {
+		return nil
+	}
+
+	connOpts := builder.ConnectionOpts{
+		Key: key,
+		MariaDBRef: mariadbv1alpha1.MariaDBRef{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: mariadb.Name,
+			},
+			WaitForIt: true,
+		},
+		Username:             *mariadb.Spec.Username,
+		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
+		Database:             mariadb.Spec.Database,
+		Template:             mariadb.Spec.Connection,
+	}
+	conn, err := r.Builder.BuildConnection(connOpts, mariadb)
+	if err != nil {
+		return fmt.Errorf("erro building Connection: %v", err)
+	}
+
+	if err := r.Create(ctx, conn); err != nil {
+		return fmt.Errorf("error creating Connection: %v", err)
+	}
+	return nil
+}
+
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName) (conditions.Patcher, error) {
 	var sts appsv1.StatefulSet
@@ -265,7 +305,6 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 			})
 			return
 		}
-
 		if mariaDb.IsBootstrapped() {
 			c.SetCondition(metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeReady,
@@ -277,16 +316,16 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 		}
 		if restore.IsComplete() {
 			c.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeReady,
-				Status:  metav1.ConditionTrue,
-				Reason:  mariadbv1alpha1.ConditionReasonRestoreComplete,
-				Message: "Running",
-			})
-			c.SetCondition(metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeBootstrapped,
 				Status:  metav1.ConditionTrue,
 				Reason:  mariadbv1alpha1.ConditionReasonRestoreComplete,
 				Message: "Ready",
+			})
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionTrue,
+				Reason:  mariadbv1alpha1.ConditionReasonRestoreComplete,
+				Message: "Running",
 			})
 		} else {
 			c.SetCondition(metav1.Condition{
@@ -323,6 +362,13 @@ func bootstrapRestoreKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName 
 	}
 }
 
+func connectionKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("connection-%s", mariadb.Name),
+		Namespace: mariadb.Namespace,
+	}
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
@@ -330,6 +376,7 @@ func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
+		Owns(&mariadbv1alpha1.Connection{}).
 		Owns(&mariadbv1alpha1.Restore{})
 	if r.ServiceMonitorReconciler {
 		builder = builder.Owns(&monitoringv1.ServiceMonitor{})
