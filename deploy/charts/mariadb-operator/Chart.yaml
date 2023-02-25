@@ -4,7 +4,7 @@ description: Run and operate MariaDB in a cloud native way
 home: https://github.com/mmontes11/mariadb-operator
 icon: https://mmontes11.github.io/mariadb-operator/assets/mariadb.png
 type: application
-version: 0.7.0
+version: 0.7.1
 appVersion: "v0.0.7"
 kubeVersion: ">= 1.16.0-0"
 maintainers:
