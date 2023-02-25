@@ -16,6 +16,7 @@ type Opts struct {
 	Host     string
 	Port     int32
 	Database string
+	Params   map[string]string
 }
 
 type Client struct {
@@ -50,6 +51,9 @@ func BuildDSN(opts Opts) (string, error) {
 	}
 	if opts.Database != "" {
 		config.DBName = opts.Database
+	}
+	if opts.Params != nil {
+		config.Params = opts.Params
 	}
 
 	return config.FormatDSN(), nil

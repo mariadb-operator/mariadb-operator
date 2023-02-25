@@ -19,7 +19,8 @@ spec:
     healthCheck:
       interval: 10s
       retryInterval: 3s
-
+    params:
+      parseTime: "true"
   image:
     repository: mariadb
     tag: "10.7.4"
