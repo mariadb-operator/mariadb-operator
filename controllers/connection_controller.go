@@ -151,6 +151,7 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		Password: password,
 		Host:     mariadb.FQDN(mdb),
 		Port:     mdb.Spec.Port,
+		Params:   conn.Spec.Params,
 	}
 	if conn.Spec.Database != nil {
 		mdbOpts.Database = *conn.Spec.Database

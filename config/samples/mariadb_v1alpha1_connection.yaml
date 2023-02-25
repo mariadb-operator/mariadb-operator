@@ -10,6 +10,8 @@ spec:
     name: mariadb
     key: password
   database: mariadb
+  params:
+    parseTime: "true"
   secretName: connection
   secretTemplate:
     labels:

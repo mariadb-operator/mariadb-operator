@@ -1976,6 +1976,10 @@ spec:
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
+              params:
+                additionalProperties:
+                  type: string
+                type: object
               passwordSecretKeyRef:
                 description: SecretKeySelector selects a key of a Secret.
                 properties:
@@ -4029,6 +4033,10 @@ spec:
                         type: string
                       retryInterval:
                         type: string
+                    type: object
+                  params:
+                    additionalProperties:
+                      type: string
                     type: object
                   secretName:
                     type: string

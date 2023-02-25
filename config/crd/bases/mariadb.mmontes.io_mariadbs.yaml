@@ -1607,6 +1607,10 @@ spec:
                       retryInterval:
                         type: string
                     type: object
+                  params:
+                    additionalProperties:
+                      type: string
+                    type: object
                   secretName:
                     type: string
                   secretTemplate:

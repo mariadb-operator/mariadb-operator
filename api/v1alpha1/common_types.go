@@ -47,9 +47,10 @@ type HealthCheck struct {
 }
 
 type ConnectionTemplate struct {
-	SecretName     *string         `json:"secretName,omitempty" webhook:"inmutableinit"`
-	SecretTemplate *SecretTemplate `json:"secretTemplate,omitempty" webhook:"inmutableinit"`
-	HealthCheck    *HealthCheck    `json:"healthCheck,omitempty"`
+	SecretName     *string           `json:"secretName,omitempty" webhook:"inmutableinit"`
+	SecretTemplate *SecretTemplate   `json:"secretTemplate,omitempty" webhook:"inmutableinit"`
+	HealthCheck    *HealthCheck      `json:"healthCheck,omitempty"`
+	Params         map[string]string `json:"params,omitempty" webhook:"inmutable"`
 }
 
 type RestoreSource struct {

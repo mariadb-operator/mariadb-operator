@@ -67,7 +67,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 			Namespace: testPwdKey.Namespace,
 		},
 		Data: map[string][]byte{
-			testPwdSecretKey: []byte("mariadb"),
+			testPwdSecretKey: []byte("test"),
 		},
 	}
 	Expect(k8sClient.Create(ctx, &testPwd)).To(Succeed())

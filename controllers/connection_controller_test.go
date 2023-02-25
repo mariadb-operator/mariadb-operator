@@ -46,10 +46,14 @@ var _ = Describe("Connection controller", func() {
 							Labels: map[string]string{
 								"foo": "bar",
 							},
+							Key: func() *string { k := "dsn"; return &k }(),
 						},
 						HealthCheck: &mariadbv1alpha1.HealthCheck{
 							Interval:      &metav1.Duration{Duration: 1 * time.Second},
 							RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
+						},
+						Params: map[string]string{
+							"parseTime": "true",
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -82,6 +86,11 @@ var _ = Describe("Connection controller", func() {
 			By("Expecting to create a Secret")
 			var secret corev1.Secret
 			Expect(k8sClient.Get(testCtx, key, &secret)).To(Succeed())
+
+			dsn, ok := secret.Data["dsn"]
+			By("Expecting Secret key to be valid")
+			Expect(ok).To(BeTrue())
+			Expect(string(dsn)).To(Equal("test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?parseTime=true"))
 
 			By("Deleting Connection")
 			Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
