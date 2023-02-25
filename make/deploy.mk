@@ -112,6 +112,9 @@ bundle: bundle-crds bundle-manifests bundle-min-manifests ## Generate bundles.
 .PHONY: generate
 generate: manifests code helm bundle ## Generate manifests, code, helm chart and manifests bundle.
 
+.PHONY: gen
+gen: generate ## Generate alias.
+
 ##@ Dependencies
 
 PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0
