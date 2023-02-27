@@ -19,7 +19,7 @@ assignees: mmontes11
 **Additional context**
 <!--Add any other context about the feature request here.-->
 
-**Environment details:**:
+**Environment details**:
 - Kubernetes version:
 - mariadb-operator version: 
 - Install method: helm or static manifests

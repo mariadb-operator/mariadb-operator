@@ -31,7 +31,7 @@ gain an understanding of the problem.-->
 
 **Anything else we need to know?**:
 
-**Environment details:**:
+**Environment details**:
 - Kubernetes version:
 - mariadb-operator version: 
 - Install method: helm or static manifests
