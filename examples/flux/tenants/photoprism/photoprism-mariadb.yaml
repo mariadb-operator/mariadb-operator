@@ -1,0 +1,61 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: photoprism-mariadb
+spec:
+  rootPasswordSecretKeyRef:
+    name: photoprism-credentials
+    key: root-password
+
+  database: photoprism
+  username: photoprism
+  passwordSecretKeyRef:
+    name: photoprism-credentials
+    key: password
+  connection:
+    secretName: photoprism-connection
+    secretTemplate:
+      key: dsn
+    params:
+      parseTime: "true"
+
+  image:
+    repository: mariadb
+    tag: "10.7.4"
+    pullPolicy: IfNotPresent
+
+  port: 3306
+
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 100Mi
+    storageClassName: standard
+    accessModes:
+      - ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+  metrics:
+    exporter:
+      image:
+        repository: prom/mysqld-exporter
+        tag: "v0.14.0"
+        pullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi
+    serviceMonitor:
+      prometheusRelease: kube-prometheus-stack
+      interval: 10s
+      scrapeTimeout: 10s

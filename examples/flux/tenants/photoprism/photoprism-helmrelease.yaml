@@ -1,0 +1,53 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: photoprism
+spec:
+  chart:
+    spec:
+      chart: photoprism
+      sourceRef:
+        kind: HelmRepository
+        name: mmontes
+      version: "0.4.0"
+  interval: 5m
+  values:
+    image:
+      repository: photoprism/photoprism
+      tag: "221118-jammy"
+      pullPolicy: IfNotPresent
+
+    env:
+      PHOTOPRISM_AUTH_MODE: public
+      PHOTOPRISM_READONLY: false
+      PHOTOPRISM_LOG_LEVEL: debug
+
+    secretRef: null
+
+    persistence:
+      enabled: false
+
+    database:
+      driver: mysql
+      dsnSecretKeyRef:
+        name: photoprism-connection
+        key: dsn
+
+    sync:
+      enabled: true
+      cron: "* */1 * * *"
+      resources:
+        requests:
+          memory: 300Mi
+        limits:
+          memory: 1Gi
+
+    service:
+      type: ClusterIP
+      port: 80
+
+    resources:
+      requests:
+        memory: 300Mi
+      limits:
+        memory: 1Gi
