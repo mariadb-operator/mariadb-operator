@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: photoprism
+resources:
+  - mmontes-helmrepository.yaml
+  - photoprism-credentials-secret.yaml
+  - photoprism-helmrelease.yaml
+  - photoprism-mariadb.yaml
+  - photoprism-namespace.yaml

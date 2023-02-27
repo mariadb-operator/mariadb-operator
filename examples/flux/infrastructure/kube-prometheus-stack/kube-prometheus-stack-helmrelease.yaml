@@ -1,0 +1,38 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+spec:
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus
+      version: "42.1.1"
+  interval: 1h0m0s
+  values:
+    grafana:
+      enabled: true
+      dashboardProviders:
+        dashboardproviders.yaml:
+          apiVersion: 1
+          providers:
+            - name: "default"
+              orgId: 1
+              folder: ""
+              type: file
+              disableDeletion: false
+              editable: true
+              options:
+                path: /var/lib/grafana/dashboards/default
+      dashboards:
+        default:
+          mysql-overview:
+            gnetId: 7362
+            revision: 5
+            datasource: Prometheus
+          mysql-quickstart:
+            gnetId: 14057
+            revision: 1
+            datasource: Prometheus

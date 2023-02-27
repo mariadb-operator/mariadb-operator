@@ -151,3 +151,18 @@ install: cluster-ctx install-crds install-prometheus-crds install-samples certs 
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.
 	kubectl apply -f config/samples/config
+
+##@ Examples
+
+GITHUB_USER := mmontes11
+GITHUB_REPOSITORY := mariadb-operator
+GITHUB_BRANCH ?= main
+
+.PHONY: example-flux
+example-flux: flux ## Install flux example.
+	flux bootstrap github \
+		--owner=$(GITHUB_USER) \
+		--repository=$(GITHUB_REPOSITORY)\
+		--branch=$(GITHUB_BRANCH) \
+		--path=./examples/flux/clusters/production \
+		--personal

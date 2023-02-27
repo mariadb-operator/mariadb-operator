@@ -1,0 +1,7 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta1
+kind: HelmRepository
+metadata:
+  name: mariadb-operator
+spec:
+  interval: 5m
+  url: https://mmontes11.github.io/mariadb-operator

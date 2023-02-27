@@ -139,7 +139,12 @@ NAME                                         COMPLETIONS   DURATION   AGE
 backup                                       1/1           9s         12m
 bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
-You can take a look at the whole suite of example CRDs available in [config/samples](./config/samples/).  
+You can take a look at the whole suite of example CRDs available in [config/samples](./config/samples/).
+
+## Advanced examples
+
+More advance scenarios can be found under the [examples](./examples/) folder:
+- [Run and operate MariaDB in a GitOps fashion using Flux](./examples/flux/)
 
 ## Roadmap
 
