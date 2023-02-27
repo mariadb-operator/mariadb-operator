@@ -12,7 +12,7 @@ Bugs should be filed for issues encountered whilst operating mariadb-operator.
 Please provide as much detail as possible. 
 -->
 
-**Describe the bug**:
+**Describe the bug**
 <!--
 A clear and concise description of what the bug is. 
 Tip: you can use 
@@ -22,14 +22,14 @@ Tip: you can use
 for code blocks of your kubectl output or YAML files.
 -->
 
-**Expected behaviour**:
+**Expected behaviour**
 <!--A concise description of what you expected to happen.-->
 
-**Steps to reproduce the bug**:
+**Steps to reproduce the bug**
 <!--Steps to reproduce the bug should be clear and easily reproducible to help people
 gain an understanding of the problem.-->
 
-**Additional context**:
+**Additional context**
 <!--Add any other context  here.-->
 
 **Environment details**:

@@ -16,7 +16,7 @@ assignees: mmontes11
 **Describe alternatives you've considered**
 <!--A clear and concise description of any alternative solutions or features you've considered.-->
 
-**Additional context**:
+**Additional context**
 <!--Add any other context  here.-->
 
 **Environment details**:
