@@ -16,11 +16,11 @@ assignees: mmontes11
 **Describe alternatives you've considered**
 <!--A clear and concise description of any alternative solutions or features you've considered.-->
 
-**Additional context**
-<!--Add any other context about the feature request here.-->
+**Additional context**:
+<!--Add any other context  here.-->
 
 **Environment details**:
 - Kubernetes version:
 - mariadb-operator version: 
-- Install method: helm or static manifests
-- Install flavour: minimal or recommended
+- Install method: helm, OLM or static manifests
+- Install flavour: minimal, recommended or custom

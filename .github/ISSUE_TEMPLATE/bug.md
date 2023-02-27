@@ -29,10 +29,11 @@ for code blocks of your kubectl output or YAML files.
 <!--Steps to reproduce the bug should be clear and easily reproducible to help people
 gain an understanding of the problem.-->
 
-**Anything else we need to know?**:
+**Additional context**:
+<!--Add any other context  here.-->
 
 **Environment details**:
 - Kubernetes version:
 - mariadb-operator version: 
-- Install method: helm or static manifests
-- Install flavour: minimal or recommended
+- Install method: helm, OLM or static manifests
+- Install flavour: minimal, recommended or custom
