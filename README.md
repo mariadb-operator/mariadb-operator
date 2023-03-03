@@ -19,8 +19,8 @@
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 
-- [Provisioning](./config/samples/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers. 
-- Support for custom [`my.cnf`](./config/samples/mariadb_v1alpha1_mariadb_config.yaml).
+- [Provisioning](./config/samples/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
+- Support for custom [`my.cnf`](./config/samples/mariadb_v1alpha1_mariadb_config.yaml)
 - [Take](./config/samples/mariadb_v1alpha1_backup.yaml) and [restore](./config/samples/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./config/samples/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
 - Bootstrap new instances from [backups](./config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes ([PVCs](./config/samples/mariadb_v1alpha1_mariadb_from_pvc.yaml), [NFS](./config/samples/mariadb_v1alpha1_mariadb_from_nfs.yaml) ...)
 - Support for managing [users](./config/samples/mariadb_v1alpha1_user.yaml), [grants](./config/samples/mariadb_v1alpha1_grant.yaml) and logical [databases](./config/samples/mariadb_v1alpha1_database.yaml)
