@@ -18,6 +18,8 @@ import (
 const (
 	stsStorageVolume    = "storage"
 	stsStorageMountPath = "/var/lib/mysql"
+	stsConfigVolume     = "config"
+	stsConfigMountPath  = "/etc/mysql/conf.d"
 
 	mariaDbContainerName = "mariadb"
 	mariaDbPortName      = "mariadb"
@@ -27,14 +29,18 @@ const (
 	metricsPort          = 9104
 )
 
-func GetPVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+var (
+	DefaultMyCnfKey = "my.cnf"
+)
+
+func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-%s-0", stsStorageVolume, mariadb.Name),
 		Namespace: mariadb.Namespace,
 	}
 }
 
-func GetSTSPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
+func StatefulSetPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
 	for _, c := range sts.Spec.Template.Spec.Containers {
 		if c.Name == mariaDbContainerName {
 			for _, p := range c.Ports {
@@ -49,7 +55,7 @@ func GetSTSPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
 
 func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
 	dsn *corev1.SecretKeySelector) (*appsv1.StatefulSet, error) {
-	containers, err := buildStsContainers(mariadb, dsn)
+	containers, err := buildStatefulSetContainers(mariadb, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
@@ -82,6 +88,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 				},
 				Spec: v1.PodSpec{
 					Containers: containers,
+					Volumes:    buildStatefulSetVolumes(mariadb),
 				},
 			},
 			VolumeClaimTemplates: []v1.PersistentVolumeClaim{
@@ -99,7 +106,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 	return sts, nil
 }
 
-func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
+func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
 	var containers []v1.Container
 	probe := &v1.Probe{
 		ProbeHandler: v1.ProbeHandler{
@@ -119,7 +126,7 @@ func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeyS
 		Name:            mariaDbContainerName,
 		Image:           mariadb.Spec.Image.String(),
 		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
-		Env:             buildStsEnv(mariadb),
+		Env:             buildStatefulSetEnv(mariadb),
 		EnvFrom:         mariadb.Spec.EnvFrom,
 		Ports: []v1.ContainerPort{
 			{
@@ -127,12 +134,7 @@ func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeyS
 				ContainerPort: mariadb.Spec.Port,
 			},
 		},
-		VolumeMounts: []v1.VolumeMount{
-			{
-				Name:      stsStorageVolume,
-				MountPath: stsStorageMountPath,
-			},
-		},
+		VolumeMounts:   buildStatefulSetVolumeMounts(mariadb),
 		ReadinessProbe: probe,
 		LivenessProbe:  probe,
 	}
@@ -154,7 +156,7 @@ func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeyS
 	return containers, nil
 }
 
-func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
+func buildStatefulSetEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	env := []v1.EnvVar{
 		{
 			Name:  "MYSQL_TCP_PORT",
@@ -196,6 +198,46 @@ func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	}
 
 	return env
+}
+
+func buildStatefulSetVolumes(mariadb *mariadbv1alpha1.MariaDB) []v1.Volume {
+	if mariadb.Spec.MyCnfConfigMapKeyRef == nil {
+		return nil
+	}
+	return []v1.Volume{
+		{
+			Name: stsConfigVolume,
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: mariadb.Spec.MyCnfConfigMapKeyRef.Name,
+					},
+					Items: []corev1.KeyToPath{
+						{
+							Key:  mariadb.Spec.MyCnfConfigMapKeyRef.Key,
+							Path: DefaultMyCnfKey,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func buildStatefulSetVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []v1.VolumeMount {
+	volumeMounts := []v1.VolumeMount{
+		{
+			Name:      stsStorageVolume,
+			MountPath: stsStorageMountPath,
+		},
+	}
+	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      stsConfigVolume,
+			MountPath: stsConfigMountPath,
+		})
+	}
+	return volumeMounts
 }
 
 func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretKeySelector) v1.Container {

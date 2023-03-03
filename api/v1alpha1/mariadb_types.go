@@ -63,6 +63,9 @@ type MariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 
+	MyCnf                *string                      `json:"myCnf,omitempty" webhook:"inmutable"`
+	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
+
 	BootstrapFrom *RestoreSource `json:"bootstrapFrom,omitempty" webhook:"inmutable"`
 
 	Metrics *Metrics `json:"metrics,omitempty"`

@@ -682,6 +682,16 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		copy(*out, *in)
 	}
 	in.VolumeClaimTemplate.DeepCopyInto(&out.VolumeClaimTemplate)
+	if in.MyCnf != nil {
+		in, out := &in.MyCnf, &out.MyCnf
+		*out = new(string)
+		**out = **in
+	}
+	if in.MyCnfConfigMapKeyRef != nil {
+		in, out := &in.MyCnfConfigMapKeyRef, &out.MyCnfConfigMapKeyRef
+		*out = new(v1.ConfigMapKeySelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.BootstrapFrom != nil {
 		in, out := &in.BootstrapFrom, &out.BootstrapFrom
 		*out = new(RestoreSource)

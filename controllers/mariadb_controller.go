@@ -54,6 +54,7 @@ type MariaDBReconcilePhase struct {
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
@@ -69,6 +70,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	phases := []MariaDBReconcilePhase{
+		{
+			Resource:  "ConfigMap",
+			Reconcile: r.reconcileConfigMap,
+		},
 		{
 			Resource:  "StatefulSet",
 			Reconcile: r.reconcileStatefulSet,
@@ -117,6 +122,49 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	mariaDbKey types.NamespacedName) error {
+
+	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
+		return nil
+	}
+	key := configMapKey(mariadb)
+
+	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		var configMap corev1.ConfigMap
+		if err := r.Get(ctx, key, &configMap); err != nil {
+			return fmt.Errorf("error getting ConfigMap: %v", err)
+		}
+		return nil
+	}
+
+	opts := builder.ConfigMapOpts{
+		Key: key,
+		Data: map[string]string{
+			builder.DefaultMyCnfKey: *mariadb.Spec.MyCnf,
+		},
+	}
+	configMap, err := r.Builder.BuildConfigMap(opts, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building ConfigMap: %v", err)
+	}
+
+	if err = r.Create(ctx, configMap); err != nil {
+		return fmt.Errorf("error creating ConfigMap: %v", err)
+	}
+	if err := r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
+		mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: configMap.Name,
+			},
+			Key: builder.DefaultMyCnfKey,
+		}
+	}); err != nil {
+		return fmt.Errorf("error patching MariaDB: %v", err)
+	}
+	return nil
 }
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -355,6 +403,17 @@ func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1a
 	return nil
 }
 
+func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	patcher func(*mariadbv1alpha1.MariaDB)) error {
+	patch := client.MergeFrom(mariadb.DeepCopy())
+	patcher(mariadb)
+
+	if err := r.Client.Patch(ctx, mariadb, patch); err != nil {
+		return fmt.Errorf("error patching MariaDB: %v", err)
+	}
+	return nil
+}
+
 func bootstrapRestoreKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("bootstrap-restore-%s", mariadb.Name),
@@ -369,10 +428,24 @@ func connectionKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	}
 }
 
+func configMapKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		return types.NamespacedName{
+			Name:      mariadb.Spec.MyCnfConfigMapKeyRef.Name,
+			Namespace: mariadb.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("config-%s", mariadb.Name),
+		Namespace: mariadb.Namespace,
+	}
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MariaDB{}).
+		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).

@@ -28,6 +28,14 @@ spec:
     accessModes:
       - ReadWriteOnce
 
+  myCnf: |
+    [mysqld]
+    bind-address=0.0.0.0
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    max_allowed_packet=256M
+
   resources:
     requests:
       cpu: 100m

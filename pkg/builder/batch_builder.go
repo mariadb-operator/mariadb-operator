@@ -299,7 +299,7 @@ func jobVolumes(volume *corev1.VolumeSource, physical bool, mariadb *mariadbv1al
 			Name: batchDataVolume,
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: GetPVCKey(mariadb).Name,
+					ClaimName: PVCKey(mariadb).Name,
 				},
 			},
 		})
