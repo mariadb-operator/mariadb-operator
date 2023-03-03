@@ -139,6 +139,7 @@ var _ = Describe("MariaDB webhook", func() {
 							corev1.ReadWriteOnce,
 						},
 					},
+					MyCnf: func() *string { c := "foo"; return &c }(),
 					BootstrapFrom: &RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "backup",
@@ -237,6 +238,26 @@ var _ = Describe("MariaDB webhook", func() {
 						mdb.Spec.VolumeClaimTemplate.StorageClassName = &newClass
 					},
 					wantErr: true,
+				},
+				{
+					by: "Updating MyCnf",
+					patchFn: func(mdb *MariaDB) {
+						newCnf := "bar"
+						mdb.Spec.MyCnf = &newCnf
+					},
+					wantErr: true,
+				},
+				{
+					by: "Updating MyCnfConfigMapKeyRef",
+					patchFn: func(mdb *MariaDB) {
+						mdb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "my-cnf-configmap",
+							},
+							Key: "config",
+						}
+					},
+					wantErr: false,
 				},
 				{
 					by: "Updating BootstrapFromBackup",

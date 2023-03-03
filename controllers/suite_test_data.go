@@ -117,6 +117,15 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 					corev1.ReadWriteOnce,
 				},
 			},
+			MyCnf: func() *string {
+				cfg := `[mysqld]
+				bind-address=0.0.0.0
+				default_storage_engine=InnoDB
+				binlog_format=row
+				innodb_autoinc_lock_mode=2
+				max_allowed_packet=256M`
+				return &cfg
+			}(),
 		},
 	}
 	Expect(k8sClient.Create(ctx, &testMariaDb)).To(Succeed())
@@ -135,6 +144,6 @@ func deleteTestData(ctx context.Context, k8sClient client.Client) {
 	Expect(k8sClient.Delete(ctx, &testPwd)).To(Succeed())
 
 	var pvc corev1.PersistentVolumeClaim
-	Expect(k8sClient.Get(ctx, builder.GetPVCKey(&testMariaDb), &pvc)).To(Succeed())
+	Expect(k8sClient.Get(ctx, builder.PVCKey(&testMariaDb), &pvc)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
 }

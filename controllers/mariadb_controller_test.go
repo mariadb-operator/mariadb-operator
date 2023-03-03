@@ -22,6 +22,15 @@ var _ = Describe("MariaDB controller", func() {
 			Expect(testMariaDb.Spec.Image.String()).To(Equal("mariadb:10.7.4"))
 			Expect(testMariaDb.Spec.Port).To(BeEquivalentTo(3306))
 
+			By("Expecting to create a ConfigMap eventually")
+			Eventually(func() bool {
+				var cm corev1.ConfigMap
+				if err := k8sClient.Get(testCtx, configMapKey(&testMariaDb), &cm); err != nil {
+					return false
+				}
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
+
 			By("Expecting to create a StatefulSet eventually")
 			Eventually(func() bool {
 				var sts appsv1.StatefulSet
@@ -31,9 +40,14 @@ var _ = Describe("MariaDB controller", func() {
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Expecting to create a Service")
-			var svc corev1.Service
-			Expect(k8sClient.Get(testCtx, testMariaDbKey, &svc)).To(Succeed())
+			By("Expecting to create a Service eventually")
+			Eventually(func() bool {
+				var svc corev1.Service
+				if err := k8sClient.Get(testCtx, testMariaDbKey, &svc); err != nil {
+					return false
+				}
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
@@ -306,7 +320,7 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting port to be updated in StatefulSet")
 			var sts appsv1.StatefulSet
 			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &sts)).To(Succeed())
-			containerPort, err := builder.GetSTSPort(&sts)
+			containerPort, err := builder.StatefulSetPort(&sts)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(containerPort.ContainerPort).To(BeEquivalentTo(3307))
 

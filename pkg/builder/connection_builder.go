@@ -20,12 +20,11 @@ type ConnectionOpts struct {
 }
 
 func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*mariadbv1alpha1.Connection, error) {
-	objMeta := metav1.ObjectMeta{
-		Name:      opts.Key.Name,
-		Namespace: opts.Key.Namespace,
-	}
 	conn := &mariadbv1alpha1.Connection{
-		ObjectMeta: objMeta,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opts.Key.Name,
+			Namespace: opts.Key.Namespace,
+		},
 		Spec: mariadbv1alpha1.ConnectionSpec{
 			MariaDBRef:           opts.MariaDBRef,
 			Username:             opts.Username,
