@@ -1,0 +1,22 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: SqlJob
+metadata:
+  name: 02-2-create-table-repos
+spec:
+  dependsOn:
+    - name: 01-create-table-users
+  mariaDbRef:
+    name: mariadb
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+  sql: |
+    CREATE TABLE IF NOT EXISTS repos (
+      id bigint PRIMARY KEY AUTO_INCREMENT,
+      name varchar(255) NOT NULL,
+      owner_id bigint NOT NULL,
+      UNIQUE KEY name__unique_idx (name),
+      FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+    );

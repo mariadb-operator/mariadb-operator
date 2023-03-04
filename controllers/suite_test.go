@@ -26,6 +26,7 @@ import (
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/controller/batch"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/configmap"
 	"github.com/mmontes11/mariadb-operator/pkg/portforwarder"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
@@ -102,6 +103,7 @@ var _ = BeforeSuite(func() {
 		Scheme:                   k8sManager.GetScheme(),
 		Builder:                  builder,
 		ConditionReady:           conditionReady,
+		ConfigMapReconciler:      configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder, "my.cnf"),
 		ServiceMonitorReconciler: true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
@@ -156,6 +158,16 @@ var _ = BeforeSuite(func() {
 		Builder:        builder,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&SqlJobReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		Builder:             builder,
+		RefResolver:         refResolver,
+		ConfigMapReconciler: configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder, "job.sql"),
+		ConditionComplete:   conditionComplete,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

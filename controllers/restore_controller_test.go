@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("restore controller", func() {
+var _ = Describe("Restore controller", func() {
 	Context("When creating a restore", func() {
 		It("Should reconcile", func() {
 			By("Creating Backup")

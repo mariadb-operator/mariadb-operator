@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/controller/template"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/sql"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,7 +37,7 @@ type wrappedDatabaseFinalizer struct {
 	database *mariadbv1alpha1.Database
 }
 
-func newWrappedDatabaseFinalizer(client client.Client, database *mariadbv1alpha1.Database) template.WrappedFinalizer {
+func newWrappedDatabaseFinalizer(client client.Client, database *mariadbv1alpha1.Database) sql.WrappedFinalizer {
 	return &wrappedDatabaseFinalizer{
 		Client:   client,
 		database: database,

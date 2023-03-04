@@ -1,22 +1,23 @@
-package backupcmd
+package backup
 
 import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/command"
 )
 
 type physicalBackup struct {
-	*CommandOpts
+	*BackupOpts
 }
 
 func (l *physicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
-	mariadb *mariadbv1alpha1.MariaDB) *Command {
+	mariadb *mariadbv1alpha1.MariaDB) *command.Command {
 	cmds := []string{
 		"echo '💾 Taking physical backup'",
 		fmt.Sprintf(
 			"mariabackup %s --backup --target-dir=%s",
-			authFlags(l.CommandOpts, mariadb),
+			command.ConnectionFlags(&l.BackupOpts.CommandOpts, mariadb),
 			l.backupPath(),
 		),
 		"echo '🧹 Cleaning up old backups'",
@@ -32,10 +33,10 @@ func (l *physicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
 			"%f\n",
 		),
 	}
-	return execCommand(cmds)
+	return command.ExecCommand(cmds)
 }
 
-func (l *physicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *Command {
+func (l *physicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command {
 	restorePath := l.restorePath()
 	cmds := []string{
 		fmt.Sprintf(
@@ -44,11 +45,11 @@ func (l *physicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *Comma
 		),
 		fmt.Sprintf(
 			"mariabackup %s --prepare --target-dir=%s",
-			authFlags(l.CommandOpts, mariadb),
+			command.ConnectionFlags(&l.BackupOpts.CommandOpts, mariadb),
 			restorePath,
 		),
 	}
-	return execCommand(cmds)
+	return command.ExecCommand(cmds)
 }
 
 func (l *physicalBackup) backupPath() string {

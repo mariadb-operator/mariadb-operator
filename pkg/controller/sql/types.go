@@ -1,4 +1,4 @@
-package template
+package sql
 
 import (
 	"context"
@@ -6,12 +6,12 @@ import (
 	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type Resource interface {
-	Meta() metav1.ObjectMeta
+	v1.Object
 	MariaDBRef() *mariadbv1alpha1.MariaDBRef
 	IsBeingDeleted() bool
 }

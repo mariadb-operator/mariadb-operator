@@ -1,0 +1,17 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: SqlJob
+metadata:
+  name: 02-1-insert-users
+spec:
+  dependsOn:
+    - name: 01-create-table-users
+  mariaDbRef:
+    name: mariadb
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+  sql: |
+    INSERT INTO users(username, email) VALUES('mmontes11','martin11lrx@gmail.com') 
+    ON DUPLICATE KEY UPDATE username='mmontes11';

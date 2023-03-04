@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/backupcmd"
 	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
+	cmd "github.com/mmontes11/mariadb-operator/pkg/command"
+	backupcmd "github.com/mmontes11/mariadb-operator/pkg/command/backup"
+	sqlcmd "github.com/mmontes11/mariadb-operator/pkg/command/sql"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -16,12 +18,15 @@ import (
 )
 
 const (
-	batchDataVolume       = "data"
-	batchDataMountPath    = "/var/lib/mysql"
-	batchStorageVolume    = "backup"
-	batchStorageMountPath = "/backup"
-	backupUserEnv         = "BACKUP_USER"
-	backupPasswordEnv     = "BACKUP_PASSWORD"
+	batchDataVolume         = "data"
+	batchDataMountPath      = "/var/lib/mysql"
+	batchStorageVolume      = "backup"
+	batchStorageMountPath   = "/backup"
+	batchScriptsVolume      = "scripts"
+	batchScriptsMountPath   = "/opt"
+	batchScriptsSqlFileName = "job.sql"
+	batchUserEnv            = "MARIADB_OPERATOR_USER"
+	batchPasswordEnv        = "MARIADB_OPERATOR_PASSWORD"
 )
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
@@ -38,8 +43,8 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 
 	cmdOpts := []backupcmd.Option{
 		backupcmd.WithBasePath(batchStorageMountPath),
-		backupcmd.WithUserEnv(backupUserEnv),
-		backupcmd.WithPasswordEnv(backupPasswordEnv),
+		backupcmd.WithUserEnv(batchUserEnv),
+		backupcmd.WithPasswordEnv(batchPasswordEnv),
 	}
 	if backup.Spec.Physical {
 		cmdOpts = append(cmdOpts, backupcmd.WithBackupPhysical(backup.Spec.Physical))
@@ -62,7 +67,8 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		withJobContainers(
 			jobContainers(
 				cmd.BackupCommand(backup, mariaDB),
-				backup.Spec.Physical,
+				jobEnv(mariaDB),
+				jobVolumeMounts(backup.Spec.Physical),
 				backup.Spec.Resources,
 				mariaDB,
 			),
@@ -132,8 +138,8 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 
 	cmdOpts := []backupcmd.Option{
 		backupcmd.WithBasePath(batchStorageMountPath),
-		backupcmd.WithUserEnv(backupUserEnv),
-		backupcmd.WithPasswordEnv(backupPasswordEnv),
+		backupcmd.WithUserEnv(batchUserEnv),
+		backupcmd.WithPasswordEnv(batchPasswordEnv),
 	}
 	if restore.Spec.RestoreSource.FileName != nil {
 		cmdOpts = append(cmdOpts, backupcmd.WithFile(*restore.Spec.RestoreSource.FileName))
@@ -158,7 +164,8 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		withJobContainers(
 			jobContainers(
 				cmd.RestoreCommand(mariaDB),
-				*restore.Spec.RestoreSource.Physical,
+				jobEnv(mariaDB),
+				jobVolumeMounts(*restore.Spec.RestoreSource.Physical),
 				restore.Spec.Resources,
 				mariaDB,
 			),
@@ -177,6 +184,71 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 
 	job := builder.build()
 	if err := controllerutil.SetControllerReference(restore, job, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+	return job, nil
+}
+
+func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
+	mariaDB *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
+	sqlJobLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariaDB).
+			Build()
+
+	meta := metav1.ObjectMeta{
+		Name:      key.Name,
+		Namespace: key.Namespace,
+		Labels:    sqlJobLabels,
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      batchScriptsVolume,
+			MountPath: batchScriptsMountPath,
+		},
+	}
+	sqlOpts := []sqlcmd.Option{
+		sqlcmd.WithUserEnv(batchUserEnv),
+		sqlcmd.WithPasswordEnv(batchPasswordEnv),
+		sqlcmd.WithSqlFile(fmt.Sprintf("%s/%s", batchScriptsMountPath, batchScriptsSqlFileName)),
+	}
+	if sqlJob.Spec.Database != nil {
+		sqlOpts = append(sqlOpts, sqlcmd.WithDatabase(*sqlJob.Spec.Database))
+	}
+	cmd, err := sqlcmd.New(sqlOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("error building sql command: %v", err)
+	}
+
+	jobOpts := []jobOption{
+		withJobMeta(meta),
+		withJobVolumes(
+			sqlJobvolumes(sqlJob),
+		),
+		withJobContainers(
+			jobContainers(
+				cmd.ExecCommand(mariaDB),
+				sqlJobEnv(sqlJob),
+				volumeMounts,
+				sqlJob.Spec.Resources,
+				mariaDB,
+			),
+		),
+		withJobBackoffLimit(sqlJob.Spec.BackoffLimit),
+		withJobRestartPolicy(sqlJob.Spec.RestartPolicy),
+	}
+	if sqlJob.Spec.MariaDBRef.WaitForIt {
+		jobOpts = addJobInitContainersOpt(mariaDB, jobOpts)
+	}
+
+	builder, err := newJobBuilder(jobOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("error building sql Job: %v", err)
+	}
+
+	job := builder.build()
+	if err := controllerutil.SetControllerReference(sqlJob, job, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
 	return job, nil
@@ -324,6 +396,25 @@ func jobVolumeMounts(physical bool) []corev1.VolumeMount {
 	return volumeMounts
 }
 
+func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) []corev1.Volume {
+	return []corev1.Volume{
+		{
+			Name: batchScriptsVolume,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: sqlJob.Spec.SqlConfigMapKeyRef.LocalObjectReference,
+					Items: []corev1.KeyToPath{
+						{
+							Key:  sqlJob.Spec.SqlConfigMapKeyRef.Key,
+							Path: batchScriptsSqlFileName,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func jobInitContainers(cmd string, mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 	return []corev1.Container{
 		{
@@ -337,8 +428,8 @@ func jobInitContainers(cmd string, mariadb *mariadbv1alpha1.MariaDB) []corev1.Co
 	}
 }
 
-func jobContainers(cmd *backupcmd.Command, physical bool, resources *corev1.ResourceRequirements,
-	mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
+func jobContainers(cmd *cmd.Command, env []v1.EnvVar, volumeMounts []corev1.VolumeMount,
+	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 
 	container := corev1.Container{
 		Name:            "mariadb",
@@ -346,8 +437,8 @@ func jobContainers(cmd *backupcmd.Command, physical bool, resources *corev1.Reso
 		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
 		Command:         cmd.Command,
 		Args:            cmd.Args,
-		Env:             jobEnv(mariadb),
-		VolumeMounts:    jobVolumeMounts(physical),
+		Env:             env,
+		VolumeMounts:    volumeMounts,
 	}
 	if resources != nil {
 		container.Resources = *resources
@@ -358,13 +449,28 @@ func jobContainers(cmd *backupcmd.Command, physical bool, resources *corev1.Reso
 func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	return []v1.EnvVar{
 		{
-			Name:  backupUserEnv,
+			Name:  batchUserEnv,
 			Value: "root",
 		},
 		{
-			Name: backupPasswordEnv,
+			Name: batchPasswordEnv,
 			ValueFrom: &v1.EnvVarSource{
 				SecretKeyRef: &mariadb.Spec.RootPasswordSecretKeyRef,
+			},
+		},
+	}
+}
+
+func sqlJobEnv(sqlJob *mariadbv1alpha1.SqlJob) []v1.EnvVar {
+	return []v1.EnvVar{
+		{
+			Name:  batchUserEnv,
+			Value: sqlJob.Spec.Username,
+		},
+		{
+			Name: batchPasswordEnv,
+			ValueFrom: &v1.EnvVarSource{
+				SecretKeyRef: &sqlJob.Spec.PasswordSecretKeyRef,
 			},
 		},
 	}

@@ -23,8 +23,9 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Support for custom [`my.cnf`](./config/samples/mariadb_v1alpha1_mariadb_config.yaml)
 - [Take](./config/samples/mariadb_v1alpha1_backup.yaml) and [restore](./config/samples/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./config/samples/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
 - Bootstrap new instances from [backups](./config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes ([PVCs](./config/samples/mariadb_v1alpha1_mariadb_from_pvc.yaml), [NFS](./config/samples/mariadb_v1alpha1_mariadb_from_nfs.yaml) ...)
-- Support for managing [users](./config/samples/mariadb_v1alpha1_user.yaml), [grants](./config/samples/mariadb_v1alpha1_grant.yaml) and logical [databases](./config/samples/mariadb_v1alpha1_database.yaml)
+- Manage [users](./config/samples/mariadb_v1alpha1_user.yaml), [grants](./config/samples/mariadb_v1alpha1_grant.yaml) and logical [databases](./config/samples/mariadb_v1alpha1_database.yaml)
 - Configure [connections](./config/samples/mariadb_v1alpha1_connection.yaml) for your applications
+- Orchestrate [sql scripts](./config/samples/sqljobs)
 - Prometheus metrics
 - Validation webhooks to provide CRD inmutability
 - Additional printer columns to report the current CRD status
@@ -103,7 +104,27 @@ NAME              READY   STATUS    DATABASE   TABLE   USERNAME          GRANTOP
 mariadb-metrics   True    Created   *          *       mariadb-metrics   false      19m
 user              True    Created   *          *       user              true       36s
 ```
-Now that everything seems to be in place, let's take a backup:
+At this point, we can run our database initialization scripts:
+```bash
+kubectl apply -f config/samples/sqljobs
+```
+```bash
+kubectl get sqljobs
+NAME                      COMPLETE   STATUS    MARIADB   AGE
+01-create-table-users     True       Success   mariadb   5m34s
+02-1-insert-users         True       Success   mariadb   5m34s
+02-2-create-table-repos   True       Success   mariadb   5m34s
+03-insert-repos           True       Success   mariadb   5m34s
+
+kubectl get jobs
+NAME                      COMPLETIONS   DURATION   AGE
+01-create-table-users     1/1           5s         5m51s
+02-1-insert-users         1/1           5s         5m45s
+02-2-create-table-repos   1/1           5s         5m45s
+03-insert-repos           1/1           6s         5m39s
+```
+
+Now that the database has been initialized, let's take a backup:
 ```bash
 kubectl apply -f config/samples/mariadb_v1alpha1_backup_scheduled.yaml
 ```

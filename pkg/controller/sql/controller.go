@@ -1,4 +1,4 @@
-package template
+package sql
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-type TemplateReconciler struct {
+type SqlReconciler struct {
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *conditions.Ready
 
@@ -20,8 +20,8 @@ type TemplateReconciler struct {
 	Finalizer         Finalizer
 }
 
-func NewTemplateReconciler(rr *refresolver.RefResolver, cr *conditions.Ready, wr WrappedReconciler, f Finalizer) Reconciler {
-	return &TemplateReconciler{
+func NewSqlReconciler(rr *refresolver.RefResolver, cr *conditions.Ready, wr WrappedReconciler, f Finalizer) Reconciler {
+	return &SqlReconciler{
 		RefResolver:       rr,
 		ConditionReady:    cr,
 		WrappedReconciler: wr,
@@ -29,20 +29,20 @@ func NewTemplateReconciler(rr *refresolver.RefResolver, cr *conditions.Ready, wr
 	}
 }
 
-func (tr *TemplateReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.Result, error) {
+func (tr *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.Result, error) {
 	if resource.IsBeingDeleted() {
 		if err := tr.Finalizer.Finalize(ctx, resource); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error finalizing %s: %v", resource.Meta().Name, err)
+			return ctrl.Result{}, fmt.Errorf("error finalizing %s: %v", resource.GetName(), err)
 		}
 		return ctrl.Result{}, nil
 	}
 
 	if err := tr.Finalizer.AddFinalizer(ctx); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error adding finalizer to %s: %v", resource.Meta().Name, err)
+		return ctrl.Result{}, fmt.Errorf("error adding finalizer to %s: %v", resource.GetName(), err)
 	}
 
 	var mariaDbErr *multierror.Error
-	mariaDb, err := tr.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.Meta().Namespace)
+	mariaDb, err := tr.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.GetNamespace())
 	if err != nil {
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
@@ -54,7 +54,7 @@ func (tr *TemplateReconciler) Reconcile(ctx context.Context, resource Resource) 
 
 	if resource.MariaDBRef().WaitForIt && !mariaDb.IsReady() {
 		if err := tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.FailedPatcher("MariaDB not ready")); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching %s: %v", resource.Meta().Name, err)
+			return ctrl.Result{}, fmt.Errorf("error patching %s: %v", resource.GetName(), err)
 		}
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 	}
@@ -80,7 +80,7 @@ func (tr *TemplateReconciler) Reconcile(ctx context.Context, resource Resource) 
 	errBundle = multierror.Append(errBundle, err)
 
 	if err := errBundle.ErrorOrNil(); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating %s: %v", resource.Meta().Name, err)
+		return ctrl.Result{}, fmt.Errorf("error creating %s: %v", resource.GetName(), err)
 	}
 	return ctrl.Result{}, nil
 }

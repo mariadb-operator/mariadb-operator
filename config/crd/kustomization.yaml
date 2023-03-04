@@ -6,4 +6,5 @@ resources:
   - bases/mariadb.mmontes.io_grants.yaml
   - bases/mariadb.mmontes.io_databases.yaml
   - bases/mariadb.mmontes.io_connections.yaml
+  - bases/mariadb.mmontes.io_sqljobs.yaml
   #+kubebuilder:scaffold:crdkustomizeresource

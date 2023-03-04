@@ -22,7 +22,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
-	"github.com/mmontes11/mariadb-operator/pkg/controller/template"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/sql"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,8 +52,8 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	wr := newWrappedDatabaseReconciler(r.Client, r.RefResolver, &database)
 	wf := newWrappedDatabaseFinalizer(r.Client, &database)
-	tf := template.NewTemplateFinalizer(r.RefResolver, wf)
-	tr := template.NewTemplateReconciler(r.RefResolver, r.ConditionReady, wr, tf)
+	tf := sql.NewSqlFinalizer(r.RefResolver, wf)
+	tr := sql.NewSqlReconciler(r.RefResolver, r.ConditionReady, wr, tf)
 
 	result, err := tr.Reconcile(ctx, &database)
 	if err != nil {
@@ -76,7 +76,7 @@ type wrappedDatabaseReconciler struct {
 }
 
 func newWrappedDatabaseReconciler(client client.Client, refResolver *refresolver.RefResolver,
-	database *mariadbv1alpha1.Database) template.WrappedReconciler {
+	database *mariadbv1alpha1.Database) sql.WrappedReconciler {
 	return &wrappedDatabaseReconciler{
 		Client:      client,
 		refResolver: refResolver,
