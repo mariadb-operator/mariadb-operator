@@ -74,9 +74,9 @@ webhook:
     scrapeTimeout: 25s
   # -- Annotations to add to webhook Pod
   podAnnotations: {}
-  # -- Security context to add to webhook container
-  podSecurityContext: {}
   # -- Security context to add to webhook Pod
+  podSecurityContext: {}
+  # -- Security context to add to webhook container
   securityContext: {}
   # -- Resources to add to webhook container
   resources: {}
@@ -93,10 +93,10 @@ webhook:
 # -- Annotations to add to controller Pod
 podAnnotations: {}
 
-# -- Security context to add to controller container
+# -- Security context to add to controller Pod
 podSecurityContext: {}
 
-# -- Security context to add to controller Pod
+# -- Security context to add to controller container
 securityContext: {}
 
 resources: {}

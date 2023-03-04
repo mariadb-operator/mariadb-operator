@@ -29,6 +29,7 @@ import (
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
 	"github.com/mmontes11/mariadb-operator/pkg/controller/batch"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/configmap"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -91,6 +92,7 @@ var rootCmd = &cobra.Command{
 			Builder:                  builder,
 			RefResolver:              refResolver,
 			ConditionReady:           conditionReady,
+			ConfigMapReconciler:      configmap.NewConfigMapReconciler(mgr.GetClient(), builder, "my.cnf"),
 			ServiceMonitorReconciler: serviceMonitorReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
@@ -153,6 +155,17 @@ var rootCmd = &cobra.Command{
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Connection")
+			os.Exit(1)
+		}
+		if err = (&controllers.SqlJobReconciler{
+			Client:              mgr.GetClient(),
+			Scheme:              mgr.GetScheme(),
+			Builder:             builder,
+			RefResolver:         refResolver,
+			ConfigMapReconciler: configmap.NewConfigMapReconciler(mgr.GetClient(), builder, "job.sql"),
+			ConditionComplete:   conditionComplete,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "SqlJob")
 			os.Exit(1)
 		}
 

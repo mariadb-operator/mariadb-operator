@@ -1,51 +1,58 @@
-package backupcmd
+package backup
 
 import (
 	"errors"
+
+	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	"github.com/mmontes11/mariadb-operator/pkg/command"
 )
 
-type Option func(*CommandOpts)
+type Commander interface {
+	BackupCommand(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) *command.Command
+	RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command
+}
+
+type BackupOpts struct {
+	command.CommandOpts
+	BackupPhysical bool
+	BackupFile     string
+	BasePath       string
+}
+
+type Option func(*BackupOpts)
 
 func WithBackupPhysical(p bool) Option {
-	return func(co *CommandOpts) {
+	return func(co *BackupOpts) {
 		co.BackupPhysical = p
 	}
 }
 
 func WithFile(f string) Option {
-	return func(co *CommandOpts) {
+	return func(co *BackupOpts) {
 		co.BackupFile = f
 	}
 }
 
 func WithBasePath(p string) Option {
-	return func(co *CommandOpts) {
+	return func(co *BackupOpts) {
 		co.BasePath = p
 	}
 }
 
 func WithUserEnv(u string) Option {
-	return func(co *CommandOpts) {
+	return func(co *BackupOpts) {
 		co.UserEnv = u
 	}
 }
 
 func WithPasswordEnv(p string) Option {
-	return func(co *CommandOpts) {
+	return func(co *BackupOpts) {
 		co.PasswordEnv = p
 	}
 }
 
-type CommandOpts struct {
-	BackupPhysical bool
-	BackupFile     string
-	BasePath       string
-	UserEnv        string
-	PasswordEnv    string
-}
-
 func New(userOpts ...Option) (Commander, error) {
-	opts := &CommandOpts{}
+	opts := &BackupOpts{}
 
 	for _, setOpt := range userOpts {
 		setOpt(opts)

@@ -25,7 +25,7 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting to create a ConfigMap eventually")
 			Eventually(func() bool {
 				var cm corev1.ConfigMap
-				if err := k8sClient.Get(testCtx, configMapKey(&testMariaDb), &cm); err != nil {
+				if err := k8sClient.Get(testCtx, configMapMariaDBKey(&testMariaDb), &cm); err != nil {
 					return false
 				}
 				return true

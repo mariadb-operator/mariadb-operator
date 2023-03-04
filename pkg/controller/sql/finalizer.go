@@ -1,4 +1,4 @@
-package template
+package sql
 
 import (
 	"context"
@@ -9,20 +9,20 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-type TemplateFinalizer struct {
+type SqlFinalizer struct {
 	RefResolver *refresolver.RefResolver
 
 	WrappedFinalizer WrappedFinalizer
 }
 
-func NewTemplateFinalizer(rr *refresolver.RefResolver, wf WrappedFinalizer) Finalizer {
-	return &TemplateFinalizer{
+func NewSqlFinalizer(rr *refresolver.RefResolver, wf WrappedFinalizer) Finalizer {
+	return &SqlFinalizer{
 		RefResolver:      rr,
 		WrappedFinalizer: wf,
 	}
 }
 
-func (tf *TemplateFinalizer) AddFinalizer(ctx context.Context) error {
+func (tf *SqlFinalizer) AddFinalizer(ctx context.Context) error {
 	if tf.WrappedFinalizer.ContainsFinalizer() {
 		return nil
 	}
@@ -32,16 +32,16 @@ func (tf *TemplateFinalizer) AddFinalizer(ctx context.Context) error {
 	return nil
 }
 
-func (tf *TemplateFinalizer) Finalize(ctx context.Context, resource Resource) error {
+func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) error {
 	if !tf.WrappedFinalizer.ContainsFinalizer() {
 		return nil
 	}
 
-	mariaDb, err := tf.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.Meta().Namespace)
+	mariaDb, err := tf.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.GetNamespace())
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			if err := tf.WrappedFinalizer.RemoveFinalizer(ctx); err != nil {
-				return fmt.Errorf("error removing %s finalizer: %v", resource.Meta().Name, err)
+				return fmt.Errorf("error removing %s finalizer: %v", resource.GetName(), err)
 			}
 			return nil
 		}

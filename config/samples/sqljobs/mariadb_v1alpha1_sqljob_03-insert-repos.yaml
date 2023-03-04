@@ -1,0 +1,18 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: SqlJob
+metadata:
+  name: 03-insert-repos
+spec:
+  dependsOn:
+    - name: 02-1-insert-users
+    - name: 02-2-create-table-repos
+  mariaDbRef:
+    name: mariadb
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+  sql: |
+    INSERT INTO repos(name, owner_id) VALUES('mariadb-operator', (SELECT id FROM users WHERE username = 'mmontes11'))
+    ON DUPLICATE KEY UPDATE name='mariadb-operator';

@@ -26,8 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("restore webhook", func() {
-	Context("When creating a restore", func() {
+var _ = Describe("Restore webhook", func() {
+	Context("When creating a Restore", func() {
 		It("Should validate", func() {
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
 			// https://github.com/mmontes11/mariadb-operator/issues/3
@@ -175,9 +175,9 @@ var _ = Describe("restore webhook", func() {
 		})
 	})
 
-	Context("When updating a restore", func() {
+	Context("When updating a Restore", func() {
 		It("Should validate", func() {
-			By("Creating restore")
+			By("Creating a Restore")
 			key := types.NamespacedName{
 				Name:      "restore-mariadb-webhook",
 				Namespace: testNamespace,

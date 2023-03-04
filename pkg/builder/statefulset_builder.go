@@ -29,10 +29,6 @@ const (
 	metricsPort          = 9104
 )
 
-var (
-	DefaultMyCnfKey = "my.cnf"
-)
-
 func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-%s-0", stsStorageVolume, mariadb.Name),
@@ -215,7 +211,7 @@ func buildStatefulSetVolumes(mariadb *mariadbv1alpha1.MariaDB) []v1.Volume {
 					Items: []corev1.KeyToPath{
 						{
 							Key:  mariadb.Spec.MyCnfConfigMapKeyRef.Key,
-							Path: DefaultMyCnfKey,
+							Path: "my.cnf",
 						},
 					},
 				},

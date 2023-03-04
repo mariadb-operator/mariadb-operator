@@ -22,7 +22,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
-	"github.com/mmontes11/mariadb-operator/pkg/controller/template"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/sql"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	"k8s.io/apimachinery/pkg/fields"
@@ -64,8 +64,8 @@ func (r *GrantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	wr := newWrappedGrantReconciler(r.Client, *r.RefResolver, &grant)
 	wf := newWrappedGrantFinalizer(r.Client, &grant)
-	tf := template.NewTemplateFinalizer(r.RefResolver, wf)
-	tr := template.NewTemplateReconciler(r.RefResolver, r.ConditionReady, wr, tf)
+	tf := sql.NewSqlFinalizer(r.RefResolver, wf)
+	tr := sql.NewSqlReconciler(r.RefResolver, r.ConditionReady, wr, tf)
 
 	result, err := tr.Reconcile(ctx, &grant)
 	if err != nil {
@@ -138,7 +138,7 @@ type wrappedGrantReconciler struct {
 }
 
 func newWrappedGrantReconciler(client client.Client, refResolver refresolver.RefResolver,
-	grant *mariadbv1alpha1.Grant) template.WrappedReconciler {
+	grant *mariadbv1alpha1.Grant) sql.WrappedReconciler {
 	return &wrappedGrantReconciler{
 		Client:      client,
 		refResolver: &refResolver,

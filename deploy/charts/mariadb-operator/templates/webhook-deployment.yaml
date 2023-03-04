@@ -31,7 +31,7 @@ spec:
       affinity:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      {{ with .Values.webhook.securityContext }}
+      {{ with .Values.webhook.podSecurityContext }}
       securityContext:
         {{ toYaml . | nindent 8 }}
       {{ end }}
@@ -71,7 +71,7 @@ spec:
           resources:
             {{ toYaml . | nindent 12 }}
           {{ end }}
-          {{ with .Values.webhook.podSecurityContext}}
+          {{ with .Values.webhook.securityContext}}
           securityContext:
             {{ toYaml . | nindent 12 }}
           {{ end }}

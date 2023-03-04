@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -72,8 +71,8 @@ type MariaDBSpec struct {
 
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
-	Env     []v1.EnvVar        `json:"env,omitempty"`
-	EnvFrom []v1.EnvFromSource `json:"envFrom,omitempty"`
+	Env     []corev1.EnvVar        `json:"env,omitempty"`
+	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
@@ -110,6 +109,14 @@ func (m *MariaDB) IsReady() bool {
 
 func (m *MariaDB) IsBootstrapped() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBootstrapped)
+}
+
+func (m *MariaDB) ConfigMapValue() *string {
+	return m.Spec.MyCnf
+}
+
+func (m *MariaDB) ConfigMapKeyRef() *corev1.ConfigMapKeySelector {
+	return m.Spec.MyCnfConfigMapKeyRef
 }
 
 // +kubebuilder:object:root=true

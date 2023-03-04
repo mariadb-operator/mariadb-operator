@@ -24,6 +24,7 @@ import (
 	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
 	"github.com/mmontes11/mariadb-operator/pkg/builder"
 	"github.com/mmontes11/mariadb-operator/pkg/conditions"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/configmap"
 	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -43,6 +44,7 @@ type MariaDBReconciler struct {
 	Builder                  *builder.Builder
 	RefResolver              *refresolver.RefResolver
 	ConditionReady           *conditions.Ready
+	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	ServiceMonitorReconciler bool
 }
 
@@ -130,36 +132,18 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
 		return nil
 	}
-	key := configMapKey(mariadb)
 
-	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
-		var configMap corev1.ConfigMap
-		if err := r.Get(ctx, key, &configMap); err != nil {
-			return fmt.Errorf("error getting ConfigMap: %v", err)
-		}
-		return nil
+	key := configMapMariaDBKey(mariadb)
+	if err := r.ConfigMapReconciler.Reconcile(ctx, mariadb, key); err != nil {
+		return fmt.Errorf("error reconciling ConfigMap: %v", err)
 	}
 
-	opts := builder.ConfigMapOpts{
-		Key: key,
-		Data: map[string]string{
-			builder.DefaultMyCnfKey: *mariadb.Spec.MyCnf,
-		},
-	}
-	configMap, err := r.Builder.BuildConfigMap(opts, mariadb)
-	if err != nil {
-		return fmt.Errorf("error building ConfigMap: %v", err)
-	}
-
-	if err = r.Create(ctx, configMap); err != nil {
-		return fmt.Errorf("error creating ConfigMap: %v", err)
-	}
 	if err := r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
 		mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: configMap.Name,
+				Name: key.Name,
 			},
-			Key: builder.DefaultMyCnfKey,
+			Key: r.ConfigMapReconciler.ConfigMapKey,
 		}
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB: %v", err)
@@ -428,13 +412,7 @@ func connectionKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	}
 }
 
-func configMapKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
-		return types.NamespacedName{
-			Name:      mariadb.Spec.MyCnfConfigMapKeyRef.Name,
-			Namespace: mariadb.Namespace,
-		}
-	}
+func configMapMariaDBKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("config-%s", mariadb.Name),
 		Namespace: mariadb.Namespace,

@@ -23,7 +23,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/controller/template"
+	"github.com/mmontes11/mariadb-operator/pkg/controller/sql"
 	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -40,7 +40,7 @@ type wrappedGrantFinalizer struct {
 	grant *mariadbv1alpha1.Grant
 }
 
-func newWrappedGrantFinalizer(client client.Client, grant *mariadbv1alpha1.Grant) template.WrappedFinalizer {
+func newWrappedGrantFinalizer(client client.Client, grant *mariadbv1alpha1.Grant) sql.WrappedFinalizer {
 	return &wrappedGrantFinalizer{
 		Client: client,
 		grant:  grant,

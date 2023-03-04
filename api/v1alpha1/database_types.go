@@ -71,10 +71,6 @@ func (m *Database) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
 }
 
-func (m *Database) Meta() metav1.ObjectMeta {
-	return m.ObjectMeta
-}
-
 func (m *Database) MariaDBRef() *MariaDBRef {
 	return &m.Spec.MariaDBRef
 }

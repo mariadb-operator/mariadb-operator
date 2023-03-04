@@ -47,6 +47,19 @@ func (r *RefResolver) Backup(ctx context.Context, ref *corev1.LocalObjectReferen
 	return &backup, nil
 }
 
+func (r *RefResolver) SqlJob(ctx context.Context, ref *corev1.LocalObjectReference,
+	namespace string) (*mariadbv1alpha1.SqlJob, error) {
+	nn := types.NamespacedName{
+		Name:      ref.Name,
+		Namespace: namespace,
+	}
+	var sqlJob mariadbv1alpha1.SqlJob
+	if err := r.client.Get(ctx, nn, &sqlJob); err != nil {
+		return nil, err
+	}
+	return &sqlJob, nil
+}
+
 func (r *RefResolver) SecretKeyRef(ctx context.Context, selector corev1.SecretKeySelector,
 	namespace string) (string, error) {
 	nn := types.NamespacedName{
