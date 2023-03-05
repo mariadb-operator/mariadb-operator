@@ -26,7 +26,7 @@ import (
 )
 
 var _ = Describe("Grant controller", func() {
-	Context("When creating a Grant", func() {
+	Context("When creating a Grant for all tables and databases", func() {
 		It("Should reconcile", func() {
 			By("Creating a User")
 			userKey := types.NamespacedName{
@@ -110,7 +110,10 @@ var _ = Describe("Grant controller", func() {
 			By("Deleting Grant")
 			Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
 		})
-		It("Should reconcile - database name with dashes", func() {
+	})
+
+	Context("When creating a Grant for a database", func() {
+		It("Should reconcile", func() {
 			By("Creating a Database")
 			databaseKey := types.NamespacedName{
 				Name:      "data-test",
@@ -129,7 +132,7 @@ var _ = Describe("Grant controller", func() {
 						WaitForIt: true,
 					},
 					CharacterSet: "utf8",
-					Collate: 	  "utf8_general_ci",
+					Collate:      "utf8_general_ci",
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &database)).To(Succeed())

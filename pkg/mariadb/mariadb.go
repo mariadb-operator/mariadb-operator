@@ -79,13 +79,6 @@ type CreateUserOpts struct {
 	MaxUserConnections int32
 }
 
-func escapeWildcard(s string) string {
-	if s == "*" {
-		return s
-	}
-	return fmt.Sprintf("`%s`", s)
-}
-
 func (c *Client) CreateUser(ctx context.Context, username string, opts CreateUserOpts) error {
 	query := fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' ", username, "%")
 	if opts.IdentifiedBy != "" {
@@ -138,7 +131,7 @@ func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
 	if opts.GrantOption {
 		privileges = append(privileges, "GRANT OPTION")
 	}
-	query := fmt.Sprintf("REVOKE %s ON `%s`.`%s` FROM '%s'@'%s';",
+	query := fmt.Sprintf("REVOKE %s ON %s.%s FROM '%s'@'%s';",
 		strings.Join(privileges, ","),
 		escapeWildcard(opts.Database),
 		escapeWildcard(opts.Table),
@@ -148,6 +141,13 @@ func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
 
 	_, err := c.db.ExecContext(ctx, query)
 	return err
+}
+
+func escapeWildcard(s string) string {
+	if s == "*" {
+		return s
+	}
+	return fmt.Sprintf("`%s`", s)
 }
 
 type DatabaseOpts struct {
