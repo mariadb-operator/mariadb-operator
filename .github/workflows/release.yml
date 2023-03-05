@@ -79,7 +79,7 @@ jobs:
           version: ${{ env.GORELEASER_VERSION }}
           args: release
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate bundles
         run: make bundle
@@ -96,4 +96,4 @@ jobs:
             dist/manifests/manifests.yaml
             dist/manifests/manifests.min.yaml
         env:
-          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
