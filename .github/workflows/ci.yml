@@ -19,7 +19,7 @@ jobs:
         id: noop
         uses: fkirc/skip-duplicate-actions@v5.3.0
         with:
-          github_token: ${{ secrets.GH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           paths_ignore: '["**.md"]'
           concurrent_skipping: false
 
