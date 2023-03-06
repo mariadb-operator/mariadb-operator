@@ -8,4 +8,5 @@ spec:
   passwordSecretKeyRef:
     name: user
     key: password
+  # This field is immutable and defaults to 10
   maxUserConnections: 20
