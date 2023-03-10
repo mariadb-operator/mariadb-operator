@@ -126,6 +126,12 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 				max_allowed_packet=256M`
 				return &cfg
 			}(),
+			PodSecurityContext: &corev1.PodSecurityContext{
+				RunAsUser: func() *int64 { u := int64(0); return &u }(),
+			},
+			SecurityContext: &corev1.SecurityContext{
+				AllowPrivilegeEscalation: func() *bool { b := false; return &b }(),
+			},
 		},
 	}
 	Expect(k8sClient.Create(ctx, &testMariaDb)).To(Succeed())

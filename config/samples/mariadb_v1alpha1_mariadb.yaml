@@ -51,3 +51,9 @@ spec:
   envFrom:
     - configMapRef:
         name: mariadb
+
+  podSecurityContext:
+    runAsUser: 0
+
+  securityContext:
+    allowPrivilegeEscalation: false
