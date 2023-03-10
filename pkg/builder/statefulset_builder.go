@@ -83,8 +83,9 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 					Labels:    statefulSetLabels,
 				},
 				Spec: v1.PodSpec{
-					Containers: containers,
-					Volumes:    buildStatefulSetVolumes(mariadb),
+					Containers:      containers,
+					Volumes:         buildStatefulSetVolumes(mariadb),
+					SecurityContext: mariadb.Spec.PodSecurityContext,
 				},
 			},
 			VolumeClaimTemplates: []v1.PersistentVolumeClaim{
@@ -130,9 +131,10 @@ func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.Se
 				ContainerPort: mariadb.Spec.Port,
 			},
 		},
-		VolumeMounts:   buildStatefulSetVolumeMounts(mariadb),
-		ReadinessProbe: probe,
-		LivenessProbe:  probe,
+		VolumeMounts:    buildStatefulSetVolumeMounts(mariadb),
+		ReadinessProbe:  probe,
+		LivenessProbe:   probe,
+		SecurityContext: mariadb.Spec.SecurityContext,
 	}
 
 	if mariadb.Spec.Resources != nil {
