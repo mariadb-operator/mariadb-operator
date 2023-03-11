@@ -9,4 +9,4 @@
 - Making use of `mariactl`, abstract the most relevant features of `mariabackup` via Kubernetes CRDs, such as incremental backups: https://github.com/mmontes11/mariadb-operator/issues/17
 - The operator has recently been refactored to easily support new storage types for the backups. The next one to be supported will be S3: https://github.com/mmontes11/mariadb-operator/issues/6
 - Create a documentation site hosted in GitHub Pages, something like [this](https://gateway-api.sigs.k8s.io/). It would be generated from markdown by the new CI/CD: https://github.com/mmontes11/mariadb-operator/issues/21
- - High availability support via [MariaDB Galera](https://mariadb.com/kb/en/what-is-mariadb-galera-cluster/): https://github.com/mmontes11/mariadb-operator/issues/4
+ - High availability support via [Galera](https://mariadb.com/kb/en/what-is-mariadb-galera-cluster/): https://github.com/mmontes11/mariadb-operator/issues/4
