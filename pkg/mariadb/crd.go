@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/refresolver"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 )
 
 func NewRootClientWithCrd(ctx context.Context, crd *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver) (*Client, error) {

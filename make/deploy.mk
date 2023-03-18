@@ -4,7 +4,7 @@ CLUSTER ?= mdb
 ##@ Docker
 
 PLATFORM ?= linux/amd64,linux/arm64
-IMG ?= mmontes11/mariadb-operator:latest
+IMG ?= ghcr.io/mariadb-operator/mariadb-operator:latest
 BUILD ?= docker buildx build --platform $(PLATFORM) -t $(IMG)
 BUILDER ?= mariadb-operator
 
@@ -154,7 +154,7 @@ install-samples: cluster-ctx  ## Install sample configuration.
 
 ##@ Examples
 
-GITHUB_USER := mmontes11
+GITHUB_USER := mariadb-operator
 GITHUB_REPOSITORY := mariadb-operator
 GITHUB_BRANCH ?= main
 

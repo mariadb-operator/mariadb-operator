@@ -4,4 +4,4 @@ metadata:
   name: mariadb-operator
 spec:
   interval: 5m
-  url: https://mmontes11.github.io/mariadb-operator
+  url: https://mariadb-operator.github.io/mariadb-operator

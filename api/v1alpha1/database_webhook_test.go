@@ -52,7 +52,7 @@ var _ = Describe("Database webhook", func() {
 			Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
 
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mmontes11/mariadb-operator/issues/3
+			// https://github.com/mariadb-operator/mariadb-operator/issues/3
 			tt := []struct {
 				by      string
 				patchFn func(mdb *Database)

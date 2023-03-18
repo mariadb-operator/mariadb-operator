@@ -11,7 +11,7 @@ spec:
     branch: flux-example
   secretRef:
     name: flux-system
-  url: ssh://git@github.com/mmontes11/mariadb-operator
+  url: ssh://git@github.com/mariadb-operator/mariadb-operator
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
 kind: Kustomization

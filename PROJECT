@@ -2,7 +2,7 @@ domain: mmontes.io
 layout:
 - go.kubebuilder.io/v3
 projectName: mariadb-operator
-repo: github.com/mmontes11/mariadb-operator
+repo: github.com/mariadb-operator/mariadb-operator
 resources:
 - api:
     crdVersion: v1
@@ -11,7 +11,7 @@ resources:
   domain: mmontes.io
   group: mariadb
   kind: MariaDB
-  path: github.com/mmontes11/mariadb-operator/api/v1alpha1
+  path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true
@@ -23,7 +23,7 @@ resources:
   domain: mmontes.io
   group: mariadb
   kind: Backup
-  path: github.com/mmontes11/mariadb-operator/api/v1alpha1
+  path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true
@@ -35,7 +35,7 @@ resources:
   domain: mmontes.io
   group: mariadb
   kind: Restore
-  path: github.com/mmontes11/mariadb-operator/api/v1alpha1
+  path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true
@@ -47,7 +47,7 @@ resources:
   domain: mmontes.io
   group: mariadb
   kind: User
-  path: github.com/mmontes11/mariadb-operator/api/v1alpha1
+  path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true
@@ -59,7 +59,7 @@ resources:
   domain: mmontes.io
   group: mariadb
   kind: Grant
-  path: github.com/mmontes11/mariadb-operator/api/v1alpha1
+  path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true
@@ -71,7 +71,7 @@ resources:
   domain: mmontes.io
   group: mariadb
   kind: Database
-  path: github.com/mmontes11/mariadb-operator/api/v1alpha1
+  path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true
@@ -83,7 +83,7 @@ resources:
   domain: mmontes.io
   group: mariadb
   kind: Connection
-  path: github.com/mmontes11/mariadb-operator/api/v1alpha1
+  path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true
@@ -95,7 +95,7 @@ resources:
   domain: mmontes.io
   group: mariadb
   kind: SqlJob
-  path: github.com/mmontes11/mariadb-operator/api/v1alpha1
+  path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true

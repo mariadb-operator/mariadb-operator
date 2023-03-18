@@ -79,9 +79,9 @@ jobs:
           CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
         with:
           charts_dir: deploy/charts
-          charts_repo_url: https://mmontes11.github.io/mariadb-operator
+          charts_repo_url: https://mariadb-operator.github.io/mariadb-operator
 
       - name: Dispatch helm workflow
-        run: gh workflow run bundle.yaml --repo mmontes11/mariadb-operator-helm -f version=$(make helm-chart-version)
+        run: gh workflow run bundle.yaml --repo mariadb-operator/mariadb-operator-helm -f version=$(make helm-chart-version)
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"

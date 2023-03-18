@@ -1,7 +1,7 @@
 package builder
 
 import (
-	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 )
 
 const (

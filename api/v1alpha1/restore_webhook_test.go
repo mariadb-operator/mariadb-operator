@@ -30,7 +30,7 @@ var _ = Describe("Restore webhook", func() {
 	Context("When creating a Restore", func() {
 		It("Should validate", func() {
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mmontes11/mariadb-operator/issues/3
+			// https://github.com/mariadb-operator/mariadb-operator/issues/3
 			tt := []struct {
 				by      string
 				restore Restore
@@ -211,7 +211,7 @@ var _ = Describe("Restore webhook", func() {
 			Expect(k8sClient.Create(testCtx, &restore)).To(Succeed())
 
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mmontes11/mariadb-operator/issues/3
+			// https://github.com/mariadb-operator/mariadb-operator/issues/3
 			tt := []struct {
 				by      string
 				patchFn func(mdb *Restore)
