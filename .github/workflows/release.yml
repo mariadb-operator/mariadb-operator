@@ -37,8 +37,9 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v1
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
 
       - name: Prepare
         id: prep
@@ -59,8 +60,8 @@ jobs:
           file: ./Dockerfile
           platforms: linux/arm64,linux/amd64
           tags: |
-            docker.io/mmontes11/mariadb-operator:${{ steps.prep.outputs.VERSION }}
-            docker.io/mmontes11/mariadb-operator:latest
+            ghcr.io/${{ github.repository_owner }}/mariadb-operator:${{ steps.prep.outputs.VERSION }}
+            ghcr.io/${{ github.repository_owner }}/mariadb-operator:latest
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.description=${{ github.event.repository.description }}

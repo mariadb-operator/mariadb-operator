@@ -3,8 +3,8 @@ package backup
 import (
 	"errors"
 
-	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/command"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 )
 
 type Commander interface {

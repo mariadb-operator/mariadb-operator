@@ -20,9 +20,9 @@ import (
 	"context"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/controller/sql"
-	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
+	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"

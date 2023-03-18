@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/mmontes11/mariadb-operator/cmd/controller"
+import "github.com/mariadb-operator/mariadb-operator/cmd/controller"
 
 func main() {
 	controller.Execute()

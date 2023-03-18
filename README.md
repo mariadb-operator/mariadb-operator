@@ -1,13 +1,13 @@
 <p align="center">
-<img src="https://mmontes11.github.io/mariadb-operator/assets/mariadb-operator.png" alt="mariadb" width="250"/>
+<img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb-operator.png" alt="mariadb" width="250"/>
 </p>
 
 <p align="center">
-<a href="https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml"><img src="https://github.com/mmontes11/mariadb-operator/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-<a href="https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml"><img src="https://github.com/mmontes11/mariadb-operator/actions/workflows/helm.yml/badge.svg" alt="Helm"></a>
-<a href="https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml"><img src="https://github.com/mmontes11/mariadb-operator/actions/workflows/release.yml/badge.svg" alt="Release"></a>
-<a href="https://goreportcard.com/report/github.com/mmontes11/mariadb-operator"><img src="https://goreportcard.com/badge/github.com/mmontes11/mariadb-operator" alt="Go Report Card"></a>
-<a href="https://pkg.go.dev/github.com/mmontes11/mariadb-operator"><img src="https://pkg.go.dev/badge/github.com/mmontes11/mariadb-operator.svg" alt="Go Reference"></a>
+<a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/ci.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml/badge.svg" alt="Helm"></a>
+<a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+<a href="https://goreportcard.com/report/github.com/mariadb-operator/mariadb-operator"><img src="https://goreportcard.com/badge/github.com/mariadb-operator/mariadb-operator" alt="Go Report Card"></a>
+<a href="https://pkg.go.dev/github.com/mariadb-operator/mariadb-operator"><img src="https://pkg.go.dev/badge/github.com/mariadb-operator/mariadb-operator.svg" alt="Go Reference"></a>
 </p>
 
 <p align="center">
@@ -31,7 +31,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Additional printer columns to report the current CRD status
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [GitOps](https://opengitops.dev/) friendly
-- Multi-arch [docker](https://hub.docker.com/repository/docker/mmontes11/mariadb-operator/tags?page=1&ordering=last_updated) image
+- Multi-arch [docker](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator) image
 - Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator) 
 
 ## Bare minimum installation
@@ -39,7 +39,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 This installation flavour provides the minimum resources required to run `mariadb-operator` in your cluster.
 
 ```bash
-helm repo add mariadb-operator https://mmontes11.github.io/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 
@@ -50,14 +50,14 @@ The recommended installation includes the following features to provide a better
 - **Webhook certificate renewal**: Automatic webhook certificate issuance and renewal using  [cert-manager](https://cert-manager.io/docs/installation/). By default, a static self-signed certificate is generated.
 
 ```bash
-helm repo add mariadb-operator https://mmontes11.github.io/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator \
   --set metrics.enabled=true --set webhook.certificate.certManager=true
 ```
 
 ## Openshift
 
-The Openshift installation is managed separately in the [mariadb-operator-helm](https://github.com/mmontes11/mariadb-operator-helm) repository, which contains a [helm based operator](https://sdk.operatorframework.io/docs/building-operators/helm/) that allows you to install `mariadb-operator` via [OLM](https://olm.operatorframework.io/docs/).
+The Openshift installation is managed separately in the [mariadb-operator-helm](https://github.com/mariadb-operator/mariadb-operator-helm) repository, which contains a [helm based operator](https://sdk.operatorframework.io/docs/building-operators/helm/) that allows you to install `mariadb-operator` via [OLM](https://olm.operatorframework.io/docs/).
 
 ## Quickstart
 
@@ -175,4 +175,4 @@ Take a look at our [🛣️ roadmap](./ROADMAP.md) and feel free to open an issu
 
 ## Contributing
 
-If you want to report a 🐛 or you think something can be improved, please check our [contributing](./CONTRIBUTING.md) guide and take a look at our open [issues](https://github.com/mmontes11/mariadb-operator/issues). PRs are welcome!
+If you want to report a 🐛 or you think something can be improved, please check our [contributing](./CONTRIBUTING.md) guide and take a look at our open [issues](https://github.com/mariadb-operator/mariadb-operator/issues). PRs are welcome!

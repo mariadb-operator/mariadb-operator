@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"

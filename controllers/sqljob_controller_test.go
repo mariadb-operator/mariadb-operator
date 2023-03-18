@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
@@ -96,7 +96,7 @@ var _ = Describe("SqlJob controller", func() {
 					},
 					Database: &testDatabase,
 					Sql: func() *string {
-						sql := `INSERT INTO users(username, email) VALUES('mmontes11','martin11lrx@gmail.com') 
+						sql := `INSERT INTO users(username, email) VALUES('mmontes11','mariadb-operator@proton.me') 
 						ON DUPLICATE KEY UPDATE username='mmontes11';`
 						return &sql
 					}(),

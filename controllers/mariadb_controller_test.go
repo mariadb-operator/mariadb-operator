@@ -3,8 +3,8 @@ package controllers
 import (
 	"time"
 
-	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/builder"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	labels "github.com/mmontes11/mariadb-operator/pkg/builder/labels"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"

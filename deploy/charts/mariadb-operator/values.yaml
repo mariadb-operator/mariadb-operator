@@ -2,7 +2,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: mmontes11/mariadb-operator
+  repository: ghcr.io/mariadb-operator/mariadb-operator
   pullPolicy: IfNotPresent
   # -- Image tag to use. By default the chart appVersion is used
   tag: ""
@@ -41,7 +41,7 @@ webhook:
   # -- Annotations for webhook configurations.
   annotations: {}
   image:
-    repository: mmontes11/mariadb-operator
+    repository: ghcr.io/mariadb-operator/mariadb-operator
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
     tag: ""

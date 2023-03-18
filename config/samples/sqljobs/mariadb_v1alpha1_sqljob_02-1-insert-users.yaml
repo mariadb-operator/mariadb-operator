@@ -13,5 +13,5 @@ spec:
     key: password
   database: mariadb
   sql: |
-    INSERT INTO users(username, email) VALUES('mmontes11','martin11lrx@gmail.com') 
+    INSERT INTO users(username, email) VALUES('mmontes11','mariadb-operator@proton.me') 
     ON DUPLICATE KEY UPDATE username='mmontes11';

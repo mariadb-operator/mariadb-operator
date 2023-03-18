@@ -31,7 +31,7 @@ var _ = Describe("Backup webhook", func() {
 		It("Should validate", func() {
 			storageClassName := "standard"
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mmontes11/mariadb-operator/issues/3
+			// https://github.com/mariadb-operator/mariadb-operator/issues/3
 			tt := []struct {
 				by      string
 				backup  Backup
@@ -203,7 +203,7 @@ var _ = Describe("Backup webhook", func() {
 			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
 
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mmontes11/mariadb-operator/issues/3
+			// https://github.com/mariadb-operator/mariadb-operator/issues/3
 			tt := []struct {
 				by      string
 				patchFn func(mdb *Backup)

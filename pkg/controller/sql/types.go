@@ -3,9 +3,9 @@ package sql
 import (
 	"context"
 
-	mariadbv1alpha1 "github.com/mmontes11/mariadb-operator/api/v1alpha1"
-	"github.com/mmontes11/mariadb-operator/pkg/conditions"
-	mariadbclient "github.com/mmontes11/mariadb-operator/pkg/mariadb"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
