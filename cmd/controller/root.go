@@ -30,6 +30,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -93,6 +94,7 @@ var rootCmd = &cobra.Command{
 			RefResolver:              refResolver,
 			ConditionReady:           conditionReady,
 			ConfigMapReconciler:      configmap.NewConfigMapReconciler(mgr.GetClient(), builder, "my.cnf"),
+			ReplicationReconciler:    replication.NewReplicationReconciler(mgr.GetClient(), builder, refResolver),
 			ServiceMonitorReconciler: serviceMonitorReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")

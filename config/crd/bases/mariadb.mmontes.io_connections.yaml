@@ -95,6 +95,8 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              podIndex:
+                type: integer
               secretName:
                 type: string
               secretTemplate:

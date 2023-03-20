@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -75,6 +77,85 @@ var _ = Describe("MariaDB webhook", func() {
 									return &p
 								}(),
 							},
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "valid async replication",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Replication: &Replication{
+								Mode: ReplicationModeAsync,
+							},
+							Replicas: 3,
+						},
+					},
+					wantErr: false,
+				},
+				{
+					by: "valid semisync replication",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Replication: &Replication{
+								Mode:           ReplicationModeSemiSync,
+								WaitPoint:      func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
+								PrimaryTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
+								ReplicaRetries: func() *int32 { r := int32(3); return &r }(),
+							},
+							Replicas: 3,
+						},
+					},
+					wantErr: false,
+				},
+				{
+					by: "invalid replication replicas",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Replication: &Replication{
+								Mode: ReplicationModeAsync,
+							},
+							Replicas: 1,
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "invalid replication mode",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Replication: &Replication{
+								Mode: ReplicationMode("foo"),
+							},
+							Replicas: 3,
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "invalid semisync replication",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Replication: &Replication{
+								Mode:      ReplicationModeSemiSync,
+								WaitPoint: func() *WaitPoint { w := WaitPoint("foo"); return &w }(),
+							},
+							Replicas: 3,
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "invalid replicas",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Replicas: 3,
 						},
 					},
 					wantErr: true,

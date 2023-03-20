@@ -1611,6 +1611,8 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  podIndex:
+                    type: integer
                   secretName:
                     type: string
                   secretTemplate:
@@ -2071,6 +2073,24 @@ spec:
                 default: 3306
                 format: int32
                 type: integer
+              replicas:
+                default: 1
+                format: int32
+                type: integer
+              replication:
+                properties:
+                  mode:
+                    type: string
+                  primaryTimeout:
+                    type: string
+                  replicaRetries:
+                    format: int32
+                    type: integer
+                  waitPoint:
+                    type: string
+                required:
+                - mode
+                type: object
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:

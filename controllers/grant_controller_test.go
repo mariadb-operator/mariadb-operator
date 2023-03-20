@@ -116,7 +116,7 @@ var _ = Describe("Grant controller", func() {
 		It("Should reconcile", func() {
 			By("Creating a Database")
 			databaseKey := types.NamespacedName{
-				Name:      "data-test",
+				Name:      "grant-test",
 				Namespace: testNamespace,
 			}
 			database := mariadbv1alpha1.Database{

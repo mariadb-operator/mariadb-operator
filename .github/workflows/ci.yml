@@ -87,7 +87,7 @@ jobs:
           make install
 
       - name: MariaDB test host
-        run: sudo make mdb-add-test-host
+        run: sudo make mdb-add-test-hosts
 
       - name: Test
         run: make test

@@ -23,8 +23,10 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -45,6 +47,7 @@ type MariaDBReconciler struct {
 	RefResolver              *refresolver.RefResolver
 	ConditionReady           *conditions.Ready
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
+	ReplicationReconciler    *replication.ReplicationReconciler
 	ServiceMonitorReconciler bool
 }
 
@@ -75,6 +78,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Resource:  "ConfigMap",
 			Reconcile: r.reconcileConfigMap,
+		},
+		{
+			Resource:  "Replication",
+			Reconcile: r.ReplicationReconciler.Reconcile,
 		},
 		{
 			Resource:  "StatefulSet",
@@ -108,7 +115,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			err = r.patchStatus(ctx, &mariaDb, r.ConditionReady.FailedPatcher(fmt.Sprintf("Error creating %s", p.Resource)))
 			errBundle = multierror.Append(errBundle, err)
 
-			return ctrl.Result{}, fmt.Errorf("error creating %s: %v", p.Resource, errBundle)
+			return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Resource, errBundle)
 		}
 	}
 
@@ -181,6 +188,7 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 
 	patch := client.MergeFrom(existingSts.DeepCopy())
 	existingSts.Spec.Template = desiredSts.Spec.Template
+	existingSts.Spec.Replicas = desiredSts.Spec.Replicas
 
 	if err := r.Patch(ctx, &existingSts, patch); err != nil {
 		return fmt.Errorf("error patching StatefulSet: %v", err)
@@ -190,8 +198,11 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName) error {
-
-	desiredSvc, err := r.Builder.BuildService(mariadb, key)
+	serviceLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, serviceLabels)
 	if err != nil {
 		return fmt.Errorf("error building Service: %v", err)
 	}

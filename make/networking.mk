@@ -1,15 +1,17 @@
 ##@ Networking
 
 MARIADB_IP ?= 127.0.0.1
-MARIADB_HOST ?= mariadb.default.svc.cluster.local
-.PHONY: mdb-add-host
-mdb-add-host: ## Add mariadb host to /etc/hosts.
-	@./hack/add_host.sh $(MARIADB_IP) $(MARIADB_HOST)
+.PHONY: mdb-add-hosts
+mdb-add-hosts: ## Add mariadb hosts to /etc/hosts.
+	@./hack/add_host.sh $(MARIADB_IP) mariadb-0.mariadb.default.svc.cluster.local
+	@./hack/add_host.sh $(MARIADB_IP) mariadb.default.svc.cluster.local
 
-MARIADB_TEST_HOST ?= mariadb-test.default.svc.cluster.local
-.PHONY: mdb-add-test-host
-mdb-add-test-host: ## Add mariadb test hosts to /etc/hosts.
-	@./hack/add_host.sh $(MARIADB_IP) $(MARIADB_TEST_HOST)
+.PHONY: mdb-add-test-hosts
+mdb-add-test-hosts: ## Add mariadb test hosts to /etc/hosts.
+	@./hack/add_host.sh $(MARIADB_IP) mariadb-test-0.mariadb-test.default.svc.cluster.local
+	@./hack/add_host.sh $(MARIADB_IP) mariadb-test.default.svc.cluster.local
+	@./hack/add_host.sh $(MARIADB_IP) mariadb-test-repl-0.mariadb-test.default.svc.cluster.local
+	@./hack/add_host.sh $(MARIADB_IP) mariadb-test-repl.default.svc.cluster.local
 
 MARIADB_NAMESPACE ?= default
 MARIADB_POD ?= mariadb-0
