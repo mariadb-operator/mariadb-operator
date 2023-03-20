@@ -22,3 +22,4 @@ spec:
   healthCheck:
     interval: 10s
     retryInterval: 3s
+  podIndex: 0

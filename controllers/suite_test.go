@@ -27,6 +27,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/portforwarder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
@@ -104,6 +105,7 @@ var _ = BeforeSuite(func() {
 		Builder:                  builder,
 		ConditionReady:           conditionReady,
 		ConfigMapReconciler:      configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder, "my.cnf"),
+		ReplicationReconciler:    replication.NewReplicationReconciler(k8sManager.GetClient(), builder, refResolver),
 		ServiceMonitorReconciler: true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

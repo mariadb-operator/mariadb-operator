@@ -1,15 +1,19 @@
 package builder
 
 import (
+	"fmt"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 )
 
 const (
-	appLabel       = "app.kubernetes.io/name"
-	appMariaDb     = "mariadb"
-	instanceLabel  = "app.kubernetes.io/instance"
-	componentLabel = "app.kubernetes.io/component"
-	releaseLabel   = "release"
+	appLabel           = "app.kubernetes.io/name"
+	appMariaDb         = "mariadb"
+	instanceLabel      = "app.kubernetes.io/instance"
+	componentLabel     = "app.kubernetes.io/component"
+	componentDatabase  = "database"
+	releaseLabel       = "release"
+	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
 )
 
 type LabelsBuilder struct {
@@ -43,7 +47,12 @@ func (b *LabelsBuilder) WithRelease(release string) *LabelsBuilder {
 }
 
 func (b *LabelsBuilder) WithMariaDB(mdb *mariadbv1alpha1.MariaDB) *LabelsBuilder {
-	return b.WithApp(appMariaDb).WithInstance(mdb.Name)
+	return b.WithApp(appMariaDb).WithInstance(mdb.Name).WithComponent(componentDatabase)
+}
+
+func (b *LabelsBuilder) WithStatefulSetPod(mdb *mariadbv1alpha1.MariaDB, ordinal int) *LabelsBuilder {
+	b.labels[statefulSetPodName] = fmt.Sprintf("%s-%d", mdb.Name, ordinal)
+	return b
 }
 
 func (b *LabelsBuilder) Build() map[string]string {

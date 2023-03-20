@@ -3,10 +3,10 @@ package mariadb
 import (
 	"context"
 	"fmt"
-	"os"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
 
 func NewRootClientWithCrd(ctx context.Context, crd *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver) (*Client, error) {
@@ -17,16 +17,8 @@ func NewRootClientWithCrd(ctx context.Context, crd *mariadbv1alpha1.MariaDB, ref
 	opts := Opts{
 		Username: "root",
 		Password: password,
-		Host:     FQDN(crd),
+		Host:     statefulset.PodFQDN(crd.ObjectMeta, 0),
 		Port:     crd.Spec.Port,
 	}
 	return NewClient(opts)
-}
-
-func FQDN(crd *mariadbv1alpha1.MariaDB) string {
-	clusterName := os.Getenv("CLUSTER_NAME")
-	if clusterName == "" {
-		clusterName = "cluster.local"
-	}
-	return fmt.Sprintf("%s.%s.svc.%s", crd.Name, crd.Namespace, clusterName)
 }

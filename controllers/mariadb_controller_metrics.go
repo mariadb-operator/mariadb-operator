@@ -24,6 +24,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -166,7 +167,7 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *maria
 	mdbOpts := mariadbclient.Opts{
 		Username: user.Name,
 		Password: password,
-		Host:     mariadbclient.FQDN(mariadb),
+		Host:     statefulset.PodFQDN(mariadb.ObjectMeta, 0),
 		Port:     mariadb.Spec.Port,
 	}
 	dsn, err := mariadbclient.BuildDSN(mdbOpts)

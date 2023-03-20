@@ -29,6 +29,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -146,10 +147,16 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		return fmt.Errorf("error getting password for connection DSN: %v", err)
 	}
 
+	var host string
+	if conn.Spec.PodIndex != nil {
+		host = statefulset.PodFQDN(mdb.ObjectMeta, *conn.Spec.PodIndex)
+	} else {
+		host = statefulset.ServiceFQDN(mdb.ObjectMeta)
+	}
 	mdbOpts := mariadb.Opts{
 		Username: conn.Spec.Username,
 		Password: password,
-		Host:     mariadb.FQDN(mdb),
+		Host:     host,
 		Port:     mdb.Spec.Port,
 		Params:   conn.Spec.Params,
 	}

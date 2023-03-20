@@ -162,6 +162,144 @@ var _ = Describe("MariaDB controller", func() {
 		})
 	})
 
+	Context("When creating a MariaDB with replication", func() {
+		It("Should reconcile", func() {
+			testRplMariaDbKey := types.NamespacedName{
+				Name:      "mariadb-test-repl",
+				Namespace: testNamespace,
+			}
+			testRplMariaDb := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testRplMariaDbKey.Name,
+					Namespace: testRplMariaDbKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+					Username: &testUser,
+					PasswordSecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+					Database: &testDatabase,
+					Connection: &mariadbv1alpha1.ConnectionTemplate{
+						SecretName: func() *string {
+							s := "primary-conn-mdb-repl"
+							return &s
+						}(),
+						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+							Key: &testConnSecretKey,
+						},
+						PodIndex: func() *int {
+							i := 0
+							return &i
+						}(),
+					},
+					Image: mariadbv1alpha1.Image{
+						Repository: "mariadb",
+						Tag:        "10.7.4",
+					},
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+					MyCnf: func() *string {
+						cfg := `[mysqld]
+						bind-address=0.0.0.0
+						default_storage_engine=InnoDB
+						binlog_format=row
+						innodb_autoinc_lock_mode=2
+						max_allowed_packet=256M`
+						return &cfg
+					}(),
+					Replication: &mariadbv1alpha1.Replication{
+						Mode:      mariadbv1alpha1.ReplicationModeSemiSync,
+						WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
+					},
+					Replicas: 3,
+				},
+			}
+
+			By("Creating MariaDB with replication")
+			Expect(k8sClient.Create(testCtx, &testRplMariaDb)).To(Succeed())
+
+			testReplConnKey := types.NamespacedName{
+				Name:      "replica-conn-mdb-repl",
+				Namespace: testNamespace,
+			}
+			testReplicaConn := mariadbv1alpha1.Connection{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testReplConnKey.Name,
+					Namespace: testNamespace,
+				},
+				Spec: mariadbv1alpha1.ConnectionSpec{
+					ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
+						SecretName: func() *string {
+							s := "replica-conn-mdb-repl"
+							return &s
+						}(),
+						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+							Key: &testConnSecretKey,
+						},
+					},
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testRplMariaDb.Name,
+						},
+						WaitForIt: true,
+					},
+					Username: testUser,
+					PasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdSecretName,
+						},
+						Key: testPwdSecretKey,
+					},
+					Database: &testDatabase,
+				},
+			}
+
+			By("Creating replica Connection")
+			Expect(k8sClient.Create(testCtx, &testReplicaConn)).To(Succeed())
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, testRplMariaDbKey, &testRplMariaDb); err != nil {
+					return false
+				}
+				return testRplMariaDb.IsReady()
+			}, 90*time.Second, 5*time.Second).Should(BeTrue())
+
+			By("Expecting MariaDB replica Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, testReplConnKey, &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Deleting MariaDB")
+			Expect(k8sClient.Delete(testCtx, &testRplMariaDb)).To(Succeed())
+
+			By("Deleting replica Connection")
+			Expect(k8sClient.Delete(testCtx, &testReplicaConn)).To(Succeed())
+		})
+	})
+
 	Context("When creating an invalid MariaDB", func() {
 		It("Should report not ready status", func() {
 			By("Creating MariaDB")
@@ -327,7 +465,7 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting port to be updated in Service")
 			var svc corev1.Service
 			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &svc)).To(Succeed())
-			svcPort, err := builder.GetServicePort(&svc)
+			svcPort, err := builder.MariaDBPort(&svc)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(svcPort.Port).To(BeEquivalentTo(3307))
 

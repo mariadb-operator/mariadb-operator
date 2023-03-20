@@ -36,6 +36,9 @@ var _ webhook.Validator = &MariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateCreate() error {
+	if err := r.validateReplication(); err != nil {
+		return err
+	}
 	if err := r.validateBootstrapFrom(); err != nil {
 		return err
 	}
@@ -44,6 +47,9 @@ func (r *MariaDB) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
+	if err := r.validateReplication(); err != nil {
+		return err
+	}
 	if err := r.validateBootstrapFrom(); err != nil {
 		return err
 	}
@@ -52,6 +58,33 @@ func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateDelete() error {
+	return nil
+}
+
+func (r *MariaDB) validateReplication() error {
+	if r.Spec.Replication == nil && r.Spec.Replicas > 1 {
+		return field.Invalid(
+			field.NewPath("spec").Child("replicas"),
+			r.Spec.Replicas,
+			"Multiple replicas can only be specified when 'spec.replication' is configured",
+		)
+	}
+	if r.Spec.Replication != nil {
+		if r.Spec.Replicas <= 1 {
+			return field.Invalid(
+				field.NewPath("spec").Child("replicas"),
+				r.Spec.Replicas,
+				"Multiple replicas must be specified when 'spec.replication' is configured",
+			)
+		}
+		if err := r.Spec.Replication.Validate(); err != nil {
+			return field.Invalid(
+				field.NewPath("spec").Child("replication"),
+				r.Spec.Replication,
+				err.Error(),
+			)
+		}
+	}
 	return nil
 }
 

@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +49,74 @@ type Service struct {
 	Annotations map[string]string  `json:"annotations,omitempty"`
 }
 
+type ReplicationMode string
+
+const (
+	ReplicationModeAsync    ReplicationMode = "Async"
+	ReplicationModeSemiSync ReplicationMode = "SemiSync"
+)
+
+func (r ReplicationMode) Validate() error {
+	switch r {
+	case ReplicationModeAsync, ReplicationModeSemiSync:
+		return nil
+	default:
+		return fmt.Errorf("invalid ReplicationMode: %v", r)
+	}
+}
+
+type WaitPoint string
+
+const (
+	WaitPointAfterSync   WaitPoint = "AfterSync"
+	WaitPointAfterCommit WaitPoint = "AfterCommit"
+)
+
+func (w WaitPoint) Validate() error {
+	switch w {
+	case WaitPointAfterSync, WaitPointAfterCommit:
+		return nil
+	default:
+		return fmt.Errorf("invalid WaitPoint: %v", w)
+	}
+}
+
+func (w WaitPoint) MariaDBFormat() (string, error) {
+	switch w {
+	case WaitPointAfterSync:
+		return "AFTER_SYNC", nil
+	case WaitPointAfterCommit:
+		return "AFTER_COMMIT", nil
+	default:
+		return "", fmt.Errorf("invalid WaitPoint: %v", w)
+	}
+}
+
+type Replication struct {
+	Mode ReplicationMode `json:"mode"`
+
+	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
+
+	PrimaryTimeout *metav1.Duration `json:"primaryTimeout,omitempty"`
+
+	ReplicaRetries *int32 `json:"replicaRetries,omitempty"`
+}
+
+func (r *Replication) Validate() error {
+	if err := r.Mode.Validate(); err != nil {
+		return fmt.Errorf("invalid Replication: %v", err)
+	}
+	if r.Mode == ReplicationModeAsync {
+		return nil
+	}
+	if r.WaitPoint != nil {
+		if err := r.WaitPoint.Validate(); err != nil {
+			return fmt.Errorf("invalid WaitPoint: %v", err)
+		}
+	}
+	return nil
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// +kubebuilder:validation:Required
@@ -56,14 +126,11 @@ type MariaDBSpec struct {
 	Username             *string                   `json:"username,omitempty" webhook:"inmutable"`
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutable"`
 	Connection           *ConnectionTemplate       `json:"connection,omitempty" webhook:"inmutable"`
-
 	// +kubebuilder:validation:Required
 	Image            Image                         `json:"image" webhook:"inmutable"`
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
-
 	// +kubebuilder:default=3306
 	Port int32 `json:"port,omitempty"`
-
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 
@@ -73,6 +140,10 @@ type MariaDBSpec struct {
 	BootstrapFrom *RestoreSource `json:"bootstrapFrom,omitempty" webhook:"inmutable"`
 
 	Metrics *Metrics `json:"metrics,omitempty"`
+
+	Replication *Replication `json:"replication,omitempty"`
+	// +kubebuilder:default=1
+	Replicas int32 `json:"replicas,omitempty"`
 
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 

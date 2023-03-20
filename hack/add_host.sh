@@ -5,7 +5,7 @@ set -euo pipefail
 IP=$1
 HOSTNAME=$2
 
-if [ -n "$(grep $HOSTNAME /etc/hosts)" ]; then
+if grep -q "^$IP\s*$HOSTNAME" /etc/hosts; then
   echo "\"$HOSTNAME\" host already exists in /etc/hosts"
 else
   echo "Adding \"$HOSTNAME\" to /etc/hosts";
