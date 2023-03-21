@@ -42,6 +42,11 @@ type Metrics struct {
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
 }
 
+type MariaDBService struct {
+	Type        corev1.ServiceType `json:"type,omitempty"`
+	Annotations map[string]string  `json:"annotations,omitempty"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// +kubebuilder:validation:Required
@@ -76,6 +81,8 @@ type MariaDBSpec struct {
 
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	SecurityContext    *corev1.SecurityContext    `json:"securityContext,omitempty"`
+
+	Service *MariaDBService `json:"service,omitempty"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB

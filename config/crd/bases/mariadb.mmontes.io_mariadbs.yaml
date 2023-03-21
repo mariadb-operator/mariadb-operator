@@ -2277,6 +2277,17 @@ spec:
                         type: string
                     type: object
                 type: object
+              service:
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  type:
+                    description: Service Type string describes ingress methods for
+                      a service
+                    type: string
+                type: object
               username:
                 type: string
               volumeClaimTemplate:

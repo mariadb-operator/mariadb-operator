@@ -209,6 +209,8 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 
 	patch := client.MergeFrom(existingSvc.DeepCopy())
 	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
+	existingSvc.Spec.Type = desiredSvc.Spec.Type
+	existingSvc.Annotations = desiredSvc.Annotations
 
 	if err := r.Patch(ctx, &existingSvc, patch); err != nil {
 		return fmt.Errorf("error patching Service: %v", err)
