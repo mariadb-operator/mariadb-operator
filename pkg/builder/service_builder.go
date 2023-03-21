@@ -27,14 +27,18 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 			WithMariaDB(mariadb).
 			WithComponent(componentDatabase).
 			Build()
+	if mariadb.Spec.Service == nil {
+		mariadb.Spec.Service = &mariadbv1alpha1.MariaDBService{}
+	}
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-			Labels:    serviceLabels,
+			Name:        key.Name,
+			Namespace:   key.Namespace,
+			Labels:      serviceLabels,
+			Annotations: mariadb.Spec.Service.Annotations,
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     corev1.ServiceTypeClusterIP,
+			Type:     mariadb.Spec.Service.Type,
 			Ports:    buildPorts(mariadb),
 			Selector: serviceLabels,
 		},
