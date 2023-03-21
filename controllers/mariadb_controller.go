@@ -129,7 +129,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	mariaDbKey types.NamespacedName) error {
 
-	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
+	if r.ConfigMapReconciler.NoopReconcile(mariadb) {
 		return nil
 	}
 

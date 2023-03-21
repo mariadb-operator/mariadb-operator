@@ -31,9 +31,18 @@ func NewConfigMapReconciler(client client.Client, builder *builder.Builder, conf
 	}
 }
 
-func (r *ConfigMapReconciler) Reconcile(ctx context.Context, configMapper ConfigMapper, key types.NamespacedName) error {
-
+func (r *ConfigMapReconciler) NoopReconcile(configMapper ConfigMapper) bool {
 	if configMapper.ConfigMapValue() == nil && configMapper.ConfigMapKeyRef() == nil {
+		return true
+	}
+	if configMapper.ConfigMapKeyRef() != nil {
+		return true
+	}
+	return false
+}
+
+func (r *ConfigMapReconciler) Reconcile(ctx context.Context, configMapper ConfigMapper, key types.NamespacedName) error {
+	if r.NoopReconcile(configMapper) {
 		return nil
 	}
 
