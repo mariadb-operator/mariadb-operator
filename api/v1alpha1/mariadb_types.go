@@ -42,7 +42,7 @@ type Metrics struct {
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
 }
 
-type MariaDBService struct {
+type Service struct {
 	Type        corev1.ServiceType `json:"type,omitempty"`
 	Annotations map[string]string  `json:"annotations,omitempty"`
 }
@@ -82,7 +82,7 @@ type MariaDBSpec struct {
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 	SecurityContext    *corev1.SecurityContext    `json:"securityContext,omitempty"`
 
-	Service *MariaDBService `json:"service,omitempty"`
+	Service *Service `json:"service,omitempty"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
