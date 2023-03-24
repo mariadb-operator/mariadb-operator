@@ -77,6 +77,7 @@ jobs:
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
+          CR_SKIP_EXISTING: true
         with:
           charts_dir: deploy/charts
           charts_repo_url: https://mariadb-operator.github.io/mariadb-operator
