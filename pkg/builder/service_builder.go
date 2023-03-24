@@ -28,7 +28,7 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 			WithComponent(componentDatabase).
 			Build()
 	if mariadb.Spec.Service == nil {
-		mariadb.Spec.Service = &mariadbv1alpha1.MariaDBService{}
+		mariadb.Spec.Service = &mariadbv1alpha1.Service{}
 	}
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{

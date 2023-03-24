@@ -233,6 +233,40 @@ func TestInmutableWebhook(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "update serivce type and annotations",
+			new: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{},
+					},
+					Image: mariadbv1alpha1.Image{
+						Repository: "test",
+					},
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{},
+					Service: &mariadbv1alpha1.Service{
+						Type: "LoadBalancer",
+						Annotations: map[string]string{
+							"metallb.universe.tf/address-pool": "sandbox",
+						},
+					},
+				},
+			},
+			old: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{},
+					},
+					Image: mariadbv1alpha1.Image{
+						Repository: "test",
+					},
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{},
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
