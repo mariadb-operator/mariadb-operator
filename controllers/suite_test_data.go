@@ -132,6 +132,34 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 			SecurityContext: &corev1.SecurityContext{
 				AllowPrivilegeEscalation: func() *bool { b := false; return &b }(),
 			},
+			LivenessProbe: &v1.Probe{
+				ProbeHandler: v1.ProbeHandler{
+					Exec: &v1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
+						},
+					},
+				},
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+			ReadinessProbe: &v1.Probe{
+				ProbeHandler: v1.ProbeHandler{
+					Exec: &v1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
+						},
+					},
+				},
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
 		},
 	}
 	Expect(k8sClient.Create(ctx, &testMariaDb)).To(Succeed())

@@ -147,7 +147,7 @@ func buildStatefulSetInitContainers(mariadb *mariadbv1alpha1.MariaDB) []v1.Conta
 
 func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
 	var containers []v1.Container
-	probe := &v1.Probe{
+	defaultProbe := &v1.Probe{
 		ProbeHandler: v1.ProbeHandler{
 			Exec: &v1.ExecAction{
 				Command: []string{
@@ -157,9 +157,9 @@ func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.Se
 				},
 			},
 		},
-		InitialDelaySeconds: 10,
+		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
+		PeriodSeconds:       10,
 	}
 	mariaDbContainer := v1.Container{
 		Name:            mariaDbContainerName,
@@ -173,9 +173,19 @@ func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.Se
 				ContainerPort: mariadb.Spec.Port,
 			},
 		},
-		VolumeMounts:    buildStatefulSetVolumeMounts(mariadb),
-		ReadinessProbe:  probe,
-		LivenessProbe:   probe,
+		VolumeMounts: buildStatefulSetVolumeMounts(mariadb),
+		ReadinessProbe: func() *corev1.Probe {
+			if mariadb.Spec.ReadinessProbe != nil {
+				return mariadb.Spec.ReadinessProbe
+			}
+			return defaultProbe
+		}(),
+		LivenessProbe: func() *corev1.Probe {
+			if mariadb.Spec.LivenessProbe != nil {
+				return mariadb.Spec.LivenessProbe
+			}
+			return defaultProbe
+		}(),
 		SecurityContext: mariadb.Spec.SecurityContext,
 	}
 
