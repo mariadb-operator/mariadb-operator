@@ -225,6 +225,34 @@ var _ = Describe("MariaDB controller", func() {
 						max_allowed_packet=256M`
 						return &cfg
 					}(),
+					LivenessProbe: &v1.Probe{
+						ProbeHandler: v1.ProbeHandler{
+							Exec: &v1.ExecAction{
+								Command: []string{
+									"bash",
+									"-c",
+									"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
+								},
+							},
+						},
+						InitialDelaySeconds: 10,
+						TimeoutSeconds:      5,
+						PeriodSeconds:       5,
+					},
+					ReadinessProbe: &v1.Probe{
+						ProbeHandler: v1.ProbeHandler{
+							Exec: &v1.ExecAction{
+								Command: []string{
+									"bash",
+									"-c",
+									"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
+								},
+							},
+						},
+						InitialDelaySeconds: 10,
+						TimeoutSeconds:      5,
+						PeriodSeconds:       5,
+					},
 					Replication: &mariadbv1alpha1.Replication{
 						Mode:      mariadbv1alpha1.ReplicationModeSemiSync,
 						WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
