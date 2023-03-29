@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -33,10 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-var (
-	errBackupNotComplete = errors.New("Backup not complete")
 )
 
 // RestoreReconciler reconciles a restore object
@@ -89,9 +84,6 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		)
 		sourceErr = multierror.Append(sourceErr, patchErr)
 
-		if errors.Is(err, errBackupNotComplete) {
-			return ctrl.Result{RequeueAfter: 3 * time.Second}, sourceErr
-		}
 		return ctrl.Result{}, fmt.Errorf("error initializing source: %v", sourceErr)
 	}
 
@@ -142,10 +134,13 @@ func (r *RestoreReconciler) initSource(ctx context.Context, restore *mariadbv1al
 	}
 
 	if !backup.IsComplete() {
-		if err := r.patchStatus(ctx, restore, r.ConditionComplete.FailedPatcher("Backup not complete")); err != nil {
-			return fmt.Errorf("error patching restore: %v", err)
-		}
-		return errBackupNotComplete
+		var errBundle *multierror.Error
+		errBundle = multierror.Append(errBundle, errors.New("Backup not complete"))
+
+		err := r.patchStatus(ctx, restore, r.ConditionComplete.FailedPatcher("Backup not complete"))
+		errBundle = multierror.Append(errBundle, err)
+
+		return errBundle
 	}
 
 	patcher := func(r *mariadbv1alpha1.Restore) {
