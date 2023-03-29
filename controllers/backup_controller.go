@@ -18,8 +18,8 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -75,7 +75,7 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if err := r.patchStatus(ctx, &backup, r.ConditionComplete.FailedPatcher("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Backup: %v", err)
 		}
-		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+		return ctrl.Result{}, errors.New("MariaDB not ready")
 	}
 
 	var batchErr *multierror.Error

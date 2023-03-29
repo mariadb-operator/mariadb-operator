@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -84,7 +85,7 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if err := r.patchStatus(ctx, &sqlJob, r.ConditionComplete.FailedPatcher("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching SqlJob: %v", err)
 		}
-		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+		return ctrl.Result{}, errors.New("MariaDB not ready")
 	}
 
 	if err := r.reconcileConfigMap(ctx, &sqlJob); err != nil {

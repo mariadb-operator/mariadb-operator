@@ -2,8 +2,8 @@ package sql
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
@@ -56,7 +56,7 @@ func (tr *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl
 		if err := tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.FailedPatcher("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching %s: %v", resource.GetName(), err)
 		}
-		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+		return ctrl.Result{}, errors.New("MariaDB not ready")
 	}
 
 	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
