@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -99,7 +98,7 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	var secretErr *multierror.Error
 	err := r.reconcileSecret(ctx, &conn, mariaDb)
 	if errors.Is(err, errConnHealthCheck) {
-		return ctrl.Result{RequeueAfter: r.retryInterval(&conn)}, nil
+		return r.retryResult(&conn), nil
 	}
 	secretErr = multierror.Append(secretErr, err)
 
@@ -109,7 +108,7 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := secretErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Secret: %v", err)
 	}
-	return ctrl.Result{RequeueAfter: r.healthCheckInterval(&conn)}, nil
+	return r.healthResult(&conn), nil
 }
 
 func (r *ConnectionReconciler) init(ctx context.Context, conn *mariadbv1alpha1.Connection) error {
@@ -214,18 +213,18 @@ func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1a
 	return nil
 }
 
-func (r *ConnectionReconciler) retryInterval(conn *mariadbv1alpha1.Connection) time.Duration {
+func (r *ConnectionReconciler) retryResult(conn *mariadbv1alpha1.Connection) ctrl.Result {
 	if conn.Spec.HealthCheck != nil && conn.Spec.HealthCheck.RetryInterval != nil {
-		return (*conn.Spec.HealthCheck.RetryInterval).Duration
+		return ctrl.Result{RequeueAfter: (*conn.Spec.HealthCheck.RetryInterval).Duration}
 	}
-	return 3 * time.Second
+	return ctrl.Result{Requeue: true}
 }
 
-func (r *ConnectionReconciler) healthCheckInterval(conn *mariadbv1alpha1.Connection) time.Duration {
+func (r *ConnectionReconciler) healthResult(conn *mariadbv1alpha1.Connection) ctrl.Result {
 	if conn.Spec.HealthCheck != nil && conn.Spec.HealthCheck.Interval != nil {
-		return (*conn.Spec.HealthCheck.Interval).Duration
+		return ctrl.Result{RequeueAfter: (*conn.Spec.HealthCheck.Interval).Duration}
 	}
-	return 0
+	return ctrl.Result{}
 }
 
 func (r *ConnectionReconciler) patchStatus(ctx context.Context, conn *mariadbv1alpha1.Connection,
