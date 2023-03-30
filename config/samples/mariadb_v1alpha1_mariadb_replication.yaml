@@ -44,6 +44,9 @@ spec:
       operator: "Exists"
       effect: "NoSchedule"
 
+  podDisruptionBudget:
+    minAvailable: "66%"
+
   myCnf: |
     [mysqld]
     bind-address=0.0.0.0
