@@ -686,7 +686,6 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = make([]v1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
-	in.VolumeClaimTemplate.DeepCopyInto(&out.VolumeClaimTemplate)
 	if in.MyCnf != nil {
 		in, out := &in.MyCnf, &out.MyCnf
 		*out = new(string)
@@ -712,6 +711,7 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(Replication)
 		(*in).DeepCopyInto(*out)
 	}
+	in.VolumeClaimTemplate.DeepCopyInto(&out.VolumeClaimTemplate)
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
 		*out = new(v1.ResourceRequirements)
@@ -750,6 +750,25 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		in, out := &in.ReadinessProbe, &out.ReadinessProbe
 		*out = new(v1.Probe)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.Affinity != nil {
+		in, out := &in.Affinity, &out.Affinity
+		*out = new(v1.Affinity)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.NodeSelector != nil {
+		in, out := &in.NodeSelector, &out.NodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.Tolerations != nil {
+		in, out := &in.Tolerations, &out.Tolerations
+		*out = make([]v1.Toleration, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	if in.Service != nil {
 		in, out := &in.Service, &out.Service
