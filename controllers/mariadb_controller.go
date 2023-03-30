@@ -31,6 +31,7 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -59,12 +60,13 @@ type MariaDBReconcilePhase struct {
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=restores;connections,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch
-//+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=restores,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -86,6 +88,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Resource:  "StatefulSet",
 			Reconcile: r.reconcileStatefulSet,
+		},
+		{
+			Resource:  "PodDisruptionBudget",
+			Reconcile: r.reconcilePodDisruptionBudget,
 		},
 		{
 			Resource:  "Service",
@@ -192,6 +198,40 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 
 	if err := r.Patch(ctx, &existingSts, patch); err != nil {
 		return fmt.Errorf("error patching StatefulSet: %v", err)
+	}
+	return nil
+}
+
+func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	mariaDbKey types.NamespacedName) error {
+
+	if mariadb.Spec.PodDisruptionBudget == nil {
+		return nil
+	}
+
+	key := podDisruptionBudgetKey(mariadb)
+	var existingPDB policyv1.PodDisruptionBudget
+	if err := r.Get(ctx, key, &existingPDB); err == nil {
+		return nil
+	}
+
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	opts := builder.PodDisruptionBudgetOpts{
+		Key:            key,
+		MinAvailable:   mariadb.Spec.PodDisruptionBudget.MinAvailable,
+		MaxUnavailable: mariadb.Spec.PodDisruptionBudget.MaxUnavailable,
+		SelectorLabels: selectorLabels,
+	}
+	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
+	}
+
+	if err := r.Create(ctx, pdb); err != nil {
+		return fmt.Errorf("error creating PodDisruptionBudget: %v", err)
 	}
 	return nil
 }
@@ -432,16 +472,24 @@ func configMapMariaDBKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName 
 	}
 }
 
+func podDisruptionBudgetKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      mariadb.Name,
+		Namespace: mariadb.Namespace,
+	}
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MariaDB{}).
+		Owns(&mariadbv1alpha1.Connection{}).
+		Owns(&mariadbv1alpha1.Restore{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
-		Owns(&mariadbv1alpha1.Connection{}).
-		Owns(&mariadbv1alpha1.Restore{})
+		Owns(&appsv1.StatefulSet{}).
+		Owns(&policyv1.PodDisruptionBudget{})
 	if r.ServiceMonitorReconciler {
 		builder = builder.Owns(&monitoringv1.ServiceMonitor{})
 	}

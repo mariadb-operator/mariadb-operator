@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -159,6 +160,31 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 					},
 					wantErr: true,
+				},
+				{
+					by: "invalid pod disruption budget",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							PodDisruptionBudget: &PodDisruptionBudget{
+								MaxUnavailable: func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
+								MinAvailable:   func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
+							},
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "valid pod disruption budget",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							PodDisruptionBudget: &PodDisruptionBudget{
+								MaxUnavailable: func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
+							},
+						},
+					},
+					wantErr: false,
 				},
 			}
 

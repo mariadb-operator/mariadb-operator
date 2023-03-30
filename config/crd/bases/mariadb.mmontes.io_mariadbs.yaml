@@ -2879,6 +2879,19 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              podDisruptionBudget:
+                properties:
+                  maxUnavailable:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    x-kubernetes-int-or-string: true
+                  minAvailable:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    x-kubernetes-int-or-string: true
+                type: object
               podSecurityContext:
                 description: PodSecurityContext holds pod-level security attributes
                   and common container settings. Some fields are also present in container.securityContext.  Field

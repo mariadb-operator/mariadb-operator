@@ -11,8 +11,10 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -76,9 +78,14 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 			key:       replConfig.ConfigReplicaKey(mariadb),
 		},
 		{
+			resource:  "PodDisruptionBudget",
+			reconcile: r.reconcilePodDisruptionBudget,
+			key:       PodDisruptionBudgetKey(mariadb),
+		},
+		{
 			resource:  "Primary Service",
 			reconcile: r.reconcilePrimaryService,
-			key:       primaryServiceKey(mariadb),
+			key:       PrimaryServiceKey(mariadb),
 		},
 	}
 
@@ -116,6 +123,40 @@ func (r *ReplicationReconciler) reconcilePasswordSecret(ctx context.Context, mar
 
 	if err := r.Create(ctx, secret); err != nil {
 		return fmt.Errorf("error creating password Secret: %v", err)
+	}
+	return nil
+}
+
+func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	mariaDbKey types.NamespacedName) error {
+
+	if mariadb.Spec.PodDisruptionBudget != nil {
+		return nil
+	}
+
+	key := PodDisruptionBudgetKey(mariadb)
+	var existingPDB policyv1.PodDisruptionBudget
+	if err := r.Get(ctx, key, &existingPDB); err == nil {
+		return nil
+	}
+
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	minAvailable := intstr.FromString("50%")
+	opts := builder.PodDisruptionBudgetOpts{
+		Key:            key,
+		MinAvailable:   &minAvailable,
+		SelectorLabels: selectorLabels,
+	}
+	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
+	}
+
+	if err := r.Create(ctx, pdb); err != nil {
+		return fmt.Errorf("error creating PodDisruptionBudget: %v", err)
 	}
 	return nil
 }
@@ -272,16 +313,23 @@ func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, mar
 	return nil
 }
 
-func replPasswordKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+func PodDisruptionBudgetKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("repl-password-%s", mariadb.Name),
+		Name:      mariadb.Name,
 		Namespace: mariadb.Namespace,
 	}
 }
 
-func primaryServiceKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+func PrimaryServiceKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("primary-%s", mariadb.Name),
+		Namespace: mariadb.Namespace,
+	}
+}
+
+func replPasswordKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("repl-password-%s", mariadb.Name),
 		Namespace: mariadb.Namespace,
 	}
 }

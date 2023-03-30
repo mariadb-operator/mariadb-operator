@@ -42,6 +42,9 @@ func (r *MariaDB) ValidateCreate() error {
 	if err := r.validateBootstrapFrom(); err != nil {
 		return err
 	}
+	if err := r.validatePodDisruptionBudget(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -51,6 +54,9 @@ func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 	if err := r.validateBootstrapFrom(); err != nil {
+		return err
+	}
+	if err := r.validatePodDisruptionBudget(); err != nil {
 		return err
 	}
 	return inmutableWebhook.ValidateUpdate(r, old.(*MariaDB))
@@ -96,6 +102,20 @@ func (r *MariaDB) validateBootstrapFrom() error {
 		return field.Invalid(
 			field.NewPath("spec").Child("bootstrapFrom"),
 			r.Spec.BootstrapFrom,
+			err.Error(),
+		)
+	}
+	return nil
+}
+
+func (r *MariaDB) validatePodDisruptionBudget() error {
+	if r.Spec.PodDisruptionBudget == nil {
+		return nil
+	}
+	if err := r.Spec.PodDisruptionBudget.Validate(); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("podDisruptionBudget"),
+			r.Spec.PodDisruptionBudget,
 			err.Error(),
 		)
 	}

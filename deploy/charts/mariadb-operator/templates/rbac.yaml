@@ -152,6 +152,16 @@ rules:
 - apiGroups:
   - mariadb.mmontes.io
   resources:
+  - connections
+  - restores
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
   - connections/finalizers
   verbs:
   - update
@@ -323,6 +333,15 @@ rules:
   - monitoring.coreos.com
   resources:
   - servicemonitors
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
   verbs:
   - create
   - list

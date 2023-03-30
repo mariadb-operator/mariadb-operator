@@ -5,11 +5,12 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -225,9 +226,9 @@ var _ = Describe("MariaDB controller", func() {
 						max_allowed_packet=256M`
 						return &cfg
 					}(),
-					LivenessProbe: &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							Exec: &v1.ExecAction{
+					LivenessProbe: &corev1.Probe{
+						ProbeHandler: corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
 								Command: []string{
 									"bash",
 									"-c",
@@ -239,9 +240,9 @@ var _ = Describe("MariaDB controller", func() {
 						TimeoutSeconds:      5,
 						PeriodSeconds:       5,
 					},
-					ReadinessProbe: &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							Exec: &v1.ExecAction{
+					ReadinessProbe: &corev1.Probe{
+						ProbeHandler: corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
 								Command: []string{
 									"bash",
 									"-c",
@@ -310,6 +311,14 @@ var _ = Describe("MariaDB controller", func() {
 				}
 				return testRplMariaDb.IsReady()
 			}, 90*time.Second, 5*time.Second).Should(BeTrue())
+
+			By("Expecting to create a PodDisruptionBudget")
+			var pdb policyv1.PodDisruptionBudget
+			Expect(k8sClient.Get(testCtx, replication.PodDisruptionBudgetKey(&testRplMariaDb), &pdb)).To(Succeed())
+
+			By("Expecting to create a primary Service")
+			var svc corev1.Service
+			Expect(k8sClient.Get(testCtx, replication.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
 
 			By("Expecting MariaDB replica Connection to be ready eventually")
 			Eventually(func() bool {
@@ -390,7 +399,7 @@ var _ = Describe("MariaDB controller", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
-						BackupRef: &v1.LocalObjectReference{
+						BackupRef: &corev1.LocalObjectReference{
 							Name: "foo",
 						},
 					},

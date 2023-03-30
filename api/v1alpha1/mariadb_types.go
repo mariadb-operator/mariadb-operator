@@ -17,11 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type Exporter struct {
@@ -42,6 +44,21 @@ type Metrics struct {
 	Exporter Exporter `json:"exporter"`
 	// +kubebuilder:validation:Required
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
+}
+
+type PodDisruptionBudget struct {
+	MinAvailable   *intstr.IntOrString `json:"minAvailable,omitempty"`
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+}
+
+func (p *PodDisruptionBudget) Validate() error {
+	if p.MinAvailable != nil && p.MaxUnavailable == nil {
+		return nil
+	}
+	if p.MinAvailable == nil && p.MaxUnavailable != nil {
+		return nil
+	}
+	return errors.New("either minAvailable or maxUnavailable must be specified")
 }
 
 type Service struct {
@@ -160,6 +177,8 @@ type MariaDBSpec struct {
 	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
 	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
 	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
+
+	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
 
 	Service *Service `json:"service,omitempty"`
 }
