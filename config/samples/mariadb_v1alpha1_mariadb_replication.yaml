@@ -34,6 +34,16 @@ spec:
     primaryTimeout: 30s
     replicaRetries: 10
 
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: "kubernetes.io/hostname"
+
+  tolerations:
+    - key: "mariadb.mmontes.io/ha"
+      operator: "Exists"
+      effect: "NoSchedule"
+
   myCnf: |
     [mysqld]
     bind-address=0.0.0.0

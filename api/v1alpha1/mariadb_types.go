@@ -131,8 +131,6 @@ type MariaDBSpec struct {
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=3306
 	Port int32 `json:"port,omitempty"`
-	// +kubebuilder:validation:Required
-	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 
 	MyCnf                *string                      `json:"myCnf,omitempty" webhook:"inmutable"`
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
@@ -145,6 +143,9 @@ type MariaDBSpec struct {
 	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
 
+	// +kubebuilder:validation:Required
+	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
+
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	Env     []corev1.EnvVar        `json:"env,omitempty"`
@@ -155,6 +156,10 @@ type MariaDBSpec struct {
 
 	LivenessProbe  *corev1.Probe `json:"livenessProbe,omitempty"`
 	ReadinessProbe *corev1.Probe `json:"readinessProbe,omitempty"`
+
+	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
+	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
+	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 
 	Service *Service `json:"service,omitempty"`
 }

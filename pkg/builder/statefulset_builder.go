@@ -96,6 +96,9 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 					Containers:      containers,
 					Volumes:         buildStatefulSetVolumes(mariadb),
 					SecurityContext: mariadb.Spec.PodSecurityContext,
+					Affinity:        mariadb.Spec.Affinity,
+					NodeSelector:    mariadb.Spec.NodeSelector,
+					Tolerations:     mariadb.Spec.Tolerations,
 				},
 			},
 			VolumeClaimTemplates: []v1.PersistentVolumeClaim{

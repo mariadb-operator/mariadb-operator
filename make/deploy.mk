@@ -30,10 +30,16 @@ docker-load: docker-build ## Load docker image in KIND.
 
 ##@ Cluster
 
+KIND_CONFIG ?= hack/config/kind.yaml
 KIND_IMAGE ?= kindest/node:v1.26.0
+
 .PHONY: cluster
-cluster: kind ## Create the kind cluster.
+cluster: kind ## Create a single node kind cluster.
 	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)
+
+.PHONY: cluster-ha
+cluster-ha: kind ## Create a HA kind cluster.
+	$(KIND) create cluster --name $(CLUSTER) --config $(KIND_CONFIG)
 
 .PHONY: cluster-delete
 cluster-delete: kind ## Delete the kind cluster.
