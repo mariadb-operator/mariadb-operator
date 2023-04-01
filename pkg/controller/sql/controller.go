@@ -46,29 +46,29 @@ func (tr *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl
 	if err != nil {
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
-		err = tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.RefResolverPatcher(err, mariaDb))
+		err = tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.PatcherRefResolver(err, mariaDb))
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
 	if resource.MariaDBRef().WaitForIt && !mariaDb.IsReady() {
-		if err := tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.FailedPatcher("MariaDB not ready")); err != nil {
+		if err := tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.PatcherFailed("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching %s: %v", resource.GetName(), err)
 		}
 		return ctrl.Result{}, errors.New("MariaDB not ready")
 	}
 
 	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
-	var connErr *multierror.Error
-	mdbClient, err := mariadbclient.NewRootClientWithCrd(ctx, mariaDb, tr.RefResolver)
+	mdbClient, err := mariadbclient.NewRootClient(ctx, mariaDb, tr.RefResolver)
 	if err != nil {
-		connErr = multierror.Append(connErr, err)
+		var errBundle *multierror.Error
+		errBundle = multierror.Append(errBundle, err)
 
-		err = tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.FailedPatcher("Error connecting to MariaDB"))
-		connErr = multierror.Append(connErr, err)
+		err = tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.PatcherFailed("Error connecting to MariaDB"))
+		errBundle = multierror.Append(errBundle, err)
 
-		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", connErr)
+		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", errBundle)
 	}
 	defer mdbClient.Close()
 

@@ -71,14 +71,14 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
-		err = r.patchStatus(ctx, &sqlJob, r.ConditionComplete.RefResolverPatcher(err, mariaDb))
+		err = r.patchStatus(ctx, &sqlJob, r.ConditionComplete.PatcherRefResolver(err, mariaDb))
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
 	if sqlJob.Spec.MariaDBRef.WaitForIt && !mariaDb.IsReady() {
-		if err := r.patchStatus(ctx, &sqlJob, r.ConditionComplete.FailedPatcher("MariaDB not ready")); err != nil {
+		if err := r.patchStatus(ctx, &sqlJob, r.ConditionComplete.PatcherFailed("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching SqlJob: %v", err)
 		}
 		return ctrl.Result{}, errors.New("MariaDB not ready")
@@ -117,7 +117,7 @@ func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *v1al
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, errors.New(msg))
 
-		err := r.patchStatus(ctx, sqlJob, r.ConditionComplete.FailedPatcher(msg))
+		err := r.patchStatus(ctx, sqlJob, r.ConditionComplete.PatcherFailed(msg))
 		errBundle = multierror.Append(errBundle, err)
 
 		return errBundle

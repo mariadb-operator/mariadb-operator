@@ -20,7 +20,7 @@ func NewReady() *Ready {
 	return &Ready{}
 }
 
-func (p *Ready) FailedPatcher(msg string) Patcher {
+func (p *Ready) PatcherFailed(msg string) Patcher {
 	return func(c Conditioner) {
 		SetReadyFailedWithMessage(c, msg)
 	}
@@ -36,7 +36,7 @@ func (p *Ready) PatcherWithError(err error) Patcher {
 	}
 }
 
-func (p *Ready) RefResolverPatcher(err error, obj interface{}) Patcher {
+func (p *Ready) PatcherRefResolver(err error, obj interface{}) Patcher {
 	return func(c Conditioner) {
 		if err == nil {
 			return
@@ -49,7 +49,7 @@ func (p *Ready) RefResolverPatcher(err error, obj interface{}) Patcher {
 	}
 }
 
-func (p *Ready) HealthyPatcher(err error) Patcher {
+func (p *Ready) PatcherHealthy(err error) Patcher {
 	return func(c Conditioner) {
 		if err == nil {
 			SetReadyHealthty(c)
@@ -69,7 +69,7 @@ func NewComplete(client client.Client) *Complete {
 	}
 }
 
-func (p *Complete) FailedPatcher(msg string) Patcher {
+func (p *Complete) PatcherFailed(msg string) Patcher {
 	return func(c Conditioner) {
 		SetCompleteFailedWithMessage(c, msg)
 	}
@@ -107,7 +107,7 @@ func (p *Complete) PatcherWithJob(ctx context.Context, err error, key types.Name
 	}, nil
 }
 
-func (p *Complete) RefResolverPatcher(err error, obj runtime.Object) Patcher {
+func (p *Complete) PatcherRefResolver(err error, obj runtime.Object) Patcher {
 	return func(c Conditioner) {
 		if err == nil {
 			return

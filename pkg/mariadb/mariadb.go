@@ -1,11 +1,14 @@
 package mariadb
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
+	"text/template"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -74,6 +77,11 @@ func (c *Client) Close() error {
 	return c.db.Close()
 }
 
+func (c *Client) Exec(ctx context.Context, sql string) error {
+	_, err := c.db.ExecContext(ctx, sql)
+	return err
+}
+
 type CreateUserOpts struct {
 	IdentifiedBy       string
 	MaxUserConnections int32
@@ -89,15 +97,13 @@ func (c *Client) CreateUser(ctx context.Context, username string, opts CreateUse
 	}
 	query += ";"
 
-	_, err := c.db.ExecContext(ctx, query)
-	return err
+	return c.Exec(ctx, query)
 }
 
 func (m *Client) DropUser(ctx context.Context, username string) error {
 	query := fmt.Sprintf("DROP USER IF EXISTS '%s';", username)
 
-	_, err := m.db.ExecContext(ctx, query)
-	return err
+	return m.Exec(ctx, query)
 }
 
 type GrantOpts struct {
@@ -121,8 +127,7 @@ func (c *Client) Grant(ctx context.Context, opts GrantOpts) error {
 	}
 	query += ";"
 
-	_, err := c.db.ExecContext(ctx, query)
-	return err
+	return c.Exec(ctx, query)
 }
 
 func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
@@ -139,8 +144,7 @@ func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
 		"%",
 	)
 
-	_, err := c.db.ExecContext(ctx, query)
-	return err
+	return c.Exec(ctx, query)
 }
 
 func escapeWildcard(s string) string {
@@ -165,13 +169,113 @@ func (c *Client) CreateDatabase(ctx context.Context, database string, opts Datab
 	}
 	query += ";"
 
-	_, err := c.db.ExecContext(ctx, query)
-	return err
+	return c.Exec(ctx, query)
 }
 
 func (c *Client) DropDatabase(ctx context.Context, database string) error {
-	query := fmt.Sprintf("DROP DATABASE IF EXISTS `%s`;", database)
+	return c.Exec(ctx, fmt.Sprintf("DROP DATABASE IF EXISTS `%s`;", database))
+}
 
-	_, err := c.db.ExecContext(ctx, query)
-	return err
+func (c *Client) LockTablesWithReadLock(ctx context.Context) error {
+	return c.Exec(ctx, "FLUSH TABLES WITH READ LOCK;")
+}
+
+func (c *Client) UnlockTables(ctx context.Context) error {
+	return c.Exec(ctx, "UNLOCK TABLES;")
+}
+
+func (c *Client) GlobalVar(ctx context.Context, variable string) (string, error) {
+	sql := fmt.Sprintf("SELECT @@global.%s;", variable)
+	row := c.db.QueryRowContext(ctx, sql)
+
+	var val string
+	if err := row.Scan(&val); err != nil {
+		return "", nil
+	}
+	return val, nil
+}
+
+func (c *Client) SetGlobalVar(ctx context.Context, variable string, value string) error {
+	sql := fmt.Sprintf("SET @@global.%s=%s;", variable, value)
+	return c.Exec(ctx, sql)
+}
+
+func (c *Client) SetGlobalVars(ctx context.Context, keyVal map[string]string) error {
+	for k, v := range keyVal {
+		if err := c.SetGlobalVar(ctx, k, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Client) ResetMaster(ctx context.Context) error {
+	return c.Exec(ctx, "RESET MASTER;")
+}
+
+func (c *Client) StartSlave(ctx context.Context, connName string) error {
+	sql := fmt.Sprintf("START SLAVE '%s';", connName)
+	return c.Exec(ctx, sql)
+}
+
+func (c *Client) StopSlave(ctx context.Context, connName string) error {
+	sql := fmt.Sprintf("STOP SLAVE '%s';", connName)
+	return c.Exec(ctx, sql)
+}
+
+func (c *Client) StopAllSlaves(ctx context.Context) error {
+	return c.Exec(ctx, "STOP ALL SLAVES;")
+}
+
+func (c *Client) ResetSlave(ctx context.Context, connName string) error {
+	sql := fmt.Sprintf("RESET SLAVE '%s';", connName)
+	return c.Exec(ctx, sql)
+}
+
+func (c *Client) ResetAllSlaves(ctx context.Context) error {
+	return c.Exec(ctx, "RESET SLAVE ALL;")
+}
+
+func (c *Client) WaitForReplicaGtid(ctx context.Context, gtid string, timeout time.Duration) error {
+	sql := fmt.Sprintf("SELECT MASTER_GTID_WAIT('%s', %d);", gtid, int(timeout.Seconds()))
+	row := c.db.QueryRowContext(ctx, sql)
+
+	var result int
+	if err := row.Scan(&result); err != nil {
+		return fmt.Errorf("error scanning result: %v", err)
+	}
+
+	if result == 0 {
+		return nil
+	}
+	return fmt.Errorf("unexpected result: %d", result)
+}
+
+type ChangeMasterOpts struct {
+	Connection string
+	Host       string
+	User       string
+	Password   string
+	Gtid       string
+	Retries    int
+}
+
+func (c *Client) ChangeMaster(ctx context.Context, opts *ChangeMasterOpts) error {
+	tpl := createTpl("change-master.sql", `CHANGE MASTER '{{ .Connection }}' TO 
+MASTER_HOST='{{ .Host }}',
+MASTER_USER='{{ .User }}',
+MASTER_PASSWORD='{{ .Password }}',
+MASTER_USE_GTID={{ .Gtid }},
+MASTER_CONNECT_RETRY={{ or .Retries 10 }};
+`)
+	buf := new(bytes.Buffer)
+	err := tpl.Execute(buf, opts)
+	if err != nil {
+		return fmt.Errorf("error generating change master query: %v", err)
+	}
+	return c.Exec(ctx, buf.String())
+}
+
+func createTpl(name, t string) *template.Template {
+	return template.Must(template.New(name).Parse(t))
 }

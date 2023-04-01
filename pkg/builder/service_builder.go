@@ -20,22 +20,26 @@ func MariaDBPort(svc *corev1.Service) (*v1.ServicePort, error) {
 	return nil, fmt.Errorf("Service port not found")
 }
 
+type ServiceOpts struct {
+	Labels      map[string]string
+	Annotations map[string]string
+	Type        corev1.ServiceType
+}
+
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
-	labels map[string]string) (*corev1.Service, error) {
+	opts ServiceOpts) (*corev1.Service, error) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-			Labels:    labels,
+			Name:        key.Name,
+			Namespace:   key.Namespace,
+			Labels:      opts.Labels,
+			Annotations: opts.Annotations,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports:    buildPorts(mariadb),
-			Selector: labels,
+			Selector: opts.Labels,
+			Type:     opts.Type,
 		},
-	}
-	if mariadb.Spec.Service != nil {
-		svc.ObjectMeta.Annotations = mariadb.Spec.Service.Annotations
-		svc.Spec.Type = mariadb.Spec.Service.Type
 	}
 	if err := controllerutil.SetControllerReference(mariadb, svc, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Service: %v", err)

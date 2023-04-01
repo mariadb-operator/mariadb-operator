@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,22 +67,6 @@ type Service struct {
 	Annotations map[string]string  `json:"annotations,omitempty"`
 }
 
-type ReplicationMode string
-
-const (
-	ReplicationModeAsync    ReplicationMode = "Async"
-	ReplicationModeSemiSync ReplicationMode = "SemiSync"
-)
-
-func (r ReplicationMode) Validate() error {
-	switch r {
-	case ReplicationModeAsync, ReplicationModeSemiSync:
-		return nil
-	default:
-		return fmt.Errorf("invalid ReplicationMode: %v", r)
-	}
-}
-
 type WaitPoint string
 
 const (
@@ -109,22 +94,53 @@ func (w WaitPoint) MariaDBFormat() (string, error) {
 	}
 }
 
-type Replication struct {
-	Mode ReplicationMode `json:"mode"`
+type Gtid string
 
+const (
+	SyncGtidCurrentPos Gtid = "CurrentPos"
+	SyncGtidSlavePos   Gtid = "SlavePos"
+)
+
+func (w Gtid) Validate() error {
+	switch w {
+	case SyncGtidCurrentPos, SyncGtidSlavePos:
+		return nil
+	default:
+		return fmt.Errorf("invalid SyncGtid: %v", w)
+	}
+}
+
+func (w Gtid) MariaDBFormat() (string, error) {
+	switch w {
+	case SyncGtidCurrentPos:
+		return "current_pos", nil
+	case SyncGtidSlavePos:
+		return "slave_pos", nil
+	default:
+		return "", fmt.Errorf("invalid Gtid: %v", w)
+	}
+}
+
+type Replication struct {
+	// +kubebuilder:default=0
+	PrimaryPodIndex int `json:"primaryPodIndex,omitempty"`
+
+	PrimaryService *Service `json:"primaryService,omitempty"`
+
+	PrimaryConnection *ConnectionTemplate `json:"primaryConnection,omitempty"`
+	// +kubebuilder:default=CurrentPos
+	Gtid Gtid `json:"gtid,omitempty"`
+	// +kubebuilder:default=AfterCommit
 	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
 
-	PrimaryTimeout *metav1.Duration `json:"primaryTimeout,omitempty"`
-
-	ReplicaRetries *int32 `json:"replicaRetries,omitempty"`
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
+	// +kubebuilder:default=10
+	Retries *int `json:"retries,omitempty"`
 }
 
 func (r *Replication) Validate() error {
-	if err := r.Mode.Validate(); err != nil {
-		return fmt.Errorf("invalid Replication: %v", err)
-	}
-	if r.Mode == ReplicationModeAsync {
-		return nil
+	if err := r.Gtid.Validate(); err != nil {
+		return fmt.Errorf("invalid Gtid: %v", err)
 	}
 	if r.WaitPoint != nil {
 		if err := r.WaitPoint.Validate(); err != nil {
@@ -159,7 +175,6 @@ type MariaDBSpec struct {
 	Replication *Replication `json:"replication,omitempty"`
 	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
-
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 
@@ -186,6 +201,9 @@ type MariaDBSpec struct {
 // MariaDBStatus defines the observed state of MariaDB
 type MariaDBStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	CurrentPrimaryPodIndex *int    `json:"currentPrimaryPodIndex,omitempty"`
+	CurrentPrimary         *string `json:"currentPrimary,omitempty"`
 }
 
 func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
@@ -195,11 +213,20 @@ func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 	meta.SetStatusCondition(&s.Conditions, condition)
 }
 
+func (s *MariaDBStatus) UpdatePrimary(mariadb *MariaDB) {
+	primaryPod := statefulset.PodName(mariadb.ObjectMeta, 0)
+	if s.CurrentPrimaryPodIndex != nil {
+		primaryPod = statefulset.PodName(mariadb.ObjectMeta, *s.CurrentPrimaryPodIndex)
+	}
+	s.CurrentPrimary = &primaryPod
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mdb
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
+// +kubebuilder:printcolumn:name="Primary",type="string",JSONPath=".status.currentPrimary"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // MariaDB is the Schema for the mariadbs API
@@ -217,6 +244,14 @@ func (m *MariaDB) IsReady() bool {
 
 func (m *MariaDB) IsBootstrapped() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBootstrapped)
+}
+
+func (m *MariaDB) IsSwitchingPrimary() bool {
+	primarySwitched := meta.FindStatusCondition(m.Status.Conditions, ConditionTypePrimarySwitched)
+	if primarySwitched == nil {
+		return false
+	}
+	return primarySwitched.Status == metav1.ConditionFalse
 }
 
 func (m *MariaDB) ConfigMapValue() *string {

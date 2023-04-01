@@ -20,7 +20,7 @@
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 
 - [Provisioning](./config/samples/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
-- High availability via Async/SemiSync [replication](./config/samples/mariadb_v1alpha1_mariadb_replication.yaml)
+- High availability via SemiSync [replication](./config/samples/mariadb_v1alpha1_mariadb_replication.yaml)
 - Support for custom [`my.cnf`](./config/samples/mariadb_v1alpha1_mariadb_config.yaml)
 - [Take](./config/samples/mariadb_v1alpha1_backup.yaml) and [restore](./config/samples/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./config/samples/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
 - Bootstrap new instances from [backups](./config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes ([PVCs](./config/samples/mariadb_v1alpha1_mariadb_from_pvc.yaml), [NFS](./config/samples/mariadb_v1alpha1_mariadb_from_nfs.yaml) ...)
@@ -73,8 +73,8 @@ kubectl apply -f config/samples/mariadb_v1alpha1_mariadb.yaml
 ```
 ```bash
 kubectl get mariadbs
-NAME      READY   STATUS    AGE
-mariadb   True    Running   75s
+NAME      READY   STATUS    PRIMARY     AGE
+mariadb   True    Running   mariadb-0   3m57s
 
 kubectl get statefulsets
 NAME      READY   AGE
@@ -149,9 +149,9 @@ kubectl apply -f config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml
 ``` 
 ```bash
 kubectl get mariadbs
-NAME                       READY   STATUS    AGE
-mariadb                    True    Running   39m
-mariadb-from-backup        True    Running   85s
+NAME                       READY   STATUS    PRIMARY     AGE
+mariadb                    True    Running   mariadb-0   30m57s
+mariadb-from-backup        True    Running   mariadb-0   85s
 
 kubectl get restores
 NAME                                         COMPLETE   STATUS    MARIADB               AGE

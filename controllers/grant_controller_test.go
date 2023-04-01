@@ -66,7 +66,7 @@ var _ = Describe("Grant controller", func() {
 
 			By("Creating a Grant")
 			grantKey := types.NamespacedName{
-				Name:      "grant-test",
+				Name:      "grant-select-insert-update-test",
 				Namespace: testNamespace,
 			}
 			grant := mariadbv1alpha1.Grant{
@@ -116,7 +116,7 @@ var _ = Describe("Grant controller", func() {
 		It("Should reconcile", func() {
 			By("Creating a Database")
 			databaseKey := types.NamespacedName{
-				Name:      "grant-test",
+				Name:      "grant-database-test",
 				Namespace: testNamespace,
 			}
 			database := mariadbv1alpha1.Database{
@@ -183,7 +183,7 @@ var _ = Describe("Grant controller", func() {
 
 			By("Creating a Grant")
 			grantKey := types.NamespacedName{
-				Name:      "grant-test",
+				Name:      "grant-all-test",
 				Namespace: testNamespace,
 			}
 			grant := mariadbv1alpha1.Grant{

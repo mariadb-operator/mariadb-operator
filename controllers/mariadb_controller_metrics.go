@@ -167,7 +167,7 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *maria
 	mdbOpts := mariadbclient.Opts{
 		Username: user.Name,
 		Password: password,
-		Host:     statefulset.PodFQDN(mariadb.ObjectMeta, 0),
+		Host:     statefulset.ServiceFQDN(mariadb.ObjectMeta),
 		Port:     mariadb.Spec.Port,
 	}
 	dsn, err := mariadbclient.BuildDSN(mdbOpts)

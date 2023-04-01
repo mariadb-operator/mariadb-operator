@@ -160,6 +160,12 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       5,
 			},
+			Service: &mariadbv1alpha1.Service{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Annotations: map[string]string{
+					"metallb.universe.tf/loadBalancerIPs": "172.18.0.100",
+				},
+			},
 		},
 	}
 	Expect(k8sClient.Create(ctx, &testMariaDb)).To(Succeed())

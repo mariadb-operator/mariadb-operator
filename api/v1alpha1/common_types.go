@@ -51,7 +51,7 @@ type ConnectionTemplate struct {
 	SecretTemplate *SecretTemplate   `json:"secretTemplate,omitempty" webhook:"inmutableinit"`
 	HealthCheck    *HealthCheck      `json:"healthCheck,omitempty"`
 	Params         map[string]string `json:"params,omitempty" webhook:"inmutable"`
-	PodIndex       *int              `json:"podIndex,omitempty" webhook:"inmutable"`
+	ServiceName    *string           `json:"serviceName,omitempty" webhook:"inmutable"`
 }
 
 type RestoreSource struct {

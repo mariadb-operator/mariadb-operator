@@ -1,7 +1,11 @@
 package conditions
 
 import (
+	"errors"
+	"fmt"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,6 +57,41 @@ func SetReadyFailedWithMessage(c Conditioner, message string) {
 
 func SetReadyFailed(c Conditioner) {
 	SetReadyFailedWithMessage(c, "Failed")
+}
+
+func SetReadySwitchingPrimary(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.Replication == nil {
+		return errors.New("replication required to set switching primary Ready condition")
+	}
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonSwitchingPrimary,
+		Message: switchingPrimaryMessage(mariadb),
+	})
+	return nil
+}
+
+func SetPrimarySwitchedInProgress(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.Replication == nil {
+		return errors.New("replication required to set in progress PrimarySwitched condition")
+	}
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypePrimarySwitched,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonSwitchoverInProgress,
+		Message: switchingPrimaryMessage(mariadb),
+	})
+	return nil
+}
+
+func SetPrimarySwitchedComplete(c Conditioner) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypePrimarySwitched,
+		Status:  metav1.ConditionTrue,
+		Reason:  mariadbv1alpha1.ConditionReasonSwitchoverComplete,
+		Message: "Switchover complete",
+	})
 }
 
 func SetCompleteWithCronJob(c Conditioner, cronJob *batchv1.CronJob) {
@@ -156,4 +195,11 @@ func getJobConditionType(job *batchv1.Job) batchv1.JobConditionType {
 		return c.Type
 	}
 	return ""
+}
+
+func switchingPrimaryMessage(mariadb *mariadbv1alpha1.MariaDB) string {
+	return fmt.Sprintf(
+		"Switching primary to '%s'",
+		statefulset.PodName(mariadb.ObjectMeta, mariadb.Spec.Replication.PrimaryPodIndex),
+	)
 }

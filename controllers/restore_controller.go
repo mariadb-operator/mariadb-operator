@@ -63,7 +63,7 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
-		err = r.patchStatus(ctx, &restore, r.ConditionComplete.RefResolverPatcher(err, mariaDb))
+		err = r.patchStatus(ctx, &restore, r.ConditionComplete.PatcherRefResolver(err, mariaDb))
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
@@ -80,7 +80,7 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		patchErr := r.patchStatus(
 			ctx,
 			&restore,
-			r.ConditionComplete.FailedPatcher(fmt.Sprintf("error initializing source: %v", err)),
+			r.ConditionComplete.PatcherFailed(fmt.Sprintf("error initializing source: %v", err)),
 		)
 		sourceErr = multierror.Append(sourceErr, patchErr)
 
@@ -116,7 +116,7 @@ func (r *RestoreReconciler) initSource(ctx context.Context, restore *mariadbv1al
 		var restoreErr *multierror.Error
 		restoreErr = multierror.Append(restoreErr, errors.New("unable to determine restore source, 'backupRef' is nil"))
 
-		err := r.patchStatus(ctx, restore, r.ConditionComplete.FailedPatcher("Unable to determine restore source"))
+		err := r.patchStatus(ctx, restore, r.ConditionComplete.PatcherFailed("Unable to determine restore source"))
 		restoreErr = multierror.Append(restoreErr, err)
 
 		return restoreErr
@@ -127,7 +127,7 @@ func (r *RestoreReconciler) initSource(ctx context.Context, restore *mariadbv1al
 		var backupErr *multierror.Error
 		backupErr = multierror.Append(backupErr, err)
 
-		err = r.patchStatus(ctx, restore, r.ConditionComplete.RefResolverPatcher(err, backup))
+		err = r.patchStatus(ctx, restore, r.ConditionComplete.PatcherRefResolver(err, backup))
 		backupErr = multierror.Append(backupErr, err)
 
 		return fmt.Errorf("error getting Backup: %v", backupErr)
@@ -137,7 +137,7 @@ func (r *RestoreReconciler) initSource(ctx context.Context, restore *mariadbv1al
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, errors.New("Backup not complete"))
 
-		err := r.patchStatus(ctx, restore, r.ConditionComplete.FailedPatcher("Backup not complete"))
+		err := r.patchStatus(ctx, restore, r.ConditionComplete.PatcherFailed("Backup not complete"))
 		errBundle = multierror.Append(errBundle, err)
 
 		return errBundle

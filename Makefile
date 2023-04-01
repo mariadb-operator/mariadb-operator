@@ -19,5 +19,5 @@ help: ## Display this help.
 
 include make/deploy.mk
 include make/dev.mk
-include make/networking.mk
+include make/net.mk
 include make/tooling.mk
