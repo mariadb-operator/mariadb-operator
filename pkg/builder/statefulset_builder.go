@@ -7,7 +7,6 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
-	replConfig "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -21,13 +20,6 @@ const (
 	stsStorageMountPath = "/var/lib/mysql"
 	stsConfigVolume     = "config"
 	stsConfigMountPath  = "/etc/mysql/conf.d"
-
-	stsReplVolume          = "repl"
-	stsReplMountPath       = "/mnt/repl"
-	stsReplConfigVolume    = "config-repl"
-	stsReplConfigMountPath = "/mnt/mysql"
-	stsReplInitDbVolume    = "initdb"
-	stsReplInitDbMountPath = "/docker-entrypoint-initdb.d"
 
 	mariaDbContainerName = "mariadb"
 	mariaDbPortName      = "mariadb"
@@ -80,8 +72,9 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 			Labels:    statefulSetLabels,
 		},
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: mariadb.Name,
-			Replicas:    &mariadb.Spec.Replicas,
+			ServiceName:         mariadb.Name,
+			Replicas:            &mariadb.Spec.Replicas,
+			PodManagementPolicy: buildStatefulSetPodManagementPolicy(mariadb),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: statefulSetLabels,
 			},
@@ -92,7 +85,6 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 					Labels:    statefulSetLabels,
 				},
 				Spec: v1.PodSpec{
-					InitContainers:  buildStatefulSetInitContainers(mariadb),
 					Containers:      containers,
 					Volumes:         buildStatefulSetVolumes(mariadb),
 					SecurityContext: mariadb.Spec.PodSecurityContext,
@@ -112,40 +104,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 	if err := controllerutil.SetControllerReference(mariadb, sts, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
-
 	return sts, nil
-}
-
-func buildStatefulSetInitContainers(mariadb *mariadbv1alpha1.MariaDB) []v1.Container {
-	if mariadb.Spec.Replication == nil {
-		return nil
-	}
-	return []v1.Container{
-		{
-			Name:            "init-repl",
-			Image:           mariadb.Spec.Image.String(),
-			ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
-			Command:         []string{"bash", "-c", "/mnt/repl/init.sh"},
-			VolumeMounts: []v1.VolumeMount{
-				{
-					Name:      stsReplVolume,
-					MountPath: stsReplMountPath,
-				},
-				{
-					Name:      stsConfigVolume,
-					MountPath: stsReplConfigMountPath,
-				},
-				{
-					Name:      stsReplConfigVolume,
-					MountPath: stsConfigMountPath,
-				},
-				{
-					Name:      stsReplInitDbVolume,
-					MountPath: stsReplInitDbMountPath,
-				},
-			},
-		},
-	}
 }
 
 func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
@@ -168,6 +127,7 @@ func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.Se
 		Name:            mariaDbContainerName,
 		Image:           mariadb.Spec.Image.String(),
 		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
+		Args:            buildStatefulSetArgs(mariadb),
 		Env:             buildStatefulSetEnv(mariadb),
 		EnvFrom:         mariadb.Spec.EnvFrom,
 		Ports: []v1.ContainerPort{
@@ -176,7 +136,12 @@ func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.Se
 				ContainerPort: mariadb.Spec.Port,
 			},
 		},
-		VolumeMounts: buildStatefulSetVolumeMounts(mariadb),
+		VolumeMounts: []v1.VolumeMount{
+			{
+				Name:      stsStorageVolume,
+				MountPath: stsStorageMountPath,
+			},
+		},
 		ReadinessProbe: func() *corev1.Probe {
 			if mariadb.Spec.ReadinessProbe != nil {
 				return mariadb.Spec.ReadinessProbe
@@ -207,6 +172,24 @@ func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.Se
 	}
 
 	return containers, nil
+}
+
+func buildStatefulSetPodManagementPolicy(mariadb *mariadbv1alpha1.MariaDB) appsv1.PodManagementPolicyType {
+	if mariadb.Spec.Replication != nil {
+		return appsv1.ParallelPodManagement
+	}
+	return appsv1.OrderedReadyPodManagement
+}
+
+func buildStatefulSetArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
+	if mariadb.Spec.Replication != nil {
+		return []string{
+			"--log-bin",
+			"--log-basename",
+			mariadb.Name,
+		}
+	}
+	return nil
 }
 
 func buildStatefulSetEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
@@ -258,67 +241,14 @@ func buildStatefulSetEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 }
 
 func buildStatefulSetVolumes(mariadb *mariadbv1alpha1.MariaDB) []v1.Volume {
-	volumes := []v1.Volume{
-		buildStatefulSetConfigVolume(mariadb),
-	}
-	if mariadb.Spec.Replication != nil {
-		volumes = append(volumes, []v1.Volume{
-			{
-				Name: stsReplVolume,
-				VolumeSource: v1.VolumeSource{
-					Secret: &v1.SecretVolumeSource{
-						SecretName:  replConfig.ConfigReplicaKey(mariadb).Name,
-						DefaultMode: func() *int32 { m := int32(0777); return &m }(),
-					},
-				},
-			},
-			{
-				Name: stsReplConfigVolume,
-				VolumeSource: v1.VolumeSource{
-					EmptyDir: &v1.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: stsReplInitDbVolume,
-				VolumeSource: v1.VolumeSource{
-					EmptyDir: &v1.EmptyDirVolumeSource{},
-				},
-			},
-		}...)
-	}
-	return volumes
-}
-
-func buildStatefulSetVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []v1.VolumeMount {
-	volumeMounts := []v1.VolumeMount{
-		{
-			Name:      stsStorageVolume,
-			MountPath: stsStorageMountPath,
-		},
-		{
-			Name: func() string {
-				if mariadb.Spec.Replication != nil {
-					return stsReplConfigVolume
-				}
-				return stsConfigVolume
-			}(),
-			MountPath: stsConfigMountPath,
+	volume := v1.Volume{
+		Name: stsConfigVolume,
+		VolumeSource: v1.VolumeSource{
+			EmptyDir: &v1.EmptyDirVolumeSource{},
 		},
 	}
-	if mariadb.Spec.Replication != nil {
-		volumeMounts = append(volumeMounts, []v1.VolumeMount{
-			{
-				Name:      stsReplInitDbVolume,
-				MountPath: stsReplInitDbMountPath,
-			},
-		}...)
-	}
-	return volumeMounts
-}
-
-func buildStatefulSetConfigVolume(mariadb *mariadbv1alpha1.MariaDB) v1.Volume {
 	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
-		return v1.Volume{
+		volume = v1.Volume{
 			Name: stsConfigVolume,
 			VolumeSource: v1.VolumeSource{
 				ConfigMap: &v1.ConfigMapVolumeSource{
@@ -335,11 +265,8 @@ func buildStatefulSetConfigVolume(mariadb *mariadbv1alpha1.MariaDB) v1.Volume {
 			},
 		}
 	}
-	return v1.Volume{
-		Name: stsConfigVolume,
-		VolumeSource: v1.VolumeSource{
-			EmptyDir: &v1.EmptyDirVolumeSource{},
-		},
+	return []v1.Volume{
+		volume,
 	}
 }
 

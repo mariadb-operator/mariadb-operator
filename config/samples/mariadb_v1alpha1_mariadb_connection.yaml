@@ -12,6 +12,7 @@ spec:
   passwordSecretKeyRef:
     name: mariadb
     key: password
+
   connection:
     secretName: connection-mariadb
     secretTemplate:
@@ -21,6 +22,7 @@ spec:
       retryInterval: 3s
     params:
       parseTime: "true"
+      
   image:
     repository: mariadb
     tag: "10.7.4"
@@ -35,3 +37,8 @@ spec:
     storageClassName: standard
     accessModes:
       - ReadWriteOnce
+
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.20

@@ -24,6 +24,9 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].message
       name: Status
       type: string
+    - jsonPath: .status.currentPrimary
+      name: Primary
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -2439,8 +2442,6 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
-                  podIndex:
-                    type: integer
                   secretName:
                     type: string
                   secretTemplate:
@@ -2456,6 +2457,8 @@ spec:
                           type: string
                         type: object
                     type: object
+                  serviceName:
+                    type: string
                 type: object
               database:
                 type: string
@@ -3212,17 +3215,62 @@ spec:
                 type: integer
               replication:
                 properties:
-                  mode:
+                  gtid:
+                    default: CurrentPos
                     type: string
-                  primaryTimeout:
-                    type: string
-                  replicaRetries:
-                    format: int32
+                  primaryConnection:
+                    properties:
+                      healthCheck:
+                        properties:
+                          interval:
+                            type: string
+                          retryInterval:
+                            type: string
+                        type: object
+                      params:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      secretName:
+                        type: string
+                      secretTemplate:
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          key:
+                            type: string
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        type: object
+                      serviceName:
+                        type: string
+                    type: object
+                  primaryPodIndex:
+                    default: 0
                     type: integer
-                  waitPoint:
+                  primaryService:
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      type:
+                        description: Service Type string describes ingress methods
+                          for a service
+                        type: string
+                    type: object
+                  retries:
+                    default: 10
+                    type: integer
+                  timeout:
                     type: string
-                required:
-                - mode
+                  waitPoint:
+                    default: AfterCommit
+                    type: string
                 type: object
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
@@ -3723,6 +3771,10 @@ spec:
                   - type
                   type: object
                 type: array
+              currentPrimary:
+                type: string
+              currentPrimaryPodIndex:
+                type: integer
             type: object
         required:
         - spec

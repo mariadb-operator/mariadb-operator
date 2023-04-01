@@ -85,9 +85,7 @@ jobs:
         run: |
           make cluster
           make install
-
-      - name: MariaDB test host
-        run: sudo make mdb-add-test-hosts
+          make net-test
 
       - name: Test
         run: make test

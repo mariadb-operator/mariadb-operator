@@ -14,10 +14,9 @@ spec:
     key: password
 
   connection:
-    secretName: primary-conn
+    secretName: mariadb-conn
     secretTemplate:
       key: dsn
-    podIndex: 0
 
   image:
     repository: mariadb
@@ -29,10 +28,19 @@ spec:
   replicas: 3
 
   replication:
-    mode: SemiSync
+    primaryPodIndex: 0
+    primaryService:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.30
+    primaryConnection:
+      secretName: primary-mariadb-conn
+      secretTemplate:
+        key: dsn
+    gtid: CurrentPos
     waitPoint: AfterCommit
-    primaryTimeout: 30s
-    replicaRetries: 10
+    timeout: 30s
+    retries: 10
 
   affinity:
     podAntiAffinity:
@@ -63,21 +71,8 @@ spec:
     accessModes:
       - ReadWriteOnce
 
----
-apiVersion: mariadb.mmontes.io/v1alpha1
-kind: Connection
-metadata:
-  name: replica-conn
-spec:
-  mariaDbRef:
-    name: mariadb
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.20
 
-  username: mariadb
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
-  database: mariadb
-
-  secretName: replica-conn
-  secretTemplate:
-    key: dsn

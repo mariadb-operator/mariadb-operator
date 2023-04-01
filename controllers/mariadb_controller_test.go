@@ -5,7 +5,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
+	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -164,9 +164,9 @@ var _ = Describe("MariaDB controller", func() {
 	})
 
 	Context("When creating a MariaDB with replication", func() {
-		It("Should reconcile", func() {
+		It("Should reconcile and switch primary", func() {
 			testRplMariaDbKey := types.NamespacedName{
-				Name:      "mariadb-test-repl",
+				Name:      "mariadb-repl",
 				Namespace: testNamespace,
 			}
 			testRplMariaDb := mariadbv1alpha1.MariaDB{
@@ -191,16 +191,12 @@ var _ = Describe("MariaDB controller", func() {
 					Database: &testDatabase,
 					Connection: &mariadbv1alpha1.ConnectionTemplate{
 						SecretName: func() *string {
-							s := "primary-conn-mdb-repl"
+							s := "conn-mdb-repl"
 							return &s
 						}(),
 						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 							Key: &testConnSecretKey,
 						},
-						PodIndex: func() *int {
-							i := 0
-							return &i
-						}(),
 					},
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
@@ -255,8 +251,28 @@ var _ = Describe("MariaDB controller", func() {
 						PeriodSeconds:       5,
 					},
 					Replication: &mariadbv1alpha1.Replication{
-						Mode:      mariadbv1alpha1.ReplicationModeSemiSync,
+						PrimaryService: &mariadbv1alpha1.Service{
+							Type: corev1.ServiceTypeLoadBalancer,
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": "172.18.0.130",
+							},
+						},
+						PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
+							SecretName: func() *string {
+								s := "primary-conn-mdb-repl"
+								return &s
+							}(),
+							SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+								Key: &testConnSecretKey,
+							},
+						},
 						WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
+					},
+					Service: &mariadbv1alpha1.Service{
+						Type: corev1.ServiceTypeLoadBalancer,
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": "172.18.0.120",
+						},
 					},
 					Replicas: 3,
 				},
@@ -264,45 +280,6 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Creating MariaDB with replication")
 			Expect(k8sClient.Create(testCtx, &testRplMariaDb)).To(Succeed())
-
-			testReplConnKey := types.NamespacedName{
-				Name:      "replica-conn-mdb-repl",
-				Namespace: testNamespace,
-			}
-			testReplicaConn := mariadbv1alpha1.Connection{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testReplConnKey.Name,
-					Namespace: testNamespace,
-				},
-				Spec: mariadbv1alpha1.ConnectionSpec{
-					ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
-						SecretName: func() *string {
-							s := "replica-conn-mdb-repl"
-							return &s
-						}(),
-						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-							Key: &testConnSecretKey,
-						},
-					},
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testRplMariaDb.Name,
-						},
-						WaitForIt: true,
-					},
-					Username: testUser,
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdSecretName,
-						},
-						Key: testPwdSecretKey,
-					},
-					Database: &testDatabase,
-				},
-			}
-
-			By("Creating replica Connection")
-			Expect(k8sClient.Create(testCtx, &testReplicaConn)).To(Succeed())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -314,26 +291,41 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Expecting to create a PodDisruptionBudget")
 			var pdb policyv1.PodDisruptionBudget
-			Expect(k8sClient.Get(testCtx, replication.PodDisruptionBudgetKey(&testRplMariaDb), &pdb)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, replresources.PodDisruptionBudgetKey(&testRplMariaDb), &pdb)).To(Succeed())
 
 			By("Expecting to create a primary Service")
 			var svc corev1.Service
-			Expect(k8sClient.Get(testCtx, replication.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, replresources.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
 
-			By("Expecting MariaDB replica Connection to be ready eventually")
+			By("Expecting MariaDB primary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, testReplConnKey, &conn); err != nil {
+				if err := k8sClient.Get(testCtx, replresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			By("Updating MariaDB")
+			testRplMariaDb.Spec.Replication.PrimaryPodIndex = 1
+			Expect(k8sClient.Update(testCtx, &testRplMariaDb)).To(Succeed())
+
+			By("Expecting MariaDB to eventually change primary")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, testRplMariaDbKey, &testRplMariaDb); err != nil {
+					return false
+				}
+				if !testRplMariaDb.IsReady() {
+					return false
+				}
+				if testRplMariaDb.Status.CurrentPrimaryPodIndex != nil {
+					return *testRplMariaDb.Status.CurrentPrimaryPodIndex == 1
+				}
+				return false
+			}, testTimeout, testInterval).Should(BeTrue())
+
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &testRplMariaDb)).To(Succeed())
-
-			By("Deleting replica Connection")
-			Expect(k8sClient.Delete(testCtx, &testReplicaConn)).To(Succeed())
 		})
 	})
 

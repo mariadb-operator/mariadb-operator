@@ -137,6 +137,11 @@ CERT_MANAGER_VERSION ?= "v1.9.1"
 install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
 	@./hack/install_cert_manager.sh
 
+METALLB_VERSION ?= "0.13.9"
+.PHONY: install-metallb
+install-metallb: cluster-ctx ## Install metallb helm chart.
+	@./hack/install_metallb.sh
+
 ##@ Install
 
 ifndef ignore-not-found
@@ -152,7 +157,7 @@ uninstall-crds: cluster-ctx manifests kustomize ## Uninstall CRDs.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: install
-install: cluster-ctx install-crds install-prometheus-crds install-samples certs ## Install CRDs and dependencies.
+install: cluster-ctx install-crds install-prometheus-crds install-samples certs ## Install CRDs and dependencies for local development.
 
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.

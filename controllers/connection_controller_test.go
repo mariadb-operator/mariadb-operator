@@ -85,7 +85,7 @@ var _ = Describe("Connection controller", func() {
 					WantDsn: "test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?parseTime=true",
 				},
 				{
-					By: "Creating a Connection to Pod 0",
+					By: "Creating a Connection providing ServiceName",
 					Key: types.NamespacedName{
 						Name:      "conn-test-pod-0",
 						Namespace: testNamespace,
@@ -111,7 +111,7 @@ var _ = Describe("Connection controller", func() {
 								Params: map[string]string{
 									"parseTime": "true",
 								},
-								PodIndex: func() *int { i := 0; return &i }(),
+								ServiceName: &testMariaDbName,
 							},
 							MariaDBRef: mariadbv1alpha1.MariaDBRef{
 								LocalObjectReference: corev1.LocalObjectReference{
@@ -129,7 +129,7 @@ var _ = Describe("Connection controller", func() {
 							Database: &testDatabase,
 						},
 					},
-					WantDsn: "test:test@tcp(mariadb-test-0.mariadb-test.default.svc.cluster.local:3306)/test?parseTime=true",
+					WantDsn: "test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?parseTime=true",
 				},
 			}
 

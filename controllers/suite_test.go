@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -28,7 +27,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/pkg/portforwarder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -181,22 +179,6 @@ var _ = BeforeSuite(func() {
 
 	By("Creating initial test data")
 	createTestData(testCtx, k8sClient)
-
-	By("Creating port forward to MariaDB")
-	portForwarder, err :=
-		portforwarder.New().
-			WithPod(fmt.Sprintf("%s-0", testMariaDbKey.Name)).
-			WithNamespace(testMariaDbKey.Namespace).
-			WithPorts(fmt.Sprint(testMariaDb.Spec.Port)).
-			WithOutputWriter(GinkgoWriter).
-			WithErrorWriter(GinkgoWriter).
-			Build()
-	Expect(err).NotTo(HaveOccurred())
-	go func() {
-		if err := portForwarder.Run(testCtx); err != nil {
-			Expect(err).NotTo(HaveOccurred())
-		}
-	}()
 }, 60)
 
 var _ = AfterSuite(func() {

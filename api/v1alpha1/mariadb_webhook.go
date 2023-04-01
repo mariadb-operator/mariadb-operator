@@ -83,6 +83,13 @@ func (r *MariaDB) validateReplication() error {
 				"Multiple replicas must be specified when 'spec.replication' is configured",
 			)
 		}
+		if r.Spec.Replication.PrimaryPodIndex < 0 || r.Spec.Replication.PrimaryPodIndex >= int(r.Spec.Replicas) {
+			return field.Invalid(
+				field.NewPath("spec").Child("replication").Child("primaryPodIndex"),
+				r.Spec.Replicas,
+				"'spec.replication.primaryPodIndex' out of 'spec.replicas' bounds",
+			)
+		}
 		if err := r.Spec.Replication.Validate(); err != nil {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication"),

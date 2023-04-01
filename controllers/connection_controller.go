@@ -30,6 +30,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -68,14 +69,14 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, refErr)
 
-		patchErr := r.patchStatus(ctx, &conn, r.ConditionReady.RefResolverPatcher(refErr, mariaDb))
+		patchErr := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherRefResolver(refErr, mariaDb))
 		mariaDbErr = multierror.Append(mariaDbErr, patchErr)
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
 	if conn.Spec.MariaDBRef.WaitForIt && !mariaDb.IsReady() {
-		if err := r.patchStatus(ctx, &conn, r.ConditionReady.FailedPatcher("MariaDB not ready")); err != nil {
+		if err := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherFailed("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
 		}
 		return ctrl.Result{}, errors.New("MariaDB not ready")
@@ -88,7 +89,7 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		patchErr := r.patchStatus(
 			ctx,
 			&conn,
-			r.ConditionReady.FailedPatcher(fmt.Sprintf("error initializing connection: %v", err)),
+			r.ConditionReady.PatcherFailed(fmt.Sprintf("error initializing connection: %v", err)),
 		)
 		initErr = multierror.Append(initErr, patchErr)
 
@@ -102,7 +103,7 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	secretErr = multierror.Append(secretErr, err)
 
-	patchErr := r.patchStatus(ctx, &conn, r.ConditionReady.HealthyPatcher(err))
+	patchErr := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherHealthy(err))
 	secretErr = multierror.Append(secretErr, patchErr)
 
 	if err := secretErr.ErrorOrNil(); err != nil {
@@ -147,8 +148,12 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	}
 
 	var host string
-	if conn.Spec.PodIndex != nil {
-		host = statefulset.PodFQDN(mdb.ObjectMeta, *conn.Spec.PodIndex)
+	if conn.Spec.ServiceName != nil {
+		objMeta := metav1.ObjectMeta{
+			Name:      *conn.Spec.ServiceName,
+			Namespace: mdb.ObjectMeta.Namespace,
+		}
+		host = statefulset.ServiceFQDN(objMeta)
 	} else {
 		host = statefulset.ServiceFQDN(mdb.ObjectMeta)
 	}
@@ -202,12 +207,12 @@ func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1a
 		patchErr := r.patchStatus(
 			ctx,
 			conn,
-			r.ConditionReady.HealthyPatcher(fmt.Errorf("failed to connect: %v", err)),
+			r.ConditionReady.PatcherHealthy(fmt.Errorf("failed to connect: %v", err)),
 		)
 		return multierror.Append(connErr, patchErr)
 	}
 
-	if err := r.patchStatus(ctx, conn, r.ConditionReady.HealthyPatcher(nil)); err != nil {
+	if err := r.patchStatus(ctx, conn, r.ConditionReady.PatcherHealthy(nil)); err != nil {
 		return fmt.Errorf("error patching connection status: %v", err)
 	}
 	return nil
