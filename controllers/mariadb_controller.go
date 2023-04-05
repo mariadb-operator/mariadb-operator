@@ -414,13 +414,13 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 			})
 		} else {
 			c.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Type:    mariadbv1alpha1.ConditionTypeBootstrapped,
 				Status:  metav1.ConditionFalse,
 				Reason:  mariadbv1alpha1.ConditionReasonRestoreNotComplete,
 				Message: "Restoring backup",
 			})
 			c.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeBootstrapped,
+				Type:    mariadbv1alpha1.ConditionTypeReady,
 				Status:  metav1.ConditionFalse,
 				Reason:  mariadbv1alpha1.ConditionReasonRestoreNotComplete,
 				Message: "Not ready",
