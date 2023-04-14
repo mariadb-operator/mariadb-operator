@@ -30,6 +30,8 @@ type UserSpec struct {
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
 	// +kubebuilder:default=10
 	MaxUserConnections int32 `json:"maxUserConnections,omitempty" webhook:"inmutable"`
+	// +kubebuilder:validation:MaxLength=80
+	Name string `json:"name,omitempty" webhook:"inmutable"`
 }
 
 // UserStatus defines the observed state of User
