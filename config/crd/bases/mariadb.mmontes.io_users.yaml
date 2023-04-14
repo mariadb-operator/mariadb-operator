@@ -68,6 +68,9 @@ spec:
                 default: 10
                 format: int32
                 type: integer
+              name:
+                maxLength: 80
+                type: string
               passwordSecretKeyRef:
                 description: SecretKeySelector selects a key of a Secret.
                 properties:
