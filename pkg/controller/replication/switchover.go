@@ -192,7 +192,7 @@ func (r *ReplicationReconciler) prepareNewPrimary(ctx context.Context, mariadb *
 		client:  client,
 		ordinal: mariadb.Spec.Replication.PrimaryPodIndex,
 	}
-	if err := r.configurePrimaryVars(ctx, &config); err != nil {
+	if err := r.configurePrimary(ctx, &config); err != nil {
 		return fmt.Errorf("error confguring new primary vars: %v", err)
 	}
 	return nil
@@ -234,7 +234,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 			changeMasterOpts: changeMasterOpts,
 			ordinal:          i,
 		}
-		if err := r.configureReplicaVars(ctx, &config); err != nil {
+		if err := r.configureReplica(ctx, &config); err != nil {
 			return fmt.Errorf("error configuring replica vars in replica '%d': %v", err, i)
 		}
 	}
@@ -272,7 +272,7 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 		},
 		ordinal: *mariadb.Status.CurrentPrimaryPodIndex,
 	}
-	if err := r.configureReplicaVars(ctx, &config); err != nil {
+	if err := r.configureReplica(ctx, &config); err != nil {
 		return fmt.Errorf("error configuring replica vars in current primary: %v", err)
 	}
 	return nil

@@ -90,14 +90,14 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 
 	phases := []replicationPhase{
 		{
-			name:      "configure Primary",
+			name:      "reconcile Primary",
 			key:       mariaDbKey,
-			reconcile: r.configurePrimary,
+			reconcile: r.reconcilePrimary,
 		},
 		{
-			name:      "configure Replicas",
+			name:      "reconcile Replicas",
 			key:       mariaDbKey,
-			reconcile: r.configureReplicas,
+			reconcile: r.reconcileReplicas,
 		},
 		{
 			name:      "reconcile PodDisruptionBudget",
@@ -139,7 +139,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 	return nil
 }
 
-func (r *ReplicationReconciler) configurePrimary(ctx context.Context, req *reconcileRequest) error {
+func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *reconcileRequest) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
 		return nil
 	}
@@ -208,13 +208,13 @@ func (r *ReplicationReconciler) configurePrimary(ctx context.Context, req *recon
 		client:  client,
 		ordinal: req.mariadb.Spec.Replication.PrimaryPodIndex,
 	}
-	if err := r.configurePrimaryVars(ctx, &config); err != nil {
+	if err := r.configurePrimary(ctx, &config); err != nil {
 		return fmt.Errorf("error configuring primary vars: %v", err)
 	}
 	return nil
 }
 
-func (r *ReplicationReconciler) configureReplicas(ctx context.Context, req *reconcileRequest) error {
+func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reconcileRequest) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
 		return nil
 	}
@@ -250,7 +250,7 @@ func (r *ReplicationReconciler) configureReplicas(ctx context.Context, req *reco
 			},
 			ordinal: i,
 		}
-		if err := r.configureReplicaVars(ctx, &config); err != nil {
+		if err := r.configureReplica(ctx, &config); err != nil {
 			return fmt.Errorf("error configuring replica vars in replica '%d': %v", err, i)
 		}
 	}

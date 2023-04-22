@@ -15,7 +15,7 @@ type primaryConfig struct {
 	ordinal int
 }
 
-func (r *ReplicationReconciler) configurePrimaryVars(ctx context.Context, config *primaryConfig) error {
+func (r *ReplicationReconciler) configurePrimary(ctx context.Context, config *primaryConfig) error {
 	if err := config.client.UnlockTables(ctx); err != nil {
 		return fmt.Errorf("error unlocking tables: %v", err)
 	}
@@ -41,7 +41,7 @@ type replicaConfig struct {
 	ordinal          int
 }
 
-func (r *ReplicationReconciler) configureReplicaVars(ctx context.Context, config *replicaConfig) error {
+func (r *ReplicationReconciler) configureReplica(ctx context.Context, config *replicaConfig) error {
 	if err := config.client.UnlockTables(ctx); err != nil {
 		return fmt.Errorf("error unlocking tables: %v", err)
 	}
