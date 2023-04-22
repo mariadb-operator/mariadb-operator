@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,6 +59,23 @@ type replicationPhase struct {
 func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	mariaDbKey types.NamespacedName) error {
 	if mariadb.Spec.Replication == nil {
+		return nil
+	}
+	if meta.IsStatusConditionFalse(mariadb.Status.Conditions, mariadbv1alpha1.ConditionTypePrimarySwitched) {
+		clientSet, err := newMariaDBClientSet(ctx, mariadb, r.RefResolver)
+		if err != nil {
+			return fmt.Errorf("error creating mariadb clientset: %v", err)
+		}
+		defer clientSet.close()
+
+		req := reconcileRequest{
+			mariadb:   mariadb,
+			key:       mariaDbKey,
+			clientSet: clientSet,
+		}
+		if err := r.reconcileSwitchover(ctx, &req); err != nil {
+			return fmt.Errorf("error recovering primary switchover: %v", err)
+		}
 		return nil
 	}
 	if !mariadb.IsReady() {

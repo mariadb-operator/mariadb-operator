@@ -192,14 +192,13 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 }
 
 func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1alpha1.Connection, secret *corev1.Secret) error {
-	logger := log.FromContext(ctx)
 	secretKey := conn.SecretKey()
 	dsn, ok := secret.Data[secretKey]
 	if !ok {
 		return fmt.Errorf("connection secret '%s' key not found", secretKey)
 	}
 
-	logger.V(1).Info("checking connection health")
+	log.FromContext(ctx).V(1).Info("checking connection health")
 	if _, err := mariadb.Connect(string(dsn)); err != nil {
 		var connErr *multierror.Error
 		connErr = multierror.Append(connErr, err)
