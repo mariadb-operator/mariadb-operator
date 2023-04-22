@@ -2,7 +2,6 @@ package replication
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -30,7 +29,11 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	if req.mariadb.Spec.Replication.PrimaryPodIndex == *req.mariadb.Status.CurrentPrimaryPodIndex {
 		return nil
 	}
-	if err := r.checkStatefulSetReady(ctx, req.mariadb); err != nil {
+	stsReady, err := r.statefulSetReady(ctx, req.mariadb)
+	if err != nil {
+		return fmt.Errorf("error checking StatefulSet readiness: %v", err)
+	}
+	if !stsReady {
 		return fmt.Errorf("StatefulSet not ready: %v", err)
 	}
 
@@ -96,19 +99,19 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	return nil
 }
 
-func (r *ReplicationReconciler) checkStatefulSetReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *ReplicationReconciler) statefulSetReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
 	var sts appsv1.StatefulSet
 	stsKey := types.NamespacedName{
 		Name:      mariadb.Name,
 		Namespace: mariadb.Namespace,
 	}
 	if err := r.Get(ctx, stsKey, &sts); err != nil {
-		return fmt.Errorf("error getting StatefulSet '%s': %v", stsKey.Name, err)
+		return false, fmt.Errorf("error getting StatefulSet '%s': %v", stsKey.Name, err)
 	}
 	if sts.Status.ReadyReplicas != sts.Status.Replicas {
-		return errors.New("replicas in non ready state")
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 func (r *ReplicationReconciler) lockCurrentPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -148,8 +151,10 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 			replClient, err := clientSet.replicaClient(i)
 			if err != nil {
 				errChan <- fmt.Errorf("error getting replica '%d' client: %v", i, err)
+				return
 			}
 
+			log.FromContext(ctx).V(1).Info("syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
 			timeout := 30 * time.Second
 			if mariadb.Spec.Replication.Timeout != nil {
 				timeout = mariadb.Spec.Replication.Timeout.Duration
