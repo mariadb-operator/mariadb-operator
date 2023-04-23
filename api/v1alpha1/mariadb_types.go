@@ -19,12 +19,17 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+var (
+	defaultReplicationTimeout = 30 * time.Second
 )
 
 type Exporter struct {
@@ -148,6 +153,13 @@ func (r *Replication) Validate() error {
 		}
 	}
 	return nil
+}
+
+func (r *Replication) TimeoutOrDefault() time.Duration {
+	if r.Timeout != nil {
+		return r.Timeout.Duration
+	}
+	return defaultReplicationTimeout
 }
 
 // MariaDBSpec defines the desired state of MariaDB
