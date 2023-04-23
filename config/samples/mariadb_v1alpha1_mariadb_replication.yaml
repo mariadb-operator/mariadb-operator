@@ -37,7 +37,7 @@ spec:
       secretName: primary-mariadb-conn
       secretTemplate:
         key: dsn
-    gtid: CurrentPos
+    gtid: SlavePos
     waitPoint: AfterCommit
     timeout: 30s
     retries: 10

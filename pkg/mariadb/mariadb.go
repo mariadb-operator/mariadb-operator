@@ -77,8 +77,8 @@ func (c *Client) Close() error {
 	return c.db.Close()
 }
 
-func (c *Client) Exec(ctx context.Context, sql string) error {
-	_, err := c.db.ExecContext(ctx, sql)
+func (c *Client) Exec(ctx context.Context, sql string, args ...any) error {
+	_, err := c.db.ExecContext(ctx, sql, args...)
 	return err
 }
 
@@ -274,6 +274,22 @@ MASTER_CONNECT_RETRY={{ or .Retries 10 }};
 		return fmt.Errorf("error generating change master query: %v", err)
 	}
 	return c.Exec(ctx, buf.String())
+}
+
+func (c *Client) GtidBinlogPos(ctx context.Context) (string, error) {
+	binlogPos, err := c.GlobalVar(ctx, "gtid_binlog_pos")
+	if err != nil {
+		return "", fmt.Errorf("error getting primary GTID: %v", err)
+	}
+	if binlogPos == "" {
+		return "", errors.New("empty primary GTID")
+	}
+	return binlogPos, nil
+}
+
+func (c *Client) SetSlavePos(ctx context.Context, slavePos string) error {
+	sql := fmt.Sprintf("SET @@global.%s='%s';", "gtid_slave_pos", slavePos)
+	return c.Exec(ctx, sql)
 }
 
 func createTpl(name, t string) *template.Template {
