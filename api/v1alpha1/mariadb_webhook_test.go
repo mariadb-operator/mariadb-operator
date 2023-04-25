@@ -142,19 +142,6 @@ var _ = Describe("MariaDB webhook", func() {
 					wantErr: true,
 				},
 				{
-					by: "invalid gtid",
-					mdb: MariaDB{
-						ObjectMeta: meta,
-						Spec: MariaDBSpec{
-							Replication: &Replication{
-								Gtid: Gtid("foo"),
-							},
-							Replicas: 3,
-						},
-					},
-					wantErr: true,
-				},
-				{
 					by: "invalid wait point",
 					mdb: MariaDB{
 						ObjectMeta: meta,

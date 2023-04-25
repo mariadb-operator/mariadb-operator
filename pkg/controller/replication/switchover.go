@@ -116,11 +116,12 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
-	primaryGtid, err := client.GtidBinlogPos(ctx)
+	primaryGtid, err := client.GlobalVar(ctx, "gtid_binlog_pos")
 	if err != nil {
 		return fmt.Errorf("error getting primary GTID binlog pos: %v", err)
 	}
 
+	logger := log.FromContext(ctx)
 	var wg sync.WaitGroup
 	doneChan := make(chan struct{})
 	errChan := make(chan error)
@@ -138,10 +139,20 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 				return
 			}
 
-			log.FromContext(ctx).V(1).Info("syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
-			if err := replClient.WaitForReplicaGtid(ctx, primaryGtid, mariadb.Spec.Replication.TimeoutOrDefault()); err != nil {
-				errChan <- fmt.Errorf("error waiting for GTID '%s' in replica '%d'", err, i)
+			logger.V(1).Info("syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
+			if err := replClient.WaitForReplicaGtid(ctx, primaryGtid, mariadb.Spec.Replication.SyncTimeoutOrDefault()); err != nil {
+				var errBundle *multierror.Error
+				errBundle = multierror.Append(errBundle, fmt.Errorf("error waiting for GTID '%s' in replica '%d'", err, i))
+
+				if err := r.resetSlave(ctx, replClient); err != nil {
+					errBundle = multierror.Append(errBundle, fmt.Errorf("error reseting slave in replica '%d': %v", i, err))
+				}
+				if err := errBundle.ErrorOrNil(); err != nil {
+					errChan <- err
+				}
+				return
 			}
+			logger.V(1).Info("replica synced", "replica", i, "gtid", primaryGtid)
 		}(i)
 	}
 	go func() {
@@ -175,27 +186,11 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb
 	if err := r.configurePrimary(ctx, &config); err != nil {
 		return fmt.Errorf("error confguring new primary vars: %v", err)
 	}
-	// TODO: PollInmediate til gtid_binlog_pos is set?
 	return nil
 }
 
 func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
-	primaryClient, err := clientSet.newPrimaryClient()
-	if err != nil {
-		return fmt.Errorf("error getting new primary client: %v", err)
-	}
-
-	primaryGtid, err := primaryClient.GtidBinlogPos(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting primary GTID binlog pos: %v", err)
-	}
-
-	// TODO: remove?
-	// gtid, err := mariadb.Spec.Replication.Gtid.MariaDBFormat()
-	// if err != nil {
-	// 	return fmt.Errorf("error getting GTID: %v", err)
-	// }
 	var replSecret corev1.Secret
 	if err := r.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
 		return fmt.Errorf("error getting replication password Secret: %v", err)
@@ -224,7 +219,6 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 			client:           replClient,
 			changeMasterOpts: changeMasterOpts,
 			ordinal:          i,
-			slavePos:         &primaryGtid,
 		}
 		if err := r.configureReplica(ctx, &config); err != nil {
 			return fmt.Errorf("error configuring replica vars in replica '%d': %v", err, i)
@@ -239,21 +233,7 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
-	newPrimaryClient, err := clientSet.newPrimaryClient()
-	if err != nil {
-		return fmt.Errorf("error getting new primary client: %v", err)
-	}
 
-	newPrimaryGtid, err := newPrimaryClient.GtidBinlogPos(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting new primary GTID binlog pos: %v", err)
-	}
-
-	// TODO: remove?
-	// gtid, err := mariadb.Spec.Replication.Gtid.MariaDBFormat()
-	// if err != nil {
-	// 	return fmt.Errorf("error getting GTID: %v", err)
-	// }
 	var replSecret corev1.Secret
 	if err := r.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
 		return fmt.Errorf("error getting replication password Secret: %v", err)
@@ -271,8 +251,7 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 			Password: string(replSecret.Data[PasswordSecretKey]),
 			Gtid:     "slave_pos",
 		},
-		ordinal:  *mariadb.Status.CurrentPrimaryPodIndex,
-		slavePos: &newPrimaryGtid,
+		ordinal: *mariadb.Status.CurrentPrimaryPodIndex,
 	}
 	if err := r.configureReplica(ctx, &config); err != nil {
 		return fmt.Errorf("error configuring replica vars in current primary: %v", err)
@@ -280,18 +259,18 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 	return nil
 }
 
-// func (r *ReplicationReconciler) registerPrimarySwitchover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-// 	clientSet *mariadbClientSet) error {
-// 	client, err := clientSet.newPrimaryClient()
-// 	if err != nil {
-// 		return fmt.Errorf("error getting new primary client: %v", err)
-// 	}
-
-// 	if err := r.registerSwitchover(ctx, mariadb, client); err != nil {
-// 		return fmt.Errorf("error registering switchover: %v", err)
-// 	}
-// 	return nil
-// }
+func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *mariadbclient.Client) error {
+	if err := client.StopAllSlaves(ctx); err != nil {
+		return fmt.Errorf("error stopping slaves: %v", err)
+	}
+	if err := client.ResetSlavePos(ctx); err != nil {
+		return fmt.Errorf("error resetting slave position: %v", err)
+	}
+	if err := client.StartSlave(ctx, ConnectionName); err != nil {
+		return fmt.Errorf("error starting slave: %v", err)
+	}
+	return nil
+}
 
 func (r *ReplicationReconciler) statefulSetReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
 	var sts appsv1.StatefulSet
