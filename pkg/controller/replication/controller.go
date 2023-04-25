@@ -222,10 +222,6 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 	if err := r.Get(ctx, replPasswordKey(req.mariadb), &replSecret); err != nil {
 		return fmt.Errorf("error getting replication password Secret: %v", err)
 	}
-	gtid, err := req.mariadb.Spec.Replication.Gtid.MariaDBFormat()
-	if err != nil {
-		return fmt.Errorf("error getting GTID: %v", err)
-	}
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
 		if i == req.mariadb.Spec.Replication.PrimaryPodIndex {
 			continue
@@ -246,7 +242,7 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 				),
 				User:     ReplUser,
 				Password: string(replSecret.Data[PasswordSecretKey]),
-				Gtid:     gtid,
+				Gtid:     "current_pos",
 			},
 			ordinal: i,
 		}

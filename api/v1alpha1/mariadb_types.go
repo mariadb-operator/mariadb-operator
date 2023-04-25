@@ -29,7 +29,8 @@ import (
 )
 
 var (
-	defaultReplicationTimeout = 30 * time.Second
+	defaultReplicationTimeout     = 10 * time.Second
+	defaultReplicationSyncTimeout = 10 * time.Second
 )
 
 type Exporter struct {
@@ -99,33 +100,6 @@ func (w WaitPoint) MariaDBFormat() (string, error) {
 	}
 }
 
-type Gtid string
-
-const (
-	SyncGtidCurrentPos Gtid = "CurrentPos"
-	SyncGtidSlavePos   Gtid = "SlavePos"
-)
-
-func (w Gtid) Validate() error {
-	switch w {
-	case SyncGtidCurrentPos, SyncGtidSlavePos:
-		return nil
-	default:
-		return fmt.Errorf("invalid SyncGtid: %v", w)
-	}
-}
-
-func (w Gtid) MariaDBFormat() (string, error) {
-	switch w {
-	case SyncGtidCurrentPos:
-		return "current_pos", nil
-	case SyncGtidSlavePos:
-		return "slave_pos", nil
-	default:
-		return "", fmt.Errorf("invalid Gtid: %v", w)
-	}
-}
-
 type Replication struct {
 	// +kubebuilder:default=0
 	PrimaryPodIndex int `json:"primaryPodIndex,omitempty"`
@@ -133,20 +107,17 @@ type Replication struct {
 	PrimaryService *Service `json:"primaryService,omitempty"`
 
 	PrimaryConnection *ConnectionTemplate `json:"primaryConnection,omitempty"`
-	// +kubebuilder:default=CurrentPos
-	Gtid Gtid `json:"gtid,omitempty"`
 	// +kubebuilder:default=AfterCommit
 	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
 
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 	// +kubebuilder:default=10
 	Retries *int `json:"retries,omitempty"`
+
+	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
 }
 
 func (r *Replication) Validate() error {
-	if err := r.Gtid.Validate(); err != nil {
-		return fmt.Errorf("invalid Gtid: %v", err)
-	}
 	if r.WaitPoint != nil {
 		if err := r.WaitPoint.Validate(); err != nil {
 			return fmt.Errorf("invalid WaitPoint: %v", err)
@@ -160,6 +131,13 @@ func (r *Replication) TimeoutOrDefault() time.Duration {
 		return r.Timeout.Duration
 	}
 	return defaultReplicationTimeout
+}
+
+func (r *Replication) SyncTimeoutOrDefault() time.Duration {
+	if r.SyncTimeout != nil {
+		return r.SyncTimeout.Duration
+	}
+	return defaultReplicationSyncTimeout
 }
 
 // MariaDBSpec defines the desired state of MariaDB

@@ -218,18 +218,8 @@ func (c *Client) StartSlave(ctx context.Context, connName string) error {
 	return c.Exec(ctx, sql)
 }
 
-func (c *Client) StopSlave(ctx context.Context, connName string) error {
-	sql := fmt.Sprintf("STOP SLAVE '%s';", connName)
-	return c.Exec(ctx, sql)
-}
-
 func (c *Client) StopAllSlaves(ctx context.Context) error {
 	return c.Exec(ctx, "STOP ALL SLAVES;")
-}
-
-func (c *Client) ResetSlave(ctx context.Context, connName string) error {
-	sql := fmt.Sprintf("RESET SLAVE '%s';", connName)
-	return c.Exec(ctx, sql)
 }
 
 func (c *Client) ResetAllSlaves(ctx context.Context) error {
@@ -276,19 +266,8 @@ MASTER_CONNECT_RETRY={{ or .Retries 10 }};
 	return c.Exec(ctx, buf.String())
 }
 
-func (c *Client) GtidBinlogPos(ctx context.Context) (string, error) {
-	binlogPos, err := c.GlobalVar(ctx, "gtid_binlog_pos")
-	if err != nil {
-		return "", fmt.Errorf("error getting primary GTID: %v", err)
-	}
-	if binlogPos == "" {
-		return "", errors.New("empty primary GTID")
-	}
-	return binlogPos, nil
-}
-
-func (c *Client) SetSlavePos(ctx context.Context, slavePos string) error {
-	sql := fmt.Sprintf("SET @@global.%s='%s';", "gtid_slave_pos", slavePos)
+func (c *Client) ResetSlavePos(ctx context.Context) error {
+	sql := fmt.Sprintf("SET @@global.%s='';", "gtid_slave_pos")
 	return c.Exec(ctx, sql)
 }
 

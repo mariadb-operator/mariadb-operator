@@ -5644,9 +5644,6 @@ spec:
                 type: integer
               replication:
                 properties:
-                  gtid:
-                    default: CurrentPos
-                    type: string
                   primaryConnection:
                     properties:
                       healthCheck:
@@ -5695,6 +5692,8 @@ spec:
                   retries:
                     default: 10
                     type: integer
+                  syncTimeout:
+                    type: string
                   timeout:
                     type: string
                   waitPoint:
