@@ -7,12 +7,15 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -76,6 +79,10 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		{
 			name:      "change current primary to replica",
 			reconcile: r.changeCurrentPrimaryToReplica,
+		},
+		{
+			name:      "upgrade primary Service",
+			reconcile: r.updatePrimaryService,
 		},
 	}
 
@@ -255,6 +262,29 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 	}
 	if err := r.configureReplica(ctx, &config); err != nil {
 		return fmt.Errorf("error configuring replica vars in current primary: %v", err)
+	}
+	return nil
+}
+
+func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	clientSet *mariadbClientSet) error {
+	key := replresources.PrimaryServiceKey(mariadb)
+	var service corev1.Service
+	if err := r.Get(ctx, key, &service); err != nil {
+		return fmt.Errorf("error getting Service: %v", err)
+	}
+
+	serviceLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			WithStatefulSetPod(mariadb, mariadb.Spec.Replication.PrimaryPodIndex).
+			Build()
+	patch := client.MergeFrom(service.DeepCopy())
+	service.ObjectMeta.Labels = serviceLabels
+	service.Spec.Selector = serviceLabels
+
+	if err := r.Patch(ctx, &service, patch); err != nil {
+		return fmt.Errorf("error patching Service: %v", err)
 	}
 	return nil
 }
