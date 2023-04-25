@@ -13,6 +13,10 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
+var (
+	ErrWaitReplicaTimeout = errors.New("timeout waiting for replica to be synced")
+)
+
 type Opts struct {
 	Username string
 	Password string
@@ -235,10 +239,14 @@ func (c *Client) WaitForReplicaGtid(ctx context.Context, gtid string, timeout ti
 		return fmt.Errorf("error scanning result: %v", err)
 	}
 
-	if result == 0 {
+	switch result {
+	case 0:
 		return nil
+	case -1:
+		return ErrWaitReplicaTimeout
+	default:
+		return fmt.Errorf("unexpected result: %d", result)
 	}
-	return fmt.Errorf("unexpected result: %d", result)
 }
 
 type ChangeMasterOpts struct {

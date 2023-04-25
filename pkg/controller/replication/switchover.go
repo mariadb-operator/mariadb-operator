@@ -2,6 +2,7 @@ package replication
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -151,8 +152,10 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 				var errBundle *multierror.Error
 				errBundle = multierror.Append(errBundle, fmt.Errorf("error waiting for GTID '%s' in replica '%d'", err, i))
 
-				if err := r.resetSlave(ctx, replClient); err != nil {
-					errBundle = multierror.Append(errBundle, fmt.Errorf("error reseting slave in replica '%d': %v", i, err))
+				if errors.Is(err, mariadbclient.ErrWaitReplicaTimeout) {
+					if err := r.resetSlave(ctx, replClient); err != nil {
+						errBundle = multierror.Append(errBundle, fmt.Errorf("error reseting slave in replica '%d': %v", i, err))
+					}
 				}
 				if err := errBundle.ErrorOrNil(); err != nil {
 					errChan <- err
