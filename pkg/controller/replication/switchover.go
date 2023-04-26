@@ -158,15 +158,18 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 
 				if errors.Is(err, mariadbclient.ErrWaitReplicaTimeout) {
 					if err := r.resetSlave(ctx, replClient); err != nil {
-						errBundle = multierror.Append(errBundle, fmt.Errorf("error reseting slave in replica '%d': %v", i, err))
+						errBundle = multierror.Append(errBundle, fmt.Errorf("error resetting slave position in replica '%d': %v", i, err))
 					}
 				}
-				if err := errBundle.ErrorOrNil(); err != nil {
-					errChan <- err
-				}
+
+				errChan <- errBundle
 				return
 			}
-			logger.V(1).Info("replica synced", "replica", i, "gtid", primaryGtid)
+
+			logger.V(1).Info("replica synced, resetting slave position", "replica", i, "gtid", primaryGtid)
+			if err := r.resetSlave(ctx, replClient); err != nil {
+				errChan <- fmt.Errorf("error resetting slave position in replica '%d' after being synced: %v", i, err)
+			}
 		}(i)
 	}
 	go func() {
@@ -178,11 +181,10 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-doneChan:
-		break
+		return nil
 	case err := <-errChan:
 		return err
 	}
-	return nil
 }
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
