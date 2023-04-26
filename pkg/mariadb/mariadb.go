@@ -264,7 +264,7 @@ MASTER_HOST='{{ .Host }}',
 MASTER_USER='{{ .User }}',
 MASTER_PASSWORD='{{ .Password }}',
 MASTER_USE_GTID={{ .Gtid }},
-MASTER_CONNECT_RETRY={{ or .Retries 10 }};
+MASTER_CONNECT_RETRY={{ .Retries }};
 `)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, opts)

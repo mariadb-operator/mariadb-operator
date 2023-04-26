@@ -56,10 +56,10 @@ func (c *mariadbClientSet) currentPrimaryClient() (*mariadbclient.Client, error)
 }
 
 func (c *mariadbClientSet) newPrimaryClient() (*mariadb.Client, error) {
-	if rc, ok := c.replClients[c.mariadb.Spec.Replication.PrimaryPodIndex]; ok {
+	if rc, ok := c.replClients[c.mariadb.Spec.Replication.Primary.PodIndex]; ok {
 		return rc, nil
 	}
-	return nil, fmt.Errorf("replica client not found, using index %d", c.mariadb.Spec.Replication.PrimaryPodIndex)
+	return nil, fmt.Errorf("replica client not found, using index %d", c.mariadb.Spec.Replication.Primary.PodIndex)
 }
 
 func (c *mariadbClientSet) replicaClient(replicaIndex int) (*mariadb.Client, error) {

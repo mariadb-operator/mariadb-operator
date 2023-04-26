@@ -5644,61 +5644,69 @@ spec:
                 type: integer
               replication:
                 properties:
-                  primaryConnection:
+                  primary:
                     properties:
-                      healthCheck:
+                      connection:
                         properties:
-                          interval:
+                          healthCheck:
+                            properties:
+                              interval:
+                                type: string
+                              retryInterval:
+                                type: string
+                            type: object
+                          params:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          secretName:
                             type: string
-                          retryInterval:
+                          secretTemplate:
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              key:
+                                type: string
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                            type: object
+                          serviceName:
                             type: string
                         type: object
-                      params:
-                        additionalProperties:
-                          type: string
-                        type: object
-                      secretName:
-                        type: string
-                      secretTemplate:
+                      podIndex:
+                        default: 0
+                        type: integer
+                      service:
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
                             type: object
-                          key:
+                          type:
+                            description: Service Type string describes ingress methods
+                              for a service
                             type: string
-                          labels:
-                            additionalProperties:
-                              type: string
-                            type: object
                         type: object
-                      serviceName:
-                        type: string
                     type: object
-                  primaryPodIndex:
-                    default: 0
-                    type: integer
-                  primaryService:
+                  replica:
                     properties:
-                      annotations:
-                        additionalProperties:
-                          type: string
-                        type: object
-                      type:
-                        description: Service Type string describes ingress methods
-                          for a service
+                      connectionRetries:
+                        default: 10
+                        type: integer
+                      connectionTimeout:
+                        type: string
+                      syncTimeout:
+                        type: string
+                      waitPoint:
+                        default: AfterCommit
                         type: string
                     type: object
-                  retries:
-                    default: 10
-                    type: integer
-                  syncTimeout:
-                    type: string
-                  timeout:
-                    type: string
-                  waitPoint:
-                    default: AfterCommit
-                    type: string
+                required:
+                - primary
                 type: object
               resources:
                 description: ResourceRequirements describes the compute resource requirements.

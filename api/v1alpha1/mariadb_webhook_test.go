@@ -88,7 +88,9 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								PrimaryPodIndex: 1,
+								Primary: PrimaryReplication{
+									PodIndex: 1,
+								},
 							},
 							Replicas: 3,
 						},
@@ -101,9 +103,14 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								WaitPoint: func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
-								Timeout:   &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-								Retries:   func() *int { r := 3; return &r }(),
+								Primary: PrimaryReplication{
+									PodIndex: 1,
+								},
+								Replica: ReplicaReplication{
+									WaitPoint:         func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
+									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
+									ConnectionRetries: 3,
+								},
 							},
 							Replicas: 3,
 						},
@@ -111,14 +118,19 @@ var _ = Describe("MariaDB webhook", func() {
 					wantErr: false,
 				},
 				{
-					by: "invalid replication replicas",
+					by: "invalid replicas",
 					mdb: MariaDB{
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								WaitPoint: func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
-								Timeout:   &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-								Retries:   func() *int { r := 3; return &r }(),
+								Primary: PrimaryReplication{
+									PodIndex: 2,
+								},
+								Replica: ReplicaReplication{
+									WaitPoint:         func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
+									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
+									ConnectionRetries: 4,
+								},
 							},
 							Replicas: 1,
 						},
@@ -131,10 +143,14 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								WaitPoint:       func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
-								Timeout:         &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-								Retries:         func() *int { r := 3; return &r }(),
-								PrimaryPodIndex: 4,
+								Primary: PrimaryReplication{
+									PodIndex: 4,
+								},
+								Replica: ReplicaReplication{
+									WaitPoint:         func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
+									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
+									ConnectionRetries: 3,
+								},
 							},
 							Replicas: 3,
 						},
@@ -142,36 +158,15 @@ var _ = Describe("MariaDB webhook", func() {
 					wantErr: true,
 				},
 				{
-					by: "invalid wait point",
+					by: "invalid replica wait point",
 					mdb: MariaDB{
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								WaitPoint: func() *WaitPoint { w := WaitPoint("foo"); return &w }(),
+								Replica: ReplicaReplication{
+									WaitPoint: func() *WaitPoint { w := WaitPoint("foo"); return &w }(),
+								},
 							},
-							Replicas: 3,
-						},
-					},
-					wantErr: true,
-				},
-				{
-					by: "invalid primary pod index",
-					mdb: MariaDB{
-						ObjectMeta: meta,
-						Spec: MariaDBSpec{
-							Replication: &Replication{
-								PrimaryPodIndex: 4,
-							},
-							Replicas: 3,
-						},
-					},
-					wantErr: true,
-				},
-				{
-					by: "invalid replicas",
-					mdb: MariaDB{
-						ObjectMeta: meta,
-						Spec: MariaDBSpec{
 							Replicas: 3,
 						},
 					},

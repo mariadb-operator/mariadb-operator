@@ -29,8 +29,8 @@ import (
 )
 
 var (
-	defaultReplicationTimeout     = 10 * time.Second
-	defaultReplicationSyncTimeout = 10 * time.Second
+	defaultConnectionTimeout = 10 * time.Second
+	defaultSyncTimeout       = 10 * time.Second
 )
 
 type Exporter struct {
@@ -100,24 +100,27 @@ func (w WaitPoint) MariaDBFormat() (string, error) {
 	}
 }
 
-type Replication struct {
+type PrimaryReplication struct {
 	// +kubebuilder:default=0
-	PrimaryPodIndex int `json:"primaryPodIndex,omitempty"`
+	PodIndex int `json:"podIndex,omitempty"`
 
-	PrimaryService *Service `json:"primaryService,omitempty"`
+	Service *Service `json:"service,omitempty"`
 
-	PrimaryConnection *ConnectionTemplate `json:"primaryConnection,omitempty"`
+	Connection *ConnectionTemplate `json:"connection,omitempty"`
+}
+
+type ReplicaReplication struct {
 	// +kubebuilder:default=AfterCommit
 	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
 
-	Timeout *metav1.Duration `json:"timeout,omitempty"`
+	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
 	// +kubebuilder:default=10
-	Retries *int `json:"retries,omitempty"`
+	ConnectionRetries int `json:"connectionRetries,omitempty"`
 
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
 }
 
-func (r *Replication) Validate() error {
+func (r *ReplicaReplication) Validate() error {
 	if r.WaitPoint != nil {
 		if err := r.WaitPoint.Validate(); err != nil {
 			return fmt.Errorf("invalid WaitPoint: %v", err)
@@ -126,18 +129,25 @@ func (r *Replication) Validate() error {
 	return nil
 }
 
-func (r *Replication) TimeoutOrDefault() time.Duration {
-	if r.Timeout != nil {
-		return r.Timeout.Duration
+func (r *ReplicaReplication) ConnectionTimeoutOrDefault() time.Duration {
+	if r.ConnectionTimeout != nil {
+		return r.ConnectionTimeout.Duration
 	}
-	return defaultReplicationTimeout
+	return defaultConnectionTimeout
 }
 
-func (r *Replication) SyncTimeoutOrDefault() time.Duration {
+func (r *ReplicaReplication) SyncTimeoutOrDefault() time.Duration {
 	if r.SyncTimeout != nil {
 		return r.SyncTimeout.Duration
 	}
-	return defaultReplicationSyncTimeout
+	return defaultSyncTimeout
+}
+
+type Replication struct {
+	// +kubebuilder:validation:Required
+	Primary PrimaryReplication `json:"primary"`
+	// +kubebuilder:default={}
+	Replica ReplicaReplication `json:"replica,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
