@@ -217,7 +217,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 		),
 		User:     ReplUser,
 		Password: string(replSecret.Data[PasswordSecretKey]),
-		Gtid:     "slave_pos",
+		Gtid:     "current_pos",
 		Retries:  mariadb.Spec.Replication.Replica.ConnectionRetries,
 	}
 
@@ -264,7 +264,7 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 			),
 			User:     ReplUser,
 			Password: string(replSecret.Data[PasswordSecretKey]),
-			Gtid:     "slave_pos",
+			Gtid:     "current_pos",
 			Retries:  mariadb.Spec.Replication.Replica.ConnectionRetries,
 		},
 		ordinal: *mariadb.Status.CurrentPrimaryPodIndex,
