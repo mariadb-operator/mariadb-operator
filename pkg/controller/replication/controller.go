@@ -206,7 +206,7 @@ func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *recon
 	config := primaryConfig{
 		mariadb: req.mariadb,
 		client:  client,
-		ordinal: req.mariadb.Spec.Replication.PrimaryPodIndex,
+		ordinal: req.mariadb.Spec.Replication.Primary.PodIndex,
 	}
 	if err := r.configurePrimary(ctx, &config); err != nil {
 		return fmt.Errorf("error configuring primary vars: %v", err)
@@ -223,7 +223,7 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 		return fmt.Errorf("error getting replication password Secret: %v", err)
 	}
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
-		if i == req.mariadb.Spec.Replication.PrimaryPodIndex {
+		if i == req.mariadb.Spec.Replication.Primary.PodIndex {
 			continue
 		}
 		client, err := req.clientSet.replicaClient(i)
@@ -238,11 +238,12 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 				Connection: ConnectionName,
 				Host: statefulset.PodFQDN(
 					req.mariadb.ObjectMeta,
-					req.mariadb.Spec.Replication.PrimaryPodIndex,
+					req.mariadb.Spec.Replication.Primary.PodIndex,
 				),
 				User:     ReplUser,
 				Password: string(replSecret.Data[PasswordSecretKey]),
 				Gtid:     "current_pos",
+				Retries:  req.mariadb.Spec.Replication.Replica.ConnectionRetries,
 			},
 			ordinal: i,
 		}
@@ -289,14 +290,14 @@ func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(req.mariadb).
-			WithStatefulSetPod(req.mariadb, req.mariadb.Spec.Replication.PrimaryPodIndex).
+			WithStatefulSetPod(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex).
 			Build()
 	opts := builder.ServiceOpts{
 		Labels: serviceLabels,
 	}
-	if req.mariadb.Spec.Replication.PrimaryService != nil {
-		opts.Type = req.mariadb.Spec.Replication.PrimaryService.Type
-		opts.Annotations = req.mariadb.Spec.Replication.PrimaryService.Annotations
+	if req.mariadb.Spec.Replication.Primary.Service != nil {
+		opts.Type = req.mariadb.Spec.Replication.Primary.Service.Type
+		opts.Annotations = req.mariadb.Spec.Replication.Primary.Service.Annotations
 	}
 	desiredSvc, err := r.Builder.BuildService(req.mariadb, req.key, opts)
 	if err != nil {
@@ -332,7 +333,7 @@ func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *r
 		return nil
 	}
 
-	connTpl := req.mariadb.Spec.Replication.PrimaryConnection
+	connTpl := req.mariadb.Spec.Replication.Primary.Connection
 	if req.mariadb.Spec.Replication != nil {
 		serviceName := replresources.PrimaryServiceKey(req.mariadb).Name
 		connTpl.ServiceName = &serviceName
@@ -367,7 +368,7 @@ func (r *ReplicationReconciler) updateCurrentPrimaryPodIndex(ctx context.Context
 		return nil
 	}
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		status.CurrentPrimaryPodIndex = &req.mariadb.Spec.Replication.PrimaryPodIndex
+		status.CurrentPrimaryPodIndex = &req.mariadb.Spec.Replication.Primary.PodIndex
 		return nil
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)

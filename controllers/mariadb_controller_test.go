@@ -251,22 +251,26 @@ var _ = Describe("MariaDB controller", func() {
 						PeriodSeconds:       5,
 					},
 					Replication: &mariadbv1alpha1.Replication{
-						PrimaryService: &mariadbv1alpha1.Service{
-							Type: corev1.ServiceTypeLoadBalancer,
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": "172.18.0.130",
+						Primary: mariadbv1alpha1.PrimaryReplication{
+							Service: &mariadbv1alpha1.Service{
+								Type: corev1.ServiceTypeLoadBalancer,
+								Annotations: map[string]string{
+									"metallb.universe.tf/loadBalancerIPs": "172.18.0.130",
+								},
+							},
+							Connection: &mariadbv1alpha1.ConnectionTemplate{
+								SecretName: func() *string {
+									s := "primary-conn-mdb-repl"
+									return &s
+								}(),
+								SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+									Key: &testConnSecretKey,
+								},
 							},
 						},
-						PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-							SecretName: func() *string {
-								s := "primary-conn-mdb-repl"
-								return &s
-							}(),
-							SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-								Key: &testConnSecretKey,
-							},
+						Replica: mariadbv1alpha1.ReplicaReplication{
+							WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
 						},
-						WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
 					},
 					Service: &mariadbv1alpha1.Service{
 						Type: corev1.ServiceTypeLoadBalancer,
@@ -307,7 +311,7 @@ var _ = Describe("MariaDB controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Updating MariaDB")
-			testRplMariaDb.Spec.Replication.PrimaryPodIndex = 1
+			testRplMariaDb.Spec.Replication.Primary.PodIndex = 1
 			Expect(k8sClient.Update(testCtx, &testRplMariaDb)).To(Succeed())
 
 			By("Expecting MariaDB to eventually change primary")

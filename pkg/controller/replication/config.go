@@ -74,13 +74,13 @@ func (r *ReplicationReconciler) configurepPrimaryReplication(ctx context.Context
 	kv := map[string]string{
 		"rpl_semi_sync_master_enabled": "ON",
 		"rpl_semi_sync_master_timeout": func() string {
-			return fmt.Sprint(mariadb.Spec.Replication.TimeoutOrDefault().Milliseconds())
+			return fmt.Sprint(mariadb.Spec.Replication.Replica.ConnectionTimeoutOrDefault().Milliseconds())
 		}(),
 		"rpl_semi_sync_slave_enabled": "OFF",
 		"server_id":                   serverId(ordinal),
 	}
-	if mariadb.Spec.Replication.WaitPoint != nil {
-		waitPoint, err := mariadb.Spec.Replication.WaitPoint.MariaDBFormat()
+	if mariadb.Spec.Replication.Replica.WaitPoint != nil {
+		waitPoint, err := mariadb.Spec.Replication.Replica.WaitPoint.MariaDBFormat()
 		if err != nil {
 			return fmt.Errorf("error getting wait point: %v", err)
 		}

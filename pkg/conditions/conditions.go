@@ -200,6 +200,6 @@ func getJobConditionType(job *batchv1.Job) batchv1.JobConditionType {
 func switchingPrimaryMessage(mariadb *mariadbv1alpha1.MariaDB) string {
 	return fmt.Sprintf(
 		"Switching primary to '%s'",
-		statefulset.PodName(mariadb.ObjectMeta, mariadb.Spec.Replication.PrimaryPodIndex),
+		statefulset.PodName(mariadb.ObjectMeta, mariadb.Spec.Replication.Primary.PodIndex),
 	)
 }
