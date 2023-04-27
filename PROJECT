@@ -100,4 +100,9 @@ resources:
   webhooks:
     validation: true
     webhookVersion: v1
+- controller: true
+  domain: mmontes.io
+  group: mariadb
+  kind: Pod
+  version: v1
 version: "3"

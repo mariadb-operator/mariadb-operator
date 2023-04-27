@@ -212,6 +212,32 @@ rules:
 - apiGroups:
   - mariadb.mmontes.io
   resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - pods/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - pods/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
   - restores
   verbs:
   - create
