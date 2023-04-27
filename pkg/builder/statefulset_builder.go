@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -51,15 +52,17 @@ func StatefulSetPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
 
 func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
 	dsn *corev1.SecretKeySelector) (*appsv1.StatefulSet, error) {
-	containers, err := buildStatefulSetContainers(mariadb, dsn)
-	if err != nil {
-		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
-	}
 
 	statefulSetLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
 			Build()
+
+	podTemplate, err := buildPodTemplate(mariadb, dsn, statefulSetLabels)
+	if err != nil {
+		return nil, fmt.Errorf("error building pod template: %v", err)
+	}
+
 	pvcMeta := metav1.ObjectMeta{
 		Name:      stsStorageVolume,
 		Namespace: mariadb.Namespace,
@@ -78,21 +81,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 			Selector: &metav1.LabelSelector{
 				MatchLabels: statefulSetLabels,
 			},
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      mariadb.Name,
-					Namespace: mariadb.Namespace,
-					Labels:    statefulSetLabels,
-				},
-				Spec: v1.PodSpec{
-					Containers:      containers,
-					Volumes:         buildStatefulSetVolumes(mariadb),
-					SecurityContext: mariadb.Spec.PodSecurityContext,
-					Affinity:        mariadb.Spec.Affinity,
-					NodeSelector:    mariadb.Spec.NodeSelector,
-					Tolerations:     mariadb.Spec.Tolerations,
-				},
-			},
+			Template: *podTemplate,
 			VolumeClaimTemplates: []v1.PersistentVolumeClaim{
 				corev1.PersistentVolumeClaim{
 					ObjectMeta: pvcMeta,
@@ -105,6 +94,39 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 		return nil, fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
 	return sts, nil
+}
+
+func buildPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector,
+	labels map[string]string) (*v1.PodTemplateSpec, error) {
+	containers, err := buildStatefulSetContainers(mariadb, dsn)
+	if err != nil {
+		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
+	}
+
+	var podAnnotations map[string]string
+	if mariadb.Spec.Replication != nil {
+		podAnnotations = map[string]string{
+			annotation.PodReplicationAnnotation: "true",
+			annotation.PodMariadbAnnotation:     mariadb.Name,
+		}
+	}
+
+	return &v1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        mariadb.Name,
+			Namespace:   mariadb.Namespace,
+			Labels:      labels,
+			Annotations: podAnnotations,
+		},
+		Spec: v1.PodSpec{
+			Containers:      containers,
+			Volumes:         buildStatefulSetVolumes(mariadb),
+			SecurityContext: mariadb.Spec.PodSecurityContext,
+			Affinity:        mariadb.Spec.Affinity,
+			NodeSelector:    mariadb.Spec.NodeSelector,
+			Tolerations:     mariadb.Spec.Tolerations,
+		},
+	}, nil
 }
 
 func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]v1.Container, error) {
