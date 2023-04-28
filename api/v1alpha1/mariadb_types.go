@@ -247,11 +247,7 @@ func (m *MariaDB) IsBootstrapped() bool {
 }
 
 func (m *MariaDB) IsSwitchingPrimary() bool {
-	primarySwitched := meta.FindStatusCondition(m.Status.Conditions, ConditionTypePrimarySwitched)
-	if primarySwitched == nil {
-		return false
-	}
-	return primarySwitched.Status == metav1.ConditionFalse
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
 }
 
 func (m *MariaDB) ConfigMapValue() *string {
