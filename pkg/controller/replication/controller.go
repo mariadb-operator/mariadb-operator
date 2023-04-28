@@ -257,7 +257,6 @@ func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 	if req.mariadb.Spec.PodDisruptionBudget != nil {
 		return nil
 	}
-
 	key := replresources.PodDisruptionBudgetKey(req.mariadb)
 	var existingPDB policyv1.PodDisruptionBudget
 	if err := r.Get(ctx, key, &existingPDB); err == nil {
@@ -286,6 +285,9 @@ func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 }
 
 func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req *reconcileRequest) error {
+	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
+		return nil
+	}
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(req.mariadb).
@@ -377,6 +379,10 @@ func (r *ReplicationReconciler) updateCurrentPrimaryPodIndex(ctx context.Context
 
 func (r *ReplicationReconciler) reconcileReplPasswordSecret(ctx context.Context,
 	mariadb *mariadbv1alpha1.MariaDB) (string, error) {
+	var existingSecret corev1.Secret
+	if err := r.Get(ctx, replPasswordKey(mariadb), &existingSecret); err == nil {
+		return "", nil
+	}
 	password, err := password.Generate(16, 4, 0, false, false)
 	if err != nil {
 		return "", fmt.Errorf("error generating replication password: %v", err)
