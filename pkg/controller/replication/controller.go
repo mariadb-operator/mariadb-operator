@@ -58,7 +58,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		return nil
 	}
 	if mariadb.IsSwitchingPrimary() {
-		clientSet, err := newMariaDBClientSet(ctx, mariadb, r.RefResolver)
+		clientSet, err := newMariaDBClientSet(mariadb, r.RefResolver)
 		if err != nil {
 			return fmt.Errorf("error creating mariadb clientset: %v", err)
 		}
@@ -78,7 +78,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		return nil
 	}
 
-	clientSet, err := newMariaDBClientSet(ctx, mariadb, r.RefResolver)
+	clientSet, err := newMariaDBClientSet(mariadb, r.RefResolver)
 	if err != nil {
 		return fmt.Errorf("error creating mariadb clientset: %v", err)
 	}
@@ -139,7 +139,7 @@ func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *recon
 	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
 		return nil
 	}
-	client, err := req.clientSet.newPrimaryClient()
+	client, err := req.clientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
@@ -214,7 +214,7 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 		if i == req.mariadb.Spec.Replication.Primary.PodIndex {
 			continue
 		}
-		client, err := req.clientSet.replicaClient(i)
+		client, err := req.clientSet.clientForIndex(ctx, i)
 		if err != nil {
 			return fmt.Errorf("error getting client for replica '%d': %v", i, err)
 		}
@@ -259,9 +259,6 @@ func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 }
 
 func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req *reconcileRequest) error {
-	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
-		return nil
-	}
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(req.mariadb).

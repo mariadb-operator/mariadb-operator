@@ -107,7 +107,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 
 func (r *ReplicationReconciler) lockCurrentPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
-	client, err := clientSet.currentPrimaryClient()
+	client, err := clientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
@@ -119,7 +119,7 @@ func (r *ReplicationReconciler) lockCurrentPrimary(ctx context.Context, mariadb 
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
-	client, err := clientSet.currentPrimaryClient()
+	client, err := clientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
@@ -140,7 +140,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			replClient, err := clientSet.replicaClient(i)
+			replClient, err := clientSet.clientForIndex(ctx, i)
 			if err != nil {
 				errChan <- fmt.Errorf("error getting replica '%d' client: %v", i, err)
 				return
@@ -188,7 +188,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
-	client, err := clientSet.newPrimaryClient()
+	client, err := clientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
@@ -206,7 +206,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 		if i == *mariadb.Status.CurrentPrimaryPodIndex || i == mariadb.Spec.Replication.Primary.PodIndex {
 			continue
 		}
-		replClient, err := clientSet.replicaClient(i)
+		replClient, err := clientSet.clientForIndex(ctx, i)
 		if err != nil {
 			return fmt.Errorf("error getting replica '%d' client: %v", i, err)
 		}
@@ -221,7 +221,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 
 func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
-	currentPrimaryClient, err := clientSet.currentPrimaryClient()
+	currentPrimaryClient, err := clientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}

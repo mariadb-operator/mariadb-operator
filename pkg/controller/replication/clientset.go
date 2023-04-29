@@ -12,59 +12,69 @@ import (
 )
 
 type mariadbClientSet struct {
-	mariadb     *mariadbv1alpha1.MariaDB
-	replClients map[int]*mariadb.Client
+	mariadb       *mariadbv1alpha1.MariaDB
+	refResolver   *refresolver.RefResolver
+	clientByIndex map[int]*mariadb.Client
 }
 
-func newMariaDBClientSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	refResolver *refresolver.RefResolver) (*mariadbClientSet, error) {
+func newMariaDBClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver) (*mariadbClientSet, error) {
 	if mariadb.Spec.Replication == nil {
 		return nil, fmt.Errorf("'mariadb.spec.replication' is required to create a mariadbClientSet")
 	}
-
 	clientSet := &mariadbClientSet{
-		mariadb:     mariadb,
-		replClients: make(map[int]*mariadbclient.Client, mariadb.Spec.Replicas),
-	}
-	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
-		client, err := mariadbclient.NewRootClientWithPodIndex(ctx, mariadb, refResolver, i)
-		if err != nil {
-			return nil, fmt.Errorf("error creating replica %d client: %v", i, err)
-		}
-		clientSet.replClients[i] = client
+		mariadb:       mariadb,
+		refResolver:   refResolver,
+		clientByIndex: make(map[int]*mariadbclient.Client),
 	}
 	return clientSet, nil
 }
 
 func (c *mariadbClientSet) close() error {
-	for i, rc := range c.replClients {
+	for i, rc := range c.clientByIndex {
 		if err := rc.Close(); err != nil {
-			return fmt.Errorf("error closing replica %d: %v", i, err)
+			return fmt.Errorf("error closing replica '%d' client: %v", i, err)
 		}
 	}
 	return nil
 }
 
-func (c *mariadbClientSet) currentPrimaryClient() (*mariadbclient.Client, error) {
+func (c *mariadbClientSet) currentPrimaryClient(ctx context.Context) (*mariadbclient.Client, error) {
 	if c.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil, errors.New("'status.currentPrimaryPodIndex' not set")
 	}
-	if rc, ok := c.replClients[*c.mariadb.Status.CurrentPrimaryPodIndex]; ok {
-		return rc, nil
+	client, err := c.clientForIndex(ctx, *c.mariadb.Status.CurrentPrimaryPodIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error getting current primary client: %v", err)
 	}
-	return nil, fmt.Errorf("current primary client not found, using index %d", *c.mariadb.Status.CurrentPrimaryPodIndex)
+	return client, nil
 }
 
-func (c *mariadbClientSet) newPrimaryClient() (*mariadb.Client, error) {
-	if rc, ok := c.replClients[c.mariadb.Spec.Replication.Primary.PodIndex]; ok {
-		return rc, nil
+func (c *mariadbClientSet) newPrimaryClient(ctx context.Context) (*mariadb.Client, error) {
+	client, err := c.clientForIndex(ctx, c.mariadb.Spec.Replication.Primary.PodIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error getting new primary client: %v", err)
 	}
-	return nil, fmt.Errorf("replica client not found, using index %d", c.mariadb.Spec.Replication.Primary.PodIndex)
+	return client, nil
 }
 
-func (c *mariadbClientSet) replicaClient(replicaIndex int) (*mariadb.Client, error) {
-	if rc, ok := c.replClients[replicaIndex]; ok {
-		return rc, nil
+func (c *mariadbClientSet) clientForIndex(ctx context.Context, index int) (*mariadbclient.Client, error) {
+	if err := c.validateIndex(index); err != nil {
+		return nil, fmt.Errorf("invalid index. %v", err)
 	}
-	return nil, fmt.Errorf("replica client not found, using index %d", replicaIndex)
+	if c, ok := c.clientByIndex[index]; ok {
+		return c, nil
+	}
+	client, err := mariadbclient.NewRootClientWithPodIndex(ctx, c.mariadb, c.refResolver, index)
+	if err != nil {
+		return nil, fmt.Errorf("error creating replica '%d' client: %v", index, err)
+	}
+	c.clientByIndex[index] = client
+	return client, nil
+}
+
+func (c *mariadbClientSet) validateIndex(index int) error {
+	if index >= 0 && index < int(c.mariadb.Spec.Replicas) {
+		return nil
+	}
+	return fmt.Errorf("index '%d' out of MariaDB replicas bounds [0, %d]", index, c.mariadb.Spec.Replicas-1)
 }
