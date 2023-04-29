@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
+	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
@@ -51,6 +52,7 @@ var (
 type PodReconciler struct {
 	client.Client
 	Scheme      *runtime.Scheme
+	Builder     *builder.Builder
 	RefResolver *refresolver.RefResolver
 }
 
@@ -126,7 +128,7 @@ func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, m
 	}
 	defer client.Close()
 
-	config := replication.NewReplicationConfig(mariadb, client, r.Client)
+	config := replication.NewReplicationConfig(mariadb, client, r.Client, r.Builder)
 
 	if *index == *mariadb.Status.CurrentPrimaryPodIndex {
 		if err := config.ConfigurePrimary(ctx, *index); err != nil {
