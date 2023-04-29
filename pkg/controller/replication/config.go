@@ -43,7 +43,7 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, podIndex int) 
 	if err := r.mariadbClient.SetGlobalVar(ctx, "read_only", "0"); err != nil {
 		return fmt.Errorf("error setting read_only=0: %v", err)
 	}
-	if err := r.configurepPrimary(ctx, r.mariadb, r.mariadbClient, podIndex); err != nil {
+	if err := r.configurepPrimaryVars(ctx, r.mariadb, r.mariadbClient, podIndex); err != nil {
 		return fmt.Errorf("error configuring replication variables: %v", err)
 	}
 	return nil
@@ -62,7 +62,7 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, replicaPodInde
 	if err := r.mariadbClient.SetGlobalVar(ctx, "read_only", "1"); err != nil {
 		return fmt.Errorf("error setting read_only=1: %v", err)
 	}
-	if err := r.configurepReplica(ctx, r.mariadb, r.mariadbClient, replicaPodIndex); err != nil {
+	if err := r.configurepReplicaVars(ctx, r.mariadb, r.mariadbClient, replicaPodIndex); err != nil {
 		return fmt.Errorf("error configuring replication variables: %v", err)
 	}
 	if err := r.changeMaster(ctx, r.mariadb, primaryPodIndex); err != nil {
@@ -74,7 +74,7 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, replicaPodInde
 	return nil
 }
 
-func (r *ReplicationConfig) configurepPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *ReplicationConfig) configurepPrimaryVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	client *mariadb.Client, ordinal int) error {
 	kv := map[string]string{
 		"rpl_semi_sync_master_enabled": "ON",
@@ -97,7 +97,7 @@ func (r *ReplicationConfig) configurepPrimary(ctx context.Context, mariadb *mari
 	return nil
 }
 
-func (r *ReplicationConfig) configurepReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *ReplicationConfig) configurepReplicaVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	client *mariadb.Client, ordinal int) error {
 	kv := map[string]string{
 		"rpl_semi_sync_master_enabled": "OFF",

@@ -21,9 +21,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -31,6 +33,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,6 +41,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+)
+
+var (
+	errPodAnnotationNotFound = errors.New("MariaDB annotation not found in Pod")
 )
 
 // PodReconciler reconciles a Pod object
@@ -61,7 +68,10 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	mariadb, err := r.mariadbFromPod(ctx, pod)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB from Pod annotation: %v", err)
+		if errors.Is(err, errPodAnnotationNotFound) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if mariadb.Spec.Replication == nil || mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return ctrl.Result{}, nil
@@ -82,9 +92,8 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 func (r *PodReconciler) mariadbFromPod(ctx context.Context, pod corev1.Pod) (*mariadbv1alpha1.MariaDB, error) {
 	mariadbAnnotation, ok := pod.Annotations[annotation.PodMariadbAnnotation]
 	if !ok {
-		return nil, fmt.Errorf("MariaDB annotation not found in Pod '%s'", pod.Name)
+		return nil, errPodAnnotationNotFound
 	}
-	log.FromContext(ctx).V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
 
 	var mariadb mariadbv1alpha1.MariaDB
 	key := types.NamespacedName{
@@ -92,6 +101,9 @@ func (r *PodReconciler) mariadbFromPod(ctx context.Context, pod corev1.Pod) (*ma
 		Namespace: pod.Namespace,
 	}
 	if err := r.Get(ctx, key, &mariadb); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("error getting MariaDB from Pod '%s': %v", pod.Name, err)
 	}
 	return &mariadb, nil
@@ -147,10 +159,22 @@ func (r *PodReconciler) reconcilePodNotReady(ctx context.Context, pod corev1.Pod
 		return fmt.Errorf("error getting healthy replica: %v", err)
 	}
 
-	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
+	var errBundle *multierror.Error
+	err = r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
 		mdb.Spec.Replication.Primary.PodIndex = *healthyIndex
-	}); err != nil {
-		return fmt.Errorf("error updating primary: %v", err)
+	})
+	errBundle = multierror.Append(errBundle, err)
+
+	err = r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		if err := conditions.SetPrimarySwitching(status, mariadb); err != nil {
+			return fmt.Errorf("error setting PrimarySwitched condition: %v", err)
+		}
+		return nil
+	})
+	errBundle = multierror.Append(errBundle, err)
+
+	if err := errBundle.ErrorOrNil(); err != nil {
+		return fmt.Errorf("error patching MariaDB: %v", err)
 	}
 	return nil
 }
@@ -186,6 +210,19 @@ func (r *PodReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.Mari
 
 	if err := r.Patch(ctx, mariadb, patch); err != nil {
 		return fmt.Errorf("error patching MariaDB: %v", err)
+	}
+	return nil
+}
+
+func (r *PodReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	patcher func(*mariadbv1alpha1.MariaDBStatus) error) error {
+	patch := client.MergeFrom(mariadb.DeepCopy())
+	if err := patcher(&mariadb.Status); err != nil {
+		return fmt.Errorf("errror calling MariaDB status patcher: %v", err)
+	}
+
+	if err := r.Client.Status().Patch(ctx, mariadb, patch); err != nil {
+		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	return nil
 }

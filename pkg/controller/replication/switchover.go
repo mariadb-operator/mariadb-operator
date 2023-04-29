@@ -34,13 +34,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		var errBundle *multierror.Error
-		err := conditions.SetReadySwitchingPrimary(&req.mariadb.Status, req.mariadb)
-		errBundle = multierror.Append(errBundle, err)
-
-		err = conditions.SetPrimarySwitchedInProgress(&req.mariadb.Status, req.mariadb)
-		errBundle = multierror.Append(errBundle, err)
-		return errBundle.ErrorOrNil()
+		return conditions.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
@@ -89,7 +83,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		status.UpdateCurrentPrimaryStatus(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
-		conditions.SetPrimarySwitchedComplete(&req.mariadb.Status)
+		conditions.SetPrimarySwitched(&req.mariadb.Status)
 		return nil
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
