@@ -420,6 +420,9 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 			}
 			return nil
 		}
+		if mariaDb.Spec.Replication == nil {
+			s.UpdateCurrentPrimary(mariaDb, 0)
+		}
 		s.SetCondition(metav1.Condition{
 			Type:    mariadbv1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionTrue,
