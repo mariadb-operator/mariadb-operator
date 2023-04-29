@@ -206,6 +206,9 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context) error {
 	if err := r.mariadbClient.Grant(ctx, grantOpts); err != nil {
 		return fmt.Errorf("error creating grant: %v", err)
 	}
+	if err := r.mariadbClient.FlushPrivileges(ctx); err != nil {
+		return fmt.Errorf("error flushing privileges: %v", err)
+	}
 	return nil
 }
 

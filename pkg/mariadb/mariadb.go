@@ -151,6 +151,10 @@ func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
 	return c.Exec(ctx, query)
 }
 
+func (c *Client) FlushPrivileges(ctx context.Context) error {
+	return c.Exec(ctx, "FLUSH PRIVILEGES;")
+}
+
 func escapeWildcard(s string) string {
 	if s == "*" {
 		return s
