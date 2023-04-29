@@ -213,10 +213,10 @@ func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 	meta.SetStatusCondition(&s.Conditions, condition)
 }
 
-func (s *MariaDBStatus) UpdateCurrentPrimaryStatus(mariadb *MariaDB, currentPrimaryPodIndex int) {
-	s.CurrentPrimaryPodIndex = &currentPrimaryPodIndex
-	currentPrimary := statefulset.PodName(mariadb.ObjectMeta, currentPrimaryPodIndex)
-	s.CurrentPrimary = &currentPrimary
+func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
+	s.CurrentPrimaryPodIndex = &index
+	primaryPod := statefulset.PodName(mariadb.ObjectMeta, index)
+	s.CurrentPrimary = &primaryPod
 }
 
 // +kubebuilder:object:root=true

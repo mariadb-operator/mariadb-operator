@@ -86,7 +86,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		status.UpdateCurrentPrimaryStatus(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
+		status.UpdateCurrentPrimary(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
 		conditions.SetPrimarySwitched(&req.mariadb.Status)
 		return nil
 	}); err != nil {
@@ -283,7 +283,7 @@ func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb
 	}
 	var pod corev1.Pod
 	if err := r.Get(ctx, key, &pod); err != nil {
-		return false, client.IgnoreNotFound(err)
+		return false, err
 	}
 	return mariadbpod.PodReady(&pod), nil
 }

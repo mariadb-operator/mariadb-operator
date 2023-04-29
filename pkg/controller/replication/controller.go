@@ -267,7 +267,7 @@ func (r *ReplicationReconciler) updateCurrentPrimaryPodIndex(ctx context.Context
 		return nil
 	}
 	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		status.UpdateCurrentPrimaryStatus(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
+		status.UpdateCurrentPrimary(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
 		return nil
 	})
 }
