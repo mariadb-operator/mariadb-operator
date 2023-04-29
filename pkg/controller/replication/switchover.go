@@ -206,21 +206,61 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb
 
 func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
+	logger := log.FromContext(ctx)
+	var wg sync.WaitGroup
+	doneChan := make(chan struct{})
+	errChan := make(chan error)
+
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		if i == *mariadb.Status.CurrentPrimaryPodIndex || i == mariadb.Spec.Replication.Primary.PodIndex {
 			continue
 		}
-		replClient, err := clientSet.clientForIndex(ctx, i)
-		if err != nil {
-			return fmt.Errorf("error getting replica '%d' client: %v", i, err)
-		}
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			key := types.NamespacedName{
+				Name:      statefulset.PodName(mariadb.ObjectMeta, i),
+				Namespace: mariadb.Namespace,
+			}
+			var pod corev1.Pod
+			if err := r.Get(ctx, key, &pod); err != nil {
+				if apierrors.IsNotFound(err) {
+					return
+				}
+				errChan <- err
+				return
+			}
+			if !mariadbpod.PodReady(&pod) {
+				return
+			}
 
-		config := NewReplicationConfig(mariadb, replClient, r.Client, r.Builder)
-		if err := config.ConfigureReplica(ctx, i, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
-			return fmt.Errorf("error configuring replica vars in replica '%d': %v", i, err)
-		}
+			replClient, err := clientSet.clientForIndex(ctx, i)
+			if err != nil {
+				errChan <- fmt.Errorf("error getting replica '%d' client: %v", i, err)
+				return
+			}
+
+			logger.V(1).Info("connecting replica to new primary", "replica", i)
+			config := NewReplicationConfig(mariadb, replClient, r.Client, r.Builder)
+			if err := config.ConfigureReplica(ctx, i, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
+				errChan <- fmt.Errorf("error configuring replica vars in replica '%d': %v", i, err)
+				return
+			}
+		}(i)
 	}
-	return nil
+	go func() {
+		wg.Wait()
+		close(doneChan)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-doneChan:
+		return nil
+	case err := <-errChan:
+		return err
+	}
 }
 
 func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
