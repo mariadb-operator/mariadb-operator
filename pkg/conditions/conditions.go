@@ -59,7 +59,7 @@ func SetReadyFailed(c Conditioner) {
 	SetReadyFailedWithMessage(c, "Failed")
 }
 
-func SetReadySwitchingPrimary(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) error {
+func SetPrimarySwitching(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Spec.Replication == nil {
 		return errors.New("replication required to set switching primary Ready condition")
 	}
@@ -69,13 +69,6 @@ func SetReadySwitchingPrimary(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) e
 		Reason:  mariadbv1alpha1.ConditionReasonSwitchingPrimary,
 		Message: switchingPrimaryMessage(mariadb),
 	})
-	return nil
-}
-
-func SetPrimarySwitchedInProgress(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Replication == nil {
-		return errors.New("replication required to set in progress PrimarySwitched condition")
-	}
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypePrimarySwitched,
 		Status:  metav1.ConditionFalse,
@@ -85,7 +78,7 @@ func SetPrimarySwitchedInProgress(c Conditioner, mariadb *mariadbv1alpha1.MariaD
 	return nil
 }
 
-func SetPrimarySwitchedComplete(c Conditioner) {
+func SetPrimarySwitched(c Conditioner) {
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypePrimarySwitched,
 		Status:  metav1.ConditionTrue,

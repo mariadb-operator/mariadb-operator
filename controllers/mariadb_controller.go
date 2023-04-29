@@ -132,6 +132,9 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
+	if err := r.Get(ctx, req.NamespacedName, &mariaDb); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 	patcher, err := r.patcher(ctx, &mariaDb, req.NamespacedName)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -142,7 +145,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err = r.patchStatus(ctx, &mariaDb, patcher); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %s", err)
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -387,7 +389,7 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
 		if mariaDb.IsSwitchingPrimary() {
-			return conditions.SetReadySwitchingPrimary(&mariaDb.Status, mariaDb)
+			return conditions.SetPrimarySwitching(s, mariaDb)
 		}
 		if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
 			s.SetCondition(metav1.Condition{
