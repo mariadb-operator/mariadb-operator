@@ -117,18 +117,26 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	for _, p := range phases {
 		if err := p.Reconcile(ctx, &mariaDb, req.NamespacedName); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(errBundle, err)
 
 			msg := fmt.Sprintf("Error reconciling %s: %v", p.Resource, err)
-			err = r.patchStatus(ctx, &mariaDb, func(s *mariadbv1alpha1.MariaDBStatus) error {
+			patchErr := r.patchStatus(ctx, &mariaDb, func(s *mariadbv1alpha1.MariaDBStatus) error {
 				patcher := r.ConditionReady.PatcherFailed(msg)
 				patcher(s)
 				return nil
 			})
-			errBundle = multierror.Append(errBundle, err)
+			if apierrors.IsNotFound(patchErr) {
+				errBundle = multierror.Append(errBundle, patchErr)
+			}
 
-			return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Resource, errBundle)
+			if err := errBundle.ErrorOrNil(); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Resource, err)
+			}
 		}
 	}
 
@@ -137,20 +145,16 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	patcher, err := r.patcher(ctx, &mariaDb, req.NamespacedName)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, client.IgnoreNotFound(err)
-		}
-		return ctrl.Result{}, fmt.Errorf("error getting patcher for MariaDB: %v", err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if err = r.patchStatus(ctx, &mariaDb, patcher); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %s", err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	mariaDbKey types.NamespacedName) error {
-
 	if r.ConfigMapReconciler.NoopReconcile(mariadb) {
 		return nil
 	}
@@ -160,22 +164,18 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 		return fmt.Errorf("error reconciling ConfigMap: %v", err)
 	}
 
-	if err := r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
+	return r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
 		mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: key.Name,
 			},
 			Key: r.ConfigMapReconciler.ConfigMapKey,
 		}
-	}); err != nil {
-		return fmt.Errorf("error patching MariaDB: %v", err)
-	}
-	return nil
+	})
 }
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName) error {
-
 	var dsn *corev1.SecretKeySelector
 	if mariadb.Spec.Metrics != nil {
 		var err error
@@ -205,15 +205,11 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 	existingSts.Spec.Template = desiredSts.Spec.Template
 	existingSts.Spec.Replicas = desiredSts.Spec.Replicas
 
-	if err := r.Patch(ctx, &existingSts, patch); err != nil {
-		return fmt.Errorf("error patching StatefulSet: %v", err)
-	}
-	return nil
+	return r.Patch(ctx, &existingSts, patch)
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	mariaDbKey types.NamespacedName) error {
-
 	if mariadb.Spec.PodDisruptionBudget == nil {
 		return nil
 	}
@@ -239,10 +235,7 @@ func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, ma
 		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
 	}
 
-	if err := r.Create(ctx, pdb); err != nil {
-		return fmt.Errorf("error creating PodDisruptionBudget: %v", err)
-	}
-	return nil
+	return r.Create(ctx, pdb)
 }
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -279,10 +272,7 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 	existingSvc.Spec.Type = desiredSvc.Spec.Type
 	existingSvc.Annotations = desiredSvc.Annotations
 
-	if err := r.Patch(ctx, &existingSvc, patch); err != nil {
-		return fmt.Errorf("error patching Service: %v", err)
-	}
-	return nil
+	return r.Patch(ctx, &existingSvc, patch)
 }
 
 func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -300,10 +290,7 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 		return fmt.Errorf("error building Service Monitor: %v", err)
 	}
 
-	if err := r.Create(ctx, serviceMonitor); err != nil {
-		return fmt.Errorf("error creating Service Monitor: %v", err)
-	}
-	return nil
+	return r.Create(ctx, serviceMonitor)
 }
 
 func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -326,10 +313,7 @@ func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, maria
 		return fmt.Errorf("error building restore: %v", err)
 	}
 
-	if err := r.Create(ctx, restore); err != nil {
-		return fmt.Errorf("error creating bootstrapping restore Job: %v", err)
-	}
-	return nil
+	return r.Create(ctx, restore)
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -362,10 +346,7 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 		return fmt.Errorf("erro building Connection: %v", err)
 	}
 
-	if err := r.Create(ctx, conn); err != nil {
-		return fmt.Errorf("error creating Connection: %v", err)
-	}
-	return nil
+	return r.Create(ctx, conn)
 }
 
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha1.MariaDB,
@@ -456,10 +437,7 @@ func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1a
 		return fmt.Errorf("error patching MariaDB status object: %v", err)
 	}
 
-	if err := r.Client.Status().Patch(ctx, mariadb, patch); err != nil {
-		return fmt.Errorf("error patching MariaDB status: %v", err)
-	}
-	return nil
+	return r.Status().Patch(ctx, mariadb, patch)
 }
 
 func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -467,10 +445,7 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(mariadb)
 
-	if err := r.Client.Patch(ctx, mariadb, patch); err != nil {
-		return fmt.Errorf("error patching MariaDB: %v", err)
-	}
-	return nil
+	return r.Patch(ctx, mariadb, patch)
 }
 
 func bootstrapRestoreKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
