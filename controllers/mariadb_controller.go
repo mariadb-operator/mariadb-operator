@@ -386,6 +386,9 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 	}
 
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
+		if mariaDb.IsSwitchingPrimary() {
+			return conditions.SetReadySwitchingPrimary(&mariaDb.Status, mariaDb)
+		}
 		if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
 			s.SetCondition(metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeReady,
@@ -394,9 +397,6 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 				Message: "Not ready",
 			})
 			return nil
-		}
-		if mariaDb.IsSwitchingPrimary() {
-			return conditions.SetReadySwitchingPrimary(&mariaDb.Status, mariaDb)
 		}
 		if restoreExists {
 			if mariaDb.IsBootstrapped() {
@@ -443,7 +443,6 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 			Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
 			Message: "Running",
 		})
-		s.UpdatePrimary(mariaDb)
 		return nil
 	}, nil
 }

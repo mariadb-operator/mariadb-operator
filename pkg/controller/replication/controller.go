@@ -340,7 +340,7 @@ func (r *ReplicationReconciler) updateCurrentPrimaryPodIndex(ctx context.Context
 		return nil
 	}
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		status.CurrentPrimaryPodIndex = &req.mariadb.Spec.Replication.Primary.PodIndex
+		status.UpdateCurrentPrimaryStatus(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
 		return nil
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)

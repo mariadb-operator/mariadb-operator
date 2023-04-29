@@ -23,8 +23,10 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -54,7 +56,7 @@ type PodReconciler struct {
 func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var pod corev1.Pod
 	if err := r.Get(ctx, req.NamespacedName, &pod); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting Pod: %v", err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	mariadb, err := r.mariadbFromPod(ctx, pod)
@@ -65,12 +67,13 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	log := log.FromContext(ctx)
-
 	if mariadbpod.PodReady(&pod) {
-		log.V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
 		if err := r.reconcilePodReady(ctx, pod, mariadb); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling Pod '%s' in Ready state: %v", pod.Name, err)
+		}
+	} else {
+		if err := r.reconcilePodNotReady(ctx, pod, mariadb); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling Pod '%s' in non Ready state: %v", pod.Name, err)
 		}
 	}
 	return ctrl.Result{}, nil
@@ -79,8 +82,9 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 func (r *PodReconciler) mariadbFromPod(ctx context.Context, pod corev1.Pod) (*mariadbv1alpha1.MariaDB, error) {
 	mariadbAnnotation, ok := pod.Annotations[annotation.PodMariadbAnnotation]
 	if !ok {
-		return nil, errors.New("MariaDB annotation not found: %v")
+		return nil, fmt.Errorf("MariaDB annotation not found in Pod '%s'", pod.Name)
 	}
+	log.FromContext(ctx).V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
 
 	var mariadb mariadbv1alpha1.MariaDB
 	key := types.NamespacedName{
@@ -88,12 +92,17 @@ func (r *PodReconciler) mariadbFromPod(ctx context.Context, pod corev1.Pod) (*ma
 		Namespace: pod.Namespace,
 	}
 	if err := r.Get(ctx, key, &mariadb); err != nil {
-		return nil, fmt.Errorf("error getting MariaDB. %v", err)
+		return nil, fmt.Errorf("error getting MariaDB from Pod '%s': %v", pod.Name, err)
 	}
 	return &mariadb, nil
 }
 
 func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.IsSwitchingPrimary() {
+		return nil
+	}
+	log.FromContext(ctx).V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
+
 	index, err := statefulset.PodIndex(pod.Name)
 	if err != nil {
 		return fmt.Errorf("error getting Pod index: %v", err)
@@ -115,6 +124,68 @@ func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, m
 	}
 	if err := config.ConfigureReplica(ctx, *index, *mariadb.Status.CurrentPrimaryPodIndex); err != nil {
 		return fmt.Errorf("error configuring replication in replica '%d': %v", *index, err)
+	}
+	return nil
+}
+
+func (r *PodReconciler) reconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.IsSwitchingPrimary() {
+		return nil
+	}
+	log.FromContext(ctx).V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
+
+	index, err := statefulset.PodIndex(pod.Name)
+	if err != nil {
+		return fmt.Errorf("error getting Pod index: %v", err)
+	}
+
+	if *index != *mariadb.Status.CurrentPrimaryPodIndex {
+		return nil
+	}
+	healthyIndex, err := r.healthyReplica(ctx, mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting healthy replica: %v", err)
+	}
+
+	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
+		mdb.Spec.Replication.Primary.PodIndex = *healthyIndex
+	}); err != nil {
+		return fmt.Errorf("error updating primary: %v", err)
+	}
+	return nil
+}
+
+func (r *PodReconciler) healthyReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
+	podLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	podList := corev1.PodList{}
+	if err := r.List(ctx, &podList, client.MatchingLabels(podLabels)); err != nil {
+		return nil, fmt.Errorf("error listing Pods: %v", err)
+	}
+	for _, p := range podList.Items {
+		index, err := statefulset.PodIndex(p.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error getting index for Pod '%s': %v", p.Name, err)
+		}
+		if *index == *mariadb.Status.CurrentPrimaryPodIndex {
+			continue
+		}
+		if pod.PodReady(&p) {
+			return index, nil
+		}
+	}
+	return nil, errors.New("no healthy replicas available")
+}
+
+func (r *PodReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	patcher func(*mariadbv1alpha1.MariaDB)) error {
+	patch := client.MergeFrom(mariadb.DeepCopy())
+	patcher(mariadb)
+
+	if err := r.Patch(ctx, mariadb, patch); err != nil {
+		return fmt.Errorf("error patching MariaDB: %v", err)
 	}
 	return nil
 }
@@ -143,10 +214,10 @@ func mariadbPodsPredicate() predicate.Predicate {
 			return hasAnnotations(e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return hasAnnotations(e.Object)
+			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			if !hasAnnotations(e.ObjectNew) {
+			if !hasAnnotations(e.ObjectOld) || !hasAnnotations(e.ObjectNew) {
 				return false
 			}
 			oldPod, ok := e.ObjectOld.(*corev1.Pod)
@@ -158,6 +229,9 @@ func mariadbPodsPredicate() predicate.Predicate {
 				return false
 			}
 			return mariadbpod.PodReady(oldPod) != mariadbpod.PodReady(newPod)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return hasAnnotations(e.Object)
 		},
 	}
 }
