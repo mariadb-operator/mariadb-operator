@@ -30,6 +30,7 @@ spec:
   replication:
     primary:
       podIndex: 0
+      automaticFailover: true
       service:
         type: LoadBalancer
         annotations:

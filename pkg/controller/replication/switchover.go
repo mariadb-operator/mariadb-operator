@@ -165,7 +165,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 					}
 				}
 
-				errChan <- errBundle
+				errChan <- errBundle.ErrorOrNil()
 				return
 			}
 

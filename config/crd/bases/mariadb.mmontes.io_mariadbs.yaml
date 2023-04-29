@@ -3217,6 +3217,9 @@ spec:
                 properties:
                   primary:
                     properties:
+                      automaticFailover:
+                        default: true
+                        type: boolean
                       connection:
                         properties:
                           healthCheck:
