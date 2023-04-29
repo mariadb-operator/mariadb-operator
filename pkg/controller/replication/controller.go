@@ -10,7 +10,6 @@ import (
 	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -21,11 +20,9 @@ import (
 )
 
 var (
-	PasswordSecretKey = "password"
-	ReplUser          = "repl"
-	PrimaryUser       = "primary"
-	ReadonlyUser      = "readonly"
-	ConnectionName    = "mariadb-operator"
+	passwordSecretKey = "password"
+	replUser          = "repl"
+	connectionName    = "mariadb-operator"
 )
 
 type ReplicationReconciler struct {
@@ -188,26 +185,22 @@ func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *recon
 	userOpts := mariadbclient.CreateUserOpts{
 		IdentifiedBy: password,
 	}
-	if err := client.CreateUser(ctx, ReplUser, userOpts); err != nil {
+	if err := client.CreateUser(ctx, replUser, userOpts); err != nil {
 		return fmt.Errorf("error creating replication user: %v", err)
 	}
 	grantOpts := mariadbclient.GrantOpts{
 		Privileges:  []string{"REPLICATION REPLICA"},
 		Database:    "*",
 		Table:       "*",
-		Username:    ReplUser,
+		Username:    replUser,
 		GrantOption: false,
 	}
 	if err := client.Grant(ctx, grantOpts); err != nil {
 		return fmt.Errorf("error creating grant: %v", err)
 	}
 
-	config := primaryConfig{
-		mariadb: req.mariadb,
-		client:  client,
-		ordinal: req.mariadb.Spec.Replication.Primary.PodIndex,
-	}
-	if err := r.configurePrimary(ctx, &config); err != nil {
+	config := NewReplicationConfig(req.mariadb, client, r.Client)
+	if err := config.ConfigurePrimary(ctx, req.mariadb.Spec.Replication.Primary.PodIndex); err != nil {
 		return fmt.Errorf("error configuring primary vars: %v", err)
 	}
 	return nil
@@ -216,10 +209,6 @@ func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *recon
 func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reconcileRequest) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
 		return nil
-	}
-	var replSecret corev1.Secret
-	if err := r.Get(ctx, replPasswordKey(req.mariadb), &replSecret); err != nil {
-		return fmt.Errorf("error getting replication password Secret: %v", err)
 	}
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
 		if i == req.mariadb.Spec.Replication.Primary.PodIndex {
@@ -230,24 +219,9 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 			return fmt.Errorf("error getting client for replica '%d': %v", i, err)
 		}
 
-		config := replicaConfig{
-			mariadb: req.mariadb,
-			client:  client,
-			changeMasterOpts: &mariadbclient.ChangeMasterOpts{
-				Connection: ConnectionName,
-				Host: statefulset.PodFQDN(
-					req.mariadb.ObjectMeta,
-					req.mariadb.Spec.Replication.Primary.PodIndex,
-				),
-				User:     ReplUser,
-				Password: string(replSecret.Data[PasswordSecretKey]),
-				Gtid:     "current_pos",
-				Retries:  req.mariadb.Spec.Replication.Replica.ConnectionRetries,
-			},
-			ordinal: i,
-		}
-		if err := r.configureReplica(ctx, &config); err != nil {
-			return fmt.Errorf("error configuring replica vars in replica '%d': %v", err, i)
+		config := NewReplicationConfig(req.mariadb, client, r.Client)
+		if err := config.ConfigureReplica(ctx, i, req.mariadb.Spec.Replication.Primary.PodIndex); err != nil {
+			return fmt.Errorf("error configuring replication in replica '%d': %v", i, err)
 		}
 	}
 	return nil
@@ -391,7 +365,7 @@ func (r *ReplicationReconciler) reconcileReplPasswordSecret(ctx context.Context,
 	opts := builder.SecretOpts{
 		Key: replPasswordKey(mariadb),
 		Data: map[string][]byte{
-			PasswordSecretKey: []byte(password),
+			passwordSecretKey: []byte(password),
 		},
 		Labels: labels.NewLabelsBuilder().WithMariaDB(mariadb).Build(),
 	}

@@ -3,6 +3,8 @@ package statefulset
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -21,4 +23,16 @@ func PodName(meta metav1.ObjectMeta, podIndex int) string {
 
 func PodFQDN(meta metav1.ObjectMeta, podIndex int) string {
 	return fmt.Sprintf("%s.%s", PodName(meta, podIndex), ServiceFQDN(meta))
+}
+
+func PodIndex(podName string) (*int, error) {
+	parts := strings.Split(podName, "-")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid Pod name: %v", podName)
+	}
+	index, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("invalid Pod name: %v, error: %v", podName, err)
+	}
+	return &index, nil
 }
