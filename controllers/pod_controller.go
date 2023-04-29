@@ -143,7 +143,7 @@ func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, m
 }
 
 func (r *PodReconciler) reconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.IsSwitchingPrimary() {
+	if !mariadb.Spec.Replication.Primary.AutomaticFailover || mariadb.IsSwitchingPrimary() {
 		return nil
 	}
 	log.FromContext(ctx).V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
