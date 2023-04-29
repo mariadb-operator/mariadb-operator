@@ -215,7 +215,7 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context) error {
 func (r *ReplicationConfig) reconcileReplPasswordSecret(ctx context.Context) (string, error) {
 	var existingSecret corev1.Secret
 	if err := r.Get(ctx, replPasswordKey(r.mariadb), &existingSecret); err == nil {
-		return "", nil
+		return string(existingSecret.Data[passwordSecretKey]), nil
 	}
 	password, err := password.Generate(16, 4, 0, false, false)
 	if err != nil {
