@@ -7,69 +7,74 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type primaryConfig struct {
-	mariadb *mariadbv1alpha1.MariaDB
-	client  *mariadb.Client
-	ordinal int
+type ReplicationConfig struct {
+	mariadb       *mariadbv1alpha1.MariaDB
+	mariadbClient *mariadb.Client
+	client        client.Client
 }
 
-func (r *ReplicationReconciler) configurePrimary(ctx context.Context, config *primaryConfig) error {
-	if err := config.client.UnlockTables(ctx); err != nil {
+func NewReplicationConfig(mariadb *mariadbv1alpha1.MariaDB, mariadbClient *mariadb.Client,
+	client client.Client) *ReplicationConfig {
+	return &ReplicationConfig{
+		mariadb:       mariadb,
+		mariadbClient: mariadbClient,
+		client:        client,
+	}
+}
+
+func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, podIndex int) error {
+	if err := r.mariadbClient.UnlockTables(ctx); err != nil {
 		return fmt.Errorf("error unlocking tables: %v", err)
 	}
-	if err := config.client.StopAllSlaves(ctx); err != nil {
+	if err := r.mariadbClient.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
-	if err := config.client.ResetAllSlaves(ctx); err != nil {
+	if err := r.mariadbClient.ResetAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error resetting slave: %v", err)
 	}
-	if err := config.client.ResetSlavePos(ctx); err != nil {
-		return fmt.Errorf("error resetting slave_pos: %v", err)
+	if err := r.mariadbClient.ResetSlavePos(ctx); err != nil {
+		return fmt.Errorf("error resetting slave position: %v", err)
 	}
-	if err := config.client.SetGlobalVar(ctx, "read_only", "0"); err != nil {
+	if err := r.mariadbClient.SetGlobalVar(ctx, "read_only", "0"); err != nil {
 		return fmt.Errorf("error setting read_only=0: %v", err)
 	}
-	if err := r.configurepPrimaryReplication(ctx, config.mariadb, config.client, config.ordinal); err != nil {
+	if err := r.configurepPrimary(ctx, r.mariadb, r.mariadbClient, podIndex); err != nil {
 		return fmt.Errorf("error configuring replication variables: %v", err)
 	}
 	return nil
 }
 
-type replicaConfig struct {
-	mariadb          *mariadbv1alpha1.MariaDB
-	client           *mariadb.Client
-	changeMasterOpts *mariadbclient.ChangeMasterOpts
-	ordinal          int
-}
-
-func (r *ReplicationReconciler) configureReplica(ctx context.Context, config *replicaConfig) error {
-	if err := config.client.UnlockTables(ctx); err != nil {
+func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, replicaPodIndex, primaryPodIndex int) error {
+	if err := r.mariadbClient.UnlockTables(ctx); err != nil {
 		return fmt.Errorf("error unlocking tables: %v", err)
 	}
-	if err := config.client.ResetMaster(ctx); err != nil {
+	if err := r.mariadbClient.ResetMaster(ctx); err != nil {
 		return fmt.Errorf("error resetting master: %v", err)
 	}
-	if err := config.client.StopAllSlaves(ctx); err != nil {
+	if err := r.mariadbClient.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
-	if err := config.client.SetGlobalVar(ctx, "read_only", "1"); err != nil {
+	if err := r.mariadbClient.SetGlobalVar(ctx, "read_only", "1"); err != nil {
 		return fmt.Errorf("error setting read_only=1: %v", err)
 	}
-	if err := r.configurepReplicaReplication(ctx, config.mariadb, config.client, config.ordinal); err != nil {
+	if err := r.configurepReplica(ctx, r.mariadb, r.mariadbClient, replicaPodIndex); err != nil {
 		return fmt.Errorf("error configuring replication variables: %v", err)
 	}
-	if err := config.client.ChangeMaster(ctx, config.changeMasterOpts); err != nil {
+	if err := r.changeMaster(ctx, r.mariadb, primaryPodIndex); err != nil {
 		return fmt.Errorf("error changing master: %v", err)
 	}
-	if err := config.client.StartSlave(ctx, ConnectionName); err != nil {
+	if err := r.mariadbClient.StartSlave(ctx, connectionName); err != nil {
 		return fmt.Errorf("error starting slave: %v", err)
 	}
 	return nil
 }
 
-func (r *ReplicationReconciler) configurepPrimaryReplication(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *ReplicationConfig) configurepPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	client *mariadb.Client, ordinal int) error {
 	kv := map[string]string{
 		"rpl_semi_sync_master_enabled": "ON",
@@ -92,7 +97,7 @@ func (r *ReplicationReconciler) configurepPrimaryReplication(ctx context.Context
 	return nil
 }
 
-func (r *ReplicationReconciler) configurepReplicaReplication(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *ReplicationConfig) configurepReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	client *mariadb.Client, ordinal int) error {
 	kv := map[string]string{
 		"rpl_semi_sync_master_enabled": "OFF",
@@ -105,6 +110,28 @@ func (r *ReplicationReconciler) configurepReplicaReplication(ctx context.Context
 	return nil
 }
 
-func serverId(ordinal int) string {
-	return fmt.Sprint(10 + ordinal)
+func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, primaryPodIndex int) error {
+	var replSecret corev1.Secret
+	if err := r.client.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
+		return fmt.Errorf("error getting replication password Secret: %v", err)
+	}
+	changeMasterOpts := &mariadbclient.ChangeMasterOpts{
+		Connection: connectionName,
+		Host: statefulset.PodFQDN(
+			mariadb.ObjectMeta,
+			primaryPodIndex,
+		),
+		User:     replUser,
+		Password: string(replSecret.Data[passwordSecretKey]),
+		Gtid:     "current_pos",
+		Retries:  mariadb.Spec.Replication.Replica.ConnectionRetries,
+	}
+	if err := r.mariadbClient.ChangeMaster(ctx, changeMasterOpts); err != nil {
+		return fmt.Errorf("error changing master: %v", err)
+	}
+	return nil
+}
+
+func serverId(index int) string {
+	return fmt.Sprint(10 + index)
 }

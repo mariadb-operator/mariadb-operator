@@ -12,7 +12,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -194,12 +193,8 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
 
-	config := primaryConfig{
-		mariadb: mariadb,
-		client:  client,
-		ordinal: mariadb.Spec.Replication.Primary.PodIndex,
-	}
-	if err := r.configurePrimary(ctx, &config); err != nil {
+	config := NewReplicationConfig(mariadb, client, r.Client)
+	if err := config.ConfigurePrimary(ctx, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
 		return fmt.Errorf("error confguring new primary vars: %v", err)
 	}
 	return nil
@@ -207,22 +202,6 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb
 
 func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
-	var replSecret corev1.Secret
-	if err := r.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
-		return fmt.Errorf("error getting replication password Secret: %v", err)
-	}
-	changeMasterOpts := &mariadbclient.ChangeMasterOpts{
-		Connection: ConnectionName,
-		Host: statefulset.PodFQDN(
-			mariadb.ObjectMeta,
-			mariadb.Spec.Replication.Primary.PodIndex,
-		),
-		User:     ReplUser,
-		Password: string(replSecret.Data[PasswordSecretKey]),
-		Gtid:     "current_pos",
-		Retries:  mariadb.Spec.Replication.Replica.ConnectionRetries,
-	}
-
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		if i == *mariadb.Status.CurrentPrimaryPodIndex || i == mariadb.Spec.Replication.Primary.PodIndex {
 			continue
@@ -231,13 +210,9 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 		if err != nil {
 			return fmt.Errorf("error getting replica '%d' client: %v", i, err)
 		}
-		config := replicaConfig{
-			mariadb:          mariadb,
-			client:           replClient,
-			changeMasterOpts: changeMasterOpts,
-			ordinal:          i,
-		}
-		if err := r.configureReplica(ctx, &config); err != nil {
+
+		config := NewReplicationConfig(mariadb, replClient, r.Client)
+		if err := config.ConfigureReplica(ctx, i, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
 			return fmt.Errorf("error configuring replica vars in replica '%d': %v", err, i)
 		}
 	}
@@ -255,23 +230,8 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 	if err := r.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
 		return fmt.Errorf("error getting replication password Secret: %v", err)
 	}
-	config := replicaConfig{
-		mariadb: mariadb,
-		client:  currentPrimaryClient,
-		changeMasterOpts: &mariadbclient.ChangeMasterOpts{
-			Connection: ConnectionName,
-			Host: statefulset.PodFQDN(
-				mariadb.ObjectMeta,
-				mariadb.Spec.Replication.Primary.PodIndex,
-			),
-			User:     ReplUser,
-			Password: string(replSecret.Data[PasswordSecretKey]),
-			Gtid:     "current_pos",
-			Retries:  mariadb.Spec.Replication.Replica.ConnectionRetries,
-		},
-		ordinal: *mariadb.Status.CurrentPrimaryPodIndex,
-	}
-	if err := r.configureReplica(ctx, &config); err != nil {
+	config := NewReplicationConfig(mariadb, currentPrimaryClient, r.Client)
+	if err := config.ConfigureReplica(ctx, *mariadb.Status.CurrentPrimaryPodIndex, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
 		return fmt.Errorf("error configuring replica vars in current primary: %v", err)
 	}
 	return nil
@@ -307,7 +267,7 @@ func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *mariadbc
 	if err := client.ResetSlavePos(ctx); err != nil {
 		return fmt.Errorf("error resetting slave position: %v", err)
 	}
-	if err := client.StartSlave(ctx, ConnectionName); err != nil {
+	if err := client.StartSlave(ctx, connectionName); err != nil {
 		return fmt.Errorf("error starting slave: %v", err)
 	}
 	return nil
