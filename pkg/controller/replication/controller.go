@@ -121,6 +121,9 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 			clientSet: clientSet,
 		}
 		if err := p.reconcile(ctx, &req); err != nil {
+			if apierrors.IsNotFound(err) {
+				return err
+			}
 			return fmt.Errorf("error reconciling '%s' phase: %v", p.name, err)
 		}
 	}
@@ -136,10 +139,7 @@ func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *recon
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
 	config := NewReplicationConfig(req.mariadb, client, r.Client, r.Builder)
-	if err := config.ConfigurePrimary(ctx, req.mariadb.Spec.Replication.Primary.PodIndex); err != nil {
-		return fmt.Errorf("error configuring primary vars: %v", err)
-	}
-	return nil
+	return config.ConfigurePrimary(ctx, req.mariadb.Spec.Replication.Primary.PodIndex)
 }
 
 func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reconcileRequest) error {
@@ -157,7 +157,7 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 
 		config := NewReplicationConfig(req.mariadb, client, r.Client, r.Builder)
 		if err := config.ConfigureReplica(ctx, i, req.mariadb.Spec.Replication.Primary.PodIndex); err != nil {
-			return fmt.Errorf("error configuring replication in replica '%d': %v", i, err)
+			return fmt.Errorf("error configuring replica '%d': %v", i, err)
 		}
 	}
 	return nil
@@ -188,10 +188,7 @@ func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
 	}
 
-	if err := r.Create(ctx, pdb); err != nil {
-		return fmt.Errorf("error creating PodDisruptionBudget: %v", err)
-	}
-	return nil
+	return r.Create(ctx, pdb)
 }
 
 func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req *reconcileRequest) error {
@@ -218,7 +215,7 @@ func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req
 			return fmt.Errorf("error getting Service: %v", err)
 		}
 		if err := r.Create(ctx, desiredSvc); err != nil {
-			return fmt.Errorf("error creating Service: %v", err)
+			return err
 		}
 		return nil
 	}
@@ -226,10 +223,7 @@ func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req
 	patch := client.MergeFrom(existingSvc.DeepCopy())
 	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
 
-	if err := r.Patch(ctx, &existingSvc, patch); err != nil {
-		return fmt.Errorf("error patching Service: %v", err)
-	}
-	return nil
+	return r.Patch(ctx, &existingSvc, patch)
 }
 
 func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *reconcileRequest) error {
@@ -265,36 +259,27 @@ func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *r
 		return fmt.Errorf("erro building primary Connection: %v", err)
 	}
 
-	if err := r.Create(ctx, conn); err != nil {
-		return fmt.Errorf("error creating primary Connection: %v", err)
-	}
-	return nil
+	return r.Create(ctx, conn)
 }
 
 func (r *ReplicationReconciler) updateCurrentPrimaryPodIndex(ctx context.Context, req *reconcileRequest) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
 		return nil
 	}
-	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		status.UpdateCurrentPrimaryStatus(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
 		return nil
-	}); err != nil {
-		return fmt.Errorf("error patching MariaDB status: %v", err)
-	}
-	return nil
+	})
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	patcher func(*mariadbv1alpha1.MariaDBStatus) error) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	if err := patcher(&mariadb.Status); err != nil {
-		return fmt.Errorf("errror calling MariaDB status patcher: %v", err)
+		return err
 	}
 
-	if err := r.Client.Status().Patch(ctx, mariadb, patch); err != nil {
-		return fmt.Errorf("error patching MariaDB status: %v", err)
-	}
-	return nil
+	return r.Status().Patch(ctx, mariadb, patch)
 }
 
 func replPasswordKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {

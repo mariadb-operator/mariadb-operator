@@ -15,6 +15,7 @@ import (
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -77,6 +78,9 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	for _, p := range phases {
 		logger.Info(p.name)
 		if err := p.reconcile(ctx, req.mariadb, req.clientSet); err != nil {
+			if apierrors.IsNotFound(err) {
+				return err
+			}
 			return fmt.Errorf("error in '%s' switchover reconcile phase: %v", p.name, err)
 		}
 	}
@@ -107,10 +111,7 @@ func (r *ReplicationReconciler) lockCurrentPrimary(ctx context.Context, mariadb 
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 
-	if err := client.LockTablesWithReadLock(ctx); err != nil {
-		return fmt.Errorf("error locking tables in primary: %v", err)
-	}
-	return nil
+	return client.LockTablesWithReadLock(ctx)
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -216,7 +217,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 
 		config := NewReplicationConfig(mariadb, replClient, r.Client, r.Builder)
 		if err := config.ConfigureReplica(ctx, i, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
-			return fmt.Errorf("error configuring replica vars in replica '%d': %v", err, i)
+			return fmt.Errorf("error configuring replica vars in replica '%d': %v", i, err)
 		}
 	}
 	return nil
@@ -241,10 +242,7 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 		return fmt.Errorf("error getting replication password Secret: %v", err)
 	}
 	config := NewReplicationConfig(mariadb, currentPrimaryClient, r.Client, r.Builder)
-	if err := config.ConfigureReplica(ctx, *mariadb.Status.CurrentPrimaryPodIndex, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
-		return fmt.Errorf("error configuring replica vars in current primary: %v", err)
-	}
-	return nil
+	return config.ConfigureReplica(ctx, *mariadb.Status.CurrentPrimaryPodIndex, mariadb.Spec.Replication.Primary.PodIndex)
 }
 
 func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -264,10 +262,7 @@ func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariad
 	service.ObjectMeta.Labels = serviceLabels
 	service.Spec.Selector = serviceLabels
 
-	if err := r.Patch(ctx, &service, patch); err != nil {
-		return fmt.Errorf("error patching Service: %v", err)
-	}
-	return nil
+	return r.Patch(ctx, &service, patch)
 }
 
 func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *mariadbclient.Client) error {
@@ -277,10 +272,7 @@ func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *mariadbc
 	if err := client.ResetSlavePos(ctx); err != nil {
 		return fmt.Errorf("error resetting slave position: %v", err)
 	}
-	if err := client.StartSlave(ctx, connectionName); err != nil {
-		return fmt.Errorf("error starting slave: %v", err)
-	}
-	return nil
+	return client.StartSlave(ctx, connectionName)
 }
 
 func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
@@ -291,7 +283,7 @@ func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb
 	}
 	var pod corev1.Pod
 	if err := r.Get(ctx, key, &pod); err != nil {
-		return false, fmt.Errorf("error getting current primary Pod: %v", err)
+		return false, client.IgnoreNotFound(err)
 	}
 	return mariadbpod.PodReady(&pod), nil
 }
