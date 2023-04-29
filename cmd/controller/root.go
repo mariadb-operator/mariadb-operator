@@ -173,6 +173,7 @@ var rootCmd = &cobra.Command{
 		if err = (&controllers.PodReconciler{
 			Client:      mgr.GetClient(),
 			Scheme:      mgr.GetScheme(),
+			Builder:     builder,
 			RefResolver: refResolver,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Pod")
