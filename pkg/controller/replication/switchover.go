@@ -12,7 +12,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
-	appsv1 "k8s.io/api/apps/v1"
+	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,13 +31,6 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}
 	if req.mariadb.Spec.Replication.Primary.PodIndex == *req.mariadb.Status.CurrentPrimaryPodIndex {
 		return nil
-	}
-	stsReady, err := r.statefulSetReady(ctx, req.mariadb)
-	if err != nil {
-		return fmt.Errorf("error checking StatefulSet readiness: %v", err)
-	}
-	if !stsReady {
-		return fmt.Errorf("StatefulSet not ready: %v", err)
 	}
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -94,7 +88,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		status.CurrentPrimaryPodIndex = &req.mariadb.Spec.Replication.Primary.PodIndex
+		status.UpdateCurrentPrimaryStatus(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
 		conditions.SetPrimarySwitchedComplete(&req.mariadb.Status)
 		return nil
 	}); err != nil {
@@ -107,10 +101,18 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 
 func (r *ReplicationReconciler) lockCurrentPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
+	ready, err := r.currentPrimaryReady(ctx, mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting current primary readiness: %v", err)
+	}
+	if !ready {
+		return nil
+	}
 	client, err := clientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
+
 	if err := client.LockTablesWithReadLock(ctx); err != nil {
 		return fmt.Errorf("error locking tables in primary: %v", err)
 	}
@@ -119,6 +121,13 @@ func (r *ReplicationReconciler) lockCurrentPrimary(ctx context.Context, mariadb 
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
+	ready, err := r.currentPrimaryReady(ctx, mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting current primary readiness: %v", err)
+	}
+	if !ready {
+		return nil
+	}
 	client, err := clientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
@@ -221,6 +230,13 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 
 func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
+	ready, err := r.currentPrimaryReady(ctx, mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting current primary readiness: %v", err)
+	}
+	if !ready {
+		return nil
+	}
 	currentPrimaryClient, err := clientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
@@ -273,17 +289,15 @@ func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *mariadbc
 	return nil
 }
 
-func (r *ReplicationReconciler) statefulSetReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
-	var sts appsv1.StatefulSet
-	stsKey := types.NamespacedName{
-		Name:      mariadb.Name,
+func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+	podName := statefulset.PodName(mariadb.ObjectMeta, *mariadb.Status.CurrentPrimaryPodIndex)
+	key := types.NamespacedName{
+		Name:      podName,
 		Namespace: mariadb.Namespace,
 	}
-	if err := r.Get(ctx, stsKey, &sts); err != nil {
-		return false, fmt.Errorf("error getting StatefulSet '%s': %v", stsKey.Name, err)
+	var pod corev1.Pod
+	if err := r.Get(ctx, key, &pod); err != nil {
+		return false, fmt.Errorf("error getting current primary Pod: %v", err)
 	}
-	if sts.Status.ReadyReplicas != sts.Status.Replicas {
-		return false, nil
-	}
-	return true, nil
+	return mariadbpod.PodReady(&pod), nil
 }
