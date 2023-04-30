@@ -446,5 +446,192 @@ var _ = Describe("MariaDB webhook", func() {
 				}
 			}
 		})
+
+		It("Should validate primary switchover", func() {
+			By("Creating MariaDBs")
+			noSwitchoverKey := types.NamespacedName{
+				Name:      "mariadb-no-switchover-webhook",
+				Namespace: testNamespace,
+			}
+			switchoverKey := types.NamespacedName{
+				Name:      "mariadb-switchover-webhook",
+				Namespace: testNamespace,
+			}
+			test := "test"
+			storageClassName := "standard"
+			mariaDb := MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      noSwitchoverKey.Name,
+					Namespace: noSwitchoverKey.Namespace,
+				},
+				Spec: MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "secret",
+						},
+						Key: "root-password",
+					},
+					Database: &test,
+					Username: &test,
+					PasswordSecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "secret",
+						},
+						Key: "password",
+					},
+					Image: Image{
+						Repository: "mariadb",
+						Tag:        "10.7.4",
+					},
+					Port: 3306,
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &storageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+					Replication: &Replication{
+						Primary: PrimaryReplication{
+							PodIndex:          0,
+							AutomaticFailover: false,
+						},
+					},
+					Replicas: 3,
+				},
+			}
+			mariaDbSwitchover := MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      switchoverKey.Name,
+					Namespace: switchoverKey.Namespace,
+				},
+				Spec: MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "secret",
+						},
+						Key: "root-password",
+					},
+					Database: &test,
+					Username: &test,
+					PasswordSecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "secret",
+						},
+						Key: "password",
+					},
+					Image: Image{
+						Repository: "mariadb",
+						Tag:        "10.7.4",
+					},
+					Port: 3306,
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &storageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+					Replication: &Replication{
+						Primary: PrimaryReplication{
+							PodIndex:          0,
+							AutomaticFailover: false,
+						},
+					},
+					Replicas: 3,
+				},
+				Status: MariaDBStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:    ConditionTypePrimarySwitched,
+							Status:  metav1.ConditionFalse,
+							Reason:  ConditionReasonSwitchoverInProgress,
+							Message: "Switching primary",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &mariaDb)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &mariaDbSwitchover)).To(Succeed())
+
+			By("Updating status conditions")
+			Expect(k8sClient.Get(testCtx, switchoverKey, &mariaDbSwitchover)).To(Succeed())
+			mariaDbSwitchover.Status.Conditions = []metav1.Condition{
+				{
+					Type:               ConditionTypePrimarySwitched,
+					Status:             metav1.ConditionFalse,
+					Reason:             ConditionReasonSwitchoverInProgress,
+					Message:            "Switching primary",
+					LastTransitionTime: metav1.Now(),
+				},
+			}
+			Expect(k8sClient.Status().Update(testCtx, &mariaDbSwitchover)).To(Succeed())
+
+			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
+			// https://github.com/mariadb-operator/mariadb-operator/issues/3
+			tt := []struct {
+				by      string
+				key     types.NamespacedName
+				patchFn func(mdb *MariaDB)
+				wantErr bool
+			}{
+				{
+					by:  "Updating primary pod Index",
+					key: noSwitchoverKey,
+					patchFn: func(mdb *MariaDB) {
+						mdb.Spec.Replication.Primary.PodIndex = 1
+					},
+					wantErr: false,
+				},
+				{
+					by:  "Updating automatic failover",
+					key: noSwitchoverKey,
+					patchFn: func(mdb *MariaDB) {
+						mdb.Spec.Replication.Primary.AutomaticFailover = true
+					},
+					wantErr: false,
+				},
+				{
+					by:  "Updating primary pod Index when switching",
+					key: switchoverKey,
+					patchFn: func(mdb *MariaDB) {
+						mdb.Spec.Replication.Primary.PodIndex = 1
+					},
+					wantErr: true,
+				},
+				{
+					by:  "Updating automatic failover when switching",
+					key: switchoverKey,
+					patchFn: func(mdb *MariaDB) {
+						mdb.Spec.Replication.Primary.AutomaticFailover = true
+					},
+					wantErr: true,
+				},
+			}
+
+			for _, t := range tt {
+				By(t.by)
+				var testSwitchover MariaDB
+				Expect(k8sClient.Get(testCtx, t.key, &testSwitchover)).To(Succeed())
+
+				patch := client.MergeFrom(testSwitchover.DeepCopy())
+				t.patchFn(&testSwitchover)
+
+				err := k8sClient.Patch(testCtx, &testSwitchover, patch)
+				if t.wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
+		})
 	})
 })
