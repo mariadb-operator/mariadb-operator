@@ -39,14 +39,16 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
-	logger := log.FromContext(ctx)
-	logger.Info(
-		"switching primary",
+	logger := log.FromContext(
+		ctx,
+		"mariadb",
+		req.mariadb.Name,
 		"fromIndex",
 		*req.mariadb.Status.CurrentPrimaryPodIndex,
 		"toIndex",
 		req.mariadb.Spec.Replication.Primary.PodIndex,
 	)
+	logger.Info("switching primary")
 
 	phases := []switchoverPhase{
 		{
@@ -92,7 +94,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
-	logger.Info("primary switchover completed")
+	logger.Info("switched primary")
 
 	return nil
 }
