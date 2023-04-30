@@ -7,7 +7,9 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -66,7 +68,11 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		}
 		return nil
 	}
-	if !mariadb.IsReady() {
+	healthy, err := health.MariaDBHealthy(ctx, r.Client, mariadb)
+	if err != nil {
+		return fmt.Errorf("error checking MariaDB health: %v", err)
+	}
+	if !healthy {
 		return nil
 	}
 
@@ -77,6 +83,11 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 	defer clientSet.close()
 
 	phases := []replicationPhase{
+		{
+			name:      "set configure replication status",
+			key:       mariaDbKey,
+			reconcile: r.setConfigureReplicationStatus,
+		},
 		{
 			name:      "reconcile Primary",
 			key:       mariaDbKey,
@@ -128,6 +139,15 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		}
 	}
 	return nil
+}
+
+func (r *ReplicationReconciler) setConfigureReplicationStatus(ctx context.Context, req *reconcileRequest) error {
+	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
+		return nil
+	}
+	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		return conditions.SetConfiguringReplication(&req.mariadb.Status, req.mariadb)
+	})
 }
 
 func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *reconcileRequest) error {

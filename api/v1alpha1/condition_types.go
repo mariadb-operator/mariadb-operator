@@ -8,9 +8,10 @@ const (
 )
 
 const (
-	ConditionReasonStatefulSetNotReady string = "StatefulSetNotReady"
-	ConditionReasonStatefulSetReady    string = "StatefulSetReady"
-	ConditionReasonSwitchingPrimary    string = "SwitchingPrimary"
+	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
+	ConditionReasonStatefulSetReady     string = "StatefulSetReady"
+	ConditionReasonConfigureReplication string = "ConfigureReplication"
+	ConditionReasonSwitchPrimary        string = "SwitchPrimary"
 
 	ConditionReasonRestoreNotComplete string = "RestoreNotComplete"
 	ConditionReasonRestoreComplete    string = "RestoreComplete"

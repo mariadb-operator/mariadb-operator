@@ -381,6 +381,15 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 			})
 			return nil
 		}
+		if mariaDb.Spec.Replication != nil && mariaDb.Status.CurrentPrimaryPodIndex == nil {
+			s.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonConfigureReplication,
+				Message: "Configuring replication",
+			})
+			return nil
+		}
 		if restoreExists {
 			if mariaDb.IsBootstrapped() {
 				s.SetCondition(metav1.Condition{
