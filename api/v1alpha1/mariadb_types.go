@@ -103,8 +103,9 @@ func (w WaitPoint) MariaDBFormat() (string, error) {
 type PrimaryReplication struct {
 	// +kubebuilder:default=0
 	PodIndex int `json:"podIndex,omitempty"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=true
-	AutomaticFailover bool `json:"automaticFailover,omitempty"`
+	AutomaticFailover bool `json:"automaticFailover"`
 
 	Service *Service `json:"service,omitempty"`
 

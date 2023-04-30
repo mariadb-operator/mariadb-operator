@@ -31,8 +31,9 @@ func (i *Image) String() string {
 type MariaDBRef struct {
 	// +kubebuilder:validation:Required
 	corev1.LocalObjectReference `json:",inline"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=true
-	WaitForIt bool `json:"waitForIt,omitempty"`
+	WaitForIt bool `json:"waitForIt"`
 }
 
 type SecretTemplate struct {

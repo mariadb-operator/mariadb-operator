@@ -50,6 +50,7 @@ func (r *MariaDB) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
+	oldMariadb := old.(*MariaDB)
 	if err := r.validateReplication(); err != nil {
 		return err
 	}
@@ -59,7 +60,10 @@ func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
 	if err := r.validatePodDisruptionBudget(); err != nil {
 		return err
 	}
-	return inmutableWebhook.ValidateUpdate(r, old.(*MariaDB))
+	if err := r.validatePrimarySwitchover(oldMariadb); err != nil {
+		return err
+	}
+	return inmutableWebhook.ValidateUpdate(r, oldMariadb)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -95,6 +99,27 @@ func (r *MariaDB) validateReplication() error {
 				field.NewPath("spec").Child("replication").Child("replica"),
 				r.Spec.Replication,
 				err.Error(),
+			)
+		}
+	}
+	return nil
+}
+
+func (r *MariaDB) validatePrimarySwitchover(oldMariadb *MariaDB) error {
+	if oldMariadb.Spec.Replication != nil && oldMariadb.IsSwitchingPrimary() {
+		if oldMariadb.Spec.Replication.Primary.PodIndex != r.Spec.Replication.Primary.PodIndex {
+			return field.Invalid(
+				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
+				r.Spec.Replication.Primary.PodIndex,
+				"'spec.replication.primary.podIndex' cannot be updated during a primary switchover",
+			)
+		}
+		if oldMariadb.Spec.Replication.Primary.AutomaticFailover != r.Spec.Replication.Primary.AutomaticFailover &&
+			r.Spec.Replication.Primary.AutomaticFailover {
+			return field.Invalid(
+				field.NewPath("spec").Child("replication").Child("primary").Child("automaticFailover"),
+				r.Spec.Replication.Primary.PodIndex,
+				"'spec.replication.primary.automaticFailover' cannot be enabled during a primary switchover",
 			)
 		}
 	}
