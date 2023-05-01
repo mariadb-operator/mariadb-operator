@@ -72,7 +72,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		}
 		return nil
 	}
-	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mariadb)
+	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mariadb, health.EndpointPolicyAll)
 	if err != nil {
 		return fmt.Errorf("error checking MariaDB health: %v", err)
 	}
@@ -249,7 +249,9 @@ func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req
 }
 
 func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *reconcileRequest) error {
-	if req.mariadb.Spec.Connection == nil || req.mariadb.Spec.Username == nil || req.mariadb.Spec.PasswordSecretKeyRef == nil {
+	if req.mariadb.Spec.Replication.Primary.Connection == nil ||
+		req.mariadb.Spec.Username == nil || req.mariadb.Spec.PasswordSecretKeyRef == nil ||
+		!req.mariadb.IsReady() {
 		return nil
 	}
 	var existingConn mariadbv1alpha1.Connection
