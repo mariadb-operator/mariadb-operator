@@ -25,8 +25,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
-	"github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -157,7 +157,7 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	} else {
 		host = statefulset.ServiceFQDN(mdb.ObjectMeta)
 	}
-	mdbOpts := mariadb.Opts{
+	mdbOpts := mariadbclient.Opts{
 		Username: conn.Spec.Username,
 		Password: password,
 		Host:     host,
@@ -167,7 +167,7 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	if conn.Spec.Database != nil {
 		mdbOpts.Database = *conn.Spec.Database
 	}
-	dsn, err := mariadb.BuildDSN(mdbOpts)
+	dsn, err := mariadbclient.BuildDSN(mdbOpts)
 	if err != nil {
 		return fmt.Errorf("error building DSN: %v", err)
 	}
@@ -199,7 +199,7 @@ func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1a
 	}
 
 	log.FromContext(ctx).V(1).Info("checking connection health")
-	if _, err := mariadb.Connect(string(dsn)); err != nil {
+	if _, err := mariadbclient.Connect(string(dsn)); err != nil {
 		var connErr *multierror.Error
 		connErr = multierror.Append(connErr, err)
 

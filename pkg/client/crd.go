@@ -1,4 +1,4 @@
-package mariadb
+package client
 
 import (
 	"context"

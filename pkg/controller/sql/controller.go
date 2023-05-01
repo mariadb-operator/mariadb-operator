@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
+	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
