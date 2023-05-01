@@ -27,6 +27,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -64,18 +65,18 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariaDb, refErr := r.RefResolver.MariaDB(ctx, &conn.Spec.MariaDBRef, conn.Namespace)
+	mariadb, refErr := r.RefResolver.MariaDB(ctx, &conn.Spec.MariaDBRef, conn.Namespace)
 	if refErr != nil {
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, refErr)
 
-		patchErr := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherRefResolver(refErr, mariaDb))
+		patchErr := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherRefResolver(refErr, mariadb))
 		mariaDbErr = multierror.Append(mariaDbErr, patchErr)
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
-	if conn.Spec.MariaDBRef.WaitForIt && !mariaDb.IsReady() {
+	if conn.Spec.MariaDBRef.WaitForIt && !mariadb.IsReady() {
 		if err := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherFailed("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
 		}
@@ -96,8 +97,18 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, fmt.Errorf("error initializing connection: %v", initErr)
 	}
 
+	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mariadb, health.EndpointPolicyAtLeastOne)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
+	}
+	if !healthy {
+		if err := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherFailed("MariaDB not healthy")); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
+		}
+	}
+
 	var secretErr *multierror.Error
-	err := r.reconcileSecret(ctx, &conn, mariaDb)
+	err = r.reconcileSecret(ctx, &conn, mariadb)
 	if errors.Is(err, errConnHealthCheck) {
 		return r.retryResult(&conn), nil
 	}
