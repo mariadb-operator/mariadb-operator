@@ -27,10 +27,10 @@ func PodFQDN(meta metav1.ObjectMeta, podIndex int) string {
 
 func PodIndex(podName string) (*int, error) {
 	parts := strings.Split(podName, "-")
-	if len(parts) != 2 {
+	if len(parts) == 0 {
 		return nil, fmt.Errorf("invalid Pod name: %v", podName)
 	}
-	index, err := strconv.Atoi(parts[1])
+	index, err := strconv.Atoi(parts[len(parts)-1])
 	if err != nil {
 		return nil, fmt.Errorf("invalid Pod name: %v, error: %v", podName, err)
 	}
