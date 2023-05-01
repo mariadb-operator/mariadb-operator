@@ -31,6 +31,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -85,7 +86,11 @@ var rootCmd = &cobra.Command{
 		refResolver := refresolver.New(mgr.GetClient())
 		conditionReady := conditions.NewReady()
 		conditionComplete := conditions.NewComplete(mgr.GetClient())
-		batchReconciler := batch.NewBatchReconciler(mgr.GetClient(), refResolver, builder)
+		configMapReconciler := configmap.NewConfigMapReconciler(mgr.GetClient(), builder, "my.cnf")
+		secretReconciler := secret.NewSecretReconciler(mgr.GetClient(), builder)
+		replConfig := replication.NewReplicationConfig(mgr.GetClient(), builder, secretReconciler)
+		replicationReconciler := replication.NewReplicationReconciler(mgr.GetClient(), replConfig, secretReconciler, builder)
+		batchReconciler := batch.NewBatchReconciler(mgr.GetClient(), builder)
 
 		if err = (&controllers.MariaDBReconciler{
 			Client:                   mgr.GetClient(),
@@ -93,8 +98,9 @@ var rootCmd = &cobra.Command{
 			Builder:                  builder,
 			RefResolver:              refResolver,
 			ConditionReady:           conditionReady,
-			ConfigMapReconciler:      configmap.NewConfigMapReconciler(mgr.GetClient(), builder, "my.cnf"),
-			ReplicationReconciler:    replication.NewReplicationReconciler(mgr.GetClient(), builder, refResolver),
+			ConfigMapReconciler:      configMapReconciler,
+			SecretReconciler:         secretReconciler,
+			ReplicationReconciler:    replicationReconciler,
 			ServiceMonitorReconciler: serviceMonitorReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
@@ -171,10 +177,12 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.PodReconciler{
-			Client:      mgr.GetClient(),
-			Scheme:      mgr.GetScheme(),
-			Builder:     builder,
-			RefResolver: refResolver,
+			Client:           mgr.GetClient(),
+			Scheme:           mgr.GetScheme(),
+			ReplConfig:       replConfig,
+			SecretReconciler: secretReconciler,
+			Builder:          builder,
+			RefResolver:      refResolver,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Pod")
 			os.Exit(1)

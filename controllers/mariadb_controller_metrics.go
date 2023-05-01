@@ -25,7 +25,6 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -69,15 +68,21 @@ func (r *MariaDBReconciler) createMetricsUser(ctx context.Context,
 		return &existingUser, nil
 	}
 
-	secretKeySelector, err := r.createMetricsPasswordSecret(ctx, mariadb)
+	passwordKey := passwordKey(mariadb)
+	_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, passwordKey, passwordSecretKey, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error creating user password Secret: %v", err)
 	}
 
 	opts := builder.UserOpts{
-		Key:                  key,
-		PasswordSecretKeyRef: *secretKeySelector,
-		MaxUserConnections:   3,
+		Key: passwordKey,
+		PasswordSecretKeyRef: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: passwordKey.Name,
+			},
+			Key: passwordSecretKey,
+		},
+		MaxUserConnections: 3,
 	}
 	user, err := r.Builder.BuildUser(mariadb, opts)
 	if err != nil {
@@ -115,36 +120,6 @@ func (r *MariaDBReconciler) createMetricsGrant(ctx context.Context, mariadb *mar
 		return fmt.Errorf("error creating Grant: %v", err)
 	}
 	return nil
-}
-
-func (r *MariaDBReconciler) createMetricsPasswordSecret(ctx context.Context,
-	mariadb *mariadbv1alpha1.MariaDB) (*corev1.SecretKeySelector, error) {
-	password, err := password.Generate(16, 4, 0, false, false)
-	if err != nil {
-		return nil, fmt.Errorf("error generating password: %v", err)
-	}
-
-	opts := builder.SecretOpts{
-		Key: passwordKey(mariadb),
-		Data: map[string][]byte{
-			passwordSecretKey: []byte(password),
-		},
-		Labels: labels.NewLabelsBuilder().WithMariaDB(mariadb).Build(),
-	}
-	secret, err := r.Builder.BuildSecret(opts, mariadb)
-	if err != nil {
-		return nil, fmt.Errorf("error building password Secret: %v", err)
-	}
-	if err := r.Create(ctx, secret); err != nil {
-		return nil, fmt.Errorf("error creating password Secret: %v", err)
-	}
-
-	return &corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: secret.Name,
-		},
-		Key: passwordSecretKey,
-	}, nil
 }
 
 func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
