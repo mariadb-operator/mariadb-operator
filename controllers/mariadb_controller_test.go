@@ -6,6 +6,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("MariaDB controller", func() {
@@ -165,14 +167,10 @@ var _ = Describe("MariaDB controller", func() {
 
 	Context("When creating a MariaDB with replication", func() {
 		It("Should reconcile and switch primary", func() {
-			testRplMariaDbKey := types.NamespacedName{
-				Name:      "mariadb-repl",
-				Namespace: testNamespace,
-			}
 			testRplMariaDb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testRplMariaDbKey.Name,
-					Namespace: testRplMariaDbKey.Namespace,
+					Name:      "mariadb-repl",
+					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -252,6 +250,8 @@ var _ = Describe("MariaDB controller", func() {
 					},
 					Replication: &mariadbv1alpha1.Replication{
 						Primary: mariadbv1alpha1.PrimaryReplication{
+							PodIndex:          0,
+							AutomaticFailover: true,
 							Service: &mariadbv1alpha1.Service{
 								Type: corev1.ServiceTypeLoadBalancer,
 								Annotations: map[string]string{
@@ -272,13 +272,13 @@ var _ = Describe("MariaDB controller", func() {
 							WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
 						},
 					},
+					Replicas: 3,
 					Service: &mariadbv1alpha1.Service{
 						Type: corev1.ServiceTypeLoadBalancer,
 						Annotations: map[string]string{
 							"metallb.universe.tf/loadBalancerIPs": "172.18.0.120",
 						},
 					},
-					Replicas: 3,
 				},
 			}
 
@@ -287,7 +287,7 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, testRplMariaDbKey, &testRplMariaDb); err != nil {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &testRplMariaDb); err != nil {
 					return false
 				}
 				return testRplMariaDb.IsReady()
@@ -316,7 +316,7 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Expecting MariaDB to eventually change primary")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, testRplMariaDbKey, &testRplMariaDb); err != nil {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &testRplMariaDb); err != nil {
 					return false
 				}
 				if !testRplMariaDb.IsReady() {
@@ -324,6 +324,29 @@ var _ = Describe("MariaDB controller", func() {
 				}
 				if testRplMariaDb.Status.CurrentPrimaryPodIndex != nil {
 					return *testRplMariaDb.Status.CurrentPrimaryPodIndex == 1
+				}
+				return false
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Tearing down primary Pod")
+			primaryPodKey := types.NamespacedName{
+				Name:      statefulset.PodName(testRplMariaDb.ObjectMeta, 1),
+				Namespace: testRplMariaDb.Namespace,
+			}
+			var primaryPod corev1.Pod
+			Expect(k8sClient.Get(testCtx, primaryPodKey, &primaryPod))
+			Expect(k8sClient.Delete(testCtx, &primaryPod))
+
+			By("Expecting MariaDB to eventually change primary")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &testRplMariaDb); err != nil {
+					return false
+				}
+				if !testRplMariaDb.IsReady() {
+					return false
+				}
+				if testRplMariaDb.Status.CurrentPrimaryPodIndex != nil {
+					return *testRplMariaDb.Status.CurrentPrimaryPodIndex == 0 || *testRplMariaDb.Status.CurrentPrimaryPodIndex == 2
 				}
 				return false
 			}, testTimeout, testInterval).Should(BeTrue())
