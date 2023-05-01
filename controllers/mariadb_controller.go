@@ -27,6 +27,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -48,13 +49,14 @@ type MariaDBReconciler struct {
 	RefResolver              *refresolver.RefResolver
 	ConditionReady           *conditions.Ready
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
+	SecretReconciler         *secret.SecretReconciler
 	ReplicationReconciler    *replication.ReplicationReconciler
 	ServiceMonitorReconciler bool
 }
 
 type reconcilePhase struct {
 	Resource  string
-	Reconcile func(context.Context, *mariadbv1alpha1.MariaDB, types.NamespacedName) error
+	Reconcile func(context.Context, *mariadbv1alpha1.MariaDB) error
 }
 
 type patcher func(*mariadbv1alpha1.MariaDBStatus) error
@@ -116,7 +118,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	})
 
 	for _, p := range phases {
-		if err := p.Reconcile(ctx, &mariaDb, req.NamespacedName); err != nil {
+		if err := p.Reconcile(ctx, &mariaDb); err != nil {
 			if apierrors.IsNotFound(err) {
 				continue
 			}
@@ -143,7 +145,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.Get(ctx, req.NamespacedName, &mariaDb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	patcher, err := r.patcher(ctx, &mariaDb, req.NamespacedName)
+	patcher, err := r.patcher(ctx, &mariaDb)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -153,8 +155,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	mariaDbKey types.NamespacedName) error {
+func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if r.ConfigMapReconciler.NoopReconcile(mariadb) {
 		return nil
 	}
@@ -174,8 +175,8 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 	})
 }
 
-func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	key types.NamespacedName) error {
+func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := client.ObjectKeyFromObject(mariadb)
 	var dsn *corev1.SecretKeySelector
 	if mariadb.Spec.Metrics != nil {
 		var err error
@@ -208,8 +209,7 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 	return r.Patch(ctx, &existingSts, patch)
 }
 
-func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	mariaDbKey types.NamespacedName) error {
+func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Spec.PodDisruptionBudget == nil {
 		return nil
 	}
@@ -238,8 +238,8 @@ func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, ma
 	return r.Create(ctx, pdb)
 }
 
-func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	key types.NamespacedName) error {
+func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := client.ObjectKeyFromObject(mariadb)
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
@@ -275,11 +275,12 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 	return r.Patch(ctx, &existingSvc, patch)
 }
 
-func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	key types.NamespacedName) error {
+func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Spec.Metrics == nil {
 		return nil
 	}
+
+	key := client.ObjectKeyFromObject(mariadb)
 	var existingServiceMontor monitoringv1.ServiceMonitor
 	if err := r.Get(ctx, key, &existingServiceMontor); err == nil {
 		return nil
@@ -293,8 +294,7 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 	return r.Create(ctx, serviceMonitor)
 }
 
-func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	mariaDbKey types.NamespacedName) error {
+func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Spec.BootstrapFrom == nil || !mariadb.IsReady() || mariadb.IsBootstrapped() {
 		return nil
 	}
@@ -316,8 +316,7 @@ func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, maria
 	return r.Create(ctx, restore)
 }
 
-func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	mariaDbKey types.NamespacedName) error {
+func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Spec.Connection == nil || mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
 		!mariadb.IsReady() {
 		return nil
@@ -349,16 +348,15 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 	return r.Create(ctx, conn)
 }
 
-func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha1.MariaDB,
-	key types.NamespacedName) (patcher, error) {
+func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (patcher, error) {
 	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, key, &sts); err != nil {
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
 		return nil, err
 	}
 
 	var restore mariadbv1alpha1.Restore
 	var restoreExists bool
-	if err := r.Get(ctx, bootstrapRestoreKey(mariaDb), &restore); err != nil {
+	if err := r.Get(ctx, bootstrapRestoreKey(mariadb), &restore); err != nil {
 		if apierrors.IsNotFound(err) {
 			restoreExists = false
 		} else {
@@ -369,8 +367,8 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 	}
 
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
-		if mariaDb.IsSwitchingPrimary() {
-			return conditions.SetPrimarySwitching(s, mariaDb)
+		if mariadb.IsSwitchingPrimary() {
+			return conditions.SetPrimarySwitching(s, mariadb)
 		}
 		if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
 			s.SetCondition(metav1.Condition{
@@ -381,7 +379,7 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 			})
 			return nil
 		}
-		if mariaDb.Spec.Replication != nil && mariaDb.Status.CurrentPrimaryPodIndex == nil {
+		if mariadb.Spec.Replication != nil && mariadb.Status.CurrentPrimaryPodIndex == nil {
 			s.SetCondition(metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeReady,
 				Status:  metav1.ConditionFalse,
@@ -391,7 +389,7 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 			return nil
 		}
 		if restoreExists {
-			if mariaDb.IsBootstrapped() {
+			if mariadb.IsBootstrapped() {
 				s.SetCondition(metav1.Condition{
 					Type:    mariadbv1alpha1.ConditionTypeReady,
 					Status:  metav1.ConditionTrue,
@@ -429,8 +427,8 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariaDb *mariadbv1alpha
 			}
 			return nil
 		}
-		if mariaDb.Spec.Replication == nil {
-			s.UpdateCurrentPrimary(mariaDb, 0)
+		if mariadb.Spec.Replication == nil {
+			s.UpdateCurrentPrimary(mariadb, 0)
 		}
 		s.SetCondition(metav1.Condition{
 			Type:    mariadbv1alpha1.ConditionTypeReady,

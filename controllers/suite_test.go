@@ -27,6 +27,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -95,15 +96,19 @@ var _ = BeforeSuite(func() {
 	refResolver := refresolver.New(k8sManager.GetClient())
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(k8sManager.GetClient())
-	batchReconciler := batch.NewBatchReconciler(k8sManager.GetClient(), refResolver, builder)
+	configMapReconciler := configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder, "my.cnf")
+	secretReconciler := secret.NewSecretReconciler(k8sManager.GetClient(), builder)
+	replConfig := replication.NewReplicationConfig(k8sManager.GetClient(), builder, secretReconciler)
+	replicationReconciler := replication.NewReplicationReconciler(k8sManager.GetClient(), replConfig, secretReconciler, builder)
+	batchReconciler := batch.NewBatchReconciler(k8sManager.GetClient(), builder)
 
 	err = (&MariaDBReconciler{
 		Client:                   k8sManager.GetClient(),
 		Scheme:                   k8sManager.GetScheme(),
 		Builder:                  builder,
 		ConditionReady:           conditionReady,
-		ConfigMapReconciler:      configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder, "my.cnf"),
-		ReplicationReconciler:    replication.NewReplicationReconciler(k8sManager.GetClient(), builder, refResolver),
+		ConfigMapReconciler:      configMapReconciler,
+		ReplicationReconciler:    replicationReconciler,
 		ServiceMonitorReconciler: true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
@@ -172,10 +177,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&PodReconciler{
-		Client:      k8sManager.GetClient(),
-		Scheme:      k8sManager.GetScheme(),
-		Builder:     builder,
-		RefResolver: refResolver,
+		Client:           k8sManager.GetClient(),
+		Scheme:           k8sManager.GetScheme(),
+		ReplConfig:       replConfig,
+		SecretReconciler: secretReconciler,
+		Builder:          builder,
+		RefResolver:      refResolver,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

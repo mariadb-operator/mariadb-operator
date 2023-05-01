@@ -21,10 +21,10 @@ type BatchReconciler struct {
 	builder     *builder.Builder
 }
 
-func NewBatchReconciler(client client.Client, refResolver *refresolver.RefResolver, builder *builder.Builder) *BatchReconciler {
+func NewBatchReconciler(client client.Client, builder *builder.Builder) *BatchReconciler {
 	return &BatchReconciler{
 		Client:      client,
-		refResolver: refResolver,
+		refResolver: refresolver.New(client),
 		builder:     builder,
 	}
 }

@@ -28,6 +28,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -51,9 +52,11 @@ var (
 // PodReconciler reconciles a Pod object
 type PodReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	Builder     *builder.Builder
-	RefResolver *refresolver.RefResolver
+	Scheme           *runtime.Scheme
+	ReplConfig       *replication.ReplicationConfig
+	SecretReconciler *secret.SecretReconciler
+	Builder          *builder.Builder
+	RefResolver      *refresolver.RefResolver
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=pods,verbs=get;list
@@ -126,15 +129,13 @@ func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, m
 	}
 	defer client.Close()
 
-	config := replication.NewReplicationConfig(mariadb, client, r.Client, r.Builder)
-
 	if *index == *mariadb.Status.CurrentPrimaryPodIndex {
-		if err := config.ConfigurePrimary(ctx, *index); err != nil {
+		if err := r.ReplConfig.ConfigurePrimary(ctx, mariadb, client, *index); err != nil {
 			return fmt.Errorf("error configuring primary in replica '%d': %v", *index, err)
 		}
 		return nil
 	}
-	if err := config.ConfigureReplica(ctx, *index, *mariadb.Status.CurrentPrimaryPodIndex); err != nil {
+	if err := r.ReplConfig.ConfigureReplica(ctx, mariadb, client, *index, *mariadb.Status.CurrentPrimaryPodIndex); err != nil {
 		return fmt.Errorf("error configuring replication in replica '%d': %v", *index, err)
 	}
 	return nil

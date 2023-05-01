@@ -9,6 +9,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	corev1 "k8s.io/api/core/v1"
@@ -21,16 +22,20 @@ import (
 
 type ReplicationReconciler struct {
 	client.Client
-	Builder     *builder.Builder
-	RefResolver *refresolver.RefResolver
+	ReplConfig       *ReplicationConfig
+	SecretReconciler *secret.SecretReconciler
+	Builder          *builder.Builder
+	RefResolver      *refresolver.RefResolver
 }
 
-func NewReplicationReconciler(client client.Client, builder *builder.Builder,
-	refResolver *refresolver.RefResolver) *ReplicationReconciler {
+func NewReplicationReconciler(client client.Client, replConfig *ReplicationConfig,
+	secretReconciler *secret.SecretReconciler, builder *builder.Builder) *ReplicationReconciler {
 	return &ReplicationReconciler{
-		Client:      client,
-		Builder:     builder,
-		RefResolver: refResolver,
+		Client:           client,
+		ReplConfig:       replConfig,
+		SecretReconciler: secretReconciler,
+		Builder:          builder,
+		RefResolver:      refresolver.New(client),
 	}
 }
 
@@ -46,8 +51,7 @@ type replicationPhase struct {
 	reconcile func(context.Context, *reconcileRequest) error
 }
 
-func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	mariaDbKey types.NamespacedName) error {
+func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Spec.Replication == nil {
 		return nil
 	}
@@ -60,7 +64,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 
 		req := reconcileRequest{
 			mariadb:   mariadb,
-			key:       mariaDbKey,
+			key:       client.ObjectKeyFromObject(mariadb),
 			clientSet: clientSet,
 		}
 		if err := r.reconcileSwitchover(ctx, &req); err != nil {
@@ -82,6 +86,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 	}
 	defer clientSet.close()
 
+	mariaDbKey := client.ObjectKeyFromObject(mariadb)
 	phases := []replicationPhase{
 		{
 			name:      "set configure replication status",
@@ -158,8 +163,7 @@ func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *recon
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
-	config := NewReplicationConfig(req.mariadb, client, r.Client, r.Builder)
-	return config.ConfigurePrimary(ctx, req.mariadb.Spec.Replication.Primary.PodIndex)
+	return r.ReplConfig.ConfigurePrimary(ctx, req.mariadb, client, req.mariadb.Spec.Replication.Primary.PodIndex)
 }
 
 func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reconcileRequest) error {
@@ -174,9 +178,7 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 		if err != nil {
 			return fmt.Errorf("error getting client for replica '%d': %v", i, err)
 		}
-
-		config := NewReplicationConfig(req.mariadb, client, r.Client, r.Builder)
-		if err := config.ConfigureReplica(ctx, i, req.mariadb.Spec.Replication.Primary.PodIndex); err != nil {
+		if err := r.ReplConfig.ConfigureReplica(ctx, req.mariadb, client, i, req.mariadb.Spec.Replication.Primary.PodIndex); err != nil {
 			return fmt.Errorf("error configuring replica '%d': %v", i, err)
 		}
 	}

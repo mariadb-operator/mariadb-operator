@@ -199,8 +199,7 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
 
-	config := NewReplicationConfig(mariadb, client, r.Client, r.Builder)
-	if err := config.ConfigurePrimary(ctx, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
+	if err := r.ReplConfig.ConfigurePrimary(ctx, mariadb, client, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
 		return fmt.Errorf("error confguring new primary vars: %v", err)
 	}
 	return nil
@@ -243,8 +242,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 			}
 
 			logger.V(1).Info("connecting replica to new primary", "replica", i)
-			config := NewReplicationConfig(mariadb, replClient, r.Client, r.Builder)
-			if err := config.ConfigureReplica(ctx, i, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
+			if err := r.ReplConfig.ConfigureReplica(ctx, mariadb, replClient, i, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
 				errChan <- fmt.Errorf("error configuring replica vars in replica '%d': %v", i, err)
 				return
 			}
@@ -283,8 +281,13 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 	if err := r.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
 		return fmt.Errorf("error getting replication password Secret: %v", err)
 	}
-	config := NewReplicationConfig(mariadb, currentPrimaryClient, r.Client, r.Builder)
-	return config.ConfigureReplica(ctx, *mariadb.Status.CurrentPrimaryPodIndex, mariadb.Spec.Replication.Primary.PodIndex)
+	return r.ReplConfig.ConfigureReplica(
+		ctx,
+		mariadb,
+		currentPrimaryClient,
+		*mariadb.Status.CurrentPrimaryPodIndex,
+		mariadb.Spec.Replication.Primary.PodIndex,
+	)
 }
 
 func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
