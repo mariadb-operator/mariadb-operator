@@ -6,15 +6,14 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
+	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 )
 
 type mariadbClientSet struct {
 	mariadb       *mariadbv1alpha1.MariaDB
 	refResolver   *refresolver.RefResolver
-	clientByIndex map[int]*mariadb.Client
+	clientByIndex map[int]*mariadbclient.Client
 }
 
 func newMariaDBClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver) (*mariadbClientSet, error) {
@@ -49,7 +48,7 @@ func (c *mariadbClientSet) currentPrimaryClient(ctx context.Context) (*mariadbcl
 	return client, nil
 }
 
-func (c *mariadbClientSet) newPrimaryClient(ctx context.Context) (*mariadb.Client, error) {
+func (c *mariadbClientSet) newPrimaryClient(ctx context.Context) (*mariadbclient.Client, error) {
 	client, err := c.clientForIndex(ctx, c.mariadb.Spec.Replication.Primary.PodIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting new primary client: %v", err)

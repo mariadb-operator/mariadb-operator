@@ -9,7 +9,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func MariaDBHealthy(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+func IsMariaDBHealthy(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
 	key := ctrlclient.ObjectKeyFromObject(mariadb)
 	var statefulSet appsv1.StatefulSet
 	if err := client.Get(ctx, key, &statefulSet); err != nil {

@@ -6,9 +6,8 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
-	"github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +37,7 @@ func NewReplicationConfig(client client.Client, builder *builder.Builder, secret
 	}
 }
 
-func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadb.Client,
+func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
 	podIndex int) error {
 	if err := client.UnlockTables(ctx); err != nil {
 		return fmt.Errorf("error unlocking tables: %v", err)
@@ -64,7 +63,7 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	return nil
 }
 
-func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadb.Client,
+func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
 	replicaPodIndex, primaryPodIndex int) error {
 	if err := client.UnlockTables(ctx); err != nil {
 		return fmt.Errorf("error unlocking tables: %v", err)
@@ -117,7 +116,7 @@ func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *m
 }
 
 func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	client *mariadb.Client, ordinal int) error {
+	client *mariadbclient.Client, ordinal int) error {
 	kv := map[string]string{
 		"rpl_semi_sync_master_enabled": "OFF",
 		"rpl_semi_sync_slave_enabled":  "ON",
@@ -129,7 +128,7 @@ func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *m
 	return nil
 }
 
-func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadb.Client,
+func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
 	primaryPodIndex int) error {
 	var replSecret corev1.Secret
 	if err := r.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
@@ -152,7 +151,7 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 	return nil
 }
 
-func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadb.Client) error {
+func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client) error {
 	if mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
 		password, err := r.refResolver.SecretKeyRef(ctx, *mariadb.Spec.PasswordSecretKeyRef, mariadb.Namespace)
 		if err != nil {
@@ -206,7 +205,7 @@ type userSqlOpts struct {
 	passwordSecretkey string
 }
 
-func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadb.Client,
+func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
 	opts *userSqlOpts) error {
 	password, err := r.secretReconciler.ReconcileRandomPassword(ctx, opts.passworKey, opts.passwordSecretkey, mariadb)
 	if err != nil {

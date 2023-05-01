@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/mariadb"
+	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )

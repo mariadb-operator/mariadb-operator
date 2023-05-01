@@ -72,7 +72,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		}
 		return nil
 	}
-	healthy, err := health.MariaDBHealthy(ctx, r.Client, mariadb)
+	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mariadb)
 	if err != nil {
 		return fmt.Errorf("error checking MariaDB health: %v", err)
 	}
