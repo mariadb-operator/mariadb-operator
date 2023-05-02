@@ -227,6 +227,10 @@ func buildStatefulSetEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 			},
 		},
 		{
+			Name:  "MARIADB_ROOT_HOST",
+			Value: "%",
+		},
+		{
 			Name:  "MYSQL_INITDB_SKIP_TZINFO",
 			Value: "1",
 		},
