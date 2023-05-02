@@ -304,11 +304,7 @@ func (r *MariaDBReconciler) reconcileBootstrapRestore(ctx context.Context, maria
 		return nil
 	}
 
-	restore, err := r.Builder.BuildRestore(
-		mariadb,
-		mariadb.Spec.BootstrapFrom,
-		key,
-	)
+	restore, err := r.Builder.BuildRestore(mariadb, key)
 	if err != nil {
 		return fmt.Errorf("error building restore: %v", err)
 	}
@@ -328,7 +324,8 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 	}
 
 	connOpts := builder.ConnectionOpts{
-		Key: key,
+		MariaDB: mariadb,
+		Key:     key,
 		MariaDBRef: mariadbv1alpha1.MariaDBRef{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: mariadb.Name,

@@ -12,44 +12,44 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (b *Builder) BuildServiceMonitor(mariaDb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*monitoringv1.ServiceMonitor, error) {
-	if mariaDb.Spec.Metrics == nil {
+func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*monitoringv1.ServiceMonitor, error) {
+	if mariadb.Spec.Metrics == nil {
 		return nil, errors.New("MariaDB instance does not specify Metrics")
 	}
-	serviceMonitorLabels :=
+	objLabels :=
 		labels.NewLabelsBuilder().
-			WithMariaDB(mariaDb).
-			WithRelease(mariaDb.Spec.Metrics.ServiceMonitor.PrometheusRelease).
+			WithMariaDB(mariadb).
+			WithRelease(mariadb.Spec.Metrics.ServiceMonitor.PrometheusRelease).
 			Build()
-	serviceLabels :=
+	selectorLabels :=
 		labels.NewLabelsBuilder().
-			WithMariaDB(mariaDb).
+			WithMariaDB(mariadb).
 			Build()
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
-			Labels:    serviceMonitorLabels,
+			Labels:    objLabels,
 		},
 		Spec: monitoringv1.ServiceMonitorSpec{
 			Selector: metav1.LabelSelector{
-				MatchLabels: serviceLabels,
+				MatchLabels: selectorLabels,
 			},
 			NamespaceSelector: monitoringv1.NamespaceSelector{
-				MatchNames: []string{mariaDb.Namespace},
+				MatchNames: []string{mariadb.Namespace},
 			},
 			Endpoints: []monitoringv1.Endpoint{
 				{
 					Port:          metricsPortName,
 					Path:          "/metrics",
 					Scheme:        "http",
-					Interval:      monitoringv1.Duration(mariaDb.Spec.Metrics.ServiceMonitor.Interval),
-					ScrapeTimeout: monitoringv1.Duration(mariaDb.Spec.Metrics.ServiceMonitor.ScrapeTimeout),
+					Interval:      monitoringv1.Duration(mariadb.Spec.Metrics.ServiceMonitor.Interval),
+					ScrapeTimeout: monitoringv1.Duration(mariadb.Spec.Metrics.ServiceMonitor.ScrapeTimeout),
 				},
 			},
 		},
 	}
-	if err := controllerutil.SetControllerReference(mariaDb, serviceMonitor, b.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(mariadb, serviceMonitor, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to ServiceMonitor: %v", err)
 	}
 	return serviceMonitor, nil

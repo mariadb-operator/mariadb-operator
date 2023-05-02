@@ -266,13 +266,8 @@ func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *r
 	}
 
 	connOpts := builder.ConnectionOpts{
-		Key: req.key,
-		MariaDBRef: mariadbv1alpha1.MariaDBRef{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: req.mariadb.Name,
-			},
-			WaitForIt: true,
-		},
+		MariaDB:              req.mariadb,
+		Key:                  req.key,
 		Username:             *req.mariadb.Spec.Username,
 		PasswordSecretKeyRef: *req.mariadb.Spec.PasswordSecretKeyRef,
 		Database:             req.mariadb.Spec.Database,

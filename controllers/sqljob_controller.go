@@ -140,7 +140,6 @@ func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *v1al
 }
 
 func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) error {
-
 	if r.ConfigMapReconciler.NoopReconcile(sqlJob) {
 		return nil
 	}

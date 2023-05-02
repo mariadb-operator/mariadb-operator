@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,11 +29,16 @@ type ServiceOpts struct {
 
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
 	opts ServiceOpts) (*corev1.Service, error) {
+	objLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			WithLabels(opts.Labels).
+			Build()
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        key.Name,
 			Namespace:   key.Namespace,
-			Labels:      opts.Labels,
+			Labels:      objLabels,
 			Annotations: opts.Annotations,
 		},
 		Spec: corev1.ServiceSpec{

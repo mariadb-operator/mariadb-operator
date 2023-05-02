@@ -4,29 +4,40 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	v1 "k8s.io/api/core/v1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type ConnectionOpts struct {
+	MariaDB              *mariadbv1alpha1.MariaDB
 	Key                  types.NamespacedName
-	MariaDBRef           mariadbv1alpha1.MariaDBRef
 	Username             string
-	PasswordSecretKeyRef v1.SecretKeySelector
+	PasswordSecretKeyRef corev1.SecretKeySelector
 	Database             *string
 	Template             *mariadbv1alpha1.ConnectionTemplate
 }
 
 func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*mariadbv1alpha1.Connection, error) {
+	objLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(opts.MariaDB).
+			Build()
 	conn := &mariadbv1alpha1.Connection{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      opts.Key.Name,
 			Namespace: opts.Key.Namespace,
+			Labels:    objLabels,
 		},
 		Spec: mariadbv1alpha1.ConnectionSpec{
-			MariaDBRef:           opts.MariaDBRef,
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: opts.MariaDB.Name,
+				},
+				WaitForIt: true,
+			},
 			Username:             opts.Username,
 			PasswordSecretKeyRef: opts.PasswordSecretKeyRef,
 			Database:             opts.Database,
