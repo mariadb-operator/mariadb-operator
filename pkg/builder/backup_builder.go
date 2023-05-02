@@ -11,29 +11,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (b *Builder) BuildRestore(mariaDb *mariadbv1alpha1.MariaDB, restoreSource *mariadbv1alpha1.RestoreSource,
-	key types.NamespacedName) (*mariadbv1alpha1.Restore, error) {
-	restoreLabels :=
+func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*mariadbv1alpha1.Restore, error) {
+	objLabels :=
 		labels.NewLabelsBuilder().
-			WithMariaDB(mariaDb).
+			WithMariaDB(mariadb).
+			WithOwner(mariadb).
 			Build()
 	restore := &mariadbv1alpha1.Restore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
-			Labels:    restoreLabels,
+			Labels:    objLabels,
 		},
 		Spec: mariadbv1alpha1.RestoreSpec{
-			RestoreSource: *restoreSource,
+			RestoreSource: *mariadb.Spec.BootstrapFrom,
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: mariaDb.Name,
+					Name: mariadb.Name,
 				},
 				WaitForIt: true,
 			},
 		},
 	}
-	if err := controllerutil.SetControllerReference(mariaDb, restore, b.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(mariadb, restore, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to bootstrapping restore Job: %v", err)
 	}
 	return restore, nil

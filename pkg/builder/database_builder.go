@@ -19,15 +19,16 @@ type UserOpts struct {
 }
 
 func (b *Builder) BuildUser(mariadb *mariadbv1alpha1.MariaDB, opts UserOpts) (*mariadbv1alpha1.User, error) {
-	databaseLabels :=
+	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(mariadb).
 			Build()
 	user := &mariadbv1alpha1.User{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      opts.Key.Name,
 			Namespace: opts.Key.Namespace,
-			Labels:    databaseLabels,
+			Labels:    objLabels,
 		},
 		Spec: mariadbv1alpha1.UserSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -57,15 +58,16 @@ type GrantOpts struct {
 }
 
 func (b *Builder) BuildGrant(mariadb *mariadbv1alpha1.MariaDB, opts GrantOpts) (*mariadbv1alpha1.Grant, error) {
-	grantLabels :=
+	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(mariadb).
 			Build()
 	grant := &mariadbv1alpha1.Grant{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      opts.Key.Name,
 			Namespace: opts.Key.Namespace,
-			Labels:    grantLabels,
+			Labels:    objLabels,
 		},
 		Spec: mariadbv1alpha1.GrantSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{

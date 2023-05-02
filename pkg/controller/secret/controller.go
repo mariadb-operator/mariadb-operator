@@ -6,7 +6,6 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,11 +36,11 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, key type
 	}
 
 	opts := builder.SecretOpts{
-		Key: key,
+		MariaDB: mariadb,
+		Key:     key,
 		Data: map[string][]byte{
 			secretKey: []byte(password),
 		},
-		Labels: labels.NewLabelsBuilder().WithMariaDB(mariadb).Build(),
 	}
 	secret, err := r.Builder.BuildSecret(opts, mariadb)
 	if err != nil {

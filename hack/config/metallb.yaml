@@ -30,7 +30,6 @@ spec:
     protocol: TCP
     targetPort: 3306
   selector:
-    app.kubernetes.io/component: database
     app.kubernetes.io/instance: mariadb
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-0  
@@ -50,7 +49,6 @@ spec:
     protocol: TCP
     targetPort: 3306
   selector:
-    app.kubernetes.io/component: database
     app.kubernetes.io/instance: mariadb
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-1 
@@ -70,7 +68,6 @@ spec:
     protocol: TCP
     targetPort: 3306
   selector:
-    app.kubernetes.io/component: database
     app.kubernetes.io/instance: mariadb
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-2
@@ -90,7 +87,6 @@ spec:
     protocol: TCP
     targetPort: 3306
   selector:
-    app.kubernetes.io/component: database
     app.kubernetes.io/instance: mariadb
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-3
@@ -110,7 +106,6 @@ spec:
     protocol: TCP
     targetPort: 3306
   selector:
-    app.kubernetes.io/component: database
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-0
@@ -130,7 +125,6 @@ spec:
     protocol: TCP
     targetPort: 3306
   selector:
-    app.kubernetes.io/component: database
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-1
@@ -150,7 +144,6 @@ spec:
     protocol: TCP
     targetPort: 3306
   selector:
-    app.kubernetes.io/component: database
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-2

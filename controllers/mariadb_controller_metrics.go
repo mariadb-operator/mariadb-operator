@@ -22,7 +22,6 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -151,15 +150,15 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *maria
 	}
 
 	secretOpts := builder.SecretOpts{
-		Key: key,
+		MariaDB: mariadb,
+		Key:     key,
 		Data: map[string][]byte{
 			dsnSecretKey: []byte(dsn),
 		},
-		Labels: labels.NewLabelsBuilder().WithMariaDB(mariadb).Build(),
 	}
 	secret, err := r.Builder.BuildSecret(secretOpts, mariadb)
 	if err != nil {
-		return nil, fmt.Errorf("error building DNS Secret: %v", err)
+		return nil, fmt.Errorf("error building DSN Secret: %v", err)
 	}
 	if err := r.Create(ctx, secret); err != nil {
 		return nil, fmt.Errorf("error creating DSN Secret: %v", err)

@@ -8,6 +8,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -31,8 +32,12 @@ const (
 )
 
 func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+	podName := statefulset.PodName(mariadb.ObjectMeta, 0)
+	if mariadb.Spec.Replication != nil {
+		podName = statefulset.PodName(mariadb.ObjectMeta, mariadb.Spec.Replication.Primary.PodIndex)
+	}
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-%s-0", stsStorageVolume, mariadb.Name),
+		Name:      fmt.Sprintf("%s-%s", stsStorageVolume, podName),
 		Namespace: mariadb.Namespace,
 	}
 }
@@ -52,20 +57,18 @@ func StatefulSetPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
 
 func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
 	dsn *corev1.SecretKeySelector) (*appsv1.StatefulSet, error) {
-
 	statefulSetLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(mariadb).
 			Build()
-
-	podTemplate, err := buildPodTemplate(mariadb, dsn, statefulSetLabels)
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	podTemplate, err := buildPodTemplate(mariadb, dsn, selectorLabels)
 	if err != nil {
 		return nil, fmt.Errorf("error building pod template: %v", err)
-	}
-
-	pvcMeta := metav1.ObjectMeta{
-		Name:      stsStorageVolume,
-		Namespace: mariadb.Namespace,
 	}
 
 	sts := &appsv1.StatefulSet{
@@ -79,13 +82,16 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 			Replicas:            &mariadb.Spec.Replicas,
 			PodManagementPolicy: buildStatefulSetPodManagementPolicy(mariadb),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: statefulSetLabels,
+				MatchLabels: selectorLabels,
 			},
 			Template: *podTemplate,
 			VolumeClaimTemplates: []v1.PersistentVolumeClaim{
 				corev1.PersistentVolumeClaim{
-					ObjectMeta: pvcMeta,
-					Spec:       mariadb.Spec.VolumeClaimTemplate,
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      stsStorageVolume,
+						Namespace: mariadb.Namespace,
+					},
+					Spec: mariadb.Spec.VolumeClaimTemplate,
 				},
 			},
 		},

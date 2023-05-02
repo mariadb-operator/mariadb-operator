@@ -184,7 +184,8 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	}
 
 	secretOpts := builder.SecretOpts{
-		Key: key,
+		MariaDB: mdb,
+		Key:     key,
 		Data: map[string][]byte{
 			conn.SecretKey(): []byte(dsn),
 		},
