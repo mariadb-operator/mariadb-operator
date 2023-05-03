@@ -68,6 +68,7 @@ type patcher func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups="",resources=endpoints,verbs=list;watch
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
