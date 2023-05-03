@@ -161,7 +161,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 	}
 
 	key := configMapMariaDBKey(mariadb)
-	if err := r.ConfigMapReconciler.Reconcile(ctx, mariadb, key); err != nil {
+	if err := r.ConfigMapReconciler.Reconcile(ctx, mariadb, key, mariadb); err != nil {
 		return fmt.Errorf("error reconciling ConfigMap: %v", err)
 	}
 
@@ -225,6 +225,7 @@ func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, ma
 			WithMariaDB(mariadb).
 			Build()
 	opts := builder.PodDisruptionBudgetOpts{
+		MariaDB:        mariadb,
 		Key:            key,
 		MinAvailable:   mariadb.Spec.PodDisruptionBudget.MinAvailable,
 		MaxUnavailable: mariadb.Spec.PodDisruptionBudget.MaxUnavailable,
@@ -245,7 +246,7 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 			WithMariaDB(mariadb).
 			Build()
 	opts := builder.ServiceOpts{
-		Labels: serviceLabels,
+		Selectorlabels: serviceLabels,
 	}
 	if mariadb.Spec.Service != nil {
 		opts.Type = mariadb.Spec.Service.Type
@@ -324,14 +325,8 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 	}
 
 	connOpts := builder.ConnectionOpts{
-		MariaDB: mariadb,
-		Key:     key,
-		MariaDBRef: mariadbv1alpha1.MariaDBRef{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: mariadb.Name,
-			},
-			WaitForIt: true,
-		},
+		MariaDB:              mariadb,
+		Key:                  key,
 		Username:             *mariadb.Spec.Username,
 		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
 		Database:             mariadb.Spec.Database,

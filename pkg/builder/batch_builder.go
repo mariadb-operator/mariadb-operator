@@ -34,6 +34,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(backup).
 			Build()
 	meta := metav1.ObjectMeta{
 		Name:      key.Name,
@@ -93,12 +94,17 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 }
 
 func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
-	mariaDB *mariadbv1alpha1.MariaDB) (*batchv1.CronJob, error) {
+	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.CronJob, error) {
 	if backup.Spec.Schedule == nil {
 		return nil, errors.New("schedule field is mandatory when building a CronJob")
 	}
 
-	job, err := b.BuildBackupJob(key, backup, mariaDB)
+	objLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			WithOwner(backup).
+			Build()
+	job, err := b.BuildBackupJob(key, backup, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building Backup: %v", err)
 	}
@@ -107,6 +113,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
+			Labels:    objLabels,
 		},
 		Spec: batchv1.CronJobSpec{
 			Schedule:          backup.Spec.Schedule.Cron,
@@ -129,6 +136,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(restore).
 			Build()
 	meta := metav1.ObjectMeta{
 		Name:      key.Name,
@@ -190,10 +198,11 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 }
 
 func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
-	mariaDB *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
+	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	objLabels :=
 		labels.NewLabelsBuilder().
-			WithMariaDB(mariaDB).
+			WithMariaDB(mariadb).
+			WithOwner(sqlJob).
 			Build()
 	meta := metav1.ObjectMeta{
 		Name:      key.Name,
@@ -227,18 +236,18 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		),
 		withJobContainers(
 			jobContainers(
-				cmd.ExecCommand(mariaDB),
+				cmd.ExecCommand(mariadb),
 				sqlJobEnv(sqlJob),
 				volumeMounts,
 				sqlJob.Spec.Resources,
-				mariaDB,
+				mariadb,
 			),
 		),
 		withJobBackoffLimit(sqlJob.Spec.BackoffLimit),
 		withJobRestartPolicy(sqlJob.Spec.RestartPolicy),
 	}
 	if sqlJob.Spec.MariaDBRef.WaitForIt {
-		jobOpts = addJobInitContainersOpt(mariaDB, jobOpts)
+		jobOpts = addJobInitContainersOpt(mariadb, jobOpts)
 	}
 
 	builder, err := newJobBuilder(jobOpts...)

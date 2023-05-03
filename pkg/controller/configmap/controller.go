@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +42,8 @@ func (r *ConfigMapReconciler) NoopReconcile(configMapper ConfigMapper) bool {
 	return false
 }
 
-func (r *ConfigMapReconciler) Reconcile(ctx context.Context, configMapper ConfigMapper, key types.NamespacedName) error {
+func (r *ConfigMapReconciler) Reconcile(ctx context.Context, configMapper ConfigMapper, key types.NamespacedName,
+	mariadb *mariadbv1alpha1.MariaDB) error {
 	if r.NoopReconcile(configMapper) {
 		return nil
 	}
@@ -59,7 +61,8 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, configMapper Config
 	}
 
 	opts := builder.ConfigMapOpts{
-		Key: key,
+		MariaDB: mariadb,
+		Key:     key,
 		Data: map[string]string{
 			r.ConfigMapKey: *configMapper.ConfigMapValue(),
 		},

@@ -201,6 +201,7 @@ func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 			Build()
 	minAvailable := intstr.FromString("50%")
 	opts := builder.PodDisruptionBudgetOpts{
+		MariaDB:        req.mariadb,
 		Key:            key,
 		MinAvailable:   &minAvailable,
 		SelectorLabels: selectorLabels,
@@ -220,7 +221,7 @@ func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req
 			WithStatefulSetPod(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex).
 			Build()
 	opts := builder.ServiceOpts{
-		Labels: serviceLabels,
+		Selectorlabels: serviceLabels,
 	}
 	if req.mariadb.Spec.Replication.Primary.Service != nil {
 		opts.Type = req.mariadb.Spec.Replication.Primary.Service.Type

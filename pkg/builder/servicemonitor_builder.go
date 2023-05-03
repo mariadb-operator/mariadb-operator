@@ -19,6 +19,7 @@ func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB, key type
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(mariadb).
 			WithRelease(mariadb.Spec.Metrics.ServiceMonitor.PrometheusRelease).
 			Build()
 	selectorLabels :=

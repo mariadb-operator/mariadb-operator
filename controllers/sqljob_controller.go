@@ -66,30 +66,30 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("error waiting for dependencies: %v", err)
 	}
 
-	mariaDb, err := r.RefResolver.MariaDB(ctx, &sqlJob.Spec.MariaDBRef, sqlJob.Namespace)
+	mariadb, err := r.RefResolver.MariaDB(ctx, &sqlJob.Spec.MariaDBRef, sqlJob.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
-		err = r.patchStatus(ctx, &sqlJob, r.ConditionComplete.PatcherRefResolver(err, mariaDb))
+		err = r.patchStatus(ctx, &sqlJob, r.ConditionComplete.PatcherRefResolver(err, mariadb))
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 
-	if sqlJob.Spec.MariaDBRef.WaitForIt && !mariaDb.IsReady() {
+	if sqlJob.Spec.MariaDBRef.WaitForIt && !mariadb.IsReady() {
 		if err := r.patchStatus(ctx, &sqlJob, r.ConditionComplete.PatcherFailed("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching SqlJob: %v", err)
 		}
 		return ctrl.Result{}, errors.New("MariaDB not ready")
 	}
 
-	if err := r.reconcileConfigMap(ctx, &sqlJob); err != nil {
+	if err := r.reconcileConfigMap(ctx, &sqlJob, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling ConfigMap: %v", err)
 	}
 
 	var jobErr *multierror.Error
-	err = r.reconcileJob(ctx, &sqlJob, mariaDb, req.NamespacedName)
+	err = r.reconcileJob(ctx, &sqlJob, mariadb, req.NamespacedName)
 	jobErr = multierror.Append(jobErr, err)
 
 	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)
@@ -139,13 +139,14 @@ func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *v1al
 	return nil
 }
 
-func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) error {
+func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
+	mariadb *mariadbv1alpha1.MariaDB) error {
 	if r.ConfigMapReconciler.NoopReconcile(sqlJob) {
 		return nil
 	}
 
 	key := configMapSqlJobKey(sqlJob)
-	if err := r.ConfigMapReconciler.Reconcile(ctx, sqlJob, key); err != nil {
+	if err := r.ConfigMapReconciler.Reconcile(ctx, sqlJob, key, mariadb); err != nil {
 		return fmt.Errorf("error reconciling ConfigMap: %v", err)
 	}
 

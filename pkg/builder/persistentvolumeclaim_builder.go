@@ -13,6 +13,7 @@ func (b *Builder) BuildPVC(key types.NamespacedName, storage *mariadbv1alpha1.Ba
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(mariadb).
 			Build()
 	objMeta := metav1.ObjectMeta{
 		Name:      key.Name,

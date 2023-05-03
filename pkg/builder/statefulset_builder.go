@@ -60,8 +60,13 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 	statefulSetLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(mariadb).
 			Build()
-	podTemplate, err := buildPodTemplate(mariadb, dsn, statefulSetLabels)
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	podTemplate, err := buildPodTemplate(mariadb, dsn, selectorLabels)
 	if err != nil {
 		return nil, fmt.Errorf("error building pod template: %v", err)
 	}
@@ -77,7 +82,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 			Replicas:            &mariadb.Spec.Replicas,
 			PodManagementPolicy: buildStatefulSetPodManagementPolicy(mariadb),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: statefulSetLabels,
+				MatchLabels: selectorLabels,
 			},
 			Template: *podTemplate,
 			VolumeClaimTemplates: []v1.PersistentVolumeClaim{

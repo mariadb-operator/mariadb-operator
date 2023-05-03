@@ -22,9 +22,9 @@ func MariaDBPort(svc *corev1.Service) (*v1.ServicePort, error) {
 }
 
 type ServiceOpts struct {
-	Labels      map[string]string
-	Annotations map[string]string
-	Type        corev1.ServiceType
+	Selectorlabels map[string]string
+	Annotations    map[string]string
+	Type           corev1.ServiceType
 }
 
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
@@ -32,7 +32,12 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
-			WithLabels(opts.Labels).
+			WithOwner(mariadb).
+			Build()
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			WithLabels(opts.Selectorlabels).
 			Build()
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -43,7 +48,7 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		},
 		Spec: corev1.ServiceSpec{
 			Ports:    buildPorts(mariadb),
-			Selector: opts.Labels,
+			Selector: selectorLabels,
 			Type:     opts.Type,
 		},
 	}

@@ -24,6 +24,7 @@ func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*ma
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(opts.MariaDB).
+			WithOwner(owner).
 			Build()
 	conn := &mariadbv1alpha1.Connection{
 		ObjectMeta: metav1.ObjectMeta{

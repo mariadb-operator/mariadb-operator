@@ -21,6 +21,7 @@ func (b *Builder) BuildConfigMap(opts ConfigMapOpts, owner metav1.Object) (*core
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(opts.MariaDB).
+			WithOwner(owner).
 			Build()
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

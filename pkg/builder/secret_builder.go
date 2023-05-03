@@ -23,6 +23,7 @@ func (b *Builder) BuildSecret(opts SecretOpts, owner metav1.Object) (*corev1.Sec
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(opts.MariaDB).
+			WithOwner(owner).
 			WithLabels(opts.Labels).
 			Build()
 	objMeta := metav1.ObjectMeta{

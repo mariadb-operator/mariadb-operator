@@ -22,6 +22,7 @@ func (b *Builder) BuildUser(mariadb *mariadbv1alpha1.MariaDB, opts UserOpts) (*m
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(mariadb).
 			Build()
 	user := &mariadbv1alpha1.User{
 		ObjectMeta: metav1.ObjectMeta{
@@ -60,6 +61,7 @@ func (b *Builder) BuildGrant(mariadb *mariadbv1alpha1.MariaDB, opts GrantOpts) (
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
+			WithOwner(mariadb).
 			Build()
 	grant := &mariadbv1alpha1.Grant{
 		ObjectMeta: metav1.ObjectMeta{

@@ -24,6 +24,7 @@ func (b *Builder) BuildPodDisruptionBudget(opts *PodDisruptionBudgetOpts, owner 
 	objLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(opts.MariaDB).
+			WithOwner(owner).
 			Build()
 	pdb := &policyv1.PodDisruptionBudget{
 		ObjectMeta: metav1.ObjectMeta{
