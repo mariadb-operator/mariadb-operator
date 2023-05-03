@@ -1,23 +1,21 @@
 FROM golang:1.18.3-alpine3.16 AS builder
 
-WORKDIR /workspace
+ARG TARGETOS
+ARG TARGETARCH
+ENV CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
-COPY go.mod go.mod
-COPY go.sum go.sum
+WORKDIR /app
+
+COPY go.mod go.sum /app/
 RUN go mod download
 
-COPY main.go main.go
-COPY cmd/ cmd/
-COPY api/ api/
-COPY controllers/ controllers/
-COPY pkg/ pkg/
+COPY . /app
+RUN go build -o mariadb-operator main.go
 
-RUN CGO_ENABLED=0 go build -a -o mariadb-operator main.go
-
-FROM alpine:3.16.0
+FROM gcr.io/distroless/static AS app
 
 WORKDIR /
-COPY --from=builder /workspace/mariadb-operator .
+COPY --from=builder /app/mariadb-operator /bin/mariadb-operator 
 USER 65532:65532
 
-ENTRYPOINT ["/mariadb-operator"]
+ENTRYPOINT ["/bin/mariadb-operator"]

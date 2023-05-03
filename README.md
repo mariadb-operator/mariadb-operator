@@ -30,7 +30,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Additional printer columns to report the current CRD status
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [GitOps](https://opengitops.dev/) friendly
-- Multi-arch [docker](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator) image
+- Multi-arch distroless based [docker](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator) image
 - Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator) 
 
 ## Bare minimum installation
