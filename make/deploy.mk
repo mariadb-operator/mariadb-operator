@@ -5,7 +5,7 @@ CLUSTER ?= mdb
 
 PLATFORM ?= linux/amd64,linux/arm64
 IMG ?= ghcr.io/mariadb-operator/mariadb-operator:latest
-BUILD ?= docker buildx build --platform $(PLATFORM) -t $(IMG)
+BUILDX ?= docker buildx build --platform $(PLATFORM) -t $(IMG) 
 BUILDER ?= mariadb-operator
 
 .PHONY: docker-builder
@@ -14,18 +14,22 @@ docker-builder: ## Configure docker builder.
 
 .PHONY: docker-build
 docker-build: ## Build docker image.
-	$(BUILD) .
+	docker build -t $(IMG) .  
+
+.PHONY: docker-buildx
+docker-buildx: ## Build multi-arch docker image.
+	$(BUILDX) .
 
 .PHONY: docker-push
-docker-push: ## Build docker image and push it to the registry.
-	$(BUILD) --push .
+docker-push: ## Build multi-arch docker image and push it to the registry.
+	$(BUILDX) --push .
 
 .PHONY: docker-inspect
 docker-inspect: ## Inspect docker image.
 	docker buildx imagetools inspect $(IMG)
 
 .PHONY: docker-load
-docker-load: docker-build ## Load docker image in KIND.
+docker-load: ## Load docker image in KIND.
 	kind load docker-image --name ${CLUSTER} ${IMG}
 
 ##@ Cluster
