@@ -27,6 +27,14 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
   - create
@@ -209,13 +217,6 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - mariadb.mmontes.io
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
 - apiGroups:
   - mariadb.mmontes.io
   resources:
