@@ -138,7 +138,6 @@ func (r *ConnectionReconciler) init(ctx context.Context, conn *mariadbv1alpha1.C
 
 func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariadbv1alpha1.Connection,
 	mdb *mariadbv1alpha1.MariaDB) error {
-	logger := log.FromContext(ctx)
 	key := types.NamespacedName{
 		Name:      conn.SecretName(),
 		Namespace: conn.Namespace,
@@ -147,7 +146,7 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	var existingSecret corev1.Secret
 	if err := r.Get(ctx, key, &existingSecret); err == nil {
 		if err := r.healthCheck(ctx, conn, &existingSecret); err != nil {
-			logger.Error(err, "error checking connection health")
+			log.FromContext(ctx).Error(err, "Error checking connection health")
 			return errConnHealthCheck
 		}
 		return nil
@@ -210,7 +209,7 @@ func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1a
 		return fmt.Errorf("connection secret '%s' key not found", secretKey)
 	}
 
-	log.FromContext(ctx).V(1).Info("checking connection health")
+	log.FromContext(ctx).V(1).Info("Checking connection health")
 	if _, err := mariadbclient.Connect(string(dsn)); err != nil {
 		var connErr *multierror.Error
 		connErr = multierror.Append(connErr, err)

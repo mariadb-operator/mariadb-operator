@@ -48,31 +48,31 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		"toIndex",
 		req.mariadb.Spec.Replication.Primary.PodIndex,
 	)
-	logger.Info("switching primary")
+	logger.Info("Switching primary")
 
 	phases := []switchoverPhase{
 		{
-			name:      "lock current primary tables",
+			name:      "Lock current primary tables",
 			reconcile: r.lockCurrentPrimary,
 		},
 		{
-			name:      "wait for replica sync",
+			name:      "Wait for replica sync",
 			reconcile: r.waitForReplicaSync,
 		},
 		{
-			name:      "configure new primary",
+			name:      "Configure new primary",
 			reconcile: r.configureNewPrimary,
 		},
 		{
-			name:      "connect replicas to new primary",
+			name:      "Connect replicas to new primary",
 			reconcile: r.connectReplicasToNewPrimary,
 		},
 		{
-			name:      "change current primary to replica",
+			name:      "Change current primary to replica",
 			reconcile: r.changeCurrentPrimaryToReplica,
 		},
 		{
-			name:      "upgrade primary Service",
+			name:      "Upgrade primary Service",
 			reconcile: r.updatePrimaryService,
 		},
 	}
@@ -94,7 +94,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
-	logger.Info("switched primary")
+	logger.Info("Switched primary")
 
 	return nil
 }
@@ -152,7 +152,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 				return
 			}
 
-			logger.V(1).Info("syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
+			logger.V(1).Info("Syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
 			if err := replClient.WaitForReplicaGtid(
 				ctx,
 				primaryGtid,
@@ -171,7 +171,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 				return
 			}
 
-			logger.V(1).Info("replica synced, resetting slave position", "replica", i, "gtid", primaryGtid)
+			logger.V(1).Info("Replica synced, resetting slave position", "replica", i, "gtid", primaryGtid)
 			if err := r.resetSlave(ctx, replClient); err != nil {
 				errChan <- fmt.Errorf("error resetting slave position in replica '%d' after being synced: %v", i, err)
 			}
@@ -241,7 +241,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 				return
 			}
 
-			logger.V(1).Info("connecting replica to new primary", "replica", i)
+			logger.V(1).Info("Connecting replica to new primary", "replica", i)
 			if err := r.ReplConfig.ConfigureReplica(ctx, mariadb, replClient, i, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
 				errChan <- fmt.Errorf("error configuring replica vars in replica '%d': %v", i, err)
 				return
