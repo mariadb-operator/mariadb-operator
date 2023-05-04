@@ -19,18 +19,8 @@ func NewRootClient(ctx context.Context, crd *mariadbv1alpha1.MariaDB, refResolve
 	opts := Opts{
 		Username: "root",
 		Password: password,
-		Host: func() string {
-			if crd.Spec.Replication != nil {
-				key := replresources.PrimaryServiceKey(crd)
-				objMeta := metav1.ObjectMeta{
-					Name:      key.Name,
-					Namespace: key.Namespace,
-				}
-				return statefulset.ServiceFQDN(objMeta)
-			}
-			return statefulset.ServiceFQDN(crd.ObjectMeta)
-		}(),
-		Port: crd.Spec.Port,
+		Host:     Host(crd),
+		Port:     crd.Spec.Port,
 	}
 	return NewClient(opts)
 }
@@ -48,4 +38,16 @@ func NewRootClientWithPodIndex(ctx context.Context, crd *mariadbv1alpha1.MariaDB
 		Port:     crd.Spec.Port,
 	}
 	return NewClient(opts)
+}
+
+func Host(crd *mariadbv1alpha1.MariaDB) string {
+	if crd.Spec.Replication != nil {
+		key := replresources.PrimaryServiceKey(crd)
+		objMeta := metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		}
+		return statefulset.ServiceFQDN(objMeta)
+	}
+	return statefulset.ServiceFQDN(crd.ObjectMeta)
 }

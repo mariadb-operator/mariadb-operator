@@ -6,6 +6,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/client"
 	cmd "github.com/mariadb-operator/mariadb-operator/pkg/command"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/backup"
 	sqlcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/sql"
@@ -265,7 +266,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 func addJobInitContainersOpt(mariadb *mariadbv1alpha1.MariaDB, opts []jobOption) []jobOption {
 	initCmd := fmt.Sprintf(
 		"while ! mysqladmin ping -h %s -P %d --protocol tcp --silent; do echo 'waiting for mariadb...'; sleep 1s; done",
-		mariadb.Name,
+		client.Host(mariadb),
 		mariadb.Spec.Port,
 	)
 	return append(opts,
