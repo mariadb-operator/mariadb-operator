@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
 
 type Command struct {
@@ -30,11 +31,18 @@ func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) string {
 		"--user=${%s} --password=${%s} --host=%s --port=%d",
 		co.UserEnv,
 		co.PasswordEnv,
-		mariadb.Name,
+		host(mariadb),
 		mariadb.Spec.Port,
 	)
 	if co.Database != nil {
 		flags += fmt.Sprintf(" --database=%s", *co.Database)
 	}
 	return flags
+}
+
+func host(mariadb *mariadbv1alpha1.MariaDB) string {
+	if mariadb.Spec.Replication != nil {
+		return statefulset.PodFQDN(mariadb.ObjectMeta, mariadb.Spec.Replication.Primary.PodIndex)
+	}
+	return statefulset.ServiceFQDN(mariadb.ObjectMeta)
 }

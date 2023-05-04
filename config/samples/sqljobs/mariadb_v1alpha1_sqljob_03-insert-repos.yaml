@@ -16,3 +16,7 @@ spec:
   sql: |
     INSERT INTO repos(name, owner_id) VALUES('mariadb-operator', (SELECT id FROM users WHERE username = 'mmontes11'))
     ON DUPLICATE KEY UPDATE name='mariadb-operator';
+    INSERT INTO repos(name, owner_id) VALUES('mariadb-operator-helm', (SELECT id FROM users WHERE username = 'mmontes11'))
+    ON DUPLICATE KEY UPDATE name='mariadb-operator-helm';
+    INSERT INTO repos(name, owner_id) VALUES('mariadb-ha-poc', (SELECT id FROM users WHERE username = 'mmontes11'))
+    ON DUPLICATE KEY UPDATE name='mariadb-ha-poc';
