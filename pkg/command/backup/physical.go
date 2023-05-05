@@ -20,6 +20,12 @@ func (l *physicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
 			command.ConnectionFlags(&l.BackupOpts.CommandOpts, mariadb),
 			l.backupPath(),
 		),
+		"echo '💾 Preparing backup'",
+		fmt.Sprintf(
+			"mariabackup %s --prepare -slave-info --safe-slave-backup --target-dir=%s",
+			command.ConnectionFlags(&l.BackupOpts.CommandOpts, mariadb),
+			l.backupPath(),
+		),
 		"echo '🧹 Cleaning up old backups'",
 		fmt.Sprintf(
 			"find %s -name *.sql -type d -mtime +%d -exec rm -rf {} ';'",
@@ -44,9 +50,9 @@ func (l *physicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *comma
 			restorePath,
 		),
 		fmt.Sprintf(
-			"mariabackup %s --prepare --target-dir=%s",
+			"mariabackup %s --copy-back --target-dir=%s",
 			command.ConnectionFlags(&l.BackupOpts.CommandOpts, mariadb),
-			restorePath,
+			l.backupPath(),
 		),
 	}
 	return command.ExecCommand(cmds)

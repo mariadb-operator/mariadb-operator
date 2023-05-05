@@ -31,6 +31,9 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 				},
 				WaitForIt: true,
 			},
+			Affinity:     mariadb.Spec.Affinity,
+			NodeSelector: mariadb.Spec.NodeSelector,
+			Tolerations:  mariadb.Spec.Tolerations,
 		},
 	}
 	if err := controllerutil.SetControllerReference(mariadb, restore, b.scheme); err != nil {
