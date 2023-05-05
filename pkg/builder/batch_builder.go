@@ -77,6 +77,9 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		),
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
 		withJobRestartPolicy(backup.Spec.RestartPolicy),
+		withAffinity(backup.Spec.Affinity),
+		withNodeSelector(backup.Spec.NodeSelector),
+		withTolerations(backup.Spec.Tolerations),
 	}
 	if backup.Spec.MariaDBRef.WaitForIt {
 		opts = addJobInitContainersOpt(mariadb, opts)
@@ -181,6 +184,9 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		),
 		withJobBackoffLimit(restore.Spec.BackoffLimit),
 		withJobRestartPolicy(restore.Spec.RestartPolicy),
+		withAffinity(restore.Spec.Affinity),
+		withNodeSelector(restore.Spec.NodeSelector),
+		withTolerations(restore.Spec.Tolerations),
 	}
 	if restore.Spec.MariaDBRef.WaitForIt {
 		jobOpts = addJobInitContainersOpt(mariadb, jobOpts)
@@ -246,6 +252,9 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		),
 		withJobBackoffLimit(sqlJob.Spec.BackoffLimit),
 		withJobRestartPolicy(sqlJob.Spec.RestartPolicy),
+		withAffinity(sqlJob.Spec.Affinity),
+		withNodeSelector(sqlJob.Spec.NodeSelector),
+		withTolerations(sqlJob.Spec.Tolerations),
 	}
 	if sqlJob.Spec.MariaDBRef.WaitForIt {
 		jobOpts = addJobInitContainersOpt(mariadb, jobOpts)
@@ -314,6 +323,24 @@ func withJobRestartPolicy(restartPolicy corev1.RestartPolicy) jobOption {
 	}
 }
 
+func withAffinity(affinity *corev1.Affinity) jobOption {
+	return func(b *jobBuilder) {
+		b.affinity = affinity
+	}
+}
+
+func withNodeSelector(nodeSelector map[string]string) jobOption {
+	return func(b *jobBuilder) {
+		b.nodeSelector = nodeSelector
+	}
+}
+
+func withTolerations(tolerations []corev1.Toleration) jobOption {
+	return func(b *jobBuilder) {
+		b.tolerations = tolerations
+	}
+}
+
 type jobBuilder struct {
 	meta           *metav1.ObjectMeta
 	volumes        []corev1.Volume
@@ -321,6 +348,9 @@ type jobBuilder struct {
 	containers     []corev1.Container
 	backoffLimit   *int32
 	restartPolicy  *corev1.RestartPolicy
+	affinity       *corev1.Affinity
+	nodeSelector   map[string]string
+	tolerations    []corev1.Toleration
 }
 
 func newJobBuilder(opts ...jobOption) (*jobBuilder, error) {
@@ -345,8 +375,11 @@ func (b *jobBuilder) build() *batchv1.Job {
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: *b.meta,
 		Spec: corev1.PodSpec{
-			Volumes:    b.volumes,
-			Containers: b.containers,
+			Volumes:      b.volumes,
+			Containers:   b.containers,
+			Affinity:     b.affinity,
+			NodeSelector: b.nodeSelector,
+			Tolerations:  b.tolerations,
 		},
 	}
 	if b.initContainers != nil {

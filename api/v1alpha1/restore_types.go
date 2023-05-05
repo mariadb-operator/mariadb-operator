@@ -33,6 +33,10 @@ type RestoreSpec struct {
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
 
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty" webhook:"inmutable"`
+
+	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
+	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
+	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 // RestoreStatus defines the observed state of restore
