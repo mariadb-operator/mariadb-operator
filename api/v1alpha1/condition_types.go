@@ -1,15 +1,17 @@
 package v1alpha1
 
 const (
-	ConditionTypeReady           string = "Ready"
-	ConditionTypeBootstrapped    string = "Bootstrapped"
-	ConditionTypePrimarySwitched string = "PrimarySwitched"
-	ConditionTypeComplete        string = "Complete"
+	ConditionTypeReady                 string = "Ready"
+	ConditionTypeBackupRestored        string = "BackupRestored"
+	ConditionTypeReplicationConfigured string = "ReplicationConfigured"
+	ConditionTypePrimarySwitched       string = "PrimarySwitched"
+	ConditionTypeComplete              string = "Complete"
 )
 
 const (
 	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady     string = "StatefulSetReady"
+	ConditionReasonRestoreBackup        string = "RestoreBackup"
 	ConditionReasonConfigureReplication string = "ConfigureReplication"
 	ConditionReasonSwitchPrimary        string = "SwitchPrimary"
 
@@ -27,9 +29,6 @@ const (
 	ConditionReasonCronJobSuccess   string = "CronJobSucess"
 
 	ConditionReasonConnectionFailed string = "ConnectionFailed"
-
-	ConditionReasonSwitchoverInProgress string = "SwitchoverInProgress"
-	ConditionReasonSwitchoverComplete   string = "SwitchoverComplete"
 
 	ConditionReasonCreated string = "Created"
 	ConditionReasonHealthy string = "Healthy"

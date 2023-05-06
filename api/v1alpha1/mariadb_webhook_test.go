@@ -550,7 +550,7 @@ var _ = Describe("MariaDB webhook", func() {
 						{
 							Type:    ConditionTypePrimarySwitched,
 							Status:  metav1.ConditionFalse,
-							Reason:  ConditionReasonSwitchoverInProgress,
+							Reason:  ConditionReasonSwitchPrimary,
 							Message: "Switching primary",
 						},
 					},
@@ -565,7 +565,7 @@ var _ = Describe("MariaDB webhook", func() {
 				{
 					Type:               ConditionTypePrimarySwitched,
 					Status:             metav1.ConditionFalse,
-					Reason:             ConditionReasonSwitchoverInProgress,
+					Reason:             ConditionReasonSwitchPrimary,
 					Message:            "Switching primary",
 					LastTransitionTime: metav1.Now(),
 				},

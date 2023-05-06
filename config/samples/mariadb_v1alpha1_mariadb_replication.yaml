@@ -34,7 +34,7 @@ spec:
       service:
         type: LoadBalancer
         annotations:
-          metallb.universe.tf/loadBalancerIPs: 172.18.0.30
+          metallb.universe.tf/loadBalancerIPs: 172.18.0.130
       connection:
         secretName: primary-mariadb-conn
         secretTemplate:
@@ -77,8 +77,8 @@ spec:
   service:
     type: LoadBalancer
     annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.20
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.120
 
-  bootstrapFrom:
-    backupRef:
-      name: backup
+  # bootstrapFrom:
+  #   backupRef:
+  #     name: backup

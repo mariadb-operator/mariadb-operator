@@ -76,7 +76,8 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if mariadb.Spec.Replication == nil || mariadb.Status.CurrentPrimaryPodIndex == nil {
+	if mariadb.Spec.Replication == nil || mariadb.Status.CurrentPrimaryPodIndex == nil ||
+		mariadb.IsConfiguringReplication() || mariadb.IsRestoringBackup() {
 		return ctrl.Result{}, nil
 	}
 
@@ -113,9 +114,6 @@ func (r *PodReconciler) mariadbFromPod(ctx context.Context, pod corev1.Pod) (*ma
 }
 
 func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.IsSwitchingPrimary() {
-		return nil
-	}
 	log.FromContext(ctx).V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
 
 	index, err := statefulset.PodIndex(pod.Name)
@@ -142,7 +140,7 @@ func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, m
 }
 
 func (r *PodReconciler) reconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !mariadb.Spec.Replication.Primary.AutomaticFailover || mariadb.IsSwitchingPrimary() {
+	if !mariadb.Spec.Replication.Primary.AutomaticFailover {
 		return nil
 	}
 	log.FromContext(ctx).V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
@@ -166,11 +164,8 @@ func (r *PodReconciler) reconcilePodNotReady(ctx context.Context, pod corev1.Pod
 	})
 	errBundle = multierror.Append(errBundle, err)
 
-	err = r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		if err := conditions.SetPrimarySwitching(status, mariadb); err != nil {
-			return fmt.Errorf("error setting PrimarySwitched condition: %v", err)
-		}
-		return nil
+	err = r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		conditions.SetPrimarySwitching(status, mariadb)
 	})
 	errBundle = multierror.Append(errBundle, err)
 
@@ -216,11 +211,9 @@ func (r *PodReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.Mari
 }
 
 func (r *PodReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	patcher func(*mariadbv1alpha1.MariaDBStatus) error) error {
+	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
-	if err := patcher(&mariadb.Status); err != nil {
-		return fmt.Errorf("errror calling MariaDB status patcher: %v", err)
-	}
+	patcher(&mariadb.Status)
 
 	if err := r.Client.Status().Patch(ctx, mariadb, patch); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
