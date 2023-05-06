@@ -9,7 +9,6 @@ spec:
     cron: "*/1 * * * *"
     suspend: false
   maxRetentionDays: 30
-  physical: true
   storage:
     persistentVolumeClaim:
       resources:

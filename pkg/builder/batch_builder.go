@@ -48,9 +48,6 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		backupcmd.WithUserEnv(batchUserEnv),
 		backupcmd.WithPasswordEnv(batchPasswordEnv),
 	}
-	if backup.Spec.Physical {
-		cmdOpts = append(cmdOpts, backupcmd.WithBackupPhysical(backup.Spec.Physical))
-	}
 	cmd, err := backupcmd.New(cmdOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
@@ -60,17 +57,16 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
+	volumes, volumeSources := jobBatchStorageVolume(volume)
 
 	opts := []jobOption{
 		withJobMeta(meta),
-		withJobVolumes(
-			jobVolumes(volume, backup.Spec.Physical, mariadb),
-		),
+		withJobVolumes(volumes),
 		withJobContainers(
 			jobContainers(
 				cmd.BackupCommand(backup, mariadb),
 				jobEnv(mariadb),
-				jobVolumeMounts(backup.Spec.Physical),
+				volumeSources,
 				backup.Spec.Resources,
 				mariadb,
 			),
@@ -156,28 +152,20 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	if restore.Spec.RestoreSource.FileName != nil {
 		cmdOpts = append(cmdOpts, backupcmd.WithFile(*restore.Spec.RestoreSource.FileName))
 	}
-	if restore.Spec.RestoreSource.Physical != nil {
-		cmdOpts = append(cmdOpts, backupcmd.WithBackupPhysical(*restore.Spec.RestoreSource.Physical))
-	}
 	cmd, err := backupcmd.New(cmdOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
+	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.RestoreSource.Volume)
 
 	jobOpts := []jobOption{
 		withJobMeta(meta),
-		withJobVolumes(
-			jobVolumes(
-				restore.Spec.RestoreSource.Volume,
-				*restore.Spec.RestoreSource.Physical,
-				mariadb,
-			),
-		),
+		withJobVolumes(volumes),
 		withJobContainers(
 			jobContainers(
 				cmd.RestoreCommand(mariadb),
 				jobEnv(mariadb),
-				jobVolumeMounts(*restore.Spec.RestoreSource.Physical),
+				volumeSources,
 				restore.Spec.Resources,
 				mariadb,
 			),
@@ -401,43 +389,6 @@ func (b *jobBuilder) build() *batchv1.Job {
 	return job
 }
 
-func jobVolumes(volume *corev1.VolumeSource, physical bool, mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
-	volumes := []corev1.Volume{
-		{
-			Name:         batchStorageVolume,
-			VolumeSource: *volume,
-		},
-	}
-	if physical {
-		volumes = append(volumes, corev1.Volume{
-			Name: batchDataVolume,
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: PVCKey(mariadb).Name,
-				},
-			},
-		})
-	}
-
-	return volumes
-}
-
-func jobVolumeMounts(physical bool) []corev1.VolumeMount {
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      batchStorageVolume,
-			MountPath: batchStorageMountPath,
-		},
-	}
-	if physical {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      batchDataVolume,
-			MountPath: batchDataMountPath,
-		})
-	}
-	return volumeMounts
-}
-
 func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) []corev1.Volume {
 	return []corev1.Volume{
 		{
@@ -501,6 +452,20 @@ func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 			},
 		},
 	}
+}
+
+func jobBatchStorageVolume(volumeSource *corev1.VolumeSource) ([]corev1.Volume, []corev1.VolumeMount) {
+	return []corev1.Volume{
+			{
+				Name:         batchStorageVolume,
+				VolumeSource: *volumeSource,
+			},
+		}, []corev1.VolumeMount{
+			{
+				Name:      batchStorageVolume,
+				MountPath: batchStorageMountPath,
+			},
+		}
 }
 
 func sqlJobEnv(sqlJob *mariadbv1alpha1.SqlJob) []v1.EnvVar {

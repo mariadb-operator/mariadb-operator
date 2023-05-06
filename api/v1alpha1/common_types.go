@@ -56,16 +56,13 @@ type ConnectionTemplate struct {
 }
 
 type RestoreSource struct {
-	// It will be used to init the rest of the fields if specified
 	BackupRef *corev1.LocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
 	Volume    *corev1.VolumeSource         `json:"volume,omitempty" webhook:"inmutableinit"`
-	// +kubebuilder:default=false
-	Physical *bool   `json:"physical,omitempty" webhook:"inmutableinit"`
-	FileName *string `json:"fileName,omitempty" webhook:"inmutableinit"`
+	FileName  *string                      `json:"fileName,omitempty" webhook:"inmutableinit"`
 }
 
 func (r *RestoreSource) IsInit() bool {
-	return r.Volume != nil && r.Physical != nil
+	return r.Volume != nil
 }
 
 func (r *RestoreSource) Init(backup *Backup) {
@@ -79,14 +76,13 @@ func (r *RestoreSource) Init(backup *Backup) {
 			},
 		}
 	}
-	r.Physical = &backup.Spec.Physical
 }
 
 func (r *RestoreSource) Validate() error {
 	if r.BackupRef != nil {
 		return nil
 	}
-	if r.Volume == nil || r.Physical == nil {
+	if r.Volume == nil {
 		return errors.New("unable to determine restore source")
 	}
 	return nil

@@ -49,8 +49,6 @@ type BackupSpec struct {
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
 	Storage BackupStorage `json:"storage" webhook:"inmutable"`
-	// +kubebuilder:default=false
-	Physical bool `json:"physical,omitempty" webhook:"inmutable"`
 
 	Schedule *BackupSchedule `json:"schedule,omitempty"`
 	// +kubebuilder:default=5

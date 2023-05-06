@@ -57,56 +57,7 @@ func TestInmutableWebhook(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "update inmutableinit primitive field",
-			old: &mariadbv1alpha1.Restore{
-				ObjectMeta: objectMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Physical: func() *bool {
-							p := true
-							return &p
-						}(),
-					},
-				},
-			},
-			new: &mariadbv1alpha1.Restore{
-				ObjectMeta: objectMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Physical: func() *bool {
-							p := false
-							return &p
-						}(),
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "init inmutableinit primitive field",
-			old: &mariadbv1alpha1.Restore{
-				ObjectMeta: objectMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Physical: nil,
-					},
-				},
-			},
-			new: &mariadbv1alpha1.Restore{
-				ObjectMeta: objectMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Physical: func() *bool {
-							p := false
-							return &p
-						}(),
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "update inmutableinit object field",
+			name: "update inmutableinit field",
 			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
@@ -130,7 +81,7 @@ func TestInmutableWebhook(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "init inmutableinit object field",
+			name: "init inmutableinit field",
 			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
@@ -152,7 +103,7 @@ func TestInmutableWebhook(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "controller init",
+			name: "restore init",
 			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
@@ -176,10 +127,6 @@ func TestInmutableWebhook(t *testing.T) {
 								Path:   "/volume/foo",
 							},
 						},
-						Physical: func() *bool {
-							p := true
-							return &p
-						}(),
 					},
 				},
 			},
@@ -196,10 +143,6 @@ func TestInmutableWebhook(t *testing.T) {
 								ClaimName: "foo",
 							},
 						},
-						Physical: func() *bool {
-							p := false
-							return &p
-						}(),
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -218,10 +161,6 @@ func TestInmutableWebhook(t *testing.T) {
 								ClaimName: "foo",
 							},
 						},
-						Physical: func() *bool {
-							p := false
-							return &p
-						}(),
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -229,40 +168,6 @@ func TestInmutableWebhook(t *testing.T) {
 						},
 					},
 					BackoffLimit: 20,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "update serivce type and annotations",
-			new: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objectMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
-					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "test",
-					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{},
-					Service: &mariadbv1alpha1.Service{
-						Type: "LoadBalancer",
-						Annotations: map[string]string{
-							"metallb.universe.tf/address-pool": "sandbox",
-						},
-					},
-				},
-			},
-			old: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objectMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
-					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "test",
-					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{},
 				},
 			},
 			wantErr: false,

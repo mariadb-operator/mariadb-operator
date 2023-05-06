@@ -21,7 +21,7 @@ type CommandOpts struct {
 
 func ExecCommand(args []string) *Command {
 	return &Command{
-		Command: []string{"sh", "-c"},
+		Command: []string{"bash", "-c"},
 		Args:    []string{strings.Join(args, ";")},
 	}
 }
