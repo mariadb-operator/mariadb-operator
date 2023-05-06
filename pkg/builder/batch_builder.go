@@ -6,7 +6,6 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
-	"github.com/mariadb-operator/mariadb-operator/pkg/client"
 	cmd "github.com/mariadb-operator/mariadb-operator/pkg/command"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/backup"
 	sqlcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/sql"
@@ -76,9 +75,6 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		withAffinity(backup.Spec.Affinity),
 		withNodeSelector(backup.Spec.NodeSelector),
 		withTolerations(backup.Spec.Tolerations),
-	}
-	if backup.Spec.MariaDBRef.WaitForIt {
-		opts = addJobInitContainersOpt(mariadb, opts)
 	}
 
 	builder, err := newJobBuilder(opts...)
@@ -176,9 +172,6 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		withNodeSelector(restore.Spec.NodeSelector),
 		withTolerations(restore.Spec.Tolerations),
 	}
-	if restore.Spec.MariaDBRef.WaitForIt {
-		jobOpts = addJobInitContainersOpt(mariadb, jobOpts)
-	}
 
 	builder, err := newJobBuilder(jobOpts...)
 	if err != nil {
@@ -244,9 +237,6 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		withNodeSelector(sqlJob.Spec.NodeSelector),
 		withTolerations(sqlJob.Spec.Tolerations),
 	}
-	if sqlJob.Spec.MariaDBRef.WaitForIt {
-		jobOpts = addJobInitContainersOpt(mariadb, jobOpts)
-	}
 
 	builder, err := newJobBuilder(jobOpts...)
 	if err != nil {
@@ -260,19 +250,6 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 	return job, nil
 }
 
-func addJobInitContainersOpt(mariadb *mariadbv1alpha1.MariaDB, opts []jobOption) []jobOption {
-	initCmd := fmt.Sprintf(
-		"while ! mysqladmin ping -h %s -P %d --protocol tcp --silent; do echo 'waiting for mariadb...'; sleep 1s; done",
-		client.Host(mariadb),
-		mariadb.Spec.Port,
-	)
-	return append(opts,
-		withJobInitContainers(
-			jobInitContainers(initCmd, mariadb),
-		),
-	)
-}
-
 type jobOption func(*jobBuilder)
 
 func withJobMeta(meta metav1.ObjectMeta) jobOption {
@@ -284,12 +261,6 @@ func withJobMeta(meta metav1.ObjectMeta) jobOption {
 func withJobVolumes(volumes []corev1.Volume) jobOption {
 	return func(b *jobBuilder) {
 		b.volumes = volumes
-	}
-}
-
-func withJobInitContainers(initContainers []corev1.Container) jobOption {
-	return func(b *jobBuilder) {
-		b.initContainers = initContainers
 	}
 }
 
@@ -404,19 +375,6 @@ func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) []corev1.Volume {
 					},
 				},
 			},
-		},
-	}
-}
-
-func jobInitContainers(cmd string, mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
-	return []corev1.Container{
-		{
-			Name:            "wait-for-mariadb",
-			Image:           mariadb.Spec.Image.String(),
-			ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
-			Command:         []string{"sh", "-c"},
-			Args:            []string{cmd},
-			Env:             jobEnv(mariadb),
 		},
 	}
 }
