@@ -30,7 +30,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Additional printer columns to report the current CRD status
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [GitOps](https://opengitops.dev/) friendly
-- Multi-arch distroless based [docker](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator) image
+- Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator)
 - Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator) 
 
 ## Bare minimum installation
@@ -162,9 +162,9 @@ bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
 You can take a look at the whole suite of example CRDs available in [config/samples](./config/samples/).
 
-## Advanced examples
+## GitOps
 
-More advance scenarios can be found under the [examples](./examples/) folder:
+You can configure `mariadb-operator`'s CRDs in your git repo and reconcile them using your favorite GitOps tool, see an example with [flux](https://fluxcd.io/):
 - [Run and operate MariaDB in a GitOps fashion using Flux](./examples/flux/)
 
 ## Roadmap
