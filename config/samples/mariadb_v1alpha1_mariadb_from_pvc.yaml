@@ -32,7 +32,6 @@ spec:
     volume:
       persistentVolumeClaim:
         claimName: backup-scheduled
-    physical: true
 
   resources:
     requests:

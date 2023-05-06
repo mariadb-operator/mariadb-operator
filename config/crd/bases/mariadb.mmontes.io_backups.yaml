@@ -901,9 +901,6 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              physical:
-                default: false
-                type: boolean
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:

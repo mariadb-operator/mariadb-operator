@@ -1030,11 +1030,6 @@ func (in *RestoreSource) DeepCopyInto(out *RestoreSource) {
 		*out = new(v1.VolumeSource)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Physical != nil {
-		in, out := &in.Physical, &out.Physical
-		*out = new(bool)
-		**out = **in
-	}
 	if in.FileName != nil {
 		in, out := &in.FileName, &out.FileName
 		*out = new(string)

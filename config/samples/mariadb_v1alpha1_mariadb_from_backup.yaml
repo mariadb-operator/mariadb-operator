@@ -31,7 +31,6 @@ spec:
   bootstrapFrom:
     backupRef:
       name: backup-scheduled
-    physical: true
 
   resources:
     requests:

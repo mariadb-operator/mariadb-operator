@@ -19,6 +19,7 @@ type SqlCommand struct {
 
 func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command {
 	cmds := []string{
+		"set -euo pipefail",
 		"echo '⚙️ Executing SQL script'",
 		fmt.Sprintf(
 			"mysql %s  < %s",

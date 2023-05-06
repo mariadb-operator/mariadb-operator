@@ -22,7 +22,7 @@ host-mariadb-repl: ## Add mariadb repl hosts to /etc/hosts.
 	@./hack/add_host.sh 172.18.0.130 primary-mariadb-repl.default.svc.cluster.local
 
 .PHONY: net
-net: install-metallb host-mariadb ## Configure networking for local development.
+net: install-metallb host-mariadb host-mariadb-repl ## Configure networking for local development.
 
 .PHONY: net-test
 net-test: install-metallb host-mariadb-test host-mariadb-repl ## Configure networking for tests.

@@ -65,10 +65,7 @@ var _ = Describe("Restore webhook", func() {
 						},
 						Spec: RestoreSpec{
 							RestoreSource: RestoreSource{
-								Physical: func() *bool {
-									p := true
-									return &p
-								}(),
+								FileName: func() *string { s := "foo.sql"; return &s }(),
 							},
 							MariaDBRef: MariaDBRef{
 								LocalObjectReference: corev1.LocalObjectReference{
@@ -119,10 +116,6 @@ var _ = Describe("Restore webhook", func() {
 										ClaimName: "pvc-webhook",
 									},
 								},
-								Physical: func() *bool {
-									p := true
-									return &p
-								}(),
 							},
 							MariaDBRef: MariaDBRef{
 								LocalObjectReference: corev1.LocalObjectReference{
@@ -267,16 +260,6 @@ var _ = Describe("Restore webhook", func() {
 						}
 					},
 					wantErr: false,
-				},
-				{
-					by: "Init Physical source",
-					patchFn: func(rmdb *Restore) {
-						rmdb.Spec.RestoreSource.Physical = func() *bool {
-							p := true
-							return &p
-						}()
-					},
-					wantErr: true,
 				},
 				{
 					by: "Init FileName source",

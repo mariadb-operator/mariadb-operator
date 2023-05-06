@@ -14,18 +14,11 @@ type Commander interface {
 
 type BackupOpts struct {
 	command.CommandOpts
-	BackupPhysical bool
-	BackupFile     string
-	BasePath       string
+	BackupFile string
+	BasePath   string
 }
 
 type Option func(*BackupOpts)
-
-func WithBackupPhysical(p bool) Option {
-	return func(co *BackupOpts) {
-		co.BackupPhysical = p
-	}
-}
 
 func WithFile(f string) Option {
 	return func(co *BackupOpts) {
@@ -67,11 +60,5 @@ func New(userOpts ...Option) (Commander, error) {
 		return nil, errors.New("password environment variable not provided")
 	}
 
-	var commander Commander
-	if opts.BackupPhysical {
-		commander = &physicalBackup{opts}
-	} else {
-		commander = &logicalBackup{opts}
-	}
-	return commander, nil
+	return &logicalBackup{opts}, nil
 }

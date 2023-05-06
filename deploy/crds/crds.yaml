@@ -900,9 +900,6 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              physical:
-                default: false
-                type: boolean
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:
@@ -4181,8 +4178,8 @@ spec:
               bootstrapFrom:
                 properties:
                   backupRef:
-                    description: It will be used to init the rest of the fields if
-                      specified
+                    description: LocalObjectReference contains enough information
+                      to let you locate the referenced object inside the same namespace.
                     properties:
                       name:
                         description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -4192,9 +4189,6 @@ spec:
                     x-kubernetes-map-type: atomic
                   fileName:
                     type: string
-                  physical:
-                    default: false
-                    type: boolean
                   volume:
                     description: Represents the source of a volume to mount. Only
                       one of its members may be specified.
@@ -7978,7 +7972,8 @@ spec:
                 format: int32
                 type: integer
               backupRef:
-                description: It will be used to init the rest of the fields if specified
+                description: LocalObjectReference contains enough information to let
+                  you locate the referenced object inside the same namespace.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -8003,9 +7998,6 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              physical:
-                default: false
-                type: boolean
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:

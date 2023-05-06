@@ -1,7 +1,7 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-repl
 spec:
   rootPasswordSecretKeyRef:
     name: mariadb
@@ -79,3 +79,6 @@ spec:
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.20
 
+  bootstrapFrom:
+    backupRef:
+      name: backup
