@@ -243,8 +243,12 @@ func (m *MariaDB) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
 }
 
-func (m *MariaDB) IsBootstrapped() bool {
-	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBootstrapped)
+func (m *MariaDB) IsRestoringBackup() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeBackupRestored)
+}
+
+func (m *MariaDB) IsConfiguringReplication() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicationConfigured)
 }
 
 func (m *MariaDB) IsSwitchingPrimary() bool {

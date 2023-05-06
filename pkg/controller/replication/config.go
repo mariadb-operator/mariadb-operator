@@ -54,11 +54,11 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	if err := client.SetGlobalVar(ctx, "read_only", "0"); err != nil {
 		return fmt.Errorf("error setting read_only=0: %v", err)
 	}
-	if err := r.configurePrimaryVars(ctx, mariadb, client, podIndex); err != nil {
-		return fmt.Errorf("error configuring replication variables: %v", err)
-	}
 	if err := r.reconcilePrimarySql(ctx, mariadb, client); err != nil {
 		return fmt.Errorf("error reconciling primary SQL: %v", err)
+	}
+	if err := r.configurePrimaryVars(ctx, mariadb, client, podIndex); err != nil {
+		return fmt.Errorf("error configuring replication variables: %v", err)
 	}
 	return nil
 }
@@ -152,6 +152,10 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 }
 
 func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client) error {
+	if err := client.FlushPrivileges(ctx); err != nil {
+		return fmt.Errorf("error flushing privileges: %v", err)
+	}
+
 	if mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
 		password, err := r.refResolver.SecretKeyRef(ctx, *mariadb.Spec.PasswordSecretKeyRef, mariadb.Namespace)
 		if err != nil {

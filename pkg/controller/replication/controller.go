@@ -52,7 +52,7 @@ type replicationPhase struct {
 }
 
 func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Replication == nil {
+	if mariadb.Spec.Replication == nil || mariadb.IsRestoringBackup() {
 		return nil
 	}
 	if mariadb.IsSwitchingPrimary() {
@@ -89,9 +89,9 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 	mariaDbKey := client.ObjectKeyFromObject(mariadb)
 	phases := []replicationPhase{
 		{
-			name:      "set configure replication status",
+			name:      "set configuring replication status",
 			key:       mariaDbKey,
-			reconcile: r.setConfigureReplicationStatus,
+			reconcile: r.setConfiguringReplication,
 		},
 		{
 			name:      "reconcile Primary",
@@ -119,9 +119,9 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 			reconcile: r.reconcilePrimaryConn,
 		},
 		{
-			name:      "update currentPrimaryPodIndex",
+			name:      "set configured replication status",
 			key:       mariaDbKey,
-			reconcile: r.updateCurrentPrimaryPodIndex,
+			reconcile: r.setConfiguredReplication,
 		},
 		{
 			name:      "reconcile switchover",
@@ -146,12 +146,12 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 	return nil
 }
 
-func (r *ReplicationReconciler) setConfigureReplicationStatus(ctx context.Context, req *reconcileRequest) error {
+func (r *ReplicationReconciler) setConfiguringReplication(ctx context.Context, req *reconcileRequest) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
 		return nil
 	}
-	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		return conditions.SetConfiguringReplication(&req.mariadb.Status, req.mariadb)
+	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		conditions.SetConfiguringReplication(&req.mariadb.Status, req.mariadb)
 	})
 }
 
@@ -210,7 +210,6 @@ func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 	if err != nil {
 		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
 	}
-
 	return r.Create(ctx, pdb)
 }
 
@@ -245,7 +244,6 @@ func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req
 
 	patch := client.MergeFrom(existingSvc.DeepCopy())
 	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
-
 	return r.Patch(ctx, &existingSvc, patch)
 }
 
@@ -278,27 +276,23 @@ func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *r
 	if err != nil {
 		return fmt.Errorf("erro building primary Connection: %v", err)
 	}
-
 	return r.Create(ctx, conn)
 }
 
-func (r *ReplicationReconciler) updateCurrentPrimaryPodIndex(ctx context.Context, req *reconcileRequest) error {
+func (r *ReplicationReconciler) setConfiguredReplication(ctx context.Context, req *reconcileRequest) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
 		return nil
 	}
-	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.UpdateCurrentPrimary(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
-		return nil
+		conditions.SetConfiguredReplication(&req.mariadb.Status, req.mariadb)
 	})
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	patcher func(*mariadbv1alpha1.MariaDBStatus) error) error {
+	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
-	if err := patcher(&mariadb.Status); err != nil {
-		return err
-	}
-
+	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
 }
 

@@ -6,7 +6,7 @@ spec:
   mariaDbRef:
     name: mariadb
   backupRef:
-    name: backup-scheduled
+    name: backup
   fileName: backup.2023-01-02T21:35:01Z.sql
   resources:
     requests:

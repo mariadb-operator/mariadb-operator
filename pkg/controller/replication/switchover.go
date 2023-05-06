@@ -34,8 +34,8 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		return nil
 	}
 
-	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		return conditions.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
+	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		conditions.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
@@ -87,10 +87,9 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		}
 	}
 
-	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.UpdateCurrentPrimary(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
 		conditions.SetPrimarySwitched(&req.mariadb.Status)
-		return nil
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
@@ -306,7 +305,6 @@ func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariad
 	patch := client.MergeFrom(service.DeepCopy())
 	service.ObjectMeta.Labels = serviceLabels
 	service.Spec.Selector = serviceLabels
-
 	return r.Patch(ctx, &service, patch)
 }
 

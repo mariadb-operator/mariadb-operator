@@ -6,7 +6,7 @@ spec:
   mariaDbRef:
     name: mariadb
   backupRef:
-    name: backup-scheduled
+    name: backup
   resources:
     requests:
       cpu: 100m
