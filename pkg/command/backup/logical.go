@@ -40,6 +40,7 @@ func (l *logicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
 func (l *logicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command {
 	restorePath := l.restorePath()
 	cmds := []string{
+		"set -euo pipefail",
 		fmt.Sprintf(
 			"echo '💾 Restoring logical backup: '%s''",
 			restorePath,
