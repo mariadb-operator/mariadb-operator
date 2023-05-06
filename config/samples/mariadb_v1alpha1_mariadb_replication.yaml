@@ -81,4 +81,4 @@ spec:
 
   # bootstrapFrom:
   #   backupRef:
-  #     name: backup
+  #     name: backup-scheduled

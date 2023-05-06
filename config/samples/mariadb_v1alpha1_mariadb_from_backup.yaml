@@ -30,7 +30,7 @@ spec:
 
   bootstrapFrom:
     backupRef:
-      name: backup
+      name: backup-scheduled
 
   resources:
     requests:
