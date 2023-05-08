@@ -164,12 +164,7 @@ func buildStatefulSetContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.Se
 				ContainerPort: mariadb.Spec.Port,
 			},
 		},
-		VolumeMounts: []v1.VolumeMount{
-			{
-				Name:      stsStorageVolume,
-				MountPath: stsStorageMountPath,
-			},
-		},
+		VolumeMounts: buildStatefulSetVolumeMounts(mariadb),
 		ReadinessProbe: func() *corev1.Probe {
 			if mariadb.Spec.ReadinessProbe != nil {
 				return mariadb.Spec.ReadinessProbe
@@ -273,14 +268,14 @@ func buildStatefulSetEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 }
 
 func buildStatefulSetVolumes(mariadb *mariadbv1alpha1.MariaDB) []v1.Volume {
-	volume := v1.Volume{
+	configVolume := v1.Volume{
 		Name: stsConfigVolume,
 		VolumeSource: v1.VolumeSource{
 			EmptyDir: &v1.EmptyDirVolumeSource{},
 		},
 	}
 	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
-		volume = v1.Volume{
+		configVolume = v1.Volume{
 			Name: stsConfigVolume,
 			VolumeSource: v1.VolumeSource{
 				ConfigMap: &v1.ConfigMapVolumeSource{
@@ -297,9 +292,26 @@ func buildStatefulSetVolumes(mariadb *mariadbv1alpha1.MariaDB) []v1.Volume {
 			},
 		}
 	}
-	return []v1.Volume{
-		volume,
+	volumes := []v1.Volume{
+		configVolume,
 	}
+	if mariadb.Spec.Volumes != nil {
+		volumes = append(volumes, mariadb.Spec.Volumes...)
+	}
+	return volumes
+}
+
+func buildStatefulSetVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount {
+	volumeMounts := []v1.VolumeMount{
+		{
+			Name:      stsStorageVolume,
+			MountPath: stsStorageMountPath,
+		},
+	}
+	if mariadb.Spec.VolumeMounts != nil {
+		volumeMounts = append(volumeMounts, mariadb.Spec.VolumeMounts...)
+	}
+	return volumeMounts
 }
 
 func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretKeySelector) v1.Container {

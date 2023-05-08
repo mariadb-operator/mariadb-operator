@@ -29,6 +29,12 @@ spec:
     storageClassName: standard
     accessModes:
       - ReadWriteOnce
+  volumes: 
+    - name: tmp
+      emptyDir: {}
+  volumeMounts: 
+    - name: tmp
+      mountPath: /tmp
 
   myCnf: |
     [mysqld]
