@@ -307,6 +307,10 @@ func buildStatefulSetVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.Vol
 			Name:      stsStorageVolume,
 			MountPath: stsStorageMountPath,
 		},
+		{
+			Name:      stsConfigVolume,
+			MountPath: stsConfigMountPath,
+		},
 	}
 	if mariadb.Spec.VolumeMounts != nil {
 		volumeMounts = append(volumeMounts, mariadb.Spec.VolumeMounts...)
