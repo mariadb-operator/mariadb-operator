@@ -178,8 +178,11 @@ type MariaDBSpec struct {
 	Replication *Replication `json:"replication,omitempty"`
 	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
+
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
+	Volumes             []corev1.Volume                  `json:"volumes,omitempty" webhook:"inmutable"`
+	VolumeMounts        []corev1.VolumeMount             `json:"volumeMounts,omitempty" webhook:"inmutable"`
 
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
