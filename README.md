@@ -175,3 +175,8 @@ Take a look at our [🛣️ roadmap](./ROADMAP.md) and feel free to open an issu
 ## Contributing
 
 If you want to report a 🐛 or you think something can be improved, please check our [contributing](./CONTRIBUTING.md) guide and take a look at our open [issues](https://github.com/mariadb-operator/mariadb-operator/issues). PRs are welcome!
+
+## Get in touch
+
+- [Slack](https://join.slack.com/t/mariadb-operator/shared_invite/zt-1uqe7lbee-bINmUwnzPm0C5MLw1qWAow)
+- mariadb-operator@proton.me
