@@ -171,7 +171,6 @@ You can configure `mariadb-operator`'s CRDs in your git repo and reconcile them 
 
 Take a look at our [🛣️ roadmap](./ROADMAP.md) and feel free to open an issue to suggest new features.
 
-
 ## Contributing
 
 If you want to report a 🐛 or you think something can be improved, please check our [contributing](./CONTRIBUTING.md) guide and take a look at our open [issues](https://github.com/mariadb-operator/mariadb-operator/issues). PRs are welcome!
