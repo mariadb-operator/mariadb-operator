@@ -64,6 +64,13 @@ type User struct {
 	Status UserStatus `json:"status,omitempty"`
 }
 
+func (u *User) UsernameOrDefault() string {
+	if u.Spec.Name != "" {
+		return u.Spec.Name
+	}
+	return u.Name
+}
+
 func (u *User) IsBeingDeleted() bool {
 	return !u.DeletionTimestamp.IsZero()
 }
