@@ -52,8 +52,8 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	wr := newWrappedDatabaseReconciler(r.Client, r.RefResolver, &database)
 	wf := newWrappedDatabaseFinalizer(r.Client, &database)
-	tf := sql.NewSqlFinalizer(r.RefResolver, wf)
-	tr := sql.NewSqlReconciler(r.RefResolver, r.ConditionReady, wr, tf)
+	tf := sql.NewSqlFinalizer(r.Client, wf)
+	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf)
 
 	result, err := tr.Reconcile(ctx, &database)
 	if err != nil {

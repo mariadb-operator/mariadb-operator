@@ -53,8 +53,8 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	wr := newWrapperUserReconciler(r.Client, r.RefResolver, &user)
 	wf := newWrappedUserFinalizer(r.Client, &user)
-	tf := sql.NewSqlFinalizer(r.RefResolver, wf)
-	tr := sql.NewSqlReconciler(r.RefResolver, r.ConditionReady, wr, tf)
+	tf := sql.NewSqlFinalizer(r.Client, wf)
+	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf)
 
 	result, err := tr.Reconcile(ctx, &user)
 	if err != nil {

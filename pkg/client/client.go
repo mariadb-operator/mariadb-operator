@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/hashicorp/go-multierror"
 )
 
 var (
@@ -86,6 +87,17 @@ func (c *Client) Exec(ctx context.Context, sql string, args ...any) error {
 	return err
 }
 
+func (c *Client) ExecFlushingPrivileges(ctx context.Context, sql string, args ...any) error {
+	var errBundle *multierror.Error
+	if err := c.Exec(ctx, sql, args...); err != nil {
+		errBundle = multierror.Append(errBundle, err)
+	}
+	if err := c.FlushPrivileges(ctx); err != nil {
+		errBundle = multierror.Append(errBundle, err)
+	}
+	return errBundle.ErrorOrNil()
+}
+
 type CreateUserOpts struct {
 	IdentifiedBy       string
 	MaxUserConnections int32
@@ -101,13 +113,13 @@ func (c *Client) CreateUser(ctx context.Context, username string, opts CreateUse
 	}
 	query += ";"
 
-	return c.Exec(ctx, query)
+	return c.ExecFlushingPrivileges(ctx, query)
 }
 
-func (m *Client) DropUser(ctx context.Context, username string) error {
+func (c *Client) DropUser(ctx context.Context, username string) error {
 	query := fmt.Sprintf("DROP USER IF EXISTS '%s';", username)
 
-	return m.Exec(ctx, query)
+	return c.ExecFlushingPrivileges(ctx, query)
 }
 
 type GrantOpts struct {
@@ -131,7 +143,7 @@ func (c *Client) Grant(ctx context.Context, opts GrantOpts) error {
 	}
 	query += ";"
 
-	return c.Exec(ctx, query)
+	return c.ExecFlushingPrivileges(ctx, query)
 }
 
 func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
@@ -148,7 +160,7 @@ func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
 		"%",
 	)
 
-	return c.Exec(ctx, query)
+	return c.ExecFlushingPrivileges(ctx, query)
 }
 
 func (c *Client) FlushPrivileges(ctx context.Context) error {

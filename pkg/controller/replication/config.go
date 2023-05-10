@@ -152,10 +152,6 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 }
 
 func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client) error {
-	if err := client.FlushPrivileges(ctx); err != nil {
-		return fmt.Errorf("error flushing privileges: %v", err)
-	}
-
 	if mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
 		password, err := r.refResolver.SecretKeyRef(ctx, *mariadb.Spec.PasswordSecretKeyRef, mariadb.Namespace)
 		if err != nil {
@@ -230,9 +226,6 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 	}
 	if err := client.Grant(ctx, grantOpts); err != nil {
 		return fmt.Errorf("error creating grant: %v", err)
-	}
-	if err := client.FlushPrivileges(ctx); err != nil {
-		return fmt.Errorf("error flushing privileges: %v", err)
 	}
 	return nil
 }
