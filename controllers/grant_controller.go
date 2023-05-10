@@ -64,8 +64,8 @@ func (r *GrantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	wr := newWrappedGrantReconciler(r.Client, *r.RefResolver, &grant)
 	wf := newWrappedGrantFinalizer(r.Client, &grant)
-	tf := sql.NewSqlFinalizer(r.RefResolver, wf)
-	tr := sql.NewSqlReconciler(r.RefResolver, r.ConditionReady, wr, tf)
+	tf := sql.NewSqlFinalizer(r.Client, wf)
+	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf)
 
 	result, err := tr.Reconcile(ctx, &grant)
 	if err != nil {

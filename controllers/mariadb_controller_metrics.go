@@ -23,7 +23,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -74,7 +73,7 @@ func (r *MariaDBReconciler) createMetricsUser(ctx context.Context,
 	}
 
 	opts := builder.UserOpts{
-		Key: passwordKey,
+		Key: key,
 		PasswordSecretKeyRef: corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: passwordKey.Name,
@@ -141,7 +140,7 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *maria
 	mdbOpts := mariadbclient.Opts{
 		Username: user.Name,
 		Password: password,
-		Host:     statefulset.ServiceFQDN(mariadb.ObjectMeta),
+		Host:     "127.0.0.1",
 		Port:     mariadb.Spec.Port,
 	}
 	dsn, err := mariadbclient.BuildDSN(mdbOpts)
