@@ -3,6 +3,8 @@ kind: User
 metadata:
   name: user
 spec:
+  # If you want the user to be created with a different name than the resource name
+  # name: user-custom
   mariaDbRef:
     name: mariadb
   passwordSecretKeyRef:
