@@ -300,6 +300,9 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 	if mariadb.Spec.BootstrapFrom == nil {
 		return nil
 	}
+	if mariadb.HasRestoredBackup() {
+		return nil
+	}
 	if mariadb.IsRestoringBackup() {
 		key := restoreKey(mariadb)
 		var existingRestore mariadbv1alpha1.Restore
