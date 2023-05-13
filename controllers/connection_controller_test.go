@@ -205,5 +205,77 @@ var _ = Describe("Connection controller", func() {
 			By("Deleting Connection")
 			Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
 		})
+
+		It("Should add extended information to secret", func() {
+			key := types.NamespacedName{
+				Name:      "conn-default-extended-test",
+				Namespace: testNamespace,
+			}
+			conn := mariadbv1alpha1.Connection{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      key.Name,
+					Namespace: key.Namespace,
+				},
+				Spec: mariadbv1alpha1.ConnectionSpec{
+					ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
+						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+							UsernameKey: func() *string { k := "user"; return &k }(),
+							PasswordKey: func() *string { k := "pass"; return &k }(),
+							HostKey:     func() *string { k := "host"; return &k }(),
+							PortKey:     func() *string { k := "port"; return &k }(),
+							DatabaseKey: func() *string { k := "name"; return &k }(),
+						},
+					},
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testMariaDbName,
+						},
+						WaitForIt: true,
+					},
+					Username: testUser,
+					PasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdSecretName,
+						},
+						Key: testPwdSecretKey,
+					},
+					Database: &testDatabase,
+				},
+			}
+			By("Creating Connection")
+			Expect(k8sClient.Create(testCtx, &conn)).To(Succeed())
+
+			By("Expecting Connection to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, key, &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting to create a Secret")
+			var secret corev1.Secret
+			Expect(k8sClient.Get(testCtx, key, &secret)).To(Succeed())
+
+			By("Expecting Secret key to contain extended information")
+			user, ok := secret.Data["user"]
+			Expect(ok).To(BeTrue())
+			Expect(string(user)).To(Equal(testUser))
+			pass, ok := secret.Data["pass"]
+			Expect(ok).To(BeTrue())
+			Expect(string(pass)).To(Equal("test"))
+			host, ok := secret.Data["host"]
+			Expect(ok).To(BeTrue())
+			Expect(string(host)).To(Equal("mariadb-test.default.svc.cluster.local"))
+			port, ok := secret.Data["port"]
+			Expect(ok).To(BeTrue())
+			Expect(string(port)).To(Equal("3306"))
+			database, ok := secret.Data["name"]
+			Expect(ok).To(BeTrue())
+			Expect(string(database)).To(Equal(testDatabase))
+
+			By("Deleting Connection")
+			Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
+		})
 	})
 })

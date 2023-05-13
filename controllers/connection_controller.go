@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -194,6 +195,23 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		Labels:      conn.Spec.SecretTemplate.Labels,
 		Annotations: conn.Spec.SecretTemplate.Annotations,
 	}
+
+	if usernameKey := conn.Spec.SecretTemplate.UsernameKey; usernameKey != nil {
+		secretOpts.Data[*usernameKey] = []byte(mdbOpts.Username)
+	}
+	if passwordKey := conn.Spec.SecretTemplate.PasswordKey; passwordKey != nil {
+		secretOpts.Data[*passwordKey] = []byte(mdbOpts.Password)
+	}
+	if hostKey := conn.Spec.SecretTemplate.HostKey; hostKey != nil {
+		secretOpts.Data[*hostKey] = []byte(mdbOpts.Host)
+	}
+	if portKey := conn.Spec.SecretTemplate.PortKey; portKey != nil {
+		secretOpts.Data[*portKey] = []byte(strconv.Itoa(int(mdbOpts.Port)))
+	}
+	if databaseKey := conn.Spec.SecretTemplate.DatabaseKey; databaseKey != nil && mdbOpts.Database != "" {
+		secretOpts.Data[*databaseKey] = []byte(mdbOpts.Database)
+	}
+
 	secret, err := r.Builder.BuildSecret(secretOpts, conn)
 	if err != nil {
 		return fmt.Errorf("error building Secret: %v", err)
