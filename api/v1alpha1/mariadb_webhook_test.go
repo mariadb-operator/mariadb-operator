@@ -240,7 +240,7 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 					Image: Image{
 						Repository: "mariadb",
-						Tag:        "10.7.4",
+						Tag:        "10.11.3",
 					},
 					Port: 3306,
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
@@ -478,7 +478,7 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 					Image: Image{
 						Repository: "mariadb",
-						Tag:        "10.7.4",
+						Tag:        "10.11.3",
 					},
 					Port: 3306,
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
@@ -523,7 +523,7 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 					Image: Image{
 						Repository: "mariadb",
-						Tag:        "10.7.4",
+						Tag:        "10.11.3",
 					},
 					Port: 3306,
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{

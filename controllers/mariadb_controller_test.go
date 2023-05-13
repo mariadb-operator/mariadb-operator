@@ -22,7 +22,7 @@ var _ = Describe("MariaDB controller", func() {
 	Context("When creating a MariaDB", func() {
 		It("Should reconcile", func() {
 			By("Expecting to have spec provided by user and defaults")
-			Expect(testMariaDb.Spec.Image.String()).To(Equal("mariadb:10.7.4"))
+			Expect(testMariaDb.Spec.Image.String()).To(Equal("mariadb:10.11.3"))
 			Expect(testMariaDb.Spec.Port).To(BeEquivalentTo(3306))
 
 			By("Expecting to create a ConfigMap eventually")
@@ -137,7 +137,7 @@ var _ = Describe("MariaDB controller", func() {
 					},
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
-						Tag:        "10.7.4",
+						Tag:        "10.11.3",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
@@ -203,7 +203,7 @@ var _ = Describe("MariaDB controller", func() {
 					},
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
-						Tag:        "10.7.4",
+						Tag:        "10.11.3",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
@@ -376,7 +376,7 @@ var _ = Describe("MariaDB controller", func() {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
-						Tag:        "10.7.4",
+						Tag:        "10.11.3",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
@@ -432,7 +432,7 @@ var _ = Describe("MariaDB controller", func() {
 					},
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
-						Tag:        "10.7.4",
+						Tag:        "10.11.3",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
@@ -483,7 +483,7 @@ var _ = Describe("MariaDB controller", func() {
 					},
 					Image: mariadbv1alpha1.Image{
 						Repository: "mariadb",
-						Tag:        "10.7.4",
+						Tag:        "10.11.3",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
