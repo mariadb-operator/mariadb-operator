@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
+	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -12,6 +13,9 @@ import (
 var (
 	inmutableWebhook = webhook.NewInmutableWebhook(
 		webhook.WithTagName("webhook"),
+	)
+	cronParser = cron.NewParser(
+		cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
 	)
 )
 
@@ -86,4 +90,16 @@ func (r *RestoreSource) Validate() error {
 		return errors.New("unable to determine restore source")
 	}
 	return nil
+}
+
+type Schedule struct {
+	// +kubebuilder:validation:Required
+	Cron string `json:"cron"`
+	// +kubebuilder:default=false
+	Suspend bool `json:"suspend,omitempty"`
+}
+
+func (s *Schedule) Validate() error {
+	_, err := cronParser.Parse(s.Cron)
+	return err
 }

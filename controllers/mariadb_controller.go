@@ -41,6 +41,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var (
+	myCnfConfigMapKey = "my.cnf"
+)
+
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
@@ -153,13 +157,25 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if r.ConfigMapReconciler.NoopReconcile(mariadb) {
+	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
 		return nil
 	}
-
 	key := configMapMariaDBKey(mariadb)
-	if err := r.ConfigMapReconciler.Reconcile(ctx, mariadb, key, mariadb); err != nil {
-		return fmt.Errorf("error reconciling ConfigMap: %v", err)
+	if mariadb.Spec.MyCnf != nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
+		req := configmap.ReconcileRequest{
+			Mariadb: mariadb,
+			Owner:   mariadb,
+			Key:     key,
+			Data: map[string]string{
+				myCnfConfigMapKey: *mariadb.Spec.MyCnf,
+			},
+		}
+		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
+			return fmt.Errorf("error reconciling ConfigMap: %v", err)
+		}
+	}
+	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		return nil
 	}
 
 	return r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
@@ -167,7 +183,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: key.Name,
 			},
-			Key: r.ConfigMapReconciler.ConfigMapKey,
+			Key: myCnfConfigMapKey,
 		}
 	})
 }

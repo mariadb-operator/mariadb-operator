@@ -1,0 +1,51 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: SqlJob
+metadata:
+  name: 03-stars
+spec:
+  dependsOn:
+    - name: 01-users
+    - name: 02-repos
+  mariaDbRef:
+    name: mariadb
+  schedule:
+    cron: "*/1 * * * *"
+    suspend: false
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+  sql: |
+    CREATE TABLE IF NOT EXISTS stars (
+      id bigint PRIMARY KEY AUTO_INCREMENT,
+      user_id bigint NOT NULL,
+      repo_id bigint NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (repo_id) REFERENCES repos(id) ON DELETE CASCADE,
+      UNIQUE KEY (user_id, repo_id)
+    );
+    INSERT INTO stars(user_id, repo_id) 
+      VALUES((SELECT id FROM users ORDER BY RAND() LIMIT 1), (SELECT id FROM repos ORDER BY RAND() LIMIT 1))
+      ON DUPLICATE KEY UPDATE id=id;
+    INSERT INTO stars(user_id, repo_id) 
+      VALUES((SELECT id FROM users ORDER BY RAND() LIMIT 1), (SELECT id FROM repos ORDER BY RAND() LIMIT 1))
+      ON DUPLICATE KEY UPDATE id=id;
+    INSERT INTO stars(user_id, repo_id) 
+      VALUES((SELECT id FROM users ORDER BY RAND() LIMIT 1), (SELECT id FROM repos ORDER BY RAND() LIMIT 1))
+      ON DUPLICATE KEY UPDATE id=id;
+    INSERT INTO stars(user_id, repo_id) 
+      VALUES((SELECT id FROM users ORDER BY RAND() LIMIT 1), (SELECT id FROM repos ORDER BY RAND() LIMIT 1))
+      ON DUPLICATE KEY UPDATE id=id;
+    INSERT INTO stars(user_id, repo_id) 
+      VALUES((SELECT id FROM users ORDER BY RAND() LIMIT 1), (SELECT id FROM repos ORDER BY RAND() LIMIT 1))
+      ON DUPLICATE KEY UPDATE id=id;
+    DELETE FROM stars WHERE id = (SELECT id FROM stars ORDER BY RAND() LIMIT 1);
+    DELETE FROM stars WHERE id = (SELECT id FROM stars ORDER BY RAND() LIMIT 1);
+    DELETE FROM stars WHERE id = (SELECT id FROM stars ORDER BY RAND() LIMIT 1);
+    SELECT r.name AS repo, COUNT(*) AS stars
+    FROM stars s
+    JOIN repos r
+    ON s.repo_id = r.id
+    GROUP BY r.id
+    ORDER BY stars DESC;

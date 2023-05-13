@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"fmt"
 
-	cron "github.com/robfig/cron/v3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,10 +35,6 @@ func (r *Backup) SetupWebhookWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:webhook:path=/validate-mariadb-mmontes-io-v1alpha1-backup,mutating=false,failurePolicy=fail,sideEffects=None,groups=mariadb.mmontes.io,resources=backups,verbs=create;update,versions=v1alpha1,name=vbackup.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Backup{}
-
-var cronParser = cron.NewParser(
-	cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
-)
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Backup) ValidateCreate() error {
@@ -75,9 +70,9 @@ func (r *Backup) validateSchedule() error {
 	if r.Spec.Schedule == nil {
 		return nil
 	}
-	if _, err := cronParser.Parse(r.Spec.Schedule.Cron); err != nil {
+	if err := r.Spec.Schedule.Validate(); err != nil {
 		return field.Invalid(
-			field.NewPath("spec").Child("schedule").Child("cron"),
+			field.NewPath("spec").Child("schedule"),
 			r.Spec.Schedule,
 			fmt.Sprintf("invalid schedule: %v", err),
 		)

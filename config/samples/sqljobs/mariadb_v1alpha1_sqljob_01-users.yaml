@@ -1,0 +1,31 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: SqlJob
+metadata:
+  name: 01-users
+spec:
+  mariaDbRef:
+    name: mariadb
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+  sql: |
+    CREATE TABLE IF NOT EXISTS users (
+      id bigint PRIMARY KEY AUTO_INCREMENT,
+      username varchar(255) NOT NULL,
+      UNIQUE KEY name__unique_idx (username)
+    );
+    INSERT INTO users(username) VALUES('mmontes11') 
+      ON DUPLICATE KEY UPDATE id=id;
+    INSERT INTO users(username) VALUES('Vidalee')
+      ON DUPLICATE KEY UPDATE id=id;
+    INSERT INTO users(username) VALUES('macno') 
+      ON DUPLICATE KEY UPDATE id=id;
+    INSERT INTO users(username) VALUES('eloylp') 
+      ON DUPLICATE KEY UPDATE id=id;
+    INSERT INTO users(username) VALUES('ksankeerth') 
+      ON DUPLICATE KEY UPDATE id=id;
+    INSERT INTO users(username) VALUES('stefan-bergstein') 
+      ON DUPLICATE KEY UPDATE id=id;
+    --To be continued, contribute to mariadb-operator! 🦭

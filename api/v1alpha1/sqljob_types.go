@@ -26,6 +26,8 @@ import (
 type SqlJobSpec struct {
 	// +kubebuilder:validation:Required
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+
+	Schedule *Schedule `json:"schedule,omitempty"`
 	// +kubebuilder:validation:Required
 	Username string `json:"username" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
@@ -78,16 +80,8 @@ type SqlJob struct {
 	Status SqlJobStatus `json:"status,omitempty"`
 }
 
-func (b *SqlJob) IsComplete() bool {
-	return meta.IsStatusConditionTrue(b.Status.Conditions, ConditionTypeComplete)
-}
-
-func (s *SqlJob) ConfigMapValue() *string {
-	return s.Spec.Sql
-}
-
-func (s *SqlJob) ConfigMapKeyRef() *corev1.ConfigMapKeySelector {
-	return s.Spec.SqlConfigMapKeyRef
+func (s *SqlJob) IsComplete() bool {
+	return meta.IsStatusConditionTrue(s.Status.Conditions, ConditionTypeComplete)
 }
 
 //+kubebuilder:object:root=true

@@ -103,7 +103,7 @@ var _ = Describe("Backup controller", func() {
 						},
 						WaitForIt: true,
 					},
-					Schedule: &mariadbv1alpha1.BackupSchedule{
+					Schedule: &mariadbv1alpha1.Schedule{
 						Cron: "*/1 * * * *",
 					},
 					Storage: mariadbv1alpha1.BackupStorage{

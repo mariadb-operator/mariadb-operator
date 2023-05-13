@@ -18,13 +18,14 @@
 # 🦭 mariadb-operator
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-- [Provisioning](./config/samples/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers.
+- [Provisioning](./config/samples/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
 - Single master HA via SemiSync [replication](./config/samples/mariadb_v1alpha1_mariadb_replication.yaml). Primary switchover. Automatic primary failover
 - [Take](./config/samples/mariadb_v1alpha1_backup.yaml) and [restore](./config/samples/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./config/samples/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
-- Bootstrap new instances from [backups](./config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes ([PVCs](./config/samples/mariadb_v1alpha1_mariadb_from_pvc.yaml), [NFS](./config/samples/mariadb_v1alpha1_mariadb_from_nfs.yaml) ...)
+- [PVCs](./config/samples/mariadb_v1alpha1_backup.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./config/samples/mariadb_v1alpha1_backup_nfs.yaml)) backup storage
+- Bootstrap new instances from [backups](./config/samples/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes (i.e [NFS](./config/samples/mariadb_v1alpha1_mariadb_from_nfs.yaml))
 - Manage [users](./config/samples/mariadb_v1alpha1_user.yaml), [grants](./config/samples/mariadb_v1alpha1_grant.yaml) and logical [databases](./config/samples/mariadb_v1alpha1_database.yaml)
 - Configure [connections](./config/samples/mariadb_v1alpha1_connection.yaml) for your applications
-- Orchestrate [sql scripts](./config/samples/sqljobs)
+- Orchestrate and schedule [sql scripts](./config/samples/sqljobs)
 - Prometheus metrics
 - Validation webhooks to provide CRD inmutability
 - Additional printer columns to report the current CRD status
@@ -109,18 +110,20 @@ kubectl apply -f config/samples/sqljobs
 ```
 ```bash
 kubectl get sqljobs
-NAME                      COMPLETE   STATUS    MARIADB   AGE
-01-create-table-users     True       Success   mariadb   5m34s
-02-1-insert-users         True       Success   mariadb   5m34s
-02-2-create-table-repos   True       Success   mariadb   5m34s
-03-insert-repos           True       Success   mariadb   5m34s
+NAME       COMPLETE   STATUS    MARIADB   AGE
+01-users   True       Success   mariadb   2m47s
+02-repos   True       Success   mariadb   2m47s
+03-stars   True       Success   mariadb   2m47s
 
 kubectl get jobs
-NAME                      COMPLETIONS   DURATION   AGE
-01-create-table-users     1/1           5s         5m51s
-02-1-insert-users         1/1           5s         5m45s
-02-2-create-table-repos   1/1           5s         5m45s
-03-insert-repos           1/1           6s         5m39s
+NAME                  COMPLETIONS   DURATION   AGE
+01-users              1/1           10s        3m23s
+02-repos              1/1           11s        3m13s
+03-stars-28067562     1/1           10s        106s
+
+kubectl get cronjobs
+NAME       SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+03-stars   */1 * * * *   False     0        57s             2m33s
 ```
 
 Now that the database has been initialized, let's take a backup:

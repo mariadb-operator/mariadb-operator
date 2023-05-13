@@ -36,13 +36,6 @@ func (s *BackupStorage) Validate() error {
 	return nil
 }
 
-type BackupSchedule struct {
-	// +kubebuilder:validation:Required
-	Cron string `json:"cron"`
-	// +kubebuilder:default=false
-	Supend bool `json:"suspend,omitempty"`
-}
-
 // BackupSpec defines the desired state of Backup
 type BackupSpec struct {
 	// +kubebuilder:validation:Required
@@ -50,11 +43,11 @@ type BackupSpec struct {
 	// +kubebuilder:validation:Required
 	Storage BackupStorage `json:"storage" webhook:"inmutable"`
 
-	Schedule *BackupSchedule `json:"schedule,omitempty"`
-	// +kubebuilder:default=5
-	BackoffLimit int32 `json:"backoffLimit,omitempty"`
+	Schedule *Schedule `json:"schedule,omitempty"`
 	// +kubebuilder:default=30
 	MaxRetentionDays int32 `json:"maxRetentionDays,omitempty" webhook:"inmutable"`
+	// +kubebuilder:default=5
+	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// +kubebuilder:default=OnFailure
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
 	// +kubebuilder:validation:Optional
