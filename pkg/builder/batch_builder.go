@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	cmd "github.com/mariadb-operator/mariadb-operator/pkg/command"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/backup"
 	sqlcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/sql"
@@ -31,16 +31,10 @@ const (
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
-			WithOwner(backup).
 			Build()
-	meta := metav1.ObjectMeta{
-		Name:      key.Name,
-		Namespace: key.Namespace,
-		Labels:    objLabels,
-	}
 
 	cmdOpts := []backupcmd.Option{
 		backupcmd.WithBasePath(batchStorageMountPath),
@@ -59,7 +53,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	volumes, volumeSources := jobBatchStorageVolume(volume)
 
 	opts := []jobOption{
-		withJobMeta(meta),
+		withJobMeta(objMeta),
 		withJobVolumes(volumes),
 		withJobContainers(
 			jobContainers(
@@ -95,10 +89,9 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 		return nil, errors.New("schedule field is mandatory when building a CronJob")
 	}
 
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
-			WithOwner(backup).
 			Build()
 	job, err := b.BuildBackupJob(key, backup, mariadb)
 	if err != nil {
@@ -106,11 +99,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 	}
 
 	cronJob := &batchv1.CronJob{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-			Labels:    objLabels,
-		},
+		ObjectMeta: objMeta,
 		Spec: batchv1.CronJobSpec{
 			Schedule:          backup.Spec.Schedule.Cron,
 			ConcurrencyPolicy: batchv1.ForbidConcurrent,
@@ -129,17 +118,10 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 
 func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1alpha1.Restore,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
-			WithOwner(restore).
 			Build()
-	meta := metav1.ObjectMeta{
-		Name:      key.Name,
-		Namespace: key.Namespace,
-		Labels:    objLabels,
-	}
-
 	cmdOpts := []backupcmd.Option{
 		backupcmd.WithBasePath(batchStorageMountPath),
 		backupcmd.WithUserEnv(batchUserEnv),
@@ -155,7 +137,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.RestoreSource.Volume)
 
 	jobOpts := []jobOption{
-		withJobMeta(meta),
+		withJobMeta(objMeta),
 		withJobVolumes(volumes),
 		withJobContainers(
 			jobContainers(
@@ -187,22 +169,12 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 
 func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
-			WithOwner(sqlJob).
 			Build()
-	meta := metav1.ObjectMeta{
-		Name:      key.Name,
-		Namespace: key.Namespace,
-		Labels:    objLabels,
-	}
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      batchScriptsVolume,
-			MountPath: batchScriptsMountPath,
-		},
-	}
+
+	volumes, volumeMounts := sqlJobvolumes(sqlJob)
 
 	sqlOpts := []sqlcmd.Option{
 		sqlcmd.WithUserEnv(batchUserEnv),
@@ -218,10 +190,8 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 	}
 
 	jobOpts := []jobOption{
-		withJobMeta(meta),
-		withJobVolumes(
-			sqlJobvolumes(sqlJob),
-		),
+		withJobMeta(objMeta),
+		withJobVolumes(volumes),
 		withJobContainers(
 			jobContainers(
 				cmd.ExecCommand(mariadb),
@@ -360,23 +330,28 @@ func (b *jobBuilder) build() *batchv1.Job {
 	return job
 }
 
-func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) []corev1.Volume {
+func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.VolumeMount) {
 	return []corev1.Volume{
-		{
-			Name: batchScriptsVolume,
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: sqlJob.Spec.SqlConfigMapKeyRef.LocalObjectReference,
-					Items: []corev1.KeyToPath{
-						{
-							Key:  sqlJob.Spec.SqlConfigMapKeyRef.Key,
-							Path: batchScriptsSqlFileName,
+			{
+				Name: batchScriptsVolume,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: sqlJob.Spec.SqlConfigMapKeyRef.LocalObjectReference,
+						Items: []corev1.KeyToPath{
+							{
+								Key:  sqlJob.Spec.SqlConfigMapKeyRef.Key,
+								Path: batchScriptsSqlFileName,
+							},
 						},
 					},
 				},
 			},
-		},
-	}
+		}, []corev1.VolumeMount{
+			{
+				Name:      batchScriptsVolume,
+				MountPath: batchScriptsMountPath,
+			},
+		}
 }
 
 func jobContainers(cmd *cmd.Command, env []v1.EnvVar, volumeMounts []corev1.VolumeMount,

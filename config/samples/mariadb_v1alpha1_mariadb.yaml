@@ -2,8 +2,6 @@ apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb
-  labels:
-    database.myorg.io: mariadb  
 spec:
   rootPasswordSecretKeyRef:
     name: mariadb

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,18 +20,12 @@ type SecretOpts struct {
 }
 
 func (b *Builder) BuildSecret(opts SecretOpts, owner metav1.Object) (*corev1.Secret, error) {
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(opts.Key).
 			WithMariaDB(opts.MariaDB).
-			WithOwner(owner).
 			WithLabels(opts.Labels).
+			WithAnnotations(opts.Annotations).
 			Build()
-	objMeta := metav1.ObjectMeta{
-		Name:        opts.Key.Name,
-		Namespace:   opts.Key.Namespace,
-		Labels:      objLabels,
-		Annotations: opts.Annotations,
-	}
 	secret := &corev1.Secret{
 		ObjectMeta: objMeta,
 		Data:       opts.Data,

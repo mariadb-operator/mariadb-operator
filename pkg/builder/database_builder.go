@@ -4,10 +4,9 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -19,17 +18,12 @@ type UserOpts struct {
 }
 
 func (b *Builder) BuildUser(mariadb *mariadbv1alpha1.MariaDB, opts UserOpts) (*mariadbv1alpha1.User, error) {
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(opts.Key).
 			WithMariaDB(mariadb).
-			WithOwner(mariadb).
 			Build()
 	user := &mariadbv1alpha1.User{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      opts.Key.Name,
-			Namespace: opts.Key.Namespace,
-			Labels:    objLabels,
-		},
+		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.UserSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				LocalObjectReference: corev1.LocalObjectReference{
@@ -58,17 +52,12 @@ type GrantOpts struct {
 }
 
 func (b *Builder) BuildGrant(mariadb *mariadbv1alpha1.MariaDB, opts GrantOpts) (*mariadbv1alpha1.Grant, error) {
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(opts.Key).
 			WithMariaDB(mariadb).
-			WithOwner(mariadb).
 			Build()
 	grant := &mariadbv1alpha1.Grant{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      opts.Key.Name,
-			Namespace: opts.Key.Namespace,
-			Labels:    objLabels,
-		},
+		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.GrantSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				LocalObjectReference: corev1.LocalObjectReference{

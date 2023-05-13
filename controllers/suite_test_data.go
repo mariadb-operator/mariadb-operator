@@ -82,6 +82,14 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 			Namespace: testMariaDbKey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
+			InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+				Labels: map[string]string{
+					"mariadb.mmontes.io/test": "test",
+				},
+				Annotations: map[string]string{
+					"mariadb.mmontes.io/test": "test",
+				},
+			},
 			RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: testPwdKey.Name,

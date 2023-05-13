@@ -6,6 +6,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,22 +17,19 @@ func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB, key type
 	if mariadb.Spec.Metrics == nil {
 		return nil, errors.New("MariaDB instance does not specify Metrics")
 	}
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
-			WithOwner(mariadb).
-			WithRelease(mariadb.Spec.Metrics.ServiceMonitor.PrometheusRelease).
+			WithLabels(map[string]string{
+				"release": mariadb.Spec.Metrics.ServiceMonitor.PrometheusRelease,
+			}).
 			Build()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
+			WithMariaDBSelectorLabels(mariadb).
 			Build()
 	serviceMonitor := &monitoringv1.ServiceMonitor{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-			Labels:    objLabels,
-		},
+		ObjectMeta: objMeta,
 		Spec: monitoringv1.ServiceMonitorSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: selectorLabels,

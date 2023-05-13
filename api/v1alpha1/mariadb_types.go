@@ -33,6 +33,11 @@ var (
 	defaultSyncTimeout       = 10 * time.Second
 )
 
+type InheritMetadata struct {
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
 type Exporter struct {
 	// +kubebuilder:validation:Required
 	Image     Image                        `json:"image"`
@@ -155,6 +160,8 @@ type Replication struct {
 
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
+	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
+
 	// +kubebuilder:validation:Required
 	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef" webhook:"inmutable"`
 
