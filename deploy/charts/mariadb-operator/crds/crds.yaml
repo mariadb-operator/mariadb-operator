@@ -2874,12 +2874,22 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  databaseKey:
+                    type: string
+                  hostKey:
+                    type: string
                   key:
                     type: string
                   labels:
                     additionalProperties:
                       type: string
                     type: object
+                  passwordKey:
+                    type: string
+                  portKey:
+                    type: string
+                  usernameKey:
+                    type: string
                 type: object
               serviceName:
                 type: string
@@ -5744,12 +5754,22 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      databaseKey:
+                        type: string
+                      hostKey:
+                        type: string
                       key:
                         type: string
                       labels:
                         additionalProperties:
                           type: string
                         type: object
+                      passwordKey:
+                        type: string
+                      portKey:
+                        type: string
+                      usernameKey:
+                        type: string
                     type: object
                   serviceName:
                     type: string
@@ -6546,12 +6566,22 @@ spec:
                                 additionalProperties:
                                   type: string
                                 type: object
+                              databaseKey:
+                                type: string
+                              hostKey:
+                                type: string
                               key:
                                 type: string
                               labels:
                                 additionalProperties:
                                   type: string
                                 type: object
+                              passwordKey:
+                                type: string
+                              portKey:
+                                type: string
+                              usernameKey:
+                                type: string
                             type: object
                           serviceName:
                             type: string
