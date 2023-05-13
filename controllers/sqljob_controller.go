@@ -37,6 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var (
+	jobConfigMapKey = "job.sql"
+)
+
 // SqlJobReconciler reconciles a SqlJob object
 type SqlJobReconciler struct {
 	client.Client
@@ -89,10 +93,10 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	var jobErr *multierror.Error
-	err = r.reconcileJob(ctx, &sqlJob, mariadb, req.NamespacedName)
+	err = r.reconcileBatch(ctx, &sqlJob, mariadb, req.NamespacedName)
 	jobErr = multierror.Append(jobErr, err)
 
-	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)
+	patcher, err := r.patcher(ctx, &sqlJob, err, req.NamespacedName)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -104,7 +108,7 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	jobErr = multierror.Append(jobErr, err)
 
 	if err := jobErr.ErrorOrNil(); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error reconciling SqlJob: %v", err)
 	}
 	return ctrl.Result{}, nil
 }
@@ -141,31 +145,52 @@ func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *v1al
 
 func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
 	mariadb *mariadbv1alpha1.MariaDB) error {
-	if r.ConfigMapReconciler.NoopReconcile(sqlJob) {
+	key := configMapSqlJobKey(sqlJob)
+	if sqlJob.Spec.Sql != nil && sqlJob.Spec.SqlConfigMapKeyRef == nil {
+		req := configmap.ReconcileRequest{
+			Mariadb: mariadb,
+			Owner:   sqlJob,
+			Key:     key,
+			Data: map[string]string{
+				jobConfigMapKey: *sqlJob.Spec.Sql,
+			},
+		}
+		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
+			return fmt.Errorf("error reconciling ConfigMap: %v", err)
+		}
+	}
+	if sqlJob.Spec.SqlConfigMapKeyRef != nil {
 		return nil
 	}
 
-	key := configMapSqlJobKey(sqlJob)
-	if err := r.ConfigMapReconciler.Reconcile(ctx, sqlJob, key, mariadb); err != nil {
-		return fmt.Errorf("error reconciling ConfigMap: %v", err)
-	}
-
-	if err := r.patch(ctx, sqlJob, func(sqlJob *mariadbv1alpha1.SqlJob) {
+	return r.patch(ctx, sqlJob, func(sqlJob *mariadbv1alpha1.SqlJob) {
 		sqlJob.Spec.SqlConfigMapKeyRef = &corev1.ConfigMapKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: key.Name,
 			},
-			Key: r.ConfigMapReconciler.ConfigMapKey,
+			Key: jobConfigMapKey,
 		}
-	}); err != nil {
-		return fmt.Errorf("error patching SqlJob: %v", err)
+	})
+}
+
+func (r *SqlJobReconciler) reconcileBatch(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
+	mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) error {
+	if sqlJob.Spec.Schedule != nil {
+		return r.reconcileCronJob(ctx, sqlJob, mariadb, key)
 	}
-	return nil
+	return r.reconcileJob(ctx, sqlJob, mariadb, key)
+}
+
+func (r *SqlJobReconciler) patcher(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob, err error,
+	key types.NamespacedName) (conditions.Patcher, error) {
+	if sqlJob.Spec.Schedule != nil {
+		return r.ConditionComplete.PatcherWithCronJob(ctx, err, key)
+	}
+	return r.ConditionComplete.PatcherWithJob(ctx, err, key)
 }
 
 func (r *SqlJobReconciler) reconcileJob(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
 	mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) error {
-
 	desiredJob, err := r.Builder.BuildSqlJob(key, sqlJob, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building Job: %v", err)
@@ -188,6 +213,36 @@ func (r *SqlJobReconciler) reconcileJob(ctx context.Context, sqlJob *mariadbv1al
 
 	if err := r.Patch(ctx, &existingJob, patch); err != nil {
 		return fmt.Errorf("error patching Job: %v", err)
+	}
+	return nil
+}
+
+func (r *SqlJobReconciler) reconcileCronJob(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
+	mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) error {
+	desiredCronJob, err := r.Builder.BuildSqlCronJob(key, sqlJob, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building CronJob: %v", err)
+	}
+
+	var existingCronJob batchv1.CronJob
+	if err := r.Get(ctx, key, &existingCronJob); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error getting Job: %v", err)
+		}
+
+		if err := r.Create(ctx, desiredCronJob); err != nil {
+			return fmt.Errorf("error creating CronJob: %v", err)
+		}
+		return nil
+	}
+
+	patch := client.MergeFrom(existingCronJob.DeepCopy())
+	existingCronJob.Spec.Schedule = desiredCronJob.Spec.Schedule
+	existingCronJob.Spec.Suspend = desiredCronJob.Spec.Suspend
+	existingCronJob.Spec.JobTemplate.Spec.BackoffLimit = desiredCronJob.Spec.JobTemplate.Spec.BackoffLimit
+
+	if err := r.Patch(ctx, &existingCronJob, patch); err != nil {
+		return fmt.Errorf("error patching CronJob: %v", err)
 	}
 	return nil
 }
@@ -226,6 +281,7 @@ func (r *SqlJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.SqlJob{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&batchv1.CronJob{}).
 		Owns(&batchv1.Job{}).
 		Complete(r)
 }

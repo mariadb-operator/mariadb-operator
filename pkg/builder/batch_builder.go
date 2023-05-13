@@ -103,7 +103,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 		Spec: batchv1.CronJobSpec{
 			Schedule:          backup.Spec.Schedule.Cron,
 			ConcurrencyPolicy: batchv1.ForbidConcurrent,
-			Suspend:           &backup.Spec.Schedule.Supend,
+			Suspend:           &backup.Spec.Schedule.Suspend,
 			JobTemplate: batchv1.JobTemplateSpec{
 				ObjectMeta: job.ObjectMeta,
 				Spec:       job.Spec,
@@ -218,6 +218,39 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
 	return job, nil
+}
+
+func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
+	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.CronJob, error) {
+	if sqlJob.Spec.Schedule == nil {
+		return nil, errors.New("schedule field is mandatory when building a CronJob")
+	}
+
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(mariadb).
+			Build()
+	job, err := b.BuildSqlJob(key, sqlJob, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error building SqlJob: %v", err)
+	}
+
+	cronJob := &batchv1.CronJob{
+		ObjectMeta: objMeta,
+		Spec: batchv1.CronJobSpec{
+			Schedule:          sqlJob.Spec.Schedule.Cron,
+			ConcurrencyPolicy: batchv1.ForbidConcurrent,
+			Suspend:           &sqlJob.Spec.Schedule.Suspend,
+			JobTemplate: batchv1.JobTemplateSpec{
+				ObjectMeta: job.ObjectMeta,
+				Spec:       job.Spec,
+			},
+		},
+	}
+	if err := controllerutil.SetControllerReference(sqlJob, cronJob, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to CronJob: %v", err)
+	}
+	return cronJob, nil
 }
 
 type jobOption func(*jobBuilder)

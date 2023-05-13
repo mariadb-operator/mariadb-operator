@@ -962,6 +962,16 @@ spec:
                   none of the following policies is specified, the default one is
                   RestartPolicyAlways.
                 type: string
+              schedule:
+                properties:
+                  cron:
+                    type: string
+                  suspend:
+                    default: false
+                    type: boolean
+                required:
+                - cron
+                type: object
               sql:
                 type: string
               sqlConfigMapKeyRef:

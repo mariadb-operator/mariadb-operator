@@ -7,67 +7,47 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ConfigMapper interface {
-	v1.Object
-	ConfigMapValue() *string
-	ConfigMapKeyRef() *corev1.ConfigMapKeySelector
-}
-
 type ConfigMapReconciler struct {
 	client.Client
-	Builder      *builder.Builder
-	ConfigMapKey string
+	Builder *builder.Builder
 }
 
-func NewConfigMapReconciler(client client.Client, builder *builder.Builder, configMapKey string) *ConfigMapReconciler {
+func NewConfigMapReconciler(client client.Client, builder *builder.Builder) *ConfigMapReconciler {
 	return &ConfigMapReconciler{
-		Client:       client,
-		Builder:      builder,
-		ConfigMapKey: configMapKey,
+		Client:  client,
+		Builder: builder,
 	}
 }
 
-func (r *ConfigMapReconciler) NoopReconcile(configMapper ConfigMapper) bool {
-	if configMapper.ConfigMapValue() == nil && configMapper.ConfigMapKeyRef() == nil {
-		return true
-	}
-	if configMapper.ConfigMapKeyRef() != nil {
-		return true
-	}
-	return false
+type ReconcileRequest struct {
+	Mariadb *mariadbv1alpha1.MariaDB
+	Owner   metav1.Object
+	Key     types.NamespacedName
+	Data    map[string]string
 }
 
-func (r *ConfigMapReconciler) Reconcile(ctx context.Context, configMapper ConfigMapper, key types.NamespacedName,
-	mariadb *mariadbv1alpha1.MariaDB) error {
-	if r.NoopReconcile(configMapper) {
+func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req *ReconcileRequest) error {
+	var existingConfigMap corev1.ConfigMap
+	err := r.Get(ctx, req.Key, &existingConfigMap)
+	if err == nil {
 		return nil
 	}
-
-	if configMapper.ConfigMapKeyRef() != nil {
-		var configMap corev1.ConfigMap
-		key := types.NamespacedName{
-			Name:      configMapper.ConfigMapKeyRef().Name,
-			Namespace: key.Namespace,
-		}
-		if err := r.Get(ctx, key, &configMap); err != nil {
-			return fmt.Errorf("error getting ConfigMap: %v", err)
-		}
-		return nil
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error getting ConfigMap: %v", err)
 	}
 
 	opts := builder.ConfigMapOpts{
-		MariaDB: mariadb,
-		Key:     key,
-		Data: map[string]string{
-			r.ConfigMapKey: *configMapper.ConfigMapValue(),
-		},
+		MariaDB: req.Mariadb,
+		Key:     req.Key,
+		Data:    req.Data,
 	}
-	configMap, err := r.Builder.BuildConfigMap(opts, configMapper)
+	configMap, err := r.Builder.BuildConfigMap(opts, req.Owner)
 	if err != nil {
 		return fmt.Errorf("error building ConfigMap: %v", err)
 	}

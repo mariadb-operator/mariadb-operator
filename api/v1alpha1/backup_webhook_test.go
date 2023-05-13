@@ -71,7 +71,7 @@ var _ = Describe("Backup webhook", func() {
 							Namespace: testNamespace,
 						},
 						Spec: BackupSpec{
-							Schedule: &BackupSchedule{
+							Schedule: &Schedule{
 								Cron: "foo",
 							},
 							Storage: BackupStorage{
@@ -112,7 +112,7 @@ var _ = Describe("Backup webhook", func() {
 							Namespace: testNamespace,
 						},
 						Spec: BackupSpec{
-							Schedule: &BackupSchedule{
+							Schedule: &Schedule{
 								Cron: "*/1 * * * *",
 							},
 							Storage: BackupStorage{
@@ -219,7 +219,7 @@ var _ = Describe("Backup webhook", func() {
 				{
 					by: "Updating Schedule",
 					patchFn: func(bmdb *Backup) {
-						bmdb.Spec.Schedule = &BackupSchedule{
+						bmdb.Spec.Schedule = &Schedule{
 							Cron: "*/1 * * * *",
 						}
 					},

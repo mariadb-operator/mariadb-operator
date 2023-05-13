@@ -269,14 +269,6 @@ func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
 }
 
-func (m *MariaDB) ConfigMapValue() *string {
-	return m.Spec.MyCnf
-}
-
-func (m *MariaDB) ConfigMapKeyRef() *corev1.ConfigMapKeySelector {
-	return m.Spec.MyCnfConfigMapKeyRef
-}
-
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB

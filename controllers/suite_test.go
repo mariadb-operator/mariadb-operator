@@ -96,7 +96,8 @@ var _ = BeforeSuite(func() {
 	refResolver := refresolver.New(k8sManager.GetClient())
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(k8sManager.GetClient())
-	configMapReconciler := configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder, "my.cnf")
+	myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder)
+	jobConfigMapReconciler := configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder)
 	secretReconciler := secret.NewSecretReconciler(k8sManager.GetClient(), builder)
 	replConfig := replication.NewReplicationConfig(k8sManager.GetClient(), builder, secretReconciler)
 	replicationReconciler := replication.NewReplicationReconciler(k8sManager.GetClient(), replConfig, secretReconciler, builder)
@@ -107,7 +108,7 @@ var _ = BeforeSuite(func() {
 		Scheme:                   k8sManager.GetScheme(),
 		Builder:                  builder,
 		ConditionReady:           conditionReady,
-		ConfigMapReconciler:      configMapReconciler,
+		ConfigMapReconciler:      myCnfCconfigMapReconciler,
 		ReplicationReconciler:    replicationReconciler,
 		ServiceMonitorReconciler: true,
 	}).SetupWithManager(k8sManager)
@@ -171,7 +172,7 @@ var _ = BeforeSuite(func() {
 		Scheme:              k8sManager.GetScheme(),
 		Builder:             builder,
 		RefResolver:         refResolver,
-		ConfigMapReconciler: configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder, "job.sql"),
+		ConfigMapReconciler: jobConfigMapReconciler,
 		ConditionComplete:   conditionComplete,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

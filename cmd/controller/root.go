@@ -86,7 +86,8 @@ var rootCmd = &cobra.Command{
 		refResolver := refresolver.New(mgr.GetClient())
 		conditionReady := conditions.NewReady()
 		conditionComplete := conditions.NewComplete(mgr.GetClient())
-		configMapReconciler := configmap.NewConfigMapReconciler(mgr.GetClient(), builder, "my.cnf")
+		myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(mgr.GetClient(), builder)
+		jobConfigMapReconciler := configmap.NewConfigMapReconciler(mgr.GetClient(), builder)
 		secretReconciler := secret.NewSecretReconciler(mgr.GetClient(), builder)
 		replConfig := replication.NewReplicationConfig(mgr.GetClient(), builder, secretReconciler)
 		replicationReconciler := replication.NewReplicationReconciler(mgr.GetClient(), replConfig, secretReconciler, builder)
@@ -98,7 +99,7 @@ var rootCmd = &cobra.Command{
 			Builder:                  builder,
 			RefResolver:              refResolver,
 			ConditionReady:           conditionReady,
-			ConfigMapReconciler:      configMapReconciler,
+			ConfigMapReconciler:      myCnfCconfigMapReconciler,
 			SecretReconciler:         secretReconciler,
 			ReplicationReconciler:    replicationReconciler,
 			ServiceMonitorReconciler: serviceMonitorReconciler,
@@ -170,7 +171,7 @@ var rootCmd = &cobra.Command{
 			Scheme:              mgr.GetScheme(),
 			Builder:             builder,
 			RefResolver:         refResolver,
-			ConfigMapReconciler: configmap.NewConfigMapReconciler(mgr.GetClient(), builder, "job.sql"),
+			ConfigMapReconciler: jobConfigMapReconciler,
 			ConditionComplete:   conditionComplete,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "SqlJob")

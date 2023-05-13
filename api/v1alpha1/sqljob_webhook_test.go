@@ -22,22 +22,137 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("SqlJob webhook", func() {
+	Context("When creating a SqlJob", func() {
+		It("Should validate", func() {
+			meta := metav1.ObjectMeta{
+				Name:      "sqljob-create-webhook",
+				Namespace: testNamespace,
+			}
+			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
+			// https://github.com/mariadb-operator/mariadb-operator/issues/3
+			tt := []struct {
+				by      string
+				sqlJob  SqlJob
+				wantErr bool
+			}{
+				{
+					by: "no sql",
+					sqlJob: SqlJob{
+						ObjectMeta: meta,
+						Spec: SqlJobSpec{
+							MariaDBRef: MariaDBRef{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "foo",
+								},
+							},
+							Username: "foo",
+							PasswordSecretKeyRef: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "foo",
+								},
+								Key: "foo",
+							},
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "invalid schedule",
+					sqlJob: SqlJob{
+						ObjectMeta: meta,
+						Spec: SqlJobSpec{
+							MariaDBRef: MariaDBRef{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "foo",
+								},
+							},
+							Schedule: &Schedule{
+								Cron: "foo",
+							},
+							Username: "foo",
+							PasswordSecretKeyRef: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "foo",
+								},
+								Key: "foo",
+							},
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "valid SqlJob",
+					sqlJob: SqlJob{
+						ObjectMeta: meta,
+						Spec: SqlJobSpec{
+							MariaDBRef: MariaDBRef{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "foo",
+								},
+							},
+							Username: "foo",
+							PasswordSecretKeyRef: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "foo",
+								},
+								Key: "foo",
+							},
+							Sql: func() *string { s := "foo"; return &s }(),
+						},
+					},
+					wantErr: false,
+				},
+				{
+					by: "valid SqlJob with schedule",
+					sqlJob: SqlJob{
+						ObjectMeta: meta,
+						Spec: SqlJobSpec{
+							MariaDBRef: MariaDBRef{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "foo",
+								},
+							},
+							Schedule: &Schedule{
+								Cron: "*/1 * * * *",
+							},
+							Username: "foo",
+							PasswordSecretKeyRef: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "foo",
+								},
+								Key: "foo",
+							},
+							Sql: func() *string { s := "foo"; return &s }(),
+						},
+					},
+					wantErr: false,
+				},
+			}
+
+			for _, t := range tt {
+				By(t.by)
+				_ = k8sClient.Delete(testCtx, &t.sqlJob)
+				err := k8sClient.Create(testCtx, &t.sqlJob)
+				if t.wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
+		})
+	})
+
 	Context("When updating a SqlJob", func() {
 		It("Should validate", func() {
 			By("Creating a SqlJob", func() {
-				key := types.NamespacedName{
-					Name:      "sqljob-webhook",
-					Namespace: testNamespace,
-				}
 				sqlJob := SqlJob{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      key.Name,
-						Namespace: key.Namespace,
+						Name:      "sqljob-webhook",
+						Namespace: testNamespace,
 					},
 					Spec: SqlJobSpec{
 						DependsOn: []corev1.LocalObjectReference{
@@ -156,11 +271,39 @@ var _ = Describe("SqlJob webhook", func() {
 						},
 						wantErr: false,
 					},
+					{
+						by: "Updating Schedule",
+						patchFn: func(job *SqlJob) {
+							job.Spec.Schedule = &Schedule{
+								Cron:    "*/1 * * * *",
+								Suspend: false,
+							}
+						},
+						wantErr: false,
+					},
+					{
+						by: "Updating with wrong Schedule",
+						patchFn: func(job *SqlJob) {
+							job.Spec.Schedule = &Schedule{
+								Cron:    "foo",
+								Suspend: false,
+							}
+						},
+						wantErr: true,
+					},
+					{
+						by: "Removing SQL",
+						patchFn: func(job *SqlJob) {
+							job.Spec.Sql = nil
+							job.Spec.SqlConfigMapKeyRef = nil
+						},
+						wantErr: true,
+					},
 				}
 
 				for _, t := range tt {
 					By(t.by)
-					Expect(k8sClient.Get(testCtx, key, &sqlJob)).To(Succeed())
+					Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sqlJob), &sqlJob)).To(Succeed())
 
 					patch := client.MergeFrom(sqlJob.DeepCopy())
 					t.patchFn(&sqlJob)

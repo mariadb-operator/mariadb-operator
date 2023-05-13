@@ -1,11 +1,10 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: SqlJob
 metadata:
-  name: 03-insert-repos
+  name: 02-repos
 spec:
   dependsOn:
-    - name: 02-1-insert-users
-    - name: 02-2-create-table-repos
+    - name: 01-users
   mariaDbRef:
     name: mariadb
   username: mariadb
@@ -14,9 +13,16 @@ spec:
     key: password
   database: mariadb
   sql: |
+    CREATE TABLE IF NOT EXISTS repos (
+      id bigint PRIMARY KEY AUTO_INCREMENT,
+      name varchar(255) NOT NULL,
+      owner_id bigint NOT NULL,
+      UNIQUE KEY name__unique_idx (name),
+      FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+    );
     INSERT INTO repos(name, owner_id) VALUES('mariadb-operator', (SELECT id FROM users WHERE username = 'mmontes11'))
-    ON DUPLICATE KEY UPDATE name='mariadb-operator';
+      ON DUPLICATE KEY UPDATE id=id;
     INSERT INTO repos(name, owner_id) VALUES('mariadb-operator-helm', (SELECT id FROM users WHERE username = 'mmontes11'))
-    ON DUPLICATE KEY UPDATE name='mariadb-operator-helm';
+      ON DUPLICATE KEY UPDATE id=id;
     INSERT INTO repos(name, owner_id) VALUES('mariadb-ha-poc', (SELECT id FROM users WHERE username = 'mmontes11'))
-    ON DUPLICATE KEY UPDATE name='mariadb-ha-poc';
+      ON DUPLICATE KEY UPDATE id=id;
