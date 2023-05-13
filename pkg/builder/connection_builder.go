@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,17 +21,12 @@ type ConnectionOpts struct {
 }
 
 func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*mariadbv1alpha1.Connection, error) {
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(opts.Key).
 			WithMariaDB(opts.MariaDB).
-			WithOwner(owner).
 			Build()
 	conn := &mariadbv1alpha1.Connection{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      opts.Key.Name,
-			Namespace: opts.Key.Namespace,
-			Labels:    objLabels,
-		},
+		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.ConnectionSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				LocalObjectReference: corev1.LocalObjectReference{

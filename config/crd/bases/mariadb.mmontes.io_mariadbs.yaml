@@ -2628,6 +2628,17 @@ spec:
                   type: object
                   x-kubernetes-map-type: atomic
                 type: array
+              inheritMetadata:
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
+                type: object
               livenessProbe:
                 description: Probe describes a health check to be performed against
                   a container to determine whether it is alive or ready to receive

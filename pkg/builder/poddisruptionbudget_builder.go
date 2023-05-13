@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,17 +21,12 @@ type PodDisruptionBudgetOpts struct {
 }
 
 func (b *Builder) BuildPodDisruptionBudget(opts *PodDisruptionBudgetOpts, owner metav1.Object) (*policyv1.PodDisruptionBudget, error) {
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(opts.Key).
 			WithMariaDB(opts.MariaDB).
-			WithOwner(owner).
 			Build()
 	pdb := &policyv1.PodDisruptionBudget{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      opts.Key.Name,
-			Namespace: opts.Key.Namespace,
-			Labels:    objLabels,
-		},
+		ObjectMeta: objMeta,
 		Spec: policyv1.PodDisruptionBudgetSpec{
 			MinAvailable:   opts.MinAvailable,
 			MaxUnavailable: opts.MaxUnavailable,

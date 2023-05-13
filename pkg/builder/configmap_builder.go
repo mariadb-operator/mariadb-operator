@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -18,18 +18,13 @@ type ConfigMapOpts struct {
 }
 
 func (b *Builder) BuildConfigMap(opts ConfigMapOpts, owner metav1.Object) (*corev1.ConfigMap, error) {
-	objLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(opts.Key).
 			WithMariaDB(opts.MariaDB).
-			WithOwner(owner).
 			Build()
 	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      opts.Key.Name,
-			Namespace: opts.Key.Namespace,
-			Labels:    objLabels,
-		},
-		Data: opts.Data,
+		ObjectMeta: objMeta,
+		Data:       opts.Data,
 	}
 	if err := controllerutil.SetControllerReference(owner, cm, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to ConfigMap: %v", err)

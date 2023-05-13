@@ -31,6 +31,8 @@ var _ = Describe("MariaDB controller", func() {
 				if err := k8sClient.Get(testCtx, configMapMariaDBKey(&testMariaDb), &cm); err != nil {
 					return false
 				}
+				Expect(cm.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(cm.ObjectMeta.Annotations).NotTo(BeNil())
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
@@ -40,6 +42,8 @@ var _ = Describe("MariaDB controller", func() {
 				if err := k8sClient.Get(testCtx, testMariaDbKey, &sts); err != nil {
 					return false
 				}
+				Expect(sts.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(sts.ObjectMeta.Annotations).NotTo(BeNil())
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
@@ -49,6 +53,8 @@ var _ = Describe("MariaDB controller", func() {
 				if err := k8sClient.Get(testCtx, testMariaDbKey, &svc); err != nil {
 					return false
 				}
+				Expect(svc.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(svc.ObjectMeta.Annotations).NotTo(BeNil())
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
@@ -58,6 +64,8 @@ var _ = Describe("MariaDB controller", func() {
 				if err := k8sClient.Get(testCtx, connectionKey(&testMariaDb), &conn); err != nil {
 					return false
 				}
+				Expect(conn.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(conn.ObjectMeta.Annotations).NotTo(BeNil())
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 		})

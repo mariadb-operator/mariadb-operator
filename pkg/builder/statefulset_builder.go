@@ -8,12 +8,14 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -57,14 +59,13 @@ func StatefulSetPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
 
 func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
 	dsn *corev1.SecretKeySelector) (*appsv1.StatefulSet, error) {
-	statefulSetLabels :=
-		labels.NewLabelsBuilder().
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
-			WithOwner(mariadb).
 			Build()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
+			WithMariaDBSelectorLabels(mariadb).
 			Build()
 	podTemplate, err := buildPodTemplate(mariadb, dsn, selectorLabels)
 	if err != nil {
@@ -72,11 +73,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 	}
 
 	sts := &appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-			Labels:    statefulSetLabels,
-		},
+		ObjectMeta: objMeta,
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName:         mariadb.Name,
 			Replicas:            &mariadb.Spec.Replicas,
@@ -116,14 +113,15 @@ func buildPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySel
 			annotation.PodMariadbAnnotation:     mariadb.Name,
 		}
 	}
+	objMeta :=
+		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
+			WithMariaDB(mariadb).
+			WithLabels(labels).
+			WithAnnotations(podAnnotations).
+			Build()
 
 	return &v1.PodTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        mariadb.Name,
-			Namespace:   mariadb.Namespace,
-			Labels:      labels,
-			Annotations: podAnnotations,
-		},
+		ObjectMeta: objMeta,
 		Spec: v1.PodSpec{
 			Containers:      containers,
 			Volumes:         buildStatefulSetVolumes(mariadb),

@@ -1,0 +1,30 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  # metadata that will be inherited by all children objects
+  inheritMetadata:
+    labels:
+      database.myorg.io: mariadb  
+    annotations:
+      database.myorg.io: mariadb
+
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  image:
+    repository: mariadb
+    tag: "10.7.4"
+    pullPolicy: IfNotPresent
+
+  port: 3306
+
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 100Mi
+    storageClassName: standard
+    accessModes:
+      - ReadWriteOnce

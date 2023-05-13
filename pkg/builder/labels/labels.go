@@ -3,14 +3,12 @@ package builder
 import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	appLabel           = "app.kubernetes.io/name"
 	instanceLabel      = "app.kubernetes.io/instance"
 	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
-	releaseLabel       = "release"
 	appMariaDb         = "mariadb"
 )
 
@@ -34,18 +32,9 @@ func (b *LabelsBuilder) WithInstance(instance string) *LabelsBuilder {
 	return b
 }
 
-func (b *LabelsBuilder) WithRelease(release string) *LabelsBuilder {
-	b.labels[releaseLabel] = release
-	return b
-}
-
 func (b *LabelsBuilder) WithMariaDB(mdb *mariadbv1alpha1.MariaDB) *LabelsBuilder {
 	return b.WithApp(appMariaDb).
 		WithInstance(mdb.Name)
-}
-
-func (b *LabelsBuilder) WithOwner(owner metav1.Object) *LabelsBuilder {
-	return b.WithLabels(owner.GetLabels())
 }
 
 func (b *LabelsBuilder) WithStatefulSetPod(mdb *mariadbv1alpha1.MariaDB, podIndex int) *LabelsBuilder {
@@ -56,6 +45,14 @@ func (b *LabelsBuilder) WithStatefulSetPod(mdb *mariadbv1alpha1.MariaDB, podInde
 func (b *LabelsBuilder) WithLabels(labels map[string]string) *LabelsBuilder {
 	for k, v := range labels {
 		b.labels[k] = v
+	}
+	return b
+}
+
+func (b *LabelsBuilder) WithMariaDBSelectorLabels(mdb *mariadbv1alpha1.MariaDB) *LabelsBuilder {
+	b = b.WithMariaDB(mdb)
+	if mdb.Spec.InheritMetadata != nil {
+		b = b.WithLabels(mdb.Spec.InheritMetadata.Labels)
 	}
 	return b
 }
