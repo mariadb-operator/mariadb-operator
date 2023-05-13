@@ -377,9 +377,9 @@ var _ = Describe("MariaDB webhook", func() {
 				{
 					by: "Updating BootstrapFromBackup",
 					patchFn: func(mdb *MariaDB) {
-						mdb.Spec.BootstrapFrom.BackupRef.Name = "another-backup"
+						mdb.Spec.BootstrapFrom = nil
 					},
-					wantErr: true,
+					wantErr: false,
 				},
 				{
 					by: "Updating Metrics",

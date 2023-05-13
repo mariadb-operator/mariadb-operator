@@ -178,7 +178,7 @@ type MariaDBSpec struct {
 	MyCnf                *string                      `json:"myCnf,omitempty" webhook:"inmutable"`
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
 
-	BootstrapFrom *RestoreSource `json:"bootstrapFrom,omitempty" webhook:"inmutable"`
+	BootstrapFrom *RestoreSource `json:"bootstrapFrom,omitempty"`
 
 	Metrics *Metrics `json:"metrics,omitempty"`
 
@@ -255,6 +255,10 @@ func (m *MariaDB) IsReady() bool {
 
 func (m *MariaDB) IsRestoringBackup() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeBackupRestored)
+}
+
+func (m *MariaDB) HasRestoredBackup() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
 }
 
 func (m *MariaDB) IsConfiguringReplication() bool {
