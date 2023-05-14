@@ -23,6 +23,7 @@ package controller
 
 import (
 	"os"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/controllers"
@@ -53,6 +54,7 @@ var (
 	logTimeEncoder           string
 	logDev                   bool
 	serviceMonitorReconciler bool
+	requeueSqlJob            time.Duration
 )
 
 func init() {
@@ -173,6 +175,7 @@ var rootCmd = &cobra.Command{
 			RefResolver:         refResolver,
 			ConfigMapReconciler: jobConfigMapReconciler,
 			ConditionComplete:   conditionComplete,
+			RequeueInterval:     requeueSqlJob,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "SqlJob")
 			os.Exit(1)
@@ -212,6 +215,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
 		"Enabling this requires Prometheus CRDs installed in the cluster.")
+	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
 }
 
 func setupLogger() {

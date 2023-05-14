@@ -35,6 +35,9 @@ metrics:
     # -- Timeout if metrics can't be retrieved in given time interval
     scrapeTimeout: 25s
 
+# -- Extra arguments to be passed to the controller entrypoint
+extrArgs: []
+
 webhook:
   # -- Enable webhooks. Cert-manager must be installed in the cluster
   enabled: true

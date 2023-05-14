@@ -20,6 +20,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
@@ -174,6 +175,7 @@ var _ = BeforeSuite(func() {
 		RefResolver:         refResolver,
 		ConfigMapReconciler: jobConfigMapReconciler,
 		ConditionComplete:   conditionComplete,
+		RequeueInterval:     10 * time.Second,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

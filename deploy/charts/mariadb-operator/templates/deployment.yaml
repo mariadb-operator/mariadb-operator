@@ -51,6 +51,9 @@ spec:
             {{ if .Values.metrics.enabled }}
             - --service-monitor-reconciler
             {{ end }}
+            {{ range .Values.extrArgs }}
+            - {{ . }}
+            {{ end }}
           ports:
             - containerPort: 8080
               protocol: TCP
