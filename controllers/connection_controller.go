@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -46,10 +47,11 @@ var (
 // ConnectionReconciler reconciles a Connection object
 type ConnectionReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	Builder        *builder.Builder
-	RefResolver    *refresolver.RefResolver
-	ConditionReady *conditions.Ready
+	Scheme          *runtime.Scheme
+	Builder         *builder.Builder
+	RefResolver     *refresolver.RefResolver
+	ConditionReady  *conditions.Ready
+	RequeueInterval time.Duration
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=connections,verbs=get;list;watch;create;update;patch;delete
@@ -105,6 +107,7 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherFailed("MariaDB not healthy")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
 		}
+		return r.retryResult(&conn), nil
 	}
 
 	var secretErr *multierror.Error
@@ -146,7 +149,7 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	var existingSecret corev1.Secret
 	if err := r.Get(ctx, key, &existingSecret); err == nil {
 		if err := r.healthCheck(ctx, conn, &existingSecret); err != nil {
-			log.FromContext(ctx).Error(err, "Error checking connection health")
+			log.FromContext(ctx).Info("Error checking connection health", "err", err)
 			return errConnHealthCheck
 		}
 		return nil
@@ -232,7 +235,7 @@ func (r *ConnectionReconciler) retryResult(conn *mariadbv1alpha1.Connection) ctr
 	if conn.Spec.HealthCheck != nil && conn.Spec.HealthCheck.RetryInterval != nil {
 		return ctrl.Result{RequeueAfter: (*conn.Spec.HealthCheck.RetryInterval).Duration}
 	}
-	return ctrl.Result{Requeue: true}
+	return ctrl.Result{RequeueAfter: r.RequeueInterval}
 }
 
 func (r *ConnectionReconciler) healthResult(conn *mariadbv1alpha1.Connection) ctrl.Result {

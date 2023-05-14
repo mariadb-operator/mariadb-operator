@@ -160,11 +160,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ConnectionReconciler{
-		Client:         k8sManager.GetClient(),
-		Scheme:         k8sManager.GetScheme(),
-		Builder:        builder,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
+		Client:          k8sManager.GetClient(),
+		Scheme:          k8sManager.GetScheme(),
+		Builder:         builder,
+		RefResolver:     refResolver,
+		ConditionReady:  conditionReady,
+		RequeueInterval: 5 * time.Second,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -175,7 +176,7 @@ var _ = BeforeSuite(func() {
 		RefResolver:         refResolver,
 		ConfigMapReconciler: jobConfigMapReconciler,
 		ConditionComplete:   conditionComplete,
-		RequeueInterval:     10 * time.Second,
+		RequeueInterval:     5 * time.Second,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
