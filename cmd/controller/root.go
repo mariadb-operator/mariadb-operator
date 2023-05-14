@@ -85,20 +85,22 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		builder := builder.New(mgr.GetScheme())
-		refResolver := refresolver.New(mgr.GetClient())
+		client := mgr.GetClient()
+		scheme := mgr.GetScheme()
+		builder := builder.New(scheme)
+		refResolver := refresolver.New(client)
 		conditionReady := conditions.NewReady()
-		conditionComplete := conditions.NewComplete(mgr.GetClient())
-		myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(mgr.GetClient(), builder)
-		jobConfigMapReconciler := configmap.NewConfigMapReconciler(mgr.GetClient(), builder)
-		secretReconciler := secret.NewSecretReconciler(mgr.GetClient(), builder)
-		replConfig := replication.NewReplicationConfig(mgr.GetClient(), builder, secretReconciler)
-		replicationReconciler := replication.NewReplicationReconciler(mgr.GetClient(), replConfig, secretReconciler, builder)
-		batchReconciler := batch.NewBatchReconciler(mgr.GetClient(), builder)
+		conditionComplete := conditions.NewComplete(client)
+		myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
+		jobConfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
+		secretReconciler := secret.NewSecretReconciler(client, builder)
+		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+		replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
+		batchReconciler := batch.NewBatchReconciler(client, builder)
 
 		if err = (&controllers.MariaDBReconciler{
-			Client:                   mgr.GetClient(),
-			Scheme:                   mgr.GetScheme(),
+			Client:                   client,
+			Scheme:                   scheme,
 			Builder:                  builder,
 			RefResolver:              refResolver,
 			ConditionReady:           conditionReady,
@@ -111,8 +113,8 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.BackupReconciler{
-			Client:            mgr.GetClient(),
-			Scheme:            mgr.GetScheme(),
+			Client:            client,
+			Scheme:            scheme,
 			Builder:           builder,
 			RefResolver:       refResolver,
 			ConditionComplete: conditionComplete,
@@ -122,8 +124,8 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.RestoreReconciler{
-			Client:            mgr.GetClient(),
-			Scheme:            mgr.GetScheme(),
+			Client:            client,
+			Scheme:            scheme,
 			Builder:           builder,
 			RefResolver:       refResolver,
 			ConditionComplete: conditionComplete,
@@ -133,8 +135,8 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.UserReconciler{
-			Client:         mgr.GetClient(),
-			Scheme:         mgr.GetScheme(),
+			Client:         client,
+			Scheme:         scheme,
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
@@ -142,8 +144,8 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.GrantReconciler{
-			Client:         mgr.GetClient(),
-			Scheme:         mgr.GetScheme(),
+			Client:         client,
+			Scheme:         scheme,
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
@@ -151,8 +153,8 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.DatabaseReconciler{
-			Client:         mgr.GetClient(),
-			Scheme:         mgr.GetScheme(),
+			Client:         client,
+			Scheme:         scheme,
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
@@ -160,8 +162,8 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.ConnectionReconciler{
-			Client:          mgr.GetClient(),
-			Scheme:          mgr.GetScheme(),
+			Client:          client,
+			Scheme:          scheme,
 			Builder:         builder,
 			RefResolver:     refResolver,
 			ConditionReady:  conditionReady,
@@ -171,8 +173,8 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.SqlJobReconciler{
-			Client:              mgr.GetClient(),
-			Scheme:              mgr.GetScheme(),
+			Client:              client,
+			Scheme:              scheme,
 			Builder:             builder,
 			RefResolver:         refResolver,
 			ConfigMapReconciler: jobConfigMapReconciler,
@@ -183,8 +185,8 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.PodReconciler{
-			Client:           mgr.GetClient(),
-			Scheme:           mgr.GetScheme(),
+			Client:           client,
+			Scheme:           scheme,
 			ReplConfig:       replConfig,
 			SecretReconciler: secretReconciler,
 			Builder:          builder,

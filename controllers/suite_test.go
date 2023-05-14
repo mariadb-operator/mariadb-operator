@@ -93,20 +93,22 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	builder := builder.New(k8sManager.GetScheme())
-	refResolver := refresolver.New(k8sManager.GetClient())
+	client := k8sManager.GetClient()
+	scheme := k8sManager.GetScheme()
+	builder := builder.New(scheme)
+	refResolver := refresolver.New(client)
 	conditionReady := conditions.NewReady()
-	conditionComplete := conditions.NewComplete(k8sManager.GetClient())
-	myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder)
-	jobConfigMapReconciler := configmap.NewConfigMapReconciler(k8sManager.GetClient(), builder)
-	secretReconciler := secret.NewSecretReconciler(k8sManager.GetClient(), builder)
-	replConfig := replication.NewReplicationConfig(k8sManager.GetClient(), builder, secretReconciler)
-	replicationReconciler := replication.NewReplicationReconciler(k8sManager.GetClient(), replConfig, secretReconciler, builder)
-	batchReconciler := batch.NewBatchReconciler(k8sManager.GetClient(), builder)
+	conditionComplete := conditions.NewComplete(client)
+	myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
+	jobConfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
+	secretReconciler := secret.NewSecretReconciler(client, builder)
+	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+	replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
+	batchReconciler := batch.NewBatchReconciler(client, builder)
 
 	err = (&MariaDBReconciler{
-		Client:                   k8sManager.GetClient(),
-		Scheme:                   k8sManager.GetScheme(),
+		Client:                   client,
+		Scheme:                   scheme,
 		Builder:                  builder,
 		ConditionReady:           conditionReady,
 		ConfigMapReconciler:      myCnfCconfigMapReconciler,
@@ -116,8 +118,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&BackupReconciler{
-		Client:            k8sManager.GetClient(),
-		Scheme:            k8sManager.GetScheme(),
+		Client:            client,
+		Scheme:            scheme,
 		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
@@ -126,8 +128,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&RestoreReconciler{
-		Client:            k8sManager.GetClient(),
-		Scheme:            k8sManager.GetScheme(),
+		Client:            client,
+		Scheme:            scheme,
 		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
@@ -136,32 +138,32 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&UserReconciler{
-		Client:         k8sManager.GetClient(),
-		Scheme:         k8sManager.GetScheme(),
+		Client:         client,
+		Scheme:         scheme,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&GrantReconciler{
-		Client:         k8sManager.GetClient(),
-		Scheme:         k8sManager.GetScheme(),
+		Client:         client,
+		Scheme:         scheme,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&DatabaseReconciler{
-		Client:         k8sManager.GetClient(),
-		Scheme:         k8sManager.GetScheme(),
+		Client:         client,
+		Scheme:         scheme,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ConnectionReconciler{
-		Client:          k8sManager.GetClient(),
-		Scheme:          k8sManager.GetScheme(),
+		Client:          client,
+		Scheme:          scheme,
 		Builder:         builder,
 		RefResolver:     refResolver,
 		ConditionReady:  conditionReady,
@@ -170,8 +172,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&SqlJobReconciler{
-		Client:              k8sManager.GetClient(),
-		Scheme:              k8sManager.GetScheme(),
+		Client:              client,
+		Scheme:              scheme,
 		Builder:             builder,
 		RefResolver:         refResolver,
 		ConfigMapReconciler: jobConfigMapReconciler,
@@ -181,8 +183,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&PodReconciler{
-		Client:           k8sManager.GetClient(),
-		Scheme:           k8sManager.GetScheme(),
+		Client:           client,
+		Scheme:           scheme,
 		ReplConfig:       replConfig,
 		SecretReconciler: secretReconciler,
 		Builder:          builder,
