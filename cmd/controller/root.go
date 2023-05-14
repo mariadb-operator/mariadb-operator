@@ -54,7 +54,7 @@ var (
 	logTimeEncoder           string
 	logDev                   bool
 	serviceMonitorReconciler bool
-	requeueConnections       time.Duration
+	requeueConnection        time.Duration
 	requeueSqlJob            time.Duration
 )
 
@@ -167,7 +167,7 @@ var rootCmd = &cobra.Command{
 			Builder:         builder,
 			RefResolver:     refResolver,
 			ConditionReady:  conditionReady,
-			RequeueInterval: requeueConnections,
+			RequeueInterval: requeueConnection,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Connection")
 			os.Exit(1)
@@ -219,7 +219,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
 		"Enabling this requires Prometheus CRDs installed in the cluster.")
-	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-connections", 10*time.Second, "The interval at which Connections are requeued.")
+	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
 }
 
