@@ -45,15 +45,15 @@ spec:
           args:
             - --metrics-addr=:8080
             - --log-level={{ .Values.logLevel }}
-            {{ if .Values.ha.enabled }}
+            {{- if .Values.ha.enabled }}
             - --leader-elect
-            {{ end }}
-            {{ if .Values.metrics.enabled }}
+            {{- end }}
+            {{- if .Values.metrics.enabled }}
             - --service-monitor-reconciler
-            {{ end }}
-            {{ range .Values.extrArgs }}
+            {{- end }}
+            {{- range .Values.extrArgs }}
             - {{ . }}
-            {{ end }}
+            {{- end }}
           ports:
             - containerPort: 8080
               protocol: TCP

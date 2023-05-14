@@ -57,6 +57,7 @@ helm uninstall mariadb-operator
 | webhook.certificate.default.certExpirationDays | int | `365` | Certificate expiration in days. |
 | webhook.certificate.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. |
 | webhook.enabled | bool | `true` | Enable webhooks. Cert-manager must be installed in the cluster |
+| webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
 | webhook.hostNetwork | bool | `false` | Expose the webhook server in the host network |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
 | webhook.image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |

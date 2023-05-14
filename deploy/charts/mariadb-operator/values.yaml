@@ -75,6 +75,8 @@ webhook:
     interval: 30s
     # -- Timeout if metrics can't be retrieved in given time interval
     scrapeTimeout: 25s
+  # -- Extra arguments to be passed to the webhook entrypoint
+  extrArgs: []
   # -- Annotations to add to webhook Pod
   podAnnotations: {}
   # -- Security context to add to webhook Pod
