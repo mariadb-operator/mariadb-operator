@@ -27,6 +27,7 @@ helm uninstall mariadb-operator
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity to add to controller Pod |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
+| extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
 | fullnameOverride | string | `""` |  |
 | ha.enabled | bool | `false` | Enable high availability |
 | ha.leaseId | string | `"mariadb.mmontes.io"` | Lease resource name to be used for leader election |

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -35,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -49,6 +51,7 @@ type SqlJobReconciler struct {
 	RefResolver         *refresolver.RefResolver
 	ConditionComplete   *conditions.Complete
 	ConfigMapReconciler *configmap.ConfigMapReconciler
+	RequeueInterval     time.Duration
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=sqljobs,verbs=get;list;watch;create;update;patch;delete
@@ -65,9 +68,9 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	err := r.waitForDependencies(ctx, &sqlJob)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error waiting for dependencies: %v", err)
+	ok, result, err := r.waitForDependencies(ctx, &sqlJob)
+	if !ok {
+		return result, err
 	}
 
 	mariadb, err := r.RefResolver.MariaDB(ctx, &sqlJob.Spec.MariaDBRef, sqlJob.Namespace)
@@ -113,34 +116,37 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *v1alpha1.SqlJob) error {
+func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *v1alpha1.SqlJob) (bool, ctrl.Result, error) {
 	if sqlJob.Spec.DependsOn == nil {
-		return nil
+		return true, ctrl.Result{}, nil
 	}
-	patchStatus := func(msg string) error {
-		var errBundle *multierror.Error
-		errBundle = multierror.Append(errBundle, errors.New(msg))
-
-		err := r.patchStatus(ctx, sqlJob, r.ConditionComplete.PatcherFailed(msg))
-		errBundle = multierror.Append(errBundle, err)
-
-		return errBundle
-	}
+	logger := log.FromContext(ctx)
 
 	for _, dep := range sqlJob.Spec.DependsOn {
 		sqlJobDep, err := r.RefResolver.SqlJob(ctx, &dep, sqlJob.Namespace)
 
 		if err != nil {
+			msg := fmt.Sprintf("Error getting SqlJob dependency: %v", err)
 			if apierrors.IsNotFound(err) {
-				return patchStatus(fmt.Sprintf("Dependency '%s' not found", dep.Name))
+				msg = fmt.Sprintf("Dependency '%s' not found", dep.Name)
 			}
-			return patchStatus(fmt.Sprintf("Error getting SqlJob dependency: %v", err))
+
+			logger.Info(msg)
+			if err := r.patchStatus(ctx, sqlJob, r.ConditionComplete.PatcherFailed(msg)); err != nil {
+				return false, ctrl.Result{}, err
+			}
 		}
 		if !sqlJobDep.IsComplete() {
-			return patchStatus(fmt.Sprintf("Dependency '%s' not ready", dep.Name))
+			msg := fmt.Sprintf("Dependency '%s' not ready", dep.Name)
+
+			logger.Info(msg)
+			if err := r.patchStatus(ctx, sqlJob, r.ConditionComplete.PatcherFailed(msg)); err != nil {
+				return false, ctrl.Result{}, err
+			}
+			return false, ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 		}
 	}
-	return nil
+	return true, ctrl.Result{}, nil
 }
 
 func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
