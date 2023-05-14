@@ -47,6 +47,9 @@ spec:
             - --metrics-addr=:8080
             - --health-addr=:8081
             - --log-level={{ .Values.logLevel }}
+            {{- range .Values.extrArgs }}
+            - {{ . }}
+            {{- end }}
           ports:
             - containerPort: {{ .Values.webhook.port }}
               protocol: TCP
