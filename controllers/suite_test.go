@@ -27,6 +27,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -104,6 +105,7 @@ var _ = BeforeSuite(func() {
 	secretReconciler := secret.NewSecretReconciler(client, builder)
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 	replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
+	galeraReconciler := galera.NewGaleraReconciler(client)
 	batchReconciler := batch.NewBatchReconciler(client, builder)
 
 	err = (&MariaDBReconciler{
@@ -113,6 +115,7 @@ var _ = BeforeSuite(func() {
 		ConditionReady:           conditionReady,
 		ConfigMapReconciler:      myCnfCconfigMapReconciler,
 		ReplicationReconciler:    replicationReconciler,
+		GaleraReconciker:         galeraReconciler,
 		ServiceMonitorReconciler: true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

@@ -26,6 +26,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
@@ -55,6 +56,7 @@ type MariaDBReconciler struct {
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
 	ReplicationReconciler    *replication.ReplicationReconciler
+	GaleraReconciker         *galera.GaleraReconciler
 	ServiceMonitorReconciler bool
 }
 
@@ -109,6 +111,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Resource:  "Replication",
 			Reconcile: r.ReplicationReconciler.Reconcile,
+		},
+		{
+			Resource:  "Galera",
+			Reconcile: r.GaleraReconciker.Reconcile,
 		},
 		{
 			Resource:  "Restore",

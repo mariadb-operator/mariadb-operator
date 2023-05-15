@@ -195,6 +195,11 @@ type Replication struct {
 	SyncBinlog bool `json:"syncBinlog"`
 }
 
+type Galera struct {
+	// +kubebuilder:default=1
+	Threads int `json:"threads,omitempty"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
@@ -220,6 +225,8 @@ type MariaDBSpec struct {
 	Metrics *Metrics `json:"metrics,omitempty"`
 
 	Replication *Replication `json:"replication,omitempty"`
+
+	Galera *Galera `json:"galera,omitempty"`
 	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
 
@@ -304,6 +311,10 @@ func (m *MariaDB) IsConfiguringReplication() bool {
 
 func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
+}
+
+func (m *MariaDB) IsRecoveringGalera() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeGaleraRecovered)
 }
 
 // +kubebuilder:object:root=true

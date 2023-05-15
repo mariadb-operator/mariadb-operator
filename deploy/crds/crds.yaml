@@ -5918,6 +5918,12 @@ spec:
                       x-kubernetes-map-type: atomic
                   type: object
                 type: array
+              galera:
+                properties:
+                  threads:
+                    default: 1
+                    type: integer
+                type: object
               image:
                 properties:
                   pullPolicy:

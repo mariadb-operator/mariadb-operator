@@ -31,6 +31,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -96,6 +97,7 @@ var rootCmd = &cobra.Command{
 		secretReconciler := secret.NewSecretReconciler(client, builder)
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 		replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
+		galeraReconciler := galera.NewGaleraReconciler(client)
 		batchReconciler := batch.NewBatchReconciler(client, builder)
 
 		if err = (&controllers.MariaDBReconciler{
@@ -107,6 +109,7 @@ var rootCmd = &cobra.Command{
 			ConfigMapReconciler:      myCnfCconfigMapReconciler,
 			SecretReconciler:         secretReconciler,
 			ReplicationReconciler:    replicationReconciler,
+			GaleraReconciker:         galeraReconciler,
 			ServiceMonitorReconciler: serviceMonitorReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
