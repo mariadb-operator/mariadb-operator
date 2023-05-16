@@ -19,6 +19,11 @@ spec:
     annotations:
       mariadb.mmontes.io/connection: sample
     key: dsn
+    usernameKey: username
+    passwordKey: password
+    hostKey: host
+    portKey: port
+    databaseKey: database
   healthCheck:
     interval: 10s
     retryInterval: 3s
