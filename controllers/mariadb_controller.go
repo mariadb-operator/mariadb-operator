@@ -232,7 +232,7 @@ func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, ma
 		return nil
 	}
 
-	key := podDisruptionBudgetKey(mariadb)
+	key := client.ObjectKeyFromObject(mariadb)
 	var existingPDB policyv1.PodDisruptionBudget
 	if err := r.Get(ctx, key, &existingPDB); err == nil {
 		return nil
@@ -298,7 +298,7 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 		!mariadb.IsReady() {
 		return nil
 	}
-	key := connectionKey(mariadb)
+	key := client.ObjectKeyFromObject(mariadb)
 	var existingConn mariadbv1alpha1.Connection
 	if err := r.Get(ctx, key, &existingConn); err == nil {
 		return nil
@@ -425,20 +425,6 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 func configMapMariaDBKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("config-%s", mariadb.Name),
-		Namespace: mariadb.Namespace,
-	}
-}
-
-func podDisruptionBudgetKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      mariadb.Name,
-		Namespace: mariadb.Namespace,
-	}
-}
-
-func connectionKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      mariadb.Name,
 		Namespace: mariadb.Namespace,
 	}
 }

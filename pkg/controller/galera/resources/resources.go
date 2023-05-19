@@ -14,9 +14,9 @@ func ConfigMapKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	}
 }
 
-func PodDisruptionBudgetKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+func ServiceKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      mariadb.Name,
+		Name:      fmt.Sprintf("%s-internal", mariadb.Name),
 		Namespace: mariadb.Namespace,
 	}
 }

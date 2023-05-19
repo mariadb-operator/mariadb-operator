@@ -63,7 +63,7 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, connectionKey(&testMariaDb), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDb), &conn); err != nil {
 					return false
 				}
 				Expect(conn.ObjectMeta.Labels).NotTo(BeNil())
