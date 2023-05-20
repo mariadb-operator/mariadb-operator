@@ -100,12 +100,11 @@ var _ = BeforeSuite(func() {
 	refResolver := refresolver.New(client)
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(client)
-	myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
-	jobConfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
+	configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 	secretReconciler := secret.NewSecretReconciler(client, builder)
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 	replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
-	galeraReconciler := galera.NewGaleraReconciler(client)
+	galeraReconciler := galera.NewGaleraReconciler(client, configMapReconciler)
 	batchReconciler := batch.NewBatchReconciler(client, builder)
 
 	err = (&MariaDBReconciler{
@@ -113,7 +112,7 @@ var _ = BeforeSuite(func() {
 		Scheme:                   scheme,
 		Builder:                  builder,
 		ConditionReady:           conditionReady,
-		ConfigMapReconciler:      myCnfCconfigMapReconciler,
+		ConfigMapReconciler:      configMapReconciler,
 		ReplicationReconciler:    replicationReconciler,
 		GaleraReconciker:         galeraReconciler,
 		ServiceMonitorReconciler: true,
@@ -179,7 +178,7 @@ var _ = BeforeSuite(func() {
 		Scheme:              scheme,
 		Builder:             builder,
 		RefResolver:         refResolver,
-		ConfigMapReconciler: jobConfigMapReconciler,
+		ConfigMapReconciler: configMapReconciler,
 		ConditionComplete:   conditionComplete,
 		RequeueInterval:     5 * time.Second,
 	}).SetupWithManager(k8sManager)

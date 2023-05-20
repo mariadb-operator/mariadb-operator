@@ -92,12 +92,11 @@ var rootCmd = &cobra.Command{
 		refResolver := refresolver.New(client)
 		conditionReady := conditions.NewReady()
 		conditionComplete := conditions.NewComplete(client)
-		myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
-		jobConfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
+		configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 		secretReconciler := secret.NewSecretReconciler(client, builder)
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 		replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
-		galeraReconciler := galera.NewGaleraReconciler(client)
+		galeraReconciler := galera.NewGaleraReconciler(client, configMapReconciler)
 		batchReconciler := batch.NewBatchReconciler(client, builder)
 
 		if err = (&controllers.MariaDBReconciler{
@@ -106,7 +105,7 @@ var rootCmd = &cobra.Command{
 			Builder:                  builder,
 			RefResolver:              refResolver,
 			ConditionReady:           conditionReady,
-			ConfigMapReconciler:      myCnfCconfigMapReconciler,
+			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,
 			ReplicationReconciler:    replicationReconciler,
 			GaleraReconciker:         galeraReconciler,
@@ -180,7 +179,7 @@ var rootCmd = &cobra.Command{
 			Scheme:              scheme,
 			Builder:             builder,
 			RefResolver:         refResolver,
-			ConfigMapReconciler: jobConfigMapReconciler,
+			ConfigMapReconciler: configMapReconciler,
 			ConditionComplete:   conditionComplete,
 			RequeueInterval:     requeueSqlJob,
 		}).SetupWithManager(mgr); err != nil {

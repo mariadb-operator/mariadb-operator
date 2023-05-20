@@ -2613,7 +2613,7 @@ spec:
                 type: array
               galera:
                 properties:
-                  threads:
+                  replicaThreads:
                     default: 1
                     type: integer
                 type: object

@@ -5,9 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,11 +22,13 @@ var (
 
 type GaleraReconciler struct {
 	client.Client
+	ConfigMapReconciler *configmap.ConfigMapReconciler
 }
 
-func NewGaleraReconciler(client client.Client) *GaleraReconciler {
+func NewGaleraReconciler(client client.Client, configMapReconciler *configmap.ConfigMapReconciler) *GaleraReconciler {
 	return &GaleraReconciler{
-		Client: client,
+		Client:              client,
+		ConfigMapReconciler: configMapReconciler,
 	}
 }
 
@@ -46,9 +51,21 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 }
 
 func (r *GaleraReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	_, err := galeraConfig(mariadb)
+	galeraCnf, err := galeraConfig(mariadb)
 	if err != nil {
 		return fmt.Errorf("error generating galera config file: %v", err)
+	}
+
+	req := configmap.ReconcileRequest{
+		Mariadb: mariadb,
+		Owner:   mariadb,
+		Key:     galeraresources.ConfigMapKey(mariadb),
+		Data: map[string]string{
+			galeraConfigMapKey: galeraCnf,
+		},
+	}
+	if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
+		return fmt.Errorf("error reconciling ConfigMap: %v", err)
 	}
 	return nil
 }
@@ -61,8 +78,8 @@ wsrep_cluster_address='{{ .ClusterAddress }}'
 wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads={{ .Threads }}
 # Node configuration - to be rendered by initContainer
-wsrep_node_address="{{ HOSTNAME }}.{{ .Service }}"
-wsrep_node_name="{{ HOSTNAME }}"
+wsrep_node_address="$MARIADB_OPERATOR_HOSTNAME.{{ .Service }}"
+wsrep_node_name="$MARIADB_OPERATOR_HOSTNAME"
 `)
 	buf := new(bytes.Buffer)
 	clusterAddr, err := clusterAddress(mariadb)
@@ -75,8 +92,8 @@ wsrep_node_name="{{ HOSTNAME }}"
 		Service        string
 	}{
 		ClusterAddress: clusterAddr,
-		Threads:        mariadb.Spec.Galera.Threads,
-		Service:        statefulset.ServiceFQDN(mariadb.ObjectMeta),
+		Threads:        mariadb.Spec.Galera.ReplicaThreads,
+		Service:        statefulset.ServiceFQDNWithService(mariadb.ObjectMeta, galeraresources.ServiceKey(mariadb).Name),
 	})
 	if err != nil {
 		return "", err
@@ -88,11 +105,11 @@ func clusterAddress(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
 	if mariadb.Spec.Replicas == 0 {
 		return "", errors.New("at least one replica must be specified to get a valid cluster address")
 	}
-	addr := "gcomm://"
+	pods := make([]string, mariadb.Spec.Replicas)
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
-		addr += statefulset.PodFQDN(mariadb.ObjectMeta, i)
+		pods[i] = statefulset.PodFQDNWithService(mariadb.ObjectMeta, i, galeraresources.ServiceKey(mariadb).Name)
 	}
-	return addr, nil
+	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
 }
 
 func createTpl(name, t string) *template.Template {

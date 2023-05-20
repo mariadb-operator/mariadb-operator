@@ -61,7 +61,7 @@ type MariaDBReconciler struct {
 }
 
 type reconcilePhase struct {
-	Resource  string
+	Name      string
 	Reconcile func(context.Context, *mariadbv1alpha1.MariaDB) error
 }
 
@@ -89,41 +89,41 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	phases := []reconcilePhase{
 		{
-			Resource:  "ConfigMap",
+			Name:      "ConfigMap",
 			Reconcile: r.reconcileConfigMap,
 		},
 		{
-			Resource:  "StatefulSet",
+			Name:      "StatefulSet",
 			Reconcile: r.reconcileStatefulSet,
 		},
 		{
-			Resource:  "PodDisruptionBudget",
+			Name:      "PodDisruptionBudget",
 			Reconcile: r.reconcilePodDisruptionBudget,
 		},
 		{
-			Resource:  "Service",
+			Name:      "Service",
 			Reconcile: r.reconcileService,
 		},
 		{
-			Resource:  "Connection",
+			Name:      "Connection",
 			Reconcile: r.reconcileConnection,
 		},
 		{
-			Resource:  "Replication",
+			Name:      "Replication",
 			Reconcile: r.ReplicationReconciler.Reconcile,
 		},
 		{
-			Resource:  "Galera",
+			Name:      "Galera",
 			Reconcile: r.GaleraReconciker.Reconcile,
 		},
 		{
-			Resource:  "Restore",
+			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
 		},
 	}
 	if r.ServiceMonitorReconciler {
 		phases = append(phases, reconcilePhase{
-			Resource:  "ServiceMonitor",
+			Name:      "ServiceMonitor",
 			Reconcile: r.reconcileServiceMonitor,
 		})
 	}
@@ -137,7 +137,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(errBundle, err)
 
-			msg := fmt.Sprintf("Error reconciling %s: %v", p.Resource, err)
+			msg := fmt.Sprintf("Error reconciling %s: %v", p.Name, err)
 			patchErr := r.patchStatus(ctx, &mariaDb, func(s *mariadbv1alpha1.MariaDBStatus) error {
 				patcher := r.ConditionReady.PatcherFailed(msg)
 				patcher(s)
@@ -148,7 +148,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 
 			if err := errBundle.ErrorOrNil(); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Resource, err)
+				return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Name, err)
 			}
 		}
 	}

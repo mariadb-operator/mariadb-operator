@@ -197,7 +197,7 @@ type Replication struct {
 
 type Galera struct {
 	// +kubebuilder:default=1
-	Threads int `json:"threads,omitempty"`
+	ReplicaThreads int `json:"replicaThreads,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
