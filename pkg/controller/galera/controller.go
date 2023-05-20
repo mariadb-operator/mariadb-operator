@@ -16,10 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var (
-	galeraConfigMapKey = "0-galera.cnf"
-)
-
 type GaleraReconciler struct {
 	client.Client
 	ConfigMapReconciler *configmap.ConfigMapReconciler
@@ -43,14 +39,10 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	if !healthy {
 		return nil
 	}
-
-	if err := r.reconcileConfigMap(ctx, mariadb); err != nil {
-		return fmt.Errorf("error reconciling galera ConfigMap: %v", err)
-	}
 	return nil
 }
 
-func (r *GaleraReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *GaleraReconciler) ReconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	galeraCnf, err := galeraConfig(mariadb)
 	if err != nil {
 		return fmt.Errorf("error generating galera config file: %v", err)
@@ -61,7 +53,7 @@ func (r *GaleraReconciler) reconcileConfigMap(ctx context.Context, mariadb *mari
 		Owner:   mariadb,
 		Key:     galeraresources.ConfigMapKey(mariadb),
 		Data: map[string]string{
-			galeraConfigMapKey: galeraCnf,
+			"0-galera.cnf": galeraCnf,
 		},
 	}
 	if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
@@ -71,7 +63,7 @@ func (r *GaleraReconciler) reconcileConfigMap(ctx context.Context, mariadb *mari
 }
 
 func galeraConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
-	tpl := createTpl(galeraConfigMapKey, `# Cluster configuration - rendered by mariadb-operator
+	tpl := createTpl("galera", `# Cluster configuration - rendered by mariadb-operator
 wsrep_on=ON
 wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_cluster_address='{{ .ClusterAddress }}'

@@ -56,7 +56,7 @@ type MariaDBReconciler struct {
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
 	ReplicationReconciler    *replication.ReplicationReconciler
-	GaleraReconciker         *galera.GaleraReconciler
+	GaleraReconciler         *galera.GaleraReconciler
 	ServiceMonitorReconciler bool
 }
 
@@ -113,10 +113,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.ReplicationReconciler.Reconcile,
 		},
 		{
-			Name:      "Galera",
-			Reconcile: r.GaleraReconciker.Reconcile,
-		},
-		{
 			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
 		},
@@ -163,6 +159,18 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if err := r.reconcileMyCnfConfigMap(ctx, mariadb); err != nil {
+		return fmt.Errorf("error reconciling my.cnf ConfigMap: %v", err)
+	}
+	if mariadb.Spec.Galera != nil {
+		if err := r.GaleraReconciler.ReconcileConfigMap(ctx, mariadb); err != nil {
+			return fmt.Errorf("error reconciling galera ConfigMap: %v", err)
+		}
+	}
+	return nil
+}
+
+func (r *MariaDBReconciler) reconcileMyCnfConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
 		return nil
 	}

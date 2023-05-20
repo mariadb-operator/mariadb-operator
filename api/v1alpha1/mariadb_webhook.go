@@ -72,11 +72,18 @@ func (r *MariaDB) ValidateDelete() error {
 }
 
 func (r *MariaDB) validateReplication() error {
-	if r.Spec.Replication == nil && r.Spec.Replicas > 1 {
+	if (r.Spec.Replication == nil && r.Spec.Galera == nil) && r.Spec.Replicas > 1 {
 		return field.Invalid(
 			field.NewPath("spec").Child("replicas"),
 			r.Spec.Replicas,
-			"Multiple replicas can only be specified when 'spec.replication' is configured",
+			"Multiple replicas can only be specified when 'spec.replication' or 'spec.galera' are configured",
+		)
+	}
+	if (r.Spec.Replication != nil || r.Spec.Galera != nil) && r.Spec.Replicas <= 1 {
+		return field.Invalid(
+			field.NewPath("spec").Child("replicas"),
+			r.Spec.Replicas,
+			"Multiple replicas must be specified when 'spec.replication' or 'spec.galera' are configured",
 		)
 	}
 	if r.Spec.Replication != nil {
@@ -84,7 +91,7 @@ func (r *MariaDB) validateReplication() error {
 			return field.Invalid(
 				field.NewPath("spec").Child("replicas"),
 				r.Spec.Replicas,
-				"Multiple replicas must be specified when 'spec.replication' is configured",
+				"Multiple replicas must be specified when 'spec.replication' or 'spec.galera' is configured",
 			)
 		}
 		if r.Spec.Replication.Primary.PodIndex < 0 || r.Spec.Replication.Primary.PodIndex >= int(r.Spec.Replicas) {

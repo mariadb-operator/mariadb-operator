@@ -114,7 +114,7 @@ var _ = BeforeSuite(func() {
 		ConditionReady:           conditionReady,
 		ConfigMapReconciler:      configMapReconciler,
 		ReplicationReconciler:    replicationReconciler,
-		GaleraReconciker:         galeraReconciler,
+		GaleraReconciler:         galeraReconciler,
 		ServiceMonitorReconciler: true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

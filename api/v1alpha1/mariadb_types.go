@@ -196,6 +196,10 @@ type Replication struct {
 }
 
 type Galera struct {
+	// +kubebuilder:validation:Required
+	InitContainerImage Image `json:"initContainerImage" webhook:"inmutable"`
+	// +kubebuilder:validation:Required
+	ConfigVolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"configVolumeClaimTemplate" webhook:"inmutable"`
 	// +kubebuilder:default=1
 	ReplicaThreads int `json:"replicaThreads,omitempty"`
 }

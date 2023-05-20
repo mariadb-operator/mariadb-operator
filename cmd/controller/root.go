@@ -108,7 +108,7 @@ var rootCmd = &cobra.Command{
 			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,
 			ReplicationReconciler:    replicationReconciler,
-			GaleraReconciker:         galeraReconciler,
+			GaleraReconciler:         galeraReconciler,
 			ServiceMonitorReconciler: serviceMonitorReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")

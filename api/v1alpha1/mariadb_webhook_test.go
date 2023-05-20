@@ -116,19 +116,22 @@ var _ = Describe("MariaDB webhook", func() {
 					wantErr: false,
 				},
 				{
-					by: "invalid replicas",
+					by: "fewer replicas required",
 					mdb: MariaDB{
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
-							Replication: &Replication{
-								Primary: PrimaryReplication{
-									PodIndex: 2,
-								},
-								Replica: ReplicaReplication{
-									WaitPoint:         func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
-									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-									ConnectionRetries: 4,
-								},
+							Replicas: 4,
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "more replicas required",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Galera: &Galera{
+								ReplicaThreads: 4,
 							},
 							Replicas: 1,
 						},
