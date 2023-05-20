@@ -28,12 +28,16 @@ const (
 	stsGaleraConfigVolume       = "galera"
 	stsGaleraConfigMountPath    = "/etc/mysql/mariadb.conf.d"
 
-	mariaDbContainerName = "mariadb"
-	mariaDbPortName      = "mariadb"
+	MariaDbContainerName = "mariadb"
+	MariaDbPortName      = "mariadb"
 
-	metricsContainerName = "metrics"
-	metricsPortName      = "metrics"
-	metricsPort          = 9104
+	MetricsContainerName = "metrics"
+	MetricsPortName      = "metrics"
+	MetricsPort          = 9104
+
+	GaleraClusterPort = 4444
+	GaleraISTPort     = 4567
+	GaleraSSTPort     = 4568
 )
 
 func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
@@ -49,9 +53,9 @@ func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 
 func StatefulSetPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
 	for _, c := range sts.Spec.Template.Spec.Containers {
-		if c.Name == mariaDbContainerName {
+		if c.Name == MariaDbContainerName {
 			for _, p := range c.Ports {
-				if p.Name == mariaDbPortName {
+				if p.Name == MariaDbPortName {
 					return &p, nil
 				}
 			}

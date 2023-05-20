@@ -29,11 +29,13 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -49,15 +51,20 @@ var (
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
-	Scheme                   *runtime.Scheme
-	Builder                  *builder.Builder
-	RefResolver              *refresolver.RefResolver
-	ConditionReady           *conditions.Ready
-	ConfigMapReconciler      *configmap.ConfigMapReconciler
-	SecretReconciler         *secret.SecretReconciler
-	ReplicationReconciler    *replication.ReplicationReconciler
-	GaleraReconciler         *galera.GaleraReconciler
+	Scheme *runtime.Scheme
+
+	Builder        *builder.Builder
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *conditions.Ready
+
 	ServiceMonitorReconciler bool
+
+	ConfigMapReconciler *configmap.ConfigMapReconciler
+	SecretReconciler    *secret.SecretReconciler
+	ServiceReconciler   *service.ServiceReconciler
+
+	ReplicationReconciler *replication.ReplicationReconciler
+	GaleraReconciler      *galera.GaleraReconciler
 }
 
 type reconcilePhase struct {
@@ -164,7 +171,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 	}
 	if mariadb.Spec.Galera != nil {
 		if err := r.GaleraReconciler.ReconcileConfigMap(ctx, mariadb); err != nil {
-			return fmt.Errorf("error reconciling galera ConfigMap: %v", err)
+			return fmt.Errorf("error reconciling Galera ConfigMap: %v", err)
 		}
 	}
 	return nil
@@ -265,13 +272,33 @@ func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, ma
 }
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if err := r.reconcileMariadbService(ctx, mariadb); err != nil {
+		return fmt.Errorf("error reconciling MariaDB Service: %v", err)
+	}
+	if mariadb.Spec.Galera != nil {
+		if err := r.GaleraReconciler.ReconcileService(ctx, mariadb); err != nil {
+			return fmt.Errorf("error reconciling Galera Service: %v", err)
+		}
+	}
+	return nil
+}
+
+func (r *MariaDBReconciler) reconcileMariadbService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
-	serviceLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
-			Build()
+	ports := []v1.ServicePort{
+		{
+			Name: builder.MariaDbContainerName,
+			Port: mariadb.Spec.Port,
+		},
+	}
+	if mariadb.Spec.Metrics != nil {
+		ports = append(ports, v1.ServicePort{
+			Name: builder.MetricsContainerName,
+			Port: builder.MetricsPort,
+		})
+	}
 	opts := builder.ServiceOpts{
-		Selectorlabels: serviceLabels,
+		Ports: ports,
 	}
 	if mariadb.Spec.Service != nil {
 		opts.Type = mariadb.Spec.Service.Type
@@ -282,23 +309,10 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 		return fmt.Errorf("error building Service: %v", err)
 	}
 
-	var existingSvc corev1.Service
-	if err := r.Get(ctx, key, &existingSvc); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("error getting Service: %v", err)
-		}
-		if err := r.Create(ctx, desiredSvc); err != nil {
-			return fmt.Errorf("error creating Service: %v", err)
-		}
-		return nil
+	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
+		return fmt.Errorf("error reconciling MariaDb Service: %v", err)
 	}
-
-	patch := client.MergeFrom(existingSvc.DeepCopy())
-	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
-	existingSvc.Spec.Type = desiredSvc.Spec.Type
-	existingSvc.Annotations = desiredSvc.Annotations
-	existingSvc.Labels = desiredSvc.Labels
-	return r.Patch(ctx, &existingSvc, patch)
+	return nil
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

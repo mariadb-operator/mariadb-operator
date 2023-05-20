@@ -34,6 +34,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -88,28 +89,38 @@ var rootCmd = &cobra.Command{
 
 		client := mgr.GetClient()
 		scheme := mgr.GetScheme()
+
 		builder := builder.New(scheme)
 		refResolver := refresolver.New(client)
+
 		conditionReady := conditions.NewReady()
 		conditionComplete := conditions.NewComplete(client)
+
 		configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 		secretReconciler := secret.NewSecretReconciler(client, builder)
-		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
-		replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
-		galeraReconciler := galera.NewGaleraReconciler(client, configMapReconciler)
+		serviceReconciler := service.NewServiceReconciler(client)
 		batchReconciler := batch.NewBatchReconciler(client, builder)
 
+		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+		replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
+		galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
+
 		if err = (&controllers.MariaDBReconciler{
-			Client:                   client,
-			Scheme:                   scheme,
-			Builder:                  builder,
-			RefResolver:              refResolver,
-			ConditionReady:           conditionReady,
-			ConfigMapReconciler:      configMapReconciler,
-			SecretReconciler:         secretReconciler,
-			ReplicationReconciler:    replicationReconciler,
-			GaleraReconciler:         galeraReconciler,
+			Client: client,
+			Scheme: scheme,
+
+			Builder:        builder,
+			RefResolver:    refResolver,
+			ConditionReady: conditionReady,
+
 			ServiceMonitorReconciler: serviceMonitorReconciler,
+
+			ConfigMapReconciler: configMapReconciler,
+			SecretReconciler:    secretReconciler,
+			ServiceReconciler:   serviceReconciler,
+
+			ReplicationReconciler: replicationReconciler,
+			GaleraReconciler:      galeraReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
 			os.Exit(1)

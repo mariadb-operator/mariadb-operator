@@ -30,6 +30,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -96,26 +97,38 @@ var _ = BeforeSuite(func() {
 
 	client := k8sManager.GetClient()
 	scheme := k8sManager.GetScheme()
+
 	builder := builder.New(scheme)
 	refResolver := refresolver.New(client)
+
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(client)
+
 	configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 	secretReconciler := secret.NewSecretReconciler(client, builder)
-	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
-	replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
-	galeraReconciler := galera.NewGaleraReconciler(client, configMapReconciler)
+	serviceReconciler := service.NewServiceReconciler(client)
 	batchReconciler := batch.NewBatchReconciler(client, builder)
 
+	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+	replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
+	galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
+
 	err = (&MariaDBReconciler{
-		Client:                   client,
-		Scheme:                   scheme,
-		Builder:                  builder,
-		ConditionReady:           conditionReady,
-		ConfigMapReconciler:      configMapReconciler,
-		ReplicationReconciler:    replicationReconciler,
-		GaleraReconciler:         galeraReconciler,
+		Client: client,
+		Scheme: scheme,
+
+		Builder:        builder,
+		RefResolver:    refResolver,
+		ConditionReady: conditionReady,
+
 		ServiceMonitorReconciler: true,
+
+		ConfigMapReconciler: configMapReconciler,
+		SecretReconciler:    secretReconciler,
+		ServiceReconciler:   serviceReconciler,
+
+		ReplicationReconciler: replicationReconciler,
+		GaleraReconciler:      galeraReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

@@ -9,22 +9,30 @@ import (
 	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type GaleraReconciler struct {
 	client.Client
+	Builder             *builder.Builder
 	ConfigMapReconciler *configmap.ConfigMapReconciler
+	ServiceReconciler   *service.ServiceReconciler
 }
 
-func NewGaleraReconciler(client client.Client, configMapReconciler *configmap.ConfigMapReconciler) *GaleraReconciler {
+func NewGaleraReconciler(client client.Client, builder *builder.Builder, configMapReconciler *configmap.ConfigMapReconciler,
+	serviceReconciler *service.ServiceReconciler) *GaleraReconciler {
 	return &GaleraReconciler{
 		Client:              client,
+		Builder:             builder,
 		ConfigMapReconciler: configMapReconciler,
+		ServiceReconciler:   serviceReconciler,
 	}
 }
 
@@ -45,7 +53,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 func (r *GaleraReconciler) ReconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	galeraCnf, err := galeraConfig(mariadb)
 	if err != nil {
-		return fmt.Errorf("error generating galera config file: %v", err)
+		return fmt.Errorf("error generating Galera config file: %v", err)
 	}
 
 	req := configmap.ReconcileRequest{
@@ -58,6 +66,40 @@ func (r *GaleraReconciler) ReconcileConfigMap(ctx context.Context, mariadb *mari
 	}
 	if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
 		return fmt.Errorf("error reconciling ConfigMap: %v", err)
+	}
+	return nil
+}
+
+func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := galeraresources.ServiceKey(mariadb)
+	clusterIp := "None"
+	opts := builder.ServiceOpts{
+		Ports: []corev1.ServicePort{
+			{
+				Name: "cluster",
+				Port: builder.GaleraClusterPort,
+			},
+			{
+				Name: "ist",
+				Port: builder.GaleraISTPort,
+			},
+			{
+				Name: "sst",
+				Port: builder.GaleraSSTPort,
+			},
+		},
+		ClusterIP: &clusterIp,
+		Type:      corev1.ServiceTypeClusterIP,
+	}
+	if mariadb.Spec.Service != nil {
+		opts.Annotations = mariadb.Spec.Service.Annotations
+	}
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	if err != nil {
+		return fmt.Errorf("error building Service: %v", err)
+	}
+	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
+		return fmt.Errorf("error reconciling Galera Service: %v", err)
 	}
 	return nil
 }

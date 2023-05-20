@@ -58,7 +58,7 @@ func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container
 func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]corev1.Container, error) {
 	var containers []corev1.Container
 	mariaDbContainer := corev1.Container{
-		Name:            mariaDbContainerName,
+		Name:            MariaDbContainerName,
 		Image:           mariadb.Spec.Image.String(),
 		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
 		Args:            buildStsArgs(mariadb),
@@ -182,7 +182,7 @@ func buildStsVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount
 func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 	ports := []corev1.ContainerPort{
 		{
-			Name:          mariaDbPortName,
+			Name:          MariaDbPortName,
 			ContainerPort: mariadb.Spec.Port,
 		},
 	}
@@ -190,15 +190,15 @@ func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 		ports = append(ports, []corev1.ContainerPort{
 			{
 				Name:          "cluster",
-				ContainerPort: 4444,
+				ContainerPort: GaleraClusterPort,
 			},
 			{
 				Name:          "ist",
-				ContainerPort: 4567,
+				ContainerPort: GaleraISTPort,
 			},
 			{
 				Name:          "sst",
-				ContainerPort: 4568,
+				ContainerPort: GaleraSSTPort,
 			},
 		}...)
 	}

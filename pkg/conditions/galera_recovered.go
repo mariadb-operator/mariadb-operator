@@ -17,7 +17,7 @@ func SetRecoveringGalera(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) {
 		Type:    mariadbv1alpha1.ConditionTypeGaleraRecovered,
 		Status:  metav1.ConditionFalse,
 		Reason:  mariadbv1alpha1.ConditionReasonRecoverGalera,
-		Message: "Recovering galera cluster",
+		Message: "Recovering Galera cluster",
 	})
 }
 
@@ -26,6 +26,6 @@ func SetGaleraRecovered(c Conditioner) {
 		Type:    mariadbv1alpha1.ConditionTypePrimarySwitched,
 		Status:  metav1.ConditionTrue,
 		Reason:  mariadbv1alpha1.ConditionReasonSwitchPrimary,
-		Message: "Recovered galera cluster",
+		Message: "Recovered Galera cluster",
 	})
 }
