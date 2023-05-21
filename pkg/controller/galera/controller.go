@@ -55,13 +55,20 @@ func (r *GaleraReconciler) ReconcileConfigMap(ctx context.Context, mariadb *mari
 	if err != nil {
 		return fmt.Errorf("error generating Galera config file: %v", err)
 	}
+	initSh, err := galeraInit(mariadb)
+	if err != nil {
+		return fmt.Errorf("error generating Galera init script: %v", err)
+	}
 
 	req := configmap.ReconcileRequest{
 		Mariadb: mariadb,
 		Owner:   mariadb,
 		Key:     galeraresources.ConfigMapKey(mariadb),
 		Data: map[string]string{
-			"0-galera.cnf": galeraCnf,
+			galeraresources.GaleraCnf: galeraCnf,
+			galeraresources.GaleraBootstrapCnf: `[galera]
+wsrep_new_cluster="ON"`,
+			galeraresources.GaleraInitScript: initSh,
 		},
 	}
 	if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
@@ -77,15 +84,15 @@ func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariad
 		Ports: []corev1.ServicePort{
 			{
 				Name: "cluster",
-				Port: builder.GaleraClusterPort,
+				Port: galeraresources.GaleraClusterPort,
 			},
 			{
 				Name: "ist",
-				Port: builder.GaleraISTPort,
+				Port: galeraresources.GaleraISTPort,
 			},
 			{
 				Name: "sst",
-				Port: builder.GaleraSSTPort,
+				Port: galeraresources.GaleraSSTPort,
 			},
 		},
 		ClusterIP: &clusterIp,
@@ -109,17 +116,18 @@ func galeraConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
 bind-address=0.0.0.0
 default_storage_engine=InnoDB
 binlog_format=row
-innodb_autoinc_lock_mode=2	
+innodb_autoinc_lock_mode=2
+
 # Cluster configuration - rendered by mariadb-operator
 wsrep_on=ON
 wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_cluster_address='{{ .ClusterAddress }}'
 wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads={{ .Threads }}
+
 # Node configuration - to be rendered by initContainer
 wsrep_node_address="$MARIADB_OPERATOR_HOSTNAME.{{ .Service }}"
-wsrep_node_name="$MARIADB_OPERATOR_HOSTNAME"
-`)
+wsrep_node_name="$MARIADB_OPERATOR_HOSTNAME"`)
 	buf := new(bytes.Buffer)
 	clusterAddr, err := clusterAddress(mariadb)
 	if err != nil {
@@ -149,6 +157,39 @@ func clusterAddress(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
 		pods[i] = statefulset.PodFQDNWithService(mariadb.ObjectMeta, i, galeraresources.ServiceKey(mariadb).Name)
 	}
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
+}
+
+func galeraInit(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
+	tpl := createTpl("init", `#!/bin/sh
+set -euo pipefail
+HOSTNAME=$(hostname)
+STATEFULSET_INDEX=${HOSTNAME##*-}
+
+cat {{ .ConfigMapPath }}/{{ .GaleraCnf }} | sed 's/$MARIADB_OPERATOR_HOSTNAME/'$HOSTNAME'/g' > {{ .ConfigPath }}/{{ .GaleraCnf }}
+
+if [ "$STATEFULSET_INDEX" = "{{ .BootstrapIndex }}" ]  && [ -z "$(ls -A {{ .StoragePath }})" ]; then 
+	cp {{ .ConfigMapPath }}/{{ .GaleraBootstrapCnf }} {{ .ConfigPath }}/{{ .GaleraBootstrapCnf }}
+fi`)
+	buf := new(bytes.Buffer)
+	err := tpl.Execute(buf, struct {
+		GaleraCnf          string
+		GaleraBootstrapCnf string
+		ConfigMapPath      string
+		ConfigPath         string
+		StoragePath        string
+		BootstrapIndex     int
+	}{
+		GaleraCnf:          galeraresources.GaleraCnf,
+		GaleraBootstrapCnf: galeraresources.GaleraBootstrapCnf,
+		ConfigMapPath:      galeraresources.GaleraConfigMapMountPath,
+		ConfigPath:         galeraresources.GaleraConfigMountPath,
+		StoragePath:        builder.StorageMountPath,
+		BootstrapIndex:     0,
+	})
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func createTpl(name, t string) *template.Template {

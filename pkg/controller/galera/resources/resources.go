@@ -7,6 +7,21 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+var (
+	GaleraCnf          = "0-galera.cnf"
+	GaleraBootstrapCnf = "1-bootstrap.cnf"
+	GaleraInitScript   = "init.sh"
+
+	GaleraConfigMapVolume    = "galera-configmap"
+	GaleraConfigMapMountPath = "/galera"
+	GaleraConfigVolume       = "galera"
+	GaleraConfigMountPath    = "/etc/mysql/mariadb.conf.d"
+
+	GaleraClusterPort = int32(4444)
+	GaleraISTPort     = int32(4567)
+	GaleraSSTPort     = int32(4568)
+)
+
 func ConfigMapKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("config-galera-%s", mariadb.Name),

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -27,28 +28,20 @@ var (
 
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 	if mariadb.Spec.Galera != nil {
+		volumeMounts := buildStsVolumeMounts(mariadb)
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      galeraresources.GaleraConfigMapVolume,
+			MountPath: galeraresources.GaleraConfigMapMountPath,
+		})
 		return []corev1.Container{
 			{
 				Name:    "init-galera",
 				Image:   mariadb.Spec.Galera.InitContainerImage.String(),
 				Command: []string{"sh", "-c"},
 				Args: []string{
-					fmt.Sprintf(
-						"cat %s/0-galera.cnf | sed 's/$MARIADB_OPERATOR_HOSTNAME/'$(hostname)'/g' > %s/0-galera.cnf",
-						stsGaleraTplConfigMountPath,
-						stsGaleraConfigMountPath,
-					),
+					fmt.Sprintf("%s/%s", galeraresources.GaleraConfigMapMountPath, galeraresources.GaleraInitScript),
 				},
-				VolumeMounts: []corev1.VolumeMount{
-					{
-						Name:      stsGaleraTplConfigVolume,
-						MountPath: stsGaleraTplConfigMountPath,
-					},
-					{
-						Name:      stsGaleraConfigVolume,
-						MountPath: stsGaleraConfigMountPath,
-					},
-				},
+				VolumeMounts: volumeMounts,
 			},
 		}
 	}
@@ -159,18 +152,18 @@ func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 func buildStsVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      stsStorageVolume,
-			MountPath: stsStorageMountPath,
+			Name:      StorageVolume,
+			MountPath: StorageMountPath,
 		},
 		{
-			Name:      stsConfigVolume,
-			MountPath: stsConfigMountPath,
+			Name:      ConfigVolume,
+			MountPath: ConfigMountPath,
 		},
 	}
 	if mariadb.Spec.Galera != nil {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      stsGaleraConfigVolume,
-			MountPath: stsGaleraConfigMountPath,
+			Name:      galeraresources.GaleraConfigVolume,
+			MountPath: galeraresources.GaleraConfigMountPath,
 		})
 	}
 	if mariadb.Spec.VolumeMounts != nil {
@@ -190,15 +183,15 @@ func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 		ports = append(ports, []corev1.ContainerPort{
 			{
 				Name:          "cluster",
-				ContainerPort: GaleraClusterPort,
+				ContainerPort: galeraresources.GaleraClusterPort,
 			},
 			{
 				Name:          "ist",
-				ContainerPort: GaleraISTPort,
+				ContainerPort: galeraresources.GaleraISTPort,
 			},
 			{
 				Name:          "sst",
-				ContainerPort: GaleraSSTPort,
+				ContainerPort: galeraresources.GaleraSSTPort,
 			},
 		}...)
 	}

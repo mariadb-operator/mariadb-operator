@@ -19,14 +19,10 @@ import (
 )
 
 const (
-	stsStorageVolume            = "storage"
-	stsStorageMountPath         = "/var/lib/mysql"
-	stsConfigVolume             = "config"
-	stsConfigMountPath          = "/etc/mysql/conf.d"
-	stsGaleraTplConfigVolume    = "galera-tpl"
-	stsGaleraTplConfigMountPath = "/galera-tpl"
-	stsGaleraConfigVolume       = "galera"
-	stsGaleraConfigMountPath    = "/etc/mysql/mariadb.conf.d"
+	StorageVolume    = "storage"
+	StorageMountPath = "/var/lib/mysql"
+	ConfigVolume     = "config"
+	ConfigMountPath  = "/etc/mysql/conf.d"
 
 	MariaDbContainerName = "mariadb"
 	MariaDbPortName      = "mariadb"
@@ -34,10 +30,6 @@ const (
 	MetricsContainerName = "metrics"
 	MetricsPortName      = "metrics"
 	MetricsPort          = 9104
-
-	GaleraClusterPort = 4444
-	GaleraISTPort     = 4567
-	GaleraSSTPort     = 4568
 )
 
 func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
@@ -46,7 +38,7 @@ func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 		podName = statefulset.PodName(mariadb.ObjectMeta, mariadb.Spec.Replication.Primary.PodIndex)
 	}
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-%s", stsStorageVolume, podName),
+		Name:      fmt.Sprintf("%s-%s", StorageVolume, podName),
 		Namespace: mariadb.Namespace,
 	}
 }
@@ -116,7 +108,7 @@ func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Per
 	pvcs := []corev1.PersistentVolumeClaim{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: stsStorageVolume,
+				Name: StorageVolume,
 			},
 			Spec: mariadb.Spec.VolumeClaimTemplate,
 		},
@@ -124,7 +116,7 @@ func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Per
 	if mariadb.Spec.Galera != nil {
 		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: stsGaleraConfigVolume,
+				Name: galeraresources.GaleraConfigVolume,
 			},
 			Spec: mariadb.Spec.Galera.ConfigVolumeClaimTemplate,
 		})
@@ -169,14 +161,14 @@ func buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKey
 
 func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 	configVolume := corev1.Volume{
-		Name: stsConfigVolume,
+		Name: ConfigVolume,
 		VolumeSource: corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
 	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
 		configVolume = corev1.Volume{
-			Name: stsConfigVolume,
+			Name: ConfigVolume,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -197,12 +189,16 @@ func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 	}
 	if mariadb.Spec.Galera != nil {
 		volumes = append(volumes, corev1.Volume{
-			Name: stsGaleraTplConfigVolume,
+			Name: galeraresources.GaleraConfigMapVolume,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: galeraresources.ConfigMapKey(mariadb).Name,
 					},
+					DefaultMode: func() *int32 {
+						mode := int32(0777)
+						return &mode
+					}(),
 				},
 			},
 		})
