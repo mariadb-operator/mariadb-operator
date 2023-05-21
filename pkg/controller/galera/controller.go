@@ -105,7 +105,12 @@ func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariad
 }
 
 func galeraConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
-	tpl := createTpl("galera", `# Cluster configuration - rendered by mariadb-operator
+	tpl := createTpl("galera", `[galera]
+bind-address=0.0.0.0
+default_storage_engine=InnoDB
+binlog_format=row
+innodb_autoinc_lock_mode=2	
+# Cluster configuration - rendered by mariadb-operator
 wsrep_on=ON
 wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_cluster_address='{{ .ClusterAddress }}'

@@ -82,7 +82,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: objMeta,
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName:         mariadb.Name,
+			ServiceName:         buildStsServiceName(mariadb),
 			Replicas:            &mariadb.Spec.Replicas,
 			PodManagementPolicy: buildStsPodManagementPolicy(mariadb),
 			Selector: &metav1.LabelSelector{
@@ -96,6 +96,13 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 		return nil, fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
 	return sts, nil
+}
+
+func buildStsServiceName(mariadb *mariadbv1alpha1.MariaDB) string {
+	if mariadb.Spec.Galera != nil {
+		return galeraresources.ServiceKey(mariadb).Name
+	}
+	return mariadb.Name
 }
 
 func buildStsPodManagementPolicy(mariadb *mariadbv1alpha1.MariaDB) appsv1.PodManagementPolicyType {
