@@ -120,6 +120,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.ReplicationReconciler.Reconcile,
 		},
 		{
+			Name:      "Galera",
+			Reconcile: r.GaleraReconciler.Reconcile,
+		},
+		{
 			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
 		},
@@ -408,7 +412,9 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcher {
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
-		if mariadb.IsRestoringBackup() || mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() {
+		if mariadb.IsRestoringBackup() ||
+			mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() ||
+			mariadb.IsConfiguringGalera() || mariadb.IsRecoveringGalera() {
 			return nil
 		}
 		if mariadb.Spec.Replication == nil {

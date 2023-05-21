@@ -6,12 +6,11 @@ import (
 )
 
 func SetRecoveringGalera(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) {
-	msg := switchingPrimaryMessage(mariadb)
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
 		Reason:  mariadbv1alpha1.ConditionReasonRecoverGalera,
-		Message: msg,
+		Message: "Recovering Galera cluster",
 	})
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeGaleraRecovered,
@@ -23,9 +22,9 @@ func SetRecoveringGalera(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) {
 
 func SetGaleraRecovered(c Conditioner) {
 	c.SetCondition(metav1.Condition{
-		Type:    mariadbv1alpha1.ConditionTypePrimarySwitched,
+		Type:    mariadbv1alpha1.ConditionTypeGaleraRecovered,
 		Status:  metav1.ConditionTrue,
-		Reason:  mariadbv1alpha1.ConditionReasonSwitchPrimary,
+		Reason:  mariadbv1alpha1.ConditionReasonRecoverGalera,
 		Message: "Recovered Galera cluster",
 	})
 }

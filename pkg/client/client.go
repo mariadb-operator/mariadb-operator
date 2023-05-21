@@ -295,6 +295,17 @@ func (c *Client) ResetSlavePos(ctx context.Context) error {
 	return c.Exec(ctx, sql)
 }
 
+func (c *Client) GaleraClusterSize(ctx context.Context) (int, error) {
+	sql := "SELECT variable_value FROM information_schema.global_status WHERE variable_name='wsrep_cluster_size';"
+
+	row := c.db.QueryRowContext(ctx, sql)
+	var val int
+	if err := row.Scan(&val); err != nil {
+		return 0, nil
+	}
+	return val, nil
+}
+
 func createTpl(name, t string) *template.Template {
 	return template.Must(template.New(name).Parse(t))
 }
