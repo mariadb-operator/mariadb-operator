@@ -28,6 +28,7 @@ spec:
   replicas: 3
 
   galera:
+    replicaThreads: 1
     initContainerImage:
       repository: alpine
       tag: "3.18.0"
@@ -39,7 +40,6 @@ spec:
       storageClassName: standard
       accessModes:
         - ReadWriteOnce
-    replicaThreads: 4
 
   affinity:
     podAntiAffinity:

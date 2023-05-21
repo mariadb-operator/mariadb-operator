@@ -66,7 +66,7 @@ func (r *GaleraReconciler) ReconcileConfigMap(ctx context.Context, mariadb *mari
 		Key:     galeraresources.ConfigMapKey(mariadb),
 		Data: map[string]string{
 			galeraresources.GaleraCnf: galeraCnf,
-			galeraresources.GaleraBootstrapCnf: `[galera]
+			galeraresources.GaleraBootstrapCnf: `[mysqld]
 wsrep_new_cluster="ON"`,
 			galeraresources.GaleraInitScript: initSh,
 		},
@@ -108,7 +108,7 @@ func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariad
 }
 
 func galeraConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
-	tpl := createTpl("galera", `[galera]
+	tpl := createTpl("galera", `[mysqld]
 bind-address=0.0.0.0
 default_storage_engine=InnoDB
 binlog_format=row

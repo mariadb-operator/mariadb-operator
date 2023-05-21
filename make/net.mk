@@ -25,6 +25,7 @@ host-mariadb-repl: ## Add mariadb repl hosts to /etc/hosts.
 	@./hack/add_host.sh 172.18.0.130 primary-mariadb-repl.default.svc.cluster.local
 
 .PHONY: host-mariadb-galera
+host-mariadb-galera: ## Add mariadb galera hosts to /etc/hosts.
 	@./hack/add_host.sh 172.18.0.140 mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local
 	@./hack/add_host.sh 172.18.0.141 mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local
 	@./hack/add_host.sh 172.18.0.142 mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local
