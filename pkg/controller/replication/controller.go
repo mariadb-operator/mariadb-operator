@@ -10,6 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	corev1 "k8s.io/api/core/v1"
@@ -22,20 +23,22 @@ import (
 
 type ReplicationReconciler struct {
 	client.Client
-	ReplConfig       *ReplicationConfig
-	SecretReconciler *secret.SecretReconciler
-	Builder          *builder.Builder
-	RefResolver      *refresolver.RefResolver
+	Builder           *builder.Builder
+	RefResolver       *refresolver.RefResolver
+	ReplConfig        *ReplicationConfig
+	SecretReconciler  *secret.SecretReconciler
+	ServiceReconciler *service.ServiceReconciler
 }
 
-func NewReplicationReconciler(client client.Client, replConfig *ReplicationConfig,
-	secretReconciler *secret.SecretReconciler, builder *builder.Builder) *ReplicationReconciler {
+func NewReplicationReconciler(client client.Client, builder *builder.Builder, replConfig *ReplicationConfig,
+	secretReconciler *secret.SecretReconciler, serviceReconciler *service.ServiceReconciler) *ReplicationReconciler {
 	return &ReplicationReconciler{
-		Client:           client,
-		ReplConfig:       replConfig,
-		SecretReconciler: secretReconciler,
-		Builder:          builder,
-		RefResolver:      refresolver.New(client),
+		Client:            client,
+		Builder:           builder,
+		RefResolver:       refresolver.New(client),
+		ReplConfig:        replConfig,
+		SecretReconciler:  secretReconciler,
+		ServiceReconciler: serviceReconciler,
 	}
 }
 
@@ -216,11 +219,17 @@ func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req *reconcileRequest) error {
 	serviceLabels :=
 		labels.NewLabelsBuilder().
-			WithMariaDB(req.mariadb).
+			WithMariaDBSelectorLabels(req.mariadb).
 			WithStatefulSetPod(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex).
 			Build()
 	opts := builder.ServiceOpts{
 		Selectorlabels: serviceLabels,
+		Ports: []corev1.ServicePort{
+			{
+				Name: builder.MariaDbContainerName,
+				Port: req.mariadb.Spec.Port,
+			},
+		},
 	}
 	if req.mariadb.Spec.Replication.Primary.Service != nil {
 		opts.Type = req.mariadb.Spec.Replication.Primary.Service.Type
@@ -231,20 +240,10 @@ func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req
 		return fmt.Errorf("error building Service: %v", err)
 	}
 
-	var existingSvc corev1.Service
-	if err := r.Get(ctx, req.key, &existingSvc); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("error getting Service: %v", err)
-		}
-		if err := r.Create(ctx, desiredSvc); err != nil {
-			return err
-		}
-		return nil
+	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
+		return fmt.Errorf("error reconciling Galera Service: %v", err)
 	}
-
-	patch := client.MergeFrom(existingSvc.DeepCopy())
-	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
-	return r.Patch(ctx, &existingSvc, patch)
+	return nil
 }
 
 func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *reconcileRequest) error {

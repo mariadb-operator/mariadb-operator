@@ -110,7 +110,7 @@ var _ = BeforeSuite(func() {
 	batchReconciler := batch.NewBatchReconciler(client, builder)
 
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
-	replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
+	replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
 	galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
 
 	err = (&MariaDBReconciler{
