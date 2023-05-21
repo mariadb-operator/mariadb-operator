@@ -167,11 +167,11 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if err := r.reconcileMyCnfConfigMap(ctx, mariadb); err != nil {
-		return fmt.Errorf("error reconciling my.cnf ConfigMap: %v", err)
+		return err
 	}
 	if mariadb.Spec.Galera != nil {
 		if err := r.GaleraReconciler.ReconcileConfigMap(ctx, mariadb); err != nil {
-			return fmt.Errorf("error reconciling Galera ConfigMap: %v", err)
+			return err
 		}
 	}
 	return nil
@@ -192,7 +192,7 @@ func (r *MariaDBReconciler) reconcileMyCnfConfigMap(ctx context.Context, mariadb
 			},
 		}
 		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
-			return fmt.Errorf("error reconciling ConfigMap: %v", err)
+			return err
 		}
 	}
 	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
@@ -273,11 +273,11 @@ func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, ma
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if err := r.reconcileMariadbService(ctx, mariadb); err != nil {
-		return fmt.Errorf("error reconciling MariaDB Service: %v", err)
+		return err
 	}
 	if mariadb.Spec.Galera != nil {
 		if err := r.GaleraReconciler.ReconcileService(ctx, mariadb); err != nil {
-			return fmt.Errorf("error reconciling Galera Service: %v", err)
+			return err
 		}
 	}
 	return nil
@@ -308,11 +308,7 @@ func (r *MariaDBReconciler) reconcileMariadbService(ctx context.Context, mariadb
 	if err != nil {
 		return fmt.Errorf("error building Service: %v", err)
 	}
-
-	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
-		return fmt.Errorf("error reconciling MariaDb Service: %v", err)
-	}
-	return nil
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -336,7 +332,7 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 	}
 	conn, err := r.Builder.BuildConnection(connOpts, mariadb)
 	if err != nil {
-		return fmt.Errorf("erro building Connection: %v", err)
+		return fmt.Errorf("error building Connection: %v", err)
 	}
 	return r.Create(ctx, conn)
 }

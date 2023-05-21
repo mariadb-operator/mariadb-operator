@@ -71,10 +71,7 @@ wsrep_new_cluster="ON"`,
 			galeraresources.GaleraInitScript: initSh,
 		},
 	}
-	if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
-		return fmt.Errorf("error reconciling ConfigMap: %v", err)
-	}
-	return nil
+	return r.ConfigMapReconciler.Reconcile(ctx, &req)
 }
 
 func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -107,10 +104,7 @@ func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariad
 	if err != nil {
 		return fmt.Errorf("error building Service: %v", err)
 	}
-	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
-		return fmt.Errorf("error reconciling Galera Service: %v", err)
-	}
-	return nil
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
 func galeraConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {

@@ -239,11 +239,7 @@ func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req
 	if err != nil {
 		return fmt.Errorf("error building Service: %v", err)
 	}
-
-	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
-		return fmt.Errorf("error reconciling Galera Service: %v", err)
-	}
-	return nil
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
 func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *reconcileRequest) error {
