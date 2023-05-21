@@ -14,7 +14,7 @@ func ServiceFQDNWithService(meta metav1.ObjectMeta, service string) string {
 	if clusterName == "" {
 		clusterName = "cluster.local"
 	}
-	return fmt.Sprintf("%s.%s.svc.%s", meta.Name, meta.Namespace, clusterName)
+	return fmt.Sprintf("%s.%s.svc.%s", service, meta.Namespace, clusterName)
 }
 
 func ServiceFQDN(meta metav1.ObjectMeta) string {
