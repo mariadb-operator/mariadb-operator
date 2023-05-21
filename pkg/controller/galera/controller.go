@@ -80,7 +80,9 @@ wsrep_new_cluster="ON"`,
 func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := galeraresources.ServiceKey(mariadb)
 	clusterIp := "None"
+	publishNotReadyAddresses := true
 	opts := builder.ServiceOpts{
+		Type: corev1.ServiceTypeClusterIP,
 		Ports: []corev1.ServicePort{
 			{
 				Name: "cluster",
@@ -95,8 +97,8 @@ func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariad
 				Port: galeraresources.GaleraSSTPort,
 			},
 		},
-		ClusterIP: &clusterIp,
-		Type:      corev1.ServiceTypeClusterIP,
+		ClusterIP:                &clusterIp,
+		PublishNotReadyAddresses: &publishNotReadyAddresses,
 	}
 	if mariadb.Spec.Service != nil {
 		opts.Annotations = mariadb.Spec.Service.Annotations
