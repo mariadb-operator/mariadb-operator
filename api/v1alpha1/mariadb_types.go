@@ -105,6 +105,33 @@ func (w WaitPoint) MariaDBFormat() (string, error) {
 	}
 }
 
+type Gtid string
+
+const (
+	GtidCurrentPos Gtid = "CurrentPos"
+	GtidSlavePos   Gtid = "SlavePos"
+)
+
+func (g Gtid) Validate() error {
+	switch g {
+	case GtidCurrentPos, GtidSlavePos:
+		return nil
+	default:
+		return fmt.Errorf("invalid Gtid: %v", g)
+	}
+}
+
+func (g Gtid) MariaDBFormat() (string, error) {
+	switch g {
+	case GtidCurrentPos:
+		return "current_pos", nil
+	case GtidSlavePos:
+		return "slave_pos", nil
+	default:
+		return "", fmt.Errorf("invalid Gtid: %v", g)
+	}
+}
+
 type PrimaryReplication struct {
 	// +kubebuilder:default=0
 	PodIndex int `json:"podIndex,omitempty"`
@@ -120,6 +147,8 @@ type PrimaryReplication struct {
 type ReplicaReplication struct {
 	// +kubebuilder:default=AfterCommit
 	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
+	// +kubebuilder:default=CurrentPos
+	Gtid *Gtid `json:"gtid,omitempty"`
 
 	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
 	// +kubebuilder:default=10
@@ -132,6 +161,11 @@ func (r *ReplicaReplication) Validate() error {
 	if r.WaitPoint != nil {
 		if err := r.WaitPoint.Validate(); err != nil {
 			return fmt.Errorf("invalid WaitPoint: %v", err)
+		}
+	}
+	if r.Gtid != nil {
+		if err := r.Gtid.Validate(); err != nil {
+			return fmt.Errorf("invalid GTID: %v", err)
 		}
 	}
 	return nil

@@ -170,6 +170,21 @@ var _ = Describe("MariaDB webhook", func() {
 					wantErr: true,
 				},
 				{
+					by: "invalid GTID",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Replication: &Replication{
+								Replica: ReplicaReplication{
+									Gtid: func() *Gtid { g := Gtid("foo"); return &g }(),
+								},
+							},
+							Replicas: 3,
+						},
+					},
+					wantErr: true,
+				},
+				{
 					by: "invalid pod disruption budget",
 					mdb: MariaDB{
 						ObjectMeta: meta,

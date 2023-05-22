@@ -952,6 +952,11 @@ func (in *ReplicaReplication) DeepCopyInto(out *ReplicaReplication) {
 		*out = new(WaitPoint)
 		**out = **in
 	}
+	if in.Gtid != nil {
+		in, out := &in.Gtid, &out.Gtid
+		*out = new(Gtid)
+		**out = **in
+	}
 	if in.ConnectionTimeout != nil {
 		in, out := &in.ConnectionTimeout, &out.ConnectionTimeout
 		*out = new(metav1.Duration)
