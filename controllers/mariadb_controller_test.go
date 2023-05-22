@@ -277,6 +277,7 @@ var _ = Describe("MariaDB controller", func() {
 							WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
 							Gtid:      func() *mariadbv1alpha1.Gtid { g := mariadbv1alpha1.GtidCurrentPos; return &g }(),
 						},
+						SyncBinlog: true,
 					},
 					Replicas: 3,
 					Service: &mariadbv1alpha1.Service{

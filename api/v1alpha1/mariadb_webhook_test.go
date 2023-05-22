@@ -88,6 +88,7 @@ var _ = Describe("MariaDB webhook", func() {
 								Primary: PrimaryReplication{
 									PodIndex: 1,
 								},
+								SyncBinlog: true,
 							},
 							Replicas: 3,
 						},

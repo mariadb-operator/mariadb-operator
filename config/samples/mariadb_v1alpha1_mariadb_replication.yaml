@@ -45,6 +45,7 @@ spec:
       connectionTimeout: 10s
       connectionRetries: 10
       syncTimeout: 10s
+    syncBinlog: true
 
   affinity:
     podAntiAffinity:
