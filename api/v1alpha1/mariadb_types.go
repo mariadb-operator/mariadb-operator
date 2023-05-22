@@ -190,6 +190,9 @@ type Replication struct {
 	Primary PrimaryReplication `json:"primary"`
 	// +kubebuilder:default={}
 	Replica ReplicaReplication `json:"replica,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	SyncBinlog bool `json:"syncBinlog"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB

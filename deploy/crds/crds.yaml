@@ -6617,6 +6617,9 @@ spec:
                         default: AfterCommit
                         type: string
                     type: object
+                  syncBinlog:
+                    default: true
+                    type: boolean
                 required:
                 - primary
                 type: object
