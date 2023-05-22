@@ -39,9 +39,6 @@ func NewReplicationConfig(client client.Client, builder *builder.Builder, secret
 
 func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
 	podIndex int) error {
-	if err := client.UnlockTables(ctx); err != nil {
-		return fmt.Errorf("error unlocking tables: %v", err)
-	}
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
@@ -51,8 +48,8 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	if err := client.ResetSlavePos(ctx); err != nil {
 		return fmt.Errorf("error resetting slave position: %v", err)
 	}
-	if err := client.SetGlobalVar(ctx, "read_only", "0"); err != nil {
-		return fmt.Errorf("error setting read_only=0: %v", err)
+	if err := client.DisableReadOnly(ctx); err != nil {
+		return fmt.Errorf("error sdisabling read_only: %v", err)
 	}
 	if err := r.reconcilePrimarySql(ctx, mariadb, client); err != nil {
 		return fmt.Errorf("error reconciling primary SQL: %v", err)
@@ -65,9 +62,6 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 
 func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
 	replicaPodIndex, primaryPodIndex int) error {
-	if err := client.UnlockTables(ctx); err != nil {
-		return fmt.Errorf("error unlocking tables: %v", err)
-	}
 	if err := client.ResetMaster(ctx); err != nil {
 		return fmt.Errorf("error resetting master: %v", err)
 	}
@@ -77,8 +71,8 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 	if err := client.ResetSlavePos(ctx); err != nil {
 		return fmt.Errorf("error resetting slave position: %v", err)
 	}
-	if err := client.SetGlobalVar(ctx, "read_only", "1"); err != nil {
-		return fmt.Errorf("error setting read_only=1: %v", err)
+	if err := client.SetReadOnly(ctx); err != nil {
+		return fmt.Errorf("error setting read_only: %v", err)
 	}
 	if err := r.configureReplicaVars(ctx, mariadb, client, replicaPodIndex); err != nil {
 		return fmt.Errorf("error configuring replication variables: %v", err)

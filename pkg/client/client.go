@@ -196,14 +196,6 @@ func (c *Client) DropDatabase(ctx context.Context, database string) error {
 	return c.Exec(ctx, fmt.Sprintf("DROP DATABASE IF EXISTS `%s`;", database))
 }
 
-func (c *Client) LockTablesWithReadLock(ctx context.Context) error {
-	return c.Exec(ctx, "FLUSH TABLES WITH READ LOCK;")
-}
-
-func (c *Client) UnlockTables(ctx context.Context) error {
-	return c.Exec(ctx, "UNLOCK TABLES;")
-}
-
 func (c *Client) GlobalVar(ctx context.Context, variable string) (string, error) {
 	sql := fmt.Sprintf("SELECT @@global.%s;", variable)
 	row := c.db.QueryRowContext(ctx, sql)
@@ -227,6 +219,14 @@ func (c *Client) SetGlobalVars(ctx context.Context, keyVal map[string]string) er
 		}
 	}
 	return nil
+}
+
+func (c *Client) SetReadOnly(ctx context.Context) error {
+	return c.SetGlobalVar(ctx, "read_only", "1")
+}
+
+func (c *Client) DisableReadOnly(ctx context.Context) error {
+	return c.SetGlobalVar(ctx, "read_only", "0")
 }
 
 func (c *Client) ResetMaster(ctx context.Context) error {

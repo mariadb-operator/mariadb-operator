@@ -52,8 +52,8 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 
 	phases := []switchoverPhase{
 		{
-			name:      "Lock current primary tables",
-			reconcile: r.lockCurrentPrimary,
+			name:      "Set read_only in current primary",
+			reconcile: r.currentPrimaryReadOnly,
 		},
 		{
 			name:      "Wait for replica sync",
@@ -98,7 +98,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	return nil
 }
 
-func (r *ReplicationReconciler) lockCurrentPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbClientSet) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
@@ -112,7 +112,7 @@ func (r *ReplicationReconciler) lockCurrentPrimary(ctx context.Context, mariadb 
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 
-	return client.LockTablesWithReadLock(ctx)
+	return client.SetReadOnly(ctx)
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
