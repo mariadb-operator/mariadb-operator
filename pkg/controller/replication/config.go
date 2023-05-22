@@ -49,7 +49,7 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 		return fmt.Errorf("error resetting slave position: %v", err)
 	}
 	if err := client.DisableReadOnly(ctx); err != nil {
-		return fmt.Errorf("error sdisabling read_only: %v", err)
+		return fmt.Errorf("error disabling read_only: %v", err)
 	}
 	if err := r.reconcilePrimarySql(ctx, mariadb, client); err != nil {
 		return fmt.Errorf("error reconciling primary SQL: %v", err)
