@@ -134,6 +134,16 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 	if err := r.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
 		return fmt.Errorf("error getting replication password Secret: %v", err)
 	}
+
+	gtid := mariadbv1alpha1.GtidCurrentPos
+	if mariadb.Spec.Replication.Replica.Gtid != nil {
+		gtid = *mariadb.Spec.Replication.Replica.Gtid
+	}
+	gtidString, err := gtid.MariaDBFormat()
+	if err != nil {
+		return fmt.Errorf("error getting GTID: %v", err)
+	}
+
 	changeMasterOpts := &mariadbclient.ChangeMasterOpts{
 		Connection: connectionName,
 		Host: statefulset.PodFQDN(
@@ -142,7 +152,7 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 		),
 		User:     replUser,
 		Password: string(replSecret.Data[passwordSecretKey]),
-		Gtid:     "current_pos",
+		Gtid:     gtidString,
 		Retries:  mariadb.Spec.Replication.Replica.ConnectionRetries,
 	}
 	if err := client.ChangeMaster(ctx, changeMasterOpts); err != nil {
