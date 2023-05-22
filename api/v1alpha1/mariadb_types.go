@@ -280,6 +280,10 @@ func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
 	s.CurrentPrimary = &primaryPod
 }
 
+func (s *MariaDBStatus) UpdateCurrentPrimaryName(name string) {
+	s.CurrentPrimary = &name
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mdb
 // +kubebuilder:subresource:status

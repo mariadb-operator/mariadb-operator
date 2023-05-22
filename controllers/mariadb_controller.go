@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -32,6 +33,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -412,13 +414,12 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcher {
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
+		r.updatePrimaryName(s, mariadb)
+
 		if mariadb.IsRestoringBackup() ||
 			mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() ||
 			mariadb.IsConfiguringGalera() || mariadb.IsRecoveringGalera() {
 			return nil
-		}
-		if mariadb.Spec.Replication == nil {
-			s.UpdateCurrentPrimary(mariadb, 0)
 		}
 
 		var sts appsv1.StatefulSet
@@ -428,6 +429,21 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha
 		conditions.SetReadyWithStatefulSet(&mariadb.Status, &sts)
 		return nil
 	}
+}
+
+func (r *MariaDBReconciler) updatePrimaryName(status *mariadbv1alpha1.MariaDBStatus, mariadb *mariadbv1alpha1.MariaDB) {
+	if mariadb.Spec.Replication != nil {
+		return // updated by replication controller
+	}
+	if mariadb.Spec.Galera != nil {
+		podNames := make([]string, mariadb.Spec.Replicas)
+		for i := 0; i < int(mariadb.Spec.Replicas); i++ {
+			podNames[i] = statefulset.PodName(mariadb.ObjectMeta, i)
+		}
+		status.UpdateCurrentPrimaryName(strings.Join(podNames, ","))
+		return
+	}
+	status.UpdateCurrentPrimaryName(statefulset.PodName(mariadb.ObjectMeta, 0))
 }
 
 func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
