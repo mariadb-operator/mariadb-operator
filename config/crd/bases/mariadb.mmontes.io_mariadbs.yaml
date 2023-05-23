@@ -25,7 +25,7 @@ spec:
       name: Status
       type: string
     - jsonPath: .status.currentPrimary
-      name: Primary
+      name: Primary Pod
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age

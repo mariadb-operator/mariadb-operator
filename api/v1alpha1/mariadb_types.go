@@ -289,7 +289,7 @@ func (s *MariaDBStatus) UpdateCurrentPrimaryName(name string) {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
-// +kubebuilder:printcolumn:name="Primary",type="string",JSONPath=".status.currentPrimary"
+// +kubebuilder:printcolumn:name="Primary Pod",type="string",JSONPath=".status.currentPrimary"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // MariaDB is the Schema for the mariadbs API
