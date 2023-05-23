@@ -165,7 +165,7 @@ install: cluster-ctx install-crds install-prometheus-crds install-samples certs 
 
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.
-	kubectl apply -f config/samples/config
+	kubectl apply -f examples/manifests/config
 
 ##@ Examples
 
