@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -436,11 +435,7 @@ func (r *MariaDBReconciler) updatePrimaryName(status *mariadbv1alpha1.MariaDBSta
 		return // updated by replication controller
 	}
 	if mariadb.Spec.Galera != nil {
-		podNames := make([]string, mariadb.Spec.Replicas)
-		for i := 0; i < int(mariadb.Spec.Replicas); i++ {
-			podNames[i] = statefulset.PodName(mariadb.ObjectMeta, i)
-		}
-		status.UpdateCurrentPrimaryName(strings.Join(podNames, ","))
+		status.UpdateCurrentPrimaryName("All")
 		return
 	}
 	status.UpdateCurrentPrimaryName(statefulset.PodName(mariadb.ObjectMeta, 0))
