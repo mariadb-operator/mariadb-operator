@@ -134,8 +134,13 @@ func buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKey
 	var podAnnotations map[string]string
 	if mariadb.Spec.Replication != nil || mariadb.Spec.Galera != nil {
 		podAnnotations = map[string]string{
-			annotation.PodReplicationAnnotation: "true",
-			annotation.PodMariadbAnnotation:     mariadb.Name,
+			annotation.PodMariadbAnnotation: mariadb.Name,
+		}
+		if mariadb.Spec.Replication != nil {
+			podAnnotations[annotation.PodReplicationAnnotation] = ""
+		}
+		if mariadb.Spec.Galera != nil {
+			podAnnotations[annotation.PodGaleraAnnotation] = ""
 		}
 	}
 	objMeta :=

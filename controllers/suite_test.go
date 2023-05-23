@@ -23,6 +23,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
@@ -111,6 +112,8 @@ var _ = BeforeSuite(func() {
 
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 	replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
+	podReplicationReconciler := replication.NewPodReplicationReconciler(client, replConfig, secretReconciler, builder)
+
 	galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
 
 	err = (&MariaDBReconciler{
@@ -198,12 +201,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&PodReconciler{
-		Client:           client,
-		Scheme:           scheme,
-		ReplConfig:       replConfig,
-		SecretReconciler: secretReconciler,
-		Builder:          builder,
-		RefResolver:      refResolver,
+		Client:             client,
+		Annotation:         annotation.PodReplicationAnnotation,
+		PodReadyReconciler: podReplicationReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

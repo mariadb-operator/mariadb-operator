@@ -27,6 +27,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/controllers"
+	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
@@ -103,6 +104,8 @@ var rootCmd = &cobra.Command{
 
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 		replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
+		podReplicationReconciler := replication.NewPodReplicationReconciler(client, replConfig, secretReconciler, builder)
+
 		galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
 
 		if err = (&controllers.MariaDBReconciler{
@@ -198,14 +201,11 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controllers.PodReconciler{
-			Client:           client,
-			Scheme:           scheme,
-			ReplConfig:       replConfig,
-			SecretReconciler: secretReconciler,
-			Builder:          builder,
-			RefResolver:      refResolver,
+			Client:             client,
+			Annotation:         annotation.PodReplicationAnnotation,
+			PodReadyReconciler: podReplicationReconciler,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Pod")
+			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
 			os.Exit(1)
 		}
 
