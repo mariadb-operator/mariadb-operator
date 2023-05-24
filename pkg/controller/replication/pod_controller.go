@@ -42,7 +42,7 @@ func (r *PodReplicationReconciler) ReconcilePodReady(ctx context.Context, pod co
 	if !r.shouldReconcile(mariadb) {
 		return nil
 	}
-	log.FromContext(ctx).V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
+	log.FromContext(ctx).V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
 
 	index, err := statefulset.PodIndex(pod.Name)
 	if err != nil {

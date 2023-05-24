@@ -66,10 +66,6 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if mariadb.Spec.Replication == nil || mariadb.Status.CurrentPrimaryPodIndex == nil ||
-		mariadb.IsConfiguringReplication() || mariadb.IsRestoringBackup() {
-		return ctrl.Result{}, nil
-	}
 
 	if mariadbpod.PodReady(&pod) {
 		if err := r.PodReadyReconciler.ReconcilePodReady(ctx, pod, mariadb); err != nil {

@@ -33,7 +33,8 @@ func (r *GaleraReconciler) ReconcileConfigMap(ctx context.Context, mariadb *mari
 		Data: map[string]string{
 			galeraresources.GaleraCnf: galeraCnf,
 			galeraresources.GaleraBootstrapCnf: `[mysqld]
-wsrep_new_cluster="ON"`,
+wsrep_new_cluster="ON"
+`,
 			galeraresources.GaleraInitScript: initSh,
 		},
 	}
@@ -89,7 +90,8 @@ wsrep_slave_threads={{ .Threads }}
 
 # Node configuration - to be rendered by initContainer
 wsrep_node_address="$MARIADB_OPERATOR_HOSTNAME.{{ .Service }}"
-wsrep_node_name="$MARIADB_OPERATOR_HOSTNAME"`)
+wsrep_node_name="$MARIADB_OPERATOR_HOSTNAME"
+`)
 	buf := new(bytes.Buffer)
 	clusterAddr, err := clusterAddress(mariadb)
 	if err != nil {
@@ -131,7 +133,8 @@ cat {{ .ConfigMapPath }}/{{ .GaleraCnf }} | sed 's/$MARIADB_OPERATOR_HOSTNAME/'$
 
 if [ "$STATEFULSET_INDEX" = "{{ .BootstrapIndex }}" ]  && [ -z "$(ls -A {{ .StoragePath }})" ]; then 
 	cp {{ .ConfigMapPath }}/{{ .GaleraBootstrapCnf }} {{ .ConfigPath }}/{{ .GaleraBootstrapCnf }}
-fi`)
+fi
+`)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, struct {
 		GaleraCnf          string
