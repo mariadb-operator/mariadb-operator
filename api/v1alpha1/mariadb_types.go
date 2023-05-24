@@ -321,12 +321,12 @@ func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
 }
 
-func (m *MariaDB) IsConfiguringGalera() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeGaleraConfigured)
+func (m *MariaDB) IsGaleraReady() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeGaleraReady)
 }
 
-func (m *MariaDB) IsRecoveringGalera() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeGaleraRecovered)
+func (m *MariaDB) IsGaleraNotReady() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeGaleraReady)
 }
 
 // +kubebuilder:object:root=true

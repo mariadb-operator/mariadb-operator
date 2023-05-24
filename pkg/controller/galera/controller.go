@@ -5,14 +5,14 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
-	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type GaleraReconciler struct {
@@ -38,48 +38,44 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	if mariadb.Spec.Galera == nil || mariadb.IsRestoringBackup() {
 		return nil
 	}
-	if err := r.SetConfiguringGalera(ctx, mariadb); err != nil {
+	if err := r.InitGalera(ctx, mariadb); err != nil {
 		return err
 	}
-
-	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mariadb, health.EndpointPolicyAll)
+	sts, err := r.statefulSet(ctx, mariadb)
 	if err != nil {
 		return err
 	}
-	if !healthy {
-		return nil
-	}
-	mdbClient, err := mariadbclient.NewRootClient(ctx, mariadb, r.RefResolver)
-	if err != nil {
-		return err
-	}
-	defer mdbClient.Close()
 
-	return r.SetConfiguredGalera(ctx, mariadb, mdbClient)
+	if sts.Status.ReadyReplicas == 0 {
+		log.FromContext(ctx).V(1).Info("Recovering Galera cluster")
+		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			conditions.SetGaleraNotReady(&mariadb.Status, mariadb)
+		})
+	}
+	if mariadb.IsGaleraNotReady() && sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
+		log.FromContext(ctx).V(1).Info("Disabling Galera bootstrap")
+		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			conditions.SetGaleraReady(&mariadb.Status)
+		})
+	}
+	return nil
 }
 
-func (r *GaleraReconciler) SetConfiguringGalera(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if meta.FindStatusCondition(mariadb.Status.Conditions, mariadbv1alpha1.ConditionTypeGaleraConfigured) != nil {
+func (r *GaleraReconciler) InitGalera(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if meta.FindStatusCondition(mariadb.Status.Conditions, mariadbv1alpha1.ConditionTypeGaleraReady) != nil {
 		return nil
 	}
 	return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		conditions.SetConfiguringGalera(&mariadb.Status, mariadb)
+		conditions.SetGaleraNotReady(&mariadb.Status, mariadb)
 	})
 }
 
-func (r *GaleraReconciler) SetConfiguredGalera(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	mdbClient *mariadbclient.Client) error {
-	clusterSize, err := mdbClient.GaleraClusterSize(ctx)
-	if err != nil {
-		return err
+func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
+		return nil, err
 	}
-
-	if clusterSize != int(mariadb.Spec.Replicas) {
-		return nil
-	}
-	return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		conditions.SetConfiguredGalera(&mariadb.Status)
-	})
+	return &sts, nil
 }
 
 func (r *GaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

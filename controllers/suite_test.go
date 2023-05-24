@@ -115,7 +115,6 @@ var _ = BeforeSuite(func() {
 	podReplicationReconciler := replication.NewPodReplicationReconciler(client, replConfig, secretReconciler, builder)
 
 	galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
-	podGaleraReconciler := galera.NewPodGaleraReconciler(client)
 
 	err = (&MariaDBReconciler{
 		Client: client,
@@ -205,13 +204,6 @@ var _ = BeforeSuite(func() {
 		Client:             client,
 		Annotation:         annotation.PodReplicationAnnotation,
 		PodReadyReconciler: podReplicationReconciler,
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
-
-	err = (&PodReconciler{
-		Client:             client,
-		Annotation:         annotation.PodGaleraAnnotation,
-		PodReadyReconciler: podGaleraReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
