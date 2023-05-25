@@ -417,7 +417,7 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha
 
 		if mariadb.IsRestoringBackup() ||
 			mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() ||
-			mariadb.IsGaleraNotReady() {
+			mariadb.HasGaleraNotReadyCondition() {
 			return nil
 		}
 

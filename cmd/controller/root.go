@@ -107,6 +107,7 @@ var rootCmd = &cobra.Command{
 		podReplicationReconciler := replication.NewPodReplicationReconciler(client, replConfig, secretReconciler, builder)
 
 		galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
+		podGaleraReconciler := galera.NewPodGaleraReconciler(client)
 
 		if err = (&controllers.MariaDBReconciler{
 			Client: client,
@@ -206,6 +207,14 @@ var rootCmd = &cobra.Command{
 			PodReadyReconciler: podReplicationReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
+			os.Exit(1)
+		}
+		if err = (&controllers.PodReconciler{
+			Client:             client,
+			Annotation:         annotation.PodGaleraAnnotation,
+			PodReadyReconciler: podGaleraReconciler,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "PodGalera")
 			os.Exit(1)
 		}
 

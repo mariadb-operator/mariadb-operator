@@ -30,6 +30,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -66,12 +67,15 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	logger := log.FromContext(ctx)
 
 	if mariadbpod.PodReady(&pod) {
+		logger.V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
 		if err := r.PodReadyReconciler.ReconcilePodReady(ctx, pod, mariadb); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling Pod '%s' in Ready state: %v", pod.Name, err)
 		}
 	} else {
+		logger.V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
 		if err := r.PodReadyReconciler.ReconcilePodNotReady(ctx, pod, mariadb); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling Pod '%s' in non Ready state: %v", pod.Name, err)
 		}

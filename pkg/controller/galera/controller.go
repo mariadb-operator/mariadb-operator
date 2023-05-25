@@ -10,7 +10,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -38,36 +37,25 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	if mariadb.Spec.Galera == nil || mariadb.IsRestoringBackup() {
 		return nil
 	}
-	if err := r.InitGalera(ctx, mariadb); err != nil {
-		return err
-	}
 	sts, err := r.statefulSet(ctx, mariadb)
 	if err != nil {
 		return err
 	}
 
-	if sts.Status.ReadyReplicas == 0 {
-		log.FromContext(ctx).V(1).Info("Recovering Galera cluster")
-		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-			conditions.SetGaleraNotReady(&mariadb.Status, mariadb)
-		})
-	}
-	if mariadb.IsGaleraNotReady() && sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
-		log.FromContext(ctx).V(1).Info("Disabling Galera bootstrap")
+	if !mariadb.HasGaleraReadyCondition() && sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
+		if err := r.disableBootstrap(ctx, mariadb); err != nil {
+			return err
+		}
 		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetGaleraReady(&mariadb.Status)
 		})
 	}
-	return nil
-}
-
-func (r *GaleraReconciler) InitGalera(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if meta.FindStatusCondition(mariadb.Status.Conditions, mariadbv1alpha1.ConditionTypeGaleraReady) != nil {
-		return nil
+	if mariadb.HasGaleraNotReadyCondition() {
+		if err := r.reconcileCrashRecovery(ctx); err != nil {
+			return err
+		}
 	}
-	return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		conditions.SetGaleraNotReady(&mariadb.Status, mariadb)
-	})
+	return nil
 }
 
 func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
@@ -76,6 +64,11 @@ func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1al
 		return nil, err
 	}
 	return &sts, nil
+}
+
+func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	log.FromContext(ctx).V(1).Info("Disabling Galera bootstrap")
+	return nil
 }
 
 func (r *GaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

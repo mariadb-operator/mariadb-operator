@@ -16,7 +16,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type PodReplicationReconciler struct {
@@ -42,8 +41,6 @@ func (r *PodReplicationReconciler) ReconcilePodReady(ctx context.Context, pod co
 	if !r.shouldReconcile(mariadb) {
 		return nil
 	}
-	log.FromContext(ctx).V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
-
 	index, err := statefulset.PodIndex(pod.Name)
 	if err != nil {
 		return fmt.Errorf("error getting Pod index: %v", err)
@@ -78,8 +75,6 @@ func (r *PodReplicationReconciler) ReconcilePodNotReady(ctx context.Context, pod
 	if !r.shouldReconcile(mariadb) {
 		return nil
 	}
-	log.FromContext(ctx).V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
-
 	index, err := statefulset.PodIndex(pod.Name)
 	if err != nil {
 		return fmt.Errorf("error getting Pod index: %v", err)

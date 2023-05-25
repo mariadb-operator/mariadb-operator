@@ -321,11 +321,11 @@ func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
 }
 
-func (m *MariaDB) IsGaleraReady() bool {
+func (m *MariaDB) HasGaleraReadyCondition() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeGaleraReady)
 }
 
-func (m *MariaDB) IsGaleraNotReady() bool {
+func (m *MariaDB) HasGaleraNotReadyCondition() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeGaleraReady)
 }
 
