@@ -25,10 +25,27 @@ func (r *PodGaleraReconciler) ReconcilePodReady(ctx context.Context, pod corev1.
 }
 
 func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	log.FromContext(ctx).V(1).Info("Getting Galera state", "pod", pod.Name)
+	healthy, err := r.IsGaleraHealthy(ctx, pod, mariadb)
+	if err != nil {
+		return err
+	}
+	if healthy {
+		return nil
+	}
 	return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		conditions.SetGaleraNotReady(status, mariadb)
 	})
+}
+
+func (r *PodGaleraReconciler) IsGaleraHealthy(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+	log.FromContext(ctx).V(1).Info("Getting Galera state", "pod", pod.Name)
+
+	// TODO: request galera state to agent and decide based on it:
+	// - If safe_to_bootstrap = 0, galera not healthy
+	// - If 404, galera healthy.
+	// - Otherwise, galera healthy
+
+	return false, nil
 }
 
 func (r *PodGaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

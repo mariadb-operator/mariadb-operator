@@ -37,6 +37,11 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	if mariadb.Spec.Galera == nil || mariadb.IsRestoringBackup() {
 		return nil
 	}
+	if mariadb.HasGaleraNotReadyCondition() {
+		if err := r.reconcileGaleraRecovery(ctx); err != nil {
+			return err
+		}
+	}
 	sts, err := r.statefulSet(ctx, mariadb)
 	if err != nil {
 		return err
@@ -49,11 +54,6 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetGaleraReady(&mariadb.Status)
 		})
-	}
-	if mariadb.HasGaleraNotReadyCondition() {
-		if err := r.reconcileCrashRecovery(ctx); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -68,6 +68,10 @@ func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1al
 
 func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	log.FromContext(ctx).V(1).Info("Disabling Galera bootstrap")
+
+	// TODO: perform a request to all agents to disable bootstrap by deleting 1-bootstrap.cnf (galeraresources.GaleraBootstrapCnf)
+	// See: https://github.com/mariadb-operator/mariadb-ha-poc/blob/main/galera/kubernetes/1-bootstrap.cnf
+
 	return nil
 }
 
