@@ -51,10 +51,11 @@ helm uninstall mariadb-operator
 | webhook.affinity | object | `{}` | Affinity to add to controller Pod |
 | webhook.annotations | object | `{}` | Annotations for webhook configurations. |
 | webhook.certificate.certManager | bool | `false` | Use cert-manager to issue and rotate the certificate. If set to false, a default certificate will be used. |
-| webhook.certificate.default | object | `{"annotations":{},"caExpirationDays":365,"certExpirationDays":365}` | Default certificate generated when the chart is installed or upgraded. |
+| webhook.certificate.default | object | `{"annotations":{},"caExpirationDays":365,"certExpirationDays":365,"hook":""}` | Default certificate generated when the chart is installed or upgraded. |
 | webhook.certificate.default.annotations | object | `{}` | Annotations for certificate Secret. |
 | webhook.certificate.default.caExpirationDays | int | `365` | Certificate authority expiration in days. |
 | webhook.certificate.default.certExpirationDays | int | `365` | Certificate expiration in days. |
+| webhook.certificate.default.hook | string | `""` | Helm hook to be added to the default certificate. |
 | webhook.certificate.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. |
 | webhook.enabled | bool | `true` | Enable webhooks. Cert-manager must be installed in the cluster |
 | webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
