@@ -59,6 +59,8 @@ webhook:
       certExpirationDays: 365
       # -- Annotations for certificate Secret.
       annotations: {}
+      # -- Helm hook to be added to the default certificate.
+      hook: ""
     # -- Path where the certificate will be mounted.
     path: /tmp/k8s-webhook-server/serving-certs
   # -- Port to be used by the webhook server

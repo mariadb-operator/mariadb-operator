@@ -6,6 +6,7 @@
 {{ $altNames := append $altNames (include "mariadb-operator-webhook.altName" . ) }}
 {{ $ca := genCA $fullName (.Values.webhook.certificate.default.caExpirationDays | int) }}
 {{ $cert := genSignedCert $subjectName nil $altNames (.Values.webhook.certificate.default.certExpirationDays | int) $ca }}
+{{ if not .Values.webhook.certificate.certManager }}
 apiVersion: v1
 kind: Secret
 type: kubernetes.io/tls
@@ -13,13 +14,17 @@ metadata:
   name: {{ $fullName }}-webhook-default-cert
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
-  {{ with .Values.webhook.certificate.default.annotations }}
   annotations:
+    {{ with .Values.webhook.certificate.default.hook }}
+    helm.sh/hook: {{ . }}
+    {{ end }}
+    {{ with .Values.webhook.certificate.default.annotations }}
     {{ toYaml . | nindent 4 }}
-  {{ end}}
+    {{ end }}
 data:
   tls.crt: {{ $cert.Cert | b64enc }}
   tls.key: {{ $cert.Key | b64enc }} 
+{{ end }}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -27,15 +32,16 @@ metadata:
   name: {{ $fullName }}-webhook
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
-  {{ if or .Values.webhook.annotations .Values.webhook.certificate.certManager }}
   annotations:
-    {{ with .Values.webhook.annotations }}
-    {{ toYaml . | indent 4 }}
-    {{ end }}
     {{ if .Values.webhook.certificate.certManager }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
     {{ end }}
-  {{ end }}
+    {{ with .Values.webhook.certificate.default.hook }}
+    helm.sh/hook: {{ . }}
+    {{ end }}
+    {{ with .Values.webhook.annotations }}
+    {{ toYaml . | indent 4 }}
+    {{ end }}
 webhooks:
   - admissionReviewVersions:
       - v1
