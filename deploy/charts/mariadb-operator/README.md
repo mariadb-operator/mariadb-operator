@@ -6,7 +6,7 @@
 <img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb-operator.png" alt="mariadb" width="250"/>
 </p>
 
-![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![Version: 0.15.0](https://img.shields.io/badge/Version-0.15.0-informational?style=flat-square) ![AppVersion: v0.0.15](https://img.shields.io/badge/AppVersion-v0.0.15-informational?style=flat-square)
+![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![Version: 0.15.1](https://img.shields.io/badge/Version-0.15.1-informational?style=flat-square) ![AppVersion: v0.0.15](https://img.shields.io/badge/AppVersion-v0.0.15-informational?style=flat-square)
 
 Run and operate MariaDB in a cloud native way
 
