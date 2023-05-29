@@ -1,6 +1,6 @@
 module github.com/mariadb-operator/mariadb-operator
 
-go 1.18
+go 1.20
 
 require (
 	github.com/avast/retry-go/v4 v4.1.0
