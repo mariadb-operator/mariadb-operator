@@ -283,6 +283,7 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
 	existingSvc.Spec.Type = desiredSvc.Spec.Type
 	existingSvc.Annotations = desiredSvc.Annotations
+	existingSvc.Labels = desiredSvc.Labels
 	return r.Patch(ctx, &existingSvc, patch)
 }
 

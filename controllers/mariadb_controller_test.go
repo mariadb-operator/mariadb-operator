@@ -54,6 +54,8 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				Expect(svc.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(svc.ObjectMeta.Labels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDbName))
+				Expect(svc.ObjectMeta.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", "mariadb"))
 				Expect(svc.ObjectMeta.Annotations).NotTo(BeNil())
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())

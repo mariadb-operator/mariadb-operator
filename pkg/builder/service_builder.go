@@ -33,6 +33,7 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
 			WithAnnotations(opts.Annotations).
+			WithLabels(opts.Selectorlabels).
 			Build()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
