@@ -118,7 +118,7 @@ func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Per
 			ObjectMeta: metav1.ObjectMeta{
 				Name: galeraresources.GaleraConfigVolume,
 			},
-			Spec: mariadb.Spec.Galera.ConfigVolumeClaimTemplate,
+			Spec: mariadb.Spec.Galera.VolumeClaimTemplate,
 		})
 	}
 	return pvcs

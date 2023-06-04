@@ -40,6 +40,8 @@ type InheritMetadata struct {
 
 type Exporter struct {
 	ContainerTemplate `json:",inline"`
+	// +kubebuilder:default=9104
+	Port int32 `json:"port,omitempty"`
 }
 
 type ServiceMonitor struct {
@@ -193,11 +195,23 @@ type Replication struct {
 	SyncBinlog bool `json:"syncBinlog"`
 }
 
+type GaleraAgent struct {
+	ContainerTemplate `json:",inline"`
+	// +kubebuilder:default=5555
+	Port int32 `json:"port,omitempty"`
+	// +kubebuilder:default=10
+	RecoveryRetries int `json:"recoveryRetries,omitempty"`
+
+	RecoveryRetryWait *metav1.Duration `json:"recoveryRetryWait,omitempty"`
+}
+
 type Galera struct {
 	// +kubebuilder:validation:Required
-	InitContainerImage Image `json:"initContainerImage" webhook:"inmutable"`
+	Agent GaleraAgent `json:"agent"`
 	// +kubebuilder:validation:Required
-	ConfigVolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"configVolumeClaimTemplate" webhook:"inmutable"`
+	InitContainer ContainerTemplate `json:"initContainer"`
+	// +kubebuilder:validation:Required
+	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 	// +kubebuilder:default=1
 	ReplicaThreads int `json:"replicaThreads,omitempty"`
 }
@@ -207,7 +221,6 @@ type MariaDBSpec struct {
 	ContainerTemplate `json:",inline"`
 
 	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
-
 	// +kubebuilder:validation:Required
 	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef" webhook:"inmutable"`
 
@@ -228,10 +241,8 @@ type MariaDBSpec struct {
 	Galera *Galera `json:"galera,omitempty"`
 	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
-
 	// +kubebuilder:default=3306
 	Port int32 `json:"port,omitempty"`
-
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 	Volumes             []corev1.Volume                  `json:"volumes,omitempty" webhook:"inmutable"`

@@ -36,7 +36,7 @@ func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container
 		return []corev1.Container{
 			{
 				Name:    "init-galera",
-				Image:   mariadb.Spec.Galera.InitContainerImage.String(),
+				Image:   mariadb.Spec.Galera.InitContainer.Image.String(),
 				Command: []string{"sh", "-c"},
 				Args: []string{
 					fmt.Sprintf("%s/%s", galeraresources.GaleraConfigMapMountPath, galeraresources.GaleraInitScript),
@@ -229,7 +229,7 @@ func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretK
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "metrics",
-				ContainerPort: 9104,
+				ContainerPort: metrics.Exporter.Port,
 			},
 		},
 		Env: []corev1.EnvVar{
