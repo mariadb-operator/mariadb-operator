@@ -243,6 +243,32 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: MariaDBSpec{
+					ContainerTemplate: ContainerTemplate{
+						Image: Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("100m"),
+							},
+						},
+						Env: []corev1.EnvVar{
+							{
+								Name:  "TZ",
+								Value: "SYSTEM",
+							},
+						},
+						EnvFrom: []corev1.EnvFromSource{
+							{
+								ConfigMapRef: &corev1.ConfigMapEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "mariadb",
+									},
+								},
+							},
+						},
+					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",
@@ -257,11 +283,6 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 						Key: "password",
 					},
-					Image: Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
-					},
-					Port: 3306,
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &storageClassName,
 						Resources: corev1.ResourceRequirements{
@@ -281,33 +302,15 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 					Metrics: &Metrics{
 						Exporter: Exporter{
-							Image: Image{
-								Repository: "prom/mysqld-exporter",
-								Tag:        "v0.14.0",
+							ContainerTemplate: ContainerTemplate{
+								Image: Image{
+									Repository: "prom/mysqld-exporter",
+									Tag:        "v0.14.0",
+								},
 							},
 						},
 						ServiceMonitor: ServiceMonitor{
 							PrometheusRelease: "prometheus",
-						},
-					},
-					Resources: &corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							"cpu": resource.MustParse("100m"),
-						},
-					},
-					Env: []corev1.EnvVar{
-						{
-							Name:  "TZ",
-							Value: "SYSTEM",
-						},
-					},
-					EnvFrom: []corev1.EnvFromSource{
-						{
-							ConfigMapRef: &corev1.ConfigMapEnvSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "mariadb",
-								},
-							},
 						},
 					},
 				},
@@ -481,6 +484,12 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: noSwitchoverKey.Namespace,
 				},
 				Spec: MariaDBSpec{
+					ContainerTemplate: ContainerTemplate{
+						Image: Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",
@@ -495,11 +504,7 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 						Key: "password",
 					},
-					Image: Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
-					},
-					Port: 3306,
+
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &storageClassName,
 						Resources: corev1.ResourceRequirements{
@@ -526,6 +531,12 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: switchoverKey.Namespace,
 				},
 				Spec: MariaDBSpec{
+					ContainerTemplate: ContainerTemplate{
+						Image: Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",
@@ -540,11 +551,6 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 						Key: "password",
 					},
-					Image: Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
-					},
-					Port: 3306,
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &storageClassName,
 						Resources: corev1.ResourceRequirements{

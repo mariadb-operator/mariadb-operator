@@ -39,9 +39,7 @@ type InheritMetadata struct {
 }
 
 type Exporter struct {
-	// +kubebuilder:validation:Required
-	Image     Image                        `json:"image"`
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	ContainerTemplate `json:",inline"`
 }
 
 type ServiceMonitor struct {
@@ -206,6 +204,8 @@ type Galera struct {
 
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
+	ContainerTemplate `json:",inline"`
+
 	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
 
 	// +kubebuilder:validation:Required
@@ -215,11 +215,6 @@ type MariaDBSpec struct {
 	Username             *string                   `json:"username,omitempty" webhook:"inmutable"`
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutable"`
 	Connection           *ConnectionTemplate       `json:"connection,omitempty" webhook:"inmutable"`
-	// +kubebuilder:validation:Required
-	Image            Image                         `json:"image" webhook:"inmutable"`
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
-	// +kubebuilder:default=3306
-	Port int32 `json:"port,omitempty"`
 
 	MyCnf                *string                      `json:"myCnf,omitempty" webhook:"inmutable"`
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
@@ -234,21 +229,14 @@ type MariaDBSpec struct {
 	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
 
+	// +kubebuilder:default=3306
+	Port int32 `json:"port,omitempty"`
+
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 	Volumes             []corev1.Volume                  `json:"volumes,omitempty" webhook:"inmutable"`
-	VolumeMounts        []corev1.VolumeMount             `json:"volumeMounts,omitempty" webhook:"inmutable"`
-
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
-
-	Env     []corev1.EnvVar        `json:"env,omitempty"`
-	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
 
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-	SecurityContext    *corev1.SecurityContext    `json:"securityContext,omitempty"`
-
-	LivenessProbe  *corev1.Probe `json:"livenessProbe,omitempty"`
-	ReadinessProbe *corev1.Probe `json:"readinessProbe,omitempty"`
 
 	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
 	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`

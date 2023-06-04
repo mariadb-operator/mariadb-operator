@@ -126,6 +126,12 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: bootstrapMariaDBKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: backupKey.Name,
@@ -136,10 +142,6 @@ var _ = Describe("MariaDB controller", func() {
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
-					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
@@ -180,6 +182,12 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
@@ -203,10 +211,6 @@ var _ = Describe("MariaDB controller", func() {
 							Key: &testConnSecretKey,
 						},
 					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
-					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
 						Resources: corev1.ResourceRequirements{
@@ -227,34 +231,6 @@ var _ = Describe("MariaDB controller", func() {
 						max_allowed_packet=256M`
 						return &cfg
 					}(),
-					LivenessProbe: &corev1.Probe{
-						ProbeHandler: corev1.ProbeHandler{
-							Exec: &corev1.ExecAction{
-								Command: []string{
-									"bash",
-									"-c",
-									"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
-								},
-							},
-						},
-						InitialDelaySeconds: 10,
-						TimeoutSeconds:      5,
-						PeriodSeconds:       5,
-					},
-					ReadinessProbe: &corev1.Probe{
-						ProbeHandler: corev1.ProbeHandler{
-							Exec: &corev1.ExecAction{
-								Command: []string{
-									"bash",
-									"-c",
-									"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
-								},
-							},
-						},
-						InitialDelaySeconds: 10,
-						TimeoutSeconds:      5,
-						PeriodSeconds:       5,
-					},
 					Replication: &mariadbv1alpha1.Replication{
 						Primary: mariadbv1alpha1.PrimaryReplication{
 							PodIndex:          0,
@@ -378,9 +354,11 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: invalidMariaDbKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
@@ -423,6 +401,12 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: noBackupKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "foo",
@@ -433,10 +417,6 @@ var _ = Describe("MariaDB controller", func() {
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
-					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
@@ -479,15 +459,17 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: updateMariaDBKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
-					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
