@@ -241,6 +241,8 @@ type MariaDBSpec struct {
 	Galera *Galera `json:"galera,omitempty"`
 	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
+
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=3306
 	Port int32 `json:"port,omitempty"`
 	// +kubebuilder:validation:Required

@@ -2786,19 +2786,6 @@ spec:
                         required:
                         - repository
                         type: object
-                      imagePullSecrets:
-                        items:
-                          description: LocalObjectReference contains enough information
-                            to let you locate the referenced object inside the same
-                            namespace.
-                          properties:
-                            name:
-                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                TODO: Add other useful fields. apiVersion, kind, uid?'
-                              type: string
-                          type: object
-                          x-kubernetes-map-type: atomic
-                        type: array
                       livenessProbe:
                         description: Probe describes a health check to be performed
                           against a container to determine whether it is alive or
@@ -3533,19 +3520,6 @@ spec:
                         required:
                         - repository
                         type: object
-                      imagePullSecrets:
-                        items:
-                          description: LocalObjectReference contains enough information
-                            to let you locate the referenced object inside the same
-                            namespace.
-                          properties:
-                            name:
-                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                TODO: Add other useful fields. apiVersion, kind, uid?'
-                              type: string
-                          type: object
-                          x-kubernetes-map-type: atomic
-                        type: array
                       livenessProbe:
                         description: Probe describes a health check to be performed
                           against a container to determine whether it is alive or
@@ -4633,19 +4607,6 @@ spec:
                         required:
                         - repository
                         type: object
-                      imagePullSecrets:
-                        items:
-                          description: LocalObjectReference contains enough information
-                            to let you locate the referenced object inside the same
-                            namespace.
-                          properties:
-                            name:
-                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                TODO: Add other useful fields. apiVersion, kind, uid?'
-                              type: string
-                          type: object
-                          x-kubernetes-map-type: atomic
-                        type: array
                       livenessProbe:
                         description: Probe describes a health check to be performed
                           against a container to determine whether it is alive or

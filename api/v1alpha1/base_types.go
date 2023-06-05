@@ -53,8 +53,7 @@ type SecretTemplate struct {
 
 type ContainerTemplate struct {
 	// +kubebuilder:validation:Required
-	Image            Image                         `json:"image" webhook:"inmutable"`
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	Image Image `json:"image" webhook:"inmutable"`
 
 	Env     []corev1.EnvVar        `json:"env,omitempty"`
 	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`

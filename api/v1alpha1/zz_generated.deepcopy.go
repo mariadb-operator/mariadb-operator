@@ -330,11 +330,6 @@ func (in *ConnectionTemplate) DeepCopy() *ConnectionTemplate {
 func (in *ContainerTemplate) DeepCopyInto(out *ContainerTemplate) {
 	*out = *in
 	out.Image = in.Image
-	if in.ImagePullSecrets != nil {
-		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
-		*out = make([]v1.LocalObjectReference, len(*in))
-		copy(*out, *in)
-	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
 		*out = make([]v1.EnvVar, len(*in))
@@ -845,6 +840,11 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		in, out := &in.Galera, &out.Galera
 		*out = new(Galera)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.ImagePullSecrets != nil {
+		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
+		*out = make([]v1.LocalObjectReference, len(*in))
+		copy(*out, *in)
 	}
 	in.VolumeClaimTemplate.DeepCopyInto(&out.VolumeClaimTemplate)
 	if in.Volumes != nil {

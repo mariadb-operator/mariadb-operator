@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	defaultProbe = corev1.Probe{
+	defaultStsProbe = corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{
@@ -28,57 +28,50 @@ var (
 
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 	if mariadb.Spec.Galera != nil {
+		container := buildContainer(&mariadb.Spec.Galera.InitContainer)
 		volumeMounts := buildStsVolumeMounts(mariadb)
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      galeraresources.GaleraConfigMapVolume,
 			MountPath: galeraresources.GaleraConfigMapMountPath,
 		})
+
+		container.Name = "init-galera"
+		container.Image = mariadb.Spec.Galera.InitContainer.Image.String()
+		container.Command = []string{"sh", "-c"}
+		container.Args = []string{
+			fmt.Sprintf("%s/%s", galeraresources.GaleraConfigMapMountPath, galeraresources.GaleraInitScript),
+		}
+		container.VolumeMounts = volumeMounts
+
 		return []corev1.Container{
-			{
-				Name:    "init-galera",
-				Image:   mariadb.Spec.Galera.InitContainer.Image.String(),
-				Command: []string{"sh", "-c"},
-				Args: []string{
-					fmt.Sprintf("%s/%s", galeraresources.GaleraConfigMapMountPath, galeraresources.GaleraInitScript),
-				},
-				VolumeMounts: volumeMounts,
-			},
+			container,
 		}
 	}
 	return nil
 }
 
 func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]corev1.Container, error) {
-	var containers []corev1.Container
-	mariaDbContainer := corev1.Container{
-		Name:            MariaDbContainerName,
-		Image:           mariadb.Spec.Image.String(),
-		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
-		Args:            buildStsArgs(mariadb),
-		Env:             buildStsEnv(mariadb),
-		EnvFrom:         mariadb.Spec.EnvFrom,
-		Ports:           buildStsPorts(mariadb),
-		VolumeMounts:    buildStsVolumeMounts(mariadb),
-		ReadinessProbe: func() *corev1.Probe {
-			if mariadb.Spec.ReadinessProbe != nil {
-				return mariadb.Spec.ReadinessProbe
-			}
-			return &defaultProbe
-		}(),
-		LivenessProbe:   buildStsLivenessProbe(mariadb),
-		SecurityContext: mariadb.Spec.SecurityContext,
-	}
+	mariadbContainer := buildContainer(&mariadb.Spec.ContainerTemplate)
+	mariadbContainer.Name = MariaDbContainerName
+	mariadbContainer.Args = buildStsArgs(mariadb)
+	mariadbContainer.Env = buildStsEnv(mariadb)
+	mariadbContainer.Ports = buildStsPorts(mariadb)
+	mariadbContainer.VolumeMounts = buildStsVolumeMounts(mariadb)
+	mariadbContainer.LivenessProbe = buildStsLivenessProbe(mariadb)
+	mariadbContainer.ReadinessProbe = func() *corev1.Probe {
+		if mariadbContainer.ReadinessProbe != nil {
+			return mariadbContainer.ReadinessProbe
+		}
+		return &defaultStsProbe
+	}()
 
-	if mariadb.Spec.Resources != nil {
-		mariaDbContainer.Resources = *mariadb.Spec.Resources
-	}
-	containers = append(containers, mariaDbContainer)
+	var containers []corev1.Container
+	containers = append(containers, mariadbContainer)
 
 	if mariadb.Spec.Metrics != nil {
 		if dsn == nil {
 			return nil, fmt.Errorf("DSN secret is mandatory when MariaDB specifies metrics")
 		}
-
 		metricsContainer := buildMetricsContainer(mariadb.Spec.Metrics, dsn)
 		containers = append(containers, metricsContainer)
 	}
@@ -218,33 +211,40 @@ func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 			PeriodSeconds:       10,
 		}
 	}
-	return &defaultProbe
+	return &defaultStsProbe
 }
 
 func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretKeySelector) corev1.Container {
+	container := buildContainer(&metrics.Exporter.ContainerTemplate)
+	container.Name = MetricsContainerName
+	container.Ports = []corev1.ContainerPort{
+		{
+			Name:          MetricsPortName,
+			ContainerPort: metrics.Exporter.Port,
+		},
+	}
+	container.Env = append(container.Env, corev1.EnvVar{
+		Name: "DATA_SOURCE_NAME",
+		ValueFrom: &corev1.EnvVarSource{
+			SecretKeyRef: dsn,
+		},
+	})
+	return container
+}
+
+func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 	container := corev1.Container{
-		Name:            "metrics",
-		Image:           metrics.Exporter.Image.String(),
-		ImagePullPolicy: metrics.Exporter.Image.PullPolicy,
-		Ports: []corev1.ContainerPort{
-			{
-				Name:          "metrics",
-				ContainerPort: metrics.Exporter.Port,
-			},
-		},
-		Env: []corev1.EnvVar{
-			{
-				Name: "DATA_SOURCE_NAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: dsn,
-				},
-			},
-		},
+		Image:           tpl.Image.String(),
+		ImagePullPolicy: tpl.Image.PullPolicy,
+		Env:             tpl.Env,
+		EnvFrom:         tpl.EnvFrom,
+		VolumeMounts:    tpl.VolumeMounts,
+		LivenessProbe:   tpl.LivenessProbe,
+		ReadinessProbe:  tpl.ReadinessProbe,
+		SecurityContext: tpl.SecurityContext,
 	}
-
-	if metrics.Exporter.Resources != nil {
-		container.Resources = *metrics.Exporter.Resources
+	if tpl.Resources != nil {
+		container.Resources = *tpl.Resources
 	}
-
 	return container
 }

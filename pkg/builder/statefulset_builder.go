@@ -152,13 +152,14 @@ func buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKey
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
-			InitContainers:  buildStsInitContainers(mariadb),
-			Containers:      containers,
-			Volumes:         buildStsVolumes(mariadb),
-			SecurityContext: mariadb.Spec.PodSecurityContext,
-			Affinity:        mariadb.Spec.Affinity,
-			NodeSelector:    mariadb.Spec.NodeSelector,
-			Tolerations:     mariadb.Spec.Tolerations,
+			InitContainers:   buildStsInitContainers(mariadb),
+			Containers:       containers,
+			ImagePullSecrets: mariadb.Spec.ImagePullSecrets,
+			Volumes:          buildStsVolumes(mariadb),
+			SecurityContext:  mariadb.Spec.PodSecurityContext,
+			Affinity:         mariadb.Spec.Affinity,
+			NodeSelector:     mariadb.Spec.NodeSelector,
+			Tolerations:      mariadb.Spec.Tolerations,
 		},
 	}, nil
 }
