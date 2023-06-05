@@ -29,16 +29,16 @@ type ServiceOpts struct {
 
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
 	opts ServiceOpts) (*corev1.Service, error) {
-	objMeta :=
-		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
-			WithAnnotations(opts.Annotations).
-			WithLabels(opts.Selectorlabels).
-			Build()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			WithLabels(opts.Selectorlabels).
+			Build()
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(mariadb).
+			WithAnnotations(opts.Annotations).
+			WithLabels(selectorLabels).
 			Build()
 	svc := &corev1.Service{
 		ObjectMeta: objMeta,
