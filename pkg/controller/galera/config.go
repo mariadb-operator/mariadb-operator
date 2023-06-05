@@ -49,16 +49,20 @@ func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariad
 		Type: corev1.ServiceTypeClusterIP,
 		Ports: []corev1.ServicePort{
 			{
-				Name: "cluster",
+				Name: galeraresources.GaleraClusterPortName,
 				Port: galeraresources.GaleraClusterPort,
 			},
 			{
-				Name: "ist",
+				Name: galeraresources.GaleraISTPortName,
 				Port: galeraresources.GaleraISTPort,
 			},
 			{
-				Name: "sst",
+				Name: galeraresources.GaleraSSTPortName,
 				Port: galeraresources.GaleraSSTPort,
+			},
+			{
+				Name: galeraresources.AgentPortName,
+				Port: mariadb.Spec.Galera.Agent.Port,
 			},
 		},
 		ClusterIP:                &clusterIp,

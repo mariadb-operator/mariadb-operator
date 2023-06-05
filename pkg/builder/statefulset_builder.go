@@ -27,6 +27,8 @@ const (
 	MariaDbContainerName = "mariadb"
 	MariaDbPortName      = "mariadb"
 
+	AgentContainerName = "agent"
+
 	MetricsContainerName = "metrics"
 	MetricsPortName      = "metrics"
 )

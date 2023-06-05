@@ -117,8 +117,9 @@ func (r *RestoreSource) Validate() error {
 type Schedule struct {
 	// +kubebuilder:validation:Required
 	Cron string `json:"cron"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
-	Suspend bool `json:"suspend,omitempty"`
+	Suspend bool `json:"suspend"`
 }
 
 func (s *Schedule) Validate() error {

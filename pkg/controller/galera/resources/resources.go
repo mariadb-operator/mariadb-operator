@@ -17,9 +17,13 @@ var (
 	GaleraConfigVolume       = "galera"
 	GaleraConfigMountPath    = "/etc/mysql/mariadb.conf.d"
 
-	GaleraClusterPort = int32(4444)
-	GaleraISTPort     = int32(4567)
-	GaleraSSTPort     = int32(4568)
+	GaleraClusterPortName = "cluster"
+	GaleraClusterPort     = int32(4444)
+	GaleraISTPortName     = "ist"
+	GaleraISTPort         = int32(4567)
+	GaleraSSTPortName     = "sst"
+	GaleraSSTPort         = int32(4568)
+	AgentPortName         = "agent"
 )
 
 func ConfigMapKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {

@@ -28,18 +28,27 @@ spec:
   replicas: 3
 
   galera:
-    replicaThreads: 1
-    initContainerImage:
-      repository: alpine
-      tag: "3.18.0"
-      pullPolicy: IfNotPresent
-    configVolumeClaimTemplate:
+    agent:
+      image:
+        repository: ghcr.io/mariadb-operator/agent
+        tag: "v0.0.1"
+        pullPolicy: IfNotPresent
+      port: 5555
+      recoveryRetries: 10
+      recoveryRetryWait: 5s
+    initContainer:
+      image:
+        repository: alpine
+        tag: "3.18.0"
+        pullPolicy: IfNotPresent
+    volumeClaimTemplate:
       resources:
         requests:
           storage: 10Mi
       storageClassName: standard
       accessModes:
         - ReadWriteOnce
+    replicaThreads: 1
 
   affinity:
     podAntiAffinity:

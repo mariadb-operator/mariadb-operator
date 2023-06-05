@@ -181,6 +181,10 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
   selector:
     app.kubernetes.io/instance: mariadb-galera
     app.kubernetes.io/name: mariadb
@@ -200,6 +204,10 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
   selector:
     app.kubernetes.io/instance: mariadb-galera
     app.kubernetes.io/name: mariadb
@@ -219,6 +227,10 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
   selector:
     app.kubernetes.io/instance: mariadb-galera
     app.kubernetes.io/name: mariadb
@@ -238,6 +250,10 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
   selector:
     app.kubernetes.io/instance: mariadb-galera
     app.kubernetes.io/name: mariadb

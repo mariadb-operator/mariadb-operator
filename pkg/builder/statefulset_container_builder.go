@@ -7,6 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var (
@@ -29,11 +30,6 @@ var (
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 	if mariadb.Spec.Galera != nil {
 		container := buildContainer(&mariadb.Spec.Galera.InitContainer)
-		volumeMounts := buildStsVolumeMounts(mariadb)
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      galeraresources.GaleraConfigMapVolume,
-			MountPath: galeraresources.GaleraConfigMapMountPath,
-		})
 
 		container.Name = "init-galera"
 		container.Image = mariadb.Spec.Galera.InitContainer.Image.String()
@@ -41,7 +37,7 @@ func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container
 		container.Args = []string{
 			fmt.Sprintf("%s/%s", galeraresources.GaleraConfigMapMountPath, galeraresources.GaleraInitScript),
 		}
-		container.VolumeMounts = volumeMounts
+		container.VolumeMounts = buildGaleraVolumeMounts(mariadb)
 
 		return []corev1.Container{
 			container,
@@ -68,12 +64,14 @@ func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeyS
 	var containers []corev1.Container
 	containers = append(containers, mariadbContainer)
 
+	if mariadb.Spec.Galera != nil {
+		containers = append(containers, buildGaleraAgentContainer(mariadb))
+	}
 	if mariadb.Spec.Metrics != nil {
 		if dsn == nil {
 			return nil, fmt.Errorf("DSN secret is mandatory when MariaDB specifies metrics")
 		}
-		metricsContainer := buildMetricsContainer(mariadb.Spec.Metrics, dsn)
-		containers = append(containers, metricsContainer)
+		containers = append(containers, buildMetricsContainer(mariadb.Spec.Metrics, dsn))
 	}
 
 	return containers, nil
@@ -165,6 +163,15 @@ func buildStsVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount
 	return volumeMounts
 }
 
+func buildGaleraVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount {
+	volumeMounts := buildStsVolumeMounts(mariadb)
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      galeraresources.GaleraConfigMapVolume,
+		MountPath: galeraresources.GaleraConfigMapMountPath,
+	})
+	return volumeMounts
+}
+
 func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 	ports := []corev1.ContainerPort{
 		{
@@ -175,15 +182,15 @@ func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 	if mariadb.Spec.Galera != nil {
 		ports = append(ports, []corev1.ContainerPort{
 			{
-				Name:          "cluster",
+				Name:          galeraresources.GaleraClusterPortName,
 				ContainerPort: galeraresources.GaleraClusterPort,
 			},
 			{
-				Name:          "ist",
+				Name:          galeraresources.GaleraISTPortName,
 				ContainerPort: galeraresources.GaleraISTPort,
 			},
 			{
-				Name:          "sst",
+				Name:          galeraresources.GaleraSSTPortName,
 				ContainerPort: galeraresources.GaleraSSTPort,
 			},
 		}...)
@@ -191,27 +198,45 @@ func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 	return ports
 }
 
-func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	if mariadb.Spec.LivenessProbe != nil {
-		return mariadb.Spec.LivenessProbe
+func buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
+	container := buildContainer(&mariadb.Spec.Galera.Agent.ContainerTemplate)
+	container.Name = AgentContainerName
+	container.Ports = []corev1.ContainerPort{
+		{
+			Name:          galeraresources.AgentPortName,
+			ContainerPort: mariadb.Spec.Galera.Agent.Port,
+		},
 	}
-	if mariadb.Spec.Galera != nil {
-		return &corev1.Probe{
-			ProbeHandler: corev1.ProbeHandler{
-				Exec: &corev1.ExecAction{
-					Command: []string{
-						"bash",
-						"-c",
-						"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
-					},
-				},
-			},
-			InitialDelaySeconds: 60,
-			TimeoutSeconds:      5,
-			PeriodSeconds:       10,
+	container.Args = []string{
+		fmt.Sprintf("--addr=:%d", mariadb.Spec.Galera.Agent.Port),
+		fmt.Sprintf("--config-dir=%s", ConfigMountPath),
+		fmt.Sprintf("--recovery-retries=%d", mariadb.Spec.Galera.Agent.RecoveryRetries),
+		fmt.Sprintf("--recovery-retry-wait=%s", mariadb.Spec.Galera.Agent.RecoveryRetryWait.Duration.String()),
+	}
+	container.VolumeMounts = buildGaleraVolumeMounts(mariadb)
+	container.LivenessProbe = func() *corev1.Probe {
+		if container.LivenessProbe != nil {
+			return container.LivenessProbe
 		}
-	}
-	return &defaultStsProbe
+		return defaultAgentProbe(mariadb.Spec.Galera)
+	}()
+	container.ReadinessProbe = func() *corev1.Probe {
+		if container.ReadinessProbe != nil {
+			return container.ReadinessProbe
+		}
+		return defaultAgentProbe(mariadb.Spec.Galera)
+	}()
+	container.SecurityContext = func() *corev1.SecurityContext {
+		if container.SecurityContext != nil {
+			return container.SecurityContext
+		}
+		runAsUser := int64(0)
+		return &corev1.SecurityContext{
+			RunAsUser: &runAsUser,
+		}
+	}()
+
+	return container
 }
 
 func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretKeySelector) corev1.Container {
@@ -247,4 +272,41 @@ func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 		container.Resources = *tpl.Resources
 	}
 	return container
+}
+
+func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	if mariadb.Spec.LivenessProbe != nil {
+		return mariadb.Spec.LivenessProbe
+	}
+	if mariadb.Spec.Galera != nil {
+		return &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"bash",
+						"-c",
+						"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
+					},
+				},
+			},
+			InitialDelaySeconds: 60,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       10,
+		}
+	}
+	return &defaultStsProbe
+}
+
+func defaultAgentProbe(galera *mariadbv1alpha1.Galera) *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: "/health",
+				Port: intstr.FromInt(int(galera.Agent.Port)),
+			},
+		},
+		InitialDelaySeconds: 20,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+	}
 }
