@@ -29,7 +29,6 @@ const (
 
 	MetricsContainerName = "metrics"
 	MetricsPortName      = "metrics"
-	MetricsPort          = 9104
 )
 
 func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {

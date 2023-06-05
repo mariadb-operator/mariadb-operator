@@ -299,7 +299,7 @@ func (r *MariaDBReconciler) reconcileMariadbService(ctx context.Context, mariadb
 	if mariadb.Spec.Metrics != nil {
 		ports = append(ports, v1.ServicePort{
 			Name: builder.MetricsContainerName,
-			Port: builder.MetricsPort,
+			Port: mariadb.Spec.Metrics.Exporter.Port,
 		})
 	}
 	opts := builder.ServiceOpts{
