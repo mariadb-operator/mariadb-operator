@@ -18,4 +18,4 @@ kubectl wait -n metallb \
   --for=condition=ready pod \
   --selector=app.kubernetes.io/name=metallb \
   --timeout=90s
-kubectl apply -f $CURDIR/config/metallb.yaml 
+kubectl apply -f $CURDIR/metallb 

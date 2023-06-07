@@ -1,0 +1,17 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: load-balancer
+  namespace: metallb
+spec:
+  addresses:
+    - 172.18.0.10-172.18.0.200
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: l2advertisement
+  namespace: metallb
+spec:
+  ipAddressPools:
+    - load-balancer
