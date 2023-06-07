@@ -165,11 +165,10 @@ func buildStsVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount
 
 func buildGaleraVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount {
 	volumeMounts := buildStsVolumeMounts(mariadb)
-	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+	return append(volumeMounts, corev1.VolumeMount{
 		Name:      galeraresources.GaleraConfigMapVolume,
 		MountPath: galeraresources.GaleraConfigMapMountPath,
 	})
-	return volumeMounts
 }
 
 func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
@@ -209,7 +208,7 @@ func buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Containe
 	}
 	container.Args = []string{
 		fmt.Sprintf("--addr=:%d", mariadb.Spec.Galera.Agent.Port),
-		fmt.Sprintf("--config-dir=%s", ConfigMountPath),
+		fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 		fmt.Sprintf("--recovery-retries=%d", mariadb.Spec.Galera.Agent.RecoveryRetries),
 		fmt.Sprintf("--recovery-retry-wait=%s", mariadb.Spec.Galera.Agent.RecoveryRetryWait.Duration.String()),
 	}
