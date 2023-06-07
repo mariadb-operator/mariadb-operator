@@ -133,9 +133,11 @@ set -euo pipefail
 HOSTNAME=$(hostname)
 STATEFULSET_INDEX=${HOSTNAME##*-}
 
+echo 'Adding galera configuration'
 cat {{ .ConfigMapPath }}/{{ .GaleraCnf }} | sed 's/$MARIADB_OPERATOR_HOSTNAME/'$HOSTNAME'/g' > {{ .ConfigPath }}/{{ .GaleraCnf }}
 
 if [ "$STATEFULSET_INDEX" = "{{ .BootstrapIndex }}" ]  && [ -z "$(ls -A {{ .StoragePath }})" ]; then 
+	echo 'Adding cluster bootstrapping configuration'
 	cp {{ .ConfigMapPath }}/{{ .GaleraBootstrapCnf }} {{ .ConfigPath }}/{{ .GaleraBootstrapCnf }}
 fi
 `)
