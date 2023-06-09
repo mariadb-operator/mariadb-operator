@@ -18,14 +18,13 @@ type mariadbClientSet struct {
 
 func newMariaDBClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver) (*mariadbClientSet, error) {
 	if mariadb.Spec.Replication == nil {
-		return nil, fmt.Errorf("'mariadb.spec.replication' is required to create a mariadbClientSet")
+		return nil, errors.New("'mariadb.spec.replication' is required to create a mariadbClientSet")
 	}
-	clientSet := &mariadbClientSet{
+	return &mariadbClientSet{
 		mariadb:       mariadb,
 		refResolver:   refResolver,
 		clientByIndex: make(map[int]*mariadbclient.Client),
-	}
-	return clientSet, nil
+	}, nil
 }
 
 func (c *mariadbClientSet) close() error {

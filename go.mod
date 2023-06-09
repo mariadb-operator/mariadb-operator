@@ -6,7 +6,7 @@ require (
 	github.com/avast/retry-go/v4 v4.1.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/mariadb-operator/agent v0.0.0-20230608200528-ae34a2b14b1d
+	github.com/mariadb-operator/agent v0.0.0-20230609203423-d78430b94154
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.57.0

@@ -2,7 +2,9 @@ package galera
 
 import (
 	"context"
+	"fmt"
 
+	agentclient "github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
@@ -69,9 +71,19 @@ func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1al
 func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	log.FromContext(ctx).V(1).Info("Disabling Galera bootstrap")
 
-	// TODO: perform a request to all agents to disable bootstrap by deleting 1-bootstrap.cnf (galeraresources.GaleraBootstrapCnf)
-	// See: https://github.com/mariadb-operator/mariadb-ha-poc/blob/main/galera/kubernetes/1-bootstrap.cnf
-
+	clientSet, err := newAgentClientSet(mariadb)
+	if err != nil {
+		return fmt.Errorf("error creating agent client set: %v", err)
+	}
+	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
+		agentClient, err := clientSet.clientForIndex(i)
+		if err != nil {
+			return fmt.Errorf("error creating agent client: %v", err)
+		}
+		if err := agentClient.Bootstrap.Disable(ctx); err != nil && !agentclient.IsNotFound(err) {
+			return fmt.Errorf("error disabling bootstrap in Pod %d: %v", i, err)
+		}
+	}
 	return nil
 }
 
