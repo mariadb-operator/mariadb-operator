@@ -3,17 +3,25 @@ package galera
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type agentClientSet struct {
 	mariadb       *mariadbv1alpha1.MariaDB
 	clientByIndex map[int]*client.Client
+}
+
+func newAgentClient(mariadb *mariadbv1alpha1.MariaDB, pod corev1.Pod, opts ...client.Option) (*client.Client, error) {
+	index, err := statefulset.PodIndex(pod.Name)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Pod index: %v", err)
+	}
+	return client.NewClient(baseUrl(mariadb, *index), opts...)
 }
 
 func newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB) (*agentClientSet, error) {
@@ -34,11 +42,7 @@ func (a *agentClientSet) clientForIndex(index int) (*client.Client, error) {
 		return c, nil
 	}
 
-	c, err := client.NewClient(
-		a.baseUrl(a.mariadb, index),
-		// TODO: expose to user via CRD
-		client.WithTimeout(60*time.Second),
-	)
+	c, err := client.NewClient(baseUrl(a.mariadb, index))
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err)
 	}
@@ -54,7 +58,7 @@ func (c *agentClientSet) validateIndex(index int) error {
 	return fmt.Errorf("index '%d' out of MariaDB replicas bounds [0, %d]", index, c.mariadb.Spec.Replicas-1)
 }
 
-func (c *agentClientSet) baseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) string {
+func baseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) string {
 	return fmt.Sprintf(
 		"http://%s:%d",
 		statefulset.PodFQDNWithService(mariadb.ObjectMeta, index, galeraresources.ServiceKey(mariadb).Name),
