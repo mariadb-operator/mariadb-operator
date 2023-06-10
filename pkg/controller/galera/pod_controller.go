@@ -28,6 +28,8 @@ func (r *PodGaleraReconciler) ReconcilePodReady(ctx context.Context, pod corev1.
 }
 
 func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
+	// TODO:
+	// If MariaDB does not have GaleraConfigured condition => omit
 	healthy, err := r.IsGaleraHealthy(ctx, pod, mariadb)
 	if err != nil {
 		return err
@@ -43,6 +45,22 @@ func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod core
 
 func (r *PodGaleraReconciler) IsGaleraHealthy(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
 	log.FromContext(ctx).V(1).Info("Getting Galera state", "pod", pod.Name)
+
+	// TODO:
+	// If this happens consistently during 60s (configurable by user via spec.galera.galeraNotReadyTimeout) => not healthy:
+	// - All Pods not Ready
+	//	OR
+	// - Some Pods not Ready, perform the following checks in the Ready ones:
+	//	- SHOW STATUS LIKE 'wsrep_cluster_status':
+	//		If the value of wsrep_cluster_status is "Primary" or "Non-Primary,"  it indicates that the cluster is healthy.
+	//		If it shows "Disconnected" or "Non-Primary" for an extended period, there might be an issue.
+	//	- SHOW STATUS LIKE 'wsrep_local_state_comment';
+	//		The output will display the state of each node, such as "Synced," "Donor," "Joining," "Joined," or "Disconnected."
+	//		All nodes should ideally be in the "Synced" state.
+	//		If any node is consistently in a different state or experiencing connection issues, it might indicate a problem.
+	//	- SHOW STATUS LIKE 'wsrep_cluster_size';
+	//		Ensure that the reported cluster size matches the number of nodes you expect.
+	//		If the cluster size decreases unexpectedly, it could indicate a node failure or network issue.
 
 	agentClient, err := newAgentClient(mariadb, pod, agentclient.WithTimeout(1*time.Second))
 	if err != nil {
