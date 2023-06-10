@@ -17,7 +17,7 @@ var (
 				Command: []string{
 					"bash",
 					"-c",
-					"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
+					"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 				},
 			},
 		},
@@ -284,7 +284,7 @@ func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 					Command: []string{
 						"bash",
 						"-c",
-						"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
+						"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
 					},
 				},
 			},

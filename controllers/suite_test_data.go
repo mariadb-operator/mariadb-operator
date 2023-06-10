@@ -96,7 +96,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 							Command: []string{
 								"bash",
 								"-c",
-								"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
+								"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 							},
 						},
 					},
@@ -110,7 +110,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 							Command: []string{
 								"bash",
 								"-c",
-								"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
+								"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 							},
 						},
 					},
