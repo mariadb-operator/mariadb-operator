@@ -23,7 +23,7 @@ import (
 
 type switchoverPhase struct {
 	name      string
-	reconcile func(context.Context, *mariadbv1alpha1.MariaDB, *mariadbClientSet) error
+	reconcile func(context.Context, *mariadbv1alpha1.MariaDB, *replicationClientSet) error
 }
 
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest) error {
@@ -99,7 +99,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 }
 
 func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -116,7 +116,7 @@ func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mari
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -192,7 +192,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 }
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	client, err := clientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
@@ -205,7 +205,7 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb
 }
 
 func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	logger := log.FromContext(ctx)
 	var wg sync.WaitGroup
 	doneChan := make(chan struct{})
@@ -263,7 +263,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 }
 
 func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -290,7 +290,7 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 }
 
 func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	key := replresources.PrimaryServiceKey(mariadb)
 	var service corev1.Service
 	if err := r.Get(ctx, key, &service); err != nil {

@@ -8,20 +8,11 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	corev1 "k8s.io/api/core/v1"
 )
 
 type agentClientSet struct {
 	mariadb       *mariadbv1alpha1.MariaDB
 	clientByIndex map[int]*client.Client
-}
-
-func newAgentClient(mariadb *mariadbv1alpha1.MariaDB, pod corev1.Pod, opts ...client.Option) (*client.Client, error) {
-	index, err := statefulset.PodIndex(pod.Name)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Pod index: %v", err)
-	}
-	return client.NewClient(baseUrl(mariadb, *index), opts...)
 }
 
 func newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB) (*agentClientSet, error) {

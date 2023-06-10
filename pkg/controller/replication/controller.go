@@ -45,7 +45,7 @@ func NewReplicationReconciler(client client.Client, builder *builder.Builder, re
 type reconcileRequest struct {
 	mariadb   *mariadbv1alpha1.MariaDB
 	key       types.NamespacedName
-	clientSet *mariadbClientSet
+	clientSet *replicationClientSet
 }
 
 type replicationPhase struct {
@@ -59,7 +59,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		return nil
 	}
 	if mariadb.IsSwitchingPrimary() {
-		clientSet, err := newMariaDBClientSet(mariadb, r.RefResolver)
+		clientSet, err := newReplicationClientSet(mariadb, r.RefResolver)
 		if err != nil {
 			return fmt.Errorf("error creating mariadb clientset: %v", err)
 		}
@@ -83,7 +83,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		return nil
 	}
 
-	clientSet, err := newMariaDBClientSet(mariadb, r.RefResolver)
+	clientSet, err := newReplicationClientSet(mariadb, r.RefResolver)
 	if err != nil {
 		return fmt.Errorf("error creating mariadb clientset: %v", err)
 	}

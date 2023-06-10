@@ -40,7 +40,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		return nil
 	}
 	if mariadb.HasGaleraNotReadyCondition() {
-		if err := r.reconcileGaleraRecovery(ctx); err != nil {
+		if err := r.reconcileGaleraRecovery(ctx, mariadb); err != nil {
 			return err
 		}
 	}
