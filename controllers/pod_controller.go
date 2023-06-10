@@ -70,12 +70,12 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	logger := log.FromContext(ctx)
 
 	if mariadbpod.PodReady(&pod) {
-		logger.V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
+		logger.V(1).Info("Reconciling Pod in Ready state")
 		if err := r.PodReadyReconciler.ReconcilePodReady(ctx, pod, mariadb); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling Pod '%s' in Ready state: %v", pod.Name, err)
 		}
 	} else {
-		logger.V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
+		logger.V(1).Info("Reconciling Pod in non Ready state")
 		if err := r.PodReadyReconciler.ReconcilePodNotReady(ctx, pod, mariadb); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling Pod '%s' in non Ready state: %v", pod.Name, err)
 		}

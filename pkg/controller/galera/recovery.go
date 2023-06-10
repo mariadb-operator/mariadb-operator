@@ -15,6 +15,10 @@ func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb 
 	// See:
 	// https://github.com/mariadb-operator/mariadb-ha-poc/blob/main/galera/kubernetes/2-crashrecovery.cnf
 	// https://github.com/mariadb-operator/mariadb-ha-poc/blob/main/galera/kubernetes/1-bootstrap.cnf
+	//	Maybe useful for recovery?
+	//	- SHOW STATUS LIKE 'wsrep_local_state_comment';
+	//		The output will display the state of each node, such as "Synced," "Donor," "Joining," "Joined," or "Disconnected."
+	//		All nodes should ideally be in the "Synced" state.
 
 	_, err := newAgentClientSet(mariadb)
 	if err != nil {

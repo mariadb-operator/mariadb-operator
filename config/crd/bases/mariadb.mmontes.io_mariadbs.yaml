@@ -4072,6 +4072,16 @@ spec:
                     required:
                     - image
                     type: object
+                  livenessProbe:
+                    default: true
+                    type: boolean
+                  recovery:
+                    properties:
+                      unhealthyThreshold:
+                        type: string
+                      unhealthyTimeout:
+                        type: string
+                    type: object
                   replicaThreads:
                     default: 1
                     type: integer
@@ -4248,6 +4258,7 @@ spec:
                 required:
                 - agent
                 - initContainer
+                - recovery
                 - volumeClaimTemplate
                 type: object
               image:

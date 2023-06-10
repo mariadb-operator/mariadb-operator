@@ -196,7 +196,7 @@ func (c *Client) DropDatabase(ctx context.Context, database string) error {
 	return c.Exec(ctx, fmt.Sprintf("DROP DATABASE IF EXISTS `%s`;", database))
 }
 
-func (c *Client) GlobalVar(ctx context.Context, variable string) (string, error) {
+func (c *Client) SystemVariable(ctx context.Context, variable string) (string, error) {
 	sql := fmt.Sprintf("SELECT @@global.%s;", variable)
 	row := c.db.QueryRowContext(ctx, sql)
 
@@ -207,26 +207,26 @@ func (c *Client) GlobalVar(ctx context.Context, variable string) (string, error)
 	return val, nil
 }
 
-func (c *Client) SetGlobalVar(ctx context.Context, variable string, value string) error {
+func (c *Client) SetSystemVariable(ctx context.Context, variable string, value string) error {
 	sql := fmt.Sprintf("SET @@global.%s=%s;", variable, value)
 	return c.Exec(ctx, sql)
 }
 
-func (c *Client) SetGlobalVars(ctx context.Context, keyVal map[string]string) error {
+func (c *Client) SetSystemVariables(ctx context.Context, keyVal map[string]string) error {
 	for k, v := range keyVal {
-		if err := c.SetGlobalVar(ctx, k, v); err != nil {
+		if err := c.SetSystemVariable(ctx, k, v); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *Client) SetReadOnly(ctx context.Context) error {
-	return c.SetGlobalVar(ctx, "read_only", "1")
+func (c *Client) EnableReadOnly(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "read_only", "1")
 }
 
 func (c *Client) DisableReadOnly(ctx context.Context) error {
-	return c.SetGlobalVar(ctx, "read_only", "0")
+	return c.SetSystemVariable(ctx, "read_only", "0")
 }
 
 func (c *Client) ResetMaster(ctx context.Context) error {
@@ -295,15 +295,32 @@ func (c *Client) ResetSlavePos(ctx context.Context) error {
 	return c.Exec(ctx, sql)
 }
 
-func (c *Client) GaleraClusterSize(ctx context.Context) (int, error) {
-	sql := "SELECT variable_value FROM information_schema.global_status WHERE variable_name='wsrep_cluster_size';"
+const statusVariableSql = "SELECT variable_value FROM information_schema.global_status WHERE variable_name=?;"
 
-	row := c.db.QueryRowContext(ctx, sql)
+func (c *Client) StatusVariable(ctx context.Context, variable string) (string, error) {
+	row := c.db.QueryRowContext(ctx, statusVariableSql, variable)
+	var val string
+	if err := row.Scan(&val); err != nil {
+		return "", nil
+	}
+	return val, nil
+}
+
+func (c *Client) StatusVariableInt(ctx context.Context, variable string) (int, error) {
+	row := c.db.QueryRowContext(ctx, statusVariableSql, variable)
 	var val int
 	if err := row.Scan(&val); err != nil {
 		return 0, nil
 	}
 	return val, nil
+}
+
+func (c *Client) GaleraClusterSize(ctx context.Context) (int, error) {
+	return c.StatusVariableInt(ctx, "wsrep_cluster_size")
+}
+
+func (c *Client) GaleraClusterStatus(ctx context.Context) (string, error) {
+	return c.StatusVariable(ctx, "wsrep_cluster_status")
 }
 
 func createTpl(name, t string) *template.Template {

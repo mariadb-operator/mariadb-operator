@@ -112,7 +112,7 @@ func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mari
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 
-	return client.SetReadOnly(ctx)
+	return client.EnableReadOnly(ctx)
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -128,7 +128,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
-	primaryGtid, err := client.GlobalVar(ctx, "gtid_binlog_pos")
+	primaryGtid, err := client.SystemVariable(ctx, "gtid_binlog_pos")
 	if err != nil {
 		return fmt.Errorf("error getting primary GTID binlog pos: %v", err)
 	}

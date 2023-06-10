@@ -274,11 +274,8 @@ func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 }
 
 func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	if mariadb.Spec.LivenessProbe != nil {
-		return mariadb.Spec.LivenessProbe
-	}
-	if mariadb.Spec.Galera != nil {
-		return &corev1.Probe{
+	if mariadb.Spec.Galera != nil && mariadb.Spec.Galera.LivenessProbe {
+		probe := &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				Exec: &corev1.ExecAction{
 					Command: []string{
@@ -288,10 +285,20 @@ func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 					},
 				},
 			},
-			InitialDelaySeconds: 60,
-			TimeoutSeconds:      5,
-			PeriodSeconds:       10,
 		}
+		if mariadb.Spec.LivenessProbe != nil {
+			mariadbProbe := *mariadb.Spec.LivenessProbe
+			probe.InitialDelaySeconds = mariadbProbe.InitialDelaySeconds
+			probe.TimeoutSeconds = mariadbProbe.TimeoutSeconds
+			probe.PeriodSeconds = mariadbProbe.PeriodSeconds
+			probe.SuccessThreshold = mariadbProbe.SuccessThreshold
+			probe.FailureThreshold = mariadbProbe.FailureThreshold
+			probe.TerminationGracePeriodSeconds = mariadbProbe.TerminationGracePeriodSeconds
+		}
+		return probe
+	}
+	if mariadb.Spec.LivenessProbe != nil {
+		return mariadb.Spec.LivenessProbe
 	}
 	return &defaultStsProbe
 }
@@ -304,8 +311,5 @@ func defaultAgentProbe(galera *mariadbv1alpha1.Galera) *corev1.Probe {
 				Port: intstr.FromInt(int(galera.Agent.Port)),
 			},
 		},
-		InitialDelaySeconds: 20,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
 	}
 }

@@ -18,19 +18,11 @@ package v1alpha1
 
 import (
 	"errors"
-	"fmt"
-	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-)
-
-var (
-	defaultConnectionTimeout = 10 * time.Second
-	defaultSyncTimeout       = 10 * time.Second
 )
 
 type InheritMetadata struct {
@@ -76,144 +68,6 @@ func (p *PodDisruptionBudget) Validate() error {
 type Service struct {
 	Type        corev1.ServiceType `json:"type,omitempty"`
 	Annotations map[string]string  `json:"annotations,omitempty"`
-}
-
-type WaitPoint string
-
-const (
-	WaitPointAfterSync   WaitPoint = "AfterSync"
-	WaitPointAfterCommit WaitPoint = "AfterCommit"
-)
-
-func (w WaitPoint) Validate() error {
-	switch w {
-	case WaitPointAfterSync, WaitPointAfterCommit:
-		return nil
-	default:
-		return fmt.Errorf("invalid WaitPoint: %v", w)
-	}
-}
-
-func (w WaitPoint) MariaDBFormat() (string, error) {
-	switch w {
-	case WaitPointAfterSync:
-		return "AFTER_SYNC", nil
-	case WaitPointAfterCommit:
-		return "AFTER_COMMIT", nil
-	default:
-		return "", fmt.Errorf("invalid WaitPoint: %v", w)
-	}
-}
-
-type Gtid string
-
-const (
-	GtidCurrentPos Gtid = "CurrentPos"
-	GtidSlavePos   Gtid = "SlavePos"
-)
-
-func (g Gtid) Validate() error {
-	switch g {
-	case GtidCurrentPos, GtidSlavePos:
-		return nil
-	default:
-		return fmt.Errorf("invalid Gtid: %v", g)
-	}
-}
-
-func (g Gtid) MariaDBFormat() (string, error) {
-	switch g {
-	case GtidCurrentPos:
-		return "current_pos", nil
-	case GtidSlavePos:
-		return "slave_pos", nil
-	default:
-		return "", fmt.Errorf("invalid Gtid: %v", g)
-	}
-}
-
-type PrimaryReplication struct {
-	// +kubebuilder:default=0
-	PodIndex int `json:"podIndex,omitempty"`
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	AutomaticFailover bool `json:"automaticFailover"`
-
-	Service *Service `json:"service,omitempty"`
-
-	Connection *ConnectionTemplate `json:"connection,omitempty"`
-}
-
-type ReplicaReplication struct {
-	// +kubebuilder:default=AfterCommit
-	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
-	// +kubebuilder:default=CurrentPos
-	Gtid *Gtid `json:"gtid,omitempty"`
-
-	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
-	// +kubebuilder:default=10
-	ConnectionRetries int `json:"connectionRetries,omitempty"`
-
-	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
-}
-
-func (r *ReplicaReplication) Validate() error {
-	if r.WaitPoint != nil {
-		if err := r.WaitPoint.Validate(); err != nil {
-			return fmt.Errorf("invalid WaitPoint: %v", err)
-		}
-	}
-	if r.Gtid != nil {
-		if err := r.Gtid.Validate(); err != nil {
-			return fmt.Errorf("invalid GTID: %v", err)
-		}
-	}
-	return nil
-}
-
-func (r *ReplicaReplication) ConnectionTimeoutOrDefault() time.Duration {
-	if r.ConnectionTimeout != nil {
-		return r.ConnectionTimeout.Duration
-	}
-	return defaultConnectionTimeout
-}
-
-func (r *ReplicaReplication) SyncTimeoutOrDefault() time.Duration {
-	if r.SyncTimeout != nil {
-		return r.SyncTimeout.Duration
-	}
-	return defaultSyncTimeout
-}
-
-type Replication struct {
-	// +kubebuilder:validation:Required
-	Primary PrimaryReplication `json:"primary"`
-	// +kubebuilder:default={}
-	Replica ReplicaReplication `json:"replica,omitempty"`
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	SyncBinlog bool `json:"syncBinlog"`
-}
-
-type GaleraAgent struct {
-	ContainerTemplate `json:",inline"`
-	// +kubebuilder:default=5555
-	Port int32 `json:"port,omitempty"`
-	// +kubebuilder:default=10
-	RecoveryRetries int `json:"recoveryRetries,omitempty"`
-
-	RecoveryRetryWait *metav1.Duration `json:"recoveryRetryWait,omitempty"`
-}
-
-type Galera struct {
-	// +kubebuilder:validation:Required
-	Agent GaleraAgent `json:"agent"`
-	// +kubebuilder:validation:Required
-	InitContainer ContainerTemplate `json:"initContainer"`
-	// +kubebuilder:validation:Required
-	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
-	// +kubebuilder:default=1
-	ReplicaThreads int `json:"replicaThreads,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
@@ -275,16 +129,6 @@ func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 	meta.SetStatusCondition(&s.Conditions, condition)
 }
 
-func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
-	s.CurrentPrimaryPodIndex = &index
-	primaryPod := statefulset.PodName(mariadb.ObjectMeta, index)
-	s.CurrentPrimary = &primaryPod
-}
-
-func (s *MariaDBStatus) UpdateCurrentPrimaryName(name string) {
-	s.CurrentPrimary = &name
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mdb
 // +kubebuilder:subresource:status
@@ -312,26 +156,6 @@ func (m *MariaDB) IsRestoringBackup() bool {
 
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
-}
-
-func (m *MariaDB) IsConfiguringReplication() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicationConfigured)
-}
-
-func (m *MariaDB) IsSwitchingPrimary() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
-}
-
-func (m *MariaDB) HasGaleraReadyCondition() bool {
-	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeGaleraReady)
-}
-
-func (m *MariaDB) HasGaleraNotReadyCondition() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeGaleraReady)
-}
-
-func (m *MariaDB) HasGaleraConfiguredCondition() bool {
-	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeGaleraConfigured)
 }
 
 // +kubebuilder:object:root=true
