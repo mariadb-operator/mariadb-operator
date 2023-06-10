@@ -330,6 +330,10 @@ func (m *MariaDB) HasGaleraNotReadyCondition() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeGaleraReady)
 }
 
+func (m *MariaDB) HasGaleraConfiguredCondition() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeGaleraConfigured)
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB

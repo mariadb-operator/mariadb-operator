@@ -6,6 +6,7 @@ const (
 	ConditionTypeReplicationConfigured string = "ReplicationConfigured"
 	ConditionTypePrimarySwitched       string = "PrimarySwitched"
 	ConditionTypeGaleraReady           string = "GaleraReady"
+	ConditionTypeGaleraConfigured      string = "GaleraConfigured"
 	ConditionTypeComplete              string = "Complete"
 
 	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
@@ -15,6 +16,7 @@ const (
 	ConditionReasonSwitchPrimary        string = "SwitchPrimary"
 	ConditionReasonGaleraReady          string = "GaleraReady"
 	ConditionReasonGaleraNotReady       string = "GaleraNotReady"
+	ConditionReasonGaleraConfigured     string = "GaleraConfigured"
 
 	ConditionReasonRestoreNotComplete string = "RestoreNotComplete"
 	ConditionReasonRestoreComplete    string = "RestoreComplete"

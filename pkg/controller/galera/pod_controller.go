@@ -28,8 +28,9 @@ func (r *PodGaleraReconciler) ReconcilePodReady(ctx context.Context, pod corev1.
 }
 
 func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	// TODO:
-	// If MariaDB does not have GaleraConfigured condition => omit
+	if !mariadb.HasGaleraConfiguredCondition() {
+		return nil
+	}
 	healthy, err := r.IsGaleraHealthy(ctx, pod, mariadb)
 	if err != nil {
 		return err
