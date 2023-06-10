@@ -53,6 +53,34 @@ cluster-delete: kind ## Delete the kind cluster.
 cluster-ctx: ## Sets cluster context.
 	@kubectl config use-context kind-$(CLUSTER)
 
+.PHONY: cluster-ls
+cluster-ps: ## List all cluster Nodes.
+	docker ps --filter="name=$(CLUSTER)-*"
+
+.PHONY: cluster-workers
+cluster-workers: ## List cluster worker Nodes.
+	docker ps --filter="name=$(CLUSTER)-worker-*"
+
+##@ DR
+
+MARIADB_INSTANCE ?= mariadb-galera
+
+stop-mariadb-%: ## Stop mariadb Node
+	docker stop $(shell kubectl get pod "$(MARIADB_INSTANCE)-$*" -o jsonpath="{.spec.nodeName}")
+
+start-mariadb-%: ## Stop mariadb Node
+	docker start $(shell kubectl get pod "$(MARIADB_INSTANCE)-$*" -o jsonpath="{.spec.nodeName}")
+
+.PHONY: stop-all-mariadb
+stop-all-mariadb: ## Stop all mariadb Nodes
+	@for ((i=0; i<$(shell kubectl get mariadb "$(MARIADB_INSTANCE)" -o jsonpath='{.spec.replicas}'); i++)); do make -s "stop-mariadb-$$i"; done
+	@make -s cluster-workers
+
+.PHONY: start-all-mariadb
+start-all-mariadb: ## Stop all mariadb Nodes
+	@for ((i=0; i<$(shell kubectl get mariadb "$(MARIADB_INSTANCE)" -o jsonpath='{.spec.replicas}'); i++)); do make -s "start-mariadb-$$i"; done
+	@make -s cluster-workers
+
 ##@ Controller gen
 
 .PHONY: manifests
