@@ -878,6 +878,10 @@ spec:
                         type: array
                     type: object
                 type: object
+              args:
+                items:
+                  type: string
+                type: array
               bootstrapFrom:
                 properties:
                   backupRef:
@@ -2426,6 +2430,10 @@ spec:
                         type: object
                     type: object
                 type: object
+              command:
+                items:
+                  type: string
+                type: array
               connection:
                 properties:
                   healthCheck:
@@ -2615,6 +2623,14 @@ spec:
                 properties:
                   agent:
                     properties:
+                      args:
+                        items:
+                          type: string
+                        type: array
+                      command:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           description: EnvVar represents an environment variable present
@@ -3344,6 +3360,14 @@ spec:
                     type: object
                   initContainer:
                     properties:
+                      args:
+                        items:
+                          type: string
+                        type: array
+                      command:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           description: EnvVar represents an environment variable present
@@ -4442,6 +4466,14 @@ spec:
                 properties:
                   exporter:
                     properties:
+                      args:
+                        items:
+                          type: string
+                        type: array
+                      command:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           description: EnvVar represents an environment variable present

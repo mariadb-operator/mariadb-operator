@@ -206,11 +206,15 @@ func buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Containe
 			ContainerPort: mariadb.Spec.Galera.Agent.Port,
 		},
 	}
-	container.Args = []string{
-		fmt.Sprintf("--addr=:%d", mariadb.Spec.Galera.Agent.Port),
-		fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
-		fmt.Sprintf("--state-dir=%s", StorageMountPath),
-	}
+	container.Args = func() []string {
+		args := container.Args
+		args = append(args, []string{
+			fmt.Sprintf("--addr=:%d", mariadb.Spec.Galera.Agent.Port),
+			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
+			fmt.Sprintf("--state-dir=%s", StorageMountPath),
+		}...)
+		return args
+	}()
 	container.VolumeMounts = buildGaleraVolumeMounts(mariadb)
 	container.LivenessProbe = func() *corev1.Probe {
 		if container.LivenessProbe != nil {
@@ -259,6 +263,8 @@ func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 	container := corev1.Container{
 		Image:           tpl.Image.String(),
 		ImagePullPolicy: tpl.Image.PullPolicy,
+		Command:         tpl.Command,
+		Args:            tpl.Args,
 		Env:             tpl.Env,
 		EnvFrom:         tpl.EnvFrom,
 		VolumeMounts:    tpl.VolumeMounts,

@@ -55,6 +55,9 @@ type ContainerTemplate struct {
 	// +kubebuilder:validation:Required
 	Image Image `json:"image" webhook:"inmutable"`
 
+	Command []string `json:"command,omitempty"`
+	Args    []string `json:"args,omitempty"`
+
 	Env     []corev1.EnvVar        `json:"env,omitempty"`
 	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
 
