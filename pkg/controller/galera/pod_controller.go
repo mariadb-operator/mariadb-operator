@@ -43,19 +43,21 @@ func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod core
 	healthyCtx, cancel := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.HealthyTimeoutOrDefault())
 	defer cancel()
 
-	log.FromContext(ctx).Info("Checking Galera cluster health")
+	logger := log.FromContext(ctx)
+	logger.Info("Checking Galera cluster health")
 	healthy, err := r.pollUntilHealthy(healthyCtx, mariadb)
 	if err != nil {
 		return err
 	}
-	if !healthy {
-		log.FromContext(ctx).Info("Galera cluster is not healthy")
-		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-			conditions.SetGaleraNotReady(status, mariadb)
-		})
+
+	if healthy {
+		logger.Info("Galera cluster is healthy")
+		return nil
 	}
-	log.FromContext(ctx).Info("Galera cluster is healthy")
-	return nil
+	logger.Info("Galera cluster is not healthy")
+	return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		conditions.SetGaleraNotReady(status, mariadb)
+	})
 }
 
 func (r *PodGaleraReconciler) pollUntilHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
