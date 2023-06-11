@@ -49,19 +49,28 @@ func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb 
 		return fmt.Errorf("error getting agent client: %v", err)
 	}
 
-	logger.Info("Getting current Pods")
+	logger.Info("Get current Pods")
 	pods, err := r.currentPods(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting Pods: %v", err)
 	}
 	logger.V(1).Info("Pods", "pods", len(pods))
 
-	logger.Info("Getting Galera state by Pod")
+	logger.Info("Get Galera state by Pod")
 	gsp, err := r.galeraStateByPod(ctx, pods, clientSet)
 	if err != nil {
 		return fmt.Errorf("error getting Galera state by Pod: %v", err)
 	}
 	logger.V(1).Info("Galera state by Pod", "gsp", gsp.states)
+
+	logger.Info("Check SafeToBootstrap")
+	if ok, bootstrap, podIndex := gsp.safeToBootstrap(); ok {
+		logger.Info("Bootstrapping Galera cluster", "pod-index", podIndex)
+		if err := r.bootstrap(ctx, bootstrap, podIndex, clientSet); err != nil {
+			return fmt.Errorf("error bootstrapping from Pod index: %d", podIndex)
+		}
+		return nil
+	}
 
 	return nil
 }
@@ -89,6 +98,18 @@ func (r *GaleraReconciler) currentPods(ctx context.Context, mariadb *mariadbv1al
 type galeraStateByPod struct {
 	states map[int]*galera.GaleraState
 	mux    *sync.Mutex
+}
+
+func (gsp *galeraStateByPod) safeToBootstrap() (bool, *galera.Bootstrap, int) {
+	for k, v := range gsp.states {
+		if v.SafeToBootstrap {
+			return true, &galera.Bootstrap{
+				UUID:  v.UUID,
+				Seqno: v.Seqno,
+			}, k
+		}
+	}
+	return false, nil, -1
 }
 
 func (r *GaleraReconciler) galeraStateByPod(ctx context.Context, pods []corev1.Pod, clientSet *agentClientSet) (*galeraStateByPod, error) {
@@ -150,4 +171,27 @@ func (r *GaleraReconciler) galeraStateByPod(ctx context.Context, pods []corev1.P
 	case err := <-errChan:
 		return nil, err
 	}
+}
+
+func (r *GaleraReconciler) bootstrap(ctx context.Context, bootstrap *galera.Bootstrap, podIndex int, clientSet *agentClientSet) error {
+	logger := log.FromContext(ctx)
+	client, err := clientSet.clientForIndex(podIndex)
+	if err != nil {
+		return fmt.Errorf("error getting client for Pod index '%d': %v", podIndex, err)
+	}
+
+	bootstrapCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	if err = wait.PollImmediateUntilWithContext(bootstrapCtx, 1*time.Second, func(ctx context.Context) (bool, error) {
+		err := client.Bootstrap.Enable(ctx, bootstrap)
+		if err != nil {
+			logger.V(1).Error(err, "error enabling bootstrap", "pod-index", podIndex)
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return fmt.Errorf("error enabling bootstrap in Pod index '%d': %v", podIndex, err)
+	}
+	return nil
 }
