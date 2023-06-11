@@ -31,7 +31,7 @@ spec:
     agent:
       image:
         repository: ghcr.io/mariadb-operator/agent
-        tag: "v0.0.5"
+        tag: "v0.0.6"
         pullPolicy: IfNotPresent
       port: 5555
       gracefulShutdown: 5s

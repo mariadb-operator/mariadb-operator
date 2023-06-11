@@ -81,7 +81,7 @@ func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1a
 		return false, fmt.Errorf("error getting StatefulSet: %v", err)
 	}
 	logger := log.FromContext(ctx)
-	logger.V(1).Info("Got StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
+	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
 	if sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
 		return true, nil
 	}
@@ -100,7 +100,7 @@ func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1a
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster status: %v", err)
 	}
-	logger.V(1).Info("Got Galera cluster status", "status", status)
+	logger.V(1).Info("Galera cluster status", "status", status)
 	if status != "Primary" {
 		return false, nil
 	}
@@ -109,7 +109,7 @@ func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1a
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster size: %v", err)
 	}
-	logger.V(1).Info("Got Galera cluster size", "size", size)
+	logger.V(1).Info("Galera cluster size", "size", size)
 	if size != int(mariadb.Spec.Replicas) {
 		return false, nil
 	}
