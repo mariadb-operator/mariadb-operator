@@ -28,6 +28,15 @@ type GaleraAgent struct {
 	ContainerTemplate `json:",inline"`
 	// +kubebuilder:default=5555
 	Port int32 `json:"port,omitempty"`
+
+	GracefulShutdown *metav1.Duration `json:"gracefulShutdown,omitempty"`
+}
+
+func (g *GaleraAgent) GracefulShutdownOrDefault() time.Duration {
+	if g.GracefulShutdown != nil {
+		return g.GracefulShutdown.Duration
+	}
+	return 5 * time.Second
 }
 
 type GaleraRecovery struct {

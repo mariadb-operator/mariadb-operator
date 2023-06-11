@@ -212,6 +212,8 @@ func buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Containe
 			fmt.Sprintf("--addr=:%d", mariadb.Spec.Galera.Agent.Port),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", StorageMountPath),
+			fmt.Sprintf("--graceful-shutdown=%s", mariadb.Spec.Galera.Agent.GracefulShutdownOrDefault()),
+			fmt.Sprintf("--recovery-timeout=%s", mariadb.Spec.Galera.Recovery.TimeoutOrDefault().String()),
 		}...)
 		return args
 	}()

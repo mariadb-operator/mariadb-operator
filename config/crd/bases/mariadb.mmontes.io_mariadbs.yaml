@@ -2787,6 +2787,8 @@ spec:
                               x-kubernetes-map-type: atomic
                           type: object
                         type: array
+                      gracefulShutdown:
+                        type: string
                       image:
                         properties:
                           pullPolicy:
