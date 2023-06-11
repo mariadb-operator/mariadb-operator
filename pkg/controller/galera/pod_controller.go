@@ -15,6 +15,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -39,16 +40,16 @@ func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod core
 	if !mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
 		return nil
 	}
-	unhealthyCtx, cancel := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.UnhealthyTimeoutOrDefault())
+	healthyCtx, cancel := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.HealthyTimeoutOrDefault())
 	defer cancel()
 
 	log.FromContext(ctx).Info("Checking Galera cluster health")
-	unhealthy, err := r.isUnhealthyWithThreshold(unhealthyCtx, mariadb, mariadb.Spec.Galera.Recovery.UnhealthyThresholdOrDefault())
+	healthy, err := r.pollUntilHealthy(healthyCtx, mariadb)
 	if err != nil {
 		return err
 	}
-	if unhealthy {
-		log.FromContext(ctx).Info("Galera cluster is unhealthy")
+	if !healthy {
+		log.FromContext(ctx).Info("Galera cluster is not healthy")
 		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetGaleraNotReady(status, mariadb)
 		})
@@ -57,25 +58,17 @@ func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod core
 	return nil
 }
 
-func (r *PodGaleraReconciler) isUnhealthyWithThreshold(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	period time.Duration) (bool, error) {
-	startTime := time.Now()
-	endTime := startTime.Add(period)
-
-	for time.Now().Before(endTime) {
-		select {
-		case <-ctx.Done():
-			return false, ctx.Err()
-		default:
-			healthy, err := r.isHealthy(ctx, mariadb)
-			if err != nil {
-				return false, err
-			}
-			if healthy {
-				return false, nil
-			}
-			time.Sleep(1 * time.Second)
+func (r *PodGaleraReconciler) pollUntilHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
+	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
+	err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(context.Context) (bool, error) {
+		return r.isHealthy(ctx, mariadb)
+	})
+	if err != nil {
+		if errors.Is(err, wait.ErrWaitTimeout) {
+			return false, nil
 		}
+		return false, fmt.Errorf("error polling health: %v", err)
 	}
 	return true, nil
 }
@@ -149,7 +142,7 @@ func (r *PodGaleraReconciler) readyClient(ctx context.Context, mariadb *mariadbv
 			return client, nil
 		}
 	}
-	return nil, errors.New("no healthy Pods were found")
+	return nil, errors.New("no Ready Pods were found")
 }
 
 func (r *PodGaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

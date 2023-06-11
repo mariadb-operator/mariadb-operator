@@ -6401,11 +6401,6 @@ spec:
                             format: int32
                             type: integer
                         type: object
-                      recoveryRetries:
-                        default: 10
-                        type: integer
-                      recoveryRetryWait:
-                        type: string
                       resources:
                         description: ResourceRequirements describes the compute resource
                           requirements.
@@ -7384,9 +7379,9 @@ spec:
                     type: boolean
                   recovery:
                     properties:
-                      unhealthyThreshold:
+                      healthyTimeout:
                         type: string
-                      unhealthyTimeout:
+                      timeout:
                         type: string
                     type: object
                   replicaThreads:

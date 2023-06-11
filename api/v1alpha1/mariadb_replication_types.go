@@ -25,11 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	defaultReplicaConnTimeout = 10 * time.Second
-	defaultReplicaSyncTimeout = 10 * time.Second
-)
-
 type WaitPoint string
 
 const (
@@ -127,14 +122,14 @@ func (r *ReplicaReplication) ConnectionTimeoutOrDefault() time.Duration {
 	if r.ConnectionTimeout != nil {
 		return r.ConnectionTimeout.Duration
 	}
-	return defaultReplicaConnTimeout
+	return 10 * time.Second
 }
 
 func (r *ReplicaReplication) SyncTimeoutOrDefault() time.Duration {
 	if r.SyncTimeout != nil {
 		return r.SyncTimeout.Duration
 	}
-	return defaultReplicaSyncTimeout
+	return 10 * time.Second
 }
 
 type Replication struct {

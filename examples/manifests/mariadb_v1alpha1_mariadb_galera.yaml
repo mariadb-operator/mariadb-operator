@@ -34,11 +34,9 @@ spec:
         tag: "v0.0.2"
         pullPolicy: IfNotPresent
       port: 5555
-      recoveryRetries: 10
-      recoveryRetryWait: 5s
     recovery:
-      unhealthyThreshold: 1m
-      unhealthyTimeout: 5m
+      healthyTimeout: 1m
+      timeout: 1m
     replicaThreads: 1
     livenessProbe: true
     initContainer:

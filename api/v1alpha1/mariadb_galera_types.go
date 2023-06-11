@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"errors"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,47 +24,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	defaultRecoveryUnhealthyThreshold = 1 * time.Minute
-	defaultRecoveryUnhealthyTimeout   = 5 * time.Minute
-)
-
 type GaleraAgent struct {
 	ContainerTemplate `json:",inline"`
 	// +kubebuilder:default=5555
 	Port int32 `json:"port,omitempty"`
-	// +kubebuilder:default=10
-	RecoveryRetries int `json:"recoveryRetries,omitempty"`
-
-	RecoveryRetryWait *metav1.Duration `json:"recoveryRetryWait,omitempty"`
 }
 
 type GaleraRecovery struct {
-	UnhealthyThreshold *metav1.Duration `json:"unhealthyThreshold,omitempty"`
+	HealthyTimeout *metav1.Duration `json:"healthyTimeout,omitempty"`
 
-	UnhealthyTimeout *metav1.Duration `json:"unhealthyTimeout,omitempty"`
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
-func (g *GaleraRecovery) Validate() error {
-	if g.UnhealthyThreshold != nil && g.UnhealthyTimeout != nil &&
-		g.UnhealthyTimeout.Duration < g.UnhealthyThreshold.Duration {
-		return errors.New("unhealthyTimeout must be greater than unhealthyThreshold")
+func (g *GaleraRecovery) HealthyTimeoutOrDefault() time.Duration {
+	if g.HealthyTimeout != nil {
+		return g.HealthyTimeout.Duration
 	}
-	return nil
+	return 1 * time.Minute
 }
 
-func (g *GaleraRecovery) UnhealthyThresholdOrDefault() time.Duration {
-	if g.UnhealthyThreshold != nil {
-		return g.UnhealthyThreshold.Duration
+func (g *GaleraRecovery) TimeoutOrDefault() time.Duration {
+	if g.Timeout != nil {
+		return g.Timeout.Duration
 	}
-	return defaultRecoveryUnhealthyThreshold
-}
-
-func (g *GaleraRecovery) UnhealthyTimeoutOrDefault() time.Duration {
-	if g.UnhealthyTimeout != nil {
-		return g.UnhealthyTimeout.Duration
-	}
-	return defaultRecoveryUnhealthyTimeout
+	return 1 * time.Minute
 }
 
 type Galera struct {

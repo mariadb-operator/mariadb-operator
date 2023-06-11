@@ -209,8 +209,7 @@ func buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Containe
 	container.Args = []string{
 		fmt.Sprintf("--addr=:%d", mariadb.Spec.Galera.Agent.Port),
 		fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
-		fmt.Sprintf("--recovery-retries=%d", mariadb.Spec.Galera.Agent.RecoveryRetries),
-		fmt.Sprintf("--recovery-retry-wait=%s", mariadb.Spec.Galera.Agent.RecoveryRetryWait.Duration.String()),
+		fmt.Sprintf("--state-dir=%s", StorageMountPath),
 	}
 	container.VolumeMounts = buildGaleraVolumeMounts(mariadb)
 	container.LivenessProbe = func() *corev1.Probe {
