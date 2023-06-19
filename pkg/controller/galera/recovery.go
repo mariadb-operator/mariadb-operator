@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/agent/pkg/client"
 	"github.com/mariadb-operator/agent/pkg/galera"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -25,6 +26,40 @@ import (
 //	- SHOW STATUS LIKE 'wsrep_local_state_comment';
 //		The output will display the state of each node, such as "Synced," "Donor," "Joining," "Joined," or "Disconnected."
 //		All nodes should ideally be in the "Synced" state.
+
+type recoveryStatus struct {
+	stateByPod map[int]*galera.GaleraState
+	mux        *sync.RWMutex
+}
+
+func newRecoveryStatus() *recoveryStatus {
+	return &recoveryStatus{
+		stateByPod: make(map[int]*galera.GaleraState),
+		mux:        &sync.RWMutex{},
+	}
+}
+
+type bootstrapSource struct {
+	bootstrap *galera.Bootstrap
+	podIndex  int
+}
+
+func (status *recoveryStatus) safeToBootstrap() *bootstrapSource {
+	status.mux.RLock()
+	defer status.mux.RUnlock()
+	for k, v := range status.stateByPod {
+		if v.SafeToBootstrap {
+			return &bootstrapSource{
+				bootstrap: &galera.Bootstrap{
+					UUID:  v.UUID,
+					Seqno: v.Seqno,
+				},
+				podIndex: k,
+			}
+		}
+	}
+	return nil
+}
 
 func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	logger := log.FromContext(ctx).WithName("galera-recovery")
@@ -55,17 +90,18 @@ func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb 
 	}
 	logger.V(1).Info("Pods", "pods", len(pods))
 
-	gsp, err := r.galeraStateByPod(ctx, pods, clientSet)
-	if err != nil {
+	status := newRecoveryStatus()
+
+	if err := r.stateByPod(ctx, pods, status, clientSet); err != nil {
 		return fmt.Errorf("error getting Galera state by Pod: %v", err)
 	}
-	logger.V(1).Info("State by Pod", "gsp", gsp.states)
+	logger.V(1).Info("State by Pod", "state", status.stateByPod)
 
 	logger.V(1).Info("Checking SafeToBootstrap")
-	if ok, bootstrap, podIndex := gsp.safeToBootstrap(); ok {
-		logger.Info("Bootstrapping cluster", "pod-index", podIndex)
-		if err := r.bootstrap(ctx, bootstrap, podIndex, clientSet); err != nil {
-			return fmt.Errorf("error bootstrapping from Pod index: %d", podIndex)
+	if source := status.safeToBootstrap(); source != nil {
+		logger.Info("Bootstrapping cluster", "pod-index", source.podIndex)
+		if err := r.bootstrap(ctx, source, clientSet, logger); err != nil {
+			return fmt.Errorf("error bootstrapping from Pod index: %d", source.podIndex)
 		}
 		return nil
 	}
@@ -93,28 +129,7 @@ func (r *GaleraReconciler) pods(ctx context.Context, mariadb *mariadbv1alpha1.Ma
 	return pods, nil
 }
 
-type galeraStateByPod struct {
-	states map[int]*galera.GaleraState
-	mux    *sync.Mutex
-}
-
-func (gsp *galeraStateByPod) safeToBootstrap() (bool, *galera.Bootstrap, int) {
-	for k, v := range gsp.states {
-		if v.SafeToBootstrap {
-			return true, &galera.Bootstrap{
-				UUID:  v.UUID,
-				Seqno: v.Seqno,
-			}, k
-		}
-	}
-	return false, nil, -1
-}
-
-func (r *GaleraReconciler) galeraStateByPod(ctx context.Context, pods []corev1.Pod, clientSet *agentClientSet) (*galeraStateByPod, error) {
-	gsp := &galeraStateByPod{
-		states: make(map[int]*galera.GaleraState, len(pods)),
-		mux:    &sync.Mutex{},
-	}
+func (r *GaleraReconciler) stateByPod(ctx context.Context, pods []corev1.Pod, status *recoveryStatus, clientSet *agentClientSet) error {
 	doneChan := make(chan struct{})
 	errChan := make(chan error)
 	logger := log.FromContext(ctx)
@@ -123,7 +138,7 @@ func (r *GaleraReconciler) galeraStateByPod(ctx context.Context, pods []corev1.P
 	for _, pod := range pods {
 		i, err := statefulset.PodIndex(pod.Name)
 		if err != nil {
-			return nil, fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
+			return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
 		}
 
 		wg.Add(1)
@@ -144,9 +159,9 @@ func (r *GaleraReconciler) galeraStateByPod(ctx context.Context, pods []corev1.P
 					logger.V(1).Error(err, "error getting Galera State", "pod-index", i)
 					return false, nil
 				}
-				gsp.mux.Lock()
-				gsp.states[i] = galeraState
-				gsp.mux.Unlock()
+				status.mux.Lock()
+				status.stateByPod[i] = galeraState
+				status.mux.Unlock()
 				return true, nil
 			}); err != nil {
 				if err == context.DeadlineExceeded {
@@ -163,33 +178,32 @@ func (r *GaleraReconciler) galeraStateByPod(ctx context.Context, pods []corev1.P
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return ctx.Err()
 	case <-doneChan:
-		return gsp, nil
+		return nil
 	case err := <-errChan:
-		return nil, err
+		return err
 	}
 }
 
-func (r *GaleraReconciler) bootstrap(ctx context.Context, bootstrap *galera.Bootstrap, podIndex int, clientSet *agentClientSet) error {
-	logger := log.FromContext(ctx)
-	client, err := clientSet.clientForIndex(podIndex)
+func (r *GaleraReconciler) bootstrap(ctx context.Context, source *bootstrapSource, clientSet *agentClientSet, logger logr.Logger) error {
+	client, err := clientSet.clientForIndex(source.podIndex)
 	if err != nil {
-		return fmt.Errorf("error getting client for Pod index '%d': %v", podIndex, err)
+		return fmt.Errorf("error getting client for Pod index '%d': %v", source.podIndex, err)
 	}
 
 	bootstrapCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	if err = wait.PollImmediateUntilWithContext(bootstrapCtx, 1*time.Second, func(ctx context.Context) (bool, error) {
-		err := client.Bootstrap.Enable(ctx, bootstrap)
+		err := client.Bootstrap.Enable(ctx, source.bootstrap)
 		if err != nil {
-			logger.V(1).Error(err, "error enabling bootstrap", "pod-index", podIndex)
+			logger.V(1).Error(err, "error enabling bootstrap", "pod-index", source.podIndex)
 			return false, nil
 		}
 		return true, nil
 	}); err != nil {
-		return fmt.Errorf("error enabling bootstrap in Pod index '%d': %v", podIndex, err)
+		return fmt.Errorf("error enabling bootstrap in Pod index '%d': %v", source.podIndex, err)
 	}
 	return nil
 }
