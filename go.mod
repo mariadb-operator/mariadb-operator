@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/avast/retry-go/v4 v4.1.0
+	github.com/go-logr/logr v1.2.4
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/mariadb-operator/agent v0.0.0-20230609203423-d78430b94154
@@ -29,7 +30,6 @@ require (
 	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
-	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/zapr v1.2.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
