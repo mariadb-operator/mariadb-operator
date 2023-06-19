@@ -27,8 +27,8 @@ import (
 //		All nodes should ideally be in the "Synced" state.
 
 func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	logger := log.FromContext(ctx)
-	logger.V(1).Info("Recovering Galera cluster")
+	logger := log.FromContext(ctx).WithName("galera-recovery")
+	logger.Info("Recovering cluster")
 
 	sts, err := r.statefulSet(ctx, mariadb)
 	if err != nil {
@@ -49,23 +49,21 @@ func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb 
 		return fmt.Errorf("error getting agent client: %v", err)
 	}
 
-	logger.Info("Get current Pods")
-	pods, err := r.currentPods(ctx, mariadb)
+	pods, err := r.pods(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting Pods: %v", err)
 	}
 	logger.V(1).Info("Pods", "pods", len(pods))
 
-	logger.Info("Get Galera state by Pod")
 	gsp, err := r.galeraStateByPod(ctx, pods, clientSet)
 	if err != nil {
 		return fmt.Errorf("error getting Galera state by Pod: %v", err)
 	}
-	logger.V(1).Info("Galera state by Pod", "gsp", gsp.states)
+	logger.V(1).Info("State by Pod", "gsp", gsp.states)
 
-	logger.Info("Check SafeToBootstrap")
+	logger.V(1).Info("Checking SafeToBootstrap")
 	if ok, bootstrap, podIndex := gsp.safeToBootstrap(); ok {
-		logger.Info("Bootstrapping Galera cluster", "pod-index", podIndex)
+		logger.Info("Bootstrapping cluster", "pod-index", podIndex)
 		if err := r.bootstrap(ctx, bootstrap, podIndex, clientSet); err != nil {
 			return fmt.Errorf("error bootstrapping from Pod index: %d", podIndex)
 		}
@@ -75,7 +73,7 @@ func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb 
 	return nil
 }
 
-func (r *GaleraReconciler) currentPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
+func (r *GaleraReconciler) pods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
 	var pods []corev1.Pod
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		key := types.NamespacedName{

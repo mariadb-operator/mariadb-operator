@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
@@ -40,31 +41,32 @@ func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod core
 	if !mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
 		return nil
 	}
+	logger := log.FromContext(ctx).WithName("galera-health")
+	logger.Info("Checking cluster health")
+
 	healthyCtx, cancel := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.HealthyTimeoutOrDefault())
 	defer cancel()
 
-	logger := log.FromContext(ctx)
-	logger.Info("Checking Galera cluster health")
-	healthy, err := r.pollUntilHealthy(healthyCtx, mariadb)
+	healthy, err := r.pollUntilHealthy(healthyCtx, mariadb, logger)
 	if err != nil {
 		return err
 	}
 
 	if healthy {
-		logger.Info("Galera cluster is healthy")
+		logger.Info("Cluster is healthy")
 		return nil
 	}
-	logger.Info("Galera cluster is not healthy")
+	logger.Info("Cluster is not healthy")
 	return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		conditions.SetGaleraNotReady(status, mariadb)
 	})
 }
 
-func (r *PodGaleraReconciler) pollUntilHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+func (r *PodGaleraReconciler) pollUntilHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (bool, error) {
 	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
 	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
 	err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(context.Context) (bool, error) {
-		return r.isHealthy(ctx, mariadb)
+		return r.isHealthy(ctx, mariadb, logger)
 	})
 	if err != nil {
 		if errors.Is(err, wait.ErrWaitTimeout) {
@@ -75,12 +77,12 @@ func (r *PodGaleraReconciler) pollUntilHealthy(ctx context.Context, mariadb *mar
 	return true, nil
 }
 
-func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (bool, error) {
 	sts, err := r.statefulSet(ctx, mariadb)
 	if err != nil {
 		return false, fmt.Errorf("error getting StatefulSet: %v", err)
 	}
-	logger := log.FromContext(ctx)
+
 	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
 	if sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
 		return true, nil
@@ -100,7 +102,7 @@ func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1a
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster status: %v", err)
 	}
-	logger.V(1).Info("Galera cluster status", "status", status)
+	logger.V(1).Info("Cluster status", "status", status)
 	if status != "Primary" {
 		return false, nil
 	}
@@ -109,7 +111,7 @@ func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1a
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster size: %v", err)
 	}
-	logger.V(1).Info("Galera cluster size", "size", size)
+	logger.V(1).Info("Cluster size", "size", size)
 	if size != int(mariadb.Spec.Replicas) {
 		return false, nil
 	}
