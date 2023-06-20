@@ -332,6 +332,8 @@ github.com/mailru/easyjson v0.7.6 h1:8yTIVnZgCoiM1TgqoeTl+LfU5Jg6/xL3QhGQnimLYnA
 github.com/mailru/easyjson v0.7.6/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/mariadb-operator/agent v0.0.0-20230609203423-d78430b94154 h1:k3A62w1v0Kb0DvXp+/cww5fFz0joqT66DecdabssMxE=
 github.com/mariadb-operator/agent v0.0.0-20230609203423-d78430b94154/go.mod h1:eXeG6YTKnykTqPtpstiFVxJXdlqMNgLH9/pTRD+C6aI=
+github.com/mariadb-operator/agent v0.0.0-20230620151720-65ee23db0559 h1:jT+iUqHeVPL9+EzLGXzXdwJgfD889ItsGavaigv2ovQ=
+github.com/mariadb-operator/agent v0.0.0-20230620151720-65ee23db0559/go.mod h1:TGDSu8zPTK1lAnLwhOF78NdO3Sc6McC5DFFGLqKEq2w=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-isatty v0.0.3/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNxMWT7Zi4=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=

@@ -7,7 +7,7 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/mariadb-operator/agent v0.0.0-20230609203423-d78430b94154
+	github.com/mariadb-operator/agent v0.0.0-20230620151720-65ee23db0559
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.57.0
