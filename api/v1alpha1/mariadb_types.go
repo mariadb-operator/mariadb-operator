@@ -120,6 +120,8 @@ type MariaDBStatus struct {
 
 	CurrentPrimaryPodIndex *int    `json:"currentPrimaryPodIndex,omitempty"`
 	CurrentPrimary         *string `json:"currentPrimary,omitempty"`
+
+	GaleraRecovery *GaleraRecoveryStatus `json:"galeraRecovery,omitempty"`
 }
 
 func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {

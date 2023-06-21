@@ -11036,6 +11036,39 @@ spec:
                 type: string
               currentPrimaryPodIndex:
                 type: integer
+              galeraRecovery:
+                properties:
+                  recovered:
+                    additionalProperties:
+                      properties:
+                        seqno:
+                          type: integer
+                        uuid:
+                          type: string
+                      required:
+                      - seqno
+                      - uuid
+                      type: object
+                    type: object
+                  state:
+                    additionalProperties:
+                      properties:
+                        safeToBootstrap:
+                          type: boolean
+                        seqno:
+                          type: integer
+                        uuid:
+                          type: string
+                        version:
+                          type: string
+                      required:
+                      - safeToBootstrap
+                      - seqno
+                      - uuid
+                      - version
+                      type: object
+                    type: object
+                type: object
             type: object
         required:
         - spec

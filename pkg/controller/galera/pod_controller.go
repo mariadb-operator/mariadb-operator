@@ -58,6 +58,7 @@ func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod core
 	}
 	logger.Info("Cluster is not healthy")
 	return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		status.GaleraRecovery = nil
 		conditions.SetGaleraNotReady(status, mariadb)
 	})
 }

@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"time"
 
+	"github.com/mariadb-operator/agent/pkg/galera"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,6 +74,11 @@ type Galera struct {
 	InitContainer ContainerTemplate `json:"initContainer"`
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
+}
+
+type GaleraRecoveryStatus struct {
+	State     map[string]*galera.GaleraState `json:"state,omitempty"`
+	Recovered map[string]*galera.Bootstrap   `json:"recovered,omitempty"`
 }
 
 func (m *MariaDB) HasGaleraReadyCondition() bool {

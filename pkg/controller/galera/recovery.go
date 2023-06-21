@@ -28,35 +28,42 @@ import (
 //		All nodes should ideally be in the "Synced" state.
 
 type recoveryStatus struct {
-	stateByPod     map[int]*galera.GaleraState
-	bootstrapByPod map[int]*galera.Bootstrap
+	GaleraRecovery *mariadbv1alpha1.GaleraRecoveryStatus
 	mux            *sync.RWMutex
 }
 
-func newRecoveryStatus() *recoveryStatus {
+func newRecoveryStatus(mariadb *mariadbv1alpha1.MariaDB) *recoveryStatus {
+	var status mariadbv1alpha1.GaleraRecoveryStatus
+	if mariadb.Status.GaleraRecovery != nil {
+		status = *mariadb.Status.GaleraRecovery
+	} else {
+		status = mariadbv1alpha1.GaleraRecoveryStatus{
+			State:     make(map[string]*galera.GaleraState),
+			Recovered: make(map[string]*galera.Bootstrap),
+		}
+	}
 	return &recoveryStatus{
-		stateByPod:     make(map[int]*galera.GaleraState),
-		bootstrapByPod: make(map[int]*galera.Bootstrap),
+		GaleraRecovery: &status,
 		mux:            &sync.RWMutex{},
 	}
 }
 
 type bootstrapSource struct {
 	bootstrap *galera.Bootstrap
-	podIndex  int
+	pod       string
 }
 
 func (status *recoveryStatus) safeToBootstrap() *bootstrapSource {
 	status.mux.RLock()
 	defer status.mux.RUnlock()
-	for k, v := range status.stateByPod {
+	for k, v := range status.GaleraRecovery.State {
 		if v.SafeToBootstrap {
 			return &bootstrapSource{
 				bootstrap: &galera.Bootstrap{
 					UUID:  v.UUID,
 					Seqno: v.Seqno,
 				},
-				podIndex: k,
+				pod: k,
 			}
 		}
 	}
@@ -92,18 +99,24 @@ func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb 
 	}
 	logger.V(1).Info("Pods", "pods", len(pods))
 
-	status := newRecoveryStatus()
+	status := newRecoveryStatus(mariadb)
 
 	if err := r.stateByPod(ctx, pods, status, clientSet, logger); err != nil {
 		return fmt.Errorf("error getting Galera state by Pod: %v", err)
 	}
-	logger.V(1).Info("State by Pod", "state", status.stateByPod)
+	logger.V(1).Info("State by Pod", "state", status.GaleraRecovery.State)
+
+	if err := r.patchStatus(ctx, mariadb, func(mdbStatus *mariadbv1alpha1.MariaDBStatus) {
+		mdbStatus.GaleraRecovery = status.GaleraRecovery
+	}); err != nil {
+		return fmt.Errorf("error updating MariaDB status: %v", err)
+	}
 
 	logger.V(1).Info("Checking SafeToBootstrap")
 	if source := status.safeToBootstrap(); source != nil {
-		logger.Info("Bootstrapping cluster", "pod-index", source.podIndex)
+		logger.Info("Bootstrapping cluster", "pod", source.pod)
 		if err := r.bootstrap(ctx, source, clientSet, logger); err != nil {
-			return fmt.Errorf("error bootstrapping from Pod index: %d", source.podIndex)
+			return fmt.Errorf("error bootstrapping from Pod: %s", source.pod)
 		}
 		return nil
 	}
@@ -111,7 +124,13 @@ func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb 
 	if err := r.recoveryByPod(ctx, mariadb, pods, status, clientSet, logger); err != nil {
 		return fmt.Errorf("error getting bootstrap by Pod: %v", err)
 	}
-	logger.V(1).Info("Bootstrap by Pod", "bootstrap", status.bootstrapByPod)
+	logger.V(1).Info("Recovered by Pod", "bootstrap", status.GaleraRecovery.Recovered)
+
+	if err := r.patchStatus(ctx, mariadb, func(mdbStatus *mariadbv1alpha1.MariaDBStatus) {
+		mdbStatus.GaleraRecovery = status.GaleraRecovery
+	}); err != nil {
+		return fmt.Errorf("error updating MariaDB status: %v", err)
+	}
 
 	return nil
 }
@@ -143,18 +162,25 @@ func (r *GaleraReconciler) stateByPod(ctx context.Context, pods []corev1.Pod, st
 
 	var wg sync.WaitGroup
 	for _, pod := range pods {
+		status.mux.RLock()
+		if _, ok := status.GaleraRecovery.State[pod.Name]; ok {
+			logger.V(1).Info("skipping Pod state", "pod", pod.Name)
+			continue
+		}
+		status.mux.RUnlock()
+
 		i, err := statefulset.PodIndex(pod.Name)
 		if err != nil {
 			return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
 		}
 
 		wg.Add(1)
-		go func(i int) {
+		go func(i int, pod *corev1.Pod) {
 			defer wg.Done()
 
 			client, err := clientSet.clientForIndex(i)
 			if err != nil {
-				errChan <- fmt.Errorf("error getting client for Pod index '%d': %v", i, err)
+				errChan <- fmt.Errorf("error getting client for Pod '%s': %v", pod.Name, err)
 				return
 			}
 
@@ -166,13 +192,13 @@ func (r *GaleraReconciler) stateByPod(ctx context.Context, pods []corev1.Pod, st
 					return err
 				}
 				status.mux.Lock()
-				status.stateByPod[i] = galeraState
+				status.GaleraRecovery.State[pod.Name] = galeraState
 				status.mux.Unlock()
 				return nil
 			}); err != nil {
-				errChan <- fmt.Errorf("error getting Galera state for Pod index '%d': %v", i, err)
+				errChan <- fmt.Errorf("error getting Galera state for Pod '%s': %v", pod.Name, err)
 			}
-		}(*i)
+		}(*i, &pod)
 	}
 	go func() {
 		wg.Wait()
@@ -196,6 +222,13 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 
 	var wg sync.WaitGroup
 	for _, pod := range pods {
+		status.mux.RLock()
+		if _, ok := status.GaleraRecovery.Recovered[pod.Name]; ok {
+			logger.V(1).Info("skipping Pod recovery", "pod", pod.Name)
+			continue
+		}
+		status.mux.RUnlock()
+
 		i, err := statefulset.PodIndex(pod.Name)
 		if err != nil {
 			return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
@@ -207,17 +240,17 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 
 			client, err := clientSet.clientForIndex(i)
 			if err != nil {
-				errChan <- fmt.Errorf("error getting client for Pod index '%d': %v", i, err)
+				errChan <- fmt.Errorf("error getting client for Pod '%s': %v", pod.Name, err)
 				return
 			}
 
-			logger.V(1).Info("enabling recovery", "pod-index", i)
+			logger.V(1).Info("enabling recovery", "pod", pod.Name)
 			recoveryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 			defer cancel()
 			if err = r.pollWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
 				return client.Recovery.Enable(ctx)
 			}); err != nil {
-				errChan <- fmt.Errorf("error enabling recovery in Pod index '%d': %v", i, err)
+				errChan <- fmt.Errorf("error enabling recovery in Pod '%s': %v", pod.Name, err)
 				return
 			}
 
@@ -228,18 +261,18 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 				for {
 					select {
 					case <-deleteCtx.Done():
-						logger.V(1).Info("stopping Pod deletion", "pod-index", i)
+						logger.V(1).Info("stopping Pod deletion", "pod", pod.Name)
 						return
 					case <-ticker.C:
-						logger.V(1).Info("deleting Pod", "pod-index", i)
+						logger.V(1).Info("deleting Pod", "pod", pod.Name)
 						if err := r.Delete(ctx, pod); err != nil {
-							logger.V(1).Error(err, "error deleting Pod", "pod-index", i)
+							logger.V(1).Error(err, "error deleting Pod", "pod", pod.Name)
 						}
 					}
 				}
 			}()
 
-			logger.V(1).Info("performing recovery", "pod-index", i)
+			logger.V(1).Info("performing recovery", "pod", pod.Name)
 			recoveryCtx, cancel = context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.TimeoutOrDefault())
 			defer cancel()
 			if err = r.pollWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
@@ -248,22 +281,22 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 					return err
 				}
 				status.mux.Lock()
-				status.bootstrapByPod[i] = bootstrap
+				status.GaleraRecovery.Recovered[pod.Name] = bootstrap
 				status.mux.Unlock()
 				return nil
 			}); err != nil {
-				errChan <- fmt.Errorf("error performing recovery in Pod index '%d': %v", i, err)
+				errChan <- fmt.Errorf("error performing recovery in Pod '%s': %v", pod.Name, err)
 				return
 			}
 			cancelDelete()
 
-			logger.V(1).Info("disabling recovery", "pod-index", i)
+			logger.V(1).Info("disabling recovery", "pod", pod.Name)
 			recoveryCtx, cancel = context.WithTimeout(ctx, 30*time.Second)
 			defer cancel()
 			if err = r.pollWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
 				return client.Recovery.Disable(ctx)
 			}); err != nil {
-				errChan <- fmt.Errorf("error disabling recovery in Pod index '%d': %v", i, err)
+				errChan <- fmt.Errorf("error disabling recovery in Pod '%s': %v", pod.Name, err)
 			}
 		}(*i, &pod)
 	}
@@ -283,9 +316,14 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 }
 
 func (r *GaleraReconciler) bootstrap(ctx context.Context, source *bootstrapSource, clientSet *agentClientSet, logger logr.Logger) error {
-	client, err := clientSet.clientForIndex(source.podIndex)
+	idx, err := statefulset.PodIndex(source.pod)
 	if err != nil {
-		return fmt.Errorf("error getting client for Pod index '%d': %v", source.podIndex, err)
+		return fmt.Errorf("error getting index for Pod '%s': %v", source.pod, err)
+	}
+
+	client, err := clientSet.clientForIndex(*idx)
+	if err != nil {
+		return fmt.Errorf("error getting client for Pod '%s': %v", source.pod, err)
 	}
 
 	bootstrapCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -293,7 +331,7 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, source *bootstrapSourc
 	if err = r.pollWithTimeout(bootstrapCtx, logger, func(ctx context.Context) error {
 		return client.Bootstrap.Enable(ctx, source.bootstrap)
 	}); err != nil {
-		return fmt.Errorf("error enabling bootstrap in Pod index '%d': %v", source.podIndex, err)
+		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", source.pod, err)
 	}
 	return nil
 }
