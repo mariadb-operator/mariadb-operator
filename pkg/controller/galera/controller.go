@@ -54,6 +54,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			return err
 		}
 		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			status.GaleraRecovery = nil
 			conditions.SetGaleraReady(&mariadb.Status)
 			conditions.SetGaleraConfigured(&mariadb.Status)
 		})
