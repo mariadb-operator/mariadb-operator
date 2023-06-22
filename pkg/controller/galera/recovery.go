@@ -58,7 +58,7 @@ func (rs *recoveryStatus) safeToBootstrap() *bootstrapSource {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 	for k, v := range rs.GaleraRecovery.State {
-		if v.SafeToBootstrap {
+		if v.SafeToBootstrap && v.Seqno != -1 {
 			return &bootstrapSource{
 				bootstrap: &galera.Bootstrap{
 					UUID:  v.UUID,
@@ -98,11 +98,11 @@ func (rs *recoveryStatus) bootstrapWithHighestSeqno(pods []corev1.Pod) (*bootstr
 	for _, p := range pods {
 		state := rs.GaleraRecovery.State[p.Name]
 		recovered := rs.GaleraRecovery.Recovered[p.Name]
-		if state != nil && state.Compare(currentSoure) >= 0 {
+		if state != nil && state.GetSeqno() != -1 && state.Compare(currentSoure) >= 0 {
 			currentSoure = state
 			currentPod = p.Name
 		}
-		if recovered != nil && recovered.Compare(currentSoure) >= 0 {
+		if recovered != nil && recovered.GetSeqno() != -1 && recovered.Compare(currentSoure) >= 0 {
 			currentSoure = state
 			currentPod = p.Name
 		}
