@@ -2,6 +2,7 @@ package galera
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -53,10 +54,10 @@ type bootstrapSource struct {
 	pod       string
 }
 
-func (status *recoveryStatus) safeToBootstrap() *bootstrapSource {
-	status.mux.RLock()
-	defer status.mux.RUnlock()
-	for k, v := range status.GaleraRecovery.State {
+func (rs *recoveryStatus) safeToBootstrap() *bootstrapSource {
+	rs.mux.RLock()
+	defer rs.mux.RUnlock()
+	for k, v := range rs.GaleraRecovery.State {
 		if v.SafeToBootstrap {
 			return &bootstrapSource{
 				bootstrap: &galera.Bootstrap{
@@ -68,6 +69,54 @@ func (status *recoveryStatus) safeToBootstrap() *bootstrapSource {
 		}
 	}
 	return nil
+}
+
+func (rs *recoveryStatus) isComplete(pods []corev1.Pod) bool {
+	rs.mux.RLock()
+	defer rs.mux.RUnlock()
+	for _, p := range pods {
+		if rs.GaleraRecovery.State[p.Name] == nil || rs.GaleraRecovery.Recovered[p.Name] == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func (rs *recoveryStatus) bootstrapWithHighestSeqno(pods []corev1.Pod) (*bootstrapSource, error) {
+	if len(pods) == 0 {
+		return nil, errors.New("no Pods provided")
+	}
+	if source := rs.safeToBootstrap(); source != nil {
+		return source, nil
+	}
+
+	rs.mux.RLock()
+	defer rs.mux.RUnlock()
+	var currentSoure galera.GaleraRecoverer
+	var currentPod string
+
+	for _, p := range pods {
+		state := rs.GaleraRecovery.State[p.Name]
+		recovered := rs.GaleraRecovery.Recovered[p.Name]
+		if state != nil && state.Compare(currentSoure) >= 0 {
+			currentSoure = state
+			currentPod = p.Name
+		}
+		if recovered != nil && recovered.Compare(currentSoure) >= 0 {
+			currentSoure = state
+			currentPod = p.Name
+		}
+	}
+	if currentSoure == nil {
+		return nil, errors.New("bootstrap source not found")
+	}
+	return &bootstrapSource{
+		bootstrap: &galera.Bootstrap{
+			UUID:  currentSoure.GetUUID(),
+			Seqno: currentSoure.GetSeqno(),
+		},
+		pod: currentPod,
+	}, nil
 }
 
 func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -99,37 +148,52 @@ func (r *GaleraReconciler) reconcileGaleraRecovery(ctx context.Context, mariadb 
 	}
 	logger.V(1).Info("Pods", "pods", len(pods))
 
-	status := newRecoveryStatus(mariadb)
+	recoveryStatus := newRecoveryStatus(mariadb)
 
-	if err := r.stateByPod(ctx, pods, status, clientSet, logger); err != nil {
+	if err := r.stateByPod(ctx, pods, recoveryStatus, clientSet, logger); err != nil {
 		return fmt.Errorf("error getting Galera state by Pod: %v", err)
 	}
-	logger.V(1).Info("State by Pod", "state", status.GaleraRecovery.State)
+	logger.V(1).Info("State by Pod", "state", recoveryStatus.GaleraRecovery.State)
 
 	if err := r.patchStatus(ctx, mariadb, func(mdbStatus *mariadbv1alpha1.MariaDBStatus) {
-		mdbStatus.GaleraRecovery = status.GaleraRecovery
+		mdbStatus.GaleraRecovery = recoveryStatus.GaleraRecovery
 	}); err != nil {
 		return fmt.Errorf("error updating MariaDB status: %v", err)
 	}
 
-	logger.V(1).Info("Checking SafeToBootstrap")
-	if source := status.safeToBootstrap(); source != nil {
+	if recoveryStatus.isComplete(pods) {
+		source, err := recoveryStatus.bootstrapWithHighestSeqno(pods)
+		if err != nil {
+			return fmt.Errorf("error getting bootstrap source: %v", err)
+		}
 		logger.Info("Bootstrapping cluster", "pod", source.pod)
 		if err := r.bootstrap(ctx, source, clientSet, logger); err != nil {
 			return fmt.Errorf("error bootstrapping from Pod: %s", source.pod)
 		}
-		return nil
 	}
 
-	if err := r.recoveryByPod(ctx, mariadb, pods, status, clientSet, logger); err != nil {
+	if err := r.recoveryByPod(ctx, mariadb, pods, recoveryStatus, clientSet, logger); err != nil {
 		return fmt.Errorf("error getting bootstrap by Pod: %v", err)
 	}
-	logger.V(1).Info("Recovered by Pod", "bootstrap", status.GaleraRecovery.Recovered)
+	logger.V(1).Info("Recovery by Pod", "bootstrap", recoveryStatus.GaleraRecovery.Recovered)
 
 	if err := r.patchStatus(ctx, mariadb, func(mdbStatus *mariadbv1alpha1.MariaDBStatus) {
-		mdbStatus.GaleraRecovery = status.GaleraRecovery
+		mdbStatus.GaleraRecovery = recoveryStatus.GaleraRecovery
 	}); err != nil {
 		return fmt.Errorf("error updating MariaDB status: %v", err)
+	}
+
+	if !recoveryStatus.isComplete(pods) {
+		return fmt.Errorf("recovery status not complete")
+	}
+
+	source, err := recoveryStatus.bootstrapWithHighestSeqno(pods)
+	if err != nil {
+		return fmt.Errorf("error getting bootstrap source: %v", err)
+	}
+	logger.Info("Bootstrapping cluster", "pod", source.pod)
+	if err := r.bootstrap(ctx, source, clientSet, logger); err != nil {
+		return fmt.Errorf("error bootstrapping from Pod: %s", source.pod)
 	}
 
 	return nil

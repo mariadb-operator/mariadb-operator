@@ -334,6 +334,10 @@ github.com/mariadb-operator/agent v0.0.0-20230609203423-d78430b94154 h1:k3A62w1v
 github.com/mariadb-operator/agent v0.0.0-20230609203423-d78430b94154/go.mod h1:eXeG6YTKnykTqPtpstiFVxJXdlqMNgLH9/pTRD+C6aI=
 github.com/mariadb-operator/agent v0.0.0-20230620151720-65ee23db0559 h1:jT+iUqHeVPL9+EzLGXzXdwJgfD889ItsGavaigv2ovQ=
 github.com/mariadb-operator/agent v0.0.0-20230620151720-65ee23db0559/go.mod h1:TGDSu8zPTK1lAnLwhOF78NdO3Sc6McC5DFFGLqKEq2w=
+github.com/mariadb-operator/agent v0.0.0-20230622164333-ba4ca69e3b52 h1:ShZHzIMkJTkRHT6kqRy9wAr2++f+5nNb6GuHE6UmZgA=
+github.com/mariadb-operator/agent v0.0.0-20230622164333-ba4ca69e3b52/go.mod h1:TGDSu8zPTK1lAnLwhOF78NdO3Sc6McC5DFFGLqKEq2w=
+github.com/mariadb-operator/agent v0.0.0-20230622165508-059bdc8cac7c h1:8U3TmVfTAAc5loBD8+91997cRQjUY533vjSghlBMo58=
+github.com/mariadb-operator/agent v0.0.0-20230622165508-059bdc8cac7c/go.mod h1:TGDSu8zPTK1lAnLwhOF78NdO3Sc6McC5DFFGLqKEq2w=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-isatty v0.0.3/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNxMWT7Zi4=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
