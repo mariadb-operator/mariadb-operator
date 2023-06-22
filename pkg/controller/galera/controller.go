@@ -43,7 +43,6 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		if err := r.reconcileGaleraRecovery(ctx, mariadb); err != nil {
 			return err
 		}
-		return nil
 	}
 	sts, err := r.statefulSet(ctx, mariadb)
 	if err != nil {
