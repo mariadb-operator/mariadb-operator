@@ -180,5 +180,5 @@ If you want to report a 🐛 or you think something can be improved, please chec
 
 ## Get in touch
 
-- [Slack](https://join.slack.com/t/mariadb-operator/shared_invite/zt-1uqe7lbee-bINmUwnzPm0C5MLw1qWAow)
+- [Slack](https://join.slack.com/t/mariadb-operator/shared_invite/zt-1xsfguxlf-dhtV6zk0HwlAh_U2iYfUxw)
 - mariadb-operator@proton.me
