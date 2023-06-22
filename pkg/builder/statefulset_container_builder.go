@@ -282,6 +282,7 @@ func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 
 func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 	if mariadb.Spec.Galera != nil && mariadb.Spec.Galera.LivenessProbe {
+		terminationSeconds := int64(10)
 		probe := &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				Exec: &corev1.ExecAction{
@@ -292,6 +293,10 @@ func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 					},
 				},
 			},
+			InitialDelaySeconds:           60,
+			TimeoutSeconds:                5,
+			PeriodSeconds:                 10,
+			TerminationGracePeriodSeconds: &terminationSeconds,
 		}
 		if mariadb.Spec.LivenessProbe != nil {
 			mariadbProbe := *mariadb.Spec.LivenessProbe
