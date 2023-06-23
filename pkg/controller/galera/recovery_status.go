@@ -25,12 +25,14 @@ type bootstrapSource struct {
 func newRecoveryStatus(mariadb *mariadbv1alpha1.MariaDB) *recoveryStatus {
 	var inner mariadbv1alpha1.GaleraRecoveryStatus
 	if mariadb.Status.GaleraRecovery != nil {
-		inner = *mariadb.Status.GaleraRecovery
-	} else {
-		inner = mariadbv1alpha1.GaleraRecoveryStatus{
-			State:         make(map[string]*agentgalera.GaleraState),
-			Recovered:     make(map[string]*agentgalera.Bootstrap),
-			BootstrapTime: nil,
+		if mariadb.Status.GaleraRecovery.State != nil {
+			inner.State = mariadb.Status.GaleraRecovery.State
+		}
+		if mariadb.Status.GaleraRecovery.Recovered != nil {
+			inner.Recovered = mariadb.Status.GaleraRecovery.Recovered
+		}
+		if mariadb.Status.GaleraRecovery.BootstrapTime != nil {
+			inner.BootstrapTime = mariadb.Status.GaleraRecovery.BootstrapTime
 		}
 	}
 	return &recoveryStatus{
@@ -49,6 +51,9 @@ func (rs *recoveryStatus) setState(pod string, state *agentgalera.GaleraState) {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
+	if rs.inner.State == nil {
+		rs.inner.State = make(map[string]*agentgalera.GaleraState)
+	}
 	rs.inner.State[pod] = state
 }
 
@@ -64,6 +69,9 @@ func (rs *recoveryStatus) setRecovered(pod string, bootstrap *agentgalera.Bootst
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
+	if rs.inner.Recovered == nil {
+		rs.inner.Recovered = make(map[string]*agentgalera.Bootstrap)
+	}
 	rs.inner.Recovered[pod] = bootstrap
 }
 
@@ -79,11 +87,7 @@ func (rs *recoveryStatus) reset() {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
-	rs.inner = &mariadbv1alpha1.GaleraRecoveryStatus{
-		State:         make(map[string]*agentgalera.GaleraState),
-		Recovered:     make(map[string]*agentgalera.Bootstrap),
-		BootstrapTime: nil,
-	}
+	rs.inner = nil
 }
 
 func (rs *recoveryStatus) setBootstrapping() {
