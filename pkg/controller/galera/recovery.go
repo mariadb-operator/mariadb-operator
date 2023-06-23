@@ -20,26 +20,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// TODO: perform galera recovery orchestrating requests to agents
-// See:
-// https://github.com/mariadb-operator/mariadb-ha-poc/blob/main/galera/kubernetes/2-crashrecovery.cnf
-// https://github.com/mariadb-operator/mariadb-ha-poc/blob/main/galera/kubernetes/1-bootstrap.cnf
-//	Maybe useful for recovery?
-//	- SHOW STATUS LIKE 'wsrep_local_state_comment';
-//		The output will display the state of each node, such as "Synced," "Donor," "Joining," "Joined," or "Disconnected."
-//		All nodes should ideally be in the "Synced" state.
-
 func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) error {
 	logger := log.FromContext(ctx).WithName("galera-recovery")
+
+	if sts.Status.ReadyReplicas == 0 {
+		return r.recoverCluster(ctx, mariadb, logger)
+	}
 	// TODO: handle cases where only a few Pods are not Ready.
 	// Check status of each node with:
 	//	- SHOW STATUS LIKE 'wsrep_local_state_comment';
 	//		The output will display the state of each node, such as "Synced," "Donor," "Joining," "Joined," or "Disconnected."
 	//		All nodes should ideally be in the "Synced" state.
-	if sts.Status.ReadyReplicas != 0 {
-		return nil
-	}
 
+	return nil
+}
+
+func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	pods, err := r.pods(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting Pods: %v", err)
