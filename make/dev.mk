@@ -28,7 +28,7 @@ release: goreleaser ## Test release locally.
 
 ##@ Operator
 
-RUN_FLAGS ?= --service-monitor-reconciler --log-dev --log-level=debug
+RUN_FLAGS ?= --service-monitor-reconciler --log-dev --log-level=debug --log-time-encoder=iso8601
 .PHONY: run
 run: lint ## Run a controller from your host.
 	go run main.go $(RUN_FLAGS)
