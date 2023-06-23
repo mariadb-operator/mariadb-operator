@@ -39,14 +39,15 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	if mariadb.Spec.Galera == nil || mariadb.IsRestoringBackup() {
 		return nil
 	}
-	if mariadb.HasGaleraNotReadyCondition() {
-		if err := r.reconcileGaleraRecovery(ctx, mariadb); err != nil {
-			return err
-		}
-	}
 	sts, err := r.statefulSet(ctx, mariadb)
 	if err != nil {
 		return err
+	}
+
+	if mariadb.HasGaleraNotReadyCondition() {
+		if err := r.reconcileRecovery(ctx, mariadb, sts); err != nil {
+			return err
+		}
 	}
 
 	if !mariadb.HasGaleraReadyCondition() && sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
@@ -54,11 +55,11 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			return err
 		}
 		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-			status.GaleraRecovery = nil
 			conditions.SetGaleraReady(&mariadb.Status)
 			conditions.SetGaleraConfigured(&mariadb.Status)
 		})
 	}
+
 	return nil
 }
 

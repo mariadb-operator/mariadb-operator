@@ -118,6 +118,7 @@ func (r *ReplicaReplication) Validate() error {
 	return nil
 }
 
+// TODO: default using a mutating webhook
 func (r *ReplicaReplication) ConnectionTimeoutOrDefault() time.Duration {
 	if r.ConnectionTimeout != nil {
 		return r.ConnectionTimeout.Duration
@@ -125,6 +126,7 @@ func (r *ReplicaReplication) ConnectionTimeoutOrDefault() time.Duration {
 	return 10 * time.Second
 }
 
+// TODO: default using a mutating webhook
 func (r *ReplicaReplication) SyncTimeoutOrDefault() time.Duration {
 	if r.SyncTimeout != nil {
 		return r.SyncTimeout.Duration

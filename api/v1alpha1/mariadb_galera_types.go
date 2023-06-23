@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	"time"
 
-	"github.com/mariadb-operator/agent/pkg/galera"
+	agentgalera "github.com/mariadb-operator/agent/pkg/galera"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +33,7 @@ type GaleraAgent struct {
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
 }
 
+// TODO: default using a mutating webhook
 func (g *GaleraAgent) GracefulShutdownTimeoutOrDefault() time.Duration {
 	if g.GracefulShutdownTimeout != nil {
 		return g.GracefulShutdownTimeout.Duration
@@ -41,18 +42,30 @@ func (g *GaleraAgent) GracefulShutdownTimeoutOrDefault() time.Duration {
 }
 
 type GaleraRecovery struct {
-	HealthyTimeout *metav1.Duration `json:"healthyTimeout,omitempty"`
+	ClusterHealthyTimeout *metav1.Duration `json:"clusterHealthyTimeout,omitempty"`
+
+	ClusterBootstrapTimeout *metav1.Duration `json:"clusterBootstrapTimeout,omitempty"`
 
 	PodRecoveryTimeout *metav1.Duration `json:"podRecoveryTimeout,omitempty"`
 }
 
-func (g *GaleraRecovery) HealthyTimeoutOrDefault() time.Duration {
-	if g.HealthyTimeout != nil {
-		return g.HealthyTimeout.Duration
+// TODO: default using a mutating webhook
+func (g *GaleraRecovery) ClusterHealthyTimeoutOrDefault() time.Duration {
+	if g.ClusterHealthyTimeout != nil {
+		return g.ClusterHealthyTimeout.Duration
 	}
 	return 1 * time.Minute
 }
 
+// TODO: default using a mutating webhook
+func (g *GaleraRecovery) ClusterBootstrapTimeoutOrDefault() time.Duration {
+	if g.ClusterBootstrapTimeout != nil {
+		return g.ClusterBootstrapTimeout.Duration
+	}
+	return 5 * time.Minute
+}
+
+// TODO: default using a mutating webhook
 func (g *GaleraRecovery) PodRecoveryTimeoutOrDefault() time.Duration {
 	if g.PodRecoveryTimeout != nil {
 		return g.PodRecoveryTimeout.Duration
@@ -76,9 +89,11 @@ type Galera struct {
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 }
 
+// TODO: move galera.GaleraState and galera.Bootstrap to this package ?
 type GaleraRecoveryStatus struct {
-	State     map[string]*galera.GaleraState `json:"state,omitempty"`
-	Recovered map[string]*galera.Bootstrap   `json:"recovered,omitempty"`
+	State         map[string]*agentgalera.GaleraState `json:"state,omitempty"`
+	Recovered     map[string]*agentgalera.Bootstrap   `json:"recovered,omitempty"`
+	BootstrapTime *metav1.Time                        `json:"bootstrapTime,omitempty"`
 }
 
 func (m *MariaDB) HasGaleraReadyCondition() bool {

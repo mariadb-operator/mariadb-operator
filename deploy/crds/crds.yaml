@@ -7405,7 +7405,9 @@ spec:
                     type: boolean
                   recovery:
                     properties:
-                      healthyTimeout:
+                      clusterBootstrapTimeout:
+                        type: string
+                      clusterHealthyTimeout:
                         type: string
                       podRecoveryTimeout:
                         type: string
@@ -11037,7 +11039,12 @@ spec:
               currentPrimaryPodIndex:
                 type: integer
               galeraRecovery:
+                description: 'TODO: move galera.GaleraState and galera.Bootstrap to
+                  this package ?'
                 properties:
+                  bootstrapTime:
+                    format: date-time
+                    type: string
                   recovered:
                     additionalProperties:
                       properties:

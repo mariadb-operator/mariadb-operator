@@ -36,7 +36,8 @@ spec:
       port: 5555
       gracefulShutdownTimeout: 5s
     recovery:
-      healthyTimeout: 1m
+      clusterHealthyTimeout: 1m
+      clusterBootstrapTimeout: 5m
       podRecoveryTimeout: 1m
     replicaThreads: 1
     livenessProbe: true

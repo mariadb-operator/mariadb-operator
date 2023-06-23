@@ -44,7 +44,7 @@ func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod core
 	logger := log.FromContext(ctx).WithName("galera-health")
 	logger.Info("Checking cluster health")
 
-	healthyCtx, cancel := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.HealthyTimeoutOrDefault())
+	healthyCtx, cancel := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.ClusterHealthyTimeoutOrDefault())
 	defer cancel()
 
 	healthy, err := r.pollUntilHealthy(healthyCtx, mariadb, logger)

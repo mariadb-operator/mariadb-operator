@@ -64,6 +64,7 @@ type User struct {
 	Status UserStatus `json:"status,omitempty"`
 }
 
+// TODO: default using a mutating webhook
 func (u *User) UsernameOrDefault() string {
 	if u.Spec.Name != "" {
 		return u.Spec.Name
