@@ -147,9 +147,9 @@ func (r *GaleraReconciler) stateByPod(ctx context.Context, pods []corev1.Pod, rs
 				return
 			}
 
-			stateCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-			defer cancel()
-			if err = pollWithTimeout(stateCtx, logger, func(ctx context.Context) error {
+			stateCtx, cancelState := context.WithTimeout(ctx, 30*time.Second)
+			defer cancelState()
+			if err = pollUntilSucessWithTimeout(stateCtx, logger, func(ctx context.Context) error {
 				galeraState, err := client.GaleraState.Get(ctx)
 				if err != nil {
 					return err
@@ -205,9 +205,9 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 			}
 
 			logger.V(1).Info("Enabling recovery", "pod", pod.Name)
-			recoveryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-			defer cancel()
-			if err = pollWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
+			enableCtx, cancelEnable := context.WithTimeout(ctx, 30*time.Second)
+			defer cancelEnable()
+			if err = pollUntilSucessWithTimeout(enableCtx, logger, func(ctx context.Context) error {
 				return client.Recovery.Enable(ctx)
 			}); err != nil {
 				errChan <- fmt.Errorf("error enabling recovery in Pod '%s': %v", pod.Name, err)
@@ -232,9 +232,9 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 			}()
 
 			logger.V(1).Info("Performing recovery", "pod", pod.Name)
-			recoveryCtx, cancel = context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.PodRecoveryTimeoutOrDefault())
-			defer cancel()
-			if err = pollWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
+			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.PodRecoveryTimeoutOrDefault())
+			defer cancelRecovery()
+			if err = pollUntilSucessWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
 				bootstrap, err := client.Recovery.Start(ctx)
 				if err != nil {
 					return err
@@ -249,9 +249,9 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 			cancelDelete()
 
 			logger.V(1).Info("Disabling recovery", "pod", pod.Name)
-			recoveryCtx, cancel = context.WithTimeout(ctx, 30*time.Second)
-			defer cancel()
-			if err = pollWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
+			disableCtx, cancelDisable := context.WithTimeout(ctx, 30*time.Second)
+			defer cancelDisable()
+			if err = pollUntilSucessWithTimeout(disableCtx, logger, func(ctx context.Context) error {
 				return client.Recovery.Disable(ctx)
 			}); err != nil {
 				errChan <- fmt.Errorf("error disabling recovery in Pod '%s': %v", pod.Name, err)
@@ -292,7 +292,7 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, rs *recoveryStatus, po
 
 	bootstrapCtx, cancelBootstrap := context.WithTimeout(ctx, 30*time.Second)
 	defer cancelBootstrap()
-	if err = pollWithTimeout(bootstrapCtx, logger, func(ctx context.Context) error {
+	if err = pollUntilSucessWithTimeout(bootstrapCtx, logger, func(ctx context.Context) error {
 		return client.Bootstrap.Enable(ctx, src.bootstrap)
 	}); err != nil {
 		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", src.pod.Name, err)
@@ -300,7 +300,7 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, rs *recoveryStatus, po
 
 	deleteCtx, cancelDelete := context.WithTimeout(ctx, 30*time.Second)
 	defer cancelDelete()
-	if err = pollWithTimeout(deleteCtx, logger, func(ctx context.Context) error {
+	if err = pollUntilSucessWithTimeout(deleteCtx, logger, func(ctx context.Context) error {
 		return r.Delete(ctx, src.pod)
 	}); err != nil {
 		return fmt.Errorf("error deleting Pod '%s': %v", src.pod.Name, err)
@@ -316,7 +316,7 @@ func (r *GaleraReconciler) patchRecoveryStatus(ctx context.Context, mdb *mariadb
 	})
 }
 
-func pollWithTimeout(ctx context.Context, logger logr.Logger, fn func(ctx context.Context) error) error {
+func pollUntilSucessWithTimeout(ctx context.Context, logger logr.Logger, fn func(ctx context.Context) error) error {
 	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
 	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
 	if err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(ctx context.Context) (bool, error) {

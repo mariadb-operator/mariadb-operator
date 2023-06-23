@@ -44,10 +44,9 @@ func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod core
 	logger := log.FromContext(ctx).WithName("galera-health")
 	logger.Info("Checking cluster health")
 
-	healthyCtx, cancel := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.ClusterHealthyTimeoutOrDefault())
-	defer cancel()
-
-	healthy, err := r.pollUntilHealthy(healthyCtx, mariadb, logger)
+	healthyCtx, cancelHealthy := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.ClusterHealthyTimeoutOrDefault())
+	defer cancelHealthy()
+	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, mariadb, logger)
 	if err != nil {
 		return err
 	}
@@ -63,7 +62,8 @@ func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod core
 	})
 }
 
-func (r *PodGaleraReconciler) pollUntilHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (bool, error) {
+func (r *PodGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (bool, error) {
 	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
 	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
 	err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(context.Context) (bool, error) {
