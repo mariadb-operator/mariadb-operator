@@ -2,6 +2,7 @@ package galera
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -18,7 +19,7 @@ type recoveryStatus struct {
 
 type bootstrapSource struct {
 	bootstrap *agentgalera.Bootstrap
-	pod       string
+	pod       *corev1.Pod
 }
 
 func newRecoveryStatus(mariadb *mariadbv1alpha1.MariaDB) *recoveryStatus {
@@ -112,7 +113,7 @@ func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
 }
 
 func (rs *recoveryStatus) isComplete(pods []corev1.Pod) bool {
-	if rs.safeToBootstrap() != nil {
+	if source, err := rs.safeToBootstrap(pods); source != nil && err == nil {
 		return true
 	}
 	rs.mux.RLock()
@@ -126,44 +127,53 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod) bool {
 	return true
 }
 
-func (rs *recoveryStatus) safeToBootstrap() *bootstrapSource {
+func (rs *recoveryStatus) safeToBootstrap(pods []corev1.Pod) (*bootstrapSource, error) {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
 	for k, v := range rs.inner.State {
 		if v.SafeToBootstrap && v.Seqno != -1 {
-			return &bootstrapSource{
-				bootstrap: &agentgalera.Bootstrap{
-					UUID:  v.UUID,
-					Seqno: v.Seqno,
-				},
-				pod: k,
+			for _, p := range pods {
+				if k == p.Name {
+					return &bootstrapSource{
+						bootstrap: &agentgalera.Bootstrap{
+							UUID:  v.UUID,
+							Seqno: v.Seqno,
+						},
+						pod: &p,
+					}, nil
+				}
 			}
+			return nil, fmt.Errorf("Pod '%s' is safe to boostrap but it couldn't be found on the argument list", k)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod) (*bootstrapSource, error) {
-	if source := rs.safeToBootstrap(); source != nil {
+	source, err := rs.safeToBootstrap(pods)
+	if err != nil {
+		return nil, fmt.Errorf("error finding safe source to bootstrap: %v", err)
+	}
+	if source != nil {
 		return source, nil
 	}
 
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 	var currentSoure agentgalera.GaleraRecoverer
-	var currentPod string
+	var currentPod corev1.Pod
 
 	for _, p := range pods {
 		state := rs.inner.State[p.Name]
 		recovered := rs.inner.Recovered[p.Name]
 		if state != nil && state.GetSeqno() != -1 && state.Compare(currentSoure) >= 0 {
 			currentSoure = state
-			currentPod = p.Name
+			currentPod = p
 		}
 		if recovered != nil && recovered.GetSeqno() != -1 && recovered.Compare(currentSoure) >= 0 {
 			currentSoure = state
-			currentPod = p.Name
+			currentPod = p
 		}
 	}
 	if currentSoure == nil {
@@ -174,6 +184,6 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod) (*bootstrapSource, 
 			UUID:  currentSoure.GetUUID(),
 			Seqno: currentSoure.GetSeqno(),
 		},
-		pod: currentPod,
+		pod: &currentPod,
 	}, nil
 }

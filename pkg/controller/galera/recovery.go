@@ -214,7 +214,7 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 				return
 			}
 
-			deleteCtx, cancelDelete := context.WithCancel(ctx)
+			deleteCtx, cancelDelete := context.WithTimeout(ctx, 3*time.Minute)
 			defer cancelDelete()
 			go func() {
 				ticker := time.NewTicker(30 * time.Second)
@@ -279,23 +279,31 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, rs *recoveryStatus, po
 	if err != nil {
 		return fmt.Errorf("error getting bootstrap source: %v", err)
 	}
-	logger.Info("Bootstrapping cluster", "pod", src.pod)
+	logger.Info("Bootstrapping cluster", "pod", src.pod.Name)
 
-	idx, err := statefulset.PodIndex(src.pod)
+	idx, err := statefulset.PodIndex(src.pod.Name)
 	if err != nil {
-		return fmt.Errorf("error getting index for Pod '%s': %v", src.pod, err)
+		return fmt.Errorf("error getting index for Pod '%s': %v", src.pod.Name, err)
 	}
 	client, err := clientSet.clientForIndex(*idx)
 	if err != nil {
 		return fmt.Errorf("error getting client for Pod '%s': %v", src.pod, err)
 	}
 
-	bootstrapCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
+	bootstrapCtx, cancelBootstrap := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelBootstrap()
 	if err = pollWithTimeout(bootstrapCtx, logger, func(ctx context.Context) error {
 		return client.Bootstrap.Enable(ctx, src.bootstrap)
 	}); err != nil {
-		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", src.pod, err)
+		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", src.pod.Name, err)
+	}
+
+	deleteCtx, cancelDelete := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelDelete()
+	if err = pollWithTimeout(deleteCtx, logger, func(ctx context.Context) error {
+		return r.Delete(ctx, src.pod)
+	}); err != nil {
+		return fmt.Errorf("error deleting Pod '%s': %v", src.pod.Name, err)
 	}
 
 	rs.setBootstrapping()
