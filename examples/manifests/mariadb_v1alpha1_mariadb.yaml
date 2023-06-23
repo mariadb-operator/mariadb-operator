@@ -88,3 +88,82 @@ spec:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.20
+---
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  database: mariadb
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+
+  connection:
+    secretName: mariadb-conn
+    secretTemplate:
+      key: dsn
+
+  image:
+    repository: mariadb
+    tag: "10.11.3"
+    pullPolicy: IfNotPresent
+
+  port: 3306
+
+  replicas: 2
+
+  replication:
+    primary:
+      podIndex: 0
+      automaticFailover: true
+      service:
+        type: LoadBalancer
+        annotations:
+          metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+      connection:
+        secretName: primary-mariadb-conn
+        secretTemplate:
+          key: dsn
+    replica:
+      waitPoint: AfterCommit
+      gtid: CurrentPos
+      connectionTimeout: 10s
+      connectionRetries: 10
+      syncTimeout: 10s
+    syncBinlog: true
+
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 100Mi
+    storageClassName: standard
+    accessModes:
+      - ReadWriteOnce
+  volumes: 
+    - name: tmp
+      emptyDir: {}
+  volumeMounts: 
+    - name: tmp
+      mountPath: /tmp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-replica
+spec:
+  ports:
+  - name: mariadb
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  selector:
+    app.kubernetes.io/instance: mariadb-repl
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-repl-1
+  type: ClusterIP
