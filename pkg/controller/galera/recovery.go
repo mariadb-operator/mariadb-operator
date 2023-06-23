@@ -337,7 +337,7 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 			}()
 
 			logger.V(1).Info("performing recovery", "pod", pod.Name)
-			recoveryCtx, cancel = context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.TimeoutOrDefault())
+			recoveryCtx, cancel = context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.PodRecoveryTimeoutOrDefault())
 			defer cancel()
 			if err = r.pollWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
 				bootstrap, err := client.Recovery.Start(ctx)

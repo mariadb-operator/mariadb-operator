@@ -6094,7 +6094,7 @@ spec:
                               x-kubernetes-map-type: atomic
                           type: object
                         type: array
-                      gracefulShutdown:
+                      gracefulShutdownTimeout:
                         type: string
                       image:
                         properties:
@@ -7407,7 +7407,7 @@ spec:
                     properties:
                       healthyTimeout:
                         type: string
-                      timeout:
+                      podRecoveryTimeout:
                         type: string
                     type: object
                   replicaThreads:

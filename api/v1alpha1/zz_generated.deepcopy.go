@@ -530,8 +530,8 @@ func (in *Galera) DeepCopy() *Galera {
 func (in *GaleraAgent) DeepCopyInto(out *GaleraAgent) {
 	*out = *in
 	in.ContainerTemplate.DeepCopyInto(&out.ContainerTemplate)
-	if in.GracefulShutdown != nil {
-		in, out := &in.GracefulShutdown, &out.GracefulShutdown
+	if in.GracefulShutdownTimeout != nil {
+		in, out := &in.GracefulShutdownTimeout, &out.GracefulShutdownTimeout
 		*out = new(metav1.Duration)
 		**out = **in
 	}
@@ -555,8 +555,8 @@ func (in *GaleraRecovery) DeepCopyInto(out *GaleraRecovery) {
 		*out = new(metav1.Duration)
 		**out = **in
 	}
-	if in.Timeout != nil {
-		in, out := &in.Timeout, &out.Timeout
+	if in.PodRecoveryTimeout != nil {
+		in, out := &in.PodRecoveryTimeout, &out.PodRecoveryTimeout
 		*out = new(metav1.Duration)
 		**out = **in
 	}

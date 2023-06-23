@@ -30,12 +30,12 @@ type GaleraAgent struct {
 	// +kubebuilder:default=5555
 	Port int32 `json:"port,omitempty"`
 
-	GracefulShutdown *metav1.Duration `json:"gracefulShutdown,omitempty"`
+	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
 }
 
-func (g *GaleraAgent) GracefulShutdownOrDefault() time.Duration {
-	if g.GracefulShutdown != nil {
-		return g.GracefulShutdown.Duration
+func (g *GaleraAgent) GracefulShutdownTimeoutOrDefault() time.Duration {
+	if g.GracefulShutdownTimeout != nil {
+		return g.GracefulShutdownTimeout.Duration
 	}
 	return 5 * time.Second
 }
@@ -43,7 +43,7 @@ func (g *GaleraAgent) GracefulShutdownOrDefault() time.Duration {
 type GaleraRecovery struct {
 	HealthyTimeout *metav1.Duration `json:"healthyTimeout,omitempty"`
 
-	Timeout *metav1.Duration `json:"timeout,omitempty"`
+	PodRecoveryTimeout *metav1.Duration `json:"podRecoveryTimeout,omitempty"`
 }
 
 func (g *GaleraRecovery) HealthyTimeoutOrDefault() time.Duration {
@@ -53,9 +53,9 @@ func (g *GaleraRecovery) HealthyTimeoutOrDefault() time.Duration {
 	return 1 * time.Minute
 }
 
-func (g *GaleraRecovery) TimeoutOrDefault() time.Duration {
-	if g.Timeout != nil {
-		return g.Timeout.Duration
+func (g *GaleraRecovery) PodRecoveryTimeoutOrDefault() time.Duration {
+	if g.PodRecoveryTimeout != nil {
+		return g.PodRecoveryTimeout.Duration
 	}
 	return 1 * time.Minute
 }

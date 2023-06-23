@@ -34,10 +34,10 @@ spec:
         tag: "v0.0.7"
         pullPolicy: IfNotPresent
       port: 5555
-      gracefulShutdown: 5s
+      gracefulShutdownTimeout: 5s
     recovery:
       healthyTimeout: 1m
-      timeout: 1m
+      podRecoveryTimeout: 1m
     replicaThreads: 1
     livenessProbe: true
     initContainer:
