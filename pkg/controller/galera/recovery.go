@@ -36,9 +36,9 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 	logger := log.FromContext(ctx).WithName("galera-recovery")
 
 	if sts.Status.ReadyReplicas == 0 {
-		return r.recoverCluster(ctx, mariadb, pods, agentClientSet, logger)
+		return r.recoverCluster(ctx, mariadb, pods, agentClientSet, logger.WithName("cluster"))
 	}
-	return r.recoverPods(ctx, mariadb, pods, sqlClientSet, logger)
+	return r.recoverPods(ctx, mariadb, pods, sqlClientSet, logger.WithName("pod"))
 }
 
 func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
