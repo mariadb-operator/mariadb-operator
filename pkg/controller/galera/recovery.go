@@ -46,7 +46,6 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 	rs := newRecoveryStatus(mariadb)
 
 	if rs.isBootstrapping() {
-		// TODO: cluster recovery timeout at the top level?
 		if rs.bootstrapTimeout(mariadb) {
 			logger.Info("Bootstrap timed out. Resetting recovery status...")
 			rs.reset()
@@ -117,7 +116,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 
 			index, err := statefulset.PodIndex(pod.Name)
 			if err != nil {
-				logger.Error(err, "error getting Pod index", "pod", pod.Name)
+				logger.V(1).Error(err, "error getting Pod index", "pod", pod.Name)
 				return
 			}
 			clientCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -125,7 +124,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 
 			client, err := clientSet.ClientForIndex(clientCtx, *index)
 			if err != nil {
-				logger.Error(err, "error getting Pod client", "pod", pod.Name)
+				logger.V(1).Error(err, "error getting Pod client", "pod", pod.Name)
 				return
 			}
 
