@@ -203,14 +203,14 @@ var _ = BeforeSuite(func() {
 
 	err = (&PodReconciler{
 		Client:             client,
-		Annotation:         annotation.PodReplicationAnnotation,
+		Annotation:         annotation.ReplicationAnnotation,
 		PodReadyReconciler: podReplicationReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&PodReconciler{
 		Client:             client,
-		Annotation:         annotation.PodGaleraAnnotation,
+		Annotation:         annotation.GaleraAnnotation,
 		PodReadyReconciler: podGaleraReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

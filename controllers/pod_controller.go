@@ -84,7 +84,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 }
 
 func (r *PodReconciler) mariadbFromPod(ctx context.Context, pod corev1.Pod) (*mariadbv1alpha1.MariaDB, error) {
-	mariadbAnnotation, ok := pod.Annotations[annotation.PodMariadbAnnotation]
+	mariadbAnnotation, ok := pod.Annotations[annotation.MariadbAnnotation]
 	if !ok {
 		return nil, errPodAnnotationNotFound
 	}
@@ -114,7 +114,7 @@ func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *PodReconciler) podPredicate() predicate.Predicate {
 	hasAnnotations := func(o client.Object) bool {
 		annotations := o.GetAnnotations()
-		if _, ok := annotations[annotation.PodMariadbAnnotation]; !ok {
+		if _, ok := annotations[annotation.MariadbAnnotation]; !ok {
 			return false
 		}
 		if _, ok := annotations[r.Annotation]; !ok {

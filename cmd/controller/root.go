@@ -203,7 +203,7 @@ var rootCmd = &cobra.Command{
 		}
 		if err = (&controllers.PodReconciler{
 			Client:             client,
-			Annotation:         annotation.PodReplicationAnnotation,
+			Annotation:         annotation.ReplicationAnnotation,
 			PodReadyReconciler: podReplicationReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
@@ -211,7 +211,7 @@ var rootCmd = &cobra.Command{
 		}
 		if err = (&controllers.PodReconciler{
 			Client:             client,
-			Annotation:         annotation.PodGaleraAnnotation,
+			Annotation:         annotation.GaleraAnnotation,
 			PodReadyReconciler: podGaleraReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "PodGalera")

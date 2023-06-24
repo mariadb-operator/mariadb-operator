@@ -62,6 +62,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
+			WithAnnotations(buildHAAnnotations(mariadb)).
 			Build()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
@@ -132,23 +133,11 @@ func buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKey
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
 
-	var podAnnotations map[string]string
-	if mariadb.Spec.Replication != nil || mariadb.Spec.Galera != nil {
-		podAnnotations = map[string]string{
-			annotation.PodMariadbAnnotation: mariadb.Name,
-		}
-		if mariadb.Spec.Replication != nil {
-			podAnnotations[annotation.PodReplicationAnnotation] = ""
-		}
-		if mariadb.Spec.Galera != nil {
-			podAnnotations[annotation.PodGaleraAnnotation] = ""
-		}
-	}
 	objMeta :=
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
 			WithMariaDB(mariadb).
 			WithLabels(labels).
-			WithAnnotations(podAnnotations).
+			WithAnnotations(buildHAAnnotations(mariadb)).
 			Build()
 
 	return &corev1.PodTemplateSpec{
@@ -214,4 +203,20 @@ func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 		volumes = append(volumes, mariadb.Spec.Volumes...)
 	}
 	return volumes
+}
+
+func buildHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
+	var annotations map[string]string
+	if mariadb.Spec.Replication != nil || mariadb.Spec.Galera != nil {
+		annotations = map[string]string{
+			annotation.MariadbAnnotation: mariadb.Name,
+		}
+		if mariadb.Spec.Replication != nil {
+			annotations[annotation.ReplicationAnnotation] = ""
+		}
+		if mariadb.Spec.Galera != nil {
+			annotations[annotation.GaleraAnnotation] = ""
+		}
+	}
+	return annotations
 }

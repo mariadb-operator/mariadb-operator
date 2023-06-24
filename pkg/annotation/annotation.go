@@ -1,7 +1,7 @@
 package annotation
 
 var (
-	PodReplicationAnnotation = "mariadb.mmontes.io/replication"
-	PodGaleraAnnotation      = "mariadb.mmontes.io/galera"
-	PodMariadbAnnotation     = "mariadb.mmontes.io/mariadb"
+	ReplicationAnnotation = "mariadb.mmontes.io/replication"
+	GaleraAnnotation      = "mariadb.mmontes.io/galera"
+	MariadbAnnotation     = "mariadb.mmontes.io/mariadb"
 )
