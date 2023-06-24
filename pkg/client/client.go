@@ -323,6 +323,10 @@ func (c *Client) GaleraClusterStatus(ctx context.Context) (string, error) {
 	return c.StatusVariable(ctx, "wsrep_cluster_status")
 }
 
+func (c *Client) GaleraLocalState(ctx context.Context) (string, error) {
+	return c.StatusVariable(ctx, "wsrep_local_state_comment")
+}
+
 func createTpl(name, t string) *template.Template {
 	return template.Must(template.New(name).Parse(t))
 }

@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	sqlclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,32 +23,30 @@ import (
 )
 
 func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) error {
-	logger := log.FromContext(ctx).WithName("galera-recovery")
-
-	if sts.Status.ReadyReplicas == 0 {
-		return r.recoverCluster(ctx, mariadb, logger)
-	}
-	// TODO: handle cases where only a few Pods are not Ready.
-	// Check status of each node with:
-	//	- SHOW STATUS LIKE 'wsrep_local_state_comment';
-	//		The output will display the state of each node, such as "Synced," "Donor," "Joining," "Joined," or "Disconnected."
-	//		All nodes should ideally be in the "Synced" state.
-
-	return nil
-}
-
-func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	pods, err := r.pods(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting Pods: %v", err)
 	}
-	clientSet, err := newAgentClientSet(mariadb, client.WithTimeout(5*time.Second))
+	agentClientSet, err := newAgentClientSet(mariadb, client.WithTimeout(5*time.Second))
 	if err != nil {
 		return fmt.Errorf("error getting agent client: %v", err)
 	}
+	sqlClientSet := sqlclient.NewClientSet(mariadb, r.RefResolver)
+	defer sqlClientSet.Close()
+	logger := log.FromContext(ctx).WithName("galera-recovery")
+
+	if sts.Status.ReadyReplicas == 0 {
+		return r.recoverCluster(ctx, mariadb, pods, agentClientSet, logger)
+	}
+	return r.recoverPods(ctx, mariadb, pods, sqlClientSet, logger)
+}
+
+func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
+	clientSet *agentClientSet, logger logr.Logger) error {
 	rs := newRecoveryStatus(mariadb)
 
 	if rs.isBootstrapping() {
+		// TODO: cluster recovery timeout at the top level?
 		if rs.bootstrapTimeout(mariadb) {
 			logger.Info("Bootstrap timed out. Resetting recovery status...")
 			rs.reset()
@@ -57,7 +57,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 
 	logger.V(1).Info("State by Pod")
 	var stateErr *multierror.Error
-	err = r.stateByPod(ctx, pods, rs, clientSet, logger)
+	err := r.stateByPod(ctx, pods, rs, clientSet, logger)
 	stateErr = multierror.Append(stateErr, err)
 
 	err = r.patchRecoveryStatus(ctx, mariadb, rs)
@@ -96,6 +96,62 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 	return r.patchRecoveryStatus(ctx, mariadb, rs)
 }
 
+// TODO: handle cases where only a few Pods are not Ready.
+// Check status of each node with:
+//   - SHOW STATUS LIKE 'wsrep_local_state_comment';
+//     The output will display the state of each node, such as "Synced," "Donor," "Joining," "Joined," or "Disconnected."
+//     All nodes should ideally be in the "Synced" state.
+func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
+	clientSet *sqlclient.ClientSet, logger logr.Logger) error {
+	notReadyPods, err := r.notReadyPods(ctx, pods, clientSet, logger)
+	if err != nil {
+		return fmt.Errorf("error getting not Ready Pods: %v", err)
+	}
+	doneChan := make(chan struct{})
+
+	var wg sync.WaitGroup
+	for _, p := range notReadyPods {
+		wg.Add(1)
+		go func(pod *corev1.Pod) {
+			defer wg.Done()
+
+			index, err := statefulset.PodIndex(pod.Name)
+			if err != nil {
+				logger.Error(err, "error getting Pod index", "pod", pod.Name)
+				return
+			}
+			clientCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			defer cancel()
+
+			client, err := clientSet.ClientForIndex(clientCtx, *index)
+			if err != nil {
+				logger.Error(err, "error getting Pod client", "pod", pod.Name)
+				return
+			}
+
+			if err := r.recoverPod(ctx, mariadb, pod, client, logger); err != nil {
+				logger.Error(err, "error recovering Pod", "pod", pod.Name)
+			}
+		}(&p)
+	}
+	go func() {
+		wg.Wait()
+		close(doneChan)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-doneChan:
+		return nil
+	}
+}
+
+func (r *GaleraReconciler) recoverPod(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pod *corev1.Pod,
+	clientSet *sqlclient.Client, logger logr.Logger) error {
+	return nil
+}
+
 func (r *GaleraReconciler) pods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
 	var pods []corev1.Pod
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
@@ -114,6 +170,42 @@ func (r *GaleraReconciler) pods(ctx context.Context, mariadb *mariadbv1alpha1.Ma
 		pods = append(pods, pod)
 	}
 	return pods, nil
+}
+
+func (r *GaleraReconciler) notReadyPods(ctx context.Context, pods []corev1.Pod,
+	clientSet *sqlclient.ClientSet, logger logr.Logger) ([]corev1.Pod, error) {
+	var notReadyPods []corev1.Pod
+	for _, p := range pods {
+		if !pod.PodReady(&p) {
+			notReadyPods = append(notReadyPods, p)
+			continue
+		}
+		index, err := statefulset.PodIndex(p.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error getting Pod '%s' index: %v", p.Name, err)
+		}
+
+		clientCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+
+		client, err := clientSet.ClientForIndex(clientCtx, *index)
+		if err != nil {
+			logger.Error(err, "error getting client", "pod", p.Name)
+			notReadyPods = append(notReadyPods, p)
+			continue
+		}
+
+		state, err := client.GaleraLocalState(clientCtx)
+		if err != nil {
+			logger.Error(err, "error getting local state", "pod", p.Name)
+			notReadyPods = append(notReadyPods, p)
+			continue
+		}
+		if state != "Synced" {
+			notReadyPods = append(notReadyPods, p)
+		}
+	}
+	return notReadyPods, nil
 }
 
 func (r *GaleraReconciler) stateByPod(ctx context.Context, pods []corev1.Pod, rs *recoveryStatus,
