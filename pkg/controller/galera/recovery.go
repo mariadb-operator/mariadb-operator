@@ -111,7 +111,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 // 	var wg sync.WaitGroup
 // 	for _, p := range notReadyPods {
 // 		wg.Add(1)
-// 		go func(pod *corev1.Pod) {
+// 		go func(pod corev1.Pod) {
 // 			defer wg.Done()
 
 // 			index, err := statefulset.PodIndex(pod.Name)
@@ -131,7 +131,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 // 			if err := r.recoverPod(ctx, mariadb, pod, client, logger); err != nil {
 // 				logger.Error(err, "error recovering Pod", "pod", pod.Name)
 // 			}
-// 		}(&p)
+// 		}(p)
 // 	}
 // 	go func() {
 // 		wg.Wait()
@@ -225,7 +225,7 @@ func (r *GaleraReconciler) stateByPod(ctx context.Context, pods []corev1.Pod, rs
 		}
 
 		wg.Add(1)
-		go func(i int, pod *corev1.Pod) {
+		go func(i int, pod corev1.Pod) {
 			defer wg.Done()
 
 			client, err := clientSet.clientForIndex(i)
@@ -247,7 +247,7 @@ func (r *GaleraReconciler) stateByPod(ctx context.Context, pods []corev1.Pod, rs
 			}); err != nil {
 				errChan <- fmt.Errorf("error getting Galera state for Pod '%s': %v", pod.Name, err)
 			}
-		}(*i, &pod)
+		}(*i, pod)
 	}
 	go func() {
 		wg.Wait()
@@ -282,7 +282,7 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 		}
 
 		wg.Add(1)
-		go func(i int, pod *corev1.Pod) {
+		go func(i int, pod corev1.Pod) {
 			defer wg.Done()
 
 			client, err := clientSet.clientForIndex(i)
@@ -311,7 +311,7 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 						return
 					case <-ticker.C:
 						logger.V(1).Info("Deleting Pod", "pod", pod.Name)
-						if err := r.Delete(ctx, pod); err != nil {
+						if err := r.Delete(ctx, &pod); err != nil {
 							logger.V(1).Error(err, "Error deleting Pod", "pod", pod.Name)
 						}
 					}
@@ -343,7 +343,7 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 			}); err != nil {
 				errChan <- fmt.Errorf("error disabling recovery in Pod '%s': %v", pod.Name, err)
 			}
-		}(*i, &pod)
+		}(*i, pod)
 	}
 	go func() {
 		wg.Wait()
