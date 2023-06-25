@@ -1,4 +1,20 @@
-package galera
+/*
+Copyright 2022.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package controllers
 
 import (
 	"context"
@@ -8,66 +24,85 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type PodGaleraReconciler struct {
+type GaleraHealthReconciler struct {
 	client.Client
-	refResolver *refresolver.RefResolver
+	RefResolver *refresolver.RefResolver
 }
 
-func NewPodGaleraReconciler(client client.Client) *PodGaleraReconciler {
-	return &PodGaleraReconciler{
+func NewPodGaleraReconciler(client client.Client) *GaleraHealthReconciler {
+	return &GaleraHealthReconciler{
 		Client:      client,
-		refResolver: refresolver.New(client),
+		RefResolver: refresolver.New(client),
 	}
 }
 
-func (r *PodGaleraReconciler) ReconcilePodReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	return nil
-}
+//+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch
 
-func (r *PodGaleraReconciler) ReconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+func (r *GaleraHealthReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, req.NamespacedName, &sts); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	mariadb, err := r.RefResolver.MariaDBFromAnnotation(ctx, sts.ObjectMeta)
+	if err != nil {
+		if errors.Is(err, refresolver.ErrMariaDBAnnotationNotFound) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 	if !mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
-		return nil
+		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("galera-health")
 	logger.Info("Checking cluster health")
 
 	healthyCtx, cancelHealthy := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.ClusterHealthyTimeoutOrDefault())
 	defer cancelHealthy()
-	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, mariadb, logger)
+	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, mariadb, &sts, logger)
 	if err != nil {
-		return err
+		return ctrl.Result{}, fmt.Errorf("error polling MariaDB health: %v", err)
 	}
 
 	if healthy {
 		logger.Info("Cluster is healthy")
-		return nil
+		return ctrl.Result{}, nil
 	}
 	logger.Info("Cluster is not healthy")
-	return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.GaleraRecovery = nil
 		conditions.SetGaleraNotReady(status, mariadb)
-	})
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB: %v", err)
+	}
+
+	return ctrl.Result{}, nil
 }
 
-func (r *PodGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *GaleraHealthReconciler) pollUntilHealthyWithTimeout(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
 	logger logr.Logger) (bool, error) {
 	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
 	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
 	err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(context.Context) (bool, error) {
-		return r.isHealthy(ctx, mariadb, logger)
+		return r.isHealthy(ctx, mariadb, sts, logger)
 	})
 	if err != nil {
 		if errors.Is(err, wait.ErrWaitTimeout) {
@@ -78,12 +113,8 @@ func (r *PodGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, m
 	return true, nil
 }
 
-func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (bool, error) {
-	sts, err := r.statefulSet(ctx, mariadb)
-	if err != nil {
-		return false, fmt.Errorf("error getting StatefulSet: %v", err)
-	}
-
+func (r *GaleraHealthReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
+	logger logr.Logger) (bool, error) {
 	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
 	if sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
 		return true, nil
@@ -92,7 +123,7 @@ func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1a
 		return false, nil
 	}
 
-	clientSet := mariadbclient.NewClientSet(mariadb, r.refResolver)
+	clientSet := mariadbclient.NewClientSet(mariadb, r.RefResolver)
 	defer clientSet.Close()
 	client, err := r.readyClient(ctx, mariadb, clientSet)
 	if err != nil {
@@ -120,15 +151,7 @@ func (r *PodGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1a
 	return true, nil
 }
 
-func (r *PodGaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
-		return nil, err
-	}
-	return &sts, nil
-}
-
-func (r *PodGaleraReconciler) readyClient(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *GaleraHealthReconciler) readyClient(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbclient.ClientSet) (*mariadbclient.Client, error) {
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		key := types.NamespacedName{
@@ -150,9 +173,24 @@ func (r *PodGaleraReconciler) readyClient(ctx context.Context, mariadb *mariadbv
 	return nil, errors.New("no Ready Pods were found")
 }
 
-func (r *PodGaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *GaleraHealthReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *GaleraHealthReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&appsv1.StatefulSet{}).
+		WithEventFilter(
+			predicate.PredicateWithAnnotations(
+				[]string{
+					annotation.MariadbAnnotation,
+					annotation.GaleraAnnotation,
+				},
+			),
+		).
+		Complete(r)
 }

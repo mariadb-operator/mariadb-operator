@@ -27,7 +27,6 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/controllers"
-	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
@@ -104,10 +103,7 @@ var rootCmd = &cobra.Command{
 
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 		replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
-		podReplicationReconciler := replication.NewPodReplicationReconciler(client, replConfig, secretReconciler, builder)
-
 		galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
-		podGaleraReconciler := galera.NewPodGaleraReconciler(client)
 
 		if err = (&controllers.MariaDBReconciler{
 			Client: client,
@@ -201,20 +197,22 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "SqlJob")
 			os.Exit(1)
 		}
-		if err = (&controllers.PodReconciler{
-			Client:             client,
-			Annotation:         annotation.ReplicationAnnotation,
-			PodReadyReconciler: podReplicationReconciler,
+		if err = (&controllers.PodReplicationController{
+			Client:           client,
+			Scheme:           scheme,
+			ReplConfig:       replConfig,
+			SecretReconciler: secretReconciler,
+			Builder:          builder,
+			RefResolver:      refResolver,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
 			os.Exit(1)
 		}
-		if err = (&controllers.PodReconciler{
-			Client:             client,
-			Annotation:         annotation.GaleraAnnotation,
-			PodReadyReconciler: podGaleraReconciler,
+		if err = (&controllers.GaleraHealthReconciler{
+			Client:      client,
+			RefResolver: refResolver,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "PodGalera")
+			setupLog.Error(err, "unable to create controller", "controller", "GaleraHealth")
 			os.Exit(1)
 		}
 
