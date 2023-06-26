@@ -7415,6 +7415,9 @@ spec:
                   replicaThreads:
                     default: 1
                     type: integer
+                  sst:
+                    default: mariabackup
+                    type: string
                   volumeClaimTemplate:
                     description: PersistentVolumeClaimSpec describes the common attributes
                       of storage devices and allows a Source for provider-specific
@@ -7589,6 +7592,7 @@ spec:
                 - agent
                 - initContainer
                 - recovery
+                - sst
                 - volumeClaimTemplate
                 type: object
               image:

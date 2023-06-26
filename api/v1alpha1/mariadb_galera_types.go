@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"time"
 
 	agentgalera "github.com/mariadb-operator/agent/pkg/galera"
@@ -73,13 +74,45 @@ func (g *GaleraRecovery) PodRecoveryTimeoutOrDefault() time.Duration {
 	return 1 * time.Minute
 }
 
+type SST string
+
+const (
+	SSTRsync       SST = "rsync"
+	SSTMariaBackup SST = "mariabackup"
+	SSTMysqldump   SST = "mysqldump"
+)
+
+func (s SST) Validate() error {
+	switch s {
+	case SSTMariaBackup, SSTRsync, SSTMysqldump:
+		return nil
+	default:
+		return fmt.Errorf("invalid SST: %v", s)
+	}
+}
+
+func (s SST) MariaDBFormat() (string, error) {
+	switch s {
+	case SSTRsync:
+		return "rsync", nil
+	case SSTMariaBackup:
+		return "mariabackup", nil
+	case SSTMysqldump:
+		return "mysqldump", nil
+	default:
+		return "", fmt.Errorf("invalid SST: %v", s)
+	}
+}
+
 type Galera struct {
+	// +kubebuilder:default=mariabackup
+	SST SST `json:"sst"`
+	// +kubebuilder:default=1
+	ReplicaThreads int `json:"replicaThreads,omitempty"`
 	// +kubebuilder:validation:Required
 	Agent GaleraAgent `json:"agent"`
 	// +kubebuilder:validation:Required
 	Recovery GaleraRecovery `json:"recovery"`
-	// +kubebuilder:default=1
-	ReplicaThreads int `json:"replicaThreads,omitempty"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=true
 	LivenessProbe bool `json:"livenessProbe"`

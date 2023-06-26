@@ -93,22 +93,36 @@ wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads={{ .Threads }}
 
 # Node configuration - to be rendered by initContainer
-wsrep_node_address="$MARIADB_OPERATOR_HOSTNAME.{{ .Service }}"
-wsrep_node_name="$MARIADB_OPERATOR_HOSTNAME"
+wsrep_node_address="$POD_HOSTNAME.{{ .Service }}"
+wsrep_node_name="$POD_HOSTNAME"
+
+# SST: https://mariadb.com/kb/en/introduction-to-state-snapshot-transfers-ssts/ - to be rendered by initContainer
+wsrep_sst_method="{{ .SST }}"
+{{- if .SSTAuth }}
+wsrep_sst_auth="root:$MARIADB_ROOT_PASSWORD"
+{{- end }}
 `)
 	buf := new(bytes.Buffer)
 	clusterAddr, err := clusterAddress(mariadb)
 	if err != nil {
 		return "", fmt.Errorf("error getting cluster address: %v", err)
 	}
+	sst, err := mariadb.Spec.Galera.SST.MariaDBFormat()
+	if err != nil {
+		return "", fmt.Errorf("error getting SST: %v", err)
+	}
 	err = tpl.Execute(buf, struct {
 		ClusterAddress string
 		Threads        int
 		Service        string
+		SST            string
+		SSTAuth        bool
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        mariadb.Spec.Galera.ReplicaThreads,
 		Service:        statefulset.ServiceFQDNWithService(mariadb.ObjectMeta, galeraresources.ServiceKey(mariadb).Name),
+		SST:            sst,
+		SSTAuth:        mariadb.Spec.Galera.SST == mariadbv1alpha1.SSTMariaBackup || mariadb.Spec.Galera.SST == mariadbv1alpha1.SSTMysqldump,
 	})
 	if err != nil {
 		return "", err
@@ -136,7 +150,9 @@ HOSTNAME=$(hostname)
 STATEFULSET_INDEX=${HOSTNAME##*-}
 
 echo 'Adding galera configuration'
-cat {{ .ConfigMapPath }}/{{ .GaleraCnf }} | sed 's/$MARIADB_OPERATOR_HOSTNAME/'$HOSTNAME'/g' > {{ .ConfigPath }}/{{ .GaleraCnf }}
+cat {{ .ConfigMapPath }}/{{ .GaleraCnf }} | \
+	sed 's/$POD_HOSTNAME/'$HOSTNAME'/g' | \
+	sed 's/$MARIADB_ROOT_PASSWORD/'$MARIADB_ROOT_PASSWORD'/g' > {{ .ConfigPath }}/{{ .GaleraCnf }}
 
 if [ ! -z "$(ls -A {{ .StoragePath }})" ]; then
 	exit 0;

@@ -28,6 +28,7 @@ spec:
   replicas: 3
 
   galera:
+    sst: mariabackup
     agent:
       image:
         repository: ghcr.io/mariadb-operator/agent
