@@ -127,8 +127,10 @@ func clusterAddress(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
 }
 
+// TODO: refactor this into a Go container.
+// This way we can query the Pod readiness using the Kubernetes API instead of replicating the probe
 func galeraInit(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
-	tpl := createTpl("init", `#!/bin/sh
+	tpl := createTpl("init", `#!/bin/bash
 set -euo pipefail
 HOSTNAME=$(hostname)
 STATEFULSET_INDEX=${HOSTNAME##*-}
@@ -136,26 +138,49 @@ STATEFULSET_INDEX=${HOSTNAME##*-}
 echo 'Adding galera configuration'
 cat {{ .ConfigMapPath }}/{{ .GaleraCnf }} | sed 's/$MARIADB_OPERATOR_HOSTNAME/'$HOSTNAME'/g' > {{ .ConfigPath }}/{{ .GaleraCnf }}
 
-if [ "$STATEFULSET_INDEX" = "{{ .BootstrapIndex }}" ]  && [ -z "$(ls -A {{ .StoragePath }})" ]; then 
+if [ ! -z "$(ls -A {{ .StoragePath }})" ]; then
+	exit 0;
+fi
+
+if [ "$STATEFULSET_INDEX" = "0" ]; then 
 	echo 'Adding cluster bootstrapping configuration'
 	cp {{ .ConfigMapPath }}/{{ .GaleraBootstrapCnf }} {{ .ConfigPath }}/{{ .GaleraBootstrapCnf }}
+else
+	while true; do
+		PREVIOUS_INDEX=$((STATEFULSET_INDEX - 1))
+		HOST="{{ .MariaDBName }}-$PREVIOUS_INDEX.{{ .InternalServiceFQDN }}"
+		COUNT=$(mysql -u root -p"$MARIADB_ROOT_PASSWORD" -e "SHOW STATUS LIKE 'wsrep_ready'" -h $HOST | grep -c ON || true)
+		if [[ $COUNT -eq 1 ]]; then
+			echo "$HOST is Ready. Exiting...";
+			sleep 10s;
+			exit 0;
+		else
+			echo "Waiting for $HOST to be Ready";
+			sleep 1s;
+		fi
+	done;
 fi
 `)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, struct {
-		GaleraCnf          string
-		GaleraBootstrapCnf string
-		ConfigMapPath      string
-		ConfigPath         string
-		StoragePath        string
-		BootstrapIndex     int
+		GaleraCnf           string
+		GaleraBootstrapCnf  string
+		ConfigMapPath       string
+		ConfigPath          string
+		StoragePath         string
+		MariaDBName         string
+		InternalServiceFQDN string
 	}{
 		GaleraCnf:          galeraresources.GaleraCnf,
 		GaleraBootstrapCnf: galeraresources.GaleraBootstrapCnf,
 		ConfigMapPath:      galeraresources.GaleraConfigMapMountPath,
 		ConfigPath:         galeraresources.GaleraConfigMountPath,
 		StoragePath:        builder.StorageMountPath,
-		BootstrapIndex:     0,
+		MariaDBName:        mariadb.Name,
+		InternalServiceFQDN: statefulset.ServiceFQDNWithService(
+			mariadb.ObjectMeta,
+			galeraresources.ServiceKey(mariadb).Name,
+		),
 	})
 	if err != nil {
 		return "", err

@@ -42,6 +42,7 @@ spec:
     replicaThreads: 1
     livenessProbe: true
     initContainer:
+      # TODO: make image example in container template, as we are using the same image as MariaDB StatefulSet
       image:
         repository: alpine
         tag: "3.18.0"

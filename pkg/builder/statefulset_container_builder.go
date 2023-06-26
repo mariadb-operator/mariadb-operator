@@ -32,11 +32,12 @@ func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container
 		container := buildContainer(&mariadb.Spec.Galera.InitContainer)
 
 		container.Name = "init-galera"
-		container.Image = mariadb.Spec.Galera.InitContainer.Image.String()
-		container.Command = []string{"sh", "-c"}
+		container.Image = mariadb.Spec.Image.String()
+		container.Command = []string{"bash", "-c"}
 		container.Args = []string{
 			fmt.Sprintf("%s/%s", galeraresources.GaleraConfigMapMountPath, galeraresources.GaleraInitScript),
 		}
+		container.Env = buildStsEnv(mariadb)
 		container.VolumeMounts = buildGaleraVolumeMounts(mariadb)
 
 		return []corev1.Container{

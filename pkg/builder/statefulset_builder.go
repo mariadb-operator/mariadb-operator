@@ -100,7 +100,7 @@ func buildStsServiceName(mariadb *mariadbv1alpha1.MariaDB) string {
 }
 
 func buildStsPodManagementPolicy(mariadb *mariadbv1alpha1.MariaDB) appsv1.PodManagementPolicyType {
-	if mariadb.Spec.Replication != nil {
+	if mariadb.Spec.Replication != nil || mariadb.Spec.Galera != nil {
 		return appsv1.ParallelPodManagement
 	}
 	return appsv1.OrderedReadyPodManagement
