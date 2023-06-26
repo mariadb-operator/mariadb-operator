@@ -10,23 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-var (
-	defaultStsProbe = corev1.Probe{
-		ProbeHandler: corev1.ProbeHandler{
-			Exec: &corev1.ExecAction{
-				Command: []string{
-					"bash",
-					"-c",
-					"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-				},
-			},
-		},
-		InitialDelaySeconds: 20,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-	}
-)
-
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 	if mariadb.Spec.Galera != nil {
 		container := buildContainer(&mariadb.Spec.Galera.InitContainer)
@@ -55,12 +38,7 @@ func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeyS
 	mariadbContainer.Ports = buildStsPorts(mariadb)
 	mariadbContainer.VolumeMounts = buildStsVolumeMounts(mariadb)
 	mariadbContainer.LivenessProbe = buildStsLivenessProbe(mariadb)
-	mariadbContainer.ReadinessProbe = func() *corev1.Probe {
-		if mariadbContainer.ReadinessProbe != nil {
-			return mariadbContainer.ReadinessProbe
-		}
-		return &defaultStsProbe
-	}()
+	mariadbContainer.ReadinessProbe = buildStsReadinessProbe(mariadb)
 
 	var containers []corev1.Container
 	containers = append(containers, mariadbContainer)
@@ -281,48 +259,70 @@ func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 	return container
 }
 
-func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	if mariadb.Spec.Galera != nil && mariadb.Spec.Galera.LivenessProbe {
-		terminationSeconds := int64(10)
-		probe := &corev1.Probe{
-			ProbeHandler: corev1.ProbeHandler{
-				Exec: &corev1.ExecAction{
-					Command: []string{
-						"bash",
-						"-c",
-						"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
-					},
-				},
-			},
-			InitialDelaySeconds:           60,
-			TimeoutSeconds:                5,
-			PeriodSeconds:                 10,
-			TerminationGracePeriodSeconds: &terminationSeconds,
+func buildStsProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
+	if mariadb.Spec.Galera != nil {
+		galerProbe := *galeraStsProbe
+		if probe != nil {
+			p := *probe
+			galerProbe.InitialDelaySeconds = p.InitialDelaySeconds
+			galerProbe.TimeoutSeconds = p.TimeoutSeconds
+			galerProbe.PeriodSeconds = p.PeriodSeconds
+			galerProbe.SuccessThreshold = p.SuccessThreshold
+			galerProbe.FailureThreshold = p.FailureThreshold
 		}
-		if mariadb.Spec.LivenessProbe != nil {
-			mariadbProbe := *mariadb.Spec.LivenessProbe
-			probe.InitialDelaySeconds = mariadbProbe.InitialDelaySeconds
-			probe.TimeoutSeconds = mariadbProbe.TimeoutSeconds
-			probe.PeriodSeconds = mariadbProbe.PeriodSeconds
-			probe.SuccessThreshold = mariadbProbe.SuccessThreshold
-			probe.FailureThreshold = mariadbProbe.FailureThreshold
-			probe.TerminationGracePeriodSeconds = mariadbProbe.TerminationGracePeriodSeconds
-		}
-		return probe
+		return &galerProbe
 	}
-	if mariadb.Spec.LivenessProbe != nil {
-		return mariadb.Spec.LivenessProbe
+	if probe != nil {
+		return probe
 	}
 	return &defaultStsProbe
 }
 
-func defaultAgentProbe(galera *mariadbv1alpha1.Galera) *corev1.Probe {
-	return &corev1.Probe{
+func buildStsLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	return buildStsProbe(mariadb, mariadb.Spec.LivenessProbe)
+}
+
+func buildStsReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	return buildStsProbe(mariadb, mariadb.Spec.ReadinessProbe)
+}
+
+var (
+	defaultStsProbe = corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/health",
-				Port: intstr.FromInt(int(galera.Agent.Port)),
+			Exec: &corev1.ExecAction{
+				Command: []string{
+					"bash",
+					"-c",
+					"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+				},
 			},
 		},
+		InitialDelaySeconds: 20,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
 	}
-}
+	galeraStsProbe = &corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			Exec: &corev1.ExecAction{
+				Command: []string{
+					"bash",
+					"-c",
+					"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
+				},
+			},
+		},
+		InitialDelaySeconds: 60,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+	}
+	defaultAgentProbe = func(galera *mariadbv1alpha1.Galera) *corev1.Probe {
+		return &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/health",
+					Port: intstr.FromInt(int(galera.Agent.Port)),
+				},
+			},
+		}
+	}
+)

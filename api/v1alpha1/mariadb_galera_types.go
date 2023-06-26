@@ -113,9 +113,6 @@ type Galera struct {
 	Agent GaleraAgent `json:"agent"`
 	// +kubebuilder:validation:Required
 	Recovery GaleraRecovery `json:"recovery"`
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	LivenessProbe bool `json:"livenessProbe"`
 	// +kubebuilder:validation:Required
 	InitContainer ContainerTemplate `json:"initContainer"`
 	// +kubebuilder:validation:Required

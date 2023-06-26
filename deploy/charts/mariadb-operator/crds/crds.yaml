@@ -7400,9 +7400,6 @@ spec:
                     required:
                     - image
                     type: object
-                  livenessProbe:
-                    default: true
-                    type: boolean
                   recovery:
                     properties:
                       clusterBootstrapTimeout:

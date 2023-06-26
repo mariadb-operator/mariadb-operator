@@ -29,6 +29,7 @@ spec:
 
   galera:
     sst: mariabackup
+    replicaThreads: 1
     agent:
       image:
         repository: ghcr.io/mariadb-operator/agent
@@ -40,10 +41,8 @@ spec:
       clusterHealthyTimeout: 1m
       clusterBootstrapTimeout: 5m
       podRecoveryTimeout: 1m
-    replicaThreads: 1
-    livenessProbe: true
     initContainer:
-      # TODO: make image example in container template, as we are using the same image as MariaDB StatefulSet
+      # TODO: make image optional in container template, as we are using the same image as MariaDB StatefulSet
       image:
         repository: alpine
         tag: "3.18.0"
