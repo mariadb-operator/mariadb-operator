@@ -94,7 +94,7 @@ func (r *PodReplicationController) reconcilePodReady(ctx context.Context, pod co
 		return fmt.Errorf("error getting Pod index: %v", err)
 	}
 
-	client, err := mariadbclient.NewRootClientWithPodIndex(ctx, mariadb, r.RefResolver, *index)
+	client, err := mariadbclient.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, *index)
 	if err != nil {
 		return fmt.Errorf("error connecting to replica '%d': %v", *index, err)
 	}

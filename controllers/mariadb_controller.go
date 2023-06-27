@@ -22,11 +22,13 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
@@ -281,40 +283,12 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 	if err := r.reconcileMariadbService(ctx, mariadb); err != nil {
 		return err
 	}
-	if mariadb.Spec.Galera != nil {
-		if err := r.GaleraReconciler.ReconcileService(ctx, mariadb); err != nil {
+	if mariadb.IsHAEnabled() {
+		if err := r.reconcileInternalService(ctx, mariadb); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (r *MariaDBReconciler) reconcileMariadbService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := client.ObjectKeyFromObject(mariadb)
-	ports := []v1.ServicePort{
-		{
-			Name: builder.MariaDbContainerName,
-			Port: mariadb.Spec.Port,
-		},
-	}
-	if mariadb.Spec.Metrics != nil {
-		ports = append(ports, v1.ServicePort{
-			Name: builder.MetricsContainerName,
-			Port: mariadb.Spec.Metrics.Exporter.Port,
-		})
-	}
-	opts := builder.ServiceOpts{
-		Ports: ports,
-	}
-	if mariadb.Spec.Service != nil {
-		opts.Type = mariadb.Spec.Service.Type
-		opts.Annotations = mariadb.Spec.Service.Annotations
-	}
-	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
-	if err != nil {
-		return fmt.Errorf("error building Service: %v", err)
-	}
-	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -410,6 +384,81 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 		return fmt.Errorf("error building Service Monitor: %v", err)
 	}
 	return r.Create(ctx, serviceMonitor)
+}
+
+func (r *MariaDBReconciler) reconcileMariadbService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := client.ObjectKeyFromObject(mariadb)
+	ports := []v1.ServicePort{
+		{
+			Name: builder.MariaDbPortName,
+			Port: mariadb.Spec.Port,
+		},
+	}
+	if mariadb.Spec.Metrics != nil {
+		ports = append(ports, v1.ServicePort{
+			Name: builder.MetricsContainerName,
+			Port: mariadb.Spec.Metrics.Exporter.Port,
+		})
+	}
+	opts := builder.ServiceOpts{
+		Ports: ports,
+	}
+	if mariadb.Spec.Service != nil {
+		opts.Type = mariadb.Spec.Service.Type
+		opts.Annotations = mariadb.Spec.Service.Annotations
+	}
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	if err != nil {
+		return fmt.Errorf("error building Service: %v", err)
+	}
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
+func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := ctrlresources.InternalServiceKey(mariadb)
+	clusterIp := "None"
+	publishNotReadyAddresses := true
+	ports := []corev1.ServicePort{
+		{
+			Name: builder.MariaDbPortName,
+			Port: mariadb.Spec.Port,
+		},
+	}
+	if mariadb.Spec.Galera != nil {
+		ports = append(ports, []corev1.ServicePort{
+			{
+				Name: galeraresources.GaleraClusterPortName,
+				Port: galeraresources.GaleraClusterPort,
+			},
+			{
+				Name: galeraresources.GaleraISTPortName,
+				Port: galeraresources.GaleraISTPort,
+			},
+			{
+				Name: galeraresources.GaleraSSTPortName,
+				Port: galeraresources.GaleraSSTPort,
+			},
+			{
+				Name: galeraresources.AgentPortName,
+				Port: mariadb.Spec.Galera.Agent.Port,
+			},
+		}...)
+	}
+
+	opts := builder.ServiceOpts{
+		Type:                     corev1.ServiceTypeClusterIP,
+		Ports:                    ports,
+		ClusterIP:                &clusterIp,
+		PublishNotReadyAddresses: &publishNotReadyAddresses,
+	}
+	if mariadb.Spec.Service != nil {
+		opts.Annotations = mariadb.Spec.Service.Annotations
+	}
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	if err != nil {
+		return fmt.Errorf("error building internal Service: %v", err)
+	}
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcher {

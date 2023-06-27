@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -93,14 +94,14 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 }
 
 func buildStsServiceName(mariadb *mariadbv1alpha1.MariaDB) string {
-	if mariadb.Spec.Galera != nil {
-		return galeraresources.ServiceKey(mariadb).Name
+	if mariadb.IsHAEnabled() {
+		return ctrlresources.InternalServiceKey(mariadb).Name
 	}
 	return mariadb.Name
 }
 
 func buildStsPodManagementPolicy(mariadb *mariadbv1alpha1.MariaDB) appsv1.PodManagementPolicyType {
-	if mariadb.Spec.Replication != nil || mariadb.Spec.Galera != nil {
+	if mariadb.IsHAEnabled() {
 		return appsv1.ParallelPodManagement
 	}
 	return appsv1.OrderedReadyPodManagement
@@ -207,7 +208,7 @@ func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 
 func buildHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 	var annotations map[string]string
-	if mariadb.Spec.Replication != nil || mariadb.Spec.Galera != nil {
+	if mariadb.IsHAEnabled() {
 		annotations = map[string]string{
 			annotation.MariadbAnnotation: mariadb.Name,
 		}

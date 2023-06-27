@@ -32,10 +32,3 @@ func ConfigMapKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 		Namespace: mariadb.Namespace,
 	}
 }
-
-func ServiceKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-internal", mariadb.Name),
-		Namespace: mariadb.Namespace,
-	}
-}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
 
@@ -67,7 +67,11 @@ func (c *agentClientSet) validateIndex(index int) error {
 func baseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) string {
 	return fmt.Sprintf(
 		"http://%s:%d",
-		statefulset.PodFQDNWithService(mariadb.ObjectMeta, index, galeraresources.ServiceKey(mariadb).Name),
+		statefulset.PodFQDNWithService(
+			mariadb.ObjectMeta,
+			index,
+			ctrlresources.InternalServiceKey(mariadb).Name,
+		),
 		mariadb.Spec.Galera.Agent.Port,
 	)
 }

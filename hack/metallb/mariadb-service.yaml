@@ -4,7 +4,7 @@ metadata:
   name: mariadb-0-lb
   namespace: default
   annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.10
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.10
 spec:
   ports:
   - name: mariadb
@@ -23,7 +23,7 @@ metadata:
   name: mariadb-1-lb
   namespace: default
   annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.11
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.11
 spec:
   ports:
   - name: mariadb
@@ -42,7 +42,7 @@ metadata:
   name: mariadb-2-lb
   namespace: default
   annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.12
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.12
 spec:
   ports:
   - name: mariadb
@@ -61,7 +61,7 @@ metadata:
   name: mariadb-3-lb
   namespace: default
   annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.13
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.13
 spec:
   ports:
   - name: mariadb

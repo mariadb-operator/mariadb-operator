@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -142,9 +143,10 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 
 	changeMasterOpts := &mariadbclient.ChangeMasterOpts{
 		Connection: connectionName,
-		Host: statefulset.PodFQDN(
+		Host: statefulset.PodFQDNWithService(
 			mariadb.ObjectMeta,
 			primaryPodIndex,
+			ctrlresources.InternalServiceKey(mariadb).Name,
 		),
 		User:     replUser,
 		Password: string(replSecret.Data[passwordSecretKey]),

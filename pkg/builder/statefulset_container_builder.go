@@ -60,8 +60,7 @@ func buildStsArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
 	if mariadb.Spec.Replication != nil {
 		return []string{
 			"--log-bin",
-			"--log-basename",
-			mariadb.Name,
+			fmt.Sprintf("--log-basename=%s", mariadb.Name),
 		}
 	}
 	return nil

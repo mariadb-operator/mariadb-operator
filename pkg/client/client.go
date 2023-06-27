@@ -12,6 +12,11 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/hashicorp/go-multierror"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
+	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
 
 var (
@@ -27,11 +32,53 @@ type Opts struct {
 	Params   map[string]string
 }
 
+type Opt func(*Opts)
+
+func WithUsername(username string) Opt {
+	return func(o *Opts) {
+		o.Username = username
+	}
+}
+
+func WithPassword(password string) Opt {
+	return func(o *Opts) {
+		o.Password = password
+	}
+}
+
+func WitHost(host string) Opt {
+	return func(o *Opts) {
+		o.Host = host
+	}
+}
+
+func WithPort(port int32) Opt {
+	return func(o *Opts) {
+		o.Port = port
+	}
+}
+
+func WithDatabase(database string) Opt {
+	return func(o *Opts) {
+		o.Database = database
+	}
+}
+
+func WithParams(params map[string]string) Opt {
+	return func(o *Opts) {
+		o.Params = params
+	}
+}
+
 type Client struct {
 	db *sql.DB
 }
 
-func NewClient(opts Opts) (*Client, error) {
+func NewClient(clientOpts ...Opt) (*Client, error) {
+	opts := Opts{}
+	for _, setOpt := range clientOpts {
+		setOpt(&opts)
+	}
 	dsn, err := BuildDSN(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error building DNS: %v", err)
@@ -43,6 +90,45 @@ func NewClient(opts Opts) (*Client, error) {
 	return &Client{
 		db: db,
 	}, nil
+}
+
+func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver,
+	clientOpts ...Opt) (*Client, error) {
+	password, err := refResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef, mariadb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error reading root password secret: %v", err)
+	}
+	opts := []Opt{
+		WithUsername("root"),
+		WithPassword(password),
+		WitHost(func() string {
+			if mariadb.Spec.Replication != nil {
+				return statefulset.ServiceFQDNWithService(
+					mariadb.ObjectMeta,
+					replresources.PrimaryServiceKey(mariadb).Name,
+				)
+			}
+			return statefulset.ServiceFQDN(mariadb.ObjectMeta)
+		}()),
+		WithPort(mariadb.Spec.Port),
+	}
+	opts = append(opts, clientOpts...)
+	return NewClient(opts...)
+}
+
+func NewInternalClientWithPodIndex(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver,
+	podIndex int, clientOpts ...Opt) (*Client, error) {
+	opts := []Opt{
+		WitHost(
+			statefulset.PodFQDNWithService(
+				mariadb.ObjectMeta,
+				podIndex,
+				ctrlresources.InternalServiceKey(mariadb).Name,
+			),
+		),
+	}
+	opts = append(opts, clientOpts...)
+	return NewClientWithMariaDB(ctx, mariadb, refResolver, opts...)
 }
 
 func BuildDSN(opts Opts) (string, error) {

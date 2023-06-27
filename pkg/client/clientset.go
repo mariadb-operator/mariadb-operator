@@ -31,14 +31,14 @@ func (c *ClientSet) Close() error {
 	return nil
 }
 
-func (c *ClientSet) ClientForIndex(ctx context.Context, index int) (*Client, error) {
+func (c *ClientSet) ClientForIndex(ctx context.Context, index int, clientOpts ...Opt) (*Client, error) {
 	if err := c.validateIndex(index); err != nil {
 		return nil, fmt.Errorf("invalid index. %v", err)
 	}
 	if c, ok := c.clientByIndex[index]; ok {
 		return c, nil
 	}
-	client, err := NewRootClientWithPodIndex(ctx, c.Mariadb, c.refResolver, index)
+	client, err := NewInternalClientWithPodIndex(ctx, c.Mariadb, c.refResolver, index, clientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating replica '%d' client: %v", index, err)
 	}

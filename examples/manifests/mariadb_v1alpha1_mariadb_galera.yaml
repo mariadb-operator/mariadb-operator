@@ -94,7 +94,7 @@ spec:
   service:
     type: LoadBalancer
     annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.150
 
   # bootstrapFrom:
   #   backupRef:

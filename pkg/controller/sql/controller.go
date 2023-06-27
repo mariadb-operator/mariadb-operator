@@ -71,7 +71,7 @@ func (tr *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl
 	}
 
 	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
-	mdbClient, err := mariadbclient.NewRootClient(ctx, mariadb, tr.RefResolver)
+	mdbClient, err := mariadbclient.NewClientWithMariaDB(ctx, mariadb, tr.RefResolver)
 	if err != nil {
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, err)

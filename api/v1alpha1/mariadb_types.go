@@ -148,6 +148,10 @@ type MariaDB struct {
 	Status MariaDBStatus `json:"status,omitempty"`
 }
 
+func (m *MariaDB) IsHAEnabled() bool {
+	return m.Spec.Replication != nil || m.Spec.Galera != nil
+}
+
 func (m *MariaDB) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
 }

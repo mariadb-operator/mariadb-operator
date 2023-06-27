@@ -9,11 +9,11 @@ import (
 	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	corev1 "k8s.io/api/core/v1"
 )
 
 func (r *GaleraReconciler) ReconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -39,43 +39,6 @@ wsrep_new_cluster="ON"
 		},
 	}
 	return r.ConfigMapReconciler.Reconcile(ctx, &req)
-}
-
-func (r *GaleraReconciler) ReconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := galeraresources.ServiceKey(mariadb)
-	clusterIp := "None"
-	publishNotReadyAddresses := true
-	opts := builder.ServiceOpts{
-		Type: corev1.ServiceTypeClusterIP,
-		Ports: []corev1.ServicePort{
-			{
-				Name: galeraresources.GaleraClusterPortName,
-				Port: galeraresources.GaleraClusterPort,
-			},
-			{
-				Name: galeraresources.GaleraISTPortName,
-				Port: galeraresources.GaleraISTPort,
-			},
-			{
-				Name: galeraresources.GaleraSSTPortName,
-				Port: galeraresources.GaleraSSTPort,
-			},
-			{
-				Name: galeraresources.AgentPortName,
-				Port: mariadb.Spec.Galera.Agent.Port,
-			},
-		},
-		ClusterIP:                &clusterIp,
-		PublishNotReadyAddresses: &publishNotReadyAddresses,
-	}
-	if mariadb.Spec.Service != nil {
-		opts.Annotations = mariadb.Spec.Service.Annotations
-	}
-	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
-	if err != nil {
-		return fmt.Errorf("error building Service: %v", err)
-	}
-	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
 func galeraConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
@@ -120,9 +83,12 @@ wsrep_sst_auth="root:$MARIADB_ROOT_PASSWORD"
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        mariadb.Spec.Galera.ReplicaThreads,
-		Service:        statefulset.ServiceFQDNWithService(mariadb.ObjectMeta, galeraresources.ServiceKey(mariadb).Name),
-		SST:            sst,
-		SSTAuth:        mariadb.Spec.Galera.SST == mariadbv1alpha1.SSTMariaBackup || mariadb.Spec.Galera.SST == mariadbv1alpha1.SSTMysqldump,
+		Service: statefulset.ServiceFQDNWithService(
+			mariadb.ObjectMeta,
+			ctrlresources.InternalServiceKey(mariadb).Name,
+		),
+		SST:     sst,
+		SSTAuth: mariadb.Spec.Galera.SST == mariadbv1alpha1.SSTMariaBackup || mariadb.Spec.Galera.SST == mariadbv1alpha1.SSTMysqldump,
 	})
 	if err != nil {
 		return "", err
@@ -136,7 +102,11 @@ func clusterAddress(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
 	}
 	pods := make([]string, mariadb.Spec.Replicas)
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
-		pods[i] = statefulset.PodFQDNWithService(mariadb.ObjectMeta, i, galeraresources.ServiceKey(mariadb).Name)
+		pods[i] = statefulset.PodFQDNWithService(
+			mariadb.ObjectMeta,
+			i,
+			ctrlresources.InternalServiceKey(mariadb).Name,
+		)
 	}
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
 }
@@ -195,7 +165,7 @@ fi
 		MariaDBName:        mariadb.Name,
 		InternalServiceFQDN: statefulset.ServiceFQDNWithService(
 			mariadb.ObjectMeta,
-			galeraresources.ServiceKey(mariadb).Name,
+			ctrlresources.InternalServiceKey(mariadb).Name,
 		),
 	})
 	if err != nil {

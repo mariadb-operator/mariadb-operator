@@ -25,10 +25,6 @@ func PodName(meta metav1.ObjectMeta, podIndex int) string {
 	return fmt.Sprintf("%s-%d", meta.Name, podIndex)
 }
 
-func PodFQDN(meta metav1.ObjectMeta, podIndex int) string {
-	return fmt.Sprintf("%s.%s", PodName(meta, podIndex), ServiceFQDN(meta))
-}
-
 func PodFQDNWithService(meta metav1.ObjectMeta, podIndex int, service string) string {
 	return fmt.Sprintf("%s.%s", PodName(meta, podIndex), ServiceFQDNWithService(meta, service))
 }

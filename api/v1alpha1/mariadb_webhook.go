@@ -79,7 +79,7 @@ func (r *MariaDB) validateReplication() error {
 			"Multiple replicas can only be specified when 'spec.replication' or 'spec.galera' are configured",
 		)
 	}
-	if (r.Spec.Replication != nil || r.Spec.Galera != nil) && r.Spec.Replicas <= 1 {
+	if r.IsHAEnabled() && r.Spec.Replicas <= 1 {
 		return field.Invalid(
 			field.NewPath("spec").Child("replicas"),
 			r.Spec.Replicas,
