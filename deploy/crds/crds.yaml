@@ -11045,9 +11045,14 @@ spec:
                 description: 'TODO: move galera.GaleraState and galera.Bootstrap to
                   this package ?'
                 properties:
-                  bootstrapTime:
-                    format: date-time
-                    type: string
+                  bootstrap:
+                    properties:
+                      pod:
+                        type: string
+                      time:
+                        format: date-time
+                        type: string
+                    type: object
                   recovered:
                     additionalProperties:
                       properties:

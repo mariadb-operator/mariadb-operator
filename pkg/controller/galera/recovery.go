@@ -381,7 +381,7 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, rs *recoveryStatus, po
 		return fmt.Errorf("error deleting Pod '%s': %v", src.pod.Name, err)
 	}
 
-	rs.setBootstrapping()
+	rs.setBootstrapping(src.pod.Name)
 	return nil
 }
 

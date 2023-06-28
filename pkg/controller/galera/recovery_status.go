@@ -31,8 +31,8 @@ func newRecoveryStatus(mariadb *mariadbv1alpha1.MariaDB) *recoveryStatus {
 		if mariadb.Status.GaleraRecovery.Recovered != nil {
 			inner.Recovered = mariadb.Status.GaleraRecovery.Recovered
 		}
-		if mariadb.Status.GaleraRecovery.BootstrapTime != nil {
-			inner.BootstrapTime = mariadb.Status.GaleraRecovery.BootstrapTime
+		if mariadb.Status.GaleraRecovery.Bootstrap != nil {
+			inner.Bootstrap = mariadb.Status.GaleraRecovery.Bootstrap
 		}
 	}
 	return &recoveryStatus{
@@ -90,19 +90,22 @@ func (rs *recoveryStatus) reset() {
 	rs.inner = nil
 }
 
-func (rs *recoveryStatus) setBootstrapping() {
+func (rs *recoveryStatus) setBootstrapping(pod string) {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
 	now := metav1.NewTime(time.Now())
-	rs.inner.BootstrapTime = &now
+	rs.inner.Bootstrap = &mariadbv1alpha1.GaleraRecoveryBootstrap{
+		Time: &now,
+		Pod:  &pod,
+	}
 }
 
 func (rs *recoveryStatus) isBootstrapping() bool {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
-	return rs.inner.BootstrapTime != nil
+	return rs.inner.Bootstrap != nil
 }
 
 func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
@@ -112,7 +115,7 @@ func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
-	deadline := rs.inner.BootstrapTime.Time.Add(mdb.Spec.Galera.Recovery.ClusterBootstrapTimeoutOrDefault())
+	deadline := rs.inner.Bootstrap.Time.Add(mdb.Spec.Galera.Recovery.ClusterBootstrapTimeoutOrDefault())
 	return time.Now().After(deadline)
 }
 

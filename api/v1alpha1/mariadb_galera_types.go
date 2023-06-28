@@ -129,11 +129,16 @@ type Galera struct {
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 }
 
+type GaleraRecoveryBootstrap struct {
+	Time *metav1.Time `json:"time,omitempty"`
+	Pod  *string      `json:"pod,omitempty"`
+}
+
 // TODO: move galera.GaleraState and galera.Bootstrap to this package ?
 type GaleraRecoveryStatus struct {
-	State         map[string]*agentgalera.GaleraState `json:"state,omitempty"`
-	Recovered     map[string]*agentgalera.Bootstrap   `json:"recovered,omitempty"`
-	BootstrapTime *metav1.Time                        `json:"bootstrapTime,omitempty"`
+	State     map[string]*agentgalera.GaleraState `json:"state,omitempty"`
+	Recovered map[string]*agentgalera.Bootstrap   `json:"recovered,omitempty"`
+	Bootstrap *GaleraRecoveryBootstrap            `json:"bootstrap,omitempty"`
 }
 
 func (m *MariaDB) HasGaleraReadyCondition() bool {
