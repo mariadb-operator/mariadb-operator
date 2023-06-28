@@ -40,13 +40,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type GaleraHealthReconciler struct {
+type StatefulSetGaleraReconciler struct {
 	client.Client
 	RefResolver *refresolver.RefResolver
 }
 
-func NewPodGaleraReconciler(client client.Client) *GaleraHealthReconciler {
-	return &GaleraHealthReconciler{
+func NewStatefulSetGaleraReconciler(client client.Client) *StatefulSetGaleraReconciler {
+	return &StatefulSetGaleraReconciler{
 		Client:      client,
 		RefResolver: refresolver.New(client),
 	}
@@ -56,7 +56,7 @@ func NewPodGaleraReconciler(client client.Client) *GaleraHealthReconciler {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *GaleraHealthReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, req.NamespacedName, &sts); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -97,8 +97,8 @@ func (r *GaleraHealthReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return ctrl.Result{}, nil
 }
 
-func (r *GaleraHealthReconciler) pollUntilHealthyWithTimeout(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
-	logger logr.Logger) (bool, error) {
+func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	sts *appsv1.StatefulSet, logger logr.Logger) (bool, error) {
 	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
 	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
 	err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(context.Context) (bool, error) {
@@ -113,7 +113,7 @@ func (r *GaleraHealthReconciler) pollUntilHealthyWithTimeout(ctx context.Context
 	return true, nil
 }
 
-func (r *GaleraHealthReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
+func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
 	logger logr.Logger) (bool, error) {
 	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
 	if sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
@@ -151,7 +151,7 @@ func (r *GaleraHealthReconciler) isHealthy(ctx context.Context, mariadb *mariadb
 	return true, nil
 }
 
-func (r *GaleraHealthReconciler) readyClient(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *StatefulSetGaleraReconciler) readyClient(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *mariadbclient.ClientSet) (*mariadbclient.Client, error) {
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		key := types.NamespacedName{
@@ -173,7 +173,7 @@ func (r *GaleraHealthReconciler) readyClient(ctx context.Context, mariadb *maria
 	return nil, errors.New("no Ready Pods were found")
 }
 
-func (r *GaleraHealthReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *StatefulSetGaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
@@ -181,7 +181,7 @@ func (r *GaleraHealthReconciler) patchStatus(ctx context.Context, mariadb *maria
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *GaleraHealthReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *StatefulSetGaleraReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.StatefulSet{}).
 		WithEventFilter(

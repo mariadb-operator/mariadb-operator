@@ -208,11 +208,11 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
 			os.Exit(1)
 		}
-		if err = (&controllers.GaleraHealthReconciler{
+		if err = (&controllers.StatefulSetGaleraReconciler{
 			Client:      client,
 			RefResolver: refResolver,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "GaleraHealth")
+			setupLog.Error(err, "unable to create controller", "controller", "StatefulSetGalera")
 			os.Exit(1)
 		}
 

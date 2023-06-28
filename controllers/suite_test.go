@@ -208,7 +208,7 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&GaleraHealthReconciler{
+	err = (&StatefulSetGaleraReconciler{
 		Client:      client,
 		RefResolver: refResolver,
 	}).SetupWithManager(k8sManager)
