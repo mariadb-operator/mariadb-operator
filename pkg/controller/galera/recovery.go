@@ -95,11 +95,6 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 	return r.patchRecoveryStatus(ctx, mariadb, rs)
 }
 
-// TODO: handle cases where only a few Pods are not Ready.
-// Check status of each node with:
-//   - SHOW STATUS LIKE 'wsrep_local_state_comment';
-//     The output will display the state of each node, such as "Synced," "Donor," "Joining," "Joined," or "Disconnected."
-//     All nodes should ideally be in the "Synced" state.
 func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
 	clientSet *sqlclient.ClientSet, logger logr.Logger) error {
 	doneChan := make(chan struct{})
