@@ -38,9 +38,10 @@ spec:
       port: 5555
       gracefulShutdownTimeout: 5s
     recovery:
-      clusterHealthyTimeout: 1m
+      clusterHealthyTimeout: 3m
       clusterBootstrapTimeout: 5m
-      podRecoveryTimeout: 1m
+      podRecoveryTimeout: 3m
+      podSyncTimeout: 3m
     initContainer:
       # TODO: make image optional in container template, as we are using the same image as MariaDB StatefulSet
       image:

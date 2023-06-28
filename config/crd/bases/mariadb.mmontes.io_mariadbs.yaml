@@ -4101,6 +4101,8 @@ spec:
                         type: string
                       podRecoveryTimeout:
                         type: string
+                      podSyncTimeout:
+                        type: string
                     type: object
                   replicaThreads:
                     default: 1

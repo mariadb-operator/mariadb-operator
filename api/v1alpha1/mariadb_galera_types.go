@@ -48,6 +48,8 @@ type GaleraRecovery struct {
 	ClusterBootstrapTimeout *metav1.Duration `json:"clusterBootstrapTimeout,omitempty"`
 
 	PodRecoveryTimeout *metav1.Duration `json:"podRecoveryTimeout,omitempty"`
+
+	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
 }
 
 // TODO: default using a mutating webhook
@@ -55,7 +57,7 @@ func (g *GaleraRecovery) ClusterHealthyTimeoutOrDefault() time.Duration {
 	if g.ClusterHealthyTimeout != nil {
 		return g.ClusterHealthyTimeout.Duration
 	}
-	return 1 * time.Minute
+	return 3 * time.Minute
 }
 
 // TODO: default using a mutating webhook
@@ -71,7 +73,15 @@ func (g *GaleraRecovery) PodRecoveryTimeoutOrDefault() time.Duration {
 	if g.PodRecoveryTimeout != nil {
 		return g.PodRecoveryTimeout.Duration
 	}
-	return 1 * time.Minute
+	return 3 * time.Minute
+}
+
+// TODO: default using a mutating webhook
+func (g *GaleraRecovery) PodSyncTimeoutOrDefault() time.Duration {
+	if g.PodSyncTimeout != nil {
+		return g.PodSyncTimeout.Duration
+	}
+	return 3 * time.Minute
 }
 
 type SST string

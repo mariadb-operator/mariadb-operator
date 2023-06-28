@@ -111,7 +111,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 			defer wg.Done()
 
 			if err := r.recoverPod(ctx, mariadb, &pod, clientSet, logger); err != nil {
-				logger.Error(err, "error recovering Pod", "pod", pod.Name)
+				logger.Error(err, "Error recovering Pod", "pod", pod.Name)
 			}
 		}(p)
 	}
@@ -140,15 +140,31 @@ func (r *GaleraReconciler) recoverPod(ctx context.Context, mariadb *mariadbv1alp
 
 	client, err := clientSet.ClientForIndex(clientCtx, *index)
 	if err != nil {
-		return fmt.Errorf("error getting client for Pod '%s': %v", pod.Name, err)
+		return fmt.Errorf("error getting client for Pod. '%s': %v", pod.Name, err)
 	}
 
-	state, err := client.GaleraLocalState(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting Pod state: %v", err)
-	}
-	logger.V(1).Info("Pod state", "state", state)
+	syncTimeout := mariadb.Spec.Galera.Recovery.PodSyncTimeoutOrDefault()
+	syncCtx, cancelSync := context.WithTimeout(ctx, syncTimeout)
+	defer cancelSync()
 
+	if err := pollUntilSucessWithTimeout(syncCtx, logger, func(ctx context.Context) error {
+		state, err := client.GaleraLocalState(ctx)
+		if err != nil {
+			logger.V(1).Error(err, "Error getting Pod state", "pod", pod.Name)
+			return err
+		}
+		if state != "Synced" {
+			err := fmt.Errorf("Pod '%s' in non Synced state", pod.Name)
+			logger.V(1).Error(err, "Pod in non Synced state", "pod", pod.Name, "state", state)
+			return err
+		}
+		return nil
+	}); err != nil {
+		logger.Error(err, "Pod in non Synced state timed out. Deleting Pod...", "pod", pod.Name, "timeout", syncTimeout.String())
+		if err := r.deletePodWithTimeout(ctx, pod, logger); err != nil {
+			return fmt.Errorf("error deleting Pod '%s': %v", pod.Name, err)
+		}
+	}
 	return nil
 }
 
@@ -361,15 +377,22 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, rs *recoveryStatus, po
 		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", src.pod.Name, err)
 	}
 
-	deleteCtx, cancelDelete := context.WithTimeout(ctx, 30*time.Second)
-	defer cancelDelete()
-	if err = pollUntilSucessWithTimeout(deleteCtx, logger, func(ctx context.Context) error {
-		return r.Delete(ctx, src.pod)
-	}); err != nil {
+	if err := r.deletePodWithTimeout(ctx, src.pod, logger); err != nil {
 		return fmt.Errorf("error deleting Pod '%s': %v", src.pod.Name, err)
 	}
 
 	rs.setBootstrapping()
+	return nil
+}
+
+func (r *GaleraReconciler) deletePodWithTimeout(ctx context.Context, pod *corev1.Pod, logger logr.Logger) error {
+	deleteCtx, cancelDelete := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelDelete()
+	if err := pollUntilSucessWithTimeout(deleteCtx, logger, func(ctx context.Context) error {
+		return r.Delete(ctx, pod)
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
