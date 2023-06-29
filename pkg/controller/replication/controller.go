@@ -14,10 +14,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	corev1 "k8s.io/api/core/v1"
-	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -107,11 +105,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 			reconcile: r.reconcileReplicas,
 		},
 		{
-			name:      "reconcile PodDisruptionBudget",
-			key:       replresources.PodDisruptionBudgetKey(mariadb),
-			reconcile: r.reconcilePodDisruptionBudget,
-		},
-		{
 			name:      "reconcile primary Service",
 			reconcile: r.reconcilePrimaryService,
 			key:       replresources.PrimaryServiceKey(mariadb),
@@ -186,34 +179,6 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 		}
 	}
 	return nil
-}
-
-func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context, req *reconcileRequest) error {
-	if req.mariadb.Spec.PodDisruptionBudget != nil {
-		return nil
-	}
-	key := replresources.PodDisruptionBudgetKey(req.mariadb)
-	var existingPDB policyv1.PodDisruptionBudget
-	if err := r.Get(ctx, key, &existingPDB); err == nil {
-		return nil
-	}
-
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDB(req.mariadb).
-			Build()
-	minAvailable := intstr.FromString("50%")
-	opts := builder.PodDisruptionBudgetOpts{
-		MariaDB:        req.mariadb,
-		Key:            key,
-		MinAvailable:   &minAvailable,
-		SelectorLabels: selectorLabels,
-	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, req.mariadb)
-	if err != nil {
-		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
-	}
-	return r.Create(ctx, pdb)
 }
 
 func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req *reconcileRequest) error {

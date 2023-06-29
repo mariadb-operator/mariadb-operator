@@ -281,7 +281,7 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Expecting to create a PodDisruptionBudget")
 			var pdb policyv1.PodDisruptionBudget
-			Expect(k8sClient.Get(testCtx, replresources.PodDisruptionBudgetKey(&testRplMariaDb), &pdb)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &pdb)).To(Succeed())
 
 			By("Expecting to create a primary Service")
 			var svc corev1.Service
@@ -343,7 +343,7 @@ var _ = Describe("MariaDB controller", func() {
 	})
 
 	Context("When creating a MariaDB Galera", func() {
-		FIt("Should reconcile", func() {
+		It("Should reconcile", func() {
 			tenSeconds := metav1.Duration{Duration: 10 * time.Second}
 			threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
 			testMariaDbGalera := mariadbv1alpha1.MariaDB{
@@ -468,10 +468,9 @@ var _ = Describe("MariaDB controller", func() {
 				return testMariaDbGalera.IsReady()
 			}, 3*time.Minute, testInterval).Should(BeTrue())
 
-			// TODO: move PDB creation from replication to mariadb controller
-			// By("Expecting to create a PodDisruptionBudget")
-			// var pdb policyv1.PodDisruptionBudget
-			// Expect(k8sClient.Get(testCtx, replresources.PodDisruptionBudgetKey(&testMariaDbGalera), &pdb)).To(Succeed())
+			By("Expecting to create a PodDisruptionBudget")
+			var pdb policyv1.PodDisruptionBudget
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &pdb)).To(Succeed())
 
 			By("Expecting MariaDB Connection to be ready eventually")
 			Eventually(func() bool {

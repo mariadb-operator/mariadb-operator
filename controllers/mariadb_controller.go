@@ -43,6 +43,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -185,38 +186,6 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 	return nil
 }
 
-func (r *MariaDBReconciler) reconcileMyCnfConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
-		return nil
-	}
-	key := configMapMariaDBKey(mariadb)
-	if mariadb.Spec.MyCnf != nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
-		req := configmap.ReconcileRequest{
-			Mariadb: mariadb,
-			Owner:   mariadb,
-			Key:     key,
-			Data: map[string]string{
-				myCnfConfigMapKey: *mariadb.Spec.MyCnf,
-			},
-		}
-		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
-			return err
-		}
-	}
-	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
-		return nil
-	}
-
-	return r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
-		mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: key.Name,
-			},
-			Key: myCnfConfigMapKey,
-		}
-	})
-}
-
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
 	var dsn *corev1.SecretKeySelector
@@ -251,44 +220,19 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.PodDisruptionBudget == nil {
-		return nil
+	if mariadb.IsHAEnabled() && mariadb.Spec.PodDisruptionBudget == nil {
+		return r.reconcileHAPDB(ctx, mariadb)
 	}
-
-	key := client.ObjectKeyFromObject(mariadb)
-	var existingPDB policyv1.PodDisruptionBudget
-	if err := r.Get(ctx, key, &existingPDB); err == nil {
-		return nil
-	}
-
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
-			Build()
-	opts := builder.PodDisruptionBudgetOpts{
-		MariaDB:        mariadb,
-		Key:            key,
-		MinAvailable:   mariadb.Spec.PodDisruptionBudget.MinAvailable,
-		MaxUnavailable: mariadb.Spec.PodDisruptionBudget.MaxUnavailable,
-		SelectorLabels: selectorLabels,
-	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
-	if err != nil {
-		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
-	}
-	return r.Create(ctx, pdb)
+	return r.reconcileDefaultPDB(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if err := r.reconcileMariadbService(ctx, mariadb); err != nil {
-		return err
-	}
 	if mariadb.IsHAEnabled() {
 		if err := r.reconcileInternalService(ctx, mariadb); err != nil {
 			return err
 		}
 	}
-	return nil
+	return r.reconcileDefaultService(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -386,7 +330,93 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 	return r.Create(ctx, serviceMonitor)
 }
 
-func (r *MariaDBReconciler) reconcileMariadbService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) reconcileMyCnfConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
+		return nil
+	}
+	key := configMapMariaDBKey(mariadb)
+	if mariadb.Spec.MyCnf != nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
+		req := configmap.ReconcileRequest{
+			Mariadb: mariadb,
+			Owner:   mariadb,
+			Key:     key,
+			Data: map[string]string{
+				myCnfConfigMapKey: *mariadb.Spec.MyCnf,
+			},
+		}
+		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
+			return err
+		}
+	}
+	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		return nil
+	}
+
+	return r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
+		mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: key.Name,
+			},
+			Key: myCnfConfigMapKey,
+		}
+	})
+}
+
+func (r *MariaDBReconciler) reconcileDefaultPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.PodDisruptionBudget == nil {
+		return nil
+	}
+
+	key := client.ObjectKeyFromObject(mariadb)
+	var existingPDB policyv1.PodDisruptionBudget
+	if err := r.Get(ctx, key, &existingPDB); err == nil {
+		return nil
+	}
+
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	opts := builder.PodDisruptionBudgetOpts{
+		MariaDB:        mariadb,
+		Key:            key,
+		MinAvailable:   mariadb.Spec.PodDisruptionBudget.MinAvailable,
+		MaxUnavailable: mariadb.Spec.PodDisruptionBudget.MaxUnavailable,
+		SelectorLabels: selectorLabels,
+	}
+	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
+	}
+	return r.Create(ctx, pdb)
+}
+
+func (r *MariaDBReconciler) reconcileHAPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := client.ObjectKeyFromObject(mariadb)
+	var existingPDB policyv1.PodDisruptionBudget
+	if err := r.Get(ctx, key, &existingPDB); err == nil {
+		return nil
+	}
+
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	minAvailable := intstr.FromString("50%")
+	opts := builder.PodDisruptionBudgetOpts{
+		MariaDB:        mariadb,
+		Key:            key,
+		MinAvailable:   &minAvailable,
+		SelectorLabels: selectorLabels,
+	}
+	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
+	}
+	return r.Create(ctx, pdb)
+}
+
+func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
 	ports := []v1.ServicePort{
 		{
