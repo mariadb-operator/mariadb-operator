@@ -75,9 +75,17 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	logger := log.FromContext(ctx).WithName("galera-health")
 	logger.Info("Checking cluster health")
 
+	clientSet := mariadbclient.NewClientSet(mariadb, r.RefResolver)
+	defer clientSet.Close()
+
+	mariadbClient, err := r.readyClient(ctx, mariadb, clientSet)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting ready client: %v", err)
+	}
+
 	healthyCtx, cancelHealthy := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.ClusterHealthyTimeoutOrDefault())
 	defer cancelHealthy()
-	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, mariadb, &sts, logger)
+	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, mariadb, &sts, mariadbClient, logger)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error polling MariaDB health: %v", err)
 	}
@@ -98,11 +106,11 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	sts *appsv1.StatefulSet, logger logr.Logger) (bool, error) {
+	sts *appsv1.StatefulSet, client *mariadbclient.Client, logger logr.Logger) (bool, error) {
 	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
 	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
 	err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(context.Context) (bool, error) {
-		return r.isHealthy(ctx, mariadb, sts, logger)
+		return r.isHealthy(ctx, mariadb, sts, client, logger)
 	})
 	if err != nil {
 		if errors.Is(err, wait.ErrWaitTimeout) {
@@ -114,20 +122,13 @@ func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Co
 }
 
 func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
-	logger logr.Logger) (bool, error) {
+	client *mariadbclient.Client, logger logr.Logger) (bool, error) {
 	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
 	if sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
 		return true, nil
 	}
 	if sts.Status.ReadyReplicas == 0 {
 		return false, nil
-	}
-
-	clientSet := mariadbclient.NewClientSet(mariadb, r.RefResolver)
-	defer clientSet.Close()
-	client, err := r.readyClient(ctx, mariadb, clientSet)
-	if err != nil {
-		return false, fmt.Errorf("error getting ready client: %v", err)
 	}
 
 	status, err := client.GaleraClusterStatus(ctx)
