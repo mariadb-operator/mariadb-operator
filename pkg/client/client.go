@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
-	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
@@ -105,7 +104,7 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 			if mariadb.Spec.Replication != nil {
 				return statefulset.ServiceFQDNWithService(
 					mariadb.ObjectMeta,
-					replresources.PrimaryServiceKey(mariadb).Name,
+					ctrlresources.PrimaryServiceKey(mariadb).Name,
 				)
 			}
 			return statefulset.ServiceFQDN(mariadb.ObjectMeta)

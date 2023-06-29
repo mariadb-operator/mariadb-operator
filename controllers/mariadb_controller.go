@@ -178,6 +178,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 	if err := r.reconcileMyCnfConfigMap(ctx, mariadb); err != nil {
 		return err
 	}
+	// TODO: remove when the configuration file is created entirely from the agent
 	if mariadb.Spec.Galera != nil {
 		if err := r.GaleraReconciler.ReconcileConfigMap(ctx, mariadb); err != nil {
 			return err
@@ -231,34 +232,22 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 		if err := r.reconcileInternalService(ctx, mariadb); err != nil {
 			return err
 		}
+		if mariadb.Spec.Replication != nil {
+			if err := r.reconcilePrimaryService(ctx, mariadb); err != nil {
+				return nil
+			}
+		}
 	}
 	return r.reconcileDefaultService(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Connection == nil || mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
-		!mariadb.IsReady() {
-		return nil
+	if mariadb.Spec.Replication != nil {
+		if err := r.reconcilePrimaryConnection(ctx, mariadb); err != nil {
+			return err
+		}
 	}
-	key := client.ObjectKeyFromObject(mariadb)
-	var existingConn mariadbv1alpha1.Connection
-	if err := r.Get(ctx, key, &existingConn); err == nil {
-		return nil
-	}
-
-	connOpts := builder.ConnectionOpts{
-		MariaDB:              mariadb,
-		Key:                  key,
-		Username:             *mariadb.Spec.Username,
-		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
-		Database:             mariadb.Spec.Database,
-		Template:             mariadb.Spec.Connection,
-	}
-	conn, err := r.Builder.BuildConnection(connOpts, mariadb)
-	if err != nil {
-		return fmt.Errorf("error building Connection: %v", err)
-	}
-	return r.Create(ctx, conn)
+	return r.reconcileDefaultConnection(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -444,6 +433,33 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
+func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := ctrlresources.PrimaryServiceKey(mariadb)
+	serviceLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDBSelectorLabels(mariadb).
+			WithStatefulSetPod(mariadb, mariadb.Spec.Replication.Primary.PodIndex).
+			Build()
+	opts := builder.ServiceOpts{
+		Selectorlabels: serviceLabels,
+		Ports: []corev1.ServicePort{
+			{
+				Name: builder.MariaDbContainerName,
+				Port: mariadb.Spec.Port,
+			},
+		},
+	}
+	if mariadb.Spec.Replication.Primary.Service != nil {
+		opts.Type = mariadb.Spec.Replication.Primary.Service.Type
+		opts.Annotations = mariadb.Spec.Replication.Primary.Service.Annotations
+	}
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	if err != nil {
+		return fmt.Errorf("error building Service: %v", err)
+	}
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
 func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := ctrlresources.InternalServiceKey(mariadb)
 	clusterIp := "None"
@@ -489,6 +505,65 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 		return fmt.Errorf("error building internal Service: %v", err)
 	}
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
+func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.Connection == nil || mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
+		!mariadb.IsReady() {
+		return nil
+	}
+	key := client.ObjectKeyFromObject(mariadb)
+	var existingConn mariadbv1alpha1.Connection
+	if err := r.Get(ctx, key, &existingConn); err == nil {
+		return nil
+	}
+
+	connOpts := builder.ConnectionOpts{
+		MariaDB:              mariadb,
+		Key:                  key,
+		Username:             *mariadb.Spec.Username,
+		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
+		Database:             mariadb.Spec.Database,
+		Template:             mariadb.Spec.Connection,
+	}
+	conn, err := r.Builder.BuildConnection(connOpts, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building Connection: %v", err)
+	}
+	return r.Create(ctx, conn)
+}
+
+func (r *MariaDBReconciler) reconcilePrimaryConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.Replication.Primary.Connection == nil ||
+		mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
+		!mariadb.IsReady() {
+		return nil
+	}
+	key := ctrlresources.PrimaryConnectioneKey(mariadb)
+	var existingConn mariadbv1alpha1.Connection
+	if err := r.Get(ctx, key, &existingConn); err == nil {
+		return nil
+	}
+
+	connTpl := mariadb.Spec.Replication.Primary.Connection
+	if mariadb.Spec.Replication != nil {
+		serviceName := ctrlresources.PrimaryServiceKey(mariadb).Name
+		connTpl.ServiceName = &serviceName
+	}
+
+	connOpts := builder.ConnectionOpts{
+		MariaDB:              mariadb,
+		Key:                  key,
+		Username:             *mariadb.Spec.Username,
+		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
+		Database:             mariadb.Spec.Database,
+		Template:             connTpl,
+	}
+	conn, err := r.Builder.BuildConnection(connOpts, mariadb)
+	if err != nil {
+		return fmt.Errorf("erro building primary Connection: %v", err)
+	}
+	return r.Create(ctx, conn)
 }
 
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcher {

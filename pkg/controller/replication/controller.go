@@ -6,14 +6,11 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
-	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -105,16 +102,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 			reconcile: r.reconcileReplicas,
 		},
 		{
-			name:      "reconcile primary Service",
-			reconcile: r.reconcilePrimaryService,
-			key:       replresources.PrimaryServiceKey(mariadb),
-		},
-		{
-			name:      "reconcile primary Connection",
-			key:       replresources.PrimaryConnectioneKey(mariadb),
-			reconcile: r.reconcilePrimaryConn,
-		},
-		{
 			name:      "set configured replication status",
 			key:       mariaDbKey,
 			reconcile: r.setConfiguredReplication,
@@ -179,64 +166,6 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 		}
 	}
 	return nil
-}
-
-func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req *reconcileRequest) error {
-	serviceLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDBSelectorLabels(req.mariadb).
-			WithStatefulSetPod(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex).
-			Build()
-	opts := builder.ServiceOpts{
-		Selectorlabels: serviceLabels,
-		Ports: []corev1.ServicePort{
-			{
-				Name: builder.MariaDbContainerName,
-				Port: req.mariadb.Spec.Port,
-			},
-		},
-	}
-	if req.mariadb.Spec.Replication.Primary.Service != nil {
-		opts.Type = req.mariadb.Spec.Replication.Primary.Service.Type
-		opts.Annotations = req.mariadb.Spec.Replication.Primary.Service.Annotations
-	}
-	desiredSvc, err := r.Builder.BuildService(req.mariadb, req.key, opts)
-	if err != nil {
-		return fmt.Errorf("error building Service: %v", err)
-	}
-	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
-}
-
-func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *reconcileRequest) error {
-	if req.mariadb.Spec.Replication.Primary.Connection == nil ||
-		req.mariadb.Spec.Username == nil || req.mariadb.Spec.PasswordSecretKeyRef == nil ||
-		!req.mariadb.IsReady() {
-		return nil
-	}
-	var existingConn mariadbv1alpha1.Connection
-	if err := r.Get(ctx, req.key, &existingConn); err == nil {
-		return nil
-	}
-
-	connTpl := req.mariadb.Spec.Replication.Primary.Connection
-	if req.mariadb.Spec.Replication != nil {
-		serviceName := replresources.PrimaryServiceKey(req.mariadb).Name
-		connTpl.ServiceName = &serviceName
-	}
-
-	connOpts := builder.ConnectionOpts{
-		MariaDB:              req.mariadb,
-		Key:                  req.key,
-		Username:             *req.mariadb.Spec.Username,
-		PasswordSecretKeyRef: *req.mariadb.Spec.PasswordSecretKeyRef,
-		Database:             req.mariadb.Spec.Database,
-		Template:             connTpl,
-	}
-	conn, err := r.Builder.BuildConnection(connOpts, req.mariadb)
-	if err != nil {
-		return fmt.Errorf("erro building primary Connection: %v", err)
-	}
-	return r.Create(ctx, conn)
 }
 
 func (r *ReplicationReconciler) setConfiguredReplication(ctx context.Context, req *reconcileRequest) error {

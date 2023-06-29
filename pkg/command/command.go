@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
 
@@ -45,7 +45,7 @@ func host(mariadb *mariadbv1alpha1.MariaDB) string {
 	if mariadb.Spec.Replication != nil {
 		return statefulset.ServiceFQDNWithService(
 			mariadb.ObjectMeta,
-			replresources.PrimaryServiceKey(mariadb).Name,
+			ctrlresources.PrimaryServiceKey(mariadb).Name,
 		)
 	}
 	return statefulset.ServiceFQDN(mariadb.ObjectMeta)

@@ -26,6 +26,7 @@ var (
 	AgentPortName         = "agent"
 )
 
+// TODO: remove when the configuration file is created entirely from the agent
 func ConfigMapKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("config-galera-%s", mariadb.Name),

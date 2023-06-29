@@ -8,10 +8,10 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
-	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -291,7 +291,7 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 
 func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *replicationClientSet) error {
-	key := replresources.PrimaryServiceKey(mariadb)
+	key := ctrlresources.PrimaryServiceKey(mariadb)
 	var service corev1.Service
 	if err := r.Get(ctx, key, &service); err != nil {
 		return fmt.Errorf("error getting Service: %v", err)

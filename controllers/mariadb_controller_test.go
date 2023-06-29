@@ -5,8 +5,8 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -285,12 +285,12 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Expecting to create a primary Service")
 			var svc corev1.Service
-			Expect(k8sClient.Get(testCtx, replresources.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, ctrlresources.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
 
 			By("Expecting MariaDB primary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, replresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
