@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -357,6 +356,12 @@ var _ = Describe("MariaDB controller", func() {
 							Repository: "mariadb",
 							Tag:        "10.11.3",
 						},
+						LivenessProbe: &corev1.Probe{
+							InitialDelaySeconds: 30,
+						},
+						ReadinessProbe: &corev1.Probe{
+							InitialDelaySeconds: 30,
+						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -476,31 +481,17 @@ var _ = Describe("MariaDB controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting MariaDB Pods")
-			deleteCtx, cancelDelete := context.WithCancel(context.Background())
-			defer cancelDelete()
-			for i := 0; i < int(testMariaDbGalera.Spec.Replicas); i++ {
-				go func(i int) {
-					for {
-						select {
-						case <-deleteCtx.Done():
-							return
-						default:
-							key := types.NamespacedName{
-								Name:      statefulset.PodName(testMariaDbGalera.ObjectMeta, i),
-								Namespace: testMariaDbGalera.Namespace,
-							}
-							var pod corev1.Pod
-							_ = k8sClient.Get(deleteCtx, key, &pod)
-							_ = k8sClient.Delete(deleteCtx, &pod)
-							time.Sleep(1 * time.Second)
-						}
-					}
-				}(i)
+			deadline := time.Now().Add(clusterHealthyTimeout.Duration + 10*time.Second)
+			for time.Now().Before(deadline) {
+				opts := []client.DeleteAllOfOption{
+					client.MatchingLabels{
+						"app.kubernetes.io/instance": testMariaDbGalera.Name,
+					},
+					client.InNamespace(testMariaDbGalera.Namespace),
+				}
+				Expect(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, opts...)).To(Succeed())
+				time.Sleep(1 * time.Second)
 			}
-
-			By("Canceling MariaDB Pod deletion")
-			time.Sleep(clusterHealthyTimeout.Duration + 10*time.Second)
-			cancelDelete()
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {

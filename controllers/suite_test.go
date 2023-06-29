@@ -111,7 +111,6 @@ var _ = BeforeSuite(func() {
 
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 	replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
-
 	galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
 
 	err = (&MariaDBReconciler{
