@@ -174,6 +174,171 @@ var _ = Describe("MariaDB controller", func() {
 		})
 	})
 
+	Context("When creating a MariaDB Galera", func() {
+		It("Should reconcile", func() {
+			clusterHealthyTimeout := metav1.Duration{Duration: 1 * time.Minute}
+			threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
+			testMariaDbGalera := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb-galera",
+					Namespace: testNamespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+						LivenessProbe: &corev1.Probe{
+							InitialDelaySeconds: 30,
+						},
+						ReadinessProbe: &corev1.Probe{
+							InitialDelaySeconds: 30,
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+					Username: &testUser,
+					PasswordSecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+					Database: &testDatabase,
+					Connection: &mariadbv1alpha1.ConnectionTemplate{
+						SecretName: func() *string {
+							s := "conn-mdb-galera"
+							return &s
+						}(),
+						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+							Key: &testConnSecretKey,
+						},
+					},
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+					MyCnf: func() *string {
+						cfg := `[mysqld]
+						bind-address=0.0.0.0
+						default_storage_engine=InnoDB
+						binlog_format=row
+						innodb_autoinc_lock_mode=2
+						max_allowed_packet=256M`
+						return &cfg
+					}(),
+					Galera: &mariadbv1alpha1.Galera{
+						SST:            mariadbv1alpha1.SSTMariaBackup,
+						ReplicaThreads: 1,
+						Agent: mariadbv1alpha1.GaleraAgent{
+							ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+								Image: mariadbv1alpha1.Image{
+									Repository: "ghcr.io/mariadb-operator/agent",
+									Tag:        "v0.0.1",
+								},
+							},
+							Port: 5555,
+							GracefulShutdownTimeout: func() *metav1.Duration {
+								t := metav1.Duration{Duration: 5 * time.Second}
+								return &t
+							}(),
+						},
+						Recovery: mariadbv1alpha1.GaleraRecovery{
+							ClusterHealthyTimeout:   &clusterHealthyTimeout,
+							ClusterBootstrapTimeout: &threeMinutes,
+							PodRecoveryTimeout:      &threeMinutes,
+							PodSyncTimeout:          &threeMinutes,
+						},
+						InitContainer: mariadbv1alpha1.ContainerTemplate{
+							Image: mariadbv1alpha1.Image{
+								Repository: "alpine",
+								Tag:        "3.18.0",
+							},
+						},
+						VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+							StorageClassName: &testStorageClassName,
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("10Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+					Replicas: 3,
+					Service: &mariadbv1alpha1.Service{
+						Type: corev1.ServiceTypeLoadBalancer,
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": "172.18.0.150",
+						},
+					},
+				},
+			}
+
+			By("Creating MariaDB Galera")
+			Expect(k8sClient.Create(testCtx, &testMariaDbGalera)).To(Succeed())
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.IsReady()
+			}, 3*time.Minute, testInterval).Should(BeTrue())
+
+			By("Expecting to create a PodDisruptionBudget")
+			var pdb policyv1.PodDisruptionBudget
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &pdb)).To(Succeed())
+
+			By("Expecting MariaDB Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Deleting MariaDB Pods")
+			deadline := time.Now().Add(clusterHealthyTimeout.Duration + 10*time.Second)
+			for time.Now().Before(deadline) {
+				opts := []client.DeleteAllOfOption{
+					client.MatchingLabels{
+						"app.kubernetes.io/instance": testMariaDbGalera.Name,
+					},
+					client.InNamespace(testMariaDbGalera.Namespace),
+				}
+				Expect(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, opts...)).To(Succeed())
+				time.Sleep(1 * time.Second)
+			}
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.IsReady()
+			}, 3*time.Minute, testInterval).Should(BeTrue())
+
+			By("Deleting MariaDB")
+			Expect(k8sClient.Delete(testCtx, &testMariaDbGalera)).To(Succeed())
+		})
+	})
+
 	Context("When creating a MariaDB with replication", func() {
 		It("Should reconcile and switch primary", func() {
 			testRplMariaDb := mariadbv1alpha1.MariaDB{
@@ -338,171 +503,6 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &testRplMariaDb)).To(Succeed())
-		})
-	})
-
-	Context("When creating a MariaDB Galera", func() {
-		It("Should reconcile", func() {
-			clusterHealthyTimeout := metav1.Duration{Duration: 10 * time.Second}
-			threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
-			testMariaDbGalera := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mariadb-galera",
-					Namespace: testNamespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "10.11.3",
-						},
-						LivenessProbe: &corev1.Probe{
-							InitialDelaySeconds: 30,
-						},
-						ReadinessProbe: &corev1.Probe{
-							InitialDelaySeconds: 30,
-						},
-					},
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					Username: &testUser,
-					PasswordSecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					Database: &testDatabase,
-					Connection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: func() *string {
-							s := "conn-mdb-galera"
-							return &s
-						}(),
-						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-							Key: &testConnSecretKey,
-						},
-					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &testStorageClassName,
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
-							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
-						},
-					},
-					MyCnf: func() *string {
-						cfg := `[mysqld]
-						bind-address=0.0.0.0
-						default_storage_engine=InnoDB
-						binlog_format=row
-						innodb_autoinc_lock_mode=2
-						max_allowed_packet=256M`
-						return &cfg
-					}(),
-					Galera: &mariadbv1alpha1.Galera{
-						SST:            mariadbv1alpha1.SSTMariaBackup,
-						ReplicaThreads: 1,
-						Agent: mariadbv1alpha1.GaleraAgent{
-							ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-								Image: mariadbv1alpha1.Image{
-									Repository: "ghcr.io/mariadb-operator/agent",
-									Tag:        "v0.0.1",
-								},
-							},
-							Port: 5555,
-							GracefulShutdownTimeout: func() *metav1.Duration {
-								t := metav1.Duration{Duration: 5 * time.Second}
-								return &t
-							}(),
-						},
-						Recovery: mariadbv1alpha1.GaleraRecovery{
-							ClusterHealthyTimeout:   &clusterHealthyTimeout,
-							ClusterBootstrapTimeout: &threeMinutes,
-							PodRecoveryTimeout:      &threeMinutes,
-							PodSyncTimeout:          &threeMinutes,
-						},
-						InitContainer: mariadbv1alpha1.ContainerTemplate{
-							Image: mariadbv1alpha1.Image{
-								Repository: "alpine",
-								Tag:        "3.18.0",
-							},
-						},
-						VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-							StorageClassName: &testStorageClassName,
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("10Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
-					Replicas: 3,
-					Service: &mariadbv1alpha1.Service{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": "172.18.0.150",
-						},
-					},
-				},
-			}
-
-			By("Creating MariaDB Galera")
-			Expect(k8sClient.Create(testCtx, &testMariaDbGalera)).To(Succeed())
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
-					return false
-				}
-				return testMariaDbGalera.IsReady()
-			}, 5*time.Minute, testInterval).Should(BeTrue())
-
-			By("Expecting to create a PodDisruptionBudget")
-			var pdb policyv1.PodDisruptionBudget
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &pdb)).To(Succeed())
-
-			By("Expecting MariaDB Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting MariaDB Pods")
-			deadline := time.Now().Add(clusterHealthyTimeout.Duration + 10*time.Second)
-			for time.Now().Before(deadline) {
-				opts := []client.DeleteAllOfOption{
-					client.MatchingLabels{
-						"app.kubernetes.io/instance": testMariaDbGalera.Name,
-					},
-					client.InNamespace(testMariaDbGalera.Namespace),
-				}
-				Expect(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, opts...)).To(Succeed())
-				time.Sleep(1 * time.Second)
-			}
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
-					return false
-				}
-				return testMariaDbGalera.IsReady()
-			}, 10*time.Minute, testInterval).Should(BeTrue())
-
-			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &testMariaDbGalera)).To(Succeed())
 		})
 	})
 
