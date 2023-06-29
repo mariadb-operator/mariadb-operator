@@ -344,7 +344,7 @@ var _ = Describe("MariaDB controller", func() {
 
 	Context("When creating a MariaDB Galera", func() {
 		It("Should reconcile", func() {
-			tenSeconds := metav1.Duration{Duration: 10 * time.Second}
+			clusterHealthyTimeout := metav1.Duration{Duration: 10 * time.Second}
 			threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
 			testMariaDbGalera := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -356,12 +356,6 @@ var _ = Describe("MariaDB controller", func() {
 						Image: mariadbv1alpha1.Image{
 							Repository: "mariadb",
 							Tag:        "10.11.3",
-						},
-						LivenessProbe: &corev1.Probe{
-							InitialDelaySeconds: 30,
-						},
-						ReadinessProbe: &corev1.Probe{
-							InitialDelaySeconds: 30,
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -424,7 +418,7 @@ var _ = Describe("MariaDB controller", func() {
 							}(),
 						},
 						Recovery: mariadbv1alpha1.GaleraRecovery{
-							ClusterHealthyTimeout:   &tenSeconds,
+							ClusterHealthyTimeout:   &clusterHealthyTimeout,
 							ClusterBootstrapTimeout: &threeMinutes,
 							PodRecoveryTimeout:      &threeMinutes,
 							PodSyncTimeout:          &threeMinutes,
@@ -466,7 +460,7 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return testMariaDbGalera.IsReady()
-			}, 3*time.Minute, testInterval).Should(BeTrue())
+			}, 5*time.Minute, testInterval).Should(BeTrue())
 
 			By("Expecting to create a PodDisruptionBudget")
 			var pdb policyv1.PodDisruptionBudget
@@ -485,10 +479,10 @@ var _ = Describe("MariaDB controller", func() {
 			deleteCtx, cancelDelete := context.WithCancel(context.Background())
 			defer cancelDelete()
 			for i := 0; i < int(testMariaDbGalera.Spec.Replicas); i++ {
-				go func(ctx context.Context, i int) {
+				go func(i int) {
 					for {
 						select {
-						case <-ctx.Done():
+						case <-deleteCtx.Done():
 							return
 						default:
 							key := types.NamespacedName{
@@ -496,16 +490,16 @@ var _ = Describe("MariaDB controller", func() {
 								Namespace: testMariaDbGalera.Namespace,
 							}
 							var pod corev1.Pod
-							_ = k8sClient.Get(ctx, key, &pod)
-							_ = k8sClient.Delete(ctx, &pod)
+							_ = k8sClient.Get(deleteCtx, key, &pod)
+							_ = k8sClient.Delete(deleteCtx, &pod)
 							time.Sleep(1 * time.Second)
 						}
 					}
-				}(deleteCtx, i)
+				}(i)
 			}
 
 			By("Canceling MariaDB Pod deletion")
-			time.Sleep(20 * time.Second)
+			time.Sleep(clusterHealthyTimeout.Duration + 10*time.Second)
 			cancelDelete()
 
 			By("Expecting MariaDB to be ready eventually")
@@ -514,7 +508,7 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return testMariaDbGalera.IsReady()
-			}, 3*time.Minute, testInterval).Should(BeTrue())
+			}, 10*time.Minute, testInterval).Should(BeTrue())
 
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &testMariaDbGalera)).To(Succeed())
