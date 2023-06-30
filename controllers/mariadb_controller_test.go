@@ -278,7 +278,7 @@ var _ = Describe("MariaDB controller", func() {
 				return testRplMariaDb.IsReady()
 			}, 90*time.Second, testInterval).Should(BeTrue())
 
-			By("Expecting MariaDB Connection to be ready eventually")
+			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &conn); err != nil {
@@ -287,7 +287,7 @@ var _ = Describe("MariaDB controller", func() {
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Expecting MariaDB primary Connection to be ready eventually")
+			By("Expecting primary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
 				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
@@ -353,7 +353,7 @@ var _ = Describe("MariaDB controller", func() {
 				return testRplMariaDb.IsReady()
 			}, 90*time.Second, testInterval).Should(BeTrue())
 
-			By("Expecting MariaDB Connection to be ready eventually")
+			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &conn); err != nil {
@@ -362,7 +362,7 @@ var _ = Describe("MariaDB controller", func() {
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Expecting MariaDB primary Connection to be ready eventually")
+			By("Expecting primary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
 				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
@@ -377,9 +377,11 @@ var _ = Describe("MariaDB controller", func() {
 	})
 
 	Context("When creating a MariaDB Galera", func() {
-		It("Should reconcile", func() {
-			clusterHealthyTimeout := metav1.Duration{Duration: 10 * time.Second}
-			threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
+		It("Should reconcile and recover cluster", func() {
+			readinessTimeout := 3 * time.Minute
+			recoveryTimeout := 5 * time.Minute
+			clusterHealthyDuration := metav1.Duration{Duration: 10 * time.Second}
+			recoveryDuration := metav1.Duration{Duration: recoveryTimeout}
 			testMariaDbGalera := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mariadb-galera",
@@ -458,10 +460,10 @@ var _ = Describe("MariaDB controller", func() {
 							}(),
 						},
 						Recovery: mariadbv1alpha1.GaleraRecovery{
-							ClusterHealthyTimeout:   &clusterHealthyTimeout,
-							ClusterBootstrapTimeout: &threeMinutes,
-							PodRecoveryTimeout:      &threeMinutes,
-							PodSyncTimeout:          &threeMinutes,
+							ClusterHealthyTimeout:   &clusterHealthyDuration,
+							ClusterBootstrapTimeout: &recoveryDuration,
+							PodRecoveryTimeout:      &recoveryDuration,
+							PodSyncTimeout:          &recoveryDuration,
 						},
 						InitContainer: mariadbv1alpha1.ContainerTemplate{
 							Image: mariadbv1alpha1.Image{
@@ -494,28 +496,41 @@ var _ = Describe("MariaDB controller", func() {
 			By("Creating MariaDB Galera")
 			Expect(k8sClient.Create(testCtx, &testMariaDbGalera)).To(Succeed())
 
-			By("Expecting MariaDB Galera to be ready and configured eventually")
+			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
 					return false
 				}
-				return testMariaDbGalera.IsReady() && testMariaDbGalera.HasGaleraConfiguredCondition()
-			}, 3*time.Minute, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB Connection to be ready eventually")
+				return testMariaDbGalera.IsReady()
+			}, readinessTimeout, testInterval).Should(BeTrue())
+			By("Expecting Galera to be configured eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.HasGaleraConfiguredCondition()
+			}, readinessTimeout, testInterval).Should(BeTrue())
+			By("Expecting Galera to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.HasGaleraReadyCondition()
+			}, readinessTimeout, testInterval).Should(BeTrue())
+			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
+			}, readinessTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to create a PodDisruptionBudget")
 			var pdb policyv1.PodDisruptionBudget
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &pdb)).To(Succeed())
 
-			By("Deleting MariaDB Pods")
+			By("Tearing down Pods")
 			opts := []client.DeleteAllOfOption{
 				client.MatchingLabels{
 					"app.kubernetes.io/instance": testMariaDbGalera.Name,
@@ -524,13 +539,20 @@ var _ = Describe("MariaDB controller", func() {
 			}
 			Expect(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, opts...)).To(Succeed())
 
-			By("Expecting Galera not to be ready eventually")
+			By("Expecting MariaDB NOT to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.IsReady()
+			}, readinessTimeout, testInterval).Should(BeTrue())
+			By("Expecting Galera NOT to be ready eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
 					return false
 				}
 				return testMariaDbGalera.HasGaleraNotReadyCondition()
-			}, clusterHealthyTimeout.Duration+testTimeout, testInterval).Should(BeTrue())
+			}, readinessTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -538,24 +560,22 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return testMariaDbGalera.IsReady()
-			}, 5*time.Minute, testInterval).Should(BeTrue())
-
+			}, recoveryTimeout, testInterval).Should(BeTrue())
 			By("Expecting Galera to be ready eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
 					return false
 				}
 				return testMariaDbGalera.HasGaleraReadyCondition()
-			}, 5*time.Minute, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB Connection to be ready eventually")
+			}, recoveryTimeout, testInterval).Should(BeTrue())
+			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
+			}, recoveryTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &testMariaDbGalera)).To(Succeed())
