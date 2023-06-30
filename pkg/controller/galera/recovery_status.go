@@ -22,6 +22,15 @@ type bootstrapSource struct {
 	pod       *corev1.Pod
 }
 
+func (b *bootstrapSource) String() string {
+	return fmt.Sprintf(
+		"{ bootstrap: { UUID: %s, seqno: %d }, pod: %s }",
+		b.bootstrap.UUID,
+		b.bootstrap.Seqno,
+		b.pod.Name,
+	)
+}
+
 func newRecoveryStatus(mariadb *mariadbv1alpha1.MariaDB) *recoveryStatus {
 	var inner mariadbv1alpha1.GaleraRecoveryStatus
 	if mariadb.Status.GaleraRecovery != nil {
@@ -115,23 +124,11 @@ func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
+	if rs.inner.Bootstrap.Time == nil {
+		return false
+	}
 	deadline := rs.inner.Bootstrap.Time.Add(mdb.Spec.Galera.Recovery.ClusterBootstrapTimeoutOrDefault())
 	return time.Now().After(deadline)
-}
-
-func (rs *recoveryStatus) isComplete(pods []corev1.Pod) bool {
-	if source, err := rs.safeToBootstrap(pods); source != nil && err == nil {
-		return true
-	}
-	rs.mux.RLock()
-	defer rs.mux.RUnlock()
-
-	for _, p := range pods {
-		if rs.inner.State[p.Name] == nil || rs.inner.Recovered[p.Name] == nil {
-			return false
-		}
-	}
-	return true
 }
 
 func (rs *recoveryStatus) safeToBootstrap(pods []corev1.Pod) (*bootstrapSource, error) {
@@ -154,16 +151,33 @@ func (rs *recoveryStatus) safeToBootstrap(pods []corev1.Pod) (*bootstrapSource, 
 			return nil, fmt.Errorf("Pod '%s' is safe to boostrap but it couldn't be found on the argument list", k)
 		}
 	}
-	return nil, nil
+	return nil, errors.New("no Pods safe to bootstrap were found")
+}
+
+func (rs *recoveryStatus) isComplete(pods []corev1.Pod) bool {
+	if len(pods) == 0 {
+		return false
+	}
+	rs.mux.RLock()
+	defer rs.mux.RUnlock()
+
+	for _, p := range pods {
+		state := rs.inner.State[p.Name]
+		recovered := rs.inner.Recovered[p.Name]
+		if (state != nil && state.Seqno != -1) || (recovered != nil && recovered.Seqno != -1) {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod) (*bootstrapSource, error) {
-	source, err := rs.safeToBootstrap(pods)
-	if err != nil {
-		return nil, fmt.Errorf("error finding safe source to bootstrap: %v", err)
-	}
-	if source != nil {
+	if source, err := rs.safeToBootstrap(pods); source != nil && err == nil {
 		return source, nil
+	}
+	if !rs.isComplete(pods) {
+		return nil, errors.New("recovery status not completed")
 	}
 
 	rs.mux.RLock()
@@ -179,7 +193,7 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod) (*bootstrapSource, 
 			currentPod = p
 		}
 		if recovered != nil && recovered.GetSeqno() != -1 && recovered.Compare(currentSoure) >= 0 {
-			currentSoure = state
+			currentSoure = recovered
 			currentPod = p
 		}
 	}

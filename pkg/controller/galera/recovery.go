@@ -2,7 +2,6 @@ package galera
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -66,9 +65,12 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		return fmt.Errorf("error getting state: %v", err)
 	}
 
-	if rs.isComplete(pods) {
-		logger.Info("Recovery status completed")
-		if err := r.bootstrap(ctx, rs, pods, clientSet, logger); err != nil {
+	src, err := rs.bootstrapSource(pods)
+	if err != nil {
+		logger.V(1).Error(err, "error getting bootstrap source")
+	}
+	if src != nil {
+		if err := r.bootstrap(ctx, src, rs, clientSet, logger); err != nil {
 			return fmt.Errorf("error bootstrapping: %v", err)
 		}
 		return r.patchRecoveryStatus(ctx, mariadb, rs)
@@ -86,10 +88,11 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		return fmt.Errorf("error performing recovery: %v", err)
 	}
 
-	if !rs.isComplete(pods) {
-		return errors.New("recovery status not complete")
+	src, err = rs.bootstrapSource(pods)
+	if err != nil {
+		return fmt.Errorf("error getting bootstrap source: %v", err)
 	}
-	if err := r.bootstrap(ctx, rs, pods, clientSet, logger); err != nil {
+	if err := r.bootstrap(ctx, src, rs, clientSet, logger); err != nil {
 		return fmt.Errorf("error bootstrapping: %v", err)
 	}
 	return r.patchRecoveryStatus(ctx, mariadb, rs)
@@ -130,19 +133,20 @@ func (r *GaleraReconciler) recoverPod(ctx context.Context, mariadb *mariadbv1alp
 	if err != nil {
 		return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
 	}
-	clientCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	client, err := clientSet.ClientForIndex(clientCtx, *index)
-	if err != nil {
-		return fmt.Errorf("error getting client for Pod. '%s': %v", pod.Name, err)
-	}
 
 	syncTimeout := mariadb.Spec.Galera.Recovery.PodSyncTimeoutOrDefault()
 	syncCtx, cancelSync := context.WithTimeout(ctx, syncTimeout)
 	defer cancelSync()
 
 	if err := pollUntilSucessWithTimeout(syncCtx, logger, func(ctx context.Context) error {
+		clientCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+
+		client, err := clientSet.ClientForIndex(clientCtx, *index)
+		if err != nil {
+			return fmt.Errorf("error getting client for Pod. '%s': %v", pod.Name, err)
+		}
+
 		state, err := client.GaleraLocalState(ctx)
 		if err != nil {
 			logger.V(1).Error(err, "Error getting Pod state", "pod", pod.Name)
@@ -347,12 +351,8 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 	}
 }
 
-func (r *GaleraReconciler) bootstrap(ctx context.Context, rs *recoveryStatus, pods []corev1.Pod,
-	clientSet *agentClientSet, logger logr.Logger) error {
-	src, err := rs.bootstrapSource(pods)
-	if err != nil {
-		return fmt.Errorf("error getting bootstrap source: %v", err)
-	}
+func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, rs *recoveryStatus, clientSet *agentClientSet,
+	logger logr.Logger) error {
 	logger.Info("Bootstrapping cluster", "pod", src.pod.Name)
 
 	idx, err := statefulset.PodIndex(src.pod.Name)
