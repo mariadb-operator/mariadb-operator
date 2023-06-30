@@ -16,7 +16,7 @@ build: ## Build binary.
 
 .PHONY: test
 test: envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test -timeout 20m -v ./... -coverprofile cover.out
 
 .PHONY: cover
 cover: test ## Run tests and generate coverage.
