@@ -66,7 +66,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 
 	src, err := rs.bootstrapSource(pods)
 	if err != nil {
-		logger.V(1).Error(err, "error getting bootstrap source")
+		logger.V(1).Info("Error getting bootstrap source", "err", err)
 	}
 	if src != nil {
 		if err := r.bootstrap(ctx, src, rs, clientSet, logger); err != nil {
@@ -148,12 +148,11 @@ func (r *GaleraReconciler) recoverPod(ctx context.Context, mariadb *mariadbv1alp
 
 		state, err := client.GaleraLocalState(ctx)
 		if err != nil {
-			logger.V(1).Error(err, "Error getting Pod state", "pod", pod.Name)
+			logger.V(1).Info("Error getting Pod state", "pod", pod.Name, "err", err)
 			return err
 		}
 		if state != "Synced" {
-			err := fmt.Errorf("Pod '%s' in non Synced state", pod.Name)
-			logger.V(1).Error(err, "Pod in non Synced state", "pod", pod.Name, "state", state)
+			logger.V(1).Info("Pod in non Synced state", "pod", pod.Name, "state", state)
 			return err
 		}
 		return nil
@@ -299,7 +298,7 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 					case <-ticker.C:
 						logger.V(1).Info("Deleting Pod", "pod", pod.Name)
 						if err := r.Delete(ctx, &pod); err != nil {
-							logger.V(1).Error(err, "Error deleting Pod", "pod", pod.Name)
+							logger.V(1).Info("Error deleting Pod", "pod", pod.Name, "err", err)
 						}
 					}
 				}
@@ -397,9 +396,8 @@ func pollUntilSucessWithTimeout(ctx context.Context, logger logr.Logger, fn func
 	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
 	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
 	if err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(ctx context.Context) (bool, error) {
-		err := fn(ctx)
-		if err != nil {
-			logger.V(1).Error(err, "Error polling")
+		if err := fn(ctx); err != nil {
+			logger.V(1).Info("Error polling", "err", err)
 			return false, nil
 		}
 		return true, nil
