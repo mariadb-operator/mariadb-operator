@@ -7590,7 +7590,6 @@ spec:
                 required:
                 - agent
                 - initContainer
-                - recovery
                 - sst
                 - volumeClaimTemplate
                 type: object
@@ -11042,8 +11041,6 @@ spec:
               currentPrimaryPodIndex:
                 type: integer
               galeraRecovery:
-                description: 'TODO: move galera.GaleraState and galera.Bootstrap to
-                  this package ?'
                 properties:
                   bootstrap:
                     properties:

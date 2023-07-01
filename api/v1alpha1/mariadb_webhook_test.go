@@ -80,6 +80,20 @@ var _ = Describe("MariaDB webhook", func() {
 					wantErr: true,
 				},
 				{
+					by: "valid galera",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Galera: &Galera{
+								SST:            "mariabackup",
+								ReplicaThreads: 1,
+							},
+							Replicas: 3,
+						},
+					},
+					wantErr: false,
+				},
+				{
 					by: "valid replication",
 					mdb: MariaDB{
 						ObjectMeta: meta,
@@ -89,26 +103,6 @@ var _ = Describe("MariaDB webhook", func() {
 									PodIndex: 1,
 								},
 								SyncBinlog: true,
-							},
-							Replicas: 3,
-						},
-					},
-					wantErr: false,
-				},
-				{
-					by: "valid replication with wait point and retries",
-					mdb: MariaDB{
-						ObjectMeta: meta,
-						Spec: MariaDBSpec{
-							Replication: &Replication{
-								Primary: PrimaryReplication{
-									PodIndex: 1,
-								},
-								Replica: ReplicaReplication{
-									WaitPoint:         func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
-									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-									ConnectionRetries: 3,
-								},
 							},
 							Replicas: 3,
 						},
@@ -134,6 +128,33 @@ var _ = Describe("MariaDB webhook", func() {
 								ReplicaThreads: 4,
 							},
 							Replicas: 1,
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "invalid SST",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Galera: &Galera{
+								SST:            "foo",
+								ReplicaThreads: 1,
+							},
+							Replicas: 3,
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "invalid replica threads",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Galera: &Galera{
+								ReplicaThreads: -1,
+							},
+							Replicas: 3,
 						},
 					},
 					wantErr: true,

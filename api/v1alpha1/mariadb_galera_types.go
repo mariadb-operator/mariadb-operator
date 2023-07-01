@@ -52,7 +52,6 @@ type GaleraRecovery struct {
 	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
 }
 
-// TODO: default using a mutating webhook
 func (g *GaleraRecovery) ClusterHealthyTimeoutOrDefault() time.Duration {
 	if g.ClusterHealthyTimeout != nil {
 		return g.ClusterHealthyTimeout.Duration
@@ -60,7 +59,6 @@ func (g *GaleraRecovery) ClusterHealthyTimeoutOrDefault() time.Duration {
 	return 3 * time.Minute
 }
 
-// TODO: default using a mutating webhook
 func (g *GaleraRecovery) ClusterBootstrapTimeoutOrDefault() time.Duration {
 	if g.ClusterBootstrapTimeout != nil {
 		return g.ClusterBootstrapTimeout.Duration
@@ -68,7 +66,6 @@ func (g *GaleraRecovery) ClusterBootstrapTimeoutOrDefault() time.Duration {
 	return 5 * time.Minute
 }
 
-// TODO: default using a mutating webhook
 func (g *GaleraRecovery) PodRecoveryTimeoutOrDefault() time.Duration {
 	if g.PodRecoveryTimeout != nil {
 		return g.PodRecoveryTimeout.Duration
@@ -76,7 +73,6 @@ func (g *GaleraRecovery) PodRecoveryTimeoutOrDefault() time.Duration {
 	return 3 * time.Minute
 }
 
-// TODO: default using a mutating webhook
 func (g *GaleraRecovery) PodSyncTimeoutOrDefault() time.Duration {
 	if g.PodSyncTimeout != nil {
 		return g.PodSyncTimeout.Duration
@@ -121,12 +117,12 @@ type Galera struct {
 	ReplicaThreads int `json:"replicaThreads,omitempty"`
 	// +kubebuilder:validation:Required
 	Agent GaleraAgent `json:"agent"`
-	// +kubebuilder:validation:Required
-	Recovery GaleraRecovery `json:"recovery"`
+	// +kubebuilder:default={}
+	Recovery GaleraRecovery `json:"recovery,omitempty"`
 	// +kubebuilder:validation:Required
 	InitContainer ContainerTemplate `json:"initContainer"`
 	// +kubebuilder:validation:Required
-	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
+	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate"`
 }
 
 type GaleraRecoveryBootstrap struct {
@@ -134,7 +130,6 @@ type GaleraRecoveryBootstrap struct {
 	Pod  *string      `json:"pod,omitempty"`
 }
 
-// TODO: move galera.GaleraState and galera.Bootstrap to this package ?
 type GaleraRecoveryStatus struct {
 	State     map[string]*agentgalera.GaleraState `json:"state,omitempty"`
 	Recovered map[string]*agentgalera.Bootstrap   `json:"recovered,omitempty"`
