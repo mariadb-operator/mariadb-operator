@@ -29,7 +29,7 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 	if err != nil {
 		return fmt.Errorf("error getting agent client: %v", err)
 	}
-	sqlClientSet := sqlclient.NewClientSet(mariadb, r.RefResolver)
+	sqlClientSet := sqlclient.NewClientSet(mariadb, r.refResolver)
 	defer sqlClientSet.Close()
 
 	if sts.Status.ReadyReplicas == 0 {
@@ -45,6 +45,9 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 	if rs.isBootstrapping() {
 		if rs.bootstrapTimeout(mariadb) {
 			logger.Info("Bootstrap timed out. Resetting recovery status...")
+			r.recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraClusterBootstrapTimeout,
+				"Galera cluster bootstrap timed out")
+
 			rs.reset()
 			return r.patchRecoveryStatus(ctx, mariadb, rs)
 		}
@@ -68,7 +71,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		logger.V(1).Info("Error getting bootstrap source", "err", err)
 	}
 	if src != nil {
-		if err := r.bootstrap(ctx, src, rs, clientSet, logger); err != nil {
+		if err := r.bootstrap(ctx, src, rs, mariadb, clientSet, logger); err != nil {
 			return fmt.Errorf("error bootstrapping: %v", err)
 		}
 		return r.patchRecoveryStatus(ctx, mariadb, rs)
@@ -90,7 +93,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 	if err != nil {
 		return fmt.Errorf("error getting bootstrap source: %v", err)
 	}
-	if err := r.bootstrap(ctx, src, rs, clientSet, logger); err != nil {
+	if err := r.bootstrap(ctx, src, rs, mariadb, clientSet, logger); err != nil {
 		return fmt.Errorf("error bootstrapping: %v", err)
 	}
 	return r.patchRecoveryStatus(ctx, mariadb, rs)
@@ -156,7 +159,10 @@ func (r *GaleraReconciler) recoverPod(ctx context.Context, mariadb *mariadbv1alp
 		}
 		return nil
 	}); err != nil {
-		logger.Error(err, "Pod in non Synced state timed out. Deleting Pod...", "pod", pod.Name, "timeout", syncTimeout.String())
+		logger.Error(err, "Timeout waiting for Pod to be Synced. Deleting Pod...", "pod", pod.Name, "timeout", syncTimeout.String())
+		r.recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraPodSyncTimeout,
+			"Timeout waiting for Pod '%s' to be Synced", pod.Name)
+
 		if err := r.deletePodWithTimeout(ctx, pod, logger); err != nil {
 			return fmt.Errorf("error deleting Pod '%s': %v", pod.Name, err)
 		}
@@ -312,6 +318,8 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 					return err
 				}
 
+				r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodRecovered,
+					"Recovered Galera sequence in Pod '%s'", pod.Name)
 				rs.setRecovered(pod.Name, bootstrap)
 				return nil
 			}); err != nil {
@@ -345,9 +353,11 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 	}
 }
 
-func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, rs *recoveryStatus, clientSet *agentClientSet,
-	logger logr.Logger) error {
+func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, rs *recoveryStatus, mdb *mariadbv1alpha1.MariaDB,
+	clientSet *agentClientSet, logger logr.Logger) error {
 	logger.Info("Bootstrapping cluster", "pod", src.pod.Name)
+	r.recorder.Eventf(mdb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterBootstrap,
+		"Bootstrapping Galera cluster in Pod '%s'", src.pod.Name)
 
 	idx, err := statefulset.PodIndex(src.pod.Name)
 	if err != nil {

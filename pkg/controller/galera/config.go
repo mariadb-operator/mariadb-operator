@@ -38,7 +38,7 @@ wsrep_new_cluster="ON"
 			galeraresources.GaleraInitScript: initSh,
 		},
 	}
-	return r.ConfigMapReconciler.Reconcile(ctx, &req)
+	return r.configMapReconciler.Reconcile(ctx, &req)
 }
 
 func galeraConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {

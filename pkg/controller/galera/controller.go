@@ -13,26 +13,30 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type GaleraReconciler struct {
 	client.Client
-	Builder             *builder.Builder
-	RefResolver         *refresolver.RefResolver
-	ConfigMapReconciler *configmap.ConfigMapReconciler
-	ServiceReconciler   *service.ServiceReconciler
+	recorder            record.EventRecorder
+	builder             *builder.Builder
+	refResolver         *refresolver.RefResolver
+	configMapReconciler *configmap.ConfigMapReconciler
+	serviceReconciler   *service.ServiceReconciler
 }
 
-func NewGaleraReconciler(client client.Client, builder *builder.Builder, configMapReconciler *configmap.ConfigMapReconciler,
-	serviceReconciler *service.ServiceReconciler) *GaleraReconciler {
+func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, builder *builder.Builder,
+	configMapReconciler *configmap.ConfigMapReconciler, serviceReconciler *service.ServiceReconciler) *GaleraReconciler {
 	return &GaleraReconciler{
 		Client:              client,
-		Builder:             builder,
-		RefResolver:         refresolver.New(client),
-		ConfigMapReconciler: configMapReconciler,
-		ServiceReconciler:   serviceReconciler,
+		recorder:            recorder,
+		builder:             builder,
+		refResolver:         refresolver.New(client),
+		configMapReconciler: configMapReconciler,
+		serviceReconciler:   serviceReconciler,
 	}
 }
 
@@ -56,6 +60,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		if err := r.disableBootstrap(ctx, mariadb, logger); err != nil {
 			return err
 		}
+		r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy, "Galera cluster is healthy")
 		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetGaleraReady(&mariadb.Status)
 			conditions.SetGaleraConfigured(&mariadb.Status)
@@ -74,7 +79,7 @@ func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1al
 }
 
 func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
-	logger.Info("Disabling Galera bootstrap")
+	logger.V(1).Info("Disabling Galera bootstrap")
 
 	clientSet, err := newAgentClientSet(mariadb)
 	if err != nil {

@@ -97,6 +97,7 @@ var _ = BeforeSuite(func() {
 
 	client := k8sManager.GetClient()
 	scheme := k8sManager.GetScheme()
+	galeraRecorder := k8sManager.GetEventRecorderFor("galera")
 
 	builder := builder.New(scheme)
 	refResolver := refresolver.New(client)
@@ -111,7 +112,7 @@ var _ = BeforeSuite(func() {
 
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 	replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
-	galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
+	galeraReconciler := galera.NewGaleraReconciler(client, galeraRecorder, builder, configMapReconciler, serviceReconciler)
 
 	err = (&MariaDBReconciler{
 		Client: client,
@@ -210,6 +211,7 @@ var _ = BeforeSuite(func() {
 	err = (&StatefulSetGaleraReconciler{
 		Client:      client,
 		RefResolver: refResolver,
+		Recorder:    galeraRecorder,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

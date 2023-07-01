@@ -35,6 +35,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,14 +43,8 @@ import (
 
 type StatefulSetGaleraReconciler struct {
 	client.Client
+	Recorder    record.EventRecorder
 	RefResolver *refresolver.RefResolver
-}
-
-func NewStatefulSetGaleraReconciler(client client.Client) *StatefulSetGaleraReconciler {
-	return &StatefulSetGaleraReconciler{
-		Client:      client,
-		RefResolver: refresolver.New(client),
-	}
 }
 
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch
@@ -87,6 +82,8 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, nil
 	}
 	logger.Info("Cluster is not healthy")
+	r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraClusterNotHealthy, "Galera cluster is not healthy")
+
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.GaleraRecovery = nil
 		conditions.SetGaleraNotReady(status, mariadb)

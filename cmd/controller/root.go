@@ -89,6 +89,7 @@ var rootCmd = &cobra.Command{
 
 		client := mgr.GetClient()
 		scheme := mgr.GetScheme()
+		galeraRecorder := mgr.GetEventRecorderFor("galera")
 
 		builder := builder.New(scheme)
 		refResolver := refresolver.New(client)
@@ -103,7 +104,7 @@ var rootCmd = &cobra.Command{
 
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 		replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
-		galeraReconciler := galera.NewGaleraReconciler(client, builder, configMapReconciler, serviceReconciler)
+		galeraReconciler := galera.NewGaleraReconciler(client, galeraRecorder, builder, configMapReconciler, serviceReconciler)
 
 		if err = (&controllers.MariaDBReconciler{
 			Client: client,
@@ -211,6 +212,7 @@ var rootCmd = &cobra.Command{
 		if err = (&controllers.StatefulSetGaleraReconciler{
 			Client:      client,
 			RefResolver: refResolver,
+			Recorder:    galeraRecorder,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "StatefulSetGalera")
 			os.Exit(1)
