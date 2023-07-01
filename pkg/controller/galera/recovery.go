@@ -17,10 +17,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) error {
+func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
+	logger logr.Logger) error {
 	pods, err := r.pods(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting Pods: %v", err)
@@ -31,7 +31,6 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 	}
 	sqlClientSet := sqlclient.NewClientSet(mariadb, r.RefResolver)
 	defer sqlClientSet.Close()
-	logger := log.FromContext(ctx).WithName("galera-recovery")
 
 	if sts.Status.ReadyReplicas == 0 {
 		return r.recoverCluster(ctx, mariadb, pods, agentClientSet, logger.WithName("cluster"))

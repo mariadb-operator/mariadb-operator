@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	agentclient "github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
@@ -43,15 +44,16 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	if err != nil {
 		return err
 	}
+	logger := log.FromContext(ctx).WithName("galera")
 
 	if mariadb.HasGaleraNotReadyCondition() {
-		if err := r.reconcileRecovery(ctx, mariadb, sts); err != nil {
+		if err := r.reconcileRecovery(ctx, mariadb, sts, logger.WithName("recovery")); err != nil {
 			return err
 		}
 	}
 
 	if !mariadb.HasGaleraReadyCondition() && sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
-		if err := r.disableBootstrap(ctx, mariadb); err != nil {
+		if err := r.disableBootstrap(ctx, mariadb, logger); err != nil {
 			return err
 		}
 		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
@@ -71,8 +73,8 @@ func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1al
 	return &sts, nil
 }
 
-func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	log.FromContext(ctx).V(1).Info("Disabling Galera bootstrap")
+func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+	logger.Info("Disabling Galera bootstrap")
 
 	clientSet, err := newAgentClientSet(mariadb)
 	if err != nil {

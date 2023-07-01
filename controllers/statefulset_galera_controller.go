@@ -72,7 +72,7 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if !mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
 		return ctrl.Result{}, nil
 	}
-	logger := log.FromContext(ctx).WithName("galera-health")
+	logger := log.FromContext(ctx).WithName("galera").WithName("health")
 	logger.Info("Checking cluster health")
 
 	healthyCtx, cancelHealthy := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.ClusterHealthyTimeoutOrDefault())
