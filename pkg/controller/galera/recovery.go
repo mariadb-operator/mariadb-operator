@@ -15,7 +15,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -177,9 +176,6 @@ func (r *GaleraReconciler) pods(ctx context.Context, mariadb *mariadbv1alpha1.Ma
 		var pod corev1.Pod
 		err := r.Get(ctx, key, &pod)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
-				continue
-			}
 			return nil, fmt.Errorf("error getting Pod '%s': %v", key.Name, err)
 		}
 		pods = append(pods, pod)
