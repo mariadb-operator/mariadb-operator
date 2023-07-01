@@ -39,7 +39,7 @@ metrics:
 extrArgs: []
 
 webhook:
-  # -- Enable webhooks. Cert-manager must be installed in the cluster
+  # -- Enable webhooks.
   enabled: true
   # -- Annotations for webhook configurations.
   annotations: {}
