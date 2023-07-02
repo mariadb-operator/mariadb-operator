@@ -48,6 +48,9 @@ spec:
             {{- if .Values.ha.enabled }}
             - --leader-elect
             {{- end }}
+            {{- if .Values.galeraRecoveryEnabled}}
+            - --galera-recovery-reconciler
+            {{- end }}
             {{- if .Values.metrics.enabled }}
             - --service-monitor-reconciler
             {{- end }}

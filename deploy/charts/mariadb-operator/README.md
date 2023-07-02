@@ -29,6 +29,7 @@ helm uninstall mariadb-operator
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
 | extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
 | fullnameOverride | string | `""` |  |
+| galeraRecoveryEnabled | bool | `true` | Enable Galera recovery reconciler. This will automatically recover MariaDB Galera unhealthy clusters |
 | ha.enabled | bool | `false` | Enable high availability |
 | ha.leaseId | string | `"mariadb.mmontes.io"` | Lease resource name to be used for leader election |
 | ha.replicas | int | `3` | Number of replicas |

@@ -64,7 +64,8 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if !mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
+	if mariadb.Spec.Galera == nil || !mariadb.Spec.Galera.Recovery.Enabled ||
+		!mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("galera").WithName("health")
