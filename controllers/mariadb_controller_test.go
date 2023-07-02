@@ -557,7 +557,7 @@ var _ = Describe("MariaDB Galera", func() {
 	Context("When creating a MariaDB Galera", func() {
 		It("Should reconcile and recover cluster", func() {
 			timeout := 5 * time.Minute
-			clusterHealthyTimeout := metav1.Duration{Duration: 1 * time.Minute}
+			clusterHealthyTimeout := metav1.Duration{Duration: 30 * time.Second}
 			recoveryTimeout := metav1.Duration{Duration: timeout}
 			testMariaDbGalera := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -626,7 +626,7 @@ var _ = Describe("MariaDB Galera", func() {
 							},
 							Port: 5555,
 							GracefulShutdownTimeout: func() *metav1.Duration {
-								t := metav1.Duration{Duration: 5 * time.Second}
+								t := metav1.Duration{Duration: 1 * time.Second}
 								return &t
 							}(),
 						},
