@@ -13,9 +13,6 @@ logLevel: INFO
 # -- Cluster DNS name
 clusterName: cluster.local
 
-# -- Enable Galera recovery reconciler. This will automatically recover MariaDB Galera unhealthy clusters
-galeraRecoveryEnabled: true
-
 ha:
   # -- Enable high availability
   enabled: false

@@ -4099,9 +4099,6 @@ spec:
                         type: string
                       clusterHealthyTimeout:
                         type: string
-                      enabled:
-                        default: true
-                        type: boolean
                       podRecoveryTimeout:
                         type: string
                       podSyncTimeout:
