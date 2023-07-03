@@ -20,14 +20,17 @@ import (
 )
 
 const (
-	StorageVolume    = "storage"
-	StorageMountPath = "/var/lib/mysql"
-	ConfigVolume     = "config"
-	ConfigMountPath  = "/etc/mysql/conf.d"
+	StorageVolume           = "storage"
+	StorageMountPath        = "/var/lib/mysql"
+	ConfigVolume            = "config"
+	ConfigMountPath         = "/etc/mysql/conf.d"
+	ServiceAccountVolume    = "serviceaccount"
+	ServiceAccountMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
 
 	MariaDbContainerName = "mariadb"
 	MariaDbPortName      = "mariadb"
 
+	InitContainerName  = "init"
 	AgentContainerName = "agent"
 
 	MetricsContainerName = "metrics"
@@ -133,27 +136,37 @@ func buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKey
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
-
 	objMeta :=
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
 			WithMariaDB(mariadb).
 			WithLabels(labels).
 			WithAnnotations(buildHAAnnotations(mariadb)).
 			Build()
-
+	automount, serviceAccount := buildStsServiceAccountName(mariadb)
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
-			InitContainers:   buildStsInitContainers(mariadb),
-			Containers:       containers,
-			ImagePullSecrets: mariadb.Spec.ImagePullSecrets,
-			Volumes:          buildStsVolumes(mariadb),
-			SecurityContext:  mariadb.Spec.PodSecurityContext,
-			Affinity:         mariadb.Spec.Affinity,
-			NodeSelector:     mariadb.Spec.NodeSelector,
-			Tolerations:      mariadb.Spec.Tolerations,
+			AutomountServiceAccountToken: automount,
+			ServiceAccountName:           serviceAccount,
+			InitContainers:               buildStsInitContainers(mariadb),
+			Containers:                   containers,
+			ImagePullSecrets:             mariadb.Spec.ImagePullSecrets,
+			Volumes:                      buildStsVolumes(mariadb),
+			SecurityContext:              mariadb.Spec.PodSecurityContext,
+			Affinity:                     mariadb.Spec.Affinity,
+			NodeSelector:                 mariadb.Spec.NodeSelector,
+			Tolerations:                  mariadb.Spec.Tolerations,
 		},
 	}, nil
+}
+
+func buildStsServiceAccountName(mariadb *mariadbv1alpha1.MariaDB) (autoMount *bool, serviceAccount string) {
+	if mariadb.Spec.Galera != nil {
+		mount := false
+		autoMount = &mount
+		serviceAccount = mariadb.Name
+	}
+	return
 }
 
 func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
@@ -186,16 +199,41 @@ func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 	}
 	if mariadb.Spec.Galera != nil {
 		volumes = append(volumes, corev1.Volume{
-			Name: galeraresources.GaleraConfigMapVolume,
+			Name: ServiceAccountVolume,
 			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: galeraresources.ConfigMapKey(mariadb).Name,
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+								Path: "token",
+							},
+						},
+						{
+							ConfigMap: &corev1.ConfigMapProjection{
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "ca.crt",
+										Path: "ca.crt",
+									},
+								},
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "kube-root-ca.crt",
+								},
+							},
+						},
+						{
+							DownwardAPI: &corev1.DownwardAPIProjection{
+								Items: []corev1.DownwardAPIVolumeFile{
+									{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+										Path: "namespace",
+									},
+								},
+							},
+						},
 					},
-					DefaultMode: func() *int32 {
-						mode := int32(0777)
-						return &mode
-					}(),
 				},
 			},
 		})

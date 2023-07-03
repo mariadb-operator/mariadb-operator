@@ -59,6 +59,13 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - get
+- apiGroups:
+  - ""
+  resources:
   - services
   verbs:
   - create
@@ -326,6 +333,12 @@ rules:
   - poddisruptionbudgets
   verbs:
   - create
-  - list
-  - patch
-  - watch
+  - get
+- apiGroups:
+  - rbac
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - get

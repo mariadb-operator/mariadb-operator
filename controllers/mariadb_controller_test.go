@@ -638,8 +638,8 @@ var _ = Describe("MariaDB Galera", func() {
 						},
 						InitContainer: mariadbv1alpha1.ContainerTemplate{
 							Image: mariadbv1alpha1.Image{
-								Repository: "alpine",
-								Tag:        "3.18.0",
+								Repository: "ghcr.io/mariadb-operator/init",
+								Tag:        "v0.0.1",
 							},
 						},
 						VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{

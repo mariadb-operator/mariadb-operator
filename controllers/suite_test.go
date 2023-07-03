@@ -28,6 +28,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
@@ -109,6 +110,7 @@ var _ = BeforeSuite(func() {
 	secretReconciler := secret.NewSecretReconciler(client, builder)
 	serviceReconciler := service.NewServiceReconciler(client)
 	batchReconciler := batch.NewBatchReconciler(client, builder)
+	rbacReconciler := rbac.NewRBACReconiler(client, builder)
 
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 	replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
@@ -127,6 +129,7 @@ var _ = BeforeSuite(func() {
 		ConfigMapReconciler: configMapReconciler,
 		SecretReconciler:    secretReconciler,
 		ServiceReconciler:   serviceReconciler,
+		RBACReconciler:      rbacReconciler,
 
 		ReplicationReconciler: replicationReconciler,
 		GaleraReconciler:      galeraReconciler,

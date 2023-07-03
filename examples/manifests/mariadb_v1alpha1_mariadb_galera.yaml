@@ -43,10 +43,9 @@ spec:
       podRecoveryTimeout: 3m
       podSyncTimeout: 3m
     initContainer:
-      # TODO: make image optional in container template, as we are using the same image as MariaDB StatefulSet
       image:
-        repository: alpine
-        tag: "3.18.0"
+        repository: ghcr.io/mariadb-operator/init
+        tag: "v0.0.1"
         pullPolicy: IfNotPresent
     volumeClaimTemplate:
       resources:

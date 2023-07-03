@@ -29,6 +29,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
@@ -66,6 +67,7 @@ type MariaDBReconciler struct {
 	ConfigMapReconciler *configmap.ConfigMapReconciler
 	SecretReconciler    *secret.SecretReconciler
 	ServiceReconciler   *service.ServiceReconciler
+	RBACReconciler      *rbac.RBACReconciler
 
 	ReplicationReconciler *replication.ReplicationReconciler
 	GaleraReconciler      *galera.GaleraReconciler
@@ -88,8 +90,10 @@ type patcher func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=endpoints,verbs=list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=delete
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;get
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=create;get
+//+kubebuilder:rbac:groups=rbac,resources=roles;rolebindings,verbs=create;get
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -104,6 +108,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "ConfigMap",
 			Reconcile: r.reconcileConfigMap,
+		},
+		{
+			Name:      "RBAC",
+			Reconcile: r.RBACReconciler.Reconcile,
 		},
 		{
 			Name:      "StatefulSet",
@@ -176,16 +184,35 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if err := r.reconcileMyCnfConfigMap(ctx, mariadb); err != nil {
-		return err
+	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
+		return nil
 	}
-	// TODO: remove when the configuration file is created entirely from the agent
-	if mariadb.Spec.Galera != nil {
-		if err := r.GaleraReconciler.ReconcileConfigMap(ctx, mariadb); err != nil {
+	key := configMapMariaDBKey(mariadb)
+	if mariadb.Spec.MyCnf != nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
+		req := configmap.ReconcileRequest{
+			Mariadb: mariadb,
+			Owner:   mariadb,
+			Key:     key,
+			Data: map[string]string{
+				myCnfConfigMapKey: *mariadb.Spec.MyCnf,
+			},
+		}
+		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
 			return err
 		}
 	}
-	return nil
+	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		return nil
+	}
+
+	return r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
+		mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: key.Name,
+			},
+			Key: myCnfConfigMapKey,
+		}
+	})
 }
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -318,38 +345,6 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 		return fmt.Errorf("error building Service Monitor: %v", err)
 	}
 	return r.Create(ctx, serviceMonitor)
-}
-
-func (r *MariaDBReconciler) reconcileMyCnfConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
-		return nil
-	}
-	key := configMapMariaDBKey(mariadb)
-	if mariadb.Spec.MyCnf != nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
-		req := configmap.ReconcileRequest{
-			Mariadb: mariadb,
-			Owner:   mariadb,
-			Key:     key,
-			Data: map[string]string{
-				myCnfConfigMapKey: *mariadb.Spec.MyCnf,
-			},
-		}
-		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
-			return err
-		}
-	}
-	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
-		return nil
-	}
-
-	return r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
-		mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: key.Name,
-			},
-			Key: myCnfConfigMapKey,
-		}
-	})
 }
 
 func (r *MariaDBReconciler) reconcileDefaultPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

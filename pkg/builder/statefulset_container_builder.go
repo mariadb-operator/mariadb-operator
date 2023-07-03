@@ -11,23 +11,28 @@ import (
 )
 
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
-	if mariadb.Spec.Galera != nil {
-		container := buildContainer(&mariadb.Spec.Galera.InitContainer)
-
-		container.Name = "init-galera"
-		container.Image = mariadb.Spec.Image.String()
-		container.Command = []string{"bash", "-c"}
-		container.Args = []string{
-			fmt.Sprintf("%s/%s", galeraresources.GaleraConfigMapMountPath, galeraresources.GaleraInitScript),
-		}
-		container.Env = buildStsEnv(mariadb)
-		container.VolumeMounts = buildGaleraVolumeMounts(mariadb)
-
-		return []corev1.Container{
-			container,
-		}
+	if mariadb.Spec.Galera == nil {
+		return nil
 	}
-	return nil
+	container := buildContainer(&mariadb.Spec.Galera.InitContainer)
+
+	container.Name = InitContainerName
+	container.Args = func() []string {
+		args := container.Args
+		args = append(args, []string{
+			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
+			fmt.Sprintf("--state-dir=%s", StorageMountPath),
+			fmt.Sprintf("--mariadb-name=%s", mariadb.Name),
+			fmt.Sprintf("--mariadb-namespace=%s", mariadb.Namespace),
+		}...)
+		return args
+	}()
+	container.Env = buildStsEnv(mariadb)
+	container.VolumeMounts = buildStsVolumeMounts(mariadb)
+
+	return []corev1.Container{
+		container,
+	}
 }
 
 func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]corev1.Container, error) {
@@ -86,6 +91,14 @@ func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 			Name:  "MYSQL_INITDB_SKIP_TZINFO",
 			Value: "1",
 		},
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
 	}
 
 	if mariadb.Spec.Replication == nil {
@@ -130,23 +143,21 @@ func buildStsVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount
 		},
 	}
 	if mariadb.Spec.Galera != nil {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      galeraresources.GaleraConfigVolume,
-			MountPath: galeraresources.GaleraConfigMountPath,
-		})
+		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
+			{
+				Name:      galeraresources.GaleraConfigVolume,
+				MountPath: galeraresources.GaleraConfigMountPath,
+			},
+			{
+				Name:      ServiceAccountVolume,
+				MountPath: ServiceAccountMountPath,
+			},
+		}...)
 	}
 	if mariadb.Spec.VolumeMounts != nil {
 		volumeMounts = append(volumeMounts, mariadb.Spec.VolumeMounts...)
 	}
 	return volumeMounts
-}
-
-func buildGaleraVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount {
-	volumeMounts := buildStsVolumeMounts(mariadb)
-	return append(volumeMounts, corev1.VolumeMount{
-		Name:      galeraresources.GaleraConfigMapVolume,
-		MountPath: galeraresources.GaleraConfigMapMountPath,
-	})
 }
 
 func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
@@ -195,7 +206,7 @@ func buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Containe
 		}...)
 		return args
 	}()
-	container.VolumeMounts = buildGaleraVolumeMounts(mariadb)
+	container.VolumeMounts = buildStsVolumeMounts(mariadb)
 	container.LivenessProbe = func() *corev1.Probe {
 		if container.LivenessProbe != nil {
 			return container.LivenessProbe
