@@ -4,8 +4,8 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("MariaDB controller", func() {
+var _ = Describe("MariaDB", func() {
 	Context("When creating a MariaDB", func() {
 		It("Should reconcile", func() {
 			By("Expecting to have spec provided by user and defaults")
@@ -63,7 +63,7 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, connectionKey(&testMariaDb), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDb), &conn); err != nil {
 					return false
 				}
 				Expect(conn.ObjectMeta.Labels).NotTo(BeNil())
@@ -126,6 +126,12 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: bootstrapMariaDBKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: backupKey.Name,
@@ -136,10 +142,6 @@ var _ = Describe("MariaDB controller", func() {
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
-					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
@@ -172,6 +174,182 @@ var _ = Describe("MariaDB controller", func() {
 		})
 	})
 
+	Context("When creating an invalid MariaDB", func() {
+		It("Should report not ready status", func() {
+			By("Creating MariaDB")
+			invalidMariaDbKey := types.NamespacedName{
+				Name:      "mariadb-test-invalid",
+				Namespace: testNamespace,
+			}
+			invalidMariaDb := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      invalidMariaDbKey.Name,
+					Namespace: invalidMariaDbKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &invalidMariaDb)).To(Succeed())
+
+			By("Expecting not ready status consistently")
+			Consistently(func() bool {
+				if err := k8sClient.Get(testCtx, invalidMariaDbKey, &invalidMariaDb); err != nil {
+					return false
+				}
+				return !invalidMariaDb.IsReady()
+			}, 5*time.Second, testInterval)
+
+			By("Deleting MariaDB")
+			Expect(k8sClient.Delete(testCtx, &invalidMariaDb)).To(Succeed())
+		})
+	})
+
+	Context("When bootstrapping from a non existing backup", func() {
+		It("Should report not ready status", func() {
+			By("Creating MariaDB")
+			noBackupKey := types.NamespacedName{
+				Name:      "mariadb-test-no-backup",
+				Namespace: testNamespace,
+			}
+			noBackup := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      noBackupKey.Name,
+					Namespace: noBackupKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
+					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
+						BackupRef: &corev1.LocalObjectReference{
+							Name: "foo",
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &noBackup)).To(Succeed())
+
+			By("Expecting not ready status consistently")
+			Consistently(func() bool {
+				if err := k8sClient.Get(testCtx, noBackupKey, &noBackup); err != nil {
+					return false
+				}
+				return !noBackup.IsReady()
+			}, 5*time.Second, testInterval)
+
+			By("Deleting MariaDB")
+			Expect(k8sClient.Delete(testCtx, &noBackup)).To(Succeed())
+		})
+	})
+
+	Context("When updating a MariaDB", func() {
+		It("Should reconcile", func() {
+			By("Performing update")
+			updateMariaDBKey := types.NamespacedName{
+				Name:      "test-update-mariadb",
+				Namespace: testNamespace,
+			}
+			updateMariaDB := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      updateMariaDBKey.Name,
+					Namespace: updateMariaDBKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &testStorageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &updateMariaDB)).To(Succeed())
+			updateMariaDB.Spec.Port = 3307
+			Expect(k8sClient.Update(testCtx, &updateMariaDB)).To(Succeed())
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
+					return false
+				}
+				return updateMariaDB.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting port to be updated in StatefulSet")
+			var sts appsv1.StatefulSet
+			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &sts)).To(Succeed())
+			containerPort, err := builder.StatefulSetPort(&sts)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(containerPort.ContainerPort).To(BeEquivalentTo(3307))
+
+			By("Expecting port to be updated in Service")
+			var svc corev1.Service
+			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &svc)).To(Succeed())
+			svcPort, err := builder.MariaDBPort(&svc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(svcPort.Port).To(BeEquivalentTo(3307))
+
+			By("Deleting MariaDB")
+			Expect(k8sClient.Delete(testCtx, &updateMariaDB)).To(Succeed())
+		})
+	})
+})
+
+var _ = Describe("MariaDB replication", func() {
 	Context("When creating a MariaDB with replication", func() {
 		It("Should reconcile and switch primary", func() {
 			testRplMariaDb := mariadbv1alpha1.MariaDB{
@@ -180,6 +358,12 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+						},
+					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
@@ -203,10 +387,6 @@ var _ = Describe("MariaDB controller", func() {
 							Key: &testConnSecretKey,
 						},
 					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
-					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
 						Resources: corev1.ResourceRequirements{
@@ -227,34 +407,6 @@ var _ = Describe("MariaDB controller", func() {
 						max_allowed_packet=256M`
 						return &cfg
 					}(),
-					LivenessProbe: &corev1.Probe{
-						ProbeHandler: corev1.ProbeHandler{
-							Exec: &corev1.ExecAction{
-								Command: []string{
-									"bash",
-									"-c",
-									"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
-								},
-							},
-						},
-						InitialDelaySeconds: 10,
-						TimeoutSeconds:      5,
-						PeriodSeconds:       5,
-					},
-					ReadinessProbe: &corev1.Probe{
-						ProbeHandler: corev1.ProbeHandler{
-							Exec: &corev1.ExecAction{
-								Command: []string{
-									"bash",
-									"-c",
-									"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
-								},
-							},
-						},
-						InitialDelaySeconds: 10,
-						TimeoutSeconds:      5,
-						PeriodSeconds:       5,
-					},
 					Replication: &mariadbv1alpha1.Replication{
 						Primary: mariadbv1alpha1.PrimaryReplication{
 							PodIndex:          0,
@@ -300,24 +452,33 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return testRplMariaDb.IsReady()
-			}, 90*time.Second, 5*time.Second).Should(BeTrue())
+			}, 90*time.Second, testInterval).Should(BeTrue())
 
-			By("Expecting to create a PodDisruptionBudget")
-			var pdb policyv1.PodDisruptionBudget
-			Expect(k8sClient.Get(testCtx, replresources.PodDisruptionBudgetKey(&testRplMariaDb), &pdb)).To(Succeed())
-
-			By("Expecting to create a primary Service")
-			var svc corev1.Service
-			Expect(k8sClient.Get(testCtx, replresources.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
-
-			By("Expecting MariaDB primary Connection to be ready eventually")
+			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, replresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting primary Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting to create a PodDisruptionBudget")
+			var pdb policyv1.PodDisruptionBudget
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &pdb)).To(Succeed())
+
+			By("Expecting to create a primary Service")
+			var svc corev1.Service
+			Expect(k8sClient.Get(testCtx, ctrlresources.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
 
 			By("Updating MariaDB")
 			testRplMariaDb.Spec.Replication.Primary.PodIndex = 1
@@ -360,72 +521,54 @@ var _ = Describe("MariaDB controller", func() {
 				return false
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &testRplMariaDb); err != nil {
+					return false
+				}
+				return testRplMariaDb.IsReady()
+			}, 90*time.Second, testInterval).Should(BeTrue())
+
+			By("Expecting Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting primary Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &testRplMariaDb)).To(Succeed())
 		})
 	})
+})
 
-	Context("When creating an invalid MariaDB", func() {
-		It("Should report not ready status", func() {
-			By("Creating MariaDB")
-			invalidMariaDbKey := types.NamespacedName{
-				Name:      "mariadb-test-invalid",
-				Namespace: testNamespace,
-			}
-			invalidMariaDb := mariadbv1alpha1.MariaDB{
+var _ = Describe("MariaDB Galera", func() {
+	Context("When creating a MariaDB Galera", func() {
+		It("Should reconcile and recover cluster", func() {
+			timeout := 5 * time.Minute
+			clusterHealthyTimeout := metav1.Duration{Duration: 30 * time.Second}
+			recoveryTimeout := metav1.Duration{Duration: timeout}
+			testMariaDbGalera := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      invalidMariaDbKey.Name,
-					Namespace: invalidMariaDbKey.Namespace,
+					Name:      "mariadb-galera",
+					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
-					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &testStorageClassName,
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
-							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &invalidMariaDb)).To(Succeed())
-
-			By("Expecting not ready status consistently")
-			Consistently(func() bool {
-				if err := k8sClient.Get(testCtx, invalidMariaDbKey, &invalidMariaDb); err != nil {
-					return false
-				}
-				return !invalidMariaDb.IsReady()
-			}, 5*time.Second, testInterval)
-
-			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &invalidMariaDb)).To(Succeed())
-		})
-	})
-
-	Context("When bootstrapping from a non existing backup", func() {
-		It("Should report not ready status", func() {
-			By("Creating MariaDB")
-			noBackupKey := types.NamespacedName{
-				Name:      "mariadb-test-no-backup",
-				Namespace: testNamespace,
-			}
-			noBackup := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      noBackupKey.Name,
-					Namespace: noBackupKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
-							Name: "foo",
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: mariadbv1alpha1.Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -434,60 +577,22 @@ var _ = Describe("MariaDB controller", func() {
 						},
 						Key: testPwdSecretKey,
 					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
-					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &testStorageClassName,
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
-							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &noBackup)).To(Succeed())
-
-			By("Expecting not ready status consistently")
-			Consistently(func() bool {
-				if err := k8sClient.Get(testCtx, noBackupKey, &noBackup); err != nil {
-					return false
-				}
-				return !noBackup.IsReady()
-			}, 5*time.Second, testInterval)
-
-			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &noBackup)).To(Succeed())
-		})
-	})
-
-	Context("When updating a MariaDB", func() {
-		It("Should reconcile", func() {
-			By("Performing update")
-			updateMariaDBKey := types.NamespacedName{
-				Name:      "test-update-mariadb",
-				Namespace: testNamespace,
-			}
-			updateMariaDB := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      updateMariaDBKey.Name,
-					Namespace: updateMariaDBKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+					Username: &testUser,
+					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
 					},
-					Image: mariadbv1alpha1.Image{
-						Repository: "mariadb",
-						Tag:        "10.11.3",
+					Database: &testDatabase,
+					Connection: &mariadbv1alpha1.ConnectionTemplate{
+						SecretName: func() *string {
+							s := "conn-mdb-galera"
+							return &s
+						}(),
+						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+							Key: &testConnSecretKey,
+						},
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 						StorageClassName: &testStorageClassName,
@@ -500,36 +605,152 @@ var _ = Describe("MariaDB controller", func() {
 							corev1.ReadWriteOnce,
 						},
 					},
+					MyCnf: func() *string {
+						cfg := `[mysqld]
+						bind-address=0.0.0.0
+						default_storage_engine=InnoDB
+						binlog_format=row
+						innodb_autoinc_lock_mode=2
+						max_allowed_packet=256M`
+						return &cfg
+					}(),
+					Galera: &mariadbv1alpha1.Galera{
+						SST:            mariadbv1alpha1.SSTMariaBackup,
+						ReplicaThreads: 1,
+						Agent: mariadbv1alpha1.GaleraAgent{
+							ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+								Image: mariadbv1alpha1.Image{
+									Repository: "ghcr.io/mariadb-operator/agent",
+									Tag:        "v0.0.1",
+								},
+							},
+							Port: 5555,
+							GracefulShutdownTimeout: func() *metav1.Duration {
+								t := metav1.Duration{Duration: 1 * time.Second}
+								return &t
+							}(),
+						},
+						Recovery: mariadbv1alpha1.GaleraRecovery{
+							Enabled:                 true,
+							ClusterHealthyTimeout:   &clusterHealthyTimeout,
+							ClusterBootstrapTimeout: &recoveryTimeout,
+							PodRecoveryTimeout:      &recoveryTimeout,
+							PodSyncTimeout:          &recoveryTimeout,
+						},
+						InitContainer: mariadbv1alpha1.ContainerTemplate{
+							Image: mariadbv1alpha1.Image{
+								Repository: "ghcr.io/mariadb-operator/init",
+								Tag:        "v0.0.1",
+							},
+						},
+						VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+							StorageClassName: &testStorageClassName,
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("10Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+					Replicas: 3,
+					Service: &mariadbv1alpha1.Service{
+						Type: corev1.ServiceTypeLoadBalancer,
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": "172.18.0.150",
+						},
+					},
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &updateMariaDB)).To(Succeed())
-			updateMariaDB.Spec.Port = 3307
-			Expect(k8sClient.Update(testCtx, &updateMariaDB)).To(Succeed())
+
+			By("Creating MariaDB Galera")
+			Expect(k8sClient.Create(testCtx, &testMariaDbGalera)).To(Succeed())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
 					return false
 				}
-				return updateMariaDB.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
+				return testMariaDbGalera.IsReady()
+			}, timeout, testInterval).Should(BeTrue())
+			By("Expecting Galera to be configured eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.HasGaleraConfiguredCondition()
+			}, timeout, testInterval).Should(BeTrue())
+			By("Expecting Galera to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.HasGaleraReadyCondition()
+			}, timeout, testInterval).Should(BeTrue())
+			By("Expecting Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, timeout, testInterval).Should(BeTrue())
 
-			By("Expecting port to be updated in StatefulSet")
-			var sts appsv1.StatefulSet
-			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &sts)).To(Succeed())
-			containerPort, err := builder.StatefulSetPort(&sts)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(containerPort.ContainerPort).To(BeEquivalentTo(3307))
+			By("Expecting to create a PodDisruptionBudget")
+			var pdb policyv1.PodDisruptionBudget
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &pdb)).To(Succeed())
 
-			By("Expecting port to be updated in Service")
-			var svc corev1.Service
-			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &svc)).To(Succeed())
-			svcPort, err := builder.MariaDBPort(&svc)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(svcPort.Port).To(BeEquivalentTo(3307))
+			By("Tearing down Pods")
+			opts := []client.DeleteAllOfOption{
+				client.MatchingLabels{
+					"app.kubernetes.io/instance": testMariaDbGalera.Name,
+				},
+				client.InNamespace(testMariaDbGalera.Namespace),
+			}
+			Expect(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, opts...)).To(Succeed())
+
+			By("Expecting MariaDB NOT to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.IsReady()
+			}, timeout, testInterval).Should(BeTrue())
+			By("Expecting Galera NOT to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.HasGaleraNotReadyCondition()
+			}, timeout, testInterval).Should(BeTrue())
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.IsReady()
+			}, timeout, testInterval).Should(BeTrue())
+			By("Expecting Galera to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &testMariaDbGalera); err != nil {
+					return false
+				}
+				return testMariaDbGalera.HasGaleraReadyCondition()
+			}, timeout, testInterval).Should(BeTrue())
+			By("Expecting Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, timeout, testInterval).Should(BeTrue())
 
 			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &updateMariaDB)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &testMariaDbGalera)).To(Succeed())
 		})
 	})
 })

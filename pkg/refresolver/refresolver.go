@@ -2,13 +2,21 @@ package refresolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	ErrMariaDBAnnotationNotFound = errors.New("MariaDB annotation not found")
 )
 
 type RefResolver struct {
@@ -30,6 +38,26 @@ func (r *RefResolver) MariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBR
 	var mariadb mariadbv1alpha1.MariaDB
 	if err := r.client.Get(ctx, nn, &mariadb); err != nil {
 		return nil, err
+	}
+	return &mariadb, nil
+}
+
+func (r *RefResolver) MariaDBFromAnnotation(ctx context.Context, objMeta metav1.ObjectMeta) (*mariadbv1alpha1.MariaDB, error) {
+	mariadbAnnotation, ok := objMeta.Annotations[annotation.MariadbAnnotation]
+	if !ok {
+		return nil, ErrMariaDBAnnotationNotFound
+	}
+
+	var mariadb mariadbv1alpha1.MariaDB
+	key := types.NamespacedName{
+		Name:      mariadbAnnotation,
+		Namespace: objMeta.Namespace,
+	}
+	if err := r.client.Get(ctx, key, &mariadb); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("error getting MariaDB from annotation '%s': %v", objMeta.Name, err)
 	}
 	return &mariadb, nil
 }

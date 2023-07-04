@@ -67,6 +67,13 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
   - persistentvolumeclaims
   verbs:
   - create
@@ -78,6 +85,7 @@ rules:
   resources:
   - pods
   verbs:
+  - delete
   - get
   - list
   - watch
@@ -93,6 +101,13 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - get
+- apiGroups:
+  - ""
+  resources:
   - services
   verbs:
   - create
@@ -105,6 +120,7 @@ rules:
   - statefulsets
   verbs:
   - create
+  - get
   - list
   - patch
   - watch
@@ -359,9 +375,15 @@ rules:
   - poddisruptionbudgets
   verbs:
   - create
-  - list
-  - patch
-  - watch
+  - get
+- apiGroups:
+  - rbac
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

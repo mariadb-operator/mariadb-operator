@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -71,8 +72,8 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 	if err := client.ResetSlavePos(ctx); err != nil {
 		return fmt.Errorf("error resetting slave position: %v", err)
 	}
-	if err := client.SetReadOnly(ctx); err != nil {
-		return fmt.Errorf("error setting read_only: %v", err)
+	if err := client.EnableReadOnly(ctx); err != nil {
+		return fmt.Errorf("error enabling read_only: %v", err)
 	}
 	if err := r.configureReplicaVars(ctx, mariadb, client, replicaPodIndex); err != nil {
 		return fmt.Errorf("error configuring replication variables: %v", err)
@@ -104,7 +105,7 @@ func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *m
 		}
 		kv["rpl_semi_sync_master_wait_point"] = waitPoint
 	}
-	if err := client.SetGlobalVars(ctx, kv); err != nil {
+	if err := client.SetSystemVariables(ctx, kv); err != nil {
 		return fmt.Errorf("error setting replication vars: %v", err)
 	}
 	return nil
@@ -118,7 +119,7 @@ func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *m
 		"rpl_semi_sync_slave_enabled":  "ON",
 		"server_id":                    serverId(ordinal),
 	}
-	if err := client.SetGlobalVars(ctx, kv); err != nil {
+	if err := client.SetSystemVariables(ctx, kv); err != nil {
 		return fmt.Errorf("error setting replication vars: %v", err)
 	}
 	return nil
@@ -142,9 +143,10 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 
 	changeMasterOpts := &mariadbclient.ChangeMasterOpts{
 		Connection: connectionName,
-		Host: statefulset.PodFQDN(
+		Host: statefulset.PodFQDNWithService(
 			mariadb.ObjectMeta,
 			primaryPodIndex,
+			ctrlresources.InternalServiceKey(mariadb).Name,
 		),
 		User:     replUser,
 		Password: string(replSecret.Data[passwordSecretKey]),

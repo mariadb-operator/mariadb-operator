@@ -5,15 +5,18 @@ const (
 	ConditionTypeBackupRestored        string = "BackupRestored"
 	ConditionTypeReplicationConfigured string = "ReplicationConfigured"
 	ConditionTypePrimarySwitched       string = "PrimarySwitched"
+	ConditionTypeGaleraReady           string = "GaleraReady"
+	ConditionTypeGaleraConfigured      string = "GaleraConfigured"
 	ConditionTypeComplete              string = "Complete"
-)
 
-const (
 	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady     string = "StatefulSetReady"
 	ConditionReasonRestoreBackup        string = "RestoreBackup"
 	ConditionReasonConfigureReplication string = "ConfigureReplication"
 	ConditionReasonSwitchPrimary        string = "SwitchPrimary"
+	ConditionReasonGaleraReady          string = "GaleraReady"
+	ConditionReasonGaleraNotReady       string = "GaleraNotReady"
+	ConditionReasonGaleraConfigured     string = "GaleraConfigured"
 
 	ConditionReasonRestoreNotComplete string = "RestoreNotComplete"
 	ConditionReasonRestoreComplete    string = "RestoreComplete"

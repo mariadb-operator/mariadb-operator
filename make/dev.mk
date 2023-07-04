@@ -16,7 +16,7 @@ build: ## Build binary.
 
 .PHONY: test
 test: envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test -timeout 20m -v ./... -coverprofile cover.out
 
 .PHONY: cover
 cover: test ## Run tests and generate coverage.
@@ -28,7 +28,7 @@ release: goreleaser ## Test release locally.
 
 ##@ Operator
 
-RUN_FLAGS ?= --service-monitor-reconciler --log-dev --log-level=debug
+RUN_FLAGS ?= --service-monitor-reconciler --log-dev --log-level=debug --log-time-encoder=iso8601
 .PHONY: run
 run: lint ## Run a controller from your host.
 	go run main.go $(RUN_FLAGS)

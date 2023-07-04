@@ -82,6 +82,43 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 			Namespace: testMariaDbKey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
+			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+				Image: mariadbv1alpha1.Image{
+					Repository: "mariadb",
+					Tag:        "10.11.3",
+				},
+				SecurityContext: &corev1.SecurityContext{
+					AllowPrivilegeEscalation: func() *bool { b := false; return &b }(),
+				},
+				LivenessProbe: &v1.Probe{
+					ProbeHandler: v1.ProbeHandler{
+						Exec: &v1.ExecAction{
+							Command: []string{
+								"bash",
+								"-c",
+								"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+							},
+						},
+					},
+					InitialDelaySeconds: 10,
+					TimeoutSeconds:      5,
+					PeriodSeconds:       5,
+				},
+				ReadinessProbe: &v1.Probe{
+					ProbeHandler: v1.ProbeHandler{
+						Exec: &v1.ExecAction{
+							Command: []string{
+								"bash",
+								"-c",
+								"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+							},
+						},
+					},
+					InitialDelaySeconds: 10,
+					TimeoutSeconds:      5,
+					PeriodSeconds:       5,
+				},
+			},
 			InheritMetadata: &mariadbv1alpha1.InheritMetadata{
 				Labels: map[string]string{
 					"mariadb.mmontes.io/test": "test",
@@ -110,10 +147,6 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 					Key: &testConnSecretKey,
 				},
 			},
-			Image: mariadbv1alpha1.Image{
-				Repository: "mariadb",
-				Tag:        "10.11.3",
-			},
 			VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
 				StorageClassName: &testStorageClassName,
 				Resources: corev1.ResourceRequirements{
@@ -134,39 +167,9 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 				max_allowed_packet=256M`
 				return &cfg
 			}(),
+			Port: 3306,
 			PodSecurityContext: &corev1.PodSecurityContext{
 				RunAsUser: func() *int64 { u := int64(0); return &u }(),
-			},
-			SecurityContext: &corev1.SecurityContext{
-				AllowPrivilegeEscalation: func() *bool { b := false; return &b }(),
-			},
-			LivenessProbe: &v1.Probe{
-				ProbeHandler: v1.ProbeHandler{
-					Exec: &v1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
-						},
-					},
-				},
-				InitialDelaySeconds: 10,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
-			},
-			ReadinessProbe: &v1.Probe{
-				ProbeHandler: v1.ProbeHandler{
-					Exec: &v1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mysql -u root -p${MARIADB_ROOT_PASSWORD} -e \"SELECT 1;\"",
-						},
-					},
-				},
-				InitialDelaySeconds: 10,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
 			},
 			Service: &mariadbv1alpha1.Service{
 				Type: corev1.ServiceTypeLoadBalancer,

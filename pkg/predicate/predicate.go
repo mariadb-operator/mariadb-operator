@@ -1,0 +1,43 @@
+package predicate
+
+import (
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+)
+
+func PredicateWithAnnotations(annotations []string) predicate.Predicate {
+	return PredicateChangedWithAnnotations(annotations, func(old, new client.Object) bool {
+		return true
+	})
+}
+
+func PredicateChangedWithAnnotations(annotations []string, hasChanged func(old, new client.Object) bool) predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return hasAnnotations(e.Object, annotations)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if !hasAnnotations(e.ObjectOld, annotations) || !hasAnnotations(e.ObjectNew, annotations) {
+				return false
+			}
+			return hasChanged(e.ObjectOld, e.ObjectNew)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return hasAnnotations(e.Object, annotations)
+		},
+	}
+}
+
+func hasAnnotations(o client.Object, annotations []string) bool {
+	objAnnotations := o.GetAnnotations()
+	for _, a := range annotations {
+		if _, ok := objAnnotations[a]; !ok {
+			return false
+		}
+	}
+	return true
+}

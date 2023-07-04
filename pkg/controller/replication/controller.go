@@ -6,43 +6,41 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
-	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	corev1 "k8s.io/api/core/v1"
-	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ReplicationReconciler struct {
 	client.Client
-	ReplConfig       *ReplicationConfig
-	SecretReconciler *secret.SecretReconciler
-	Builder          *builder.Builder
-	RefResolver      *refresolver.RefResolver
+	Builder           *builder.Builder
+	RefResolver       *refresolver.RefResolver
+	ReplConfig        *ReplicationConfig
+	SecretReconciler  *secret.SecretReconciler
+	ServiceReconciler *service.ServiceReconciler
 }
 
-func NewReplicationReconciler(client client.Client, replConfig *ReplicationConfig,
-	secretReconciler *secret.SecretReconciler, builder *builder.Builder) *ReplicationReconciler {
+func NewReplicationReconciler(client client.Client, builder *builder.Builder, replConfig *ReplicationConfig,
+	secretReconciler *secret.SecretReconciler, serviceReconciler *service.ServiceReconciler) *ReplicationReconciler {
 	return &ReplicationReconciler{
-		Client:           client,
-		ReplConfig:       replConfig,
-		SecretReconciler: secretReconciler,
-		Builder:          builder,
-		RefResolver:      refresolver.New(client),
+		Client:            client,
+		Builder:           builder,
+		RefResolver:       refresolver.New(client),
+		ReplConfig:        replConfig,
+		SecretReconciler:  secretReconciler,
+		ServiceReconciler: serviceReconciler,
 	}
 }
 
 type reconcileRequest struct {
 	mariadb   *mariadbv1alpha1.MariaDB
 	key       types.NamespacedName
-	clientSet *mariadbClientSet
+	clientSet *replicationClientSet
 }
 
 type replicationPhase struct {
@@ -56,7 +54,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		return nil
 	}
 	if mariadb.IsSwitchingPrimary() {
-		clientSet, err := newMariaDBClientSet(mariadb, r.RefResolver)
+		clientSet, err := newReplicationClientSet(mariadb, r.RefResolver)
 		if err != nil {
 			return fmt.Errorf("error creating mariadb clientset: %v", err)
 		}
@@ -80,7 +78,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		return nil
 	}
 
-	clientSet, err := newMariaDBClientSet(mariadb, r.RefResolver)
+	clientSet, err := newReplicationClientSet(mariadb, r.RefResolver)
 	if err != nil {
 		return fmt.Errorf("error creating mariadb clientset: %v", err)
 	}
@@ -102,21 +100,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 			name:      "reconcile Replicas",
 			key:       mariaDbKey,
 			reconcile: r.reconcileReplicas,
-		},
-		{
-			name:      "reconcile PodDisruptionBudget",
-			key:       replresources.PodDisruptionBudgetKey(mariadb),
-			reconcile: r.reconcilePodDisruptionBudget,
-		},
-		{
-			name:      "reconcile primary Service",
-			reconcile: r.reconcilePrimaryService,
-			key:       replresources.PrimaryServiceKey(mariadb),
-		},
-		{
-			name:      "reconcile primary Connection",
-			key:       replresources.PrimaryConnectioneKey(mariadb),
-			reconcile: r.reconcilePrimaryConn,
 		},
 		{
 			name:      "set configured replication status",
@@ -183,100 +166,6 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 		}
 	}
 	return nil
-}
-
-func (r *ReplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context, req *reconcileRequest) error {
-	if req.mariadb.Spec.PodDisruptionBudget != nil {
-		return nil
-	}
-	key := replresources.PodDisruptionBudgetKey(req.mariadb)
-	var existingPDB policyv1.PodDisruptionBudget
-	if err := r.Get(ctx, key, &existingPDB); err == nil {
-		return nil
-	}
-
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDB(req.mariadb).
-			Build()
-	minAvailable := intstr.FromString("50%")
-	opts := builder.PodDisruptionBudgetOpts{
-		MariaDB:        req.mariadb,
-		Key:            key,
-		MinAvailable:   &minAvailable,
-		SelectorLabels: selectorLabels,
-	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, req.mariadb)
-	if err != nil {
-		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
-	}
-	return r.Create(ctx, pdb)
-}
-
-func (r *ReplicationReconciler) reconcilePrimaryService(ctx context.Context, req *reconcileRequest) error {
-	serviceLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDB(req.mariadb).
-			WithStatefulSetPod(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex).
-			Build()
-	opts := builder.ServiceOpts{
-		Selectorlabels: serviceLabels,
-	}
-	if req.mariadb.Spec.Replication.Primary.Service != nil {
-		opts.Type = req.mariadb.Spec.Replication.Primary.Service.Type
-		opts.Annotations = req.mariadb.Spec.Replication.Primary.Service.Annotations
-	}
-	desiredSvc, err := r.Builder.BuildService(req.mariadb, req.key, opts)
-	if err != nil {
-		return fmt.Errorf("error building Service: %v", err)
-	}
-
-	var existingSvc corev1.Service
-	if err := r.Get(ctx, req.key, &existingSvc); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("error getting Service: %v", err)
-		}
-		if err := r.Create(ctx, desiredSvc); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	patch := client.MergeFrom(existingSvc.DeepCopy())
-	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
-	return r.Patch(ctx, &existingSvc, patch)
-}
-
-func (r *ReplicationReconciler) reconcilePrimaryConn(ctx context.Context, req *reconcileRequest) error {
-	if req.mariadb.Spec.Replication.Primary.Connection == nil ||
-		req.mariadb.Spec.Username == nil || req.mariadb.Spec.PasswordSecretKeyRef == nil ||
-		!req.mariadb.IsReady() {
-		return nil
-	}
-	var existingConn mariadbv1alpha1.Connection
-	if err := r.Get(ctx, req.key, &existingConn); err == nil {
-		return nil
-	}
-
-	connTpl := req.mariadb.Spec.Replication.Primary.Connection
-	if req.mariadb.Spec.Replication != nil {
-		serviceName := replresources.PrimaryServiceKey(req.mariadb).Name
-		connTpl.ServiceName = &serviceName
-	}
-
-	connOpts := builder.ConnectionOpts{
-		MariaDB:              req.mariadb,
-		Key:                  req.key,
-		Username:             *req.mariadb.Spec.Username,
-		PasswordSecretKeyRef: *req.mariadb.Spec.PasswordSecretKeyRef,
-		Database:             req.mariadb.Spec.Database,
-		Template:             connTpl,
-	}
-	conn, err := r.Builder.BuildConnection(connOpts, req.mariadb)
-	if err != nil {
-		return fmt.Errorf("erro building primary Connection: %v", err)
-	}
-	return r.Create(ctx, conn)
 }
 
 func (r *ReplicationReconciler) setConfiguredReplication(ctx context.Context, req *reconcileRequest) error {

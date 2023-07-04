@@ -27,8 +27,11 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -95,25 +98,41 @@ var _ = BeforeSuite(func() {
 
 	client := k8sManager.GetClient()
 	scheme := k8sManager.GetScheme()
+	galeraRecorder := k8sManager.GetEventRecorderFor("galera")
+
 	builder := builder.New(scheme)
 	refResolver := refresolver.New(client)
+
 	conditionReady := conditions.NewReady()
 	conditionComplete := conditions.NewComplete(client)
-	myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
-	jobConfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
+
+	configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 	secretReconciler := secret.NewSecretReconciler(client, builder)
-	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
-	replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
+	serviceReconciler := service.NewServiceReconciler(client)
 	batchReconciler := batch.NewBatchReconciler(client, builder)
+	rbacReconciler := rbac.NewRBACReconiler(client, builder)
+
+	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+	replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
+	galeraReconciler := galera.NewGaleraReconciler(client, galeraRecorder, builder, configMapReconciler, serviceReconciler)
 
 	err = (&MariaDBReconciler{
-		Client:                   client,
-		Scheme:                   scheme,
-		Builder:                  builder,
-		ConditionReady:           conditionReady,
-		ConfigMapReconciler:      myCnfCconfigMapReconciler,
-		ReplicationReconciler:    replicationReconciler,
+		Client: client,
+		Scheme: scheme,
+
+		Builder:        builder,
+		RefResolver:    refResolver,
+		ConditionReady: conditionReady,
+
 		ServiceMonitorReconciler: true,
+
+		ConfigMapReconciler: configMapReconciler,
+		SecretReconciler:    secretReconciler,
+		ServiceReconciler:   serviceReconciler,
+		RBACReconciler:      rbacReconciler,
+
+		ReplicationReconciler: replicationReconciler,
+		GaleraReconciler:      galeraReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -176,19 +195,26 @@ var _ = BeforeSuite(func() {
 		Scheme:              scheme,
 		Builder:             builder,
 		RefResolver:         refResolver,
-		ConfigMapReconciler: jobConfigMapReconciler,
+		ConfigMapReconciler: configMapReconciler,
 		ConditionComplete:   conditionComplete,
 		RequeueInterval:     5 * time.Second,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&PodReconciler{
+	err = (&PodReplicationController{
 		Client:           client,
 		Scheme:           scheme,
 		ReplConfig:       replConfig,
 		SecretReconciler: secretReconciler,
 		Builder:          builder,
 		RefResolver:      refResolver,
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&StatefulSetGaleraReconciler{
+		Client:      client,
+		RefResolver: refResolver,
+		Recorder:    galeraRecorder,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

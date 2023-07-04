@@ -51,6 +51,26 @@ type SecretTemplate struct {
 	DatabaseKey *string           `json:"databaseKey,omitempty"`
 }
 
+type ContainerTemplate struct {
+	// +kubebuilder:validation:Required
+	Image Image `json:"image" webhook:"inmutable"`
+
+	Command []string `json:"command,omitempty"`
+	Args    []string `json:"args,omitempty"`
+
+	Env     []corev1.EnvVar        `json:"env,omitempty"`
+	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
+
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty" webhook:"inmutable"`
+
+	LivenessProbe  *corev1.Probe `json:"livenessProbe,omitempty"`
+	ReadinessProbe *corev1.Probe `json:"readinessProbe,omitempty"`
+
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+}
+
 type HealthCheck struct {
 	Interval      *metav1.Duration `json:"interval,omitempty"`
 	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
@@ -100,8 +120,9 @@ func (r *RestoreSource) Validate() error {
 type Schedule struct {
 	// +kubebuilder:validation:Required
 	Cron string `json:"cron"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
-	Suspend bool `json:"suspend,omitempty"`
+	Suspend bool `json:"suspend"`
 }
 
 func (s *Schedule) Validate() error {

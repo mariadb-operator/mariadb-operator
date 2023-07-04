@@ -36,30 +36,36 @@ var _ webhook.Validator = &MariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateCreate() error {
-	if err := r.validateReplication(); err != nil {
-		return err
+	validateFns := []func() error{
+		r.validateReplicas,
+		r.validateGalera,
+		r.validateReplication,
+		r.validateBootstrapFrom,
+		r.validatePodDisruptionBudget,
 	}
-	if err := r.validateBootstrapFrom(); err != nil {
-		return err
-	}
-	if err := r.validatePodDisruptionBudget(); err != nil {
-		return err
+	for _, fn := range validateFns {
+		if err := fn(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
+	validateFns := []func() error{
+		r.validateReplicas,
+		r.validateGalera,
+		r.validateReplication,
+		r.validateBootstrapFrom,
+		r.validatePodDisruptionBudget,
+	}
+	for _, fn := range validateFns {
+		if err := fn(); err != nil {
+			return err
+		}
+	}
 	oldMariadb := old.(*MariaDB)
-	if err := r.validateReplication(); err != nil {
-		return err
-	}
-	if err := r.validateBootstrapFrom(); err != nil {
-		return err
-	}
-	if err := r.validatePodDisruptionBudget(); err != nil {
-		return err
-	}
 	if err := r.validatePrimarySwitchover(oldMariadb); err != nil {
 		return err
 	}
@@ -71,36 +77,62 @@ func (r *MariaDB) ValidateDelete() error {
 	return nil
 }
 
-func (r *MariaDB) validateReplication() error {
-	if r.Spec.Replication == nil && r.Spec.Replicas > 1 {
+func (r *MariaDB) validateReplicas() error {
+	if !r.IsHAEnabled() && r.Spec.Replicas > 1 {
 		return field.Invalid(
 			field.NewPath("spec").Child("replicas"),
 			r.Spec.Replicas,
-			"Multiple replicas can only be specified when 'spec.replication' is configured",
+			"Multiple replicas can only be specified when 'spec.replication' or 'spec.galera' are configured",
 		)
 	}
-	if r.Spec.Replication != nil {
-		if r.Spec.Replicas <= 1 {
-			return field.Invalid(
-				field.NewPath("spec").Child("replicas"),
-				r.Spec.Replicas,
-				"Multiple replicas must be specified when 'spec.replication' is configured",
-			)
-		}
-		if r.Spec.Replication.Primary.PodIndex < 0 || r.Spec.Replication.Primary.PodIndex >= int(r.Spec.Replicas) {
-			return field.Invalid(
-				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
-				r.Spec.Replication.Primary.PodIndex,
-				"'spec.replication.primary.podIndex' out of 'spec.replicas' bounds",
-			)
-		}
-		if err := r.Spec.Replication.Replica.Validate(); err != nil {
-			return field.Invalid(
-				field.NewPath("spec").Child("replication").Child("replica"),
-				r.Spec.Replication,
-				err.Error(),
-			)
-		}
+	if r.IsHAEnabled() && r.Spec.Replicas <= 1 {
+		return field.Invalid(
+			field.NewPath("spec").Child("replicas"),
+			r.Spec.Replicas,
+			"Multiple replicas must be specified when 'spec.replication' or 'spec.galera' are configured",
+		)
+	}
+	return nil
+}
+
+func (r *MariaDB) validateGalera() error {
+	if r.Spec.Galera == nil {
+		return nil
+	}
+	if err := r.Spec.Galera.SST.Validate(); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("galera").Child("sst"),
+			r.Spec.Galera.SST,
+			err.Error(),
+		)
+	}
+	if r.Spec.Galera.ReplicaThreads < 1 {
+		return field.Invalid(
+			field.NewPath("spec").Child("galera").Child("replicaThreads"),
+			r.Spec.Replication.Primary.PodIndex,
+			"'spec.galera.replicaThreads' must be at least 1",
+		)
+	}
+	return nil
+}
+
+func (r *MariaDB) validateReplication() error {
+	if r.Spec.Replication == nil {
+		return nil
+	}
+	if r.Spec.Replication.Primary.PodIndex < 0 || r.Spec.Replication.Primary.PodIndex >= int(r.Spec.Replicas) {
+		return field.Invalid(
+			field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
+			r.Spec.Replication.Primary.PodIndex,
+			"'spec.replication.primary.podIndex' out of 'spec.replicas' bounds",
+		)
+	}
+	if err := r.Spec.Replication.Replica.Validate(); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("replication").Child("replica"),
+			r.Spec.Replication,
+			err.Error(),
+		)
 	}
 	return nil
 }

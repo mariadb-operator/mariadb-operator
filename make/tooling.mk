@@ -27,6 +27,7 @@ GORELEASER_VERSION ?= v1.18.2
 FLUX_VERSION ?= 0.40.1
 YQ_VERSION ?= v4.18.1
 
+.PHONY: kind
 kind: $(KIND) ## Download kind locally if necessary.
 $(KIND): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kind@$(KIND_VERSION)

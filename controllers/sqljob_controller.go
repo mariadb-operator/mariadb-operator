@@ -162,7 +162,7 @@ func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *maria
 			},
 		}
 		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
-			return fmt.Errorf("error reconciling ConfigMap: %v", err)
+			return err
 		}
 	}
 	if sqlJob.Spec.SqlConfigMapKeyRef != nil {

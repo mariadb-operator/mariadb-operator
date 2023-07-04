@@ -31,8 +31,11 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -54,6 +57,7 @@ var (
 	logTimeEncoder           string
 	logDev                   bool
 	serviceMonitorReconciler bool
+	galeraRecoveryReconciler bool
 	requeueConnection        time.Duration
 	requeueSqlJob            time.Duration
 )
@@ -87,27 +91,41 @@ var rootCmd = &cobra.Command{
 
 		client := mgr.GetClient()
 		scheme := mgr.GetScheme()
+		galeraRecorder := mgr.GetEventRecorderFor("galera")
+
 		builder := builder.New(scheme)
 		refResolver := refresolver.New(client)
+
 		conditionReady := conditions.NewReady()
 		conditionComplete := conditions.NewComplete(client)
-		myCnfCconfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
-		jobConfigMapReconciler := configmap.NewConfigMapReconciler(client, builder)
+
+		configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 		secretReconciler := secret.NewSecretReconciler(client, builder)
-		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
-		replicationReconciler := replication.NewReplicationReconciler(client, replConfig, secretReconciler, builder)
+		serviceReconciler := service.NewServiceReconciler(client)
 		batchReconciler := batch.NewBatchReconciler(client, builder)
+		rbacReconciler := rbac.NewRBACReconiler(client, builder)
+
+		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+		replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
+		galeraReconciler := galera.NewGaleraReconciler(client, galeraRecorder, builder, configMapReconciler, serviceReconciler)
 
 		if err = (&controllers.MariaDBReconciler{
-			Client:                   client,
-			Scheme:                   scheme,
-			Builder:                  builder,
-			RefResolver:              refResolver,
-			ConditionReady:           conditionReady,
-			ConfigMapReconciler:      myCnfCconfigMapReconciler,
-			SecretReconciler:         secretReconciler,
-			ReplicationReconciler:    replicationReconciler,
+			Client: client,
+			Scheme: scheme,
+
+			Builder:        builder,
+			RefResolver:    refResolver,
+			ConditionReady: conditionReady,
+
 			ServiceMonitorReconciler: serviceMonitorReconciler,
+
+			ConfigMapReconciler: configMapReconciler,
+			SecretReconciler:    secretReconciler,
+			ServiceReconciler:   serviceReconciler,
+			RBACReconciler:      rbacReconciler,
+
+			ReplicationReconciler: replicationReconciler,
+			GaleraReconciler:      galeraReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
@@ -177,14 +195,14 @@ var rootCmd = &cobra.Command{
 			Scheme:              scheme,
 			Builder:             builder,
 			RefResolver:         refResolver,
-			ConfigMapReconciler: jobConfigMapReconciler,
+			ConfigMapReconciler: configMapReconciler,
 			ConditionComplete:   conditionComplete,
 			RequeueInterval:     requeueSqlJob,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "SqlJob")
 			os.Exit(1)
 		}
-		if err = (&controllers.PodReconciler{
+		if err = (&controllers.PodReplicationController{
 			Client:           client,
 			Scheme:           scheme,
 			ReplConfig:       replConfig,
@@ -192,8 +210,18 @@ var rootCmd = &cobra.Command{
 			Builder:          builder,
 			RefResolver:      refResolver,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Pod")
+			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
 			os.Exit(1)
+		}
+		if galeraRecoveryReconciler {
+			if err = (&controllers.StatefulSetGaleraReconciler{
+				Client:      client,
+				RefResolver: refResolver,
+				Recorder:    galeraRecorder,
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "StatefulSetGalera")
+				os.Exit(1)
+			}
 		}
 
 		setupLog.Info("starting manager")
@@ -219,6 +247,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
 		"Enabling this requires Prometheus CRDs installed in the cluster.")
+	rootCmd.Flags().BoolVar(&galeraRecoveryReconciler, "galera-recovery-reconciler", true, "Enable Galera recovery reconciler. "+
+		"This will automatically recover MariaDB Galera unhealthy clusters.")
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
 }

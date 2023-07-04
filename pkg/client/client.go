@@ -12,6 +12,10 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/hashicorp/go-multierror"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
 
 var (
@@ -27,11 +31,53 @@ type Opts struct {
 	Params   map[string]string
 }
 
+type Opt func(*Opts)
+
+func WithUsername(username string) Opt {
+	return func(o *Opts) {
+		o.Username = username
+	}
+}
+
+func WithPassword(password string) Opt {
+	return func(o *Opts) {
+		o.Password = password
+	}
+}
+
+func WitHost(host string) Opt {
+	return func(o *Opts) {
+		o.Host = host
+	}
+}
+
+func WithPort(port int32) Opt {
+	return func(o *Opts) {
+		o.Port = port
+	}
+}
+
+func WithDatabase(database string) Opt {
+	return func(o *Opts) {
+		o.Database = database
+	}
+}
+
+func WithParams(params map[string]string) Opt {
+	return func(o *Opts) {
+		o.Params = params
+	}
+}
+
 type Client struct {
 	db *sql.DB
 }
 
-func NewClient(opts Opts) (*Client, error) {
+func NewClient(clientOpts ...Opt) (*Client, error) {
+	opts := Opts{}
+	for _, setOpt := range clientOpts {
+		setOpt(&opts)
+	}
 	dsn, err := BuildDSN(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error building DNS: %v", err)
@@ -43,6 +89,45 @@ func NewClient(opts Opts) (*Client, error) {
 	return &Client{
 		db: db,
 	}, nil
+}
+
+func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver,
+	clientOpts ...Opt) (*Client, error) {
+	password, err := refResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef, mariadb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error reading root password secret: %v", err)
+	}
+	opts := []Opt{
+		WithUsername("root"),
+		WithPassword(password),
+		WitHost(func() string {
+			if mariadb.Spec.Replication != nil {
+				return statefulset.ServiceFQDNWithService(
+					mariadb.ObjectMeta,
+					ctrlresources.PrimaryServiceKey(mariadb).Name,
+				)
+			}
+			return statefulset.ServiceFQDN(mariadb.ObjectMeta)
+		}()),
+		WithPort(mariadb.Spec.Port),
+	}
+	opts = append(opts, clientOpts...)
+	return NewClient(opts...)
+}
+
+func NewInternalClientWithPodIndex(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver,
+	podIndex int, clientOpts ...Opt) (*Client, error) {
+	opts := []Opt{
+		WitHost(
+			statefulset.PodFQDNWithService(
+				mariadb.ObjectMeta,
+				podIndex,
+				ctrlresources.InternalServiceKey(mariadb).Name,
+			),
+		),
+	}
+	opts = append(opts, clientOpts...)
+	return NewClientWithMariaDB(ctx, mariadb, refResolver, opts...)
 }
 
 func BuildDSN(opts Opts) (string, error) {
@@ -196,7 +281,7 @@ func (c *Client) DropDatabase(ctx context.Context, database string) error {
 	return c.Exec(ctx, fmt.Sprintf("DROP DATABASE IF EXISTS `%s`;", database))
 }
 
-func (c *Client) GlobalVar(ctx context.Context, variable string) (string, error) {
+func (c *Client) SystemVariable(ctx context.Context, variable string) (string, error) {
 	sql := fmt.Sprintf("SELECT @@global.%s;", variable)
 	row := c.db.QueryRowContext(ctx, sql)
 
@@ -207,26 +292,26 @@ func (c *Client) GlobalVar(ctx context.Context, variable string) (string, error)
 	return val, nil
 }
 
-func (c *Client) SetGlobalVar(ctx context.Context, variable string, value string) error {
+func (c *Client) SetSystemVariable(ctx context.Context, variable string, value string) error {
 	sql := fmt.Sprintf("SET @@global.%s=%s;", variable, value)
 	return c.Exec(ctx, sql)
 }
 
-func (c *Client) SetGlobalVars(ctx context.Context, keyVal map[string]string) error {
+func (c *Client) SetSystemVariables(ctx context.Context, keyVal map[string]string) error {
 	for k, v := range keyVal {
-		if err := c.SetGlobalVar(ctx, k, v); err != nil {
+		if err := c.SetSystemVariable(ctx, k, v); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *Client) SetReadOnly(ctx context.Context) error {
-	return c.SetGlobalVar(ctx, "read_only", "1")
+func (c *Client) EnableReadOnly(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "read_only", "1")
 }
 
 func (c *Client) DisableReadOnly(ctx context.Context) error {
-	return c.SetGlobalVar(ctx, "read_only", "0")
+	return c.SetSystemVariable(ctx, "read_only", "0")
 }
 
 func (c *Client) ResetMaster(ctx context.Context) error {
@@ -293,6 +378,38 @@ MASTER_CONNECT_RETRY={{ .Retries }};
 func (c *Client) ResetSlavePos(ctx context.Context) error {
 	sql := fmt.Sprintf("SET @@global.%s='';", "gtid_slave_pos")
 	return c.Exec(ctx, sql)
+}
+
+const statusVariableSql = "SELECT variable_value FROM information_schema.global_status WHERE variable_name=?;"
+
+func (c *Client) StatusVariable(ctx context.Context, variable string) (string, error) {
+	row := c.db.QueryRowContext(ctx, statusVariableSql, variable)
+	var val string
+	if err := row.Scan(&val); err != nil {
+		return "", err
+	}
+	return val, nil
+}
+
+func (c *Client) StatusVariableInt(ctx context.Context, variable string) (int, error) {
+	row := c.db.QueryRowContext(ctx, statusVariableSql, variable)
+	var val int
+	if err := row.Scan(&val); err != nil {
+		return 0, err
+	}
+	return val, nil
+}
+
+func (c *Client) GaleraClusterSize(ctx context.Context) (int, error) {
+	return c.StatusVariableInt(ctx, "wsrep_cluster_size")
+}
+
+func (c *Client) GaleraClusterStatus(ctx context.Context) (string, error) {
+	return c.StatusVariable(ctx, "wsrep_cluster_status")
+}
+
+func (c *Client) GaleraLocalState(ctx context.Context) (string, error) {
+	return c.StatusVariable(ctx, "wsrep_local_state_comment")
 }
 
 func createTpl(name, t string) *template.Template {

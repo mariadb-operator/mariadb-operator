@@ -52,8 +52,5 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req *ReconcileReque
 		return fmt.Errorf("error building ConfigMap: %v", err)
 	}
 
-	if err = r.Create(ctx, configMap); err != nil {
-		return fmt.Errorf("error creating ConfigMap: %v", err)
-	}
-	return nil
+	return r.Create(ctx, configMap)
 }

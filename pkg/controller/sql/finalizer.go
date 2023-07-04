@@ -56,7 +56,7 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) error {
 	}
 
 	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
-	mdbClient, err := mariadbclient.NewRootClient(ctx, mariadb, tf.RefResolver)
+	mdbClient, err := mariadbclient.NewClientWithMariaDB(ctx, mariadb, tf.RefResolver)
 	if err != nil {
 		return fmt.Errorf("error connecting to MariaDB: %v", err)
 	}

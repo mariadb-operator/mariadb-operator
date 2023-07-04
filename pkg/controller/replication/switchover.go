@@ -8,10 +8,10 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
-	replresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/replication/resources"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -23,7 +23,7 @@ import (
 
 type switchoverPhase struct {
 	name      string
-	reconcile func(context.Context, *mariadbv1alpha1.MariaDB, *mariadbClientSet) error
+	reconcile func(context.Context, *mariadbv1alpha1.MariaDB, *replicationClientSet) error
 }
 
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest) error {
@@ -99,7 +99,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 }
 
 func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -112,11 +112,11 @@ func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mari
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 
-	return client.SetReadOnly(ctx)
+	return client.EnableReadOnly(ctx)
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -128,7 +128,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
-	primaryGtid, err := client.GlobalVar(ctx, "gtid_binlog_pos")
+	primaryGtid, err := client.SystemVariable(ctx, "gtid_binlog_pos")
 	if err != nil {
 		return fmt.Errorf("error getting primary GTID binlog pos: %v", err)
 	}
@@ -192,7 +192,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 }
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	client, err := clientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
@@ -205,7 +205,7 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb
 }
 
 func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	logger := log.FromContext(ctx)
 	var wg sync.WaitGroup
 	doneChan := make(chan struct{})
@@ -263,7 +263,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 }
 
 func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
+	clientSet *replicationClientSet) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -290,8 +290,8 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 }
 
 func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbClientSet) error {
-	key := replresources.PrimaryServiceKey(mariadb)
+	clientSet *replicationClientSet) error {
+	key := ctrlresources.PrimaryServiceKey(mariadb)
 	var service corev1.Service
 	if err := r.Get(ctx, key, &service); err != nil {
 		return fmt.Errorf("error getting Service: %v", err)

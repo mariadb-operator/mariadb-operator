@@ -18,19 +18,11 @@ package v1alpha1
 
 import (
 	"errors"
-	"fmt"
-	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-)
-
-var (
-	defaultConnectionTimeout = 10 * time.Second
-	defaultSyncTimeout       = 10 * time.Second
 )
 
 type InheritMetadata struct {
@@ -39,9 +31,9 @@ type InheritMetadata struct {
 }
 
 type Exporter struct {
-	// +kubebuilder:validation:Required
-	Image     Image                        `json:"image"`
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	ContainerTemplate `json:",inline"`
+	// +kubebuilder:default=9104
+	Port int32 `json:"port,omitempty"`
 }
 
 type ServiceMonitor struct {
@@ -78,127 +70,11 @@ type Service struct {
 	Annotations map[string]string  `json:"annotations,omitempty"`
 }
 
-type WaitPoint string
-
-const (
-	WaitPointAfterSync   WaitPoint = "AfterSync"
-	WaitPointAfterCommit WaitPoint = "AfterCommit"
-)
-
-func (w WaitPoint) Validate() error {
-	switch w {
-	case WaitPointAfterSync, WaitPointAfterCommit:
-		return nil
-	default:
-		return fmt.Errorf("invalid WaitPoint: %v", w)
-	}
-}
-
-func (w WaitPoint) MariaDBFormat() (string, error) {
-	switch w {
-	case WaitPointAfterSync:
-		return "AFTER_SYNC", nil
-	case WaitPointAfterCommit:
-		return "AFTER_COMMIT", nil
-	default:
-		return "", fmt.Errorf("invalid WaitPoint: %v", w)
-	}
-}
-
-type Gtid string
-
-const (
-	GtidCurrentPos Gtid = "CurrentPos"
-	GtidSlavePos   Gtid = "SlavePos"
-)
-
-func (g Gtid) Validate() error {
-	switch g {
-	case GtidCurrentPos, GtidSlavePos:
-		return nil
-	default:
-		return fmt.Errorf("invalid Gtid: %v", g)
-	}
-}
-
-func (g Gtid) MariaDBFormat() (string, error) {
-	switch g {
-	case GtidCurrentPos:
-		return "current_pos", nil
-	case GtidSlavePos:
-		return "slave_pos", nil
-	default:
-		return "", fmt.Errorf("invalid Gtid: %v", g)
-	}
-}
-
-type PrimaryReplication struct {
-	// +kubebuilder:default=0
-	PodIndex int `json:"podIndex,omitempty"`
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	AutomaticFailover bool `json:"automaticFailover"`
-
-	Service *Service `json:"service,omitempty"`
-
-	Connection *ConnectionTemplate `json:"connection,omitempty"`
-}
-
-type ReplicaReplication struct {
-	// +kubebuilder:default=AfterCommit
-	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
-	// +kubebuilder:default=CurrentPos
-	Gtid *Gtid `json:"gtid,omitempty"`
-
-	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
-	// +kubebuilder:default=10
-	ConnectionRetries int `json:"connectionRetries,omitempty"`
-
-	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
-}
-
-func (r *ReplicaReplication) Validate() error {
-	if r.WaitPoint != nil {
-		if err := r.WaitPoint.Validate(); err != nil {
-			return fmt.Errorf("invalid WaitPoint: %v", err)
-		}
-	}
-	if r.Gtid != nil {
-		if err := r.Gtid.Validate(); err != nil {
-			return fmt.Errorf("invalid GTID: %v", err)
-		}
-	}
-	return nil
-}
-
-func (r *ReplicaReplication) ConnectionTimeoutOrDefault() time.Duration {
-	if r.ConnectionTimeout != nil {
-		return r.ConnectionTimeout.Duration
-	}
-	return defaultConnectionTimeout
-}
-
-func (r *ReplicaReplication) SyncTimeoutOrDefault() time.Duration {
-	if r.SyncTimeout != nil {
-		return r.SyncTimeout.Duration
-	}
-	return defaultSyncTimeout
-}
-
-type Replication struct {
-	// +kubebuilder:validation:Required
-	Primary PrimaryReplication `json:"primary"`
-	// +kubebuilder:default={}
-	Replica ReplicaReplication `json:"replica,omitempty"`
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	SyncBinlog bool `json:"syncBinlog"`
-}
-
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
-	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
+	ContainerTemplate `json:",inline"`
 
+	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
 	// +kubebuilder:validation:Required
 	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef" webhook:"inmutable"`
 
@@ -206,11 +82,6 @@ type MariaDBSpec struct {
 	Username             *string                   `json:"username,omitempty" webhook:"inmutable"`
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutable"`
 	Connection           *ConnectionTemplate       `json:"connection,omitempty" webhook:"inmutable"`
-	// +kubebuilder:validation:Required
-	Image            Image                         `json:"image" webhook:"inmutable"`
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
-	// +kubebuilder:default=3306
-	Port int32 `json:"port,omitempty"`
 
 	MyCnf                *string                      `json:"myCnf,omitempty" webhook:"inmutable"`
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
@@ -220,24 +91,19 @@ type MariaDBSpec struct {
 	Metrics *Metrics `json:"metrics,omitempty"`
 
 	Replication *Replication `json:"replication,omitempty"`
+
+	Galera *Galera `json:"galera,omitempty"`
 	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
 
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	// +kubebuilder:default=3306
+	Port int32 `json:"port,omitempty"`
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
 	Volumes             []corev1.Volume                  `json:"volumes,omitempty" webhook:"inmutable"`
-	VolumeMounts        []corev1.VolumeMount             `json:"volumeMounts,omitempty" webhook:"inmutable"`
-
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
-
-	Env     []corev1.EnvVar        `json:"env,omitempty"`
-	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
 
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-	SecurityContext    *corev1.SecurityContext    `json:"securityContext,omitempty"`
-
-	LivenessProbe  *corev1.Probe `json:"livenessProbe,omitempty"`
-	ReadinessProbe *corev1.Probe `json:"readinessProbe,omitempty"`
 
 	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
 	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
@@ -254,6 +120,8 @@ type MariaDBStatus struct {
 
 	CurrentPrimaryPodIndex *int    `json:"currentPrimaryPodIndex,omitempty"`
 	CurrentPrimary         *string `json:"currentPrimary,omitempty"`
+
+	GaleraRecovery *GaleraRecoveryStatus `json:"galeraRecovery,omitempty"`
 }
 
 func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
@@ -263,18 +131,12 @@ func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 	meta.SetStatusCondition(&s.Conditions, condition)
 }
 
-func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
-	s.CurrentPrimaryPodIndex = &index
-	primaryPod := statefulset.PodName(mariadb.ObjectMeta, index)
-	s.CurrentPrimary = &primaryPod
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mdb
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
-// +kubebuilder:printcolumn:name="Primary",type="string",JSONPath=".status.currentPrimary"
+// +kubebuilder:printcolumn:name="Primary Pod",type="string",JSONPath=".status.currentPrimary"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // MariaDB is the Schema for the mariadbs API
@@ -284,6 +146,10 @@ type MariaDB struct {
 
 	Spec   MariaDBSpec   `json:"spec"`
 	Status MariaDBStatus `json:"status,omitempty"`
+}
+
+func (m *MariaDB) IsHAEnabled() bool {
+	return m.Spec.Replication != nil || m.Spec.Galera != nil
 }
 
 func (m *MariaDB) IsReady() bool {
@@ -296,14 +162,6 @@ func (m *MariaDB) IsRestoringBackup() bool {
 
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
-}
-
-func (m *MariaDB) IsConfiguringReplication() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicationConfigured)
-}
-
-func (m *MariaDB) IsSwitchingPrimary() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
 }
 
 // +kubebuilder:object:root=true

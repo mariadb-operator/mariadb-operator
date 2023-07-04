@@ -32,25 +32,18 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-var (
-	errPodAnnotationNotFound = errors.New("MariaDB annotation not found in Pod")
-)
-
-// PodReconciler reconciles a Pod object
-type PodReconciler struct {
+// PodReplicationController reconciles a Pod object
+type PodReplicationController struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	ReplConfig       *replication.ReplicationConfig
@@ -63,15 +56,15 @@ type PodReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *PodReplicationController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var pod corev1.Pod
 	if err := r.Get(ctx, req.NamespacedName, &pod); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariadb, err := r.mariadbFromPod(ctx, pod)
+	mariadb, err := r.RefResolver.MariaDBFromAnnotation(ctx, pod.ObjectMeta)
 	if err != nil {
-		if errors.Is(err, errPodAnnotationNotFound) {
+		if errors.Is(err, refresolver.ErrMariaDBAnnotationNotFound) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -93,27 +86,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	return ctrl.Result{}, nil
 }
 
-func (r *PodReconciler) mariadbFromPod(ctx context.Context, pod corev1.Pod) (*mariadbv1alpha1.MariaDB, error) {
-	mariadbAnnotation, ok := pod.Annotations[annotation.PodMariadbAnnotation]
-	if !ok {
-		return nil, errPodAnnotationNotFound
-	}
-
-	var mariadb mariadbv1alpha1.MariaDB
-	key := types.NamespacedName{
-		Name:      mariadbAnnotation,
-		Namespace: pod.Namespace,
-	}
-	if err := r.Get(ctx, key, &mariadb); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("error getting MariaDB from Pod '%s': %v", pod.Name, err)
-	}
-	return &mariadb, nil
-}
-
-func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *PodReplicationController) reconcilePodReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
 	log.FromContext(ctx).V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
 
 	index, err := statefulset.PodIndex(pod.Name)
@@ -121,7 +94,7 @@ func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, m
 		return fmt.Errorf("error getting Pod index: %v", err)
 	}
 
-	client, err := mariadbclient.NewRootClientWithPodIndex(ctx, mariadb, r.RefResolver, *index)
+	client, err := mariadbclient.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, *index)
 	if err != nil {
 		return fmt.Errorf("error connecting to replica '%d': %v", *index, err)
 	}
@@ -139,7 +112,7 @@ func (r *PodReconciler) reconcilePodReady(ctx context.Context, pod corev1.Pod, m
 	return nil
 }
 
-func (r *PodReconciler) reconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *PodReplicationController) reconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
 	if !mariadb.Spec.Replication.Primary.AutomaticFailover {
 		return nil
 	}
@@ -175,7 +148,7 @@ func (r *PodReconciler) reconcilePodNotReady(ctx context.Context, pod corev1.Pod
 	return nil
 }
 
-func (r *PodReconciler) healthyReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
+func (r *PodReplicationController) healthyReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
 	podLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
@@ -199,7 +172,7 @@ func (r *PodReconciler) healthyReplica(ctx context.Context, mariadb *mariadbv1al
 	return nil, errors.New("no healthy replicas available")
 }
 
-func (r *PodReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *PodReplicationController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	patcher func(*mariadbv1alpha1.MariaDB)) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(mariadb)
@@ -210,7 +183,7 @@ func (r *PodReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.Mari
 	return nil
 }
 
-func (r *PodReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *PodReplicationController) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
@@ -222,47 +195,29 @@ func (r *PodReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *PodReplicationController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Pod{}).
-		WithEventFilter(mariadbPodsPredicate()).
+		WithEventFilter(
+			predicate.PredicateChangedWithAnnotations(
+				[]string{
+					annotation.MariadbAnnotation,
+					annotation.ReplicationAnnotation,
+				},
+				podHasChanged,
+			),
+		).
 		Complete(r)
 }
 
-func mariadbPodsPredicate() predicate.Predicate {
-	hasAnnotations := func(o client.Object) bool {
-		annotations := o.GetAnnotations()
-		if _, ok := annotations[annotation.PodReplicationAnnotation]; !ok {
-			return false
-		}
-		if _, ok := annotations[annotation.PodMariadbAnnotation]; !ok {
-			return false
-		}
-		return true
+func podHasChanged(old, new client.Object) bool {
+	oldPod, ok := old.(*corev1.Pod)
+	if !ok {
+		return false
 	}
-	return predicate.Funcs{
-		CreateFunc: func(e event.CreateEvent) bool {
-			return hasAnnotations(e.Object)
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return false
-		},
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			if !hasAnnotations(e.ObjectOld) || !hasAnnotations(e.ObjectNew) {
-				return false
-			}
-			oldPod, ok := e.ObjectOld.(*corev1.Pod)
-			if !ok {
-				return false
-			}
-			newPod, ok := e.ObjectNew.(*corev1.Pod)
-			if !ok {
-				return false
-			}
-			return mariadbpod.PodReady(oldPod) != mariadbpod.PodReady(newPod)
-		},
-		GenericFunc: func(e event.GenericEvent) bool {
-			return hasAnnotations(e.Object)
-		},
+	newPod, ok := new.(*corev1.Pod)
+	if !ok {
+		return false
 	}
+	return pod.PodReady(oldPod) != pod.PodReady(newPod)
 }

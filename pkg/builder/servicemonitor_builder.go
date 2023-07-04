@@ -39,7 +39,7 @@ func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB, key type
 			},
 			Endpoints: []monitoringv1.Endpoint{
 				{
-					Port:          metricsPortName,
+					Port:          MetricsPortName,
 					Path:          "/metrics",
 					Scheme:        "http",
 					Interval:      monitoringv1.Duration(mariadb.Spec.Metrics.ServiceMonitor.Interval),

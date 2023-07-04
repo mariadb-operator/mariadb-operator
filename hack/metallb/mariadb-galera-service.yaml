@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-galera-0-lb
+  namespace: default
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.140
+spec:
+  ports:
+  - name: mariadb
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  selector:
+    app.kubernetes.io/instance: mariadb-galera
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-galera-0
+  publishNotReadyAddresses: true
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-galera-1-lb
+  namespace: default
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.141
+spec:
+  ports:
+  - name: mariadb
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  selector:
+    app.kubernetes.io/instance: mariadb-galera
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-galera-1
+  publishNotReadyAddresses: true
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-galera-2-lb
+  namespace: default
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.142
+spec:
+  ports:
+  - name: mariadb
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  selector:
+    app.kubernetes.io/instance: mariadb-galera
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-galera-2
+  publishNotReadyAddresses: true
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-galera-3-lb
+  namespace: default
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.143
+spec:
+  ports:
+  - name: mariadb
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  selector:
+    app.kubernetes.io/instance: mariadb-galera
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-galera-3
+  publishNotReadyAddresses: true
+  type: LoadBalancer

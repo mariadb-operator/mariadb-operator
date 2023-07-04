@@ -57,7 +57,7 @@ helm uninstall mariadb-operator
 | webhook.certificate.default.certExpirationDays | int | `365` | Certificate expiration in days. |
 | webhook.certificate.default.hook | string | `""` | Helm hook to be added to the default certificate. |
 | webhook.certificate.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. |
-| webhook.enabled | bool | `true` | Enable webhooks. Cert-manager must be installed in the cluster |
+| webhook.enabled | bool | `true` | Enable webhooks. |
 | webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
 | webhook.hostNetwork | bool | `false` | Expose the webhook server in the host network |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |

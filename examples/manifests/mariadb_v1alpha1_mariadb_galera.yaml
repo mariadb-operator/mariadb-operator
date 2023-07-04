@@ -28,15 +28,30 @@ spec:
   replicas: 3
 
   galera:
+    sst: mariabackup
     replicaThreads: 1
-    initContainerImage:
-      repository: alpine
-      tag: "3.18.0"
-      pullPolicy: IfNotPresent
-    configVolumeClaimTemplate:
+    agent:
+      image:
+        repository: ghcr.io/mariadb-operator/agent
+        tag: "v0.0.1"
+        pullPolicy: IfNotPresent
+      port: 5555
+      gracefulShutdownTimeout: 5s
+    recovery:
+      enabled: true
+      clusterHealthyTimeout: 30s
+      clusterBootstrapTimeout: 5m
+      podRecoveryTimeout: 3m
+      podSyncTimeout: 3m
+    initContainer:
+      image:
+        repository: ghcr.io/mariadb-operator/init
+        tag: "v0.0.1"
+        pullPolicy: IfNotPresent
+    volumeClaimTemplate:
       resources:
         requests:
-          storage: 10Mi
+          storage: 50Mi
       storageClassName: standard
       accessModes:
         - ReadWriteOnce
@@ -62,10 +77,17 @@ spec:
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
 
+  resources:
+    requests:
+      cpu: 300m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
   volumeClaimTemplate:
     resources:
       requests:
-        storage: 100Mi
+        storage: 1Gi
     storageClassName: standard
     accessModes:
       - ReadWriteOnce

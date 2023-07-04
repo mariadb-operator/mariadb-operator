@@ -22,21 +22,29 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -48,18 +56,25 @@ var (
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
-	Scheme                   *runtime.Scheme
-	Builder                  *builder.Builder
-	RefResolver              *refresolver.RefResolver
-	ConditionReady           *conditions.Ready
-	ConfigMapReconciler      *configmap.ConfigMapReconciler
-	SecretReconciler         *secret.SecretReconciler
-	ReplicationReconciler    *replication.ReplicationReconciler
+	Scheme *runtime.Scheme
+
+	Builder        *builder.Builder
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *conditions.Ready
+
 	ServiceMonitorReconciler bool
+
+	ConfigMapReconciler *configmap.ConfigMapReconciler
+	SecretReconciler    *secret.SecretReconciler
+	ServiceReconciler   *service.ServiceReconciler
+	RBACReconciler      *rbac.RBACReconciler
+
+	ReplicationReconciler *replication.ReplicationReconciler
+	GaleraReconciler      *galera.GaleraReconciler
 }
 
 type reconcilePhase struct {
-	Resource  string
+	Name      string
 	Reconcile func(context.Context, *mariadbv1alpha1.MariaDB) error
 }
 
@@ -73,8 +88,12 @@ type patcher func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=endpoints,verbs=list;watch
+//+kubebuilder:rbac:groups="",resources=pods,verbs=delete
+//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;get
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=create;get
+//+kubebuilder:rbac:groups=rbac,resources=roles;rolebindings,verbs=create;get
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -87,37 +106,45 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	phases := []reconcilePhase{
 		{
-			Resource:  "ConfigMap",
+			Name:      "ConfigMap",
 			Reconcile: r.reconcileConfigMap,
 		},
 		{
-			Resource:  "StatefulSet",
+			Name:      "RBAC",
+			Reconcile: r.RBACReconciler.Reconcile,
+		},
+		{
+			Name:      "StatefulSet",
 			Reconcile: r.reconcileStatefulSet,
 		},
 		{
-			Resource:  "PodDisruptionBudget",
+			Name:      "PodDisruptionBudget",
 			Reconcile: r.reconcilePodDisruptionBudget,
 		},
 		{
-			Resource:  "Service",
+			Name:      "Service",
 			Reconcile: r.reconcileService,
 		},
 		{
-			Resource:  "Connection",
+			Name:      "Connection",
 			Reconcile: r.reconcileConnection,
 		},
 		{
-			Resource:  "Replication",
+			Name:      "Replication",
 			Reconcile: r.ReplicationReconciler.Reconcile,
 		},
 		{
-			Resource:  "Restore",
+			Name:      "Galera",
+			Reconcile: r.GaleraReconciler.Reconcile,
+		},
+		{
+			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
 		},
 	}
 	if r.ServiceMonitorReconciler {
 		phases = append(phases, reconcilePhase{
-			Resource:  "ServiceMonitor",
+			Name:      "ServiceMonitor",
 			Reconcile: r.reconcileServiceMonitor,
 		})
 	}
@@ -131,7 +158,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(errBundle, err)
 
-			msg := fmt.Sprintf("Error reconciling %s: %v", p.Resource, err)
+			msg := fmt.Sprintf("Error reconciling %s: %v", p.Name, err)
 			patchErr := r.patchStatus(ctx, &mariaDb, func(s *mariadbv1alpha1.MariaDBStatus) error {
 				patcher := r.ConditionReady.PatcherFailed(msg)
 				patcher(s)
@@ -142,7 +169,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 
 			if err := errBundle.ErrorOrNil(); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Resource, err)
+				return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Name, err)
 			}
 		}
 	}
@@ -171,7 +198,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 			},
 		}
 		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
-			return fmt.Errorf("error reconciling ConfigMap: %v", err)
+			return err
 		}
 	}
 	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
@@ -222,95 +249,33 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.PodDisruptionBudget == nil {
-		return nil
+	if mariadb.IsHAEnabled() && mariadb.Spec.PodDisruptionBudget == nil {
+		return r.reconcileHAPDB(ctx, mariadb)
 	}
-
-	key := podDisruptionBudgetKey(mariadb)
-	var existingPDB policyv1.PodDisruptionBudget
-	if err := r.Get(ctx, key, &existingPDB); err == nil {
-		return nil
-	}
-
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
-			Build()
-	opts := builder.PodDisruptionBudgetOpts{
-		MariaDB:        mariadb,
-		Key:            key,
-		MinAvailable:   mariadb.Spec.PodDisruptionBudget.MinAvailable,
-		MaxUnavailable: mariadb.Spec.PodDisruptionBudget.MaxUnavailable,
-		SelectorLabels: selectorLabels,
-	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
-	if err != nil {
-		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
-	}
-	return r.Create(ctx, pdb)
+	return r.reconcileDefaultPDB(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := client.ObjectKeyFromObject(mariadb)
-	serviceLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
-			Build()
-	opts := builder.ServiceOpts{
-		Selectorlabels: serviceLabels,
-	}
-	if mariadb.Spec.Service != nil {
-		opts.Type = mariadb.Spec.Service.Type
-		opts.Annotations = mariadb.Spec.Service.Annotations
-	}
-	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
-	if err != nil {
-		return fmt.Errorf("error building Service: %v", err)
-	}
-
-	var existingSvc corev1.Service
-	if err := r.Get(ctx, key, &existingSvc); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("error getting Service: %v", err)
+	if mariadb.IsHAEnabled() {
+		if err := r.reconcileInternalService(ctx, mariadb); err != nil {
+			return err
 		}
-		if err := r.Create(ctx, desiredSvc); err != nil {
-			return fmt.Errorf("error creating Service: %v", err)
+		if mariadb.Spec.Replication != nil {
+			if err := r.reconcilePrimaryService(ctx, mariadb); err != nil {
+				return nil
+			}
 		}
-		return nil
 	}
-
-	patch := client.MergeFrom(existingSvc.DeepCopy())
-	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
-	existingSvc.Spec.Type = desiredSvc.Spec.Type
-	existingSvc.Annotations = desiredSvc.Annotations
-	existingSvc.Labels = desiredSvc.Labels
-	return r.Patch(ctx, &existingSvc, patch)
+	return r.reconcileDefaultService(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Connection == nil || mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
-		!mariadb.IsReady() {
-		return nil
+	if mariadb.Spec.Replication != nil {
+		if err := r.reconcilePrimaryConnection(ctx, mariadb); err != nil {
+			return err
+		}
 	}
-	key := connectionKey(mariadb)
-	var existingConn mariadbv1alpha1.Connection
-	if err := r.Get(ctx, key, &existingConn); err == nil {
-		return nil
-	}
-
-	connOpts := builder.ConnectionOpts{
-		MariaDB:              mariadb,
-		Key:                  key,
-		Username:             *mariadb.Spec.Username,
-		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
-		Database:             mariadb.Spec.Database,
-		Template:             mariadb.Spec.Connection,
-	}
-	conn, err := r.Builder.BuildConnection(connOpts, mariadb)
-	if err != nil {
-		return fmt.Errorf("erro building Connection: %v", err)
-	}
-	return r.Create(ctx, conn)
+	return r.reconcileDefaultConnection(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -382,13 +347,229 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 	return r.Create(ctx, serviceMonitor)
 }
 
+func (r *MariaDBReconciler) reconcileDefaultPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.PodDisruptionBudget == nil {
+		return nil
+	}
+
+	key := client.ObjectKeyFromObject(mariadb)
+	var existingPDB policyv1.PodDisruptionBudget
+	if err := r.Get(ctx, key, &existingPDB); err == nil {
+		return nil
+	}
+
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	opts := builder.PodDisruptionBudgetOpts{
+		MariaDB:        mariadb,
+		Key:            key,
+		MinAvailable:   mariadb.Spec.PodDisruptionBudget.MinAvailable,
+		MaxUnavailable: mariadb.Spec.PodDisruptionBudget.MaxUnavailable,
+		SelectorLabels: selectorLabels,
+	}
+	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
+	}
+	return r.Create(ctx, pdb)
+}
+
+func (r *MariaDBReconciler) reconcileHAPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := client.ObjectKeyFromObject(mariadb)
+	var existingPDB policyv1.PodDisruptionBudget
+	if err := r.Get(ctx, key, &existingPDB); err == nil {
+		return nil
+	}
+
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	minAvailable := intstr.FromString("50%")
+	opts := builder.PodDisruptionBudgetOpts{
+		MariaDB:        mariadb,
+		Key:            key,
+		MinAvailable:   &minAvailable,
+		SelectorLabels: selectorLabels,
+	}
+	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
+	}
+	return r.Create(ctx, pdb)
+}
+
+func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := client.ObjectKeyFromObject(mariadb)
+	ports := []v1.ServicePort{
+		{
+			Name: builder.MariaDbPortName,
+			Port: mariadb.Spec.Port,
+		},
+	}
+	if mariadb.Spec.Metrics != nil {
+		ports = append(ports, v1.ServicePort{
+			Name: builder.MetricsContainerName,
+			Port: mariadb.Spec.Metrics.Exporter.Port,
+		})
+	}
+	opts := builder.ServiceOpts{
+		Ports: ports,
+	}
+	if mariadb.Spec.Service != nil {
+		opts.Type = mariadb.Spec.Service.Type
+		opts.Annotations = mariadb.Spec.Service.Annotations
+	}
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	if err != nil {
+		return fmt.Errorf("error building Service: %v", err)
+	}
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
+func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := ctrlresources.PrimaryServiceKey(mariadb)
+	serviceLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDBSelectorLabels(mariadb).
+			WithStatefulSetPod(mariadb, mariadb.Spec.Replication.Primary.PodIndex).
+			Build()
+	opts := builder.ServiceOpts{
+		Selectorlabels: serviceLabels,
+		Ports: []corev1.ServicePort{
+			{
+				Name: builder.MariaDbContainerName,
+				Port: mariadb.Spec.Port,
+			},
+		},
+	}
+	if mariadb.Spec.Replication.Primary.Service != nil {
+		opts.Type = mariadb.Spec.Replication.Primary.Service.Type
+		opts.Annotations = mariadb.Spec.Replication.Primary.Service.Annotations
+	}
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	if err != nil {
+		return fmt.Errorf("error building Service: %v", err)
+	}
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
+func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := ctrlresources.InternalServiceKey(mariadb)
+	clusterIp := "None"
+	publishNotReadyAddresses := true
+	ports := []corev1.ServicePort{
+		{
+			Name: builder.MariaDbPortName,
+			Port: mariadb.Spec.Port,
+		},
+	}
+	if mariadb.Spec.Galera != nil {
+		ports = append(ports, []corev1.ServicePort{
+			{
+				Name: galeraresources.GaleraClusterPortName,
+				Port: galeraresources.GaleraClusterPort,
+			},
+			{
+				Name: galeraresources.GaleraISTPortName,
+				Port: galeraresources.GaleraISTPort,
+			},
+			{
+				Name: galeraresources.GaleraSSTPortName,
+				Port: galeraresources.GaleraSSTPort,
+			},
+			{
+				Name: galeraresources.AgentPortName,
+				Port: mariadb.Spec.Galera.Agent.Port,
+			},
+		}...)
+	}
+
+	opts := builder.ServiceOpts{
+		Type:                     corev1.ServiceTypeClusterIP,
+		Ports:                    ports,
+		ClusterIP:                &clusterIp,
+		PublishNotReadyAddresses: &publishNotReadyAddresses,
+	}
+	if mariadb.Spec.Service != nil {
+		opts.Annotations = mariadb.Spec.Service.Annotations
+	}
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	if err != nil {
+		return fmt.Errorf("error building internal Service: %v", err)
+	}
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
+func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.Connection == nil || mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
+		!mariadb.IsReady() {
+		return nil
+	}
+	key := client.ObjectKeyFromObject(mariadb)
+	var existingConn mariadbv1alpha1.Connection
+	if err := r.Get(ctx, key, &existingConn); err == nil {
+		return nil
+	}
+
+	connOpts := builder.ConnectionOpts{
+		MariaDB:              mariadb,
+		Key:                  key,
+		Username:             *mariadb.Spec.Username,
+		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
+		Database:             mariadb.Spec.Database,
+		Template:             mariadb.Spec.Connection,
+	}
+	conn, err := r.Builder.BuildConnection(connOpts, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building Connection: %v", err)
+	}
+	return r.Create(ctx, conn)
+}
+
+func (r *MariaDBReconciler) reconcilePrimaryConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.Replication.Primary.Connection == nil ||
+		mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
+		!mariadb.IsReady() {
+		return nil
+	}
+	key := ctrlresources.PrimaryConnectioneKey(mariadb)
+	var existingConn mariadbv1alpha1.Connection
+	if err := r.Get(ctx, key, &existingConn); err == nil {
+		return nil
+	}
+
+	connTpl := mariadb.Spec.Replication.Primary.Connection
+	if mariadb.Spec.Replication != nil {
+		serviceName := ctrlresources.PrimaryServiceKey(mariadb).Name
+		connTpl.ServiceName = &serviceName
+	}
+
+	connOpts := builder.ConnectionOpts{
+		MariaDB:              mariadb,
+		Key:                  key,
+		Username:             *mariadb.Spec.Username,
+		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
+		Database:             mariadb.Spec.Database,
+		Template:             connTpl,
+	}
+	conn, err := r.Builder.BuildConnection(connOpts, mariadb)
+	if err != nil {
+		return fmt.Errorf("erro building primary Connection: %v", err)
+	}
+	return r.Create(ctx, conn)
+}
+
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcher {
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
-		if mariadb.IsRestoringBackup() || mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() {
+		r.updatePrimaryName(s, mariadb)
+
+		if mariadb.IsRestoringBackup() ||
+			mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() ||
+			mariadb.HasGaleraNotReadyCondition() {
 			return nil
-		}
-		if mariadb.Spec.Replication == nil {
-			s.UpdateCurrentPrimary(mariadb, 0)
 		}
 
 		var sts appsv1.StatefulSet
@@ -398,6 +579,17 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha
 		conditions.SetReadyWithStatefulSet(&mariadb.Status, &sts)
 		return nil
 	}
+}
+
+func (r *MariaDBReconciler) updatePrimaryName(status *mariadbv1alpha1.MariaDBStatus, mariadb *mariadbv1alpha1.MariaDB) {
+	if mariadb.Spec.Replication != nil {
+		return // updated by replication controller
+	}
+	if mariadb.Spec.Galera != nil {
+		status.UpdateCurrentPrimaryName("All")
+		return
+	}
+	status.UpdateCurrentPrimaryName(statefulset.PodName(mariadb.ObjectMeta, 0))
 }
 
 func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -419,20 +611,6 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 func configMapMariaDBKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("config-%s", mariadb.Name),
-		Namespace: mariadb.Namespace,
-	}
-}
-
-func podDisruptionBudgetKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      mariadb.Name,
-		Namespace: mariadb.Namespace,
-	}
-}
-
-func connectionKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      mariadb.Name,
 		Namespace: mariadb.Namespace,
 	}
 }

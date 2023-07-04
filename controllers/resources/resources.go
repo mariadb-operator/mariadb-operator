@@ -1,4 +1,4 @@
-package replication
+package resources
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func PodDisruptionBudgetKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
+func InternalServiceKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      mariadb.Name,
+		Name:      fmt.Sprintf("%s-internal", mariadb.Name),
 		Namespace: mariadb.Namespace,
 	}
 }
