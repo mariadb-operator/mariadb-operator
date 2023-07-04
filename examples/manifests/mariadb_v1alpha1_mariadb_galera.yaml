@@ -38,7 +38,8 @@ spec:
       port: 5555
       gracefulShutdownTimeout: 5s
     recovery:
-      clusterHealthyTimeout: 3m
+      enabled: true
+      clusterHealthyTimeout: 30s
       clusterBootstrapTimeout: 5m
       podRecoveryTimeout: 3m
       podSyncTimeout: 3m
@@ -50,7 +51,7 @@ spec:
     volumeClaimTemplate:
       resources:
         requests:
-          storage: 10Mi
+          storage: 50Mi
       storageClassName: standard
       accessModes:
         - ReadWriteOnce
@@ -86,7 +87,7 @@ spec:
   volumeClaimTemplate:
     resources:
       requests:
-        storage: 100Mi
+        storage: 1Gi
     storageClassName: standard
     accessModes:
       - ReadWriteOnce

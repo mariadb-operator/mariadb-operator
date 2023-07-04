@@ -631,6 +631,7 @@ var _ = Describe("MariaDB Galera", func() {
 							}(),
 						},
 						Recovery: mariadbv1alpha1.GaleraRecovery{
+							Enabled:                 true,
 							ClusterHealthyTimeout:   &clusterHealthyTimeout,
 							ClusterBootstrapTimeout: &recoveryTimeout,
 							PodRecoveryTimeout:      &recoveryTimeout,

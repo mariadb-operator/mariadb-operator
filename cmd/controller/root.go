@@ -57,6 +57,7 @@ var (
 	logTimeEncoder           string
 	logDev                   bool
 	serviceMonitorReconciler bool
+	galeraRecoveryReconciler bool
 	requeueConnection        time.Duration
 	requeueSqlJob            time.Duration
 )
@@ -212,13 +213,15 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
 			os.Exit(1)
 		}
-		if err = (&controllers.StatefulSetGaleraReconciler{
-			Client:      client,
-			RefResolver: refResolver,
-			Recorder:    galeraRecorder,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "StatefulSetGalera")
-			os.Exit(1)
+		if galeraRecoveryReconciler {
+			if err = (&controllers.StatefulSetGaleraReconciler{
+				Client:      client,
+				RefResolver: refResolver,
+				Recorder:    galeraRecorder,
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "StatefulSetGalera")
+				os.Exit(1)
+			}
 		}
 
 		setupLog.Info("starting manager")
@@ -244,6 +247,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
 		"Enabling this requires Prometheus CRDs installed in the cluster.")
+	rootCmd.Flags().BoolVar(&galeraRecoveryReconciler, "galera-recovery-reconciler", true, "Enable Galera recovery reconciler. "+
+		"This will automatically recover MariaDB Galera unhealthy clusters.")
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
 }

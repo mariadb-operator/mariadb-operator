@@ -42,6 +42,10 @@ func (g *GaleraAgent) GracefulShutdownTimeoutOrDefault() time.Duration {
 }
 
 type GaleraRecovery struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	Enabled bool `json:"enabled"`
+
 	ClusterHealthyTimeout *metav1.Duration `json:"clusterHealthyTimeout,omitempty"`
 
 	ClusterBootstrapTimeout *metav1.Duration `json:"clusterBootstrapTimeout,omitempty"`
