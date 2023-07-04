@@ -386,7 +386,7 @@ func (c *Client) StatusVariable(ctx context.Context, variable string) (string, e
 	row := c.db.QueryRowContext(ctx, statusVariableSql, variable)
 	var val string
 	if err := row.Scan(&val); err != nil {
-		return "", nil
+		return "", err
 	}
 	return val, nil
 }
@@ -395,7 +395,7 @@ func (c *Client) StatusVariableInt(ctx context.Context, variable string) (int, e
 	row := c.db.QueryRowContext(ctx, statusVariableSql, variable)
 	var val int
 	if err := row.Scan(&val); err != nil {
-		return 0, nil
+		return 0, err
 	}
 	return val, nil
 }

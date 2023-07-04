@@ -34,7 +34,6 @@ type GaleraAgent struct {
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
 }
 
-// TODO: default using a mutating webhook
 func (g *GaleraAgent) GracefulShutdownTimeoutOrDefault() time.Duration {
 	if g.GracefulShutdownTimeout != nil {
 		return g.GracefulShutdownTimeout.Duration
