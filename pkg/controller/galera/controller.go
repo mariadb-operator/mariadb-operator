@@ -55,6 +55,7 @@ func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, en
 	r := &GaleraReconciler{
 		Client:   client,
 		recorder: recorder,
+		env:      env,
 		builder:  builder,
 	}
 	for _, setOpt := range opts {
