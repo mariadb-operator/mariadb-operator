@@ -621,10 +621,11 @@ var _ = Describe("MariaDB Galera", func() {
 							ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 								Image: mariadbv1alpha1.Image{
 									Repository: "ghcr.io/mariadb-operator/agent",
-									Tag:        "v0.0.1",
+									Tag:        "v0.0.2",
 								},
 							},
-							Port: 5555,
+							Port:           5555,
+							KubernetesAuth: true,
 							GracefulShutdownTimeout: func() *metav1.Duration {
 								t := metav1.Duration{Duration: 1 * time.Second}
 								return &t
@@ -640,7 +641,7 @@ var _ = Describe("MariaDB Galera", func() {
 						InitContainer: mariadbv1alpha1.ContainerTemplate{
 							Image: mariadbv1alpha1.Image{
 								Repository: "ghcr.io/mariadb-operator/init",
-								Tag:        "v0.0.1",
+								Tag:        "v0.0.2",
 							},
 						},
 						VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
