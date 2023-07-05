@@ -11,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,25 +20,56 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+type Option func(*GaleraReconciler)
+
+func WithRefResolver(rr *refresolver.RefResolver) Option {
+	return func(r *GaleraReconciler) {
+		r.refResolver = rr
+	}
+}
+
+func WithConfigMapReconciler(cmr *configmap.ConfigMapReconciler) Option {
+	return func(r *GaleraReconciler) {
+		r.configMapReconciler = cmr
+	}
+}
+
+func WithServiceReconciler(sr *service.ServiceReconciler) Option {
+	return func(r *GaleraReconciler) {
+		r.serviceReconciler = sr
+	}
+}
+
 type GaleraReconciler struct {
 	client.Client
 	recorder            record.EventRecorder
+	env                 *environment.Environment
 	builder             *builder.Builder
 	refResolver         *refresolver.RefResolver
 	configMapReconciler *configmap.ConfigMapReconciler
 	serviceReconciler   *service.ServiceReconciler
 }
 
-func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, builder *builder.Builder,
-	configMapReconciler *configmap.ConfigMapReconciler, serviceReconciler *service.ServiceReconciler) *GaleraReconciler {
-	return &GaleraReconciler{
-		Client:              client,
-		recorder:            recorder,
-		builder:             builder,
-		refResolver:         refresolver.New(client),
-		configMapReconciler: configMapReconciler,
-		serviceReconciler:   serviceReconciler,
+func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, env *environment.Environment, builder *builder.Builder,
+	opts ...Option) *GaleraReconciler {
+	r := &GaleraReconciler{
+		Client:   client,
+		recorder: recorder,
+		builder:  builder,
 	}
+	for _, setOpt := range opts {
+		setOpt(r)
+	}
+	if r.refResolver == nil {
+		r.refResolver = refresolver.New(client)
+	}
+	if r.configMapReconciler == nil {
+		r.configMapReconciler = configmap.NewConfigMapReconciler(client, builder)
+	}
+	if r.serviceReconciler == nil {
+		r.serviceReconciler = service.NewServiceReconciler(client)
+	}
+	return r
 }
 
 func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -81,7 +113,7 @@ func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1al
 func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	logger.V(1).Info("Disabling Galera bootstrap")
 
-	clientSet, err := newAgentClientSet(mariadb)
+	clientSet, err := r.newAgentClientSet(mariadb)
 	if err != nil {
 		return fmt.Errorf("error creating agent client set: %v", err)
 	}
@@ -95,6 +127,17 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 		}
 	}
 	return nil
+}
+
+func (r *GaleraReconciler) newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, clientOpts ...agentclient.Option) (*agentClientSet, error) {
+	opts := []agentclient.Option{}
+	opts = append(opts, clientOpts...)
+	if mariadb.Spec.Galera.Agent.KubernetesAuth {
+		opts = append(opts,
+			agentclient.WithKubernetesAuth(true, r.env.MariadbOperatorSAPath),
+		)
+	}
+	return newAgentClientSet(mariadb, opts...)
 }
 
 func (r *GaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

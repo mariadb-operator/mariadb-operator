@@ -30,6 +30,9 @@ type GaleraAgent struct {
 	ContainerTemplate `json:",inline"`
 	// +kubebuilder:default=5555
 	Port int32 `json:"port,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	KubernetesAuth bool `json:"kubernetesAuth"`
 
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
 }

@@ -27,7 +27,7 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 	if err != nil {
 		return fmt.Errorf("error getting Pods: %v", err)
 	}
-	agentClientSet, err := newAgentClientSet(mariadb, client.WithTimeout(5*time.Second))
+	agentClientSet, err := r.newAgentClientSet(mariadb, client.WithTimeout(5*time.Second))
 	if err != nil {
 		return fmt.Errorf("error getting agent client: %v", err)
 	}

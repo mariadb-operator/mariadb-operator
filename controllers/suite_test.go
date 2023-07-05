@@ -32,6 +32,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -100,7 +101,10 @@ var _ = BeforeSuite(func() {
 	scheme := k8sManager.GetScheme()
 	galeraRecorder := k8sManager.GetEventRecorderFor("galera")
 
-	builder := builder.New(scheme)
+	env, err := environment.GetEnvironment(testCtx)
+	Expect(err).ToNot(HaveOccurred())
+
+	builder := builder.NewBuilder(scheme, env)
 	refResolver := refresolver.New(client)
 
 	conditionReady := conditions.NewReady()
@@ -114,8 +118,15 @@ var _ = BeforeSuite(func() {
 
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 	replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
-	galeraReconciler := galera.NewGaleraReconciler(client, galeraRecorder, builder, configMapReconciler, serviceReconciler)
-
+	galeraReconciler := galera.NewGaleraReconciler(
+		client,
+		galeraRecorder,
+		env,
+		builder,
+		galera.WithRefResolver(refResolver),
+		galera.WithConfigMapReconciler(configMapReconciler),
+		galera.WithServiceReconciler(serviceReconciler),
+	)
 	err = (&MariaDBReconciler{
 		Client: client,
 		Scheme: scheme,

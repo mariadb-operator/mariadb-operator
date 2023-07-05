@@ -10,6 +10,85 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]corev1.Container, error) {
+	mariadbContainer := buildContainer(&mariadb.Spec.ContainerTemplate)
+	mariadbContainer.Name = MariaDbContainerName
+	mariadbContainer.Args = buildStsArgs(mariadb)
+	mariadbContainer.Env = buildStsEnv(mariadb)
+	mariadbContainer.Ports = buildStsPorts(mariadb)
+	mariadbContainer.VolumeMounts = buildStsVolumeMounts(mariadb)
+	mariadbContainer.LivenessProbe = buildStsLivenessProbe(mariadb)
+	mariadbContainer.ReadinessProbe = buildStsReadinessProbe(mariadb)
+
+	var containers []corev1.Container
+	containers = append(containers, mariadbContainer)
+
+	if mariadb.Spec.Galera != nil {
+		containers = append(containers, b.buildGaleraAgentContainer(mariadb))
+	}
+	if mariadb.Spec.Metrics != nil {
+		if dsn == nil {
+			return nil, fmt.Errorf("DSN secret is mandatory when MariaDB specifies metrics")
+		}
+		containers = append(containers, buildMetricsContainer(mariadb.Spec.Metrics, dsn))
+	}
+
+	return containers, nil
+}
+
+func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
+	container := buildContainer(&mariadb.Spec.Galera.Agent.ContainerTemplate)
+	container.Name = AgentContainerName
+	container.Ports = []corev1.ContainerPort{
+		{
+			Name:          galeraresources.AgentPortName,
+			ContainerPort: mariadb.Spec.Galera.Agent.Port,
+		},
+	}
+	container.Args = func() []string {
+		args := container.Args
+		args = append(args, []string{
+			fmt.Sprintf("--addr=:%d", mariadb.Spec.Galera.Agent.Port),
+			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
+			fmt.Sprintf("--state-dir=%s", StorageMountPath),
+			fmt.Sprintf("--recovery-timeout=%s", mariadb.Spec.Galera.Recovery.PodRecoveryTimeoutOrDefault()),
+			fmt.Sprintf("--graceful-shutdown-timeout=%s", mariadb.Spec.Galera.Agent.GracefulShutdownTimeoutOrDefault()),
+		}...)
+		if mariadb.Spec.Galera.Agent.KubernetesAuth {
+			args = append(args, []string{
+				"--kubernetes-auth",
+				fmt.Sprintf("--kubernetes-trusted-name=%s", b.env.MariadbOperatorName),
+				fmt.Sprintf("--kubernetes-trusted-namespace=%s", b.env.MariadbOperatorNamespace),
+			}...)
+		}
+		return args
+	}()
+	container.VolumeMounts = buildStsVolumeMounts(mariadb)
+	container.LivenessProbe = func() *corev1.Probe {
+		if container.LivenessProbe != nil {
+			return container.LivenessProbe
+		}
+		return defaultAgentProbe(mariadb.Spec.Galera)
+	}()
+	container.ReadinessProbe = func() *corev1.Probe {
+		if container.ReadinessProbe != nil {
+			return container.ReadinessProbe
+		}
+		return defaultAgentProbe(mariadb.Spec.Galera)
+	}()
+	container.SecurityContext = func() *corev1.SecurityContext {
+		if container.SecurityContext != nil {
+			return container.SecurityContext
+		}
+		runAsUser := int64(0)
+		return &corev1.SecurityContext{
+			RunAsUser: &runAsUser,
+		}
+	}()
+
+	return container
+}
+
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 	if mariadb.Spec.Galera == nil {
 		return nil
@@ -33,32 +112,6 @@ func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container
 	return []corev1.Container{
 		container,
 	}
-}
-
-func buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]corev1.Container, error) {
-	mariadbContainer := buildContainer(&mariadb.Spec.ContainerTemplate)
-	mariadbContainer.Name = MariaDbContainerName
-	mariadbContainer.Args = buildStsArgs(mariadb)
-	mariadbContainer.Env = buildStsEnv(mariadb)
-	mariadbContainer.Ports = buildStsPorts(mariadb)
-	mariadbContainer.VolumeMounts = buildStsVolumeMounts(mariadb)
-	mariadbContainer.LivenessProbe = buildStsLivenessProbe(mariadb)
-	mariadbContainer.ReadinessProbe = buildStsReadinessProbe(mariadb)
-
-	var containers []corev1.Container
-	containers = append(containers, mariadbContainer)
-
-	if mariadb.Spec.Galera != nil {
-		containers = append(containers, buildGaleraAgentContainer(mariadb))
-	}
-	if mariadb.Spec.Metrics != nil {
-		if dsn == nil {
-			return nil, fmt.Errorf("DSN secret is mandatory when MariaDB specifies metrics")
-		}
-		containers = append(containers, buildMetricsContainer(mariadb.Spec.Metrics, dsn))
-	}
-
-	return containers, nil
 }
 
 func buildStsArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
@@ -184,52 +237,6 @@ func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 		}...)
 	}
 	return ports
-}
-
-func buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
-	container := buildContainer(&mariadb.Spec.Galera.Agent.ContainerTemplate)
-	container.Name = AgentContainerName
-	container.Ports = []corev1.ContainerPort{
-		{
-			Name:          galeraresources.AgentPortName,
-			ContainerPort: mariadb.Spec.Galera.Agent.Port,
-		},
-	}
-	container.Args = func() []string {
-		args := container.Args
-		args = append(args, []string{
-			fmt.Sprintf("--addr=:%d", mariadb.Spec.Galera.Agent.Port),
-			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
-			fmt.Sprintf("--state-dir=%s", StorageMountPath),
-			fmt.Sprintf("--graceful-shutdown=%s", mariadb.Spec.Galera.Agent.GracefulShutdownTimeoutOrDefault()),
-			fmt.Sprintf("--recovery-timeout=%s", mariadb.Spec.Galera.Recovery.PodRecoveryTimeoutOrDefault()),
-		}...)
-		return args
-	}()
-	container.VolumeMounts = buildStsVolumeMounts(mariadb)
-	container.LivenessProbe = func() *corev1.Probe {
-		if container.LivenessProbe != nil {
-			return container.LivenessProbe
-		}
-		return defaultAgentProbe(mariadb.Spec.Galera)
-	}()
-	container.ReadinessProbe = func() *corev1.Probe {
-		if container.ReadinessProbe != nil {
-			return container.ReadinessProbe
-		}
-		return defaultAgentProbe(mariadb.Spec.Galera)
-	}()
-	container.SecurityContext = func() *corev1.SecurityContext {
-		if container.SecurityContext != nil {
-			return container.SecurityContext
-		}
-		runAsUser := int64(0)
-		return &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
-		}
-	}()
-
-	return container
 }
 
 func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretKeySelector) corev1.Container {

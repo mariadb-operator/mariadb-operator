@@ -19,3 +19,6 @@ bin/
 
 # Packaged Helm charts
 *.tgz
+
+# mariadb-operator local development folder
+/mariadb-operator/

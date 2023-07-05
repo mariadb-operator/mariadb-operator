@@ -40,8 +40,8 @@ func (b *Builder) BuildRole(key types.NamespacedName, mariadb *mariadbv1alpha1.M
 	return r, nil
 }
 
-func (b *Builder) BuildRoleBinding(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB, r *rbacv1.Role,
-	sa *corev1.ServiceAccount) (*rbacv1.RoleBinding, error) {
+func (b *Builder) BuildRoleBinding(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB, sa *corev1.ServiceAccount,
+	roleRef rbacv1.RoleRef) (*rbacv1.RoleBinding, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
@@ -56,14 +56,34 @@ func (b *Builder) BuildRoleBinding(key types.NamespacedName, mariadb *mariadbv1a
 				Namespace: sa.Namespace,
 			},
 		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: rbacv1.GroupName,
-			Kind:     "Role",
-			Name:     r.Name,
-		},
+		RoleRef: roleRef,
 	}
 	if err := controllerutil.SetControllerReference(mariadb, rb, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to RoleBinding: %v", err)
+	}
+	return rb, nil
+}
+
+func (b *Builder) BuildClusterRoleBinding(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB, sa *corev1.ServiceAccount,
+	roleRef rbacv1.RoleRef) (*rbacv1.ClusterRoleBinding, error) {
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(mariadb).
+			Build()
+	rb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: objMeta,
+		Subjects: []rbacv1.Subject{
+			{
+				APIGroup:  corev1.GroupName,
+				Kind:      "ServiceAccount",
+				Name:      sa.Name,
+				Namespace: sa.Namespace,
+			},
+		},
+		RoleRef: roleRef,
+	}
+	if err := controllerutil.SetControllerReference(mariadb, rb, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to ClusterRoleBinding: %v", err)
 	}
 	return rb, nil
 }

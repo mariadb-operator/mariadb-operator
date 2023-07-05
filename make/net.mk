@@ -1,7 +1,5 @@
 ##@ Networking
 
-## See: https://github.com/mariadb-operator/mariadb-operator/tree/main/hack/metallb
-
 .PHONY: host-mariadb
 host-mariadb:  ## Add mariadb hosts to /etc/hosts.
 	@./hack/add_host.sh 172.18.0.10 mariadb-0.mariadb-internal.default.svc.cluster.local

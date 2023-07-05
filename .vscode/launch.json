@@ -9,7 +9,12 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "main.go"
+      "program": "main.go",
+      "env": {
+        "MARIADB_OPERATOR_NAME": "mariadb-operator",
+        "MARIADB_OPERATOR_NAMESPACE": "default",
+        "MARIADB_OPERATOR_SA_PATH": "mariadb-operator/token"
+      }
     }
   ]
 }

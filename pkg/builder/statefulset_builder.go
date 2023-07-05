@@ -72,7 +72,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
-	podTemplate, err := buildStsPodTemplate(mariadb, dsn, selectorLabels)
+	podTemplate, err := b.buildStsPodTemplate(mariadb, dsn, selectorLabels)
 	if err != nil {
 		return nil, fmt.Errorf("error building pod template: %v", err)
 	}
@@ -94,6 +94,36 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 		return nil, fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
 	return sts, nil
+}
+
+func (b *Builder) buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector,
+	labels map[string]string) (*corev1.PodTemplateSpec, error) {
+	containers, err := b.buildStsContainers(mariadb, dsn)
+	if err != nil {
+		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
+	}
+	objMeta :=
+		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
+			WithMariaDB(mariadb).
+			WithLabels(labels).
+			WithAnnotations(buildHAAnnotations(mariadb)).
+			Build()
+	automount, serviceAccount := buildStsServiceAccountName(mariadb)
+	return &corev1.PodTemplateSpec{
+		ObjectMeta: objMeta,
+		Spec: corev1.PodSpec{
+			AutomountServiceAccountToken: automount,
+			ServiceAccountName:           serviceAccount,
+			InitContainers:               buildStsInitContainers(mariadb),
+			Containers:                   containers,
+			ImagePullSecrets:             mariadb.Spec.ImagePullSecrets,
+			Volumes:                      buildStsVolumes(mariadb),
+			SecurityContext:              mariadb.Spec.PodSecurityContext,
+			Affinity:                     mariadb.Spec.Affinity,
+			NodeSelector:                 mariadb.Spec.NodeSelector,
+			Tolerations:                  mariadb.Spec.Tolerations,
+		},
+	}, nil
 }
 
 func buildStsServiceName(mariadb *mariadbv1alpha1.MariaDB) string {
@@ -128,36 +158,6 @@ func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Per
 		})
 	}
 	return pvcs
-}
-
-func buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector,
-	labels map[string]string) (*corev1.PodTemplateSpec, error) {
-	containers, err := buildStsContainers(mariadb, dsn)
-	if err != nil {
-		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
-	}
-	objMeta :=
-		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
-			WithMariaDB(mariadb).
-			WithLabels(labels).
-			WithAnnotations(buildHAAnnotations(mariadb)).
-			Build()
-	automount, serviceAccount := buildStsServiceAccountName(mariadb)
-	return &corev1.PodTemplateSpec{
-		ObjectMeta: objMeta,
-		Spec: corev1.PodSpec{
-			AutomountServiceAccountToken: automount,
-			ServiceAccountName:           serviceAccount,
-			InitContainers:               buildStsInitContainers(mariadb),
-			Containers:                   containers,
-			ImagePullSecrets:             mariadb.Spec.ImagePullSecrets,
-			Volumes:                      buildStsVolumes(mariadb),
-			SecurityContext:              mariadb.Spec.PodSecurityContext,
-			Affinity:                     mariadb.Spec.Affinity,
-			NodeSelector:                 mariadb.Spec.NodeSelector,
-			Tolerations:                  mariadb.Spec.Tolerations,
-		},
-	}, nil
 }
 
 func buildStsServiceAccountName(mariadb *mariadbv1alpha1.MariaDB) (autoMount *bool, serviceAccount string) {
