@@ -46,7 +46,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 
 	if rs.isBootstrapping() {
 		if rs.bootstrapTimeout(mariadb) {
-			logger.Info("Bootstrap timed out. Resetting recovery status...")
+			logger.Info("Galera cluster bootstrap timed out. Resetting recovery status")
 			r.recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraClusterBootstrapTimeout,
 				"Galera cluster bootstrap timed out")
 
@@ -58,7 +58,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 
 	logger.V(1).Info("State by Pod")
 	var stateErr *multierror.Error
-	err := r.stateByPod(ctx, pods, rs, clientSet, logger)
+	err := r.stateByPod(ctx, mariadb, pods, rs, clientSet, logger)
 	stateErr = multierror.Append(stateErr, err)
 
 	err = r.patchRecoveryStatus(ctx, mariadb, rs)
@@ -217,7 +217,7 @@ func (r *GaleraReconciler) notReadyPods(pods []corev1.Pod) []corev1.Pod {
 	return notReadyPods
 }
 
-func (r *GaleraReconciler) stateByPod(ctx context.Context, pods []corev1.Pod, rs *recoveryStatus,
+func (r *GaleraReconciler) stateByPod(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod, rs *recoveryStatus,
 	clientSet *agentClientSet, logger logr.Logger) error {
 	doneChan := make(chan struct{})
 	errChan := make(chan error)
@@ -252,6 +252,9 @@ func (r *GaleraReconciler) stateByPod(ctx context.Context, pods []corev1.Pod, rs
 					return err
 				}
 
+				logger.Info("Galera state fetched in Pod", "pod", pod.Name)
+				r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodStateFetched,
+					"Galera state fetched in Pod '%s'", pod.Name)
 				rs.setState(pod.Name, galeraState)
 				return nil
 			}); err != nil {
@@ -337,6 +340,7 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 					return err
 				}
 
+				logger.Info("Recovered Galera sequence in Pod", "pod", pod.Name)
 				r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodRecovered,
 					"Recovered Galera sequence in Pod '%s'", pod.Name)
 				rs.setRecovered(pod.Name, bootstrap)

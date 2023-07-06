@@ -93,13 +93,14 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		if err := r.disableBootstrap(ctx, mariadb, logger); err != nil {
 			return err
 		}
+		logger.Info("Galera cluster is healthy")
 		r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy, "Galera cluster is healthy")
+
 		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetGaleraReady(&mariadb.Status)
 			conditions.SetGaleraConfigured(&mariadb.Status)
 		})
 	}
-
 	return nil
 }
 

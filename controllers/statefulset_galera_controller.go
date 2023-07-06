@@ -69,7 +69,7 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("galera").WithName("health")
-	logger.Info("Checking cluster health")
+	logger.Info("Checking Galera cluster health")
 
 	healthyCtx, cancelHealthy := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.ClusterHealthyTimeoutOrDefault())
 	defer cancelHealthy()
@@ -79,10 +79,9 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	if healthy {
-		logger.Info("Cluster is healthy")
 		return ctrl.Result{}, nil
 	}
-	logger.Info("Cluster is not healthy")
+	logger.Info("Galera cluster is not is not healthy")
 	r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraClusterNotHealthy, "Galera cluster is not healthy")
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
@@ -132,7 +131,7 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster status: %v", err)
 	}
-	logger.V(1).Info("Cluster status", "status", status)
+	logger.V(1).Info("Galera cluster status", "status", status)
 	if status != "Primary" {
 		return false, nil
 	}
@@ -141,7 +140,7 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster size: %v", err)
 	}
-	logger.V(1).Info("Cluster size", "size", size)
+	logger.V(1).Info("Galera cluster size", "size", size)
 	if size != int(mariadb.Spec.Replicas) {
 		return false, nil
 	}

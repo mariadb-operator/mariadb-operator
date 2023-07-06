@@ -5,6 +5,7 @@ const (
 	ReasonGaleraClusterNotHealthy       = "GaleraClusterNotHealthy"
 	ReasonGaleraClusterBootstrap        = "GaleraClusterBootstrap"
 	ReasonGaleraClusterBootstrapTimeout = "GaleraClusterBootstrapTimeout"
+	ReasonGaleraPodStateFetched         = "GaleraPodStateFetched"
 	ReasonGaleraPodRecovered            = "GaleraPodRecovered"
 	ReasonGaleraPodSyncTimeout          = "GaleraPodSyncTimeout"
 )
