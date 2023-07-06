@@ -109,7 +109,7 @@ func (r *MariaDB) validateGalera() error {
 	if r.Spec.Galera.ReplicaThreads < 1 {
 		return field.Invalid(
 			field.NewPath("spec").Child("galera").Child("replicaThreads"),
-			r.Spec.Replication.Primary.PodIndex,
+			r.Spec.Galera.ReplicaThreads,
 			"'spec.galera.replicaThreads' must be at least 1",
 		)
 	}
