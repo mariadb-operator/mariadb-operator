@@ -624,8 +624,10 @@ var _ = Describe("MariaDB Galera", func() {
 									Tag:        "v0.0.2",
 								},
 							},
-							Port:           5555,
-							KubernetesAuth: true,
+							Port: 5555,
+							KubernetesAuth: mariadbv1alpha1.KubernetesAuth{
+								Enabled: true,
+							},
 							GracefulShutdownTimeout: func() *metav1.Duration {
 								t := metav1.Duration{Duration: 1 * time.Second}
 								return &t

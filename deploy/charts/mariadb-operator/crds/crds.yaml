@@ -6112,8 +6112,13 @@ spec:
                         - repository
                         type: object
                       kubernetesAuth:
-                        default: true
-                        type: boolean
+                        properties:
+                          authDelegatorRoleName:
+                            type: string
+                          enabled:
+                            default: true
+                            type: boolean
+                        type: object
                       livenessProbe:
                         description: Probe describes a health check to be performed
                           against a container to determine whether it is alive or
@@ -6669,6 +6674,7 @@ spec:
                         type: array
                     required:
                     - image
+                    - kubernetesAuth
                     type: object
                   initContainer:
                     properties:

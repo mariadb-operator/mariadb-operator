@@ -134,7 +134,7 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 func (r *GaleraReconciler) newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, clientOpts ...agentclient.Option) (*agentClientSet, error) {
 	opts := []agentclient.Option{}
 	opts = append(opts, clientOpts...)
-	if mariadb.Spec.Galera.Agent.KubernetesAuth {
+	if mariadb.Spec.Galera.Agent.KubernetesAuth.Enabled {
 		opts = append(opts,
 			agentclient.WithKubernetesAuth(true, r.env.MariadbOperatorSAPath),
 		)

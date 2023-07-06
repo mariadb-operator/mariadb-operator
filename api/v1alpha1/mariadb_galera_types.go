@@ -26,13 +26,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type KubernetesAuth struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	Enabled bool `json:"enabled"`
+
+	AuthDelegatorRoleName string `json:"authDelegatorRoleName,omitempty"`
+}
+
+func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string {
+	if k.AuthDelegatorRoleName != "" {
+		return k.AuthDelegatorRoleName
+	}
+	return mariadb.Name
+}
+
 type GaleraAgent struct {
 	ContainerTemplate `json:",inline"`
 	// +kubebuilder:default=5555
 	Port int32 `json:"port,omitempty"`
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	KubernetesAuth bool `json:"kubernetesAuth"`
+	// +kubebuilder:validation:Required
+	KubernetesAuth KubernetesAuth `json:"kubernetesAuth"`
 
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
 }
