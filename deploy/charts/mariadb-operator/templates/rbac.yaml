@@ -70,7 +70,9 @@ rules:
   - events
   verbs:
   - create
+  - list
   - patch
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -104,7 +106,9 @@ rules:
   - serviceaccounts
   verbs:
   - create
-  - get
+  - list
+  - patch
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -124,6 +128,18 @@ rules:
   - list
   - patch
   - watch
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
 - apiGroups:
   - batch
   resources:
@@ -375,16 +391,20 @@ rules:
   - poddisruptionbudgets
   verbs:
   - create
-  - get
+  - list
+  - patch
+  - watch
 - apiGroups:
-  - rbac
+  - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
   - rolebindings
   - roles
   verbs:
   - create
-  - get
+  - list
+  - patch
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

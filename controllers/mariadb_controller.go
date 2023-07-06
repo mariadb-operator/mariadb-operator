@@ -39,8 +39,8 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -88,12 +88,14 @@ type patcher func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=endpoints,verbs=list;watch
-//+kubebuilder:rbac:groups="",resources=pods,verbs=delete
-//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
-//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;get
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;delete
+//+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=create;get
-//+kubebuilder:rbac:groups=rbac,resources=roles;rolebindings;clusterrolebindings,verbs=create;get
+//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings;clusterrolebindings,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
+//+kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -403,14 +405,14 @@ func (r *MariaDBReconciler) reconcileHAPDB(ctx context.Context, mariadb *mariadb
 
 func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
-	ports := []v1.ServicePort{
+	ports := []corev1.ServicePort{
 		{
 			Name: builder.MariaDbPortName,
 			Port: mariadb.Spec.Port,
 		},
 	}
 	if mariadb.Spec.Metrics != nil {
-		ports = append(ports, v1.ServicePort{
+		ports = append(ports, corev1.ServicePort{
 			Name: builder.MetricsContainerName,
 			Port: mariadb.Spec.Metrics.Exporter.Port,
 		})
@@ -631,8 +633,13 @@ func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
+		Owns(&corev1.Event{}).
+		Owns(&corev1.ServiceAccount{}).
 		Owns(&appsv1.StatefulSet{}).
-		Owns(&policyv1.PodDisruptionBudget{})
+		Owns(&policyv1.PodDisruptionBudget{}).
+		Owns(&rbacv1.Role{}).
+		Owns(&rbacv1.RoleBinding{}).
+		Owns(&rbacv1.ClusterRoleBinding{})
 	if r.ServiceMonitorReconciler {
 		builder = builder.Owns(&monitoringv1.ServiceMonitor{})
 	}

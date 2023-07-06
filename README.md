@@ -151,9 +151,9 @@ kubectl apply -f examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml
 ``` 
 ```bash
 kubectl get mariadbs
-NAME                       READY   STATUS    PRIMARY POD     AGE
-mariadb                    True    Running   mariadb-0       30m57s
-mariadb-from-backup        True    Running   mariadb-0       85s
+NAME                  READY   STATUS    PRIMARY POD             AGE
+mariadb               True    Running   mariadb-0               7m47s
+mariadb-from-backup   True    Running   mariadb-from-backup-0   53s
 
 kubectl get restores
 NAME                                         COMPLETE   STATUS    MARIADB               AGE
