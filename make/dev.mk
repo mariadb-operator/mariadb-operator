@@ -1,9 +1,8 @@
 ##@ Dev
 
-## TODO: inject these variables via Downward API in the helm chart
 export MARIADB_OPERATOR_NAME ?= mariadb-operator
 export MARIADB_OPERATOR_NAMESPACE ?= default
-export MARIADB_OPERATOR_SA_PATH ?= mariadb-operator/token
+export MARIADB_OPERATOR_SA_PATH ?= /tmp/mariadb-operator/token
 
 CERTS_DIR=/tmp/k8s-webhook-server/serving-certs
 CERTS_CONFIG=./hack/config/openssl.conf
