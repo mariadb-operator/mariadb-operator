@@ -22,7 +22,10 @@ THE SOFTWARE.
 package controller
 
 import (
+	"context"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -36,6 +39,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -48,16 +52,16 @@ import (
 )
 
 var (
-	scheme                   = runtime.NewScheme()
-	setupLog                 = ctrl.Log.WithName("setup")
-	metricsAddr              string
-	healthAddr               string
+	scheme         = runtime.NewScheme()
+	setupLog       = ctrl.Log.WithName("setup")
+	metricsAddr    string
+	healthAddr     string
+	logLevel       string
+	logTimeEncoder string
+	logDev         bool
+
 	leaderElect              bool
-	logLevel                 string
-	logTimeEncoder           string
-	logDev                   bool
 	serviceMonitorReconciler bool
-	galeraRecoveryReconciler bool
 	requeueConnection        time.Duration
 	requeueSqlJob            time.Duration
 )
@@ -76,6 +80,15 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		setupLogger()
 
+		ctx, cancel := signal.NotifyContext(context.Background(), []os.Signal{
+			syscall.SIGINT,
+			syscall.SIGTERM,
+			syscall.SIGKILL,
+			syscall.SIGHUP,
+			syscall.SIGQUIT}...,
+		)
+		defer cancel()
+
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:                 scheme,
 			MetricsBindAddress:     metricsAddr,
@@ -93,7 +106,13 @@ var rootCmd = &cobra.Command{
 		scheme := mgr.GetScheme()
 		galeraRecorder := mgr.GetEventRecorderFor("galera")
 
-		builder := builder.New(scheme)
+		env, err := environment.GetEnvironment(ctx)
+		if err != nil {
+			setupLog.Error(err, "error getting environment")
+			os.Exit(1)
+		}
+
+		builder := builder.NewBuilder(scheme, env)
 		refResolver := refresolver.New(client)
 
 		conditionReady := conditions.NewReady()
@@ -107,7 +126,15 @@ var rootCmd = &cobra.Command{
 
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 		replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
-		galeraReconciler := galera.NewGaleraReconciler(client, galeraRecorder, builder, configMapReconciler, serviceReconciler)
+		galeraReconciler := galera.NewGaleraReconciler(
+			client,
+			galeraRecorder,
+			env,
+			builder,
+			galera.WithRefResolver(refResolver),
+			galera.WithConfigMapReconciler(configMapReconciler),
+			galera.WithServiceReconciler(serviceReconciler),
+		)
 
 		if err = (&controllers.MariaDBReconciler{
 			Client: client,
@@ -213,15 +240,13 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
 			os.Exit(1)
 		}
-		if galeraRecoveryReconciler {
-			if err = (&controllers.StatefulSetGaleraReconciler{
-				Client:      client,
-				RefResolver: refResolver,
-				Recorder:    galeraRecorder,
-			}).SetupWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create controller", "controller", "StatefulSetGalera")
-				os.Exit(1)
-			}
+		if err = (&controllers.StatefulSetGaleraReconciler{
+			Client:      client,
+			RefResolver: refResolver,
+			Recorder:    galeraRecorder,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "StatefulSetGalera")
+			os.Exit(1)
 		}
 
 		setupLog.Info("starting manager")
@@ -238,6 +263,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	rootCmd.PersistentFlags().StringVar(&healthAddr, "health-addr", ":8081", "The address the probe endpoint binds to.")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "Log level to use, one of: "+
 		"debug, info, warn, error, dpanic, panic, fatal.")
 	rootCmd.PersistentFlags().StringVar(&logTimeEncoder, "log-time-encoder", "epoch", "Log time encoder to use, one of: "+
@@ -247,8 +273,6 @@ func init() {
 	rootCmd.Flags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
 		"Enabling this requires Prometheus CRDs installed in the cluster.")
-	rootCmd.Flags().BoolVar(&galeraRecoveryReconciler, "galera-recovery-reconciler", true, "Enable Galera recovery reconciler. "+
-		"This will automatically recover MariaDB Galera unhealthy clusters.")
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
 }

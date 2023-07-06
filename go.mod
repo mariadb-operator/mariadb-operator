@@ -7,11 +7,12 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/mariadb-operator/agent v0.0.0-20230622165508-059bdc8cac7c
+	github.com/mariadb-operator/agent v0.0.2-0.20230705212819-67aac2bf05b9
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.57.0
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/sethvargo/go-envconfig v0.9.0
 	github.com/sethvargo/go-password v0.2.0
 	github.com/spf13/cobra v1.7.0
 	go.uber.org/zap v1.24.0

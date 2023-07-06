@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -19,17 +18,10 @@ type agentClientSet struct {
 	mux           *sync.Mutex
 }
 
-func newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, clientOpts ...client.Option) (*agentClientSet, error) {
+func newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, opts ...client.Option) (*agentClientSet, error) {
 	if mariadb.Spec.Galera == nil {
 		return nil, errors.New("'mariadb.spec.galera' is required to create an agent agentClientSet")
 	}
-	opts := clientOpts
-	if opts == nil {
-		opts = []client.Option{
-			client.WithTimeout(5 * time.Second),
-		}
-	}
-
 	return &agentClientSet{
 		mariadb:       mariadb,
 		clientOpts:    opts,

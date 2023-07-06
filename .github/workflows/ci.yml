@@ -89,6 +89,10 @@ jobs:
 
       - name: Test
         run: make test
+        env:
+          MARIADB_OPERATOR_NAME: mariadb-operator
+          MARIADB_OPERATOR_NAMESPACE: default
+          MARIADB_OPERATOR_SA_PATH: /tmp/mariadb-operator/token
 
   check-diff:
     name: Check diff

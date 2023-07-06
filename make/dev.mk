@@ -1,5 +1,9 @@
 ##@ Dev
 
+export MARIADB_OPERATOR_NAME ?= mariadb-operator
+export MARIADB_OPERATOR_NAMESPACE ?= default
+export MARIADB_OPERATOR_SA_PATH ?= /tmp/mariadb-operator/token
+
 CERTS_DIR=/tmp/k8s-webhook-server/serving-certs
 CERTS_CONFIG=./hack/config/openssl.conf
 certs: ## Generates development certificates.
@@ -28,7 +32,7 @@ release: goreleaser ## Test release locally.
 
 ##@ Operator
 
-RUN_FLAGS ?= --service-monitor-reconciler --log-dev --log-level=debug --log-time-encoder=iso8601
+RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --service-monitor-reconciler
 .PHONY: run
 run: lint ## Run a controller from your host.
 	go run main.go $(RUN_FLAGS)

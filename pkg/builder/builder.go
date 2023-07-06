@@ -1,13 +1,18 @@
 package builder
 
-import "k8s.io/apimachinery/pkg/runtime"
+import (
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"k8s.io/apimachinery/pkg/runtime"
+)
 
 type Builder struct {
 	scheme *runtime.Scheme
+	env    *environment.Environment
 }
 
-func New(scheme *runtime.Scheme) *Builder {
+func NewBuilder(scheme *runtime.Scheme, env *environment.Environment) *Builder {
 	return &Builder{
 		scheme: scheme,
+		env:    env,
 	}
 }

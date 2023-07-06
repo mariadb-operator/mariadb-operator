@@ -330,14 +330,8 @@ github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63/go.mod h1:C1wdFJiN
 github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/mailru/easyjson v0.7.6 h1:8yTIVnZgCoiM1TgqoeTl+LfU5Jg6/xL3QhGQnimLYnA=
 github.com/mailru/easyjson v0.7.6/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
-github.com/mariadb-operator/agent v0.0.0-20230609203423-d78430b94154 h1:k3A62w1v0Kb0DvXp+/cww5fFz0joqT66DecdabssMxE=
-github.com/mariadb-operator/agent v0.0.0-20230609203423-d78430b94154/go.mod h1:eXeG6YTKnykTqPtpstiFVxJXdlqMNgLH9/pTRD+C6aI=
-github.com/mariadb-operator/agent v0.0.0-20230620151720-65ee23db0559 h1:jT+iUqHeVPL9+EzLGXzXdwJgfD889ItsGavaigv2ovQ=
-github.com/mariadb-operator/agent v0.0.0-20230620151720-65ee23db0559/go.mod h1:TGDSu8zPTK1lAnLwhOF78NdO3Sc6McC5DFFGLqKEq2w=
-github.com/mariadb-operator/agent v0.0.0-20230622164333-ba4ca69e3b52 h1:ShZHzIMkJTkRHT6kqRy9wAr2++f+5nNb6GuHE6UmZgA=
-github.com/mariadb-operator/agent v0.0.0-20230622164333-ba4ca69e3b52/go.mod h1:TGDSu8zPTK1lAnLwhOF78NdO3Sc6McC5DFFGLqKEq2w=
-github.com/mariadb-operator/agent v0.0.0-20230622165508-059bdc8cac7c h1:8U3TmVfTAAc5loBD8+91997cRQjUY533vjSghlBMo58=
-github.com/mariadb-operator/agent v0.0.0-20230622165508-059bdc8cac7c/go.mod h1:TGDSu8zPTK1lAnLwhOF78NdO3Sc6McC5DFFGLqKEq2w=
+github.com/mariadb-operator/agent v0.0.2-0.20230705212819-67aac2bf05b9 h1:NOnvXXDUSPNhe9OJfqn8kkTORplQIHxiqgShVwQ/3jk=
+github.com/mariadb-operator/agent v0.0.2-0.20230705212819-67aac2bf05b9/go.mod h1:UrpYUTpGuh8s1M5dpWLwRu8BSIMjswCBsXCQJaYuNlk=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-isatty v0.0.3/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNxMWT7Zi4=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
@@ -441,6 +435,8 @@ github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQD
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
+github.com/sethvargo/go-envconfig v0.9.0 h1:Q6FQ6hVEeTECULvkJZakq3dZMeBQ3JUpcKMfPQbKMDE=
+github.com/sethvargo/go-envconfig v0.9.0/go.mod h1:Iz1Gy1Sf3T64TQlJSvee81qDhf7YIlt8GMUX6yyNFs0=
 github.com/sethvargo/go-password v0.2.0 h1:BTDl4CC/gjf/axHMaDQtw507ogrXLci6XRiLc7i/UHI=
 github.com/sethvargo/go-password v0.2.0/go.mod h1:Ym4Mr9JXLBycr02MFuVQ/0JHidNetSgbzutTr3zsYXE=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=

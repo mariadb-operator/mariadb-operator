@@ -61,7 +61,17 @@ spec:
           env: 
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName }}
-          {{ with .Values.resources }}
+            - name: MARIADB_OPERATOR_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: MARIADB_OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MARIADB_OPERATOR_SA_PATH
+              value: /var/run/secrets/kubernetes.io/serviceaccount/token
+          {{ with .Values.resources }}          
           resources:
             {{ toYaml . | nindent 12 }}
           {{ end }}

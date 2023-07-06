@@ -93,7 +93,7 @@ type patcher func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;get
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=create;get
-//+kubebuilder:rbac:groups=rbac,resources=roles;rolebindings,verbs=create;get
+//+kubebuilder:rbac:groups=rbac,resources=roles;rolebindings;clusterrolebindings,verbs=create;get
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
