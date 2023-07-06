@@ -8,6 +8,7 @@
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml/badge.svg" alt="Release"></a>
 <a href="https://goreportcard.com/report/github.com/mariadb-operator/mariadb-operator"><img src="https://goreportcard.com/badge/github.com/mariadb-operator/mariadb-operator" alt="Go Report Card"></a>
 <a href="https://pkg.go.dev/github.com/mariadb-operator/mariadb-operator"><img src="https://pkg.go.dev/badge/github.com/mariadb-operator/mariadb-operator.svg" alt="Go Reference"></a>
+<a href="https://join.slack.com/t/mariadb-operator/shared_invite/zt-1xsfguxlf-dhtV6zk0HwlAh_U2iYfUxw"><img alt="Slack" src="https://img.shields.io/badge/slack-join_chat-blue?logo=Slack&label=slack&style=flat"></a>
 </p>
 
 <p align="center">
@@ -19,6 +20,7 @@
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 - [Provisioning](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
+- Multi master HA via [Galera](./examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml). Automatic Galera cluster [recovery](https://galeracluster.com/library/documentation/crash-recovery.html)
 - Single master HA via SemiSync [replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml). Primary switchover. Automatic primary failover
 - [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
 - [PVCs](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)) backup storage
@@ -42,7 +44,6 @@ This installation flavour provides the minimum resources required to run `mariad
 helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
-
 ## Recommended installation
 
 The recommended installation includes the following features to provide a better user experiende and reliability:
@@ -72,8 +73,8 @@ kubectl apply -f examples/manifests/mariadb_v1alpha1_mariadb.yaml
 ```
 ```bash
 kubectl get mariadbs
-NAME      READY   STATUS    PRIMARY     AGE
-mariadb   True    Running   mariadb-0   3m57s
+NAME      READY   STATUS    PRIMARY POD     AGE
+mariadb   True    Running   mariadb-0       3m57s
 
 kubectl get statefulsets
 NAME      READY   AGE
@@ -150,9 +151,9 @@ kubectl apply -f examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml
 ``` 
 ```bash
 kubectl get mariadbs
-NAME                       READY   STATUS    PRIMARY     AGE
-mariadb                    True    Running   mariadb-0   30m57s
-mariadb-from-backup        True    Running   mariadb-0   85s
+NAME                       READY   STATUS    PRIMARY POD     AGE
+mariadb                    True    Running   mariadb-0       30m57s
+mariadb-from-backup        True    Running   mariadb-0       85s
 
 kubectl get restores
 NAME                                         COMPLETE   STATUS    MARIADB               AGE
