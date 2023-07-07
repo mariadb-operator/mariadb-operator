@@ -1,0 +1,28 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  image:
+    repository: mariadb
+    tag: "10.11.3"
+    pullPolicy: IfNotPresent
+
+  port: 3306
+
+  replicas: 3
+     
+  galera:
+    enabled: true
+
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 100Mi
+    storageClassName: standard
+    accessModes:
+      - ReadWriteOnce

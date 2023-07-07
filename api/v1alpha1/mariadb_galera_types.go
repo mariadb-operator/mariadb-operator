@@ -45,8 +45,8 @@ type GaleraAgent struct {
 	ContainerTemplate `json:",inline"`
 	// +kubebuilder:default=5555
 	Port int32 `json:"port,omitempty"`
-	// +kubebuilder:validation:Required
-	KubernetesAuth KubernetesAuth `json:"kubernetesAuth"`
+
+	KubernetesAuth *KubernetesAuth `json:"kubernetesAuth,omitempty"`
 
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
 }
@@ -131,18 +131,19 @@ func (s SST) MariaDBFormat() (string, error) {
 }
 
 type Galera struct {
+	Enabled bool `json:"enabled,omitempty"`
 	// +kubebuilder:default=mariabackup
-	SST SST `json:"sst"`
+	SST SST `json:"sst,omitempty"`
 	// +kubebuilder:default=1
 	ReplicaThreads int `json:"replicaThreads,omitempty"`
-	// +kubebuilder:validation:Required
-	Agent GaleraAgent `json:"agent"`
-	// +kubebuilder:default={}
-	Recovery GaleraRecovery `json:"recovery,omitempty"`
-	// +kubebuilder:validation:Required
-	InitContainer ContainerTemplate `json:"initContainer"`
-	// +kubebuilder:validation:Required
-	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate"`
+
+	Agent *GaleraAgent `json:"agent,omitempty"`
+
+	Recovery *GaleraRecovery `json:"recovery,omitempty"`
+
+	InitContainer *ContainerTemplate `json:"initContainer,omitempty"`
+
+	VolumeClaimTemplate *corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate,omitempty"`
 }
 
 type GaleraRecoveryBootstrap struct {

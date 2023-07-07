@@ -615,9 +615,10 @@ var _ = Describe("MariaDB Galera", func() {
 						return &cfg
 					}(),
 					Galera: &mariadbv1alpha1.Galera{
+						Enabled:        true,
 						SST:            mariadbv1alpha1.SSTMariaBackup,
 						ReplicaThreads: 1,
-						Agent: mariadbv1alpha1.GaleraAgent{
+						Agent: &mariadbv1alpha1.GaleraAgent{
 							ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 								Image: mariadbv1alpha1.Image{
 									Repository: "ghcr.io/mariadb-operator/agent",
@@ -625,7 +626,7 @@ var _ = Describe("MariaDB Galera", func() {
 								},
 							},
 							Port: 5555,
-							KubernetesAuth: mariadbv1alpha1.KubernetesAuth{
+							KubernetesAuth: &mariadbv1alpha1.KubernetesAuth{
 								Enabled: true,
 							},
 							GracefulShutdownTimeout: func() *metav1.Duration {
@@ -633,20 +634,20 @@ var _ = Describe("MariaDB Galera", func() {
 								return &t
 							}(),
 						},
-						Recovery: mariadbv1alpha1.GaleraRecovery{
+						Recovery: &mariadbv1alpha1.GaleraRecovery{
 							Enabled:                 true,
 							ClusterHealthyTimeout:   &clusterHealthyTimeout,
 							ClusterBootstrapTimeout: &recoveryTimeout,
 							PodRecoveryTimeout:      &recoveryTimeout,
 							PodSyncTimeout:          &recoveryTimeout,
 						},
-						InitContainer: mariadbv1alpha1.ContainerTemplate{
+						InitContainer: &mariadbv1alpha1.ContainerTemplate{
 							Image: mariadbv1alpha1.Image{
 								Repository: "ghcr.io/mariadb-operator/init",
 								Tag:        "v0.0.2",
 							},
 						},
-						VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						VolumeClaimTemplate: &corev1.PersistentVolumeClaimSpec{
 							StorageClassName: &testStorageClassName,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{

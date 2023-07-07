@@ -18,17 +18,94 @@ package v1alpha1
 
 import (
 	"errors"
+	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
+	log "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
+
+var logger = log.Log.WithName("mariadb")
 
 func (r *MariaDB) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
+}
+
+//nolint
+//+kubebuilder:webhook:path=/mutate-mariadb-mmontes-io-v1alpha1-mariadb,mutating=true,failurePolicy=fail,sideEffects=None,groups=mariadb.mmontes.io,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=mmariadb.kb.io,admissionReviewVersions=v1
+
+var _ webhook.Defaulter = &MariaDB{}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type
+func (r *MariaDB) Default() {
+	logger.V(1).Info("Defaulting MariaDB", "mariadb", r.Name)
+	if r.Spec.Galera == nil {
+		return
+	}
+	if !r.Spec.Galera.Enabled {
+		return
+	}
+
+	if r.Spec.Galera.Agent == nil {
+		fiveSeconds := metav1.Duration{Duration: 5 * time.Second}
+		r.Spec.Galera.Agent = &GaleraAgent{
+			ContainerTemplate: ContainerTemplate{
+				Image: Image{
+					Repository: "ghcr.io/mariadb-operator/agent",
+					Tag:        "v0.0.2",
+					PullPolicy: corev1.PullIfNotPresent,
+				},
+			},
+			Port: 5555,
+			KubernetesAuth: &KubernetesAuth{
+				Enabled:               true,
+				AuthDelegatorRoleName: r.Name,
+			},
+			GracefulShutdownTimeout: &fiveSeconds,
+		}
+	}
+	if r.Spec.Galera.Recovery == nil {
+		oneMinute := metav1.Duration{Duration: 1 * time.Minute}
+		fiveMinutes := metav1.Duration{Duration: 5 * time.Minute}
+		threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
+		r.Spec.Galera.Recovery = &GaleraRecovery{
+			Enabled:                 true,
+			ClusterHealthyTimeout:   &oneMinute,
+			ClusterBootstrapTimeout: &fiveMinutes,
+			PodRecoveryTimeout:      &threeMinutes,
+			PodSyncTimeout:          &threeMinutes,
+		}
+	}
+	if r.Spec.Galera.InitContainer == nil {
+		r.Spec.Galera.InitContainer = &ContainerTemplate{
+			Image: Image{
+				Repository: "ghcr.io/mariadb-operator/init",
+				Tag:        "v0.0.2",
+				PullPolicy: corev1.PullIfNotPresent,
+			},
+		}
+	}
+	if r.Spec.Galera.VolumeClaimTemplate == nil {
+		defaultStorageClass := "default"
+		r.Spec.Galera.VolumeClaimTemplate = &corev1.PersistentVolumeClaimSpec{
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"storage": resource.MustParse("50Mi"),
+				},
+			},
+			StorageClassName: &defaultStorageClass,
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+		}
+	}
 }
 
 //nolint
@@ -38,6 +115,7 @@ var _ webhook.Validator = &MariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateCreate() error {
+	logger.V(1).Info("Validate MariaDB creation", "mariadb", r.Name)
 	validateFns := []func() error{
 		r.validateHA,
 		r.validateGalera,
@@ -55,6 +133,7 @@ func (r *MariaDB) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
+	logger.V(1).Info("Validate MariaDB update", "mariadb", r.Name)
 	validateFns := []func() error{
 		r.validateHA,
 		r.validateGalera,
@@ -80,7 +159,7 @@ func (r *MariaDB) ValidateDelete() error {
 }
 
 func (r *MariaDB) validateHA() error {
-	if r.Spec.Replication != nil && r.Spec.Galera != nil {
+	if r.Spec.Replication != nil && r.IsGaleraEnabled() {
 		return errors.New("You may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !r.IsHAEnabled() && r.Spec.Replicas > 1 {

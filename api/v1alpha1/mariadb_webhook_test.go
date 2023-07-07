@@ -85,6 +85,7 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
+								Enabled:        true,
 								SST:            "mariabackup",
 								ReplicaThreads: 1,
 							},
@@ -121,6 +122,7 @@ var _ = Describe("MariaDB webhook", func() {
 								SyncBinlog: true,
 							},
 							Galera: &Galera{
+								Enabled:        true,
 								SST:            "mariabackup",
 								ReplicaThreads: 1,
 							},
@@ -145,6 +147,7 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
+								Enabled:        true,
 								ReplicaThreads: 4,
 							},
 							Replicas: 1,
@@ -158,6 +161,7 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
+								Enabled:        true,
 								SST:            "foo",
 								ReplicaThreads: 1,
 							},
@@ -172,6 +176,7 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
+								Enabled:        true,
 								ReplicaThreads: -1,
 							},
 							Replicas: 3,
@@ -267,21 +272,114 @@ var _ = Describe("MariaDB webhook", func() {
 				}
 			}
 		})
+
+		It("Should default Galera", func() {
+			storageClassName := "standard"
+			mariadb := MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb-galera-default-webhook",
+					Namespace: testNamespace,
+				},
+				Spec: MariaDBSpec{
+					ContainerTemplate: ContainerTemplate{
+						Image: Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+							PullPolicy: corev1.PullIfNotPresent,
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "secret",
+						},
+						Key: "root-password",
+					},
+					Port: 3306,
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &storageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+					Replicas: 3,
+					Galera: &Galera{
+						Enabled: true,
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
+
+			fiveSeconds := metav1.Duration{Duration: 5 * time.Second}
+			oneMinute := metav1.Duration{Duration: 1 * time.Minute}
+			fiveMinutes := metav1.Duration{Duration: 5 * time.Minute}
+			threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
+			defaultStorageClass := "default"
+			defaultGalera := &Galera{
+				Enabled:        true,
+				SST:            SSTMariaBackup,
+				ReplicaThreads: 1,
+				Agent: &GaleraAgent{
+					ContainerTemplate: ContainerTemplate{
+						Image: Image{
+							Repository: "ghcr.io/mariadb-operator/agent",
+							Tag:        "v0.0.2",
+							PullPolicy: corev1.PullIfNotPresent,
+						},
+					},
+					Port: 5555,
+					KubernetesAuth: &KubernetesAuth{
+						Enabled:               true,
+						AuthDelegatorRoleName: "mariadb-galera-default-webhook",
+					},
+					GracefulShutdownTimeout: &fiveSeconds,
+				},
+				Recovery: &GaleraRecovery{
+					Enabled:                 true,
+					ClusterHealthyTimeout:   &oneMinute,
+					ClusterBootstrapTimeout: &fiveMinutes,
+					PodRecoveryTimeout:      &threeMinutes,
+					PodSyncTimeout:          &threeMinutes,
+				},
+				InitContainer: &ContainerTemplate{
+					Image: Image{
+						Repository: "ghcr.io/mariadb-operator/init",
+						Tag:        "v0.0.2",
+						PullPolicy: corev1.PullIfNotPresent,
+					},
+				},
+				VolumeClaimTemplate: &corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"storage": resource.MustParse("50Mi"),
+						},
+					},
+					StorageClassName: &defaultStorageClass,
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+				},
+			}
+
+			By("Expect MariaDB Galera to be defaulted")
+			Expect(mariadb.Spec.Galera).To(Equal(defaultGalera))
+		})
 	})
 
 	Context("When updating a MariaDB", func() {
 		It("Should validate", func() {
 			By("Creating MariaDB")
-			key := types.NamespacedName{
-				Name:      "mariadb-update-webhook",
-				Namespace: testNamespace,
-			}
 			test := "test"
 			storageClassName := "standard"
-			mariaDb := MariaDB{
+			mariadb := MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      key.Name,
-					Namespace: key.Namespace,
+					Name:      "mariadb-update-webhook",
+					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
 					ContainerTemplate: ContainerTemplate{
@@ -356,7 +454,7 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &mariaDb)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
 
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
 			// https://github.com/mariadb-operator/mariadb-operator/issues/3
@@ -493,12 +591,12 @@ var _ = Describe("MariaDB webhook", func() {
 
 			for _, t := range tt {
 				By(t.by)
-				Expect(k8sClient.Get(testCtx, key, &mariaDb)).To(Succeed())
+				Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
 
-				patch := client.MergeFrom(mariaDb.DeepCopy())
-				t.patchFn(&mariaDb)
+				patch := client.MergeFrom(mariadb.DeepCopy())
+				t.patchFn(&mariadb)
 
-				err := k8sClient.Patch(testCtx, &mariaDb, patch)
+				err := k8sClient.Patch(testCtx, &mariadb, patch)
 				if t.wantErr {
 					Expect(err).To(HaveOccurred())
 				} else {

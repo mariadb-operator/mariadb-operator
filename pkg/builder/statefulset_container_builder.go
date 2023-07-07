@@ -23,7 +23,7 @@ func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *core
 	var containers []corev1.Container
 	containers = append(containers, mariadbContainer)
 
-	if mariadb.Spec.Galera != nil {
+	if mariadb.IsGaleraEnabled() {
 		containers = append(containers, b.buildGaleraAgentContainer(mariadb))
 	}
 	if mariadb.Spec.Metrics != nil {
@@ -93,7 +93,10 @@ func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container
 	if mariadb.Spec.Galera == nil {
 		return nil
 	}
-	container := buildContainer(&mariadb.Spec.Galera.InitContainer)
+	if mariadb.Spec.Galera.InitContainer == nil {
+		return nil
+	}
+	container := buildContainer(mariadb.Spec.Galera.InitContainer)
 
 	container.Name = InitContainerName
 	container.Args = func() []string {
@@ -195,7 +198,7 @@ func buildStsVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount
 			MountPath: ConfigMountPath,
 		},
 	}
-	if mariadb.Spec.Galera != nil {
+	if mariadb.IsGaleraEnabled() {
 		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 			{
 				Name:      galeraresources.GaleraConfigVolume,
@@ -220,7 +223,7 @@ func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 			ContainerPort: mariadb.Spec.Port,
 		},
 	}
-	if mariadb.Spec.Galera != nil {
+	if mariadb.IsGaleraEnabled() {
 		ports = append(ports, []corev1.ContainerPort{
 			{
 				Name:          galeraresources.GaleraClusterPortName,
@@ -277,7 +280,7 @@ func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 }
 
 func buildStsProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
-	if mariadb.Spec.Galera != nil {
+	if mariadb.IsGaleraEnabled() {
 		galerProbe := *galeraStsProbe
 		if probe != nil {
 			p := *probe
