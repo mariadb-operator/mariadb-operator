@@ -110,6 +110,26 @@ var _ = Describe("MariaDB webhook", func() {
 					wantErr: false,
 				},
 				{
+					by: "invalid HA",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Replication: &Replication{
+								Primary: PrimaryReplication{
+									PodIndex: 1,
+								},
+								SyncBinlog: true,
+							},
+							Galera: &Galera{
+								SST:            "mariabackup",
+								ReplicaThreads: 1,
+							},
+							Replicas: 3,
+						},
+					},
+					wantErr: true,
+				},
+				{
 					by: "fewer replicas required",
 					mdb: MariaDB{
 						ObjectMeta: meta,

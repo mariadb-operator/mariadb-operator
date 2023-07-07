@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"errors"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -37,7 +39,7 @@ var _ webhook.Validator = &MariaDB{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateCreate() error {
 	validateFns := []func() error{
-		r.validateReplicas,
+		r.validateHA,
 		r.validateGalera,
 		r.validateReplication,
 		r.validateBootstrapFrom,
@@ -54,7 +56,7 @@ func (r *MariaDB) ValidateCreate() error {
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
 	validateFns := []func() error{
-		r.validateReplicas,
+		r.validateHA,
 		r.validateGalera,
 		r.validateReplication,
 		r.validateBootstrapFrom,
@@ -77,7 +79,10 @@ func (r *MariaDB) ValidateDelete() error {
 	return nil
 }
 
-func (r *MariaDB) validateReplicas() error {
+func (r *MariaDB) validateHA() error {
+	if r.Spec.Replication != nil && r.Spec.Galera != nil {
+		return errors.New("You may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
+	}
 	if !r.IsHAEnabled() && r.Spec.Replicas > 1 {
 		return field.Invalid(
 			field.NewPath("spec").Child("replicas"),
