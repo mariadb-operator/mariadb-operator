@@ -120,14 +120,17 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 		return false, nil
 	}
 
+	clientCtx, cancelClient := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelClient()
+
 	clientSet := mariadbclient.NewClientSet(mariadb, r.RefResolver)
 	defer clientSet.Close()
-	client, err := r.readyClient(ctx, mariadb, clientSet)
+	client, err := r.readyClient(clientCtx, mariadb, clientSet)
 	if err != nil {
 		return false, fmt.Errorf("error getting ready client: %v", err)
 	}
 
-	status, err := client.GaleraClusterStatus(ctx)
+	status, err := client.GaleraClusterStatus(clientCtx)
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster status: %v", err)
 	}
@@ -136,7 +139,7 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 		return false, nil
 	}
 
-	size, err := client.GaleraClusterSize(ctx)
+	size, err := client.GaleraClusterSize(clientCtx)
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster size: %v", err)
 	}
