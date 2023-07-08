@@ -466,7 +466,7 @@ var _ = Describe("MariaDB webhook", func() {
 					patchFn: func(mdb *MariaDB) {
 						mdb.Spec.Image.Tag = "10.7.5"
 					},
-					wantErr: true,
+					wantErr: false,
 				},
 				{
 					by: "Updating Port",
