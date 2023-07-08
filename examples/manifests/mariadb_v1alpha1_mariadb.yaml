@@ -84,6 +84,12 @@ spec:
     periodSeconds: 10
     timeoutSeconds: 5
 
+  podDisruptionBudget:
+    maxUnavailable: 50%
+
+  updateStrategy:
+    type: RollingUpdate
+
   service:
     type: LoadBalancer
     annotations:
