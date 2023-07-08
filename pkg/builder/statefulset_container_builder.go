@@ -23,7 +23,7 @@ func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *core
 	var containers []corev1.Container
 	containers = append(containers, mariadbContainer)
 
-	if mariadb.IsGaleraEnabled() {
+	if mariadb.Galera().Enabled {
 		containers = append(containers, b.buildGaleraAgentContainer(mariadb))
 	}
 	if mariadb.Spec.Metrics != nil {
@@ -37,24 +37,24 @@ func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *core
 }
 
 func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
-	container := buildContainer(&mariadb.Spec.Galera.Agent.ContainerTemplate)
+	container := buildContainer(&mariadb.Galera().Agent.ContainerTemplate)
 	container.Name = AgentContainerName
 	container.Ports = []corev1.ContainerPort{
 		{
 			Name:          galeraresources.AgentPortName,
-			ContainerPort: mariadb.Spec.Galera.Agent.Port,
+			ContainerPort: mariadb.Galera().Agent.Port,
 		},
 	}
 	container.Args = func() []string {
 		args := container.Args
 		args = append(args, []string{
-			fmt.Sprintf("--addr=:%d", mariadb.Spec.Galera.Agent.Port),
+			fmt.Sprintf("--addr=:%d", mariadb.Galera().Agent.Port),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", StorageMountPath),
-			fmt.Sprintf("--recovery-timeout=%s", mariadb.Spec.Galera.Recovery.PodRecoveryTimeoutOrDefault()),
-			fmt.Sprintf("--graceful-shutdown-timeout=%s", mariadb.Spec.Galera.Agent.GracefulShutdownTimeoutOrDefault()),
+			fmt.Sprintf("--recovery-timeout=%s", mariadb.Galera().Recovery.PodRecoveryTimeout),
+			fmt.Sprintf("--graceful-shutdown-timeout=%s", mariadb.Galera().Agent.GracefulShutdownTimeout),
 		}...)
-		if mariadb.Spec.Galera.Agent.KubernetesAuth.Enabled {
+		if mariadb.Galera().Agent.KubernetesAuth.Enabled {
 			args = append(args, []string{
 				"--kubernetes-auth",
 				fmt.Sprintf("--kubernetes-trusted-name=%s", b.env.MariadbOperatorName),
@@ -68,13 +68,13 @@ func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) co
 		if container.LivenessProbe != nil {
 			return container.LivenessProbe
 		}
-		return defaultAgentProbe(mariadb.Spec.Galera)
+		return defaultAgentProbe(mariadb.Galera())
 	}()
 	container.ReadinessProbe = func() *corev1.Probe {
 		if container.ReadinessProbe != nil {
 			return container.ReadinessProbe
 		}
-		return defaultAgentProbe(mariadb.Spec.Galera)
+		return defaultAgentProbe(mariadb.Galera())
 	}()
 	container.SecurityContext = func() *corev1.SecurityContext {
 		if container.SecurityContext != nil {
@@ -90,13 +90,10 @@ func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) co
 }
 
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
-	if mariadb.Spec.Galera == nil {
+	if !mariadb.Galera().Enabled {
 		return nil
 	}
-	if mariadb.Spec.Galera.InitContainer == nil {
-		return nil
-	}
-	container := buildContainer(mariadb.Spec.Galera.InitContainer)
+	container := buildContainer(mariadb.Galera().InitContainer)
 
 	container.Name = InitContainerName
 	container.Args = func() []string {
@@ -198,7 +195,7 @@ func buildStsVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount
 			MountPath: ConfigMountPath,
 		},
 	}
-	if mariadb.IsGaleraEnabled() {
+	if mariadb.Galera().Enabled {
 		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 			{
 				Name:      galeraresources.GaleraConfigVolume,
@@ -223,7 +220,7 @@ func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 			ContainerPort: mariadb.Spec.Port,
 		},
 	}
-	if mariadb.IsGaleraEnabled() {
+	if mariadb.Galera().Enabled {
 		ports = append(ports, []corev1.ContainerPort{
 			{
 				Name:          galeraresources.GaleraClusterPortName,
@@ -280,7 +277,7 @@ func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 }
 
 func buildStsProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
-	if mariadb.IsGaleraEnabled() {
+	if mariadb.Galera().Enabled {
 		galerProbe := *galeraStsProbe
 		if probe != nil {
 			p := *probe
@@ -335,7 +332,7 @@ var (
 		TimeoutSeconds:      5,
 		PeriodSeconds:       10,
 	}
-	defaultAgentProbe = func(galera *mariadbv1alpha1.Galera) *corev1.Probe {
+	defaultAgentProbe = func(galera mariadbv1alpha1.Galera) *corev1.Probe {
 		return &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{

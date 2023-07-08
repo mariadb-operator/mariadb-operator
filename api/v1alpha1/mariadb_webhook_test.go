@@ -36,6 +36,8 @@ var _ = Describe("MariaDB webhook", func() {
 				Name:      "mariadb-create-webhook",
 				Namespace: testNamespace,
 			}
+			sst := SSTMariaBackup
+			replicaThreads := 1
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
 			// https://github.com/mariadb-operator/mariadb-operator/issues/3
 			tt := []struct {
@@ -85,9 +87,11 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
-								Enabled:        true,
-								SST:            "mariabackup",
-								ReplicaThreads: 1,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST:            &sst,
+									ReplicaThreads: &replicaThreads,
+								},
 							},
 							Replicas: 3,
 						},
@@ -122,9 +126,11 @@ var _ = Describe("MariaDB webhook", func() {
 								SyncBinlog: true,
 							},
 							Galera: &Galera{
-								Enabled:        true,
-								SST:            "mariabackup",
-								ReplicaThreads: 1,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST:            &sst,
+									ReplicaThreads: &replicaThreads,
+								},
 							},
 							Replicas: 3,
 						},
@@ -147,8 +153,10 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
-								Enabled:        true,
-								ReplicaThreads: 4,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST: &sst,
+								},
 							},
 							Replicas: 1,
 						},
@@ -161,9 +169,14 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
-								Enabled:        true,
-								SST:            "foo",
-								ReplicaThreads: 1,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST: func() *SST {
+										s := SST("foo")
+										return &s
+									}(),
+									ReplicaThreads: &replicaThreads,
+								},
 							},
 							Replicas: 3,
 						},
@@ -176,8 +189,14 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
-								Enabled:        true,
-								ReplicaThreads: -1,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST: &sst,
+									ReplicaThreads: func() *int {
+										r := -1
+										return &r
+									}(),
+								},
 							},
 							Replicas: 3,
 						},
@@ -315,59 +334,8 @@ var _ = Describe("MariaDB webhook", func() {
 			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
 
-			fiveSeconds := metav1.Duration{Duration: 5 * time.Second}
-			oneMinute := metav1.Duration{Duration: 1 * time.Minute}
-			fiveMinutes := metav1.Duration{Duration: 5 * time.Minute}
-			threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
-			defaultStorageClass := "default"
-			defaultGalera := &Galera{
-				Enabled:        true,
-				SST:            SSTMariaBackup,
-				ReplicaThreads: 1,
-				Agent: &GaleraAgent{
-					ContainerTemplate: ContainerTemplate{
-						Image: Image{
-							Repository: "ghcr.io/mariadb-operator/agent",
-							Tag:        "v0.0.2",
-							PullPolicy: corev1.PullIfNotPresent,
-						},
-					},
-					Port: 5555,
-					KubernetesAuth: &KubernetesAuth{
-						Enabled:               true,
-						AuthDelegatorRoleName: "mariadb-galera-default-webhook",
-					},
-					GracefulShutdownTimeout: &fiveSeconds,
-				},
-				Recovery: &GaleraRecovery{
-					Enabled:                 true,
-					ClusterHealthyTimeout:   &oneMinute,
-					ClusterBootstrapTimeout: &fiveMinutes,
-					PodRecoveryTimeout:      &threeMinutes,
-					PodSyncTimeout:          &threeMinutes,
-				},
-				InitContainer: &ContainerTemplate{
-					Image: Image{
-						Repository: "ghcr.io/mariadb-operator/init",
-						Tag:        "v0.0.2",
-						PullPolicy: corev1.PullIfNotPresent,
-					},
-				},
-				VolumeClaimTemplate: &corev1.PersistentVolumeClaimSpec{
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							"storage": resource.MustParse("50Mi"),
-						},
-					},
-					StorageClassName: &defaultStorageClass,
-					AccessModes: []corev1.PersistentVolumeAccessMode{
-						corev1.ReadWriteOnce,
-					},
-				},
-			}
-
-			By("Expect MariaDB Galera to be defaulted")
-			Expect(mariadb.Spec.Galera).To(Equal(defaultGalera))
+			By("Expect MariaDB Galera spec to be defaulted")
+			Expect(mariadb.Spec.Galera.GaleraSpec).To(Equal(DefaultGaleraSpec))
 		})
 	})
 

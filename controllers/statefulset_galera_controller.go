@@ -64,14 +64,14 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if mariadb.Spec.Galera == nil || !mariadb.Spec.Galera.Recovery.Enabled ||
+	if !mariadb.Galera().Enabled || !mariadb.Galera().Recovery.Enabled ||
 		!mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("galera").WithName("health")
 	logger.Info("Checking Galera cluster health")
 
-	healthyCtx, cancelHealthy := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.ClusterHealthyTimeoutOrDefault())
+	healthyCtx, cancelHealthy := context.WithTimeout(ctx, mariadb.Galera().Recovery.ClusterHealthyTimeout.Duration)
 	defer cancelHealthy()
 	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, mariadb, &sts, logger)
 	if err != nil {

@@ -4118,10 +4118,8 @@ spec:
                         type: string
                     type: object
                   replicaThreads:
-                    default: 1
                     type: integer
                   sst:
-                    default: mariabackup
                     type: string
                   volumeClaimTemplate:
                     description: PersistentVolumeClaimSpec describes the common attributes

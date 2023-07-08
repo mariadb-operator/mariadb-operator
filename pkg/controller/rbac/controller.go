@@ -26,7 +26,7 @@ func NewRBACReconiler(client client.Client, builder *builder.Builder) *RBACRecon
 }
 
 func (r *RBACReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Galera == nil {
+	if !mariadb.Galera().Enabled {
 		return nil
 	}
 	sa, err := r.reconcileServiceAccount(ctx, mariadb)
@@ -48,14 +48,14 @@ func (r *RBACReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1
 		return fmt.Errorf("error reconciling RoleBinding: %v", err)
 	}
 
-	if mariadb.Spec.Galera.Agent.KubernetesAuth.Enabled {
+	if mariadb.Galera().Agent.KubernetesAuth.Enabled {
 		authDelegatorRoleRef := rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
 			Kind:     "ClusterRole",
 			Name:     "system:auth-delegator",
 		}
 		key := types.NamespacedName{
-			Name:      fmt.Sprintf("%s:auth-delegator", mariadb.Spec.Galera.Agent.KubernetesAuth.AuthDelegatorRoleNameOrDefault(mariadb)),
+			Name:      fmt.Sprintf("%s:auth-delegator", mariadb.Galera().Agent.KubernetesAuth.AuthDelegatorRoleNameOrDefault(mariadb)),
 			Namespace: mariadb.Namespace,
 		}
 		if err := r.reconcileClusterRoleBinding(ctx, key, mariadb, sa, authDelegatorRoleRef); err != nil {

@@ -19,8 +19,8 @@ type agentClientSet struct {
 }
 
 func newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, opts ...client.Option) (*agentClientSet, error) {
-	if mariadb.Spec.Galera == nil {
-		return nil, errors.New("'mariadb.spec.galera' is required to create an agent agentClientSet")
+	if !mariadb.Galera().Enabled {
+		return nil, errors.New("'mariadb.spec.galera.enabled' should be enabled to create an agent agentClientSet")
 	}
 	return &agentClientSet{
 		mariadb:       mariadb,
@@ -64,6 +64,6 @@ func baseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) string {
 			index,
 			ctrlresources.InternalServiceKey(mariadb).Name,
 		),
-		mariadb.Spec.Galera.Agent.Port,
+		mariadb.Galera().Agent.Port,
 	)
 }

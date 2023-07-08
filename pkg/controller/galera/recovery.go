@@ -132,7 +132,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 
 func (r *GaleraReconciler) recoverPod(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podKey types.NamespacedName,
 	clientSet *sqlclient.ClientSet, logger logr.Logger) error {
-	syncTimeout := mariadb.Spec.Galera.Recovery.PodSyncTimeoutOrDefault()
+	syncTimeout := mariadb.Galera().Recovery.PodSyncTimeout.Duration
 	syncCtx, cancelSync := context.WithTimeout(ctx, syncTimeout)
 	defer cancelSync()
 
@@ -332,7 +332,7 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 			}()
 
 			logger.V(1).Info("Performing recovery", "pod", pod.Name)
-			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, mariadb.Spec.Galera.Recovery.PodRecoveryTimeoutOrDefault())
+			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, mariadb.Galera().Recovery.PodRecoveryTimeout.Duration)
 			defer cancelRecovery()
 			if err = pollUntilSucessWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
 				bootstrap, err := client.Recovery.Start(ctx)

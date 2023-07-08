@@ -468,7 +468,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			Port: mariadb.Spec.Port,
 		},
 	}
-	if mariadb.IsGaleraEnabled() {
+	if mariadb.Galera().Enabled {
 		ports = append(ports, []corev1.ServicePort{
 			{
 				Name: galeraresources.GaleraClusterPortName,
@@ -484,7 +484,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			},
 			{
 				Name: galeraresources.AgentPortName,
-				Port: mariadb.Spec.Galera.Agent.Port,
+				Port: mariadb.Galera().Agent.Port,
 			},
 		}...)
 	}
@@ -587,7 +587,7 @@ func (r *MariaDBReconciler) updatePrimaryName(status *mariadbv1alpha1.MariaDBSta
 	if mariadb.Spec.Replication != nil {
 		return // updated by replication controller
 	}
-	if mariadb.IsGaleraEnabled() {
+	if mariadb.Galera().Enabled {
 		status.UpdateCurrentPrimaryName("All")
 		return
 	}

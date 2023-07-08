@@ -107,11 +107,13 @@ func TestRecoveryStatusBootstrap(t *testing.T) {
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			Galera: &mariadbv1alpha1.Galera{
 				Enabled: true,
-				Recovery: &mariadbv1alpha1.GaleraRecovery{
-					ClusterHealthyTimeout:   &duration,
-					ClusterBootstrapTimeout: &duration,
-					PodRecoveryTimeout:      &duration,
-					PodSyncTimeout:          &duration,
+				GaleraSpec: mariadbv1alpha1.GaleraSpec{
+					Recovery: &mariadbv1alpha1.GaleraRecovery{
+						ClusterHealthyTimeout:   &duration,
+						ClusterBootstrapTimeout: &duration,
+						PodRecoveryTimeout:      &duration,
+						PodSyncTimeout:          &duration,
+					},
 				},
 			},
 		},

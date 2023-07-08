@@ -18,11 +18,7 @@ package v1alpha1
 
 import (
 	"errors"
-	"time"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,60 +48,7 @@ func (r *MariaDB) Default() {
 	if !r.Spec.Galera.Enabled {
 		return
 	}
-
-	if r.Spec.Galera.Agent == nil {
-		fiveSeconds := metav1.Duration{Duration: 5 * time.Second}
-		r.Spec.Galera.Agent = &GaleraAgent{
-			ContainerTemplate: ContainerTemplate{
-				Image: Image{
-					Repository: "ghcr.io/mariadb-operator/agent",
-					Tag:        "v0.0.2",
-					PullPolicy: corev1.PullIfNotPresent,
-				},
-			},
-			Port: 5555,
-			KubernetesAuth: &KubernetesAuth{
-				Enabled:               true,
-				AuthDelegatorRoleName: r.Name,
-			},
-			GracefulShutdownTimeout: &fiveSeconds,
-		}
-	}
-	if r.Spec.Galera.Recovery == nil {
-		oneMinute := metav1.Duration{Duration: 1 * time.Minute}
-		fiveMinutes := metav1.Duration{Duration: 5 * time.Minute}
-		threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
-		r.Spec.Galera.Recovery = &GaleraRecovery{
-			Enabled:                 true,
-			ClusterHealthyTimeout:   &oneMinute,
-			ClusterBootstrapTimeout: &fiveMinutes,
-			PodRecoveryTimeout:      &threeMinutes,
-			PodSyncTimeout:          &threeMinutes,
-		}
-	}
-	if r.Spec.Galera.InitContainer == nil {
-		r.Spec.Galera.InitContainer = &ContainerTemplate{
-			Image: Image{
-				Repository: "ghcr.io/mariadb-operator/init",
-				Tag:        "v0.0.2",
-				PullPolicy: corev1.PullIfNotPresent,
-			},
-		}
-	}
-	if r.Spec.Galera.VolumeClaimTemplate == nil {
-		defaultStorageClass := "default"
-		r.Spec.Galera.VolumeClaimTemplate = &corev1.PersistentVolumeClaimSpec{
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					"storage": resource.MustParse("50Mi"),
-				},
-			},
-			StorageClassName: &defaultStorageClass,
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
-			},
-		}
-	}
+	r.Spec.Galera.FillWithDefaults()
 }
 
 //nolint
@@ -159,7 +102,7 @@ func (r *MariaDB) ValidateDelete() error {
 }
 
 func (r *MariaDB) validateHA() error {
-	if r.Spec.Replication != nil && r.IsGaleraEnabled() {
+	if r.Spec.Replication != nil && r.Galera().Enabled {
 		return errors.New("You may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !r.IsHAEnabled() && r.Spec.Replicas > 1 {
@@ -180,20 +123,20 @@ func (r *MariaDB) validateHA() error {
 }
 
 func (r *MariaDB) validateGalera() error {
-	if r.Spec.Galera == nil {
+	if !r.Galera().Enabled {
 		return nil
 	}
-	if err := r.Spec.Galera.SST.Validate(); err != nil {
+	if err := r.Galera().SST.Validate(); err != nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("galera").Child("sst"),
-			r.Spec.Galera.SST,
+			r.Galera().SST,
 			err.Error(),
 		)
 	}
-	if r.Spec.Galera.ReplicaThreads < 1 {
+	if *r.Galera().ReplicaThreads < 1 {
 		return field.Invalid(
 			field.NewPath("spec").Child("galera").Child("replicaThreads"),
-			r.Spec.Galera.ReplicaThreads,
+			r.Galera().ReplicaThreads,
 			"'spec.galera.replicaThreads' must be at least 1",
 		)
 	}

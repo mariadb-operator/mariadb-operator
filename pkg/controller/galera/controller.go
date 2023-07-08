@@ -74,7 +74,7 @@ func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, en
 }
 
 func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Galera == nil || mariadb.IsRestoringBackup() {
+	if !mariadb.Galera().Enabled || mariadb.IsRestoringBackup() {
 		return nil
 	}
 	sts, err := r.statefulSet(ctx, mariadb)
@@ -134,7 +134,7 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 func (r *GaleraReconciler) newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, clientOpts ...agentclient.Option) (*agentClientSet, error) {
 	opts := []agentclient.Option{}
 	opts = append(opts, clientOpts...)
-	if mariadb.Spec.Galera.Agent.KubernetesAuth.Enabled {
+	if mariadb.Galera().Agent.KubernetesAuth.Enabled {
 		opts = append(opts,
 			agentclient.WithKubernetesAuth(true, r.env.MariadbOperatorSAPath),
 		)
