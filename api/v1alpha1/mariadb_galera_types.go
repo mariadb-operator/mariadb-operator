@@ -170,6 +170,7 @@ var (
 			GracefulShutdownTimeout: &fiveSeconds,
 		},
 		Recovery: &GaleraRecovery{
+			Enabled:                 true,
 			ClusterHealthyTimeout:   &oneMinute,
 			ClusterBootstrapTimeout: &fiveMinutes,
 			PodRecoveryTimeout:      &threeMinutes,
@@ -178,7 +179,7 @@ var (
 		InitContainer: &ContainerTemplate{
 			Image: Image{
 				Repository: "ghcr.io/mariadb-operator/init",
-				Tag:        "v0.0.2",
+				Tag:        "v0.0.3",
 				PullPolicy: corev1.PullIfNotPresent,
 			},
 		},

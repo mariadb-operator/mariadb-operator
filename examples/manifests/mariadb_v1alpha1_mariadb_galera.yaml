@@ -50,7 +50,7 @@ spec:
     initContainer:
       image:
         repository: ghcr.io/mariadb-operator/init
-        tag: "v0.0.2"
+        tag: "v0.0.3"
         pullPolicy: IfNotPresent
     volumeClaimTemplate:
       resources:
@@ -103,4 +103,4 @@ spec:
 
   # bootstrapFrom:
   #   backupRef:
-  #     name: backup-scheduled
+  #     name: backup

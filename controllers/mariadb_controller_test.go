@@ -555,7 +555,7 @@ var _ = Describe("MariaDB replication", func() {
 
 var _ = Describe("MariaDB Galera", func() {
 	Context("When creating a MariaDB Galera", func() {
-		FIt("Should reconcile and recover cluster", func() {
+		It("Should reconcile and recover cluster", func() {
 			timeout := 5 * time.Minute
 			clusterHealthyTimeout := metav1.Duration{Duration: 30 * time.Second}
 			recoveryTimeout := metav1.Duration{Duration: timeout}

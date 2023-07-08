@@ -51,9 +51,11 @@ func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) co
 			fmt.Sprintf("--addr=:%d", mariadb.Galera().Agent.Port),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", StorageMountPath),
-			fmt.Sprintf("--recovery-timeout=%s", mariadb.Galera().Recovery.PodRecoveryTimeout),
-			fmt.Sprintf("--graceful-shutdown-timeout=%s", mariadb.Galera().Agent.GracefulShutdownTimeout),
+			fmt.Sprintf("--graceful-shutdown-timeout=%s", mariadb.Galera().Agent.GracefulShutdownTimeout.Duration),
 		}...)
+		if mariadb.Galera().Recovery.Enabled {
+			args = append(args, fmt.Sprintf("--recovery-timeout=%s", mariadb.Galera().Recovery.PodRecoveryTimeout.Duration))
+		}
 		if mariadb.Galera().Agent.KubernetesAuth.Enabled {
 			args = append(args, []string{
 				"--kubernetes-auth",
