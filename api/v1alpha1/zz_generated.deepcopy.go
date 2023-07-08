@@ -23,6 +23,7 @@ package v1alpha1
 
 import (
 	"github.com/mariadb-operator/agent/pkg/galera"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1064,6 +1065,11 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 	if in.PodDisruptionBudget != nil {
 		in, out := &in.PodDisruptionBudget, &out.PodDisruptionBudget
 		*out = new(PodDisruptionBudget)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.UpdateStrategy != nil {
+		in, out := &in.UpdateStrategy, &out.UpdateStrategy
+		*out = new(appsv1.StatefulSetUpdateStrategy)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Service != nil {

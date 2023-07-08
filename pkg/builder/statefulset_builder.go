@@ -83,6 +83,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 			ServiceName:         buildStsServiceName(mariadb),
 			Replicas:            &mariadb.Spec.Replicas,
 			PodManagementPolicy: buildStsPodManagementPolicy(mariadb),
+			UpdateStrategy:      buildStsUpdateStrategy(mariadb),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -138,6 +139,15 @@ func buildStsPodManagementPolicy(mariadb *mariadbv1alpha1.MariaDB) appsv1.PodMan
 		return appsv1.ParallelPodManagement
 	}
 	return appsv1.OrderedReadyPodManagement
+}
+
+func buildStsUpdateStrategy(mariadb *mariadbv1alpha1.MariaDB) appsv1.StatefulSetUpdateStrategy {
+	if mariadb.Spec.UpdateStrategy != nil {
+		return *mariadb.Spec.UpdateStrategy
+	}
+	return appsv1.StatefulSetUpdateStrategy{
+		Type: appsv1.RollingUpdateStatefulSetStrategyType,
+	}
 }
 
 func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.PersistentVolumeClaim {

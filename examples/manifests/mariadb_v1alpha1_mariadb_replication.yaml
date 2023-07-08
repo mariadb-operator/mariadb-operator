@@ -58,7 +58,10 @@ spec:
       effect: "NoSchedule"
 
   podDisruptionBudget:
-    minAvailable: "66%"
+    maxUnavailable: 66%
+
+  updateStrategy:
+    type: RollingUpdate
 
   myCnf: |
     [mysqld]

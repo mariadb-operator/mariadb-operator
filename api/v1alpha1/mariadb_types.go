@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"errors"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -110,6 +111,8 @@ type MariaDBSpec struct {
 	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 
 	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
+
+	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
 
 	Service *Service `json:"service,omitempty"`
 }
