@@ -22,13 +22,33 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
+	log "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
+
+var logger = log.Log.WithName("mariadb")
 
 func (r *MariaDB) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
+}
+
+//nolint
+//+kubebuilder:webhook:path=/mutate-mariadb-mmontes-io-v1alpha1-mariadb,mutating=true,failurePolicy=fail,sideEffects=None,groups=mariadb.mmontes.io,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=mmariadb.kb.io,admissionReviewVersions=v1
+
+var _ webhook.Defaulter = &MariaDB{}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type
+func (r *MariaDB) Default() {
+	logger.V(1).Info("Defaulting MariaDB", "mariadb", r.Name)
+	if r.Spec.Galera == nil {
+		return
+	}
+	if !r.Spec.Galera.Enabled {
+		return
+	}
+	r.Spec.Galera.FillWithDefaults()
 }
 
 //nolint
@@ -38,6 +58,7 @@ var _ webhook.Validator = &MariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateCreate() error {
+	logger.V(1).Info("Validate MariaDB creation", "mariadb", r.Name)
 	validateFns := []func() error{
 		r.validateHA,
 		r.validateGalera,
@@ -55,6 +76,7 @@ func (r *MariaDB) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
+	logger.V(1).Info("Validate MariaDB update", "mariadb", r.Name)
 	validateFns := []func() error{
 		r.validateHA,
 		r.validateGalera,
@@ -80,7 +102,7 @@ func (r *MariaDB) ValidateDelete() error {
 }
 
 func (r *MariaDB) validateHA() error {
-	if r.Spec.Replication != nil && r.Spec.Galera != nil {
+	if r.Spec.Replication != nil && r.Galera().Enabled {
 		return errors.New("You may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !r.IsHAEnabled() && r.Spec.Replicas > 1 {
@@ -101,20 +123,20 @@ func (r *MariaDB) validateHA() error {
 }
 
 func (r *MariaDB) validateGalera() error {
-	if r.Spec.Galera == nil {
+	if !r.Galera().Enabled {
 		return nil
 	}
-	if err := r.Spec.Galera.SST.Validate(); err != nil {
+	if err := r.Galera().SST.Validate(); err != nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("galera").Child("sst"),
-			r.Spec.Galera.SST,
+			r.Galera().SST,
 			err.Error(),
 		)
 	}
-	if r.Spec.Galera.ReplicaThreads < 1 {
+	if *r.Galera().ReplicaThreads < 1 {
 		return field.Invalid(
 			field.NewPath("spec").Child("galera").Child("replicaThreads"),
-			r.Spec.Galera.ReplicaThreads,
+			r.Galera().ReplicaThreads,
 			"'spec.galera.replicaThreads' must be at least 1",
 		)
 	}

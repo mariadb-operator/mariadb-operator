@@ -28,6 +28,7 @@ spec:
   replicas: 3
 
   galera:
+    enabled: true
     sst: mariabackup
     replicaThreads: 1
     agent:
@@ -42,14 +43,14 @@ spec:
       gracefulShutdownTimeout: 5s
     recovery:
       enabled: true
-      clusterHealthyTimeout: 30s
+      clusterHealthyTimeout: 1m
       clusterBootstrapTimeout: 5m
       podRecoveryTimeout: 3m
       podSyncTimeout: 3m
     initContainer:
       image:
         repository: ghcr.io/mariadb-operator/init
-        tag: "v0.0.2"
+        tag: "v0.0.3"
         pullPolicy: IfNotPresent
     volumeClaimTemplate:
       resources:
@@ -102,4 +103,4 @@ spec:
 
   # bootstrapFrom:
   #   backupRef:
-  #     name: backup-scheduled
+  #     name: backup

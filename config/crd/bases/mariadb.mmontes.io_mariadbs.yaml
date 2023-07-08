@@ -3367,8 +3367,9 @@ spec:
                         type: array
                     required:
                     - image
-                    - kubernetesAuth
                     type: object
+                  enabled:
+                    type: boolean
                   initContainer:
                     properties:
                       args:
@@ -4117,10 +4118,8 @@ spec:
                         type: string
                     type: object
                   replicaThreads:
-                    default: 1
                     type: integer
                   sst:
-                    default: mariabackup
                     type: string
                   volumeClaimTemplate:
                     description: PersistentVolumeClaimSpec describes the common attributes
@@ -4292,11 +4291,6 @@ spec:
                           backing this claim.
                         type: string
                     type: object
-                required:
-                - agent
-                - initContainer
-                - sst
-                - volumeClaimTemplate
                 type: object
               image:
                 properties:

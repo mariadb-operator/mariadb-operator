@@ -36,6 +36,8 @@ var _ = Describe("MariaDB webhook", func() {
 				Name:      "mariadb-create-webhook",
 				Namespace: testNamespace,
 			}
+			sst := SSTMariaBackup
+			replicaThreads := 1
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
 			// https://github.com/mariadb-operator/mariadb-operator/issues/3
 			tt := []struct {
@@ -85,8 +87,11 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
-								SST:            "mariabackup",
-								ReplicaThreads: 1,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST:            &sst,
+									ReplicaThreads: &replicaThreads,
+								},
 							},
 							Replicas: 3,
 						},
@@ -121,8 +126,11 @@ var _ = Describe("MariaDB webhook", func() {
 								SyncBinlog: true,
 							},
 							Galera: &Galera{
-								SST:            "mariabackup",
-								ReplicaThreads: 1,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST:            &sst,
+									ReplicaThreads: &replicaThreads,
+								},
 							},
 							Replicas: 3,
 						},
@@ -145,7 +153,10 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
-								ReplicaThreads: 4,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST: &sst,
+								},
 							},
 							Replicas: 1,
 						},
@@ -158,8 +169,14 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
-								SST:            "foo",
-								ReplicaThreads: 1,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST: func() *SST {
+										s := SST("foo")
+										return &s
+									}(),
+									ReplicaThreads: &replicaThreads,
+								},
 							},
 							Replicas: 3,
 						},
@@ -172,7 +189,14 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Galera: &Galera{
-								ReplicaThreads: -1,
+								Enabled: true,
+								GaleraSpec: GaleraSpec{
+									SST: &sst,
+									ReplicaThreads: func() *int {
+										r := -1
+										return &r
+									}(),
+								},
 							},
 							Replicas: 3,
 						},
@@ -267,21 +291,63 @@ var _ = Describe("MariaDB webhook", func() {
 				}
 			}
 		})
+
+		It("Should default Galera", func() {
+			storageClassName := "standard"
+			mariadb := MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb-galera-default-webhook",
+					Namespace: testNamespace,
+				},
+				Spec: MariaDBSpec{
+					ContainerTemplate: ContainerTemplate{
+						Image: Image{
+							Repository: "mariadb",
+							Tag:        "10.11.3",
+							PullPolicy: corev1.PullIfNotPresent,
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "secret",
+						},
+						Key: "root-password",
+					},
+					Port: 3306,
+					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &storageClassName,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+					Replicas: 3,
+					Galera: &Galera{
+						Enabled: true,
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
+
+			By("Expect MariaDB Galera spec to be defaulted")
+			Expect(mariadb.Spec.Galera.GaleraSpec).To(Equal(DefaultGaleraSpec))
+		})
 	})
 
 	Context("When updating a MariaDB", func() {
 		It("Should validate", func() {
 			By("Creating MariaDB")
-			key := types.NamespacedName{
-				Name:      "mariadb-update-webhook",
-				Namespace: testNamespace,
-			}
 			test := "test"
 			storageClassName := "standard"
-			mariaDb := MariaDB{
+			mariadb := MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      key.Name,
-					Namespace: key.Namespace,
+					Name:      "mariadb-update-webhook",
+					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
 					ContainerTemplate: ContainerTemplate{
@@ -356,7 +422,7 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &mariaDb)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
 
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
 			// https://github.com/mariadb-operator/mariadb-operator/issues/3
@@ -493,12 +559,12 @@ var _ = Describe("MariaDB webhook", func() {
 
 			for _, t := range tt {
 				By(t.by)
-				Expect(k8sClient.Get(testCtx, key, &mariaDb)).To(Succeed())
+				Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
 
-				patch := client.MergeFrom(mariaDb.DeepCopy())
-				t.patchFn(&mariaDb)
+				patch := client.MergeFrom(mariadb.DeepCopy())
+				t.patchFn(&mariadb)
 
-				err := k8sClient.Patch(testCtx, &mariaDb, patch)
+				err := k8sClient.Patch(testCtx, &mariadb, patch)
 				if t.wantErr {
 					Expect(err).To(HaveOccurred())
 				} else {

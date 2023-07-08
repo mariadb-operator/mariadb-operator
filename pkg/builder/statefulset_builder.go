@@ -149,19 +149,19 @@ func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Per
 			Spec: mariadb.Spec.VolumeClaimTemplate,
 		},
 	}
-	if mariadb.Spec.Galera != nil {
+	if mariadb.Galera().Enabled {
 		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: galeraresources.GaleraConfigVolume,
 			},
-			Spec: mariadb.Spec.Galera.VolumeClaimTemplate,
+			Spec: *mariadb.Galera().VolumeClaimTemplate,
 		})
 	}
 	return pvcs
 }
 
 func buildStsServiceAccountName(mariadb *mariadbv1alpha1.MariaDB) (autoMount *bool, serviceAccount string) {
-	if mariadb.Spec.Galera != nil {
+	if mariadb.Galera().Enabled {
 		mount := false
 		autoMount = &mount
 		serviceAccount = mariadb.Name
@@ -197,7 +197,7 @@ func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 	volumes := []corev1.Volume{
 		configVolume,
 	}
-	if mariadb.Spec.Galera != nil {
+	if mariadb.Galera().Enabled {
 		volumes = append(volumes, corev1.Volume{
 			Name: ServiceAccountVolume,
 			VolumeSource: corev1.VolumeSource{
@@ -253,7 +253,7 @@ func buildHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 		if mariadb.Spec.Replication != nil {
 			annotations[annotation.ReplicationAnnotation] = ""
 		}
-		if mariadb.Spec.Galera != nil {
+		if mariadb.Galera().Enabled {
 			annotations[annotation.GaleraAnnotation] = ""
 		}
 	}

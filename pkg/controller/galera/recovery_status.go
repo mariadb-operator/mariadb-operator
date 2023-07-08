@@ -127,7 +127,7 @@ func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
 	if rs.inner.Bootstrap.Time == nil {
 		return false
 	}
-	deadline := rs.inner.Bootstrap.Time.Add(mdb.Spec.Galera.Recovery.ClusterBootstrapTimeoutOrDefault())
+	deadline := rs.inner.Bootstrap.Time.Add(mdb.Galera().Recovery.ClusterBootstrapTimeout.Duration)
 	return time.Now().After(deadline)
 }
 

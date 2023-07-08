@@ -615,46 +615,25 @@ var _ = Describe("MariaDB Galera", func() {
 						return &cfg
 					}(),
 					Galera: &mariadbv1alpha1.Galera{
-						SST:            mariadbv1alpha1.SSTMariaBackup,
-						ReplicaThreads: 1,
-						Agent: mariadbv1alpha1.GaleraAgent{
-							ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-								Image: mariadbv1alpha1.Image{
-									Repository: "ghcr.io/mariadb-operator/agent",
-									Tag:        "v0.0.2",
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled:                 true,
+								ClusterHealthyTimeout:   &clusterHealthyTimeout,
+								ClusterBootstrapTimeout: &recoveryTimeout,
+								PodRecoveryTimeout:      &recoveryTimeout,
+								PodSyncTimeout:          &recoveryTimeout,
+							},
+							VolumeClaimTemplate: &corev1.PersistentVolumeClaimSpec{
+								StorageClassName: &testStorageClassName,
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("10Mi"),
+									},
 								},
-							},
-							Port: 5555,
-							KubernetesAuth: mariadbv1alpha1.KubernetesAuth{
-								Enabled: true,
-							},
-							GracefulShutdownTimeout: func() *metav1.Duration {
-								t := metav1.Duration{Duration: 1 * time.Second}
-								return &t
-							}(),
-						},
-						Recovery: mariadbv1alpha1.GaleraRecovery{
-							Enabled:                 true,
-							ClusterHealthyTimeout:   &clusterHealthyTimeout,
-							ClusterBootstrapTimeout: &recoveryTimeout,
-							PodRecoveryTimeout:      &recoveryTimeout,
-							PodSyncTimeout:          &recoveryTimeout,
-						},
-						InitContainer: mariadbv1alpha1.ContainerTemplate{
-							Image: mariadbv1alpha1.Image{
-								Repository: "ghcr.io/mariadb-operator/init",
-								Tag:        "v0.0.2",
-							},
-						},
-						VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-							StorageClassName: &testStorageClassName,
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("10Mi"),
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
 								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
 							},
 						},
 					},
