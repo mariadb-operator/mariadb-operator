@@ -53,7 +53,7 @@ type SecretTemplate struct {
 
 type ContainerTemplate struct {
 	// +kubebuilder:validation:Required
-	Image Image `json:"image" webhook:"inmutable"`
+	Image Image `json:"image"`
 
 	Command []string `json:"command,omitempty"`
 	Args    []string `json:"args,omitempty"`
