@@ -94,3 +94,25 @@ Webhook certificate subject alternative name
 {{- define "mariadb-operator-webhook.altName" -}}
 {{- include "mariadb-operator.fullname" . }}-webhook.{{ .Release.Namespace }}.svc.{{ .Values.clusterName }}
 {{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "mariadb-operator.serviceAccountName" -}}
+{{- if .Values.serviceAccount.enabled }}
+{{- default (include "mariadb-operator.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the webhook service account to use
+*/}}
+{{- define "mariadb-operator-webhook.serviceAccountName" -}}
+{{- if .Values.webhook.serviceAccount.enabled }}
+{{- default (printf "%s-webhook" (include "mariadb-operator.fullname" .))  .Values.webhook.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.webhook.serviceAccount.name }}
+{{- end }}
+{{- end }}
