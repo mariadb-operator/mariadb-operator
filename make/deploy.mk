@@ -30,7 +30,7 @@ docker-inspect: ## Inspect docker image.
 
 .PHONY: docker-load
 docker-load: ## Load docker image in KIND.
-	kind load docker-image --name ${CLUSTER} ${IMG}
+	$(KIND) load docker-image --name ${CLUSTER} ${IMG}
 
 ##@ Cluster
 
