@@ -97,10 +97,6 @@ code: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and Dee
 helm-crds: kustomize ## Generate CRDs for Helm chart.
 	$(KUSTOMIZE) build config/crd > deploy/charts/mariadb-operator/crds/crds.yaml
 
-.PHONY: helm-rbac
-helm-rbac: kustomize ## Generate RBAC for Helm chart.
-	$(KUSTOMIZE) build config/rbac | sed 's/namespace: mariadb-system/namespace: {{ .Release.Namespace }}/g' > deploy/charts/mariadb-operator/templates/rbac.yaml
-
 DOCS_IMG ?= jnorwood/helm-docs:v1.11.0
 .PHONY: helm-docs
 helm-docs: ## Generate Helm chart docs.
@@ -112,7 +108,7 @@ helm-lint: ## Lint Helm charts.
 	docker run --rm --workdir /repo -v $(shell pwd):/repo $(CT_IMG) ct lint --config .github/config/ct.yml 
 
 .PHONY: helm
-helm: helm-crds helm-rbac helm-docs ## Generate manifests for Helm chart.
+helm: helm-crds helm-docs ## Generate manifests for Helm chart.
 
 .PHONY: helm-chart-version
 helm-chart-version: yq ## Get helm chart version.

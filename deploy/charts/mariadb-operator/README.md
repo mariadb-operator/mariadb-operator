@@ -28,6 +28,8 @@ helm uninstall mariadb-operator
 | affinity | object | `{}` | Affinity to add to controller Pod |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
 | extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
+| extraVolumeMounts | list | `[]` | Extra volumes to mount to the container. |
+| extraVolumes | list | `[]` | Extra volumes to pass to pod. |
 | fullnameOverride | string | `""` |  |
 | ha.enabled | bool | `false` | Enable high availability |
 | ha.leaseId | string | `"mariadb.mmontes.io"` | Lease resource name to be used for leader election |
@@ -45,8 +47,14 @@ helm uninstall mariadb-operator
 | nodeSelector | object | `{}` | Node selectors to add to controller Pod |
 | podAnnotations | object | `{}` | Annotations to add to controller Pod |
 | podSecurityContext | object | `{}` | Security context to add to controller Pod |
-| resources | object | `{}` |  |
+| rbac.enabled | bool | `true` | Specifies whether RBAC resources should be created |
+| resources | object | `{}` | Resources to add to controller container |
 | securityContext | object | `{}` | Security context to add to controller container |
+| serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
+| serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the Pod |
+| serviceAccount.enabled | bool | `true` | Specifies whether a service account should be created |
+| serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account |
+| serviceAccount.name | string | `""` | The name of the service account to use. If not set and enabled is true, a name is generated using the fullname template |
 | tolerations | list | `[]` | Tolerations to add to controller Pod |
 | webhook.affinity | object | `{}` | Affinity to add to controller Pod |
 | webhook.annotations | object | `{}` | Annotations for webhook configurations. |
@@ -59,6 +67,8 @@ helm uninstall mariadb-operator
 | webhook.certificate.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. |
 | webhook.enabled | bool | `true` | Enable webhooks. |
 | webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
+| webhook.extraVolumeMounts | list | `[]` | Extra volumes to mount to webhook container |
+| webhook.extraVolumes | list | `[]` | Extra volumes to pass to webhook Pod |
 | webhook.hostNetwork | bool | `false` | Expose the webhook server in the host network |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
 | webhook.image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
@@ -69,6 +79,11 @@ helm uninstall mariadb-operator
 | webhook.port | int | `10250` | Port to be used by the webhook server |
 | webhook.resources | object | `{}` | Resources to add to webhook container |
 | webhook.securityContext | object | `{}` | Security context to add to webhook container |
+| webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
+| webhook.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the Pod |
+| webhook.serviceAccount.enabled | bool | `true` | Specifies whether a service account should be created |
+| webhook.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account |
+| webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and enabled is true, a name is generated using the fullname template |
 | webhook.serviceMonitor.additionalLabels | object | `{}` | Labels to be added to the webhook ServiceMonitor |
 | webhook.serviceMonitor.enabled | bool | `true` | Enable webhook ServiceMonitor. Metrics must be enabled |
 | webhook.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |

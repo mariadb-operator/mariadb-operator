@@ -20,7 +20,8 @@ spec:
       labels:
         {{ include "mariadb-operator.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: mariadb-controller-manager
+      serviceAccountName: {{ include "mariadb-operator.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
       terminationGracePeriodSeconds: 10
       {{ with .Values.nodeSelector }}
       nodeSelector:
@@ -71,6 +72,10 @@ spec:
                   fieldPath: metadata.namespace
             - name: MARIADB_OPERATOR_SA_PATH
               value: /var/run/secrets/kubernetes.io/serviceaccount/token
+          {{- if .Values.extraVolumeMounts }}
+          volumeMounts:
+          {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+          {{- end }}
           {{ with .Values.resources }}          
           resources:
             {{ toYaml . | nindent 12 }}
@@ -79,3 +84,7 @@ spec:
           securityContext:
             {{ toYaml . | nindent 12 }}
           {{ end }}
+      {{- if .Values.extraVolumes }}
+      volumes:
+      {{- toYaml .Values.extraVolumes | nindent 8 }}
+      {{- end }}
