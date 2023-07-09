@@ -6,6 +6,7 @@ image:
   pullPolicy: IfNotPresent
   # -- Image tag to use. By default the chart appVersion is used
   tag: ""
+imagePullSecrets: []
 
 # -- Controller log level
 logLevel: INFO
@@ -95,6 +96,7 @@ webhook:
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
     tag: ""
+  imagePullSecrets: []
   certificate:
     # -- Use cert-manager to issue and rotate the certificate. If set to false, a default certificate will be used.
     certManager: false

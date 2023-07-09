@@ -37,6 +37,7 @@ helm uninstall mariadb-operator
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
 | image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
+| imagePullSecrets | list | `[]` |  |
 | logLevel | string | `"INFO"` | Controller log level |
 | metrics.enabled | bool | `false` | Enable prometheus metrics. Prometheus must be installed in the cluster |
 | metrics.serviceMonitor.additionalLabels | object | `{}` | Labels to be added to the controller ServiceMonitor |
@@ -73,6 +74,7 @@ helm uninstall mariadb-operator
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
 | webhook.image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
 | webhook.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
+| webhook.imagePullSecrets | list | `[]` |  |
 | webhook.nodeSelector | object | `{}` | Node selectors to add to controller Pod |
 | webhook.podAnnotations | object | `{}` | Annotations to add to webhook Pod |
 | webhook.podSecurityContext | object | `{}` | Security context to add to webhook Pod |
