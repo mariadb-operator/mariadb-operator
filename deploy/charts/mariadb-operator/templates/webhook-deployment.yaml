@@ -18,6 +18,10 @@ spec:
       labels:
         {{ include "mariadb-operator-webhook.selectorLabels" . | nindent 8 }}
     spec:
+      {{- with .Values.webhook.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "mariadb-operator-webhook.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.webhook.serviceAccount.automount }}
       {{ with .Values.webhook.nodeSelector }}
