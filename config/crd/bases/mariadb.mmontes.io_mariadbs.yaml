@@ -2620,8 +2620,12 @@ spec:
                   type: object
                 type: array
               galera:
+                description: Galera allows you to enable multi-master HA via Galera
+                  in your MariaDB cluster.
                 properties:
                   agent:
+                    description: 'GaleraAgent is a sidecar agent that co-operates
+                      with mariadb-operator. More info: https://github.com/mariadb-operator/agent.'
                     properties:
                       args:
                         items:
@@ -2788,6 +2792,9 @@ spec:
                           type: object
                         type: array
                       gracefulShutdownTimeout:
+                        description: GracefulShutdownTimeout is the time we give to
+                          the agent container in order to gracefully terminate in-flight
+                          requests.
                         type: string
                       image:
                         properties:
@@ -2805,11 +2812,18 @@ spec:
                         - repository
                         type: object
                       kubernetesAuth:
+                        description: KubernetesAuth to be used by the agent container
                         properties:
                           authDelegatorRoleName:
+                            description: AuthDelegatorRoleName is the name of the
+                              ClusterRoleBinding that is associated with the "system:auth-delegator"
+                              ClusterRole. It is necessary for creating TokenReview
+                              objects in order for the agent to validate the service
+                              account token.
                             type: string
                           enabled:
                             default: true
+                            description: Enabled is a flag to enable KubernetesAuth
                             type: boolean
                         type: object
                       livenessProbe:
@@ -2966,6 +2980,7 @@ spec:
                         type: object
                       port:
                         default: 5555
+                        description: Port to be used by the agent container
                         format: int32
                         type: integer
                       readinessProbe:
@@ -3369,8 +3384,11 @@ spec:
                     - image
                     type: object
                   enabled:
+                    description: Enabled is a flag to enable Galera.
                     type: boolean
                   initContainer:
+                    description: 'InitContainer is an init container that co-operates
+                      with mariadb-operator. More info: https://github.com/mariadb-operator/init.'
                     properties:
                       args:
                         items:
@@ -4104,27 +4122,50 @@ spec:
                     - image
                     type: object
                   recovery:
+                    description: 'GaleraRecovery is the recovery process performed
+                      by the operator whenever the Galera cluster is not healthy.
+                      More info: https://galeracluster.com/library/documentation/crash-recovery.html.'
                     properties:
                       clusterBootstrapTimeout:
+                        description: ClusterBootstrapTimeout is the time limit for
+                          bootstrapping a cluster. Once this timeout is reached, the
+                          Galera recovery state is reset and a new cluster bootstrap
+                          will be attempted.
                         type: string
                       clusterHealthyTimeout:
+                        description: ClusterHealthyTimeout represents the duration
+                          at which a Galera cluster, that consistently failed health
+                          checks, is considered unhealthy, and consequently the Galera
+                          recovery process will be initiated by the operator.
                         type: string
                       enabled:
-                        default: true
+                        description: Enabled is a flag to enable GaleraRecovery.
                         type: boolean
                       podRecoveryTimeout:
+                        description: PodRecoveryTimeout is the time limit for executing
+                          the recovery sequence within a Pod. This process includes
+                          enabling the recovery mode in the Galera configuration file,
+                          restarting the Pod and retrieving the sequence from a log
+                          file.
                         type: string
                       podSyncTimeout:
+                        description: PodSyncTimeout is the time limit we give to a
+                          Pod to reach the Sync state. Once this timeout is reached,
+                          the Pod is restarted.
                         type: string
                     type: object
                   replicaThreads:
+                    description: 'ReplicaThreads is the number of replica threads
+                      used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.'
                     type: integer
                   sst:
+                    description: 'SST is the Snapshot State Transfer used when new
+                      Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html.'
                     type: string
                   volumeClaimTemplate:
-                    description: PersistentVolumeClaimSpec describes the common attributes
-                      of storage devices and allows a Source for provider-specific
-                      attributes
+                    description: VolumeClaimTemplate is a template for the PVC that
+                      will contain the Galera configuration files shared between the
+                      InitContainer, Agent and MariaDB.
                     properties:
                       accessModes:
                         description: 'accessModes contains the desired access modes
@@ -7779,8 +7820,12 @@ spec:
               currentPrimaryPodIndex:
                 type: integer
               galeraRecovery:
+                description: GaleraRecoveryStatus is the current state of the Galera
+                  recovery process.
                 properties:
                   bootstrap:
+                    description: Bootstrap indicates when and in which Pod the cluster
+                      bootstrap process has been performed.
                     properties:
                       pod:
                         type: string
@@ -7799,6 +7844,8 @@ spec:
                       - seqno
                       - uuid
                       type: object
+                    description: State is a per Pod representation of the sequence
+                      recovery process.
                     type: object
                   state:
                     additionalProperties:
@@ -7817,6 +7864,8 @@ spec:
                       - uuid
                       - version
                       type: object
+                    description: State is a per Pod representation of the Galera state
+                      file (grastate.dat).
                     type: object
                 type: object
             type: object

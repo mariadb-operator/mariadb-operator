@@ -5,9 +5,11 @@ const (
 	ConditionTypeBackupRestored        string = "BackupRestored"
 	ConditionTypeReplicationConfigured string = "ReplicationConfigured"
 	ConditionTypePrimarySwitched       string = "PrimarySwitched"
-	ConditionTypeGaleraReady           string = "GaleraReady"
-	ConditionTypeGaleraConfigured      string = "GaleraConfigured"
-	ConditionTypeComplete              string = "Complete"
+	// ConditionTypeGaleraReady indicates that the cluster is healthy.
+	ConditionTypeGaleraReady string = "GaleraReady"
+	// ConditionTypeGaleraConfigured indicates that the cluster has been successfully configured.
+	ConditionTypeGaleraConfigured string = "GaleraConfigured"
+	ConditionTypeComplete         string = "Complete"
 
 	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady     string = "StatefulSetReady"
