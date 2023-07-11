@@ -20,8 +20,8 @@
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 - [Provisioning](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers
-- Multi master HA via [Galera](./examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml). Automatic Galera cluster [recovery](https://galeracluster.com/library/documentation/crash-recovery.html)
-- Single master HA via SemiSync [replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml). Primary switchover. Automatic primary failover
+- **Multi-master HA via [Galera](./docs/GALERA.md)✨. Automatic Galera cluster [recovery](https://galeracluster.com/library/documentation/crash-recovery.html)** ✨
+- Single-master HA via SemiSync [replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml). Primary switchover. Automatic primary failover
 - [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
 - [PVCs](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)) backup storage
 - Bootstrap new instances from [backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes (i.e [NFS](./examples/manifests/mariadb_v1alpha1_mariadb_from_nfs.yaml))
@@ -67,7 +67,7 @@ Let's see `mariadb-operator`🦭 in action! First of all, install the following 
 kubectl apply -f examples/manifests/config
 ```
 
-To start with, let's provision a `MariaDB` instance:
+Next, you can proceed with the installation of a `MariaDB` instance:
 ```bash
 kubectl apply -f examples/manifests/mariadb_v1alpha1_mariadb.yaml
 ```
@@ -165,6 +165,15 @@ backup                                       1/1           9s         12m
 bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
 You can take a look at the whole suite of example CRDs available in [examples/manifests](./examples/manifests/).
+
+## High availavility
+
+This operator supports two different modes of HA:
+- **Multi master HA via [Galera](./docs/GALERA.md)** ✨: All nodes support both reads and writes.
+- **Single master HA via SemiSync [replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml)**: The primary node allows both reads and writes, while secondary nodes only allow reads. To facilitate writes in the primary node, an additional `primary-<mariadb-name>` `Service` and `Connection` are created for convenience.
+
+Whenever possible, it is recommended to use the **[Galera](./docs/GALERA.md)** ✨ mode, as it provides improved resilience and simplifies write operations.
+
 
 ## GitOps
 
