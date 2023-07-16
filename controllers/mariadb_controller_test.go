@@ -92,7 +92,6 @@ var _ = Describe("MariaDB", func() {
 					},
 					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-							StorageClassName: &testStorageClassName,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"storage": resource.MustParse("100Mi"),
@@ -144,7 +143,6 @@ var _ = Describe("MariaDB", func() {
 						Key: testPwdSecretKey,
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &testStorageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),
@@ -194,7 +192,6 @@ var _ = Describe("MariaDB", func() {
 						},
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &testStorageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),
@@ -252,7 +249,6 @@ var _ = Describe("MariaDB", func() {
 						Key: testPwdSecretKey,
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &testStorageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),
@@ -305,7 +301,6 @@ var _ = Describe("MariaDB", func() {
 						Key: testPwdSecretKey,
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &testStorageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),
@@ -388,7 +383,6 @@ var _ = Describe("MariaDB replication", func() {
 						},
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &testStorageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),

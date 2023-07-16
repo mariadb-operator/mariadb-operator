@@ -293,7 +293,6 @@ var _ = Describe("MariaDB webhook", func() {
 		})
 
 		It("Should default Galera", func() {
-			storageClassName := "standard"
 			mariadb := MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mariadb-galera-default-webhook",
@@ -315,7 +314,6 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 					Port: 3306,
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &storageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),
@@ -343,7 +341,6 @@ var _ = Describe("MariaDB webhook", func() {
 		It("Should validate", func() {
 			By("Creating MariaDB")
 			test := "test"
-			storageClassName := "standard"
 			mariadb := MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mariadb-update-webhook",
@@ -391,7 +388,6 @@ var _ = Describe("MariaDB webhook", func() {
 						Key: "password",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &storageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),
@@ -584,7 +580,6 @@ var _ = Describe("MariaDB webhook", func() {
 				Namespace: testNamespace,
 			}
 			test := "test"
-			storageClassName := "standard"
 			mariaDb := MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      noSwitchoverKey.Name,
@@ -613,7 +608,6 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &storageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),
@@ -659,7 +653,6 @@ var _ = Describe("MariaDB webhook", func() {
 						Key: "password",
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &storageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),

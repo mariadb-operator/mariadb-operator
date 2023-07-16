@@ -49,7 +49,6 @@ var _ = Describe("Backup controller", func() {
 					},
 					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-							StorageClassName: &testStorageClassName,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"storage": resource.MustParse("100Mi"),
@@ -108,7 +107,6 @@ var _ = Describe("Backup controller", func() {
 					},
 					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-							StorageClassName: &testStorageClassName,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"storage": resource.MustParse("100Mi"),
