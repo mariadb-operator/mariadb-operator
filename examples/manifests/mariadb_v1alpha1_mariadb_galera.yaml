@@ -56,7 +56,6 @@ spec:
       resources:
         requests:
           storage: 50Mi
-      storageClassName: standard
       accessModes:
         - ReadWriteOnce
 
@@ -95,7 +94,6 @@ spec:
     resources:
       requests:
         storage: 1Gi
-    storageClassName: standard
     accessModes:
       - ReadWriteOnce
 
