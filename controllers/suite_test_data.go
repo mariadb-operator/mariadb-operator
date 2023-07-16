@@ -39,9 +39,8 @@ const (
 )
 
 var (
-	testNamespace        = "default"
-	testStorageClassName = "standard"
-	testMariaDbName      = "mariadb-test"
+	testNamespace   = "default"
+	testMariaDbName = "mariadb-test"
 
 	testUser           = "test"
 	testPwdSecretKey   = "passsword"
@@ -148,7 +147,6 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 				},
 			},
 			VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-				StorageClassName: &testStorageClassName,
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						"storage": resource.MustParse("100Mi"),

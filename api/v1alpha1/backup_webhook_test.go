@@ -29,7 +29,6 @@ import (
 var _ = Describe("Backup webhook", func() {
 	Context("When creating a Backup", func() {
 		It("Should validate", func() {
-			storageClassName := "standard"
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
 			// https://github.com/mariadb-operator/mariadb-operator/issues/3
 			tt := []struct {
@@ -76,7 +75,6 @@ var _ = Describe("Backup webhook", func() {
 							},
 							Storage: BackupStorage{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-									StorageClassName: &storageClassName,
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),
@@ -117,7 +115,6 @@ var _ = Describe("Backup webhook", func() {
 							},
 							Storage: BackupStorage{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-									StorageClassName: &storageClassName,
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),
@@ -165,7 +162,6 @@ var _ = Describe("Backup webhook", func() {
 				Name:      "backup-update",
 				Namespace: testNamespace,
 			}
-			storageClassName := "standard"
 			backup := Backup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
@@ -174,7 +170,6 @@ var _ = Describe("Backup webhook", func() {
 				Spec: BackupSpec{
 					Storage: BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-							StorageClassName: &storageClassName,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"storage": resource.MustParse("100Mi"),
