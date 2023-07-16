@@ -197,13 +197,12 @@ func (g *GaleraSpec) FillWithDefaults() {
 }
 
 var (
-	fiveSeconds      = metav1.Duration{Duration: 5 * time.Second}
-	oneMinute        = metav1.Duration{Duration: 1 * time.Minute}
-	fiveMinutes      = metav1.Duration{Duration: 5 * time.Minute}
-	threeMinutes     = metav1.Duration{Duration: 3 * time.Minute}
-	sst              = SSTMariaBackup
-	replicaThreads   = 1
-	storageClassName = "default"
+	fiveSeconds    = metav1.Duration{Duration: 5 * time.Second}
+	oneMinute      = metav1.Duration{Duration: 1 * time.Minute}
+	fiveMinutes    = metav1.Duration{Duration: 5 * time.Minute}
+	threeMinutes   = metav1.Duration{Duration: 3 * time.Minute}
+	sst            = SSTMariaBackup
+	replicaThreads = 1
 
 	// DefaultGaleraSpec provides sensible defaults for the GaleraSpec.
 	DefaultGaleraSpec = GaleraSpec{
@@ -243,7 +242,6 @@ var (
 					"storage": resource.MustParse("50Mi"),
 				},
 			},
-			StorageClassName: &storageClassName,
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
 			},

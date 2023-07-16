@@ -28,7 +28,7 @@ spec:
 ...
 ```
 
-This relies on sensible defaults set by either the operator or the webhook, such as the `default` `StorageClass`, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml), so you have fine grained control over the Galera configuration:
+This relies on sensible defaults set by either the operator or the webhook, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml), so you have fine grained control over the Galera configuration:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -66,7 +66,6 @@ spec:
       resources:
         requests:
           storage: 50Mi
-      storageClassName: standard
       accessModes:
         - ReadWriteOnce
 ...

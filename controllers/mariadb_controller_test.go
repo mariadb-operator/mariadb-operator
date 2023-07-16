@@ -595,7 +595,6 @@ var _ = Describe("MariaDB Galera", func() {
 						},
 					},
 					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &testStorageClassName,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"storage": resource.MustParse("100Mi"),
@@ -625,7 +624,6 @@ var _ = Describe("MariaDB Galera", func() {
 								PodSyncTimeout:          &recoveryTimeout,
 							},
 							VolumeClaimTemplate: &corev1.PersistentVolumeClaimSpec{
-								StorageClassName: &testStorageClassName,
 								Resources: corev1.ResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("10Mi"),
