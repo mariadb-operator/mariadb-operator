@@ -43,6 +43,8 @@ type BackupSpec struct {
 	// +kubebuilder:validation:Required
 	Storage BackupStorage `json:"storage" webhook:"inmutable"`
 
+	Args []string `json:"args,omitempty"`
+
 	Schedule *Schedule `json:"schedule,omitempty"`
 	// +kubebuilder:default=30
 	MaxRetentionDays int32 `json:"maxRetentionDays,omitempty" webhook:"inmutable"`

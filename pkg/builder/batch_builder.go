@@ -41,6 +41,9 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		backupcmd.WithUserEnv(batchUserEnv),
 		backupcmd.WithPasswordEnv(batchPasswordEnv),
 	}
+	if backup.Spec.Args != nil {
+		cmdOpts = append(cmdOpts, backupcmd.WithDumpOpts(backup.Spec.Args))
+	}
 	cmd, err := backupcmd.New(cmdOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
