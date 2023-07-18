@@ -13,12 +13,17 @@ type logicalBackup struct {
 
 func (l *logicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) *command.Command {
+	defOpts := "--single-transaction --events --routines --dump-slave=2 --master-data=2 --gtid --all-databases"
+	if l.BackupOpts.DumpOpts != "" {
+		defOpts = l.BackupOpts.DumpOpts
+	}
 	cmds := []string{
 		"set -euo pipefail",
 		"echo '💾 Taking logical backup'",
 		fmt.Sprintf(
-			"mysqldump %s --lock-tables --all-databases > %s",
+			"mariadb-dump %s %s > %s",
 			command.ConnectionFlags(&l.BackupOpts.CommandOpts, mariadb),
+			defOpts,
 			l.backupPath(),
 		),
 		"echo '🧹 Cleaning up old backups'",
@@ -46,7 +51,7 @@ func (l *logicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *comman
 			restorePath,
 		),
 		fmt.Sprintf(
-			"mysql %s < %s",
+			"mariadb %s < %s",
 			command.ConnectionFlags(&l.BackupOpts.CommandOpts, mariadb),
 			restorePath,
 		),
