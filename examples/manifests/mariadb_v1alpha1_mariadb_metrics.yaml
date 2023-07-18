@@ -39,6 +39,7 @@ spec:
         limits:
           cpu: 300m
           memory: 512Mi
+      port: 9104
     serviceMonitor:
       prometheusRelease: kube-prometheus-stack
       interval: 10s
