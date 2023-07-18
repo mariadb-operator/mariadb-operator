@@ -14,6 +14,7 @@ type Commander interface {
 
 type BackupOpts struct {
 	command.CommandOpts
+	DumpOpts   string
 	BackupFile string
 	BasePath   string
 }
