@@ -2,6 +2,7 @@ package backup
 
 import (
 	"fmt"
+	"strings"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
@@ -13,9 +14,9 @@ type logicalBackup struct {
 
 func (l *logicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) *command.Command {
-	defOpts := "--single-transaction --events --routines --dump-slave=2 --master-data=2 --gtid --all-databases"
-	if l.BackupOpts.DumpOpts != "" {
-		defOpts = l.BackupOpts.DumpOpts
+	dumpOpts := "--single-transaction --events --routines --dump-slave=2 --master-data=2 --gtid --all-databases"
+	if l.BackupOpts.DumpOpts != nil {
+		dumpOpts = strings.Join(l.BackupOpts.DumpOpts, " ")
 	}
 	cmds := []string{
 		"set -euo pipefail",
@@ -23,7 +24,7 @@ func (l *logicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
 		fmt.Sprintf(
 			"mariadb-dump %s %s > %s",
 			command.ConnectionFlags(&l.BackupOpts.CommandOpts, mariadb),
-			defOpts,
+			dumpOpts,
 			l.backupPath(),
 		),
 		"echo '🧹 Cleaning up old backups'",

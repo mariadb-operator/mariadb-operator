@@ -178,7 +178,7 @@ endif
 
 .PHONY: install-crds
 install-crds: cluster-ctx manifests kustomize ## Install CRDs.
-	$(KUSTOMIZE) build config/crd | kubectl apply --server-side=true -f -
+	$(KUSTOMIZE) build config/crd | kubectl apply --server-side=true --force-conflicts -f -
 
 .PHONY: uninstall-crds
 uninstall-crds: cluster-ctx manifests kustomize ## Uninstall CRDs.

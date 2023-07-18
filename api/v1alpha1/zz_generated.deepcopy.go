@@ -94,6 +94,11 @@ func (in *BackupSpec) DeepCopyInto(out *BackupSpec) {
 	*out = *in
 	out.MariaDBRef = in.MariaDBRef
 	in.Storage.DeepCopyInto(&out.Storage)
+	if in.Args != nil {
+		in, out := &in.Args, &out.Args
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Schedule != nil {
 		in, out := &in.Schedule, &out.Schedule
 		*out = new(Schedule)

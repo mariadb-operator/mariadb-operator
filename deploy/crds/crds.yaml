@@ -877,6 +877,10 @@ spec:
                         type: array
                     type: object
                 type: object
+              args:
+                items:
+                  type: string
+                type: array
               backoffLimit:
                 default: 5
                 format: int32

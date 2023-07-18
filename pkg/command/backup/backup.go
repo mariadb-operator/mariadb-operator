@@ -14,9 +14,9 @@ type Commander interface {
 
 type BackupOpts struct {
 	command.CommandOpts
-	DumpOpts   string
 	BackupFile string
 	BasePath   string
+	DumpOpts   []string
 }
 
 type Option func(*BackupOpts)
@@ -42,6 +42,12 @@ func WithUserEnv(u string) Option {
 func WithPasswordEnv(p string) Option {
 	return func(co *BackupOpts) {
 		co.PasswordEnv = p
+	}
+}
+
+func WithDumpOpts(opts []string) Option {
+	return func(co *BackupOpts) {
+		co.DumpOpts = opts
 	}
 }
 
