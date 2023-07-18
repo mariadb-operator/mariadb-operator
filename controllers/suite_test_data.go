@@ -157,7 +157,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 				},
 			},
 			MyCnf: func() *string {
-				cfg := `[mysqld]
+				cfg := `[mariadb]
 				bind-address=0.0.0.0
 				default_storage_engine=InnoDB
 				binlog_format=row
