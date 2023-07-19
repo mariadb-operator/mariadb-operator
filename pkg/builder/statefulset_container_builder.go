@@ -338,9 +338,9 @@ var (
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{
-					"bash",
-					"-c",
-					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+					"healthcheck.sh",
+					"--connect",
+					"--innodb_initialized",
 				},
 			},
 		},
@@ -352,9 +352,10 @@ var (
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{
-					"bash",
-					"-c",
-					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
+					"healthcheck.sh",
+					"--connect",
+					"--innodb_initialized",
+					"--galera_online",
 				},
 			},
 		},

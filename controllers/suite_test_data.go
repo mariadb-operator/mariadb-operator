@@ -99,9 +99,9 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 					ProbeHandler: v1.ProbeHandler{
 						Exec: &v1.ExecAction{
 							Command: []string{
-								"bash",
-								"-c",
-								"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+								"healthcheck.sh",
+								"--connect",
+								"--innodb_initialized",
 							},
 						},
 					},
@@ -113,9 +113,9 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 					ProbeHandler: v1.ProbeHandler{
 						Exec: &v1.ExecAction{
 							Command: []string{
-								"bash",
-								"-c",
-								"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+								"healthcheck.sh",
+								"--connect",
+								"--innodb_initialized",
 							},
 						},
 					},
