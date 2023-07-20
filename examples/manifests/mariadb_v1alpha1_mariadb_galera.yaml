@@ -76,7 +76,7 @@ spec:
     type: RollingUpdate
 
   myCnf: |
-    [mysqld]
+    [mariadb]
     bind-address=0.0.0.0
     default_storage_engine=InnoDB
     binlog_format=row
