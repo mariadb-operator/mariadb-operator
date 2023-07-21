@@ -312,7 +312,7 @@ var (
 				Command: []string{
 					"bash",
 					"-c",
-					"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 				},
 			},
 		},
@@ -326,7 +326,7 @@ var (
 				Command: []string{
 					"bash",
 					"-c",
-					"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
+					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
 				},
 			},
 		},
