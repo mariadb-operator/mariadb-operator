@@ -188,6 +188,10 @@ Take a look at our [🛣️ roadmap](./ROADMAP.md) and feel free to open an issu
 
 If you want to report a 🐛 or you think something can be improved, please check our [contributing](./CONTRIBUTING.md) guide and take a look at our open [issues](https://github.com/mariadb-operator/mariadb-operator/issues). PRs are welcome!
 
+## Blogs
+
+- [Run and operate MariaDB in Kubernetes with mariadb-operator](https://mariadb.org/mariadb-in-kubernetes-with-mariadb-operator/) - MariaDB Foundation
+
 ## Get in touch
 
 - [Slack](https://join.slack.com/t/mariadb-operator/shared_invite/zt-1xsfguxlf-dhtV6zk0HwlAh_U2iYfUxw)
