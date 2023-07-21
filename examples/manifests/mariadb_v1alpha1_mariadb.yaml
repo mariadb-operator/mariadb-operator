@@ -15,7 +15,7 @@ spec:
 
   image:
     repository: mariadb
-    tag: "10.11.3"
+    tag: "11.0.2"
     pullPolicy: IfNotPresent
 
   port: 3306
@@ -68,7 +68,7 @@ spec:
       command:
         - bash
         - -c
-        - mysql -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
+        - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
     initialDelaySeconds: 20
     periodSeconds: 10
     timeoutSeconds: 5
@@ -78,7 +78,7 @@ spec:
       command:
         - bash
         - -c
-        - mysql -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
+        - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
     initialDelaySeconds: 20
     periodSeconds: 10
     timeoutSeconds: 5

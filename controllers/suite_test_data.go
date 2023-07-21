@@ -84,7 +84,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 				Image: mariadbv1alpha1.Image{
 					Repository: "mariadb",
-					Tag:        "10.11.3",
+					Tag:        "11.0.2",
 				},
 				SecurityContext: &corev1.SecurityContext{
 					AllowPrivilegeEscalation: func() *bool { b := false; return &b }(),
@@ -95,7 +95,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 							Command: []string{
 								"bash",
 								"-c",
-								"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+								"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 							},
 						},
 					},
@@ -109,7 +109,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 							Command: []string{
 								"bash",
 								"-c",
-								"mysql -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+								"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 							},
 						},
 					},

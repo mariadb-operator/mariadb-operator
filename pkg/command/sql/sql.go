@@ -22,7 +22,7 @@ func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Comm
 		"set -euo pipefail",
 		"echo '⚙️ Executing SQL script'",
 		fmt.Sprintf(
-			"mysql %s  < %s",
+			"mariadb %s < %s",
 			command.ConnectionFlags(&s.SqlOpts.CommandOpts, mariadb),
 			s.SqlFile,
 		),

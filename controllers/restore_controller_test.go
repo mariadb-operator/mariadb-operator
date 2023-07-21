@@ -87,7 +87,7 @@ var _ = Describe("Restore controller", func() {
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
 							Repository: "mariadb",
-							Tag:        "10.11.3",
+							Tag:        "11.0.2",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
