@@ -2,15 +2,15 @@
 
 The `mariadb-operator` provides cloud native support for provisioning and operating multi-master MariaDB clusters using Galera. This setup enables the ability to perform both read and write operations on all nodes, enhancing availability and allowing scalability across multiple nodes.
 
-In certain circumstances, it could be the case that all the nodes of your cluster go down, something that Galera is not able to recover by itself and it requires manual action to bring the cluster up again, as it is documented in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html). Luckly enough, `mariadb-operator` has you covered and it encapsulates this operational expertise in the `MariaDB` CRD. You just need to declaratively specify the `spec.galera`, as explained in more detail [later in this guide](#configuration).
+In certain circumstances, it could be the case that all the nodes of your cluster go down, something that Galera is not able to recover by itself, and it requires manual action to bring the cluster up again, as documented in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html). Luckly, `mariadb-operator` has you covered and it encapsulates this operational expertise in the `MariaDB` CRD. You just need to declaratively specify `spec.galera`, as explained in more detail [later in this guide](#configuration).
 
-To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-operator` will regularly monitor the cluster's status to make sure it is healthy. If any issues are detected, the operator will initiate the [recovery process](https://galeracluster.com/library/documentation/crash-recovery.html) to restore the cluster to a healthy state. During this process, the operator will set status conditions in the `MariaDB` and emit `Events` so you have a better understanding of the recovery progress and the underlying activities being performed. For example, you may want to know which `Pods` were out of sync to further investigate infrastructure related issues (i.e. networking, storage...) on the nodes where these `Pods` were scheduled.
+To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-operator` will regularly monitor the cluster's status to make sure it is healthy. If any issues are detected, the operator will initiate the [recovery process](https://galeracluster.com/library/documentation/crash-recovery.html) to restore the cluster to a healthy state. During this process, the operator will set status conditions in the `MariaDB` and emit `Events` so you have a better understanding of the recovery progress and the underlying activities being performed. For example, you may want to know which `Pods` were out of sync to further investigate infrastructure-related issues (i.e. networking, storage...) on the nodes where these `Pods` were scheduled.
 
 ### Components
 
 To be able to effectively provision and recover MariaDB Galera clusters, the following components were introduced to co-operate with `mariadb-operator`:
 - **[🍼 init](https://github.com/mariadb-operator/init)**: Init container that dynamically provisions the Galera configuration file before the MariaDB container starts. Guarantees ordered deployment of `Pods` even if `spec.podManagementPolicy = Parallel` is set on the MariaDB `StatefulSet`, something crucial for performing the Galera recovery, as the operator needs to restart `Pods` independently.
-- **[🤖 agent](https://github.com/mariadb-operator/agent)**: Sidecar agent that exposes the Galera state ([`grastate.dat`](https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/)) via HTTP and allows to remotely bootstrap and recover the Galera cluster. For security reasons, it has authentication based on Kubernetes service accounts, this way only the `mariadb-operator` is able to call the agent.
+- **[🤖 agent](https://github.com/mariadb-operator/agent)**: Sidecar agent that exposes the Galera state ([`grastate.dat`](https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/)) via HTTP and allows one to remotely bootstrap and recover the Galera cluster. For security reasons, it has authentication based on Kubernetes service accounts; this way only the `mariadb-operator` is able to call the agent.
 
 ### Configuration
 
@@ -28,7 +28,8 @@ spec:
 ...
 ```
 
-This relies on sensible defaults set by either the operator or the webhook, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml), so you have fine grained control over the Galera configuration:
+This relies on sensible defaults set by either the operator or the webhook, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml), so you have fine-grained control over the Galera configuration:
+
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -168,7 +169,7 @@ pod "mariadb-galera-0" deleted
 pod "mariadb-galera-1" deleted
 pod "mariadb-galera-2" deleted
 ```
-After some time, we will see the `MariaDB` entering in a non `Ready` state:
+After some time, we will see the `MariaDB` entering a non `Ready` state:
 ```bash
 kubectl get mariadb mariadb-galera
 NAME             READY   STATUS             PRIMARY POD   AGE

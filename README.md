@@ -46,7 +46,7 @@ helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 ## Recommended installation
 
-The recommended installation includes the following features to provide a better user experiende and reliability:
+The recommended installation includes the following features to provide a better user experience and reliability:
 - **Metrics**: Leverage [prometheus operator](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) to scrape metrics from both the `mariadb-operator` and the provisioned `MariaDB` instances.
 - **Webhook certificate renewal**: Automatic webhook certificate issuance and renewal using  [cert-manager](https://cert-manager.io/docs/installation/). By default, a static self-signed certificate is generated.
 
@@ -166,7 +166,7 @@ bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
 You can take a look at the whole suite of example CRDs available in [examples/manifests](./examples/manifests/).
 
-## High availavility
+## High availability
 
 This operator supports two different modes of HA:
 - **Multi master HA via [Galera](./docs/GALERA.md)** ✨: All nodes support both reads and writes.
