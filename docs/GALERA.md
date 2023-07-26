@@ -61,7 +61,7 @@ spec:
     initContainer:
       image:
         repository: ghcr.io/mariadb-operator/init
-        tag: "v0.0.4"
+        tag: "v0.0.5"
         pullPolicy: IfNotPresent
     volumeClaimTemplate:
       resources:
