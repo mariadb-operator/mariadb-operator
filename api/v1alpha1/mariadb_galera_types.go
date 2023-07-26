@@ -232,7 +232,7 @@ var (
 		InitContainer: &ContainerTemplate{
 			Image: Image{
 				Repository: "ghcr.io/mariadb-operator/init",
-				Tag:        "v0.0.4",
+				Tag:        "v0.0.5",
 				PullPolicy: corev1.PullIfNotPresent,
 			},
 		},
