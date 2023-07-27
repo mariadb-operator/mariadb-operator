@@ -3019,6 +3019,9 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .spec.name
+      name: Name
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -3056,6 +3059,9 @@ spec:
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
+              name:
+                maxLength: 80
+                type: string
             required:
             - mariaDbRef
             type: object
