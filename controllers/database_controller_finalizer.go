@@ -67,7 +67,7 @@ func (wr *wrappedDatabaseFinalizer) ContainsFinalizer() bool {
 }
 
 func (wf *wrappedDatabaseFinalizer) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
-	if err := mdbClient.DropDatabase(ctx, wf.database.Name); err != nil {
+	if err := mdbClient.DropDatabase(ctx, wf.database.DatabaseNameOrDefault()); err != nil {
 		return fmt.Errorf("error dropping database in MariaDB: %v", err)
 	}
 	return nil

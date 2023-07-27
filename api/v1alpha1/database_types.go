@@ -29,6 +29,8 @@ type DatabaseSpec struct {
 	CharacterSet string `json:"characterSet,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=utf8_general_ci
 	Collate string `json:"collate,omitempty" webhook:"inmutable"`
+	// +kubebuilder:validation:MaxLength=80
+	Name string `json:"name,omitempty" webhook:"inmutable"`
 }
 
 // DatabaseStatus defines the observed state of Database
@@ -53,6 +55,7 @@ func (d *DatabaseStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Collate",type="string",JSONPath=".spec.collate"
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".spec.name"
 
 // Database is the Schema for the databases API
 type Database struct {
@@ -61,6 +64,13 @@ type Database struct {
 
 	Spec   DatabaseSpec   `json:"spec,omitempty"`
 	Status DatabaseStatus `json:"status,omitempty"`
+}
+
+func (d *Database) DatabaseNameOrDefault() string {
+	if d.Spec.Name != "" {
+		return d.Spec.Name
+	}
+	return d.Name
 }
 
 func (d *Database) IsBeingDeleted() bool {

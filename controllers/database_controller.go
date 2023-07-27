@@ -89,7 +89,7 @@ func (wr *wrappedDatabaseReconciler) Reconcile(ctx context.Context, mdbClient *m
 		CharacterSet: wr.database.Spec.CharacterSet,
 		Collate:      wr.database.Spec.Collate,
 	}
-	if err := mdbClient.CreateDatabase(ctx, wr.database.Name, opts); err != nil {
+	if err := mdbClient.CreateDatabase(ctx, wr.database.DatabaseNameOrDefault(), opts); err != nil {
 		return fmt.Errorf("error creating database in MariaDB: %v", err)
 	}
 	return nil
