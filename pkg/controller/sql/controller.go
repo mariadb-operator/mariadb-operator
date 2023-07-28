@@ -42,10 +42,6 @@ func (tr *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl
 		return ctrl.Result{}, nil
 	}
 
-	if err := tr.Finalizer.AddFinalizer(ctx); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error adding finalizer to %s: %v", resource.GetName(), err)
-	}
-
 	mariadb, err := tr.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.GetNamespace())
 	if err != nil {
 		var mariadbErr *multierror.Error
@@ -93,6 +89,11 @@ func (tr *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl
 	if err := errBundle.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating %s: %v", resource.GetName(), err)
 	}
+
+	if err := tr.Finalizer.AddFinalizer(ctx); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error adding finalizer to %s: %v", resource.GetName(), err)
+	}
+
 	return ctrl.Result{}, nil
 }
 
