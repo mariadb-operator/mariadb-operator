@@ -101,8 +101,8 @@ type MariaDBSpec struct {
 	// +kubebuilder:default=3306
 	Port int32 `json:"port,omitempty"`
 	// +kubebuilder:validation:Required
-	VolumeClaimTemplate corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate" webhook:"inmutable"`
-	Volumes             []corev1.Volume                  `json:"volumes,omitempty" webhook:"inmutable"`
+	VolumeClaimTemplate corev1.PersistentVolumeClaim `json:"volumeClaimTemplate" webhook:"inmutable"`
+	Volumes             []corev1.Volume              `json:"volumes,omitempty" webhook:"inmutable"`
 
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 

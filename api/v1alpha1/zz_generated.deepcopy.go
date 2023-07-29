@@ -694,7 +694,7 @@ func (in *GaleraSpec) DeepCopyInto(out *GaleraSpec) {
 	}
 	if in.VolumeClaimTemplate != nil {
 		in, out := &in.VolumeClaimTemplate, &out.VolumeClaimTemplate
-		*out = new(v1.PersistentVolumeClaimSpec)
+		*out = new(v1.PersistentVolumeClaim)
 		(*in).DeepCopyInto(*out)
 	}
 }
