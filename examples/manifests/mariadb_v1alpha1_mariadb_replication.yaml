@@ -72,11 +72,12 @@ spec:
     max_allowed_packet=256M
 
   volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 100Mi
-    accessModes:
-      - ReadWriteOnce
+    spec:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
 
   service:
     type: LoadBalancer

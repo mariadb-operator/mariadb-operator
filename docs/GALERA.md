@@ -64,11 +64,12 @@ spec:
         tag: "v0.0.5"
         pullPolicy: IfNotPresent
     volumeClaimTemplate:
-      resources:
-        requests:
-          storage: 50Mi
-      accessModes:
-        - ReadWriteOnce
+      spec:
+        resources:
+          requests:
+            storage: 50Mi
+        accessModes:
+          - ReadWriteOnce
 ...
 ```
 

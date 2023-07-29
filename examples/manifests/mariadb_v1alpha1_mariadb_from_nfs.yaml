@@ -21,11 +21,12 @@ spec:
   port: 3306
 
   volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 100Mi
-    accessModes:
-      - ReadWriteOnce
+    spec:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
 
   bootstrapFrom:
     volume:

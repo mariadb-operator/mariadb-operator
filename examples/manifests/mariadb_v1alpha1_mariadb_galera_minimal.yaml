@@ -20,8 +20,9 @@ spec:
     enabled: true
 
   volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 100Mi
-    accessModes:
-      - ReadWriteOnce
+    spec:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce

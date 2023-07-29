@@ -53,11 +53,12 @@ spec:
         tag: "v0.0.5"
         pullPolicy: IfNotPresent
     volumeClaimTemplate:
-      resources:
-        requests:
-          storage: 50Mi
-      accessModes:
-        - ReadWriteOnce
+      spec:
+        resources:
+          requests:
+            storage: 50Mi
+        accessModes:
+          - ReadWriteOnce
 
   affinity:
     podAntiAffinity:
@@ -91,11 +92,12 @@ spec:
       memory: 1Gi
 
   volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+    spec:
+      resources:
+        requests:
+          storage: 1Gi
+      accessModes:
+        - ReadWriteOnce
 
   service:
     type: LoadBalancer
