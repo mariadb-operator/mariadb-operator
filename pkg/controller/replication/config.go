@@ -17,9 +17,8 @@ import (
 )
 
 var (
-	replUser          = "repl"
-	passwordSecretKey = "password"
-	connectionName    = "mariadb-operator"
+	replUser       = "repl"
+	connectionName = "mariadb-operator"
 )
 
 type ReplicationConfig struct {
@@ -127,8 +126,9 @@ func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *m
 
 func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
 	primaryPodIndex int) error {
+	replPasswordRef := newReplPasswordRef(mariadb)
 	var replSecret corev1.Secret
-	if err := r.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
+	if err := r.Get(ctx, replPasswordRef.NamespacedName, &replSecret); err != nil {
 		return fmt.Errorf("error getting replication password Secret: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 			ctrlresources.InternalServiceKey(mariadb).Name,
 		),
 		User:     replUser,
-		Password: string(replSecret.Data[passwordSecretKey]),
+		Password: string(replSecret.Data[replPasswordRef.secretKey]),
 		Gtid:     gtidString,
 		Retries:  mariadb.Spec.Replication.Replica.ConnectionRetries,
 	}
@@ -195,10 +195,8 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 	}
 
 	opts := userSqlOpts{
-		username:          replUser,
-		privileges:        []string{"REPLICATION REPLICA"},
-		passworKey:        replPasswordKey(mariadb),
-		passwordSecretkey: passwordSecretKey,
+		username:   replUser,
+		privileges: []string{"REPLICATION REPLICA"},
 	}
 	if err := r.reconcileUserSql(ctx, mariadb, client, &opts); err != nil {
 		return fmt.Errorf("error reconciling '%s' SQL user: %v", replUser, err)
@@ -207,17 +205,26 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 }
 
 type userSqlOpts struct {
-	username          string
-	privileges        []string
-	passworKey        types.NamespacedName
-	passwordSecretkey string
+	username   string
+	privileges []string
 }
 
 func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
 	opts *userSqlOpts) error {
-	password, err := r.secretReconciler.ReconcileRandomPassword(ctx, opts.passworKey, opts.passwordSecretkey, mariadb)
-	if err != nil {
-		return fmt.Errorf("error reconciling replication passsword: %v", err)
+	replPasswordRef := newReplPasswordRef(mariadb)
+	var replPassword string
+	if mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef != nil {
+		password, err := r.refResolver.SecretKeyRef(ctx, *replPasswordRef.SecretKeyRef(), mariadb.Namespace)
+		if err != nil {
+			return fmt.Errorf("error getting replication password: %v", err)
+		}
+		replPassword = password
+	} else {
+		password, err := r.secretReconciler.ReconcileRandomPassword(ctx, replPasswordRef.NamespacedName, replPasswordRef.secretKey, mariadb)
+		if err != nil {
+			return fmt.Errorf("error reconciling replication passsword: %v", err)
+		}
+		replPassword = password
 	}
 
 	exists, err := client.UserExists(ctx, replUser)
@@ -225,12 +232,12 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		return fmt.Errorf("error checking if replication user exists: %v", err)
 	}
 	if exists {
-		if err := client.AlterUser(ctx, opts.username, password); err != nil {
+		if err := client.AlterUser(ctx, opts.username, replPassword); err != nil {
 			return fmt.Errorf("error altering replication user: %v", err)
 		}
 	} else {
 		userOpts := mariadbclient.CreateUserOpts{
-			IdentifiedBy: password,
+			IdentifiedBy: replPassword,
 		}
 		if err := client.CreateUser(ctx, opts.username, userOpts); err != nil {
 			return fmt.Errorf("error creating replication user: %v", err)
@@ -248,6 +255,41 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		return fmt.Errorf("error creating grant: %v", err)
 	}
 	return nil
+}
+
+type replPasswordRef struct {
+	types.NamespacedName
+	secretKey string
+}
+
+func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) replPasswordRef {
+	key := types.NamespacedName{
+		Name:      fmt.Sprintf("repl-password-%s", mariadb.Name),
+		Namespace: mariadb.Namespace,
+	}
+	secretKey := "password"
+
+	if mariadb.Spec.Replication != nil && mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef != nil {
+		key = types.NamespacedName{
+			Name:      mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef.Name,
+			Namespace: mariadb.Namespace,
+		}
+		secretKey = mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef.Key
+	}
+
+	return replPasswordRef{
+		NamespacedName: key,
+		secretKey:      secretKey,
+	}
+}
+
+func (r replPasswordRef) SecretKeyRef() *corev1.SecretKeySelector {
+	return &corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: r.Name,
+		},
+		Key: r.secretKey,
+	}
 }
 
 func serverId(index int) string {

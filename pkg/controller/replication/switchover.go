@@ -276,10 +276,6 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 
-	var replSecret corev1.Secret
-	if err := r.Get(ctx, replPasswordKey(mariadb), &replSecret); err != nil {
-		return fmt.Errorf("error getting replication password Secret: %v", err)
-	}
 	return r.ReplConfig.ConfigureReplica(
 		ctx,
 		mariadb,

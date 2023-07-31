@@ -1211,6 +1211,11 @@ func (in *ReplicaReplication) DeepCopyInto(out *ReplicaReplication) {
 		*out = new(Gtid)
 		**out = **in
 	}
+	if in.ReplPasswordSecretKeyRef != nil {
+		in, out := &in.ReplPasswordSecretKeyRef, &out.ReplPasswordSecretKeyRef
+		*out = new(v1.SecretKeySelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.ConnectionTimeout != nil {
 		in, out := &in.ConnectionTimeout, &out.ConnectionTimeout
 		*out = new(metav1.Duration)

@@ -184,10 +184,3 @@ func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariad
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
 }
-
-func replPasswordKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("repl-password-%s", mariadb.Name),
-		Namespace: mariadb.Namespace,
-	}
-}

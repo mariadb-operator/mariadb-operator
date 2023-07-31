@@ -42,6 +42,9 @@ spec:
     replica:
       waitPoint: AfterCommit
       gtid: CurrentPos
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
       connectionTimeout: 10s
       connectionRetries: 10
       syncTimeout: 10s
