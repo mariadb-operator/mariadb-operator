@@ -95,7 +95,7 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *maria
 		IdentifiedBy:       password,
 		MaxUserConnections: wr.user.Spec.MaxUserConnections,
 	}
-	if err := mdbClient.CreateUser(ctx, wr.user.UsernameOrDefault(), opts); err != nil {
+	if err := mdbClient.CreateUser(ctx, wr.user.AccountName(), opts); err != nil {
 		return fmt.Errorf("error creating user in MariaDB: %v", err)
 	}
 	return nil

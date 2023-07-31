@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +34,8 @@ type UserSpec struct {
 	MaxUserConnections int32 `json:"maxUserConnections,omitempty" webhook:"inmutable"`
 	// +kubebuilder:validation:MaxLength=80
 	Name string `json:"name,omitempty" webhook:"inmutable"`
+	// +kubebuilder:validation:MaxLength=255
+	Host string `json:"host,omitempty" webhook:"inmutable"`
 }
 
 // UserStatus defines the observed state of User
@@ -69,6 +73,17 @@ func (u *User) UsernameOrDefault() string {
 		return u.Spec.Name
 	}
 	return u.Name
+}
+
+func (u *User) HostnameOrDefault() string {
+	if u.Spec.Host != "" {
+		return u.Spec.Host
+	}
+	return "%"
+}
+
+func (u *User) AccountName() string {
+	return fmt.Sprintf("'%s'@'%s'", u.UsernameOrDefault(), u.HostnameOrDefault())
 }
 
 func (u *User) IsBeingDeleted() bool {

@@ -14929,6 +14929,9 @@ spec:
           spec:
             description: UserSpec defines the desired state of User
             properties:
+              host:
+                maxLength: 255
+                type: string
               mariaDbRef:
                 properties:
                   name:
