@@ -34,6 +34,8 @@ type GrantSpec struct {
 	Table string `json:"table,omitempty" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
 	Username string `json:"username" webhook:"inmutable"`
+	// +kubebuilder:MaxLength=255
+	Host string `json:"host" webhook:"inmutable"`
 	// +kubebuilder:default=false
 	GrantOption bool `json:"grantOption,omitempty" webhook:"inmutable"`
 }
@@ -81,6 +83,13 @@ func (m *Grant) IsReady() bool {
 
 func (g *Grant) MariaDBRef() *MariaDBRef {
 	return &g.Spec.MariaDBRef
+}
+
+func (g *Grant) HostnameOrDefault() string {
+	if g.Spec.Host == "" {
+		return "%"
+	}
+	return g.Spec.Host
 }
 
 //+kubebuilder:object:root=true
