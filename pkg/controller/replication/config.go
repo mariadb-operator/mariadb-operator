@@ -168,20 +168,15 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 		userOpts := mariadbclient.CreateUserOpts{
 			IdentifiedBy: password,
 		}
-		accountName := fmt.Sprintf("'%s'@'%s'", *mariadb.Spec.Username, "%")
+		accountName := formatAccountName(*mariadb.Spec.Username, "%")
 		if err := client.CreateUser(ctx, accountName, userOpts); err != nil {
 			return fmt.Errorf("error creating user: %v", err)
 		}
 
-		grantOpts := mariadbclient.GrantOpts{
-			Privileges:  []string{"ALL PRIVILEGES"},
-			Database:    "*",
-			Table:       "*",
-			Username:    *mariadb.Spec.Username,
-			Host:        "%",
-			GrantOption: false,
-		}
-		if err := client.Grant(ctx, grantOpts); err != nil {
+		privileges := []string{"ALL PRIVILEGES"}
+		database := "*"
+		table := "*"
+		if err := client.Grant(ctx, privileges, database, table, accountName); err != nil {
 			return fmt.Errorf("error creating grant: %v", err)
 		}
 	}
@@ -229,6 +224,7 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		replPassword = password
 	}
 
+	accountName := formatAccountName(opts.username, "%")
 	exists, err := client.UserExists(ctx, replUser)
 	if err != nil {
 		return fmt.Errorf("error checking if replication user exists: %v", err)
@@ -241,21 +237,17 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		userOpts := mariadbclient.CreateUserOpts{
 			IdentifiedBy: replPassword,
 		}
-		accountName := fmt.Sprintf("'%s'@'%s'", opts.username, "%")
 		if err := client.CreateUser(ctx, accountName, userOpts); err != nil {
 			return fmt.Errorf("error creating replication user: %v", err)
 		}
 	}
-
-	grantOpts := mariadbclient.GrantOpts{
-		Privileges:  opts.privileges,
-		Database:    "*",
-		Table:       "*",
-		Username:    opts.username,
-		Host:        "%",
-		GrantOption: false,
-	}
-	if err := client.Grant(ctx, grantOpts); err != nil {
+	if err := client.Grant(
+		ctx,
+		opts.privileges,
+		"*",
+		"*",
+		accountName,
+	); err != nil {
 		return fmt.Errorf("error creating grant: %v", err)
 	}
 	return nil
@@ -305,4 +297,8 @@ func binaryFromBool(b bool) string {
 		return "1"
 	}
 	return "0"
+}
+
+func formatAccountName(username, host string) string {
+	return fmt.Sprintf("'%s'@'%s'", username, host)
 }
