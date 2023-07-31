@@ -188,8 +188,8 @@ type CreateUserOpts struct {
 	MaxUserConnections int32
 }
 
-func (c *Client) CreateUser(ctx context.Context, username string, opts CreateUserOpts) error {
-	query := fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' ", username, "%")
+func (c *Client) CreateUser(ctx context.Context, accountName string, opts CreateUserOpts) error {
+	query := fmt.Sprintf("CREATE USER IF NOT EXISTS %s ", accountName)
 	if opts.IdentifiedBy != "" {
 		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
 	}
@@ -375,7 +375,7 @@ type ChangeMasterOpts struct {
 }
 
 func (c *Client) ChangeMaster(ctx context.Context, opts *ChangeMasterOpts) error {
-	tpl := createTpl("change-master.sql", `CHANGE MASTER '{{ .Connection }}' TO 
+	tpl := createTpl("change-master.sql", `CHANGE MASTER '{{ .Connection }}' TO
 MASTER_HOST='{{ .Host }}',
 MASTER_USER='{{ .User }}',
 MASTER_PASSWORD='{{ .Password }}',

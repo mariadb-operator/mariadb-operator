@@ -168,7 +168,8 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 		userOpts := mariadbclient.CreateUserOpts{
 			IdentifiedBy: password,
 		}
-		if err := client.CreateUser(ctx, *mariadb.Spec.Username, userOpts); err != nil {
+		accountName := fmt.Sprintf("'%s'@'%s'", *mariadb.Spec.Username, "%")
+		if err := client.CreateUser(ctx, accountName, userOpts); err != nil {
 			return fmt.Errorf("error creating user: %v", err)
 		}
 
@@ -239,7 +240,8 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		userOpts := mariadbclient.CreateUserOpts{
 			IdentifiedBy: replPassword,
 		}
-		if err := client.CreateUser(ctx, opts.username, userOpts); err != nil {
+		accountName := fmt.Sprintf("'%s'@'%s'", opts.username, "%")
+		if err := client.CreateUser(ctx, accountName, userOpts); err != nil {
 			return fmt.Errorf("error creating replication user: %v", err)
 		}
 	}
