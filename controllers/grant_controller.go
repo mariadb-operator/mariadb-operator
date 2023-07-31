@@ -147,15 +147,18 @@ func newWrappedGrantReconciler(client client.Client, refResolver refresolver.Ref
 }
 
 func (wr *wrappedGrantReconciler) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
-	opts := mariadbclient.GrantOpts{
-		Privileges:  wr.grant.Spec.Privileges,
-		Database:    wr.grant.Spec.Database,
-		Table:       wr.grant.Spec.Table,
-		Username:    wr.grant.Spec.Username,
-		Host:        wr.grant.HostnameOrDefault(),
-		GrantOption: wr.grant.Spec.GrantOption,
+	var opts []mariadbclient.GrantOption
+	if wr.grant.Spec.GrantOption {
+		opts = append(opts, mariadbclient.WithGrantOption())
 	}
-	if err := mdbClient.Grant(ctx, opts); err != nil {
+	if err := mdbClient.Grant(
+		ctx,
+		wr.grant.Spec.Privileges,
+		wr.grant.Spec.Database,
+		wr.grant.Spec.Table,
+		wr.grant.AccountName(),
+		opts...,
+	); err != nil {
 		return fmt.Errorf("error granting privileges in MariaDB: %v", err)
 	}
 	return nil

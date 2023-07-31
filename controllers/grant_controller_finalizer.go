@@ -88,15 +88,18 @@ func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *maria
 		return fmt.Errorf("error checking if user exists in MariaDB: %v", err)
 	}
 
-	opts := mariadbclient.GrantOpts{
-		Privileges:  wf.grant.Spec.Privileges,
-		Database:    wf.grant.Spec.Database,
-		Table:       wf.grant.Spec.Table,
-		Username:    wf.grant.Spec.Username,
-		Host:        wf.grant.HostnameOrDefault(),
-		GrantOption: wf.grant.Spec.GrantOption,
+	var opts []mariadbclient.GrantOption
+	if wf.grant.Spec.GrantOption {
+		opts = append(opts, mariadbclient.WithGrantOption())
 	}
-	if err := mdbClient.Revoke(ctx, opts); err != nil {
+	if err := mdbClient.Revoke(
+		ctx,
+		wf.grant.Spec.Privileges,
+		wf.grant.Spec.Database,
+		wf.grant.Spec.Table,
+		wf.grant.AccountName(),
+		opts...,
+	); err != nil {
 		return fmt.Errorf("error revoking grant in MariaDB: %v", err)
 	}
 	return nil

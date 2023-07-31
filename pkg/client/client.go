@@ -222,24 +222,38 @@ func (c *Client) UserExists(ctx context.Context, username string) (bool, error) 
 	return count > 0, nil
 }
 
-type GrantOpts struct {
-	Privileges  []string
-	Database    string
-	Table       string
-	Username    string
-	Host        string
-	GrantOption bool
+type grantOpts struct {
+	grantOption bool
 }
 
-func (c *Client) Grant(ctx context.Context, opts GrantOpts) error {
-	query := fmt.Sprintf("GRANT %s ON %s.%s TO '%s'@'%s' ",
-		strings.Join(opts.Privileges, ","),
-		escapeWildcard(opts.Database),
-		escapeWildcard(opts.Table),
-		opts.Username,
-		opts.Host,
+type GrantOption func(*grantOpts)
+
+func WithGrantOption() GrantOption {
+	return func(o *grantOpts) {
+		o.grantOption = true
+	}
+}
+
+func (c *Client) Grant(
+	ctx context.Context,
+	privileges []string,
+	database string,
+	table string,
+	accountName string,
+	opts ...GrantOption,
+) error {
+	var grantOpts grantOpts
+	for _, setOpt := range opts {
+		setOpt(&grantOpts)
+	}
+
+	query := fmt.Sprintf("GRANT %s ON %s.%s TO %s ",
+		strings.Join(privileges, ","),
+		escapeWildcard(database),
+		escapeWildcard(table),
+		accountName,
 	)
-	if opts.GrantOption {
+	if grantOpts.grantOption {
 		query += "WITH GRANT OPTION "
 	}
 	query += ";"
@@ -247,18 +261,27 @@ func (c *Client) Grant(ctx context.Context, opts GrantOpts) error {
 	return c.ExecFlushingPrivileges(ctx, query)
 }
 
-func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
-	privileges := []string{}
-	privileges = append(privileges, opts.Privileges...)
-	if opts.GrantOption {
+func (c *Client) Revoke(
+	ctx context.Context,
+	privileges []string,
+	database string,
+	table string,
+	accountName string,
+	opts ...GrantOption,
+) error {
+	var grantOpts grantOpts
+	for _, setOpt := range opts {
+		setOpt(&grantOpts)
+	}
+
+	if grantOpts.grantOption {
 		privileges = append(privileges, "GRANT OPTION")
 	}
-	query := fmt.Sprintf("REVOKE %s ON %s.%s FROM '%s'@'%s';",
+	query := fmt.Sprintf("REVOKE %s ON %s.%s FROM %s",
 		strings.Join(privileges, ","),
-		escapeWildcard(opts.Database),
-		escapeWildcard(opts.Table),
-		opts.Username,
-		opts.Host,
+		escapeWildcard(database),
+		escapeWildcard(table),
+		accountName,
 	)
 
 	return c.ExecFlushingPrivileges(ctx, query)

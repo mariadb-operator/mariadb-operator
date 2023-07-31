@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -83,6 +85,10 @@ func (m *Grant) IsReady() bool {
 
 func (g *Grant) MariaDBRef() *MariaDBRef {
 	return &g.Spec.MariaDBRef
+}
+
+func (g *Grant) AccountName() string {
+	return fmt.Sprintf("'%s'@'%s'", g.Spec.Username, g.HostnameOrDefault())
 }
 
 func (g *Grant) HostnameOrDefault() string {
