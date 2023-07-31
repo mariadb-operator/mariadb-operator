@@ -219,12 +219,24 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 	if err != nil {
 		return fmt.Errorf("error reconciling replication passsword: %v", err)
 	}
-	userOpts := mariadbclient.CreateUserOpts{
-		IdentifiedBy: password,
+
+	exists, err := client.UserExists(ctx, replUser)
+	if err != nil {
+		return fmt.Errorf("error checking if replication user exists: %v", err)
 	}
-	if err := client.CreateUser(ctx, opts.username, userOpts); err != nil {
-		return fmt.Errorf("error creating replication user: %v", err)
+	if exists {
+		if err := client.AlterUser(ctx, opts.username, password); err != nil {
+			return fmt.Errorf("error altering replication user: %v", err)
+		}
+	} else {
+		userOpts := mariadbclient.CreateUserOpts{
+			IdentifiedBy: password,
+		}
+		if err := client.CreateUser(ctx, opts.username, userOpts); err != nil {
+			return fmt.Errorf("error creating replication user: %v", err)
+		}
 	}
+
 	grantOpts := mariadbclient.GrantOpts{
 		Privileges:  opts.privileges,
 		Database:    "*",
