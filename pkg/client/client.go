@@ -201,8 +201,8 @@ func (c *Client) CreateUser(ctx context.Context, accountName string, opts Create
 	return c.ExecFlushingPrivileges(ctx, query)
 }
 
-func (c *Client) DropUser(ctx context.Context, username string) error {
-	query := fmt.Sprintf("DROP USER IF EXISTS '%s';", username)
+func (c *Client) DropUser(ctx context.Context, accountName string) error {
+	query := fmt.Sprintf("DROP USER IF EXISTS %s;", accountName)
 
 	return c.ExecFlushingPrivileges(ctx, query)
 }
