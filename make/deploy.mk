@@ -4,7 +4,7 @@ CLUSTER ?= mdb
 ##@ Docker
 
 PLATFORM ?= linux/amd64,linux/arm64
-IMG ?= ghcr.io/mariadb-operator/mariadb-operator:v0.0.16
+IMG ?= ghcr.io/mariadb-operator/mariadb-operator:v0.0.19
 BUILDX ?= docker buildx build --platform $(PLATFORM) -t $(IMG) 
 BUILDER ?= mariadb-operator
 
@@ -35,7 +35,7 @@ docker-load: ## Load docker image in KIND.
 ##@ Cluster
 
 KIND_CONFIG ?= hack/config/kind.yaml
-KIND_IMAGE ?= kindest/node:v1.26.0
+KIND_IMAGE ?= kindest/node:v1.27.3
 
 .PHONY: cluster
 cluster: kind ## Create a single node kind cluster.
