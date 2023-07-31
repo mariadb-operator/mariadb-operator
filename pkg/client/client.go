@@ -258,7 +258,7 @@ func (c *Client) Revoke(ctx context.Context, opts GrantOpts) error {
 		escapeWildcard(opts.Database),
 		escapeWildcard(opts.Table),
 		opts.Username,
-		"%",
+		opts.Host,
 	)
 
 	return c.ExecFlushingPrivileges(ctx, query)
