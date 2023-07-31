@@ -178,6 +178,7 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 			Database:    "*",
 			Table:       "*",
 			Username:    *mariadb.Spec.Username,
+			Host:        "%",
 			GrantOption: false,
 		}
 		if err := client.Grant(ctx, grantOpts); err != nil {
@@ -251,6 +252,7 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		Database:    "*",
 		Table:       "*",
 		Username:    opts.username,
+		Host:        "%",
 		GrantOption: false,
 	}
 	if err := client.Grant(ctx, grantOpts); err != nil {

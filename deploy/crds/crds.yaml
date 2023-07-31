@@ -3212,6 +3212,8 @@ spec:
               grantOption:
                 default: false
                 type: boolean
+              host:
+                type: string
               mariaDbRef:
                 properties:
                   name:
@@ -3234,6 +3236,7 @@ spec:
               username:
                 type: string
             required:
+            - host
             - mariaDbRef
             - privileges
             - username

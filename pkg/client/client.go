@@ -227,6 +227,7 @@ type GrantOpts struct {
 	Database    string
 	Table       string
 	Username    string
+	Host        string
 	GrantOption bool
 }
 
@@ -236,7 +237,7 @@ func (c *Client) Grant(ctx context.Context, opts GrantOpts) error {
 		escapeWildcard(opts.Database),
 		escapeWildcard(opts.Table),
 		opts.Username,
-		"%",
+		opts.Host,
 	)
 	if opts.GrantOption {
 		query += "WITH GRANT OPTION "

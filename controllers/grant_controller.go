@@ -152,6 +152,7 @@ func (wr *wrappedGrantReconciler) Reconcile(ctx context.Context, mdbClient *mari
 		Database:    wr.grant.Spec.Database,
 		Table:       wr.grant.Spec.Table,
 		Username:    wr.grant.Spec.Username,
+		Host:        wr.grant.HostnameOrDefault(),
 		GrantOption: wr.grant.Spec.GrantOption,
 	}
 	if err := mdbClient.Grant(ctx, opts); err != nil {
