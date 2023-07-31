@@ -93,6 +93,7 @@ func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *maria
 		Database:    wf.grant.Spec.Database,
 		Table:       wf.grant.Spec.Table,
 		Username:    wf.grant.Spec.Username,
+		Host:        wf.grant.HostnameOrDefault(),
 		GrantOption: wf.grant.Spec.GrantOption,
 	}
 	if err := mdbClient.Revoke(ctx, opts); err != nil {
