@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -96,6 +97,8 @@ type ReplicaReplication struct {
 	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
 	// +kubebuilder:default=CurrentPos
 	Gtid *Gtid `json:"gtid,omitempty"`
+
+	ReplPasswordSecretKeyRef *corev1.SecretKeySelector `json:"replPasswordSecretKeyRef,omitempty"`
 
 	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
 	// +kubebuilder:default=10
