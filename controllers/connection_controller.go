@@ -231,7 +231,8 @@ func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1a
 	}
 
 	log.FromContext(ctx).V(1).Info("Checking connection health")
-	if _, err := mariadbclient.Connect(string(dsn)); err != nil {
+	db, err := mariadbclient.Connect(string(dsn))
+	if err != nil {
 		var connErr *multierror.Error
 		connErr = multierror.Append(connErr, err)
 
@@ -242,6 +243,7 @@ func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1a
 		)
 		return multierror.Append(connErr, patchErr)
 	}
+	defer db.Close()
 
 	if err := r.patchStatus(ctx, conn, r.ConditionReady.PatcherHealthy(nil)); err != nil {
 		return fmt.Errorf("error patching connection status: %v", err)
