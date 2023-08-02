@@ -44,6 +44,7 @@ type SecretTemplate struct {
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 	Key         *string           `json:"key,omitempty"`
+	Format      *string           `json:"format,omitempty"`
 	UsernameKey *string           `json:"usernameKey,omitempty"`
 	PasswordKey *string           `json:"passwordKey,omitempty"`
 	HostKey     *string           `json:"hostKey,omitempty"`

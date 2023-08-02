@@ -20,7 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
+	"strings"
+	"text/template"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -146,16 +149,6 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		Name:      conn.SecretName(),
 		Namespace: conn.Namespace,
 	}
-
-	var existingSecret corev1.Secret
-	if err := r.Get(ctx, key, &existingSecret); err == nil {
-		if err := r.healthCheck(ctx, conn, &existingSecret); err != nil {
-			log.FromContext(ctx).Info("Error checking connection health", "err", err)
-			return errConnHealthCheck
-		}
-		return nil
-	}
-
 	password, err := r.RefResolver.SecretKeyRef(ctx, conn.Spec.PasswordSecretKeyRef, conn.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting password for connection DSN: %v", err)
@@ -181,6 +174,16 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	if conn.Spec.Database != nil {
 		mdbOpts.Database = *conn.Spec.Database
 	}
+
+	var existingSecret corev1.Secret
+	if err := r.Get(ctx, key, &existingSecret); err == nil {
+		if err := r.healthCheck(ctx, conn, mdbOpts); err != nil {
+			log.FromContext(ctx).Info("Error checking connection health", "err", err)
+			return errConnHealthCheck
+		}
+		return nil
+	}
+
 	dsn, err := mariadbclient.BuildDSN(mdbOpts)
 	if err != nil {
 		return fmt.Errorf("error building DSN: %v", err)
@@ -196,6 +199,34 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		Annotations: conn.Spec.SecretTemplate.Annotations,
 	}
 
+	if formatString := conn.Spec.SecretTemplate.Format; formatString != nil {
+		tmpl := template.Must(template.New("").Parse(*formatString))
+		builder := &strings.Builder{}
+
+		err := tmpl.Execute(builder, map[string]string{
+			"Username": mdbOpts.Username,
+			"Password": mdbOpts.Password,
+			"Host":     mdbOpts.Host,
+			"Port":     strconv.Itoa(int(mdbOpts.Port)),
+			"Database": mdbOpts.Database,
+			"Params": func() string {
+				v := url.Values{}
+				for key, value := range mdbOpts.Params {
+					v.Add(key, value)
+				}
+
+				s := v.Encode()
+				if s == "" {
+					return s
+				}
+				return fmt.Sprintf("?%s", s)
+			}(),
+		})
+		if err != nil {
+			return fmt.Errorf("error parsing DSN template: %v", err)
+		}
+		secretOpts.Data[conn.SecretKey()] = []byte(builder.String())
+	}
 	if usernameKey := conn.Spec.SecretTemplate.UsernameKey; usernameKey != nil {
 		secretOpts.Data[*usernameKey] = []byte(mdbOpts.Username)
 	}
@@ -223,15 +254,9 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	return nil
 }
 
-func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1alpha1.Connection, secret *corev1.Secret) error {
-	secretKey := conn.SecretKey()
-	dsn, ok := secret.Data[secretKey]
-	if !ok {
-		return fmt.Errorf("connection secret '%s' key not found", secretKey)
-	}
-
+func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1alpha1.Connection, clientOpts mariadbclient.Opts) error {
 	log.FromContext(ctx).V(1).Info("Checking connection health")
-	db, err := mariadbclient.Connect(string(dsn))
+	db, err := mariadbclient.ConnectWithOpts(clientOpts)
 	if err != nil {
 		var connErr *multierror.Error
 		connErr = multierror.Append(connErr, err)

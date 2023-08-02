@@ -163,6 +163,14 @@ func Connect(dsn string) (*sql.DB, error) {
 	return db, nil
 }
 
+func ConnectWithOpts(opts Opts) (*sql.DB, error) {
+	dsn, err := BuildDSN(opts)
+	if err != nil {
+		return nil, fmt.Errorf("error building DNS: %v", err)
+	}
+	return Connect(dsn)
+}
+
 func (c *Client) Close() error {
 	return c.db.Close()
 }

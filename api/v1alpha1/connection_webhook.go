@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"text/template"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,12 +40,21 @@ var _ webhook.Validator = &Connection{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Connection) ValidateCreate() error {
-	return r.validateHealthCheck()
+	if err := r.validateHealthCheck(); err != nil {
+		return err
+	}
+	if err := r.validateCustomDSNFormat(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Connection) ValidateUpdate(old runtime.Object) error {
 	if err := r.validateHealthCheck(); err != nil {
+		return err
+	}
+	if err := r.validateCustomDSNFormat(); err != nil {
 		return err
 	}
 	return inmutableWebhook.ValidateUpdate(r, old.(*Connection))
@@ -79,5 +89,22 @@ func (r *Connection) validateHealthCheck() error {
 			)
 		}
 	}
+	return nil
+}
+
+func (r *Connection) validateCustomDSNFormat() error {
+	if r.Spec.SecretTemplate.Format == nil {
+		return nil
+	}
+
+	_, err := template.New("").Parse(*r.Spec.SecretTemplate.Format)
+	if err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("secretTemplate").Child("format"),
+			r.Spec.SecretTemplate.Format,
+			fmt.Sprintf("invalid format template: '%s'", err),
+		)
+	}
+
 	return nil
 }
