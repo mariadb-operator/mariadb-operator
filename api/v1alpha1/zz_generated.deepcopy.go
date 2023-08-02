@@ -1444,6 +1444,11 @@ func (in *SecretTemplate) DeepCopyInto(out *SecretTemplate) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.Format != nil {
+		in, out := &in.Format, &out.Format
+		*out = new(string)
+		**out = **in
+	}
 	if in.UsernameKey != nil {
 		in, out := &in.UsernameKey, &out.UsernameKey
 		*out = new(string)

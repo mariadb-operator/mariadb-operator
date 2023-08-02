@@ -2457,6 +2457,8 @@ spec:
                         type: object
                       databaseKey:
                         type: string
+                      format:
+                        type: string
                       hostKey:
                         type: string
                       key:
@@ -5671,6 +5673,8 @@ spec:
                                   type: string
                                 type: object
                               databaseKey:
+                                type: string
+                              format:
                                 type: string
                               hostKey:
                                 type: string

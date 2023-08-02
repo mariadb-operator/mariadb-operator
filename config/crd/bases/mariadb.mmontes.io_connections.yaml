@@ -105,6 +105,8 @@ spec:
                     type: object
                   databaseKey:
                     type: string
+                  format:
+                    type: string
                   hostKey:
                     type: string
                   key:

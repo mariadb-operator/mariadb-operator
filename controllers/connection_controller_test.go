@@ -131,6 +131,56 @@ var _ = Describe("Connection controller", func() {
 					},
 					WantDsn: "test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?parseTime=true",
 				},
+				{
+					By: "Creating a Connection providing DSN Format",
+					Key: types.NamespacedName{
+						Name:      "conn-test",
+						Namespace: testNamespace,
+					},
+					Conn: &mariadbv1alpha1.Connection{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "conn-test",
+							Namespace: testNamespace,
+						},
+						Spec: mariadbv1alpha1.ConnectionSpec{
+							ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
+								SecretName: func() *string { t := "conn-test"; return &t }(),
+								SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+									Labels: map[string]string{
+										"foo": "bar",
+									},
+									Key: func() *string { k := "dsn"; return &k }(),
+									Format: func() *string {
+										f := "mysql://{{ .Username }}:{{ .Password }}@{{ .Host }}:{{ .Port }}/{{ .Database }}{{ .Params }}"
+										return &f
+									}(),
+								},
+								HealthCheck: &mariadbv1alpha1.HealthCheck{
+									Interval:      &metav1.Duration{Duration: 1 * time.Second},
+									RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
+								},
+								Params: map[string]string{
+									"parseTime": "true",
+								},
+							},
+							MariaDBRef: mariadbv1alpha1.MariaDBRef{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: testMariaDbName,
+								},
+								WaitForIt: true,
+							},
+							Username: testUser,
+							PasswordSecretKeyRef: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: testPwdSecretName,
+								},
+								Key: testPwdSecretKey,
+							},
+							Database: &testDatabase,
+						},
+					},
+					WantDsn: "mysql://test:test@mariadb-test.default.svc.cluster.local:3306/test?parseTime=true",
+				},
 			}
 
 			for _, t := range tests {
