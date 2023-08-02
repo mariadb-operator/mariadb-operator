@@ -151,21 +151,15 @@ func buildStsUpdateStrategy(mariadb *mariadbv1alpha1.MariaDB) appsv1.StatefulSet
 }
 
 func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.PersistentVolumeClaim {
+	vctpl := mariadb.Spec.VolumeClaimTemplate
+	vctpl.ObjectMeta.Name = StorageVolume
 	pvcs := []corev1.PersistentVolumeClaim{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: StorageVolume,
-			},
-			Spec: mariadb.Spec.VolumeClaimTemplate.Spec,
-		},
+		vctpl,
 	}
 	if mariadb.Galera().Enabled {
-		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: galeraresources.GaleraConfigVolume,
-			},
-			Spec: mariadb.Galera().VolumeClaimTemplate.Spec,
-		})
+		galeraVctpl := *mariadb.Galera().VolumeClaimTemplate
+		galeraVctpl.ObjectMeta.Name = galeraresources.GaleraConfigVolume
+		pvcs = append(pvcs, galeraVctpl)
 	}
 	return pvcs
 }
