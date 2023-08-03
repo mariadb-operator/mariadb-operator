@@ -198,9 +198,8 @@ func (g *GaleraSpec) FillWithDefaults() {
 
 var (
 	fiveSeconds    = metav1.Duration{Duration: 5 * time.Second}
-	oneMinute      = metav1.Duration{Duration: 1 * time.Minute}
 	fiveMinutes    = metav1.Duration{Duration: 5 * time.Minute}
-	threeMinutes   = metav1.Duration{Duration: 3 * time.Minute}
+	tenMinutes     = metav1.Duration{Duration: 10 * time.Minute}
 	sst            = SSTMariaBackup
 	replicaThreads = 1
 
@@ -224,10 +223,10 @@ var (
 		},
 		Recovery: &GaleraRecovery{
 			Enabled:                 true,
-			ClusterHealthyTimeout:   &oneMinute,
-			ClusterBootstrapTimeout: &fiveMinutes,
-			PodRecoveryTimeout:      &threeMinutes,
-			PodSyncTimeout:          &threeMinutes,
+			ClusterHealthyTimeout:   &fiveMinutes,
+			ClusterBootstrapTimeout: &tenMinutes,
+			PodRecoveryTimeout:      &fiveMinutes,
+			PodSyncTimeout:          &tenMinutes,
 		},
 		InitContainer: &ContainerTemplate{
 			Image: Image{
@@ -240,7 +239,7 @@ var (
 			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						"storage": resource.MustParse("50Mi"),
+						"storage": resource.MustParse("100Mi"),
 					},
 				},
 				AccessModes: []corev1.PersistentVolumeAccessMode{
