@@ -53,6 +53,8 @@ spec:
         tag: "v0.0.5"
         pullPolicy: IfNotPresent
     volumeClaimTemplate:
+      annotations:
+        database.myorg.io: mariadb
       resources:
         requests:
           storage: 50Mi
@@ -91,6 +93,8 @@ spec:
       memory: 1Gi
 
   volumeClaimTemplate:
+    annotations:
+      database.myorg.io: mariadb
     resources:
       requests:
         storage: 1Gi

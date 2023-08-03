@@ -22,6 +22,8 @@ spec:
   port: 3306
 
   volumeClaimTemplate:
+    annotations:
+      database.myorg.io: mariadb
     resources:
       requests:
         storage: 100Mi

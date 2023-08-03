@@ -164,7 +164,7 @@ type GaleraSpec struct {
 	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files
 	// shared between the InitContainer, Agent and MariaDB.
 	// +optional
-	VolumeClaimTemplate *corev1.PersistentVolumeClaimSpec `json:"volumeClaimTemplate,omitempty"`
+	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
 }
 
 // FillWithDefaults fills the current GaleraSpec object with DefaultGaleraSpec.
@@ -236,14 +236,16 @@ var (
 				PullPolicy: corev1.PullIfNotPresent,
 			},
 		},
-		VolumeClaimTemplate: &corev1.PersistentVolumeClaimSpec{
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					"storage": resource.MustParse("50Mi"),
+		VolumeClaimTemplate: &VolumeClaimTemplate{
+			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						"storage": resource.MustParse("50Mi"),
+					},
 				},
-			},
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
 			},
 		},
 	}
