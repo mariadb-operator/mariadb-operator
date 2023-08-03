@@ -54,10 +54,10 @@ spec:
       gracefulShutdownTimeout: 5s
     recovery:
       enabled: true
-      clusterHealthyTimeout: 1m
-      clusterBootstrapTimeout: 5m
-      podRecoveryTimeout: 3m
-      podSyncTimeout: 3m
+      clusterHealthyTimeout: 5m
+      clusterBootstrapTimeout: 10m
+      podRecoveryTimeout: 5m
+      podSyncTimeout: 10m
     initContainer:
       image:
         repository: ghcr.io/mariadb-operator/init
@@ -66,7 +66,7 @@ spec:
     volumeClaimTemplate:
       resources:
         requests:
-          storage: 50Mi
+          storage: 100Mi
       accessModes:
         - ReadWriteOnce
 ...
