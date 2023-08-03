@@ -4175,6 +4175,10 @@ spec:
                         items:
                           type: string
                         type: array
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
                       dataSource:
                         description: 'dataSource field can be used to specify either:
                           * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot)
@@ -4241,6 +4245,10 @@ spec:
                         - name
                         type: object
                         x-kubernetes-map-type: atomic
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       resources:
                         description: 'resources represents the minimum resources the
                           volume should have. If RecoverVolumeExpansionFailure feature
@@ -6048,8 +6056,6 @@ spec:
               username:
                 type: string
               volumeClaimTemplate:
-                description: PersistentVolumeClaimSpec describes the common attributes
-                  of storage devices and allows a Source for provider-specific attributes
                 properties:
                   accessModes:
                     description: 'accessModes contains the desired access modes the
@@ -6057,6 +6063,10 @@ spec:
                     items:
                       type: string
                     type: array
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
                   dataSource:
                     description: 'dataSource field can be used to specify either:
                       * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot)
@@ -6122,6 +6132,10 @@ spec:
                     - name
                     type: object
                     x-kubernetes-map-type: atomic
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
                   resources:
                     description: 'resources represents the minimum resources the volume
                       should have. If RecoverVolumeExpansionFailure feature is enabled

@@ -142,14 +142,16 @@ var _ = Describe("MariaDB", func() {
 						},
 						Key: testPwdSecretKey,
 					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 				},
@@ -191,14 +193,16 @@ var _ = Describe("MariaDB", func() {
 							Tag:        "11.0.2",
 						},
 					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 				},
@@ -248,14 +252,16 @@ var _ = Describe("MariaDB", func() {
 						},
 						Key: testPwdSecretKey,
 					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 				},
@@ -300,14 +306,16 @@ var _ = Describe("MariaDB", func() {
 						},
 						Key: testPwdSecretKey,
 					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 				},
@@ -382,14 +390,16 @@ var _ = Describe("MariaDB replication", func() {
 							Key: &testConnSecretKey,
 						},
 					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 					MyCnf: func() *string {
@@ -588,14 +598,16 @@ var _ = Describe("MariaDB Galera", func() {
 							Key: &testConnSecretKey,
 						},
 					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 					MyCnf: func() *string {
@@ -617,14 +629,16 @@ var _ = Describe("MariaDB Galera", func() {
 								PodRecoveryTimeout:      &recoveryTimeout,
 								PodSyncTimeout:          &recoveryTimeout,
 							},
-							VolumeClaimTemplate: &corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": resource.MustParse("10Mi"),
+							VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("100Mi"),
+										},
 									},
-								},
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									corev1.ReadWriteOnce,
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
 								},
 							},
 						},

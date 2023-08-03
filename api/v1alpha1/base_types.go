@@ -72,6 +72,13 @@ type ContainerTemplate struct {
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
 }
 
+type VolumeClaimTemplate struct {
+	// +kubebuilder:validation:Required
+	corev1.PersistentVolumeClaimSpec `json:",inline"`
+	Labels                           map[string]string `json:"labels,omitempty"`
+	Annotations                      map[string]string `json:"annotations,omitempty"`
+}
+
 type HealthCheck struct {
 	Interval      *metav1.Duration `json:"interval,omitempty"`
 	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`

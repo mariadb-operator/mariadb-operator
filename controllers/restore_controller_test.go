@@ -96,14 +96,16 @@ var _ = Describe("Restore controller", func() {
 						},
 						Key: testPwdSecretKey,
 					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 				},

@@ -313,14 +313,16 @@ var _ = Describe("MariaDB webhook", func() {
 						Key: "root-password",
 					},
 					Port: 3306,
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 					Replicas: 3,
@@ -387,14 +389,16 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 						Key: "password",
 					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 					MyCnf: func() *string { c := "foo"; return &c }(),
@@ -607,14 +611,16 @@ var _ = Describe("MariaDB webhook", func() {
 						Key: "password",
 					},
 
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 					Replication: &Replication{
@@ -652,14 +658,16 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 						Key: "password",
 					},
-					VolumeClaimTemplate: corev1.PersistentVolumeClaimSpec{
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"storage": resource.MustParse("100Mi"),
+					VolumeClaimTemplate: VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
 							},
-						},
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
 						},
 					},
 					Replication: &Replication{
