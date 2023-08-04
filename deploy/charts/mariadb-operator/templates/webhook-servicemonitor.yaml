@@ -1,4 +1,4 @@
-{{ if and .Values.metrics.enabled .Values.webhook.enabled .Values.webhook.serviceMonitor.enabled }}
+{{ if and .Values.metrics.enabled .Values.webhook.serviceMonitor.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
