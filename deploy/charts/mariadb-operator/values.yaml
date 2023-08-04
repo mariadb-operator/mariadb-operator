@@ -87,8 +87,6 @@ tolerations: []
 affinity: {}
 
 webhook:
-  # -- Enable webhooks.
-  enabled: true
   # -- Annotations for webhook configurations.
   annotations: {}
   image:

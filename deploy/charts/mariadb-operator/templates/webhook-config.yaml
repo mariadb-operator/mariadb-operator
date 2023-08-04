@@ -1,4 +1,3 @@
-{{ if .Values.webhook.enabled }}
 {{ $fullName := include "mariadb-operator.fullname" . }}
 {{ $subjectName := include "mariadb-operator-webhook.subjectName" . }}
 {{ $altNames := list }}
@@ -268,4 +267,3 @@ webhooks:
         resources:
           - users
     sideEffects: None
-{{ end }}
