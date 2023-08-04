@@ -153,10 +153,7 @@ type MariaDB struct {
 
 func (m *MariaDB) Galera() Galera {
 	if m.Spec.Galera == nil {
-		return Galera{}
-	}
-	if !m.Spec.Galera.Enabled {
-		return *m.Spec.Galera
+		m.Spec.Galera = &Galera{}
 	}
 	m.Spec.Galera.FillWithDefaults()
 	return *m.Spec.Galera
