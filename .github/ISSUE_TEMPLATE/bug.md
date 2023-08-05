@@ -23,8 +23,8 @@ for code blocks of your kubectl output or YAML files.
 -->
 
 **Is the bug related to Galera?**
-- [ ] I have checked the [Galera documentation](../../docs/GALERA.md)
-- [ ] I have checked the [Galera troubleshooting guide](../../docs/GALERA.md#troubleshooting)
+- [ ] I have checked the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md)
+- [ ] I have checked the [Galera troubleshooting guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#troubleshooting)
 
 **Expected behaviour**
 <!--A concise description of what you expected to happen.-->
