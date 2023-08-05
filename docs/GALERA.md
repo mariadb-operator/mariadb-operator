@@ -374,7 +374,7 @@ mariadb-operator:auth-delegator                        ClusterRole/system:auth-d
 
 `mariadb-galera:auth-delegator` is the `ClusterRoleBinding` bound to the `mariadb-galera` `ServiceAccount` which is created on the flight by the operator as part of the reconciliation logic. You may check the `mariadb-operator` logs to see if there are any issues reconciling it.
 
-Bear in mind that `ClusterRoleBinding` are cluster-wide resources that are not garbage collected when the `MariaDB` owner object is deleted, which means that creating and deleting `MariaDBs` could leave leftovers in your cluster. These leftovers can lead to RBAC misconfigurations, as the `ClusterRoleBinding` might not be pointing to the right `ServiceAccount`. To overcome this, you can override the `ClusterRoleBinding` name setting the `spec.galera.agent.kubernetesAuth.authDelegatorRoleName` field.
+Bear in mind that `ClusterRoleBindings` are cluster-wide resources that are not garbage collected when the `MariaDB` owner object is deleted, which means that creating and deleting `MariaDBs` could leave leftovers in your cluster. These leftovers can lead to RBAC misconfigurations, as the `ClusterRoleBinding` might not be pointing to the right `ServiceAccount`. To overcome this, you can override the `ClusterRoleBinding` name setting the `spec.galera.agent.kubernetesAuth.authDelegatorRoleName` field.
 
 #### Timeout waiting for Pod to be Synced
 
