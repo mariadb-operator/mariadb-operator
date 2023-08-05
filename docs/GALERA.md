@@ -217,6 +217,11 @@ To conclude, it's important to note that the Galera functionallity is 100% compa
 
 The aim of this section is showing you how to diagnose your Galera cluster when something goes wrong. In this situations, observability is a key factor to understand the problem, so we recommend following these steps before jumping into debugging the problem.
 
+- Inspect `MariaDB` status conditions.
+```bash
+ kubectl get mariadb mariadb-galera -o jsonpath="{.status}"
+{"conditions":[{"lastTransitionTime":"2023-08-05T14:58:57Z","message":"Galera not ready","reason":"GaleraNotReady","status":"False","type":"Ready"},{"lastTransitionTime":"2023-08-05T14:58:57Z","message":"Galera not ready","reason":"GaleraNotReady","status":"False","type":"GaleraReady"},{"lastTransitionTime":"2023-08-03T19:21:16Z","message":"Galera configured","reason":"GaleraConfigured","status":"True","type":"GaleraConfigured"}],"currentPrimary":"All","galeraRecovery":{"bootstrap":{"pod":"mariadb-galera-1","time":"2023-08-05T14:59:18Z"},"recovered":{"mariadb-galera-0":{"seqno":17,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9"},"mariadb-galera-1":{"seqno":17,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9"},"mariadb-galera-2":{"seqno":16,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9"}},"state":{"mariadb-galera-0":{"safeToBootstrap":false,"seqno":-1,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9","version":"2.1"},"mariadb-galera-1":{"safeToBootstrap":false,"seqno":-1,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9","version":"2.1"},"mariadb-galera-2":{"safeToBootstrap":false,"seqno":-1,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9","version":"2.1"}}}}
+```
 - Make sure network connectivity is fine by checking that you have an `Endpoint` per `Pod` in your Galera cluster.
 ```bash
 kubectl get endpoints mariadb-galera-internal -o yaml
