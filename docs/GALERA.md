@@ -363,7 +363,7 @@ NAME                    CREATED AT
 system:auth-delegator   2023-08-03T19:12:37Z
 
 kubectl get clusterrolebinding | grep mariadb | grep auth-delegator
-mariadb-galera-auth:auth-delegator                     ClusterRole/system:auth-delegator                                                  108m
+mariadb-galera:auth-delegator                     ClusterRole/system:auth-delegator                                                  108m
 mariadb-operator:auth-delegator                        ClusterRole/system:auth-delegator                                                  112m
 ```
 `mariadb-operator:auth-delegator` is the `ClusterRoleBinding` bound to the `mariadb-operator` `ServiceAccount` which is created by the helm chart, so you can re-install the helm release in order to recreate it:
@@ -372,7 +372,9 @@ mariadb-operator:auth-delegator                        ClusterRole/system:auth-d
  helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator
 ```
 
-`mariadb-galera-auth:auth-delegator` is the `ClusterRoleBinding` bound to the `mariadb-galera` `ServiceAccount` which is created on the flight by the operator as part of the reconciliation logic. You may check the `mariadb-operator` logs to see if there are any issues reconciling it.
+`mariadb-galera:auth-delegator` is the `ClusterRoleBinding` bound to the `mariadb-galera` `ServiceAccount` which is created on the flight by the operator as part of the reconciliation logic. You may check the `mariadb-operator` logs to see if there are any issues reconciling it.
+
+Bear in mind that `ClusterRoleBinding` are cluster-wide resources that are not garbage collected when the `MariaDB` owner object is deleted, which means that creating and deleting `MariaDBs` could leave leftovers in your cluster. These leftovers can lead to RBAC misconfigurations, as the `ClusterRoleBinding` might not be pointing to the right `ServiceAccount`. To overcome this, you can override the `ClusterRoleBinding` name setting the `spec.galera.agent.kubernetesAuth.authDelegatorRoleName` field.
 
 #### Timeout waiting for Pod to be Synced
 
