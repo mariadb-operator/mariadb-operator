@@ -29,12 +29,13 @@ func (r *RBACReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1
 	if !mariadb.Galera().Enabled {
 		return nil
 	}
-	sa, err := r.reconcileServiceAccount(ctx, mariadb)
+	key := client.ObjectKeyFromObject(mariadb)
+	sa, err := r.reconcileServiceAccount(ctx, key, mariadb)
 	if err != nil {
 		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
 
-	role, err := r.reconcileRole(ctx, mariadb)
+	role, err := r.reconcileRole(ctx, key, mariadb)
 	if err != nil {
 		return fmt.Errorf("error reconciling Role: %v", err)
 	}
@@ -44,7 +45,7 @@ func (r *RBACReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1
 		Kind:     "Role",
 		Name:     role.Name,
 	}
-	if err := r.reconcileRoleBinding(ctx, client.ObjectKeyFromObject(mariadb), mariadb, sa, roleRef); err != nil {
+	if err := r.reconcileRoleBinding(ctx, key, mariadb, sa, roleRef); err != nil {
 		return fmt.Errorf("error reconciling RoleBinding: %v", err)
 	}
 
@@ -65,8 +66,8 @@ func (r *RBACReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1
 	return nil
 }
 
-func (r *RBACReconciler) reconcileServiceAccount(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*corev1.ServiceAccount, error) {
-	key := client.ObjectKeyFromObject(mariadb)
+func (r *RBACReconciler) reconcileServiceAccount(ctx context.Context, key types.NamespacedName,
+	mariadb *mariadbv1alpha1.MariaDB) (*corev1.ServiceAccount, error) {
 	var existingSA corev1.ServiceAccount
 	err := r.Get(ctx, key, &existingSA)
 	if err == nil {
@@ -86,8 +87,8 @@ func (r *RBACReconciler) reconcileServiceAccount(ctx context.Context, mariadb *m
 	return sa, nil
 }
 
-func (r *RBACReconciler) reconcileRole(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*rbacv1.Role, error) {
-	key := client.ObjectKeyFromObject(mariadb)
+func (r *RBACReconciler) reconcileRole(ctx context.Context, key types.NamespacedName,
+	mariadb *mariadbv1alpha1.MariaDB) (*rbacv1.Role, error) {
 	var existingRole rbacv1.Role
 	err := r.Get(ctx, key, &existingRole)
 	if err == nil {
@@ -157,6 +158,12 @@ func (r *RBACReconciler) reconcileClusterRoleBinding(ctx context.Context, key ty
 	var existingCRB rbacv1.ClusterRoleBinding
 	err := r.Get(ctx, key, &existingCRB)
 	if err == nil {
+		if !isOwnedBy(mariadb, &existingCRB) {
+			return fmt.Errorf(
+				"ClusterRoleBinding '%s' already exists. Specify a different one via 'spec.galera.agent.kubernetesAuth.authDelegatorRoleName'.",
+				existingCRB.Name,
+			)
+		}
 		return nil
 	}
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -171,4 +178,14 @@ func (r *RBACReconciler) reconcileClusterRoleBinding(ctx context.Context, key ty
 		return fmt.Errorf("error creating ClusterRoleBinding: %v", err)
 	}
 	return nil
+}
+
+func isOwnedBy(owner client.Object, child client.Object) bool {
+	ownerReferences := child.GetOwnerReferences()
+	for _, ownerRef := range ownerReferences {
+		if ownerRef.UID == owner.GetUID() {
+			return true
+		}
+	}
+	return false
 }

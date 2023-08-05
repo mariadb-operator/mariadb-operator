@@ -50,7 +50,6 @@ spec:
       port: 5555
       kubernetesAuth:
         enabled: true
-        authDelegatorRoleName: mariadb-galera-auth
       gracefulShutdownTimeout: 5s
     recovery:
       enabled: true
