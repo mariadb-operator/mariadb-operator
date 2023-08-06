@@ -37,7 +37,7 @@ type GrantSpec struct {
 	// +kubebuilder:validation:Required
 	Username string `json:"username" webhook:"inmutable"`
 	// +kubebuilder:MaxLength=255
-	Host string `json:"host" webhook:"inmutable"`
+	Host *string `json:"host,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=false
 	GrantOption bool `json:"grantOption,omitempty" webhook:"inmutable"`
 }
@@ -92,10 +92,10 @@ func (g *Grant) AccountName() string {
 }
 
 func (g *Grant) HostnameOrDefault() string {
-	if g.Spec.Host == "" {
-		return "%"
+	if g.Spec.Host != nil && *g.Spec.Host != "" {
+		return *g.Spec.Host
 	}
-	return g.Spec.Host
+	return "%"
 }
 
 //+kubebuilder:object:root=true

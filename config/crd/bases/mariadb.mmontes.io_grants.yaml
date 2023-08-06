@@ -120,7 +120,6 @@ spec:
               username:
                 type: string
             required:
-            - host
             - mariaDbRef
             - privileges
             - username
