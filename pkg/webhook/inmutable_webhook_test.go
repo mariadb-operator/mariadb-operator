@@ -145,7 +145,7 @@ func TestInmutableWebhook(t *testing.T) {
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: "foo",
 						},
 					},
@@ -163,7 +163,7 @@ func TestInmutableWebhook(t *testing.T) {
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: "foo",
 						},
 					},

@@ -36,7 +36,7 @@ var _ = Describe("SqlJob controller", func() {
 				},
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,
@@ -74,7 +74,7 @@ var _ = Describe("SqlJob controller", func() {
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,
@@ -107,7 +107,7 @@ var _ = Describe("SqlJob controller", func() {
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,
@@ -148,7 +148,7 @@ var _ = Describe("SqlJob controller", func() {
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,
@@ -217,7 +217,7 @@ var _ = Describe("SqlJob controller", func() {
 						Cron: "*/1 * * * *",
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,

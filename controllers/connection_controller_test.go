@@ -67,7 +67,7 @@ var _ = Describe("Connection controller", func() {
 								},
 							},
 							MariaDBRef: mariadbv1alpha1.MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: testMariaDbName,
 								},
 								WaitForIt: true,
@@ -114,7 +114,7 @@ var _ = Describe("Connection controller", func() {
 								ServiceName: &testMariaDbName,
 							},
 							MariaDBRef: mariadbv1alpha1.MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: testMariaDbName,
 								},
 								WaitForIt: true,
@@ -164,7 +164,7 @@ var _ = Describe("Connection controller", func() {
 								},
 							},
 							MariaDBRef: mariadbv1alpha1.MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: testMariaDbName,
 								},
 								WaitForIt: true,
@@ -222,7 +222,7 @@ var _ = Describe("Connection controller", func() {
 				},
 				Spec: mariadbv1alpha1.ConnectionSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,
@@ -277,7 +277,7 @@ var _ = Describe("Connection controller", func() {
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,

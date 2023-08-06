@@ -46,7 +46,7 @@ var _ = Describe("Backup webhook", func() {
 						Spec: BackupSpec{
 							Storage: BackupStorage{},
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "mariadb-webhook",
 								},
 								WaitForIt: true,
@@ -86,7 +86,7 @@ var _ = Describe("Backup webhook", func() {
 								},
 							},
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "mariadb-webhook",
 								},
 								WaitForIt: true,
@@ -126,7 +126,7 @@ var _ = Describe("Backup webhook", func() {
 								},
 							},
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "mariadb-webhook",
 								},
 								WaitForIt: true,
@@ -181,7 +181,7 @@ var _ = Describe("Backup webhook", func() {
 						},
 					},
 					MariaDBRef: MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,

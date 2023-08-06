@@ -40,7 +40,7 @@ var _ = Describe("Database webhook", func() {
 				},
 				Spec: DatabaseSpec{
 					MariaDBRef: MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,

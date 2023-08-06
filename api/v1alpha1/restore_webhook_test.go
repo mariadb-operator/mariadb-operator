@@ -46,7 +46,7 @@ var _ = Describe("Restore webhook", func() {
 						Spec: RestoreSpec{
 							RestoreSource: RestoreSource{},
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "mariadb-webhook",
 								},
 								WaitForIt: true,
@@ -68,7 +68,7 @@ var _ = Describe("Restore webhook", func() {
 								FileName: func() *string { s := "foo.sql"; return &s }(),
 							},
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "mariadb-webhook",
 								},
 								WaitForIt: true,
@@ -92,7 +92,7 @@ var _ = Describe("Restore webhook", func() {
 								},
 							},
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "mariadb-webhook",
 								},
 								WaitForIt: true,
@@ -118,7 +118,7 @@ var _ = Describe("Restore webhook", func() {
 								},
 							},
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "mariadb-webhook",
 								},
 								WaitForIt: true,
@@ -144,7 +144,7 @@ var _ = Describe("Restore webhook", func() {
 								},
 							},
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "mariadb-webhook",
 								},
 								WaitForIt: true,
@@ -187,7 +187,7 @@ var _ = Describe("Restore webhook", func() {
 						},
 					},
 					MariaDBRef: MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,

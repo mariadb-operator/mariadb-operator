@@ -40,7 +40,7 @@ var _ = Describe("Grant controller", func() {
 				},
 				Spec: mariadbv1alpha1.UserSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbKey.Name,
 						},
 						WaitForIt: true,
@@ -76,7 +76,7 @@ var _ = Describe("Grant controller", func() {
 				},
 				Spec: mariadbv1alpha1.GrantSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbKey.Name,
 						},
 						WaitForIt: true,
@@ -126,7 +126,7 @@ var _ = Describe("Grant controller", func() {
 				},
 				Spec: mariadbv1alpha1.DatabaseSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbKey.Name,
 						},
 						WaitForIt: true,
@@ -157,7 +157,7 @@ var _ = Describe("Grant controller", func() {
 				},
 				Spec: mariadbv1alpha1.UserSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbKey.Name,
 						},
 						WaitForIt: true,
@@ -193,7 +193,7 @@ var _ = Describe("Grant controller", func() {
 				},
 				Spec: mariadbv1alpha1.GrantSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbKey.Name,
 						},
 						WaitForIt: true,

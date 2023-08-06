@@ -45,7 +45,7 @@ var _ = Describe("SqlJob webhook", func() {
 						ObjectMeta: meta,
 						Spec: SqlJobSpec{
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "foo",
 								},
 							},
@@ -66,7 +66,7 @@ var _ = Describe("SqlJob webhook", func() {
 						ObjectMeta: meta,
 						Spec: SqlJobSpec{
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "foo",
 								},
 							},
@@ -90,7 +90,7 @@ var _ = Describe("SqlJob webhook", func() {
 						ObjectMeta: meta,
 						Spec: SqlJobSpec{
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "foo",
 								},
 							},
@@ -112,7 +112,7 @@ var _ = Describe("SqlJob webhook", func() {
 						ObjectMeta: meta,
 						Spec: SqlJobSpec{
 							MariaDBRef: MariaDBRef{
-								LocalObjectReference: corev1.LocalObjectReference{
+								ObjectReference: corev1.ObjectReference{
 									Name: "foo",
 								},
 							},
@@ -161,7 +161,7 @@ var _ = Describe("SqlJob webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							LocalObjectReference: corev1.LocalObjectReference{
+							ObjectReference: corev1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,

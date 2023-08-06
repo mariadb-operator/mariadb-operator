@@ -20,7 +20,7 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		Spec: mariadbv1alpha1.RestoreSpec{
 			RestoreSource: *mariadb.Spec.BootstrapFrom,
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				LocalObjectReference: corev1.LocalObjectReference{
+				ObjectReference: corev1.ObjectReference{
 					Name: mariadb.Name,
 				},
 				WaitForIt: true,
