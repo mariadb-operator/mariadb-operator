@@ -1,0 +1,15 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Grant
+metadata:
+  name: photoprism
+spec:
+  mariaDbRef:
+    name: mariadb
+  privileges:
+    - "CREATE"
+    - "SELECT"
+    - "INSERT"
+    - "UPDATE"
+  database: "*"
+  table: "*"
+  username: photoprism

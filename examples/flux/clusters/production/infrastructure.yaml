@@ -44,3 +44,33 @@ spec:
   path: ./examples/flux/infrastructure/mariadb-operator
   prune: true
   timeout: 5m
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: mariadb
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: mariadb-operator
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./examples/flux/infrastructure/mariadb
+  prune: true
+  timeout: 5m
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: rbac
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./examples/flux/infrastructure/rbac
+  prune: true
+  timeout: 5m
