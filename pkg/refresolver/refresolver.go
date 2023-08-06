@@ -31,12 +31,20 @@ func New(client client.Client) *RefResolver {
 
 func (r *RefResolver) MariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
 	namespace string) (*mariadbv1alpha1.MariaDB, error) {
-	nn := types.NamespacedName{
+	if ref.Kind != "" && ref.Kind != "MariaDB" {
+		return nil, fmt.Errorf("Unsupported reference kind: '%s'", ref.Kind)
+	}
+
+	key := types.NamespacedName{
 		Name:      ref.Name,
 		Namespace: namespace,
 	}
+	if ref.Namespace != "" {
+		key.Namespace = ref.Namespace
+	}
+
 	var mariadb mariadbv1alpha1.MariaDB
-	if err := r.client.Get(ctx, nn, &mariadb); err != nil {
+	if err := r.client.Get(ctx, key, &mariadb); err != nil {
 		return nil, err
 	}
 	return &mariadb, nil

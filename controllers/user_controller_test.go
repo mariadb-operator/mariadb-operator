@@ -39,7 +39,7 @@ var _ = Describe("User controller", func() {
 				},
 				Spec: mariadbv1alpha1.UserSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbKey.Name,
 						},
 						WaitForIt: true,

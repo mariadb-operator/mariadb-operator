@@ -55,7 +55,7 @@ var _ = Describe("Connection webhook", func() {
 						},
 					},
 					MariaDBRef: MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,

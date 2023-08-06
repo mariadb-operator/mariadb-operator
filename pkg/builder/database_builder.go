@@ -26,7 +26,7 @@ func (b *Builder) BuildUser(mariadb *mariadbv1alpha1.MariaDB, opts UserOpts) (*m
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.UserSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				LocalObjectReference: corev1.LocalObjectReference{
+				ObjectReference: corev1.ObjectReference{
 					Name: mariadb.Name,
 				},
 				WaitForIt: true,
@@ -60,7 +60,7 @@ func (b *Builder) BuildGrant(mariadb *mariadbv1alpha1.MariaDB, opts GrantOpts) (
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.GrantSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				LocalObjectReference: corev1.LocalObjectReference{
+				ObjectReference: corev1.ObjectReference{
 					Name: mariadb.Name,
 				},
 				WaitForIt: true,

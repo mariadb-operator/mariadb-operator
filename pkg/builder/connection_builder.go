@@ -29,7 +29,7 @@ func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*ma
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.ConnectionSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				LocalObjectReference: corev1.LocalObjectReference{
+				ObjectReference: corev1.ObjectReference{
 					Name: opts.MariaDB.Name,
 				},
 				WaitForIt: true,

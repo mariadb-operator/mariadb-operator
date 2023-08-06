@@ -44,7 +44,7 @@ var _ = Describe("Restore controller", func() {
 				},
 				Spec: mariadbv1alpha1.BackupSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,
@@ -134,7 +134,7 @@ var _ = Describe("Restore controller", func() {
 				},
 				Spec: mariadbv1alpha1.RestoreSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						LocalObjectReference: corev1.LocalObjectReference{
+						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbName,
 						},
 						WaitForIt: true,
