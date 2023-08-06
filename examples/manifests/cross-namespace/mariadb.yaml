@@ -1,0 +1,24 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+  namespace: mariadb
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+  image:
+    repository: mariadb
+    tag: "11.0.2"
+    pullPolicy: IfNotPresent
+  port: 3306
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 100Mi
+    accessModes:
+      - ReadWriteOnce
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.40
