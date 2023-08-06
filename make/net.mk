@@ -8,6 +8,7 @@ host-mariadb:  ## Add mariadb hosts to /etc/hosts.
 	@./hack/add_host.sh 172.18.0.13 mariadb-3.mariadb-internal.default.svc.cluster.local
 	@./hack/add_host.sh 172.18.0.20 mariadb.default.svc.cluster.local
 	@./hack/add_host.sh 172.18.0.30 primary-mariadb.default.svc.cluster.local
+	@./hack/add_host.sh 172.18.0.40 mariadb.mariadb.svc.cluster.local
 
 .PHONY: host-mariadb-test
 host-mariadb-test: ## Add mariadb test hosts to /etc/hosts.

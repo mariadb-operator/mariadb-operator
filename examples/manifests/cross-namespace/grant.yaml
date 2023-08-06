@@ -1,0 +1,16 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Grant
+metadata:
+  name: app
+  namespace: app
+spec:
+  mariaDbRef:
+    name: mariadb
+    namespace: mariadb
+  privileges:
+    - "SELECT"
+    - "INSERT"
+    - "UPDATE"
+  database: "*"
+  table: "*"
+  username: app

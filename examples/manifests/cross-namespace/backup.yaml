@@ -1,0 +1,19 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+  namespace: mariadb
+spec:
+  mariaDbRef:
+    name: mariadb
+    namespace: mariadb
+  schedule:
+    cron: "*/1 * * * *"
+  maxRetentionDays: 30
+  storage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce

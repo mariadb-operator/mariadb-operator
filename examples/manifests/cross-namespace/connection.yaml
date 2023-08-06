@@ -1,0 +1,15 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Connection
+metadata:
+  name: connection
+  namespace: app
+spec:
+  mariaDbRef:
+    name: mariadb
+    namespace: mariadb
+  username: app
+  passwordSecretKeyRef:
+    name: app
+    key: password
+  database: app
+  secretName: connection
