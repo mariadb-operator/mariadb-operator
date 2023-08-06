@@ -1,0 +1,14 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Connection
+metadata:
+  name: connection
+spec:
+  mariaDbRef:
+    name: mariadb
+    namespace: mariadb
+  username: photoprism
+  passwordSecretKeyRef:
+    name: photoprism
+    key: password
+  database: photoprism
+  secretName: photoprism

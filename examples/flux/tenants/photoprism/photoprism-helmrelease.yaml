@@ -16,23 +16,18 @@ spec:
       repository: photoprism/photoprism
       tag: "221118-jammy"
       pullPolicy: IfNotPresent
-
     env:
       PHOTOPRISM_AUTH_MODE: public
       PHOTOPRISM_READONLY: false
       PHOTOPRISM_LOG_LEVEL: debug
-
     secretRef: null
-
     persistence:
       enabled: false
-
     database:
       driver: mysql
       dsnSecretKeyRef:
-        name: photoprism-connection
+        name: photoprism
         key: dsn
-
     sync:
       enabled: true
       cron: "* */1 * * *"
@@ -41,11 +36,9 @@ spec:
           memory: 300Mi
         limits:
           memory: 1Gi
-
     service:
       type: ClusterIP
       port: 80
-
     resources:
       requests:
         memory: 300Mi

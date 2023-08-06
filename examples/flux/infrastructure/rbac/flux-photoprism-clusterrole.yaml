@@ -1,0 +1,34 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-photoprism
+rules:
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  - helm.toolkit.fluxcd.io
+  resources:
+  - helmrepositories
+  - helmreleases
+  verbs:
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - connections
+  verbs:
+  - create
+  - patch
+  - update
+  - delete

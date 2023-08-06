@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: photoprism
 resources:
   - mmontes-helmrepository.yaml
-  - photoprism-credentials-secret.yaml
+  - photoprism-connection.yaml
   - photoprism-helmrelease.yaml
-  - photoprism-mariadb.yaml
   - photoprism-namespace.yaml
+  - photoprism-secret.yaml

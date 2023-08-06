@@ -5,7 +5,9 @@ metadata:
   namespace: flux-system
 spec:
   dependsOn:
-    - name: mariadb-operator
+    - name: mariadb
+    - name: rbac
+  serviceAccountName: flux-photoprism
   interval: 5m
   sourceRef:
     kind: GitRepository

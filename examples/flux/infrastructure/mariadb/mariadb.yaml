@@ -1,38 +1,22 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MariaDB
 metadata:
-  name: photoprism-mariadb
+  name: mariadb
 spec:
   rootPasswordSecretKeyRef:
-    name: photoprism-credentials
-    key: root-password
-
-  database: photoprism
-  username: photoprism
-  passwordSecretKeyRef:
-    name: photoprism-credentials
+    name: mariadb
     key: password
-  connection:
-    secretName: photoprism-connection
-    secretTemplate:
-      key: dsn
-    params:
-      parseTime: "true"
-
   image:
     repository: mariadb
     tag: "11.0.2"
     pullPolicy: IfNotPresent
-
   port: 3306
-
   volumeClaimTemplate:
     resources:
       requests:
         storage: 100Mi
     accessModes:
       - ReadWriteOnce
-
   resources:
     requests:
       cpu: 100m
@@ -40,7 +24,6 @@ spec:
     limits:
       cpu: 300m
       memory: 512Mi
-
   metrics:
     exporter:
       image:
