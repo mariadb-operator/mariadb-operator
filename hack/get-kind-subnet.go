@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 type Config struct {
@@ -29,5 +30,19 @@ func main() {
 
 	var network []Network
 	json.Unmarshal([]byte(output), &network)
-	fmt.Println(network[0].Ipam.Config[0].Subnet)
+
+	configs := network[0].Ipam.Config
+
+	var configIndex = -1
+	var index int = 0
+
+	for configIndex == -1 {
+		if strings.HasPrefix(configs[index].Subnet, "172.") {
+			configIndex = index
+		} else {
+			index++
+		}
+	}
+
+	fmt.Println(configs[index].Subnet)
 }
