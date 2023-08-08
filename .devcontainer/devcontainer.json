@@ -13,5 +13,14 @@
 			"helm": "latest",
 			"minikube": "none"
 		}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.makefile-tools",
+				"ms-azuretools.vscode-docker",
+				"ms-kubernetes-tools.vscode-kubernetes-tools"
+			]
+		}
 	}
 }
