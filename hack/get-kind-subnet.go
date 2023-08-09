@@ -31,7 +31,7 @@ func (ipam *IPAM) findConfigWithPrefix(prefix string) *Config {
 	return nil
 }
 
-func GetKindCidrPrefix() (string, error) {
+func GetKindCidr() (string, error) {
 	cmd := exec.Command("docker", "network", "inspect", "kind")
 	output, err := cmd.Output()
 
@@ -52,7 +52,7 @@ func GetKindCidrPrefix() (string, error) {
 }
 
 func main() {
-	prefix, err := GetKindCidrPrefix()
+	prefix, err := GetKindCidr()
 
 	if err == nil {
 		fmt.Print(prefix)
