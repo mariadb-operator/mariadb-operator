@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -30,26 +31,32 @@ func (ipam *IPAM) findConfigWithPrefix(prefix string) *Config {
 	return nil
 }
 
-func GetKindCidrPrefix() string {
+func GetKindCidrPrefix() (string, error) {
 	cmd := exec.Command("docker", "network", "inspect", "kind")
 	output, err := cmd.Output()
 
-	if err != nil {
-		fmt.Printf("%v", err)
-	}
+	if err == nil {
+		var network []Network
+		json.Unmarshal([]byte(output), &network)
 
-	var network []Network
-	json.Unmarshal([]byte(output), &network)
+		config := network[0].Ipam.findConfigWithPrefix("172.")
 
-	config := network[0].Ipam.findConfigWithPrefix("172.")
-
-	if config != nil {
-		return config.Subnet
+		if config != nil {
+			return config.Subnet, nil
+		} else {
+			return "", nil
+		}
 	} else {
-		return ""
+		return "", errors.New("could not execute docker command")
 	}
 }
 
 func main() {
-	fmt.Print(GetKindCidrPrefix())
+	prefix, err := GetKindCidrPrefix()
+
+	if err == nil {
+		fmt.Print(prefix)
+	} else {
+		fmt.Println(err)
+	}
 }
