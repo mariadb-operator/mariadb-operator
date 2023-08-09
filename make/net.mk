@@ -1,6 +1,6 @@
 ##@ Networking
 
-CIDR_PREFIX=$(shell go run ./hack/get-kind-cidr-prefix.go)
+CIDR_PREFIX=$(shell go run ./hack/get_kind_cidr_prefix.go)
 
 .PHONY: host-mariadb
 host-mariadb:  ## Add mariadb hosts to /etc/hosts.
