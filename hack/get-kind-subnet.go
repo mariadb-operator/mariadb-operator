@@ -20,6 +20,16 @@ type Network struct {
 	Ipam IPAM
 }
 
+func (ipam *IPAM) findConfigWithPrefix(prefix string) *Config {
+	for _, config := range ipam.Config {
+		if strings.HasPrefix(config.Subnet, prefix) {
+			return &config
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	cmd := exec.Command("docker", "network", "inspect", "kind")
 	output, err := cmd.CombinedOutput()
@@ -31,18 +41,9 @@ func main() {
 	var network []Network
 	json.Unmarshal([]byte(output), &network)
 
-	configs := network[0].Ipam.Config
+	config := network[0].Ipam.findConfigWithPrefix("172.")
 
-	var configIndex = -1
-	var index int = 0
-
-	for configIndex == -1 {
-		if strings.HasPrefix(configs[index].Subnet, "172.") {
-			configIndex = index
-		} else {
-			index++
-		}
+	if config != nil {
+		fmt.Print(config.Subnet)
 	}
-
-	fmt.Print(configs[index].Subnet)
 }
