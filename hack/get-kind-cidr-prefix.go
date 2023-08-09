@@ -55,7 +55,7 @@ func GetCidrPrefix(cidr string) string {
 	ip := strings.Split(cidr, "/")
 	parts := strings.Split(ip[0], ".")
 
-	return fmt.Sprintf("%s.%s.%s.", parts[0], parts[1], parts[2])
+	return fmt.Sprintf("%s.%s.", parts[0], parts[1])
 }
 
 func GetDockerCidrPrefix(network string) (string, error) {
