@@ -6,6 +6,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,8 +19,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var testCidrPrefix string
+
 var _ = Describe("MariaDB", func() {
 	Context("When creating a MariaDB", func() {
+		var err error
+
+		testCidrPrefix, err = docker.GetKindCidrPrefix()
+		Expect(testCidrPrefix, err).ShouldNot(Equal(""))
+
 		It("Should reconcile", func() {
 			By("Expecting to have spec provided by user and defaults")
 			Expect(testMariaDb.Spec.Image.String()).To(Equal("mariadb:11.0.2"))
@@ -418,7 +426,7 @@ var _ = Describe("MariaDB replication", func() {
 							Service: &mariadbv1alpha1.Service{
 								Type: corev1.ServiceTypeLoadBalancer,
 								Annotations: map[string]string{
-									"metallb.universe.tf/loadBalancerIPs": "172.18.0.130",
+									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
 								},
 							},
 							Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -441,7 +449,7 @@ var _ = Describe("MariaDB replication", func() {
 					Service: &mariadbv1alpha1.Service{
 						Type: corev1.ServiceTypeLoadBalancer,
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": "172.18.0.120",
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
 						},
 					},
 				},
@@ -647,7 +655,7 @@ var _ = Describe("MariaDB Galera", func() {
 					Service: &mariadbv1alpha1.Service{
 						Type: corev1.ServiceTypeLoadBalancer,
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": "172.18.0.150",
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
 						},
 					},
 				},
