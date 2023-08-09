@@ -44,5 +44,5 @@ func main() {
 		}
 	}
 
-	fmt.Println(configs[index].Subnet)
+	fmt.Print(configs[index].Subnet)
 }
