@@ -68,8 +68,18 @@ func GetDockerCidrPrefix(network string) (string, error) {
 	}
 }
 
-func main() {
+func GetKindCidrPrefix() (string, error) {
 	prefix, err := GetDockerCidrPrefix("kind")
+
+	if err == nil {
+		return prefix, nil
+	} else {
+		return "", err
+	}
+}
+
+func main() {
+	prefix, err := GetKindCidrPrefix()
 
 	if err == nil {
 		fmt.Print(prefix)
