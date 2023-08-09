@@ -35,19 +35,23 @@ func GetDockerCidr(network string) (string, error) {
 	command := exec.Command("docker", "network", "inspect", network)
 	output, err := command.Output()
 
-	if err == nil {
-		var networks []Network
-		json.Unmarshal([]byte(output), &networks)
-
-		config := networks[0].Ipam.findConfigWithPrefix("172.")
-
-		if config != nil {
-			return config.Subnet, nil
-		} else {
-			return "", nil
-		}
-	} else {
+	if err != nil {
 		return "", errors.New("could not execute docker command")
+	}
+
+	var networks []Network
+	err = json.Unmarshal([]byte(output), &networks)
+
+	if err != nil {
+		return "", errors.New("invalid json")
+	}
+
+	config := networks[0].Ipam.findConfigWithPrefix("172.")
+
+	if config != nil {
+		return config.Subnet, nil
+	} else {
+		return "", nil
 	}
 }
 
