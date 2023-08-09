@@ -32,7 +32,7 @@ func (ipam *IPAM) findConfigWithPrefix(prefix string) *Config {
 
 func main() {
 	cmd := exec.Command("docker", "network", "inspect", "kind")
-	output, err := cmd.CombinedOutput()
+	output, err := cmd.Output()
 
 	if err != nil {
 		fmt.Printf("%v", err)
