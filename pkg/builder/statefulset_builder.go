@@ -39,8 +39,8 @@ const (
 
 func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	podName := statefulset.PodName(mariadb.ObjectMeta, 0)
-	if mariadb.Spec.Replication != nil {
-		podName = statefulset.PodName(mariadb.ObjectMeta, mariadb.Spec.Replication.Primary.PodIndex)
+	if mariadb.Replication().Enabled {
+		podName = statefulset.PodName(mariadb.ObjectMeta, *mariadb.Replication().Primary.PodIndex)
 	}
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-%s", StorageVolume, podName),
@@ -266,7 +266,7 @@ func buildHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 		annotations = map[string]string{
 			annotation.MariadbAnnotation: mariadb.Name,
 		}
-		if mariadb.Spec.Replication != nil {
+		if mariadb.Replication().Enabled {
 			annotations[annotation.ReplicationAnnotation] = ""
 		}
 		if mariadb.Galera().Enabled {

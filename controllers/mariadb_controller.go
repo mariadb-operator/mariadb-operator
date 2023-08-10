@@ -262,7 +262,7 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 		if err := r.reconcileInternalService(ctx, mariadb); err != nil {
 			return err
 		}
-		if mariadb.Spec.Replication != nil {
+		if mariadb.Replication().Enabled {
 			if err := r.reconcilePrimaryService(ctx, mariadb); err != nil {
 				return nil
 			}
@@ -272,7 +272,7 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Replication != nil {
+	if mariadb.Replication().Enabled {
 		if err := r.reconcilePrimaryConnection(ctx, mariadb); err != nil {
 			return err
 		}
@@ -436,7 +436,7 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
-			WithStatefulSetPod(mariadb, mariadb.Spec.Replication.Primary.PodIndex).
+			WithStatefulSetPod(mariadb, *mariadb.Replication().Primary.PodIndex).
 			Build()
 	opts := builder.ServiceOpts{
 		Selectorlabels: serviceLabels,
@@ -447,9 +447,9 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 			},
 		},
 	}
-	if mariadb.Spec.Replication.Primary.Service != nil {
-		opts.Type = mariadb.Spec.Replication.Primary.Service.Type
-		opts.Annotations = mariadb.Spec.Replication.Primary.Service.Annotations
+	if mariadb.Replication().Primary.Service != nil {
+		opts.Type = mariadb.Replication().Primary.Service.Type
+		opts.Annotations = mariadb.Replication().Primary.Service.Annotations
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
@@ -532,7 +532,7 @@ func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mari
 }
 
 func (r *MariaDBReconciler) reconcilePrimaryConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Replication.Primary.Connection == nil ||
+	if mariadb.Replication().Primary.Connection == nil ||
 		mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
 		!mariadb.IsReady() {
 		return nil
@@ -543,8 +543,8 @@ func (r *MariaDBReconciler) reconcilePrimaryConnection(ctx context.Context, mari
 		return nil
 	}
 
-	connTpl := mariadb.Spec.Replication.Primary.Connection
-	if mariadb.Spec.Replication != nil {
+	connTpl := mariadb.Replication().Primary.Connection
+	if mariadb.Replication().Enabled {
 		serviceName := ctrlresources.PrimaryServiceKey(mariadb).Name
 		connTpl.ServiceName = &serviceName
 	}
@@ -584,7 +584,7 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha
 }
 
 func (r *MariaDBReconciler) updatePrimaryName(status *mariadbv1alpha1.MariaDBStatus, mariadb *mariadbv1alpha1.MariaDB) {
-	if mariadb.Spec.Replication != nil {
+	if mariadb.Replication().Enabled {
 		return // updated by replication controller
 	}
 	if mariadb.Galera().Enabled {

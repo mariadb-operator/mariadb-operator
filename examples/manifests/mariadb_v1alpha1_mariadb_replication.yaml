@@ -28,6 +28,7 @@ spec:
   replicas: 3
 
   replication:
+    enabled: true
     primary:
       podIndex: 0
       automaticFailover: true
@@ -40,7 +41,7 @@ spec:
         secretTemplate:
           key: dsn
     replica:
-      waitPoint: AfterCommit
+      waitPoint: AfterSync
       gtid: CurrentPos
       replPasswordSecretKeyRef:
         name: mariadb

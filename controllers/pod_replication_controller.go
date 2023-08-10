@@ -69,7 +69,7 @@ func (r *PodReplicationController) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if mariadb.Spec.Replication == nil || mariadb.Status.CurrentPrimaryPodIndex == nil ||
+	if !mariadb.Replication().Enabled || mariadb.Status.CurrentPrimaryPodIndex == nil ||
 		mariadb.IsConfiguringReplication() || mariadb.IsRestoringBackup() {
 		return ctrl.Result{}, nil
 	}
@@ -113,7 +113,7 @@ func (r *PodReplicationController) reconcilePodReady(ctx context.Context, pod co
 }
 
 func (r *PodReplicationController) reconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !mariadb.Spec.Replication.Primary.AutomaticFailover {
+	if !*mariadb.Replication().Primary.AutomaticFailover {
 		return nil
 	}
 	log.FromContext(ctx).V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
@@ -133,7 +133,7 @@ func (r *PodReplicationController) reconcilePodNotReady(ctx context.Context, pod
 
 	var errBundle *multierror.Error
 	err = r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
-		mdb.Spec.Replication.Primary.PodIndex = *healthyIndex
+		mdb.Spec.Replication.Primary.PodIndex = healthyIndex
 	})
 	errBundle = multierror.Append(errBundle, err)
 

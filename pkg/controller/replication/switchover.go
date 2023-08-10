@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
@@ -18,37 +19,33 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type switchoverPhase struct {
 	name      string
-	reconcile func(context.Context, *mariadbv1alpha1.MariaDB, *replicationClientSet) error
+	reconcile func(context.Context, *mariadbv1alpha1.MariaDB, *replicationClientSet, logr.Logger) error
 }
 
-func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest) error {
+func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest, switchoverLogger logr.Logger) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil
 	}
-	if req.mariadb.Spec.Replication.Primary.PodIndex == *req.mariadb.Status.CurrentPrimaryPodIndex {
+	if *req.mariadb.Replication().Primary.PodIndex == *req.mariadb.Status.CurrentPrimaryPodIndex {
 		return nil
 	}
+
+	fromIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
+	toIndex := *req.mariadb.Replication().Primary.PodIndex
+	logger := switchoverLogger.WithValues("mariadb", req.mariadb.Name, "from-index", fromIndex, "to-index", toIndex)
+	logger.Info("Switching primary")
+	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimarySwitching,
+		"Switching primary from index '%d' to index '%d'", fromIndex, toIndex)
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		conditions.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
-	logger := log.FromContext(
-		ctx,
-		"mariadb",
-		req.mariadb.Name,
-		"fromIndex",
-		*req.mariadb.Status.CurrentPrimaryPodIndex,
-		"toIndex",
-		req.mariadb.Spec.Replication.Primary.PodIndex,
-	)
-	logger.Info("Switching primary")
 
 	phases := []switchoverPhase{
 		{
@@ -78,8 +75,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}
 
 	for _, p := range phases {
-		logger.Info(p.name)
-		if err := p.reconcile(ctx, req.mariadb, req.clientSet); err != nil {
+		if err := p.reconcile(ctx, req.mariadb, req.clientSet, logger); err != nil {
 			if apierrors.IsNotFound(err) {
 				return err
 			}
@@ -88,18 +84,19 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		status.UpdateCurrentPrimary(req.mariadb, req.mariadb.Spec.Replication.Primary.PodIndex)
+		status.UpdateCurrentPrimary(req.mariadb, toIndex)
 		conditions.SetPrimarySwitched(&req.mariadb.Status)
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
-	logger.Info("Switched primary")
-
+	logger.Info("Primary switched")
+	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimarySwitched,
+		"Primary switched from index '%d' to index '%d'", fromIndex, toIndex)
 	return nil
 }
 
 func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet) error {
+	clientSet *replicationClientSet, logger logr.Logger) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -112,11 +109,14 @@ func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mari
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 
+	logger.Info("Enabling readonly mode in current primary")
+	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryReadonly,
+		"Enabling readonly mode in current primary")
 	return client.EnableReadOnly(ctx)
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet) error {
+	clientSet *replicationClientSet, logger logr.Logger) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -133,11 +133,13 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 		return fmt.Errorf("error getting primary GTID binlog pos: %v", err)
 	}
 
-	logger := log.FromContext(ctx)
 	var wg sync.WaitGroup
 	doneChan := make(chan struct{})
 	errChan := make(chan error)
 
+	logger.Info("Waiting for replicas to be synced with primary")
+	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaSync,
+		"Waiting for replicas to be synced with primary")
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		if i == *mariadb.Status.CurrentPrimaryPodIndex {
 			continue
@@ -152,18 +154,24 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 			}
 
 			logger.V(1).Info("Syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
-			if err := replClient.WaitForReplicaGtid(
-				ctx,
-				primaryGtid,
-				mariadb.Spec.Replication.Replica.SyncTimeoutOrDefault(),
-			); err != nil {
+			timeout := mariadb.Replication().Replica.SyncTimeout.Duration
+			if err := replClient.WaitForReplicaGtid(ctx, primaryGtid, timeout); err != nil {
 				var errBundle *multierror.Error
-				errBundle = multierror.Append(errBundle, fmt.Errorf("error waiting for GTID '%s' in replica '%d'", err, i))
+				errBundle = multierror.Append(errBundle, fmt.Errorf("error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err))
 
 				if errors.Is(err, mariadbclient.ErrWaitReplicaTimeout) {
+					logger.Error(err, "Timeout waiting for GTID in replica", "gtid", primaryGtid, "replica", i, "timeout", timeout)
+					r.recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
+						"Timeout(%s) waiting for GTID '%s' in replica '%d': %v", timeout, primaryGtid, i, err)
+
 					if err := r.resetSlave(ctx, replClient); err != nil {
+						logger.Error(err, "Error resetting slave in replica after GTID timeout", "replica", i)
 						errBundle = multierror.Append(errBundle, fmt.Errorf("error resetting slave position in replica '%d': %v", i, err))
 					}
+				} else {
+					logger.Error(err, "Error waiting for GTID in replica", "gtid", primaryGtid, "replica", i)
+					r.recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
+						"Error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err)
 				}
 
 				errChan <- errBundle.ErrorOrNil()
@@ -172,6 +180,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 
 			logger.V(1).Info("Replica synced, resetting slave position", "replica", i, "gtid", primaryGtid)
 			if err := r.resetSlave(ctx, replClient); err != nil {
+				logger.Error(err, "Error resetting slave in replica after synced", "replica", i)
 				errChan <- fmt.Errorf("error resetting slave position in replica '%d' after being synced: %v", i, err)
 			}
 		}(i)
@@ -192,27 +201,34 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 }
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet) error {
+	clientSet *replicationClientSet, logger logr.Logger) error {
 	client, err := clientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
 
-	if err := r.ReplConfig.ConfigurePrimary(ctx, mariadb, client, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
+	podIndex := *mariadb.Replication().Primary.PodIndex
+	logger.Info("Configuring new primary", "pod-index", podIndex)
+	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryNew,
+		"Configuring new primary at index '%d'", podIndex)
+
+	if err := r.replConfig.ConfigurePrimary(ctx, mariadb, client, podIndex); err != nil {
 		return fmt.Errorf("error confguring new primary vars: %v", err)
 	}
 	return nil
 }
 
 func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet) error {
-	logger := log.FromContext(ctx)
+	clientSet *replicationClientSet, logger logr.Logger) error {
 	var wg sync.WaitGroup
 	doneChan := make(chan struct{})
 	errChan := make(chan error)
 
+	logger.Info("Connecting replicas to new primary")
+	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaConn, "Connecting replicas to new primary")
+
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
-		if i == *mariadb.Status.CurrentPrimaryPodIndex || i == mariadb.Spec.Replication.Primary.PodIndex {
+		if i == *mariadb.Status.CurrentPrimaryPodIndex || i == *mariadb.Replication().Primary.PodIndex {
 			continue
 		}
 		wg.Add(1)
@@ -224,6 +240,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 			}
 			var pod corev1.Pod
 			if err := r.Get(ctx, key, &pod); err != nil {
+				logger.V(1).Info("Error getting Pod when connecting replicas to new primary", "pod", key.Name)
 				if apierrors.IsNotFound(err) {
 					return
 				}
@@ -231,6 +248,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 				return
 			}
 			if !mariadbpod.PodReady(&pod) {
+				logger.V(1).Info("Skipping non ready Pod when connecting replicas to new primary", "pod", key.Name)
 				return
 			}
 
@@ -241,7 +259,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 			}
 
 			logger.V(1).Info("Connecting replica to new primary", "replica", i)
-			if err := r.ReplConfig.ConfigureReplica(ctx, mariadb, replClient, i, mariadb.Spec.Replication.Primary.PodIndex); err != nil {
+			if err := r.replConfig.ConfigureReplica(ctx, mariadb, replClient, i, *mariadb.Replication().Primary.PodIndex); err != nil {
 				errChan <- fmt.Errorf("error configuring replica vars in replica '%d': %v", i, err)
 				return
 			}
@@ -263,7 +281,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 }
 
 func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet) error {
+	clientSet *replicationClientSet, logger logr.Logger) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -276,31 +294,43 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 
-	return r.ReplConfig.ConfigureReplica(
+	currentPrimary := *mariadb.Status.CurrentPrimaryPodIndex
+	newPrimary := *mariadb.Replication().Primary.PodIndex
+	logger.Info("Change current primary to be a replica", "current-primary", currentPrimary, "new-primary", newPrimary)
+	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryToReplica,
+		"Change current primary '%d' to be a replica. New primary at '%d'", currentPrimary, newPrimary)
+
+	return r.replConfig.ConfigureReplica(
 		ctx,
 		mariadb,
 		currentPrimaryClient,
-		*mariadb.Status.CurrentPrimaryPodIndex,
-		mariadb.Spec.Replication.Primary.PodIndex,
+		currentPrimary,
+		newPrimary,
 	)
 }
 
 func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet) error {
+	clientSet *replicationClientSet, logger logr.Logger) error {
 	key := ctrlresources.PrimaryServiceKey(mariadb)
 	var service corev1.Service
 	if err := r.Get(ctx, key, &service); err != nil {
 		return fmt.Errorf("error getting Service: %v", err)
 	}
 
+	podIndex := *mariadb.Replication().Primary.PodIndex
+	logger.Info("Update primary service", "pod-index", podIndex)
+	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimarySvcUpdate,
+		"Update primary service pointing to index '%d'", podIndex)
+
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDB(mariadb).
-			WithStatefulSetPod(mariadb, mariadb.Spec.Replication.Primary.PodIndex).
+			WithStatefulSetPod(mariadb, podIndex).
 			Build()
 	patch := client.MergeFrom(service.DeepCopy())
 	service.ObjectMeta.Labels = serviceLabels
 	service.Spec.Selector = serviceLabels
+
 	return r.Patch(ctx, &service, patch)
 }
 
