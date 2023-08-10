@@ -100,6 +100,7 @@ var _ = BeforeSuite(func() {
 	client := k8sManager.GetClient()
 	scheme := k8sManager.GetScheme()
 	galeraRecorder := k8sManager.GetEventRecorderFor("galera")
+	replRecorder := k8sManager.GetEventRecorderFor("replication")
 
 	env, err := environment.GetEnvironment(testCtx)
 	Expect(err).ToNot(HaveOccurred())
@@ -117,7 +118,15 @@ var _ = BeforeSuite(func() {
 	rbacReconciler := rbac.NewRBACReconiler(client, builder)
 
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
-	replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
+	replicationReconciler := replication.NewReplicationReconciler(
+		client,
+		replRecorder,
+		builder,
+		replConfig,
+		replication.WithRefResolver(refResolver),
+		replication.WithSecretReconciler(secretReconciler),
+		replication.WithServiceReconciler(serviceReconciler),
+	)
 	galeraReconciler := galera.NewGaleraReconciler(
 		client,
 		galeraRecorder,

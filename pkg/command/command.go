@@ -42,7 +42,7 @@ func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) string {
 }
 
 func host(mariadb *mariadbv1alpha1.MariaDB) string {
-	if mariadb.Spec.Replication != nil {
+	if mariadb.Replication().Enabled {
 		return statefulset.ServiceFQDNWithService(
 			mariadb.ObjectMeta,
 			ctrlresources.PrimaryServiceKey(mariadb).Name,

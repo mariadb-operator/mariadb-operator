@@ -36,6 +36,6 @@ func SetPrimarySwitched(c Conditioner) {
 func switchingPrimaryMessage(mariadb *mariadbv1alpha1.MariaDB) string {
 	return fmt.Sprintf(
 		"Switching primary to '%s'",
-		statefulset.PodName(mariadb.ObjectMeta, mariadb.Spec.Replication.Primary.PodIndex),
+		statefulset.PodName(mariadb.ObjectMeta, *mariadb.Replication().Primary.PodIndex),
 	)
 }

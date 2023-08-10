@@ -117,7 +117,7 @@ func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container
 }
 
 func buildStsArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
-	if mariadb.Spec.Replication != nil {
+	if mariadb.Replication().Enabled {
 		return []string{
 			"--log-bin",
 			fmt.Sprintf("--log-basename=%s", mariadb.Name),
@@ -156,7 +156,7 @@ func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		},
 	}
 
-	if mariadb.Spec.Replication == nil {
+	if !mariadb.Replication().Enabled {
 		if mariadb.Spec.Database != nil {
 			env = append(env, corev1.EnvVar{
 				Name:  "MARIADB_DATABASE",

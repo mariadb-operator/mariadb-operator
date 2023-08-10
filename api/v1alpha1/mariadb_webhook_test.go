@@ -104,10 +104,13 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								Primary: PrimaryReplication{
-									PodIndex: 1,
+								ReplicationSpec: ReplicationSpec{
+									Primary: &PrimaryReplication{
+										PodIndex: func() *int { i := 0; return &i }(),
+									},
+									SyncBinlog: func() *bool { f := true; return &f }(),
 								},
-								SyncBinlog: true,
+								Enabled: true,
 							},
 							Replicas: 3,
 						},
@@ -120,10 +123,13 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								Primary: PrimaryReplication{
-									PodIndex: 1,
+								ReplicationSpec: ReplicationSpec{
+									Primary: &PrimaryReplication{
+										PodIndex: func() *int { i := 0; return &i }(),
+									},
+									SyncBinlog: func() *bool { f := true; return &f }(),
 								},
-								SyncBinlog: true,
+								Enabled: true,
 							},
 							Galera: &Galera{
 								Enabled: true,
@@ -209,14 +215,17 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								Primary: PrimaryReplication{
-									PodIndex: 4,
+								ReplicationSpec: ReplicationSpec{
+									Primary: &PrimaryReplication{
+										PodIndex: func() *int { i := 4; return &i }(),
+									},
+									Replica: &ReplicaReplication{
+										WaitPoint:         func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
+										ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
+										ConnectionRetries: func() *int { r := 3; return &r }(),
+									},
 								},
-								Replica: ReplicaReplication{
-									WaitPoint:         func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
-									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-									ConnectionRetries: 3,
-								},
+								Enabled: true,
 							},
 							Replicas: 3,
 						},
@@ -229,9 +238,12 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								Replica: ReplicaReplication{
-									WaitPoint: func() *WaitPoint { w := WaitPoint("foo"); return &w }(),
+								ReplicationSpec: ReplicationSpec{
+									Replica: &ReplicaReplication{
+										WaitPoint: func() *WaitPoint { w := WaitPoint("foo"); return &w }(),
+									},
 								},
+								Enabled: true,
 							},
 							Replicas: 3,
 						},
@@ -244,9 +256,12 @@ var _ = Describe("MariaDB webhook", func() {
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
 							Replication: &Replication{
-								Replica: ReplicaReplication{
-									Gtid: func() *Gtid { g := Gtid("foo"); return &g }(),
+								ReplicationSpec: ReplicationSpec{
+									Replica: &ReplicaReplication{
+										Gtid: func() *Gtid { g := Gtid("foo"); return &g }(),
+									},
 								},
+								Enabled: true,
 							},
 							Replicas: 3,
 						},
@@ -290,6 +305,106 @@ var _ = Describe("MariaDB webhook", func() {
 					Expect(err).ToNot(HaveOccurred())
 				}
 			}
+		})
+
+		It("Should default replication", func() {
+			mariadb := MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb-repl-default-webhook",
+					Namespace: testNamespace,
+				},
+				Spec: MariaDBSpec{
+					ContainerTemplate: ContainerTemplate{
+						Image: Image{
+							Repository: "mariadb",
+							Tag:        "11.0.2",
+							PullPolicy: corev1.PullIfNotPresent,
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "secret",
+						},
+						Key: "root-password",
+					},
+					Port: 3306,
+					VolumeClaimTemplate: VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+					Replicas: 3,
+					Replication: &Replication{
+						Enabled: true,
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
+
+			By("Expect MariaDB replication spec to be defaulted")
+			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(DefaultReplicationSpec))
+		})
+
+		It("Should partially default replication", func() {
+			mariadb := MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb-repl-partial-default-webhook",
+					Namespace: testNamespace,
+				},
+				Spec: MariaDBSpec{
+					ContainerTemplate: ContainerTemplate{
+						Image: Image{
+							Repository: "mariadb",
+							Tag:        "11.0.2",
+							PullPolicy: corev1.PullIfNotPresent,
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "secret",
+						},
+						Key: "root-password",
+					},
+					Port: 3306,
+					VolumeClaimTemplate: VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+					Replicas: 3,
+					Replication: &Replication{
+						Enabled: true,
+						ReplicationSpec: ReplicationSpec{
+							Primary: &PrimaryReplication{
+								PodIndex: func() *int { pi := 0; return &pi }(),
+							},
+							Replica: &ReplicaReplication{
+								WaitPoint: func() *WaitPoint { w := WaitPointAfterSync; return &w }(),
+							},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
+
+			By("Expect MariaDB replication spec to be defaulted")
+			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(DefaultReplicationSpec))
 		})
 
 		It("Should default Galera", func() {
@@ -624,10 +739,13 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 					},
 					Replication: &Replication{
-						Primary: PrimaryReplication{
-							PodIndex:          0,
-							AutomaticFailover: false,
+						ReplicationSpec: ReplicationSpec{
+							Primary: &PrimaryReplication{
+								PodIndex:          func() *int { i := 0; return &i }(),
+								AutomaticFailover: func() *bool { f := false; return &f }(),
+							},
 						},
+						Enabled: true,
 					},
 					Replicas: 3,
 				},
@@ -671,10 +789,13 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 					},
 					Replication: &Replication{
-						Primary: PrimaryReplication{
-							PodIndex:          0,
-							AutomaticFailover: false,
+						ReplicationSpec: ReplicationSpec{
+							Primary: &PrimaryReplication{
+								PodIndex:          func() *int { i := 0; return &i }(),
+								AutomaticFailover: func() *bool { f := false; return &f }(),
+							},
 						},
+						Enabled: true,
 					},
 					Replicas: 3,
 				},
@@ -717,7 +838,8 @@ var _ = Describe("MariaDB webhook", func() {
 					by:  "Updating primary pod Index",
 					key: noSwitchoverKey,
 					patchFn: func(mdb *MariaDB) {
-						mdb.Spec.Replication.Primary.PodIndex = 1
+						i := 1
+						mdb.Spec.Replication.Primary.PodIndex = &i
 					},
 					wantErr: false,
 				},
@@ -725,7 +847,8 @@ var _ = Describe("MariaDB webhook", func() {
 					by:  "Updating automatic failover",
 					key: noSwitchoverKey,
 					patchFn: func(mdb *MariaDB) {
-						mdb.Spec.Replication.Primary.AutomaticFailover = true
+						f := true
+						mdb.Spec.Replication.Primary.AutomaticFailover = &f
 					},
 					wantErr: false,
 				},
@@ -733,7 +856,8 @@ var _ = Describe("MariaDB webhook", func() {
 					by:  "Updating primary pod Index when switching",
 					key: switchoverKey,
 					patchFn: func(mdb *MariaDB) {
-						mdb.Spec.Replication.Primary.PodIndex = 1
+						i := 1
+						mdb.Spec.Replication.Primary.PodIndex = &i
 					},
 					wantErr: true,
 				},
@@ -741,7 +865,8 @@ var _ = Describe("MariaDB webhook", func() {
 					by:  "Updating automatic failover when switching",
 					key: switchoverKey,
 					patchFn: func(mdb *MariaDB) {
-						mdb.Spec.Replication.Primary.AutomaticFailover = true
+						f := true
+						mdb.Spec.Replication.Primary.AutomaticFailover = &f
 					},
 					wantErr: true,
 				},

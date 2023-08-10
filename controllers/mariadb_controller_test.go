@@ -26,7 +26,8 @@ var _ = Describe("MariaDB", func() {
 		var err error
 
 		testCidrPrefix, err = docker.GetKindCidrPrefix()
-		Expect(testCidrPrefix, err).ShouldNot(Equal(""))
+		Expect(testCidrPrefix).NotTo(BeEmpty())
+		Expect(err).NotTo(HaveOccurred())
 
 		It("Should reconcile", func() {
 			By("Expecting to have spec provided by user and defaults")
@@ -420,30 +421,33 @@ var _ = Describe("MariaDB replication", func() {
 						return &cfg
 					}(),
 					Replication: &mariadbv1alpha1.Replication{
-						Primary: mariadbv1alpha1.PrimaryReplication{
-							PodIndex:          0,
-							AutomaticFailover: true,
-							Service: &mariadbv1alpha1.Service{
-								Type: corev1.ServiceTypeLoadBalancer,
-								Annotations: map[string]string{
-									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							Primary: &mariadbv1alpha1.PrimaryReplication{
+								PodIndex:          func() *int { i := 0; return &i }(),
+								AutomaticFailover: func() *bool { f := true; return &f }(),
+								Service: &mariadbv1alpha1.Service{
+									Type: corev1.ServiceTypeLoadBalancer,
+									Annotations: map[string]string{
+										"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
+									},
+								},
+								Connection: &mariadbv1alpha1.ConnectionTemplate{
+									SecretName: func() *string {
+										s := "primary-conn-mdb-repl"
+										return &s
+									}(),
+									SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+										Key: &testConnSecretKey,
+									},
 								},
 							},
-							Connection: &mariadbv1alpha1.ConnectionTemplate{
-								SecretName: func() *string {
-									s := "primary-conn-mdb-repl"
-									return &s
-								}(),
-								SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-									Key: &testConnSecretKey,
-								},
+							Replica: &mariadbv1alpha1.ReplicaReplication{
+								WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
+								Gtid:      func() *mariadbv1alpha1.Gtid { g := mariadbv1alpha1.GtidCurrentPos; return &g }(),
 							},
+							SyncBinlog: func() *bool { s := true; return &s }(),
 						},
-						Replica: mariadbv1alpha1.ReplicaReplication{
-							WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
-							Gtid:      func() *mariadbv1alpha1.Gtid { g := mariadbv1alpha1.GtidCurrentPos; return &g }(),
-						},
-						SyncBinlog: true,
+						Enabled: true,
 					},
 					Replicas: 3,
 					Service: &mariadbv1alpha1.Service{
@@ -493,7 +497,8 @@ var _ = Describe("MariaDB replication", func() {
 			Expect(k8sClient.Get(testCtx, ctrlresources.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
 
 			By("Updating MariaDB")
-			testRplMariaDb.Spec.Replication.Primary.PodIndex = 1
+			podIndex := 1
+			testRplMariaDb.Replication().Primary.PodIndex = &podIndex
 			Expect(k8sClient.Update(testCtx, &testRplMariaDb)).To(Succeed())
 
 			By("Expecting MariaDB to eventually change primary")

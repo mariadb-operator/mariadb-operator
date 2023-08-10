@@ -105,6 +105,7 @@ var rootCmd = &cobra.Command{
 		client := mgr.GetClient()
 		scheme := mgr.GetScheme()
 		galeraRecorder := mgr.GetEventRecorderFor("galera")
+		replRecorder := mgr.GetEventRecorderFor("replication")
 
 		env, err := environment.GetEnvironment(ctx)
 		if err != nil {
@@ -125,7 +126,15 @@ var rootCmd = &cobra.Command{
 		rbacReconciler := rbac.NewRBACReconiler(client, builder)
 
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
-		replicationReconciler := replication.NewReplicationReconciler(client, builder, replConfig, secretReconciler, serviceReconciler)
+		replicationReconciler := replication.NewReplicationReconciler(
+			client,
+			replRecorder,
+			builder,
+			replConfig,
+			replication.WithRefResolver(refResolver),
+			replication.WithSecretReconciler(secretReconciler),
+			replication.WithServiceReconciler(serviceReconciler),
+		)
 		galeraReconciler := galera.NewGaleraReconciler(
 			client,
 			galeraRecorder,
