@@ -89,16 +89,16 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
 	primaryPodIndex int) error {
 	kv := map[string]string{
-		"sync_binlog":                  binaryFromBool(mariadb.Spec.Replication.SyncBinlog),
+		"sync_binlog":                  binaryFromBool(mariadb.Replication().SyncBinlog),
 		"rpl_semi_sync_master_enabled": "ON",
 		"rpl_semi_sync_master_timeout": func() string {
-			return fmt.Sprint(mariadb.Spec.Replication.Replica.ConnectionTimeoutOrDefault().Milliseconds())
+			return fmt.Sprint(mariadb.Replication().Replica.ConnectionTimeout.Milliseconds())
 		}(),
 		"rpl_semi_sync_slave_enabled": "OFF",
 		"server_id":                   serverId(primaryPodIndex),
 	}
-	if mariadb.Spec.Replication.Replica.WaitPoint != nil {
-		waitPoint, err := mariadb.Spec.Replication.Replica.WaitPoint.MariaDBFormat()
+	if mariadb.Replication().Replica.WaitPoint != nil {
+		waitPoint, err := mariadb.Replication().Replica.WaitPoint.MariaDBFormat()
 		if err != nil {
 			return fmt.Errorf("error getting wait point: %v", err)
 		}
@@ -113,7 +113,7 @@ func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *m
 func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	client *mariadbclient.Client, ordinal int) error {
 	kv := map[string]string{
-		"sync_binlog":                  binaryFromBool(mariadb.Spec.Replication.SyncBinlog),
+		"sync_binlog":                  binaryFromBool(mariadb.Replication().SyncBinlog),
 		"rpl_semi_sync_master_enabled": "OFF",
 		"rpl_semi_sync_slave_enabled":  "ON",
 		"server_id":                    serverId(ordinal),
@@ -133,8 +133,8 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 	}
 
 	gtid := mariadbv1alpha1.GtidCurrentPos
-	if mariadb.Spec.Replication.Replica.Gtid != nil {
-		gtid = *mariadb.Spec.Replication.Replica.Gtid
+	if mariadb.Replication().Replica.Gtid != nil {
+		gtid = *mariadb.Replication().Replica.Gtid
 	}
 	gtidString, err := gtid.MariaDBFormat()
 	if err != nil {
@@ -151,7 +151,7 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 		User:     replUser,
 		Password: string(replSecret.Data[replPasswordRef.secretKey]),
 		Gtid:     gtidString,
-		Retries:  mariadb.Spec.Replication.Replica.ConnectionRetries,
+		Retries:  *mariadb.Replication().Replica.ConnectionRetries,
 	}
 	if err := client.ChangeMaster(ctx, changeMasterOpts); err != nil {
 		return fmt.Errorf("error changing master: %v", err)
@@ -210,7 +210,7 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 	opts *userSqlOpts) error {
 	replPasswordRef := newReplPasswordRef(mariadb)
 	var replPassword string
-	if mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef != nil {
+	if mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
 		password, err := r.refResolver.SecretKeyRef(ctx, *replPasswordRef.SecretKeyRef(), mariadb.Namespace)
 		if err != nil {
 			return fmt.Errorf("error getting replication password: %v", err)
@@ -265,12 +265,12 @@ func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) replPasswordRef {
 	}
 	secretKey := "password"
 
-	if mariadb.Spec.Replication != nil && mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef != nil {
+	if mariadb.Replication().Enabled && mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
 		key = types.NamespacedName{
-			Name:      mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef.Name,
+			Name:      mariadb.Replication().Replica.ReplPasswordSecretKeyRef.Name,
 			Namespace: mariadb.Namespace,
 		}
-		secretKey = mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef.Key
+		secretKey = mariadb.Replication().Replica.ReplPasswordSecretKeyRef.Key
 	}
 
 	return replPasswordRef{
@@ -292,8 +292,8 @@ func serverId(index int) string {
 	return fmt.Sprint(10 + index)
 }
 
-func binaryFromBool(b bool) string {
-	if b {
+func binaryFromBool(b *bool) string {
+	if b != nil && *b {
 		return "1"
 	}
 	return "0"

@@ -41,14 +41,16 @@ var _ webhook.Defaulter = &MariaDB{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *MariaDB) Default() {
-	logger.V(1).Info("Defaulting MariaDB", "mariadb", r.Name)
-	if r.Spec.Galera == nil {
+	if r.Spec.Replication != nil && r.Spec.Replication.Enabled {
+		logger.V(1).Info("Defaulting spec.replication", "mariadb", r.Name)
+		r.Spec.Replication.FillWithDefaults()
 		return
 	}
-	if !r.Spec.Galera.Enabled {
+	if r.Spec.Galera != nil && r.Spec.Galera.Enabled {
+		logger.V(1).Info("Defaulting spec.galera", "mariadb", r.Name)
+		r.Spec.Galera.FillWithDefaults()
 		return
 	}
-	r.Spec.Galera.FillWithDefaults()
 }
 
 //nolint
@@ -102,7 +104,7 @@ func (r *MariaDB) ValidateDelete() error {
 }
 
 func (r *MariaDB) validateHA() error {
-	if r.Spec.Replication != nil && r.Galera().Enabled {
+	if r.Replication().Enabled && r.Galera().Enabled {
 		return errors.New("You may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !r.IsHAEnabled() && r.Spec.Replicas > 1 {
@@ -144,20 +146,20 @@ func (r *MariaDB) validateGalera() error {
 }
 
 func (r *MariaDB) validateReplication() error {
-	if r.Spec.Replication == nil {
+	if !r.Replication().Enabled {
 		return nil
 	}
-	if r.Spec.Replication.Primary.PodIndex < 0 || r.Spec.Replication.Primary.PodIndex >= int(r.Spec.Replicas) {
+	if *r.Replication().Primary.PodIndex < 0 || *r.Replication().Primary.PodIndex >= int(r.Spec.Replicas) {
 		return field.Invalid(
 			field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
-			r.Spec.Replication.Primary.PodIndex,
+			r.Replication().Primary.PodIndex,
 			"'spec.replication.primary.podIndex' out of 'spec.replicas' bounds",
 		)
 	}
-	if err := r.Spec.Replication.Replica.Validate(); err != nil {
+	if err := r.Replication().Replica.Validate(); err != nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("replication").Child("replica"),
-			r.Spec.Replication,
+			r.Replication(),
 			err.Error(),
 		)
 	}
@@ -165,19 +167,19 @@ func (r *MariaDB) validateReplication() error {
 }
 
 func (r *MariaDB) validatePrimarySwitchover(oldMariadb *MariaDB) error {
-	if oldMariadb.Spec.Replication != nil && oldMariadb.IsSwitchingPrimary() {
-		if oldMariadb.Spec.Replication.Primary.PodIndex != r.Spec.Replication.Primary.PodIndex {
+	if oldMariadb.Replication().Enabled && oldMariadb.IsSwitchingPrimary() {
+		if oldMariadb.Replication().Primary.PodIndex != r.Replication().Primary.PodIndex {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
-				r.Spec.Replication.Primary.PodIndex,
+				r.Replication().Primary.PodIndex,
 				"'spec.replication.primary.podIndex' cannot be updated during a primary switchover",
 			)
 		}
-		if oldMariadb.Spec.Replication.Primary.AutomaticFailover != r.Spec.Replication.Primary.AutomaticFailover &&
-			r.Spec.Replication.Primary.AutomaticFailover {
+		if *oldMariadb.Replication().Primary.AutomaticFailover != *r.Replication().Primary.AutomaticFailover &&
+			*r.Replication().Primary.AutomaticFailover {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication").Child("primary").Child("automaticFailover"),
-				r.Spec.Replication.Primary.PodIndex,
+				r.Replication().Primary.PodIndex,
 				"'spec.replication.primary.automaticFailover' cannot be enabled during a primary switchover",
 			)
 		}

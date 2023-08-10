@@ -151,6 +151,14 @@ type MariaDB struct {
 	Status MariaDBStatus `json:"status,omitempty"`
 }
 
+func (m *MariaDB) Replication() Replication {
+	if m.Spec.Replication == nil {
+		m.Spec.Replication = &Replication{}
+	}
+	m.Spec.Replication.FillWithDefaults()
+	return *m.Spec.Replication
+}
+
 func (m *MariaDB) Galera() Galera {
 	if m.Spec.Galera == nil {
 		m.Spec.Galera = &Galera{}
@@ -160,7 +168,7 @@ func (m *MariaDB) Galera() Galera {
 }
 
 func (m *MariaDB) IsHAEnabled() bool {
-	return m.Spec.Replication != nil || m.Galera().Enabled
+	return m.Replication().Enabled || m.Galera().Enabled
 }
 
 func (m *MariaDB) IsReady() bool {

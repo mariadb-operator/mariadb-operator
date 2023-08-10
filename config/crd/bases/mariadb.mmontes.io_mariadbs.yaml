@@ -5653,13 +5653,24 @@ spec:
                 format: int32
                 type: integer
               replication:
+                description: Replication allows you to enable single-master HA via
+                  semi-synchronours replication in your MariaDB cluster.
                 properties:
+                  enabled:
+                    description: Enabled is a flag to enable Replication.
+                    type: boolean
                   primary:
+                    description: PrimaryReplication is the replication configuration
+                      for the primary node.
                     properties:
                       automaticFailover:
-                        default: true
+                        description: AutomaticFailover indicates whether the operator
+                          should automatically update PodIndex to perform an automatic
+                          primary failover.
                         type: boolean
                       connection:
+                        description: Connection is the primary Connection specification.
+                          This is the Connection to use in order to perform writes.
                         properties:
                           healthCheck:
                             properties:
@@ -5703,9 +5714,13 @@ spec:
                             type: string
                         type: object
                       podIndex:
-                        default: 0
+                        description: PodIndex is the StatefulSet index of the primary
+                          node. The user may change this field to perform a manual
+                          switchover.
                         type: integer
                       service:
+                        description: Service is the primary Service specification.
+                          This the Service to use in order to perform writes.
                         properties:
                           annotations:
                             additionalProperties:
@@ -5718,17 +5733,24 @@ spec:
                         type: object
                     type: object
                   replica:
+                    description: ReplicaReplication is the replication configuration
+                      for the replica nodes.
                     properties:
                       connectionRetries:
-                        default: 10
+                        description: ConnectionRetries to be used when the replica
+                          connects to the primary.
                         type: integer
                       connectionTimeout:
+                        description: ConnectionTimeout to be used when the replica
+                          connects to the primary.
                         type: string
                       gtid:
-                        default: CurrentPos
+                        description: 'Gtid indicates which Global Transaction ID should
+                          be used when connecting a replica to the master. See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.'
                         type: string
                       replPasswordSecretKeyRef:
-                        description: SecretKeySelector selects a key of a Secret.
+                        description: ReplPasswordSecretKeyRef provides a reference
+                          to the Secret to use as password for the replication user.
                         properties:
                           key:
                             description: The key of the secret to select from.  Must
@@ -5747,16 +5769,22 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       syncTimeout:
+                        description: SyncTimeout defines the timeout for a replica
+                          to be synced with the primary when performing a primary
+                          switchover. If the timeout is reached, the replica GTID
+                          will be reset and the switchover will continue.
                         type: string
                       waitPoint:
-                        default: AfterCommit
+                        description: 'WaitPoint defines whether the transaction should
+                          wait for ACK before committing to the storage engine. More
+                          info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.'
                         type: string
                     type: object
                   syncBinlog:
-                    default: true
+                    description: 'SyncBinlog indicates whether the binary log should
+                      be synchronized to the disk after every event. It trades off
+                      performance for consistency. See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog.'
                     type: boolean
-                required:
-                - primary
                 type: object
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
