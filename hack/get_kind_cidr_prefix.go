@@ -2,16 +2,16 @@ package main
 
 import (
 	"fmt"
+	"os"
 
-	docker "github.com/mariadb-operator/mariadb-operator/pkg/docker"
+	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 )
 
 func main() {
 	prefix, err := docker.GetKindCidrPrefix()
-
-	if err == nil {
-		fmt.Print(prefix)
-	} else {
+	if err != nil {
 		fmt.Println(err)
+		os.Exit(1)
 	}
+	fmt.Print(prefix)
 }

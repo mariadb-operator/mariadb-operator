@@ -1,7 +1,6 @@
 ## Contributing to mariadb-operator 🦭 
 
-All contributions are welcome. Ideas, code, documentation, production experiences, bugfixes... we only need to define some key
-ideas in order to make this more efficient.
+All contributions are welcome. Ideas, code, documentation, production experiences, bugfixes... we only need to define some key ideas in order to make this more efficient.
 
 ### Key ideas
 
@@ -9,21 +8,21 @@ ideas in order to make this more efficient.
 * Embrace the [GitOps](https://opengitops.dev/) principles
 * Simplicity first
 
+### Development guide
+
+We have a [development guide](./docs/DEVELOPMENT.md) at your disposal so you can quickly setup an environment to develop locally.
+
 ### Issues
 
-Creating a new issue it's generally a good way to share your ideas and get feedback. We do not have templates for issues. We consider
-creating good issues and documentation its part of the creative process, and we don't want to interfere on it. However, it's encouraged to
-provide as much context as possible. Feel free to talk about a specific use case, show the maintainers what we are trying to solve.
+Creating a new issue it's generally a good way to share your ideas and get feedback. We consider creating good issues and documentation its part of the creative process, and we don't want to interfere on it. However, it's encouraged to provide as much context as possible. Feel free to talk about a specific use case, show the maintainers what we are trying to solve.
 
 Explore the available labels in order to proper categorize it and get the fastest feedback.
 
-If the contribution it's a bugfix, a little feature or documentation improvement that could be implemented in, lets say, a couple of days at
-maximum, one could go directly for a PR. It's fine.
+If the contribution it's a bugfix, a little feature or documentation improvement that could be implemented in, lets say, a couple of days at maximum, one could go directly for a PR. It's fine.
 
 ### Pull requests
 
-In general, contributions should be done by the typical fork workflow. In this workflow, developers fork this repository and then just
-submit pull requests to this one.
+In general, contributions should be done by the typical fork workflow. In this workflow, developers fork this repository and then just submit pull requests to this one.
 
 ### Conduct
 
@@ -34,4 +33,4 @@ T. Truthful?
 H. Helpful?
 I. Inspiring/Interesting?
 N. Necessary?
-K. Kind?
+K. Kube-friendly?
