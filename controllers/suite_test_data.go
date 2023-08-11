@@ -22,6 +22,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -56,6 +57,9 @@ var testPwdKey types.NamespacedName
 var testPwd v1.Secret
 
 func createTestData(ctx context.Context, k8sClient client.Client) {
+	var testCidrPrefix, err = docker.GetKindCidrPrefix()
+	Expect(testCidrPrefix, err).ShouldNot(Equal(""))
+
 	testPwdKey = types.NamespacedName{
 		Name:      testPwdSecretName,
 		Namespace: testNamespace,
@@ -174,7 +178,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 			Service: &mariadbv1alpha1.Service{
 				Type: corev1.ServiceTypeLoadBalancer,
 				Annotations: map[string]string{
-					"metallb.universe.tf/loadBalancerIPs": "172.18.0.100",
+					"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.100",
 				},
 			},
 		},

@@ -4,7 +4,7 @@ metadata:
   name: mariadb-galera-0-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: 172.18.0.140
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.140
 spec:
   ports:
   - name: mariadb
@@ -28,7 +28,7 @@ metadata:
   name: mariadb-galera-1-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: 172.18.0.141
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.141
 spec:
   ports:
   - name: mariadb
@@ -52,7 +52,7 @@ metadata:
   name: mariadb-galera-2-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: 172.18.0.142
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.142
 spec:
   ports:
   - name: mariadb
@@ -76,7 +76,7 @@ metadata:
   name: mariadb-galera-3-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: 172.18.0.143
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.143
 spec:
   ports:
   - name: mariadb
