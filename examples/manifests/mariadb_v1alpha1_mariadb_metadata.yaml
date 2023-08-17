@@ -26,6 +26,6 @@ spec:
       database.myorg.io: mariadb
     resources:
       requests:
-        storage: 100Mi
+        storage: 1Gi
     accessModes:
       - ReadWriteOnce
