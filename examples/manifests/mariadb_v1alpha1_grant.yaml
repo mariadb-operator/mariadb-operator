@@ -13,3 +13,4 @@ spec:
   table: "*"
   username: user
   grantOption: true
+  host: "%"
