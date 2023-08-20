@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -127,6 +128,10 @@ func buildStsArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
 }
 
 func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
+	clusterName := os.Getenv("CLUSTER_NAME")
+	if clusterName == "" {
+		clusterName = "cluster.local"
+	}
 	env := []corev1.EnvVar{
 		{
 			Name:  "MYSQL_TCP_PORT",
@@ -145,6 +150,10 @@ func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		{
 			Name:  "MYSQL_INITDB_SKIP_TZINFO",
 			Value: "1",
+		},
+		{
+			Name:  "CLUSTER_NAME",
+			Value: clusterName,
 		},
 		{
 			Name: "POD_NAME",
