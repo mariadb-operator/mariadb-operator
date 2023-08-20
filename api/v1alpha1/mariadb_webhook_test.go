@@ -443,6 +443,66 @@ var _ = Describe("MariaDB webhook", func() {
 					Replicas: 3,
 					Galera: &Galera{
 						Enabled: true,
+						GaleraSpec: GaleraSpec{
+							Agent: &GaleraAgent{
+								ContainerTemplate: ContainerTemplate{
+									Image: Image{
+										Repository: "ghcr.io/mariadb-operator/agent",
+										Tag:        "v0.0.2",
+										PullPolicy: corev1.PullIfNotPresent,
+									},
+								},
+							},
+							Recovery: &GaleraRecovery{
+								Enabled: true,
+							},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
+
+			By("Expect MariaDB Galera spec to be defaulted")
+			Expect(mariadb.Spec.Galera.GaleraSpec).To(Equal(DefaultGaleraSpec))
+		})
+
+		It("Should partially default Galera", func() {
+			mariadb := MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb-galera-partial-default-webhook",
+					Namespace: testNamespace,
+				},
+				Spec: MariaDBSpec{
+					ContainerTemplate: ContainerTemplate{
+						Image: Image{
+							Repository: "mariadb",
+							Tag:        "11.0.2",
+							PullPolicy: corev1.PullIfNotPresent,
+						},
+					},
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "secret",
+						},
+						Key: "root-password",
+					},
+					Port: 3306,
+					VolumeClaimTemplate: VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+					Replicas: 3,
+					Galera: &Galera{
+						Enabled: true,
 					},
 				},
 			}
