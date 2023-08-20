@@ -164,7 +164,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 			},
 			MyCnf: func() *string {
 				cfg := `[mariadb]
-				bind-address=0.0.0.0
+				bind-address=*
 				default_storage_engine=InnoDB
 				binlog_format=row
 				innodb_autoinc_lock_mode=2
