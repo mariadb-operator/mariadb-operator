@@ -42,13 +42,13 @@ func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) co
 	container.Ports = []corev1.ContainerPort{
 		{
 			Name:          galeraresources.AgentPortName,
-			ContainerPort: mariadb.Galera().Agent.Port,
+			ContainerPort: *mariadb.Galera().Agent.Port,
 		},
 	}
 	container.Args = func() []string {
 		args := container.Args
 		args = append(args, []string{
-			fmt.Sprintf("--addr=:%d", mariadb.Galera().Agent.Port),
+			fmt.Sprintf("--addr=:%d", *mariadb.Galera().Agent.Port),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", StorageMountPath),
 			fmt.Sprintf("--graceful-shutdown-timeout=%s", mariadb.Galera().Agent.GracefulShutdownTimeout.Duration),
@@ -339,7 +339,7 @@ var (
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path: "/health",
-					Port: intstr.FromInt(int(galera.Agent.Port)),
+					Port: intstr.FromInt(int(*galera.Agent.Port)),
 				},
 			},
 		}

@@ -64,6 +64,6 @@ func baseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) string {
 			index,
 			ctrlresources.InternalServiceKey(mariadb).Name,
 		),
-		mariadb.Galera().Agent.Port,
+		*mariadb.Galera().Agent.Port,
 	)
 }

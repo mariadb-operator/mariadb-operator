@@ -2824,7 +2824,6 @@ spec:
                               account token.
                             type: string
                           enabled:
-                            default: true
                             description: Enabled is a flag to enable KubernetesAuth
                             type: boolean
                         type: object
@@ -2981,7 +2980,6 @@ spec:
                             type: integer
                         type: object
                       port:
-                        default: 5555
                         description: Port to be used by the agent container
                         format: int32
                         type: integer

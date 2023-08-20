@@ -533,6 +533,11 @@ func (in *Galera) DeepCopy() *Galera {
 func (in *GaleraAgent) DeepCopyInto(out *GaleraAgent) {
 	*out = *in
 	in.ContainerTemplate.DeepCopyInto(&out.ContainerTemplate)
+	if in.Port != nil {
+		in, out := &in.Port, &out.Port
+		*out = new(int32)
+		**out = **in
+	}
 	if in.KubernetesAuth != nil {
 		in, out := &in.KubernetesAuth, &out.KubernetesAuth
 		*out = new(KubernetesAuth)

@@ -27,71 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// KubernetesAuth refers to the Kubernetes authentication mechanism utilized for establishing a connection from the operator to the agent.
-// The agent validates the legitimacy of the service account token provided as an Authorization header by creating a TokenReview resource.
-type KubernetesAuth struct {
-	// Enabled is a flag to enable KubernetesAuth
-	// +kubebuilder:default=true
-	// +optional
-	Enabled bool `json:"enabled"`
-	// AuthDelegatorRoleName is the name of the ClusterRoleBinding that is associated with the "system:auth-delegator" ClusterRole.
-	// It is necessary for creating TokenReview objects in order for the agent to validate the service account token.
-	// +optional
-	AuthDelegatorRoleName string `json:"authDelegatorRoleName,omitempty"`
-}
-
-// AuthDelegatorRoleNameOrDefault defines the ClusterRoleBinding name bound to system:auth-delegator.
-// It falls back to the MariaDB name if AuthDelegatorRoleName is not set.
-func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string {
-	if k.AuthDelegatorRoleName != "" {
-		return k.AuthDelegatorRoleName
-	}
-	return mariadb.Name
-}
-
-// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
-// More info: https://github.com/mariadb-operator/agent.
-type GaleraAgent struct {
-	// ContainerTemplate to be used in the agent container.
-	// +optional
-	ContainerTemplate `json:",inline"`
-	// Port to be used by the agent container
-	// +kubebuilder:default=5555
-	// +optional
-	Port int32 `json:"port,omitempty"`
-	// KubernetesAuth to be used by the agent container
-	// +optional
-	KubernetesAuth *KubernetesAuth `json:"kubernetesAuth,omitempty"`
-	// GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests.
-	// +optional
-	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
-}
-
-// GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
-// More info: https://galeracluster.com/library/documentation/crash-recovery.html.
-type GaleraRecovery struct {
-	// Enabled is a flag to enable GaleraRecovery.
-	// +optional
-	Enabled bool `json:"enabled"`
-	// ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,
-	// is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.
-	// +optional
-	ClusterHealthyTimeout *metav1.Duration `json:"clusterHealthyTimeout,omitempty"`
-	// ClusterBootstrapTimeout is the time limit for bootstrapping a cluster.
-	// Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted.
-	// +optional
-	ClusterBootstrapTimeout *metav1.Duration `json:"clusterBootstrapTimeout,omitempty"`
-	// PodRecoveryTimeout is the time limit for executing the recovery sequence within a Pod.
-	// This process includes enabling the recovery mode in the Galera configuration file, restarting the Pod
-	// and retrieving the sequence from a log file.
-	// +optional
-	PodRecoveryTimeout *metav1.Duration `json:"podRecoveryTimeout,omitempty"`
-	// PodSyncTimeout is the time limit we give to a Pod to reach the Sync state.
-	// Once this timeout is reached, the Pod is restarted.
-	// +optional
-	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
-}
-
 // SST is the Snapshot State Transfer used when new Pods join the cluster.
 // More info: https://galeracluster.com/library/documentation/sst.html.
 type SST string
@@ -126,6 +61,105 @@ func (s SST) MariaDBFormat() (string, error) {
 		return "mysqldump", nil
 	default:
 		return "", fmt.Errorf("invalid SST: %v", s)
+	}
+}
+
+// KubernetesAuth refers to the Kubernetes authentication mechanism utilized for establishing a connection from the operator to the agent.
+// The agent validates the legitimacy of the service account token provided as an Authorization header by creating a TokenReview resource.
+type KubernetesAuth struct {
+	// Enabled is a flag to enable KubernetesAuth
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+	// AuthDelegatorRoleName is the name of the ClusterRoleBinding that is associated with the "system:auth-delegator" ClusterRole.
+	// It is necessary for creating TokenReview objects in order for the agent to validate the service account token.
+	// +optional
+	AuthDelegatorRoleName string `json:"authDelegatorRoleName,omitempty"`
+}
+
+// AuthDelegatorRoleNameOrDefault defines the ClusterRoleBinding name bound to system:auth-delegator.
+// It falls back to the MariaDB name if AuthDelegatorRoleName is not set.
+func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string {
+	if k.AuthDelegatorRoleName != "" {
+		return k.AuthDelegatorRoleName
+	}
+	return mariadb.Name
+}
+
+// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
+// More info: https://github.com/mariadb-operator/agent.
+type GaleraAgent struct {
+	// ContainerTemplate to be used in the agent container.
+	// +optional
+	ContainerTemplate `json:",inline"`
+	// Port to be used by the agent container
+	// +optional
+	Port *int32 `json:"port,omitempty"`
+	// KubernetesAuth to be used by the agent container
+	// +optional
+	KubernetesAuth *KubernetesAuth `json:"kubernetesAuth,omitempty"`
+	// GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests.
+	// +optional
+	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
+}
+
+// FillWithDefaults fills the current GaleraAgent object with DefaultReplicationSpec.
+// This enables having minimal GaleraAgent objects and provides sensible defaults.
+func (r *GaleraAgent) FillWithDefaults() {
+	if r.Port == nil {
+		port := DefaultGaleraSpec.Agent.Port
+		r.Port = port
+	}
+	if r.KubernetesAuth == nil {
+		auth := DefaultGaleraSpec.Agent.KubernetesAuth
+		r.KubernetesAuth = auth
+	}
+	if r.GracefulShutdownTimeout == nil {
+		timeout := DefaultGaleraSpec.Agent.GracefulShutdownTimeout
+		r.GracefulShutdownTimeout = timeout
+	}
+}
+
+// GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
+// More info: https://galeracluster.com/library/documentation/crash-recovery.html.
+type GaleraRecovery struct {
+	// Enabled is a flag to enable GaleraRecovery.
+	// +optional
+	Enabled bool `json:"enabled"`
+	// ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,
+	// is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.
+	// +optional
+	ClusterHealthyTimeout *metav1.Duration `json:"clusterHealthyTimeout,omitempty"`
+	// ClusterBootstrapTimeout is the time limit for bootstrapping a cluster.
+	// Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted.
+	// +optional
+	ClusterBootstrapTimeout *metav1.Duration `json:"clusterBootstrapTimeout,omitempty"`
+	// PodRecoveryTimeout is the time limit for executing the recovery sequence within a Pod.
+	// This process includes enabling the recovery mode in the Galera configuration file, restarting the Pod
+	// and retrieving the sequence from a log file.
+	// +optional
+	PodRecoveryTimeout *metav1.Duration `json:"podRecoveryTimeout,omitempty"`
+	// PodSyncTimeout is the time limit we give to a Pod to reach the Sync state.
+	// Once this timeout is reached, the Pod is restarted.
+	// +optional
+	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
+}
+
+func (g *GaleraRecovery) FillWithDefaults() {
+	if g.ClusterHealthyTimeout == nil {
+		timeout := DefaultGaleraSpec.Recovery.ClusterHealthyTimeout
+		g.ClusterHealthyTimeout = timeout
+	}
+	if g.ClusterBootstrapTimeout == nil {
+		timeout := DefaultGaleraSpec.Recovery.ClusterBootstrapTimeout
+		g.ClusterBootstrapTimeout = timeout
+	}
+	if g.PodRecoveryTimeout == nil {
+		timeout := DefaultGaleraSpec.Recovery.PodRecoveryTimeout
+		g.PodRecoveryTimeout = timeout
+	}
+	if g.PodSyncTimeout == nil {
+		timeout := DefaultGaleraSpec.Recovery.PodSyncTimeout
+		g.PodSyncTimeout = timeout
 	}
 }
 
@@ -181,10 +215,14 @@ func (g *GaleraSpec) FillWithDefaults() {
 	if g.Agent == nil {
 		agent := *DefaultGaleraSpec.Agent
 		g.Agent = &agent
+	} else {
+		g.Agent.FillWithDefaults()
 	}
 	if g.Recovery == nil {
 		recovery := *DefaultGaleraSpec.Recovery
 		g.Recovery = &recovery
+	} else {
+		g.Recovery.FillWithDefaults()
 	}
 	if g.InitContainer == nil {
 		initContainer := *DefaultGaleraSpec.InitContainer
@@ -215,7 +253,7 @@ var (
 					PullPolicy: corev1.PullIfNotPresent,
 				},
 			},
-			Port: 5555,
+			Port: func() *int32 { p := int32(5555); return &p }(),
 			KubernetesAuth: &KubernetesAuth{
 				Enabled: true,
 			},

@@ -484,7 +484,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			},
 			{
 				Name: galeraresources.AgentPortName,
-				Port: mariadb.Galera().Agent.Port,
+				Port: *mariadb.Galera().Agent.Port,
 			},
 		}...)
 	}
