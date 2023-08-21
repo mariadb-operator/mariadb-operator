@@ -153,7 +153,7 @@ kubectl get mariadb mariadb-galera -o jsonpath="{.status.conditions[?(@.type=='G
 
 kubectl get statefulsets -o wide
 NAME             READY   AGE   CONTAINERS      IMAGES
-mariadb-galera   3/3     58m   mariadb,agent   mariadb:11.0.2,ghcr.io/mariadb-operator/agent:v0.0.2
+mariadb-galera   3/3     58m   mariadb,agent   mariadb:11.0.3,ghcr.io/mariadb-operator/agent:v0.0.2
 
 kubectl get pods -o wide
 NAME                                        READY   STATUS    RESTARTS   AGE   IP           NODE          NOMINATED NODE   READINESS GATES
