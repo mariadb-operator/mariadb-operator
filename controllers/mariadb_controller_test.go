@@ -31,7 +31,7 @@ var _ = Describe("MariaDB", func() {
 
 		It("Should reconcile", func() {
 			By("Expecting to have spec provided by user and defaults")
-			Expect(testMariaDb.Spec.Image.String()).To(Equal("mariadb:11.0.2"))
+			Expect(testMariaDb.Spec.Image.String()).To(Equal("mariadb:11.0.3"))
 			Expect(testMariaDb.Spec.Port).To(BeEquivalentTo(3306))
 
 			By("Expecting to create a ConfigMap eventually")
@@ -137,7 +137,7 @@ var _ = Describe("MariaDB", func() {
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 						},
 					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
@@ -199,7 +199,7 @@ var _ = Describe("MariaDB", func() {
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 						},
 					},
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
@@ -247,7 +247,7 @@ var _ = Describe("MariaDB", func() {
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 						},
 					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
@@ -306,7 +306,7 @@ var _ = Describe("MariaDB", func() {
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -373,7 +373,7 @@ var _ = Describe("MariaDB replication", func() {
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -585,7 +585,7 @@ var _ = Describe("MariaDB Galera", func() {
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{

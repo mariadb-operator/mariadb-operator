@@ -317,7 +317,7 @@ var _ = Describe("MariaDB webhook", func() {
 					ContainerTemplate: ContainerTemplate{
 						Image: Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 							PullPolicy: corev1.PullIfNotPresent,
 						},
 					},
@@ -363,7 +363,7 @@ var _ = Describe("MariaDB webhook", func() {
 					ContainerTemplate: ContainerTemplate{
 						Image: Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 							PullPolicy: corev1.PullIfNotPresent,
 						},
 					},
@@ -417,7 +417,7 @@ var _ = Describe("MariaDB webhook", func() {
 					ContainerTemplate: ContainerTemplate{
 						Image: Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 							PullPolicy: corev1.PullIfNotPresent,
 						},
 					},
@@ -467,7 +467,7 @@ var _ = Describe("MariaDB webhook", func() {
 					ContainerTemplate: ContainerTemplate{
 						Image: Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 						},
 						Resources: &corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
@@ -708,7 +708,7 @@ var _ = Describe("MariaDB webhook", func() {
 					ContainerTemplate: ContainerTemplate{
 						Image: Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -759,7 +759,7 @@ var _ = Describe("MariaDB webhook", func() {
 					ContainerTemplate: ContainerTemplate{
 						Image: Image{
 							Repository: "mariadb",
-							Tag:        "11.0.2",
+							Tag:        "11.0.3",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
