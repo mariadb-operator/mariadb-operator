@@ -30,6 +30,7 @@ spec:
   galera:
     enabled: true
     sst: mariabackup
+    ipv6Cluster: false
     replicaThreads: 1
     agent:
       image:

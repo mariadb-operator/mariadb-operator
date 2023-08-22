@@ -145,6 +145,9 @@ type GaleraSpec struct {
 	// More info: https://galeracluster.com/library/documentation/sst.html.
 	// +optional
 	SST *SST `json:"sst,omitempty"`
+	// ipv6Cluster: Need to be enabled if your Kubernetes cluster use IPv6 as primary network stack.
+	// +optional
+	Ipv6Cluster *bool `json:"ipv6Cluster,omitempty"`
 	// ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.
 	// More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
 	// +optional
@@ -174,6 +177,11 @@ func (g *GaleraSpec) FillWithDefaults() {
 		sst := *DefaultGaleraSpec.SST
 		g.SST = &sst
 	}
+	if g.Ipv6Cluster == nil {
+		ipv6Cluster := *DefaultGaleraSpec.Ipv6Cluster
+		g.Ipv6Cluster = &ipv6Cluster
+	}
+
 	if g.ReplicaThreads == nil {
 		replicaThreads := *DefaultGaleraSpec.ReplicaThreads
 		g.ReplicaThreads = &replicaThreads
@@ -201,11 +209,13 @@ var (
 	fiveMinutes    = metav1.Duration{Duration: 5 * time.Minute}
 	tenMinutes     = metav1.Duration{Duration: 10 * time.Minute}
 	sst            = SSTMariaBackup
+	ipv6Cluster    = false
 	replicaThreads = 1
 
 	// DefaultGaleraSpec provides sensible defaults for the GaleraSpec.
 	DefaultGaleraSpec = GaleraSpec{
 		SST:            &sst,
+		Ipv6Cluster:    &ipv6Cluster,
 		ReplicaThreads: &replicaThreads,
 		Agent: &GaleraAgent{
 			ContainerTemplate: ContainerTemplate{

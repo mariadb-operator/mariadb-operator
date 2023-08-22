@@ -37,6 +37,7 @@ var _ = Describe("MariaDB webhook", func() {
 				Namespace: testNamespace,
 			}
 			sst := SSTMariaBackup
+			ipv6Cluster := false
 			replicaThreads := 1
 			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
 			// https://github.com/mariadb-operator/mariadb-operator/issues/3
@@ -90,6 +91,7 @@ var _ = Describe("MariaDB webhook", func() {
 								Enabled: true,
 								GaleraSpec: GaleraSpec{
 									SST:            &sst,
+									Ipv6Cluster:    &ipv6Cluster,
 									ReplicaThreads: &replicaThreads,
 								},
 							},
@@ -135,6 +137,7 @@ var _ = Describe("MariaDB webhook", func() {
 								Enabled: true,
 								GaleraSpec: GaleraSpec{
 									SST:            &sst,
+									Ipv6Cluster:    &ipv6Cluster,
 									ReplicaThreads: &replicaThreads,
 								},
 							},
@@ -181,6 +184,7 @@ var _ = Describe("MariaDB webhook", func() {
 										s := SST("foo")
 										return &s
 									}(),
+									Ipv6Cluster:    &ipv6Cluster,
 									ReplicaThreads: &replicaThreads,
 								},
 							},

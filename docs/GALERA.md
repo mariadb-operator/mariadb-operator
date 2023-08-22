@@ -41,6 +41,7 @@ spec:
   galera:
     enabled: true
     sst: mariabackup
+    ipv6Cluster: false
     replicaThreads: 1
     agent:
       image:
@@ -95,6 +96,9 @@ FIELDS:
    sst  <string>
      SST is the Snapshot State Transfer used when new Pods join the cluster.
      More info: https://galeracluster.com/library/documentation/sst.html.
+
+   ipv6Cluster  <boolean>
+     Need to be enabled if your Kubernetes cluster use IPv6 as primary network stack.
 
    volumeClaimTemplate  <Object>
      VolumeClaimTemplate is a template for the PVC that will contain the Galera

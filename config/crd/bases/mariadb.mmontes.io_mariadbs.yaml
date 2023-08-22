@@ -4164,6 +4164,9 @@ spec:
                     description: 'SST is the Snapshot State Transfer used when new
                       Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html.'
                     type: string
+                  ipv6Cluster:
+                    description: 'Need to be enabled if your Kubernetes cluster use IPv6 as primary network stack.'
+                    type: boolean
                   volumeClaimTemplate:
                     description: VolumeClaimTemplate is a template for the PVC that
                       will contain the Galera configuration files shared between the
