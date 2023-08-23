@@ -210,7 +210,7 @@ var _ = Describe("MariaDB webhook", func() {
 					wantErr: true,
 				},
 				{
-					by: "invalid primary pod index",
+					by: "invalid replication primary pod index",
 					mdb: MariaDB{
 						ObjectMeta: meta,
 						Spec: MariaDBSpec{
@@ -223,6 +223,24 @@ var _ = Describe("MariaDB webhook", func() {
 										WaitPoint:         func() *WaitPoint { w := WaitPointAfterCommit; return &w }(),
 										ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
 										ConnectionRetries: func() *int { r := 3; return &r }(),
+									},
+								},
+								Enabled: true,
+							},
+							Replicas: 3,
+						},
+					},
+					wantErr: true,
+				},
+				{
+					by: "invalid Galera primary pod index",
+					mdb: MariaDB{
+						ObjectMeta: meta,
+						Spec: MariaDBSpec{
+							Galera: &Galera{
+								GaleraSpec: GaleraSpec{
+									Primary: &PrimaryGalera{
+										PodIndex: func() *int { i := 4; return &i }(),
 									},
 								},
 								Enabled: true,

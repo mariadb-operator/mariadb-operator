@@ -1,4 +1,4 @@
-# ✨ High availability via Galera
+# High availability via Galera
 
 The `mariadb-operator` provides cloud native support for provisioning and operating multi-master MariaDB clusters using Galera. This setup enables the ability to perform both read and write operations on all nodes, enhancing availability and allowing scalability across multiple nodes.
 
@@ -40,6 +40,9 @@ spec:
 ...
   galera:
     enabled: true
+    primary:
+      podIndex: 0
+      automaticFailover: true
     sst: mariabackup
     replicaThreads: 1
     agent:
@@ -127,7 +130,7 @@ FIELDS:
 
 ## Quickstart
 
-Let's see how `mariadb-operator`🦭 and Galera✨ play together! First of all, install the following configuration manifests that will be referenced by the CRDs further:
+Let's see how `mariadb-operator`🦭 and Galera play together! First of all, install the following configuration manifests that will be referenced by the CRDs further:
 ```bash
 kubectl apply -f examples/manifests/config
 ```
@@ -171,8 +174,8 @@ pod "mariadb-galera-2" deleted
 After some time, we will see the `MariaDB` entering a non `Ready` state:
 ```bash
 kubectl get mariadb mariadb-galera
-NAME             READY   STATUS             PRIMARY POD   AGE
-mariadb-galera   False   Galera not ready   All           67m
+NAME             READY   STATUS             PRIMARY POD             AGE
+mariadb-galera   False   Galera not ready   mariadb-galera-0        67m
 
 kubectl get events --field-selector involvedObject.name=mariadb-galera --sort-by='.lastTimestamp'
 LAST SEEN   TYPE      REASON                    OBJECT                       MESSAGE

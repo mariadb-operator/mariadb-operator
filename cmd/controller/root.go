@@ -30,6 +30,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/controllers"
+	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
@@ -145,6 +146,32 @@ var rootCmd = &cobra.Command{
 			galera.WithServiceReconciler(serviceReconciler),
 		)
 
+		podReplicationController := controllers.NewPodController(
+			client,
+			refResolver,
+			controllers.NewPodReplicationController(
+				client,
+				replRecorder,
+				builder,
+				refResolver,
+				secretReconciler,
+				replConfig,
+			),
+			[]string{
+				annotation.MariadbAnnotation,
+				annotation.ReplicationAnnotation,
+			},
+		)
+		podGaleraController := controllers.NewPodController(
+			client,
+			refResolver,
+			controllers.NewPodGaleraController(client, galeraRecorder),
+			[]string{
+				annotation.MariadbAnnotation,
+				annotation.GaleraAnnotation,
+			},
+		)
+
 		if err = (&controllers.MariaDBReconciler{
 			Client: client,
 			Scheme: scheme,
@@ -238,15 +265,12 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "SqlJob")
 			os.Exit(1)
 		}
-		if err = (&controllers.PodReplicationController{
-			Client:           client,
-			Scheme:           scheme,
-			ReplConfig:       replConfig,
-			SecretReconciler: secretReconciler,
-			Builder:          builder,
-			RefResolver:      refResolver,
-		}).SetupWithManager(mgr); err != nil {
+		if err = podReplicationController.SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
+			os.Exit(1)
+		}
+		if err := podGaleraController.SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "PodGalera")
 			os.Exit(1)
 		}
 		if err = (&controllers.StatefulSetGaleraReconciler{

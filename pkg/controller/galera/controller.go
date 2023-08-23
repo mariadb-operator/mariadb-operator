@@ -96,10 +96,27 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		logger.Info("Galera cluster is healthy")
 		r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy, "Galera cluster is healthy")
 
-		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetGaleraReady(&mariadb.Status)
 			conditions.SetGaleraConfigured(&mariadb.Status)
-		})
+		}); err != nil {
+			return fmt.Errorf("error patching Galera status: %v", err)
+		}
+	}
+
+	if mariadb.Status.CurrentPrimaryPodIndex != nil && *mariadb.Status.CurrentPrimaryPodIndex != *mariadb.Galera().Primary.PodIndex {
+		fromIndex := *mariadb.Status.CurrentPrimaryPodIndex
+		toIndex := *mariadb.Galera().Primary.PodIndex
+
+		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			status.UpdateCurrentPrimary(mariadb, toIndex)
+		}); err != nil {
+			return fmt.Errorf("error patching current primary status: %v", err)
+		}
+
+		logger.Info("Primary switched", "from-index", fromIndex, "to-index", toIndex)
+		r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
+			"Primary switched from index '%d' to index '%d'", fromIndex, toIndex)
 	}
 	return nil
 }

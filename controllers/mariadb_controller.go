@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
@@ -35,7 +36,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -107,6 +107,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	phases := []reconcilePhase{
+		{
+			Name:      "Status",
+			Reconcile: r.defaultStatus,
+		},
 		{
 			Name:      "ConfigMap",
 			Reconcile: r.reconcileConfigMap,
@@ -252,7 +256,7 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.IsHAEnabled() && mariadb.Spec.PodDisruptionBudget == nil {
-		return r.reconcileHAPDB(ctx, mariadb)
+		return r.reconcileHighAvailabilityPDB(ctx, mariadb)
 	}
 	return r.reconcileDefaultPDB(ctx, mariadb)
 }
@@ -262,17 +266,15 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 		if err := r.reconcileInternalService(ctx, mariadb); err != nil {
 			return err
 		}
-		if mariadb.Replication().Enabled {
-			if err := r.reconcilePrimaryService(ctx, mariadb); err != nil {
-				return nil
-			}
+		if err := r.reconcilePrimaryService(ctx, mariadb); err != nil {
+			return err
 		}
 	}
 	return r.reconcileDefaultService(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Replication().Enabled {
+	if mariadb.IsHAEnabled() {
 		if err := r.reconcilePrimaryConnection(ctx, mariadb); err != nil {
 			return err
 		}
@@ -378,7 +380,7 @@ func (r *MariaDBReconciler) reconcileDefaultPDB(ctx context.Context, mariadb *ma
 	return r.Create(ctx, pdb)
 }
 
-func (r *MariaDBReconciler) reconcileHAPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) reconcileHighAvailabilityPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
 	var existingPDB policyv1.PodDisruptionBudget
 	if err := r.Get(ctx, key, &existingPDB); err == nil {
@@ -432,11 +434,14 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 }
 
 func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
 	key := ctrlresources.PrimaryServiceKey(mariadb)
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
-			WithStatefulSetPod(mariadb, *mariadb.Replication().Primary.PodIndex).
+			WithStatefulSetPod(mariadb, *mariadb.Status.CurrentPrimaryPodIndex).
 			Build()
 	opts := builder.ServiceOpts{
 		Selectorlabels: serviceLabels,
@@ -447,9 +452,9 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 			},
 		},
 	}
-	if mariadb.Replication().Primary.Service != nil {
-		opts.Type = mariadb.Replication().Primary.Service.Type
-		opts.Annotations = mariadb.Replication().Primary.Service.Annotations
+	if mariadb.Spec.PrimaryService != nil {
+		opts.Type = mariadb.Spec.PrimaryService.Type
+		opts.Annotations = mariadb.Spec.PrimaryService.Annotations
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
@@ -532,7 +537,7 @@ func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mari
 }
 
 func (r *MariaDBReconciler) reconcilePrimaryConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Replication().Primary.Connection == nil ||
+	if mariadb.Spec.PrimaryConnection == nil ||
 		mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
 		!mariadb.IsReady() {
 		return nil
@@ -543,11 +548,9 @@ func (r *MariaDBReconciler) reconcilePrimaryConnection(ctx context.Context, mari
 		return nil
 	}
 
-	connTpl := mariadb.Replication().Primary.Connection
-	if mariadb.Replication().Enabled {
-		serviceName := ctrlresources.PrimaryServiceKey(mariadb).Name
-		connTpl.ServiceName = &serviceName
-	}
+	connTpl := mariadb.Spec.PrimaryConnection
+	serviceName := ctrlresources.PrimaryServiceKey(mariadb).Name
+	connTpl.ServiceName = &serviceName
 
 	connOpts := builder.ConnectionOpts{
 		MariaDB:              mariadb,
@@ -564,10 +567,18 @@ func (r *MariaDBReconciler) reconcilePrimaryConnection(ctx context.Context, mari
 	return r.Create(ctx, conn)
 }
 
+func (r *MariaDBReconciler) defaultStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Status.CurrentPrimaryPodIndex != nil && mariadb.Status.CurrentPrimary != nil {
+		return nil
+	}
+	return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		status.FillWithDefaults(mariadb)
+		return nil
+	})
+}
+
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcher {
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
-		r.updatePrimaryName(s, mariadb)
-
 		if mariadb.IsRestoringBackup() ||
 			mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() ||
 			mariadb.HasGaleraNotReadyCondition() {
@@ -581,17 +592,6 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha
 		conditions.SetReadyWithStatefulSet(&mariadb.Status, &sts)
 		return nil
 	}
-}
-
-func (r *MariaDBReconciler) updatePrimaryName(status *mariadbv1alpha1.MariaDBStatus, mariadb *mariadbv1alpha1.MariaDB) {
-	if mariadb.Replication().Enabled {
-		return // updated by replication controller
-	}
-	if mariadb.Galera().Enabled {
-		status.UpdateCurrentPrimaryName("All")
-		return
-	}
-	status.UpdateCurrentPrimaryName(statefulset.PodName(mariadb.ObjectMeta, 0))
 }
 
 func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

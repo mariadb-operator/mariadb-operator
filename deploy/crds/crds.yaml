@@ -7554,6 +7554,21 @@ spec:
                     required:
                     - image
                     type: object
+                  primary:
+                    description: Primary is the Galera configuration for the primary
+                      node.
+                    properties:
+                      automaticFailover:
+                        description: AutomaticFailover indicates whether the operator
+                          should automatically update PodIndex to perform an automatic
+                          primary failover.
+                        type: boolean
+                      podIndex:
+                        description: PodIndex is the StatefulSet index of the primary
+                          node. The user may change this field to perform a manual
+                          switchover.
+                        type: integer
+                    type: object
                   recovery:
                     description: 'GaleraRecovery is the recovery process performed
                       by the operator whenever the Galera cluster is not healthy.
@@ -9665,6 +9680,60 @@ spec:
                 default: 3306
                 format: int32
                 type: integer
+              primaryConnection:
+                properties:
+                  healthCheck:
+                    properties:
+                      interval:
+                        type: string
+                      retryInterval:
+                        type: string
+                    type: object
+                  params:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  secretName:
+                    type: string
+                  secretTemplate:
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      databaseKey:
+                        type: string
+                      format:
+                        type: string
+                      hostKey:
+                        type: string
+                      key:
+                        type: string
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      passwordKey:
+                        type: string
+                      portKey:
+                        type: string
+                      usernameKey:
+                        type: string
+                    type: object
+                  serviceName:
+                    type: string
+                type: object
+              primaryService:
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  type:
+                    description: Service Type string describes ingress methods for
+                      a service
+                    type: string
+                type: object
               readinessProbe:
                 description: Probe describes a health check to be performed against
                   a container to determine whether it is alive or ready to receive
@@ -9821,77 +9890,19 @@ spec:
                     description: Enabled is a flag to enable Replication.
                     type: boolean
                   primary:
-                    description: PrimaryReplication is the replication configuration
-                      for the primary node.
+                    description: Primary is the replication configuration for the
+                      primary node.
                     properties:
                       automaticFailover:
                         description: AutomaticFailover indicates whether the operator
                           should automatically update PodIndex to perform an automatic
                           primary failover.
                         type: boolean
-                      connection:
-                        description: Connection is the primary Connection specification.
-                          This is the Connection to use in order to perform writes.
-                        properties:
-                          healthCheck:
-                            properties:
-                              interval:
-                                type: string
-                              retryInterval:
-                                type: string
-                            type: object
-                          params:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          secretName:
-                            type: string
-                          secretTemplate:
-                            properties:
-                              annotations:
-                                additionalProperties:
-                                  type: string
-                                type: object
-                              databaseKey:
-                                type: string
-                              format:
-                                type: string
-                              hostKey:
-                                type: string
-                              key:
-                                type: string
-                              labels:
-                                additionalProperties:
-                                  type: string
-                                type: object
-                              passwordKey:
-                                type: string
-                              portKey:
-                                type: string
-                              usernameKey:
-                                type: string
-                            type: object
-                          serviceName:
-                            type: string
-                        type: object
                       podIndex:
                         description: PodIndex is the StatefulSet index of the primary
                           node. The user may change this field to perform a manual
                           switchover.
                         type: integer
-                      service:
-                        description: Service is the primary Service specification.
-                          This the Service to use in order to perform writes.
-                        properties:
-                          annotations:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          type:
-                            description: Service Type string describes ingress methods
-                              for a service
-                            type: string
-                        type: object
                     type: object
                   replica:
                     description: ReplicaReplication is the replication configuration

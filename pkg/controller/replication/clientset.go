@@ -34,7 +34,7 @@ func (c *replicationClientSet) clientForIndex(ctx context.Context, index int) (*
 
 func (c *replicationClientSet) currentPrimaryClient(ctx context.Context) (*mariadbclient.Client, error) {
 	if c.Mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return nil, errors.New("'status.currentPrimaryPodIndex' not set")
+		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
 	client, err := c.ClientForIndex(ctx, *c.Mariadb.Status.CurrentPrimaryPodIndex)
 	if err != nil {

@@ -35,8 +35,10 @@ import (
 )
 
 const (
-	testTimeout  = time.Second * 60
-	testInterval = time.Second * 1
+	testVeryHighTimeout = 5 * time.Minute
+	testHighTimeout     = 3 * time.Minute
+	testTimeout         = 1 * time.Minute
+	testInterval        = 1 * time.Second
 )
 
 var (
@@ -177,7 +179,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 				return &cfg
 			}(),
 			Port: 3306,
-			Service: &mariadbv1alpha1.Service{
+			Service: &mariadbv1alpha1.ServiceTemplate{
 				Type: corev1.ServiceTypeLoadBalancer,
 				Annotations: map[string]string{
 					"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.100",
