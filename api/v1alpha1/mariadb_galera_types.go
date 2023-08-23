@@ -65,6 +65,29 @@ func (s SST) MariaDBFormat() (string, error) {
 	}
 }
 
+// PrimaryGalera is the Galera configuration for the primary node.
+type PrimaryGalera struct {
+	// PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover.
+	// +optional
+	PodIndex *int `json:"podIndex,omitempty"`
+	// AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+	// +optional
+	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
+}
+
+// FillWithDefaults fills the current PrimaryGalera object with DefaultGaleraSpec.
+// This enables having minimal PrimaryGalera objects and provides sensible defaults.
+func (r *PrimaryGalera) FillWithDefaults() {
+	if r.PodIndex == nil {
+		index := *DefaultGaleraSpec.Primary.PodIndex
+		r.PodIndex = &index
+	}
+	if r.AutomaticFailover == nil {
+		failover := *DefaultGaleraSpec.Primary.AutomaticFailover
+		r.AutomaticFailover = &failover
+	}
+}
+
 // KubernetesAuth refers to the Kubernetes authentication mechanism utilized for establishing a connection from the operator to the agent.
 // The agent validates the legitimacy of the service account token provided as an Authorization header by creating a TokenReview resource.
 type KubernetesAuth struct {
@@ -181,6 +204,9 @@ type Galera struct {
 
 // GaleraSpec is the Galera desired state specification.
 type GaleraSpec struct {
+	// Primary is the Galera configuration for the primary node.
+	// +optional
+	Primary *PrimaryGalera `json:"primary,omitempty"`
 	// SST is the Snapshot State Transfer used when new Pods join the cluster.
 	// More info: https://galeracluster.com/library/documentation/sst.html.
 	// +optional
@@ -210,6 +236,10 @@ type GaleraSpec struct {
 // FillWithDefaults fills the current GaleraSpec object with DefaultGaleraSpec.
 // This enables having minimal GaleraSpec objects and provides sensible defaults.
 func (g *GaleraSpec) FillWithDefaults() {
+	if g.Primary == nil {
+		primary := *DefaultGaleraSpec.Primary
+		g.Primary = &primary
+	}
 	if g.SST == nil {
 		sst := *DefaultGaleraSpec.SST
 		g.SST = &sst
@@ -249,6 +279,10 @@ var (
 
 	// DefaultGaleraSpec provides sensible defaults for the GaleraSpec.
 	DefaultGaleraSpec = GaleraSpec{
+		Primary: &PrimaryGalera{
+			PodIndex:          func() *int { i := 0; return &i }(),
+			AutomaticFailover: func() *bool { af := true; return &af }(),
+		},
 		SST:            &sst,
 		ReplicaThreads: &replicaThreads,
 		Agent: &GaleraAgent{

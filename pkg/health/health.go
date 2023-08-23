@@ -2,11 +2,16 @@ package health
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -46,4 +51,31 @@ func IsMariaDBHealthy(ctx context.Context, client ctrlclient.Client, mariadb *ma
 		}
 	}
 	return false, nil
+}
+
+func HealthyReplica(ctx context.Context, client client.Client, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	podLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDB(mariadb).
+			Build()
+	podList := corev1.PodList{}
+	if err := client.List(ctx, &podList, ctrlclient.MatchingLabels(podLabels)); err != nil {
+		return nil, fmt.Errorf("error listing Pods: %v", err)
+	}
+	for _, p := range podList.Items {
+		index, err := statefulset.PodIndex(p.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error getting index for Pod '%s': %v", p.Name, err)
+		}
+		if *index == *mariadb.Status.CurrentPrimaryPodIndex {
+			continue
+		}
+		if pod.PodReady(&p) {
+			return index, nil
+		}
+	}
+	return nil, errors.New("no healthy replicas available")
 }

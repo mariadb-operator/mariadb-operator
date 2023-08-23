@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"errors"
 
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -66,7 +67,7 @@ func (p *PodDisruptionBudget) Validate() error {
 	return errors.New("either minAvailable or maxUnavailable must be specified")
 }
 
-type Service struct {
+type ServiceTemplate struct {
 	Type        corev1.ServiceType `json:"type,omitempty"`
 	Annotations map[string]string  `json:"annotations,omitempty"`
 }
@@ -83,7 +84,6 @@ type MariaDBSpec struct {
 	Database             *string                   `json:"database,omitempty" webhook:"inmutable"`
 	Username             *string                   `json:"username,omitempty" webhook:"inmutable"`
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutable"`
-	Connection           *ConnectionTemplate       `json:"connection,omitempty" webhook:"inmutable"`
 
 	MyCnf                *string                      `json:"myCnf,omitempty" webhook:"inmutable"`
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
@@ -106,7 +106,11 @@ type MariaDBSpec struct {
 
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
 
-	Service *Service `json:"service,omitempty"`
+	Service    *ServiceTemplate    `json:"service,omitempty"`
+	Connection *ConnectionTemplate `json:"connection,omitempty" webhook:"inmutable"`
+
+	PrimaryService    *ServiceTemplate    `json:"primaryService,omitempty"`
+	PrimaryConnection *ConnectionTemplate `json:"primaryConnection,omitempty" webhook:"inmutable"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
@@ -124,6 +128,20 @@ func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 		s.Conditions = make([]metav1.Condition, 0)
 	}
 	meta.SetStatusCondition(&s.Conditions, condition)
+}
+
+// UpdateCurrentPrimary updates the current primary status.
+func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
+	s.CurrentPrimaryPodIndex = &index
+	currentPrimary := statefulset.PodName(mariadb.ObjectMeta, index)
+	s.CurrentPrimary = &currentPrimary
+}
+
+// FillWithDefaults fills the current MariaDBStatus object with defaults.
+func (s *MariaDBStatus) FillWithDefaults(mariadb *MariaDB) {
+	if s.CurrentPrimaryPodIndex == nil && s.CurrentPrimary == nil {
+		s.UpdateCurrentPrimary(mariadb, 0)
+	}
 }
 
 // +kubebuilder:object:root=true

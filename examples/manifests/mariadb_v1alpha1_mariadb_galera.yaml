@@ -13,11 +13,6 @@ spec:
     name: mariadb
     key: password
 
-  connection:
-    secretName: mariadb-conn
-    secretTemplate:
-      key: dsn
-
   image:
     repository: mariadb
     tag: "11.0.3"
@@ -29,6 +24,9 @@ spec:
 
   galera:
     enabled: true
+    primary:
+      podIndex: 0
+      automaticFailover: true
     sst: mariabackup
     replicaThreads: 1
     agent:
@@ -57,6 +55,24 @@ spec:
           storage: 300Mi
       accessModes:
         - ReadWriteOnce
+
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+  connection:
+    secretName: mariadb-galera-conn
+    secretTemplate:
+      key: dsn
+
+  primaryService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+  primaryConnection:
+    secretName: mariadb-galera-conn-primary
+    secretTemplate:
+      key: dsn
 
   affinity:
     podAntiAffinity:
@@ -95,12 +111,3 @@ spec:
         storage: 1Gi
     accessModes:
       - ReadWriteOnce
-
-  service:
-    type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.150
-
-  # bootstrapFrom:
-  #   backupRef:
-  #     name: backup-scheduled

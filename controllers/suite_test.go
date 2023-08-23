@@ -23,6 +23,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
@@ -32,6 +33,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo"
@@ -54,6 +56,7 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var testCtx context.Context
 var testCancel context.CancelFunc
+var testCidrPrefix string
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -68,6 +71,11 @@ var _ = BeforeSuite(func() {
 
 	testCtx, testCancel = context.WithCancel(context.Background())
 	useCluster := true
+
+	var err error
+	testCidrPrefix, err = docker.GetKindCidrPrefix()
+	Expect(testCidrPrefix).NotTo(BeEmpty())
+	Expect(err).NotTo(HaveOccurred())
 
 	By("Bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -136,6 +144,33 @@ var _ = BeforeSuite(func() {
 		galera.WithConfigMapReconciler(configMapReconciler),
 		galera.WithServiceReconciler(serviceReconciler),
 	)
+
+	podReplicationController := NewPodController(
+		client,
+		refResolver,
+		NewPodReplicationController(
+			client,
+			replRecorder,
+			builder,
+			refResolver,
+			secretReconciler,
+			replConfig,
+		),
+		[]string{
+			annotation.MariadbAnnotation,
+			annotation.ReplicationAnnotation,
+		},
+	)
+	podGaleraController := NewPodController(
+		client,
+		refResolver,
+		NewPodGaleraController(client, galeraRecorder),
+		[]string{
+			annotation.MariadbAnnotation,
+			annotation.GaleraAnnotation,
+		},
+	)
+
 	err = (&MariaDBReconciler{
 		Client: client,
 		Scheme: scheme,
@@ -221,14 +256,10 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&PodReplicationController{
-		Client:           client,
-		Scheme:           scheme,
-		ReplConfig:       replConfig,
-		SecretReconciler: secretReconciler,
-		Builder:          builder,
-		RefResolver:      refResolver,
-	}).SetupWithManager(k8sManager)
+	err = podReplicationController.SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = podGaleraController.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&StatefulSetGaleraReconciler{

@@ -168,7 +168,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 }
 
 func (r *ReplicationReconciler) setConfiguringReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
+	if req.mariadb.HasConfiguredReplication() || req.mariadb.IsSwitchingPrimary() {
 		return nil
 	}
 	logger.Info("Configuring replication")
@@ -180,7 +180,7 @@ func (r *ReplicationReconciler) setConfiguringReplication(ctx context.Context, r
 }
 
 func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
+	if req.mariadb.HasConfiguredReplication() || req.mariadb.IsSwitchingPrimary() {
 		return nil
 	}
 	client, err := req.clientSet.newPrimaryClient(ctx)
@@ -194,7 +194,7 @@ func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *recon
 }
 
 func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
+	if req.mariadb.HasConfiguredReplication() || req.mariadb.IsSwitchingPrimary() {
 		return nil
 	}
 	logger.V(1).Info("Configuring replicas")
@@ -216,7 +216,7 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 }
 
 func (r *ReplicationReconciler) setConfiguredReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.Status.CurrentPrimaryPodIndex != nil {
+	if req.mariadb.HasConfiguredReplication() || req.mariadb.IsSwitchingPrimary() {
 		return nil
 	}
 	logger.Info("Replication configured")

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -103,12 +102,6 @@ type PrimaryReplication struct {
 	// AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
 	// +optional
 	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
-	// Service is the primary Service specification. This the Service to use in order to perform writes.
-	// +optional
-	Service *Service `json:"service,omitempty"`
-	// Connection is the primary Connection specification. This is the Connection to use in order to perform writes.
-	// +optional
-	Connection *ConnectionTemplate `json:"connection,omitempty"`
 }
 
 // FillWithDefaults fills the current PrimaryReplication object with DefaultReplicationSpec.
@@ -121,10 +114,6 @@ func (r *PrimaryReplication) FillWithDefaults() {
 	if r.AutomaticFailover == nil {
 		failover := *DefaultReplicationSpec.Primary.AutomaticFailover
 		r.AutomaticFailover = &failover
-	}
-	if r.Service == nil {
-		service := *DefaultReplicationSpec.Primary.Service
-		r.Service = &service
 	}
 }
 
@@ -205,7 +194,7 @@ type Replication struct {
 
 // ReplicationSpec is the Replication desired state specification.
 type ReplicationSpec struct {
-	// PrimaryReplication is the replication configuration for the primary node.
+	// Primary is the replication configuration for the primary node.
 	// +optional
 	Primary *PrimaryReplication `json:"primary,omitempty"`
 	// ReplicaReplication is the replication configuration for the replica nodes.
@@ -247,9 +236,6 @@ var (
 		Primary: &PrimaryReplication{
 			PodIndex:          func() *int { pi := 0; return &pi }(),
 			AutomaticFailover: func() *bool { sb := true; return &sb }(),
-			Service: &Service{
-				Type: corev1.ServiceTypeClusterIP,
-			},
 		},
 		Replica: &ReplicaReplication{
 			WaitPoint:         func() *WaitPoint { w := WaitPointAfterSync; return &w }(),
@@ -267,19 +253,12 @@ func (m *MariaDB) IsConfiguringReplication() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicationConfigured)
 }
 
+// HasConfiguredReplication indicates whether replication has been configured.
+func (m *MariaDB) HasConfiguredReplication() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReplicationConfigured)
+}
+
 // IsSwitchingPrimary indicates whether the primary is being switched.
 func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
-}
-
-// UpdateCurrentPrimary updates the current primary status.
-func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
-	s.CurrentPrimaryPodIndex = &index
-	primaryPod := statefulset.PodName(mariadb.ObjectMeta, index)
-	s.CurrentPrimary = &primaryPod
-}
-
-// UpdateCurrentPrimaryName updates the current primary name in the status.
-func (s *MariaDBStatus) UpdateCurrentPrimaryName(name string) {
-	s.CurrentPrimary = &name
 }

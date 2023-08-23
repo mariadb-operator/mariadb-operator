@@ -16,14 +16,14 @@ func InternalServiceKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 
 func PrimaryServiceKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("primary-%s", mariadb.Name),
+		Name:      fmt.Sprintf("%s-primary", mariadb.Name),
 		Namespace: mariadb.Namespace,
 	}
 }
 
 func PrimaryConnectioneKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("primary-%s", mariadb.Name),
+		Name:      fmt.Sprintf("%s-primary", mariadb.Name),
 		Namespace: mariadb.Namespace,
 	}
 }

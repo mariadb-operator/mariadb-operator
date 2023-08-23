@@ -128,6 +128,13 @@ func (r *MariaDB) validateGalera() error {
 	if !r.Galera().Enabled {
 		return nil
 	}
+	if *r.Galera().Primary.PodIndex < 0 || *r.Galera().Primary.PodIndex >= int(r.Spec.Replicas) {
+		return field.Invalid(
+			field.NewPath("spec").Child("galera").Child("primary").Child("podIndex"),
+			r.Replication().Primary.PodIndex,
+			"'spec.galera.primary.podIndex' out of 'spec.replicas' bounds",
+		)
+	}
 	if err := r.Galera().SST.Validate(); err != nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("galera").Child("sst"),

@@ -9,8 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -18,7 +16,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type switchoverPhase struct {
@@ -27,19 +24,19 @@ type switchoverPhase struct {
 }
 
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest, switchoverLogger logr.Logger) error {
-	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
+	if !req.mariadb.HasConfiguredReplication() && !req.mariadb.IsSwitchingPrimary() {
 		return nil
+	}
+	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
 	if *req.mariadb.Replication().Primary.PodIndex == *req.mariadb.Status.CurrentPrimaryPodIndex {
 		return nil
 	}
 
-	fromIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
+	fromIndex := req.mariadb.Status.CurrentPrimaryPodIndex
 	toIndex := *req.mariadb.Replication().Primary.PodIndex
 	logger := switchoverLogger.WithValues("mariadb", req.mariadb.Name, "from-index", fromIndex, "to-index", toIndex)
-	logger.Info("Switching primary")
-	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimarySwitching,
-		"Switching primary from index '%d' to index '%d'", fromIndex, toIndex)
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		conditions.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
@@ -68,10 +65,6 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 			name:      "Change current primary to replica",
 			reconcile: r.changeCurrentPrimaryToReplica,
 		},
-		{
-			name:      "Upgrade primary Service",
-			reconcile: r.updatePrimaryService,
-		},
 	}
 
 	for _, p := range phases {
@@ -89,9 +82,11 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
+
 	logger.Info("Primary switched")
-	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimarySwitched,
-		"Primary switched from index '%d' to index '%d'", fromIndex, toIndex)
+	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
+		"Primary switched from index '%d' to index '%d'", *fromIndex, toIndex)
+
 	return nil
 }
 
@@ -117,6 +112,9 @@ func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mari
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *replicationClientSet, logger logr.Logger) error {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -220,6 +218,9 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb
 
 func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *replicationClientSet, logger logr.Logger) error {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
 	var wg sync.WaitGroup
 	doneChan := make(chan struct{})
 	errChan := make(chan error)
@@ -282,6 +283,9 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 
 func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *replicationClientSet, logger logr.Logger) error {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -309,31 +313,6 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 	)
 }
 
-func (r *ReplicationReconciler) updatePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet, logger logr.Logger) error {
-	key := ctrlresources.PrimaryServiceKey(mariadb)
-	var service corev1.Service
-	if err := r.Get(ctx, key, &service); err != nil {
-		return fmt.Errorf("error getting Service: %v", err)
-	}
-
-	podIndex := *mariadb.Replication().Primary.PodIndex
-	logger.Info("Update primary service", "pod-index", podIndex)
-	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimarySvcUpdate,
-		"Update primary service pointing to index '%d'", podIndex)
-
-	serviceLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
-			WithStatefulSetPod(mariadb, podIndex).
-			Build()
-	patch := client.MergeFrom(service.DeepCopy())
-	service.ObjectMeta.Labels = serviceLabels
-	service.Spec.Selector = serviceLabels
-
-	return r.Patch(ctx, &service, patch)
-}
-
 func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *mariadbclient.Client) error {
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
@@ -345,6 +324,9 @@ func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *mariadbc
 }
 
 func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return false, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
 	podName := statefulset.PodName(mariadb.ObjectMeta, *mariadb.Status.CurrentPrimaryPodIndex)
 	key := types.NamespacedName{
 		Name:      podName,
