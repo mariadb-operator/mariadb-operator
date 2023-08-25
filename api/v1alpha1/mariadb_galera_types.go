@@ -82,7 +82,7 @@ func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string
 	if k.AuthDelegatorRoleName != "" {
 		return k.AuthDelegatorRoleName
 	}
-	return mariadb.Name
+	return fmt.Sprintf("%s-%s", mariadb.Name, mariadb.Namespace)
 }
 
 // GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
