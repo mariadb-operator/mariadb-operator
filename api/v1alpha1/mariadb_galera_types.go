@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	agentgalera "github.com/mariadb-operator/agent/pkg/galera"
@@ -82,7 +83,12 @@ func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string
 	if k.AuthDelegatorRoleName != "" {
 		return k.AuthDelegatorRoleName
 	}
-	return fmt.Sprintf("%s-%s", mariadb.Name, mariadb.Namespace)
+	name := fmt.Sprintf("%s-%s", mariadb.Name, mariadb.Namespace)
+	parts := strings.Split(string(mariadb.UID), "-")
+	if len(parts) > 0 {
+		name += fmt.Sprintf("-%s", parts[0])
+	}
+	return name
 }
 
 // GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
