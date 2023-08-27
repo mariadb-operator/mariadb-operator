@@ -1,0 +1,47 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-init-mariabackup
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  database: mariadb
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+
+  image:
+    repository: mariadb
+    tag: "11.0.3"
+    pullPolicy: IfNotPresent
+
+  port: 3306
+
+  # See: https://mariadb.com/kb/en/full-backup-and-restore-with-mariabackup/
+  initContainers:
+    - image:
+        repository: mariadb
+        tag: "11.0.3"
+        pullPolicy: IfNotPresent
+      args:
+        - mariabackup 
+        - --copy-back 
+        - --target-dir=/var/mariadb/backup/
+
+  volumes: 
+    - name: mariabackup
+      persistentVolumeClaim:
+        claimName: mariabackup
+  volumeMounts: 
+    - name: mariabackup
+      mountPath: /var/mariadb/backup/
+
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce

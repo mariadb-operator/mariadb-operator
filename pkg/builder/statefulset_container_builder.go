@@ -93,8 +93,29 @@ func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) co
 }
 
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
+	initContainers := []corev1.Container{}
+	if mariadb.Spec.InitContainers != nil {
+		for index, containerTpl := range mariadb.Spec.InitContainers {
+			initContainer := buildContainer(&containerTpl)
+			initContainer.Name = fmt.Sprintf("init-%d", index)
+			if initContainer.Env == nil {
+				initContainer.Env = buildStsEnv(mariadb)
+			}
+			if initContainer.VolumeMounts == nil {
+				initContainer.VolumeMounts = buildStsVolumeMounts(mariadb)
+			}
+			initContainers = append(initContainers, initContainer)
+		}
+	}
+	if mariadb.Galera().Enabled {
+		initContainers = append(initContainers, buildGaleraInitContainer(mariadb))
+	}
+	return initContainers
+}
+
+func buildGaleraInitContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
 	if !mariadb.Galera().Enabled {
-		return nil
+		return corev1.Container{}
 	}
 	container := buildContainer(mariadb.Galera().InitContainer)
 
@@ -112,9 +133,7 @@ func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container
 	container.Env = buildStsEnv(mariadb)
 	container.VolumeMounts = buildStsVolumeMounts(mariadb)
 
-	return []corev1.Container{
-		container,
-	}
+	return container
 }
 
 func buildStsArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
