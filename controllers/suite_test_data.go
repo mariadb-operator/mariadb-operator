@@ -122,6 +122,11 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 					PeriodSeconds:       5,
 				},
 			},
+			PodTemplate: mariadbv1alpha1.PodTemplate{
+				PodSecurityContext: &corev1.PodSecurityContext{
+					RunAsUser: func() *int64 { u := int64(0); return &u }(),
+				},
+			},
 			InheritMetadata: &mariadbv1alpha1.InheritMetadata{
 				Labels: map[string]string{
 					"mariadb.mmontes.io/test": "test",
@@ -172,9 +177,6 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 				return &cfg
 			}(),
 			Port: 3306,
-			PodSecurityContext: &corev1.PodSecurityContext{
-				RunAsUser: func() *int64 { u := int64(0); return &u }(),
-			},
 			Service: &mariadbv1alpha1.Service{
 				Type: corev1.ServiceTypeLoadBalancer,
 				Annotations: map[string]string{

@@ -74,6 +74,7 @@ type Service struct {
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	ContainerTemplate `json:",inline"`
+	PodTemplate       `json:",inline"`
 
 	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
 	// +kubebuilder:validation:Required
@@ -96,19 +97,10 @@ type MariaDBSpec struct {
 	Galera *Galera `json:"galera,omitempty"`
 	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
-
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// +kubebuilder:default=3306
 	Port int32 `json:"port,omitempty"`
 	// +kubebuilder:validation:Required
 	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate" webhook:"inmutable"`
-	Volumes             []corev1.Volume     `json:"volumes,omitempty" webhook:"inmutable"`
-
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-
-	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
-	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
 
 	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
 
