@@ -72,6 +72,18 @@ type ContainerTemplate struct {
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
 }
 
+type PodTemplate struct {
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+
+	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
+	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
+	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
+
+	Volumes []corev1.Volume `json:"volumes,omitempty" webhook:"inmutable"`
+}
+
 type VolumeClaimTemplate struct {
 	// +kubebuilder:validation:Required
 	corev1.PersistentVolumeClaimSpec `json:",inline"`
