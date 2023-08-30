@@ -56,6 +56,15 @@ spec:
     secretTemplate:
       key: dsn
 
+  secondaryService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+  secondaryConnection:
+    secretName: mariadb-repl-conn-secondary
+    secretTemplate:
+      key: dsn
+
   affinity:
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

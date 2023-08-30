@@ -3,6 +3,8 @@ linters-settings:
     min-complexity: 20
   lll:
     line-length: 140
+  nestif:
+    min-complexity: 8
   misspell:
     locale: US
 

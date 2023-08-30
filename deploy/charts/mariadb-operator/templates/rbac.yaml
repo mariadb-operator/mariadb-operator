@@ -57,7 +57,10 @@ rules:
   resources:
   - endpoints
   verbs:
+  - create
+  - get
   - list
+  - patch
   - watch
 - apiGroups:
   - ""

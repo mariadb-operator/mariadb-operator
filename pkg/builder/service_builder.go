@@ -23,6 +23,7 @@ func MariaDBPort(svc *corev1.Service) (*v1.ServicePort, error) {
 
 type ServiceOpts struct {
 	Selectorlabels           map[string]string
+	ExcludeSelectorLabels    bool
 	Annotations              map[string]string
 	Type                     corev1.ServiceType
 	Ports                    []corev1.ServicePort
@@ -46,9 +47,8 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	svc := &corev1.Service{
 		ObjectMeta: objMeta,
 		Spec: corev1.ServiceSpec{
-			Type:     opts.Type,
-			Ports:    opts.Ports,
-			Selector: selectorLabels,
+			Type:  opts.Type,
+			Ports: opts.Ports,
 		},
 	}
 	if opts.ClusterIP != nil {
@@ -56,6 +56,9 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	}
 	if opts.PublishNotReadyAddresses != nil {
 		svc.Spec.PublishNotReadyAddresses = *opts.PublishNotReadyAddresses
+	}
+	if !opts.ExcludeSelectorLabels {
+		svc.Spec.Selector = selectorLabels
 	}
 	if err := controllerutil.SetControllerReference(mariadb, svc, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Service: %v", err)
