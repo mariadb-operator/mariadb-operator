@@ -447,6 +447,21 @@ var _ = Describe("MariaDB replication", func() {
 							Key: &testConnSecretKey,
 						},
 					},
+					SecondaryService: &mariadbv1alpha1.ServiceTemplate{
+						Type: corev1.ServiceTypeLoadBalancer,
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
+						},
+					},
+					SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
+						SecretName: func() *string {
+							s := "mdb-repl-conn-secondary"
+							return &s
+						}(),
+						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+							Key: &testConnSecretKey,
+						},
+					},
 				},
 			}
 
@@ -469,6 +484,9 @@ var _ = Describe("MariaDB replication", func() {
 			Expect(k8sClient.Get(testCtx, ctrlresources.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
 			Expect(svc.Spec.Selector["statefulset.kubernetes.io/pod-name"]).To(Equal(statefulset.PodName(testRplMariaDb.ObjectMeta, 0)))
 
+			By("Expecting to create a secondary Service")
+			Expect(k8sClient.Get(testCtx, ctrlresources.SecondaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
+
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
@@ -486,6 +504,21 @@ var _ = Describe("MariaDB replication", func() {
 				}
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting secondary Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, ctrlresources.SecondaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting to create secondary Endpoints")
+			var endpoints corev1.Endpoints
+			Expect(k8sClient.Get(testCtx, ctrlresources.SecondaryServiceKey(&testRplMariaDb), &endpoints)).To(Succeed())
+			Expect(endpoints.Subsets).To(HaveLen(1))
+			Expect(endpoints.Subsets[0].Addresses).To(HaveLen(int(testRplMariaDb.Spec.Replicas) - 1))
 
 			By("Expecting to create a PodDisruptionBudget")
 			var pdb policyv1.PodDisruptionBudget
@@ -679,6 +712,21 @@ var _ = Describe("MariaDB Galera", func() {
 							Key: &testConnSecretKey,
 						},
 					},
+					SecondaryService: &mariadbv1alpha1.ServiceTemplate{
+						Type: corev1.ServiceTypeLoadBalancer,
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.161",
+						},
+					},
+					SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
+						SecretName: func() *string {
+							s := "mdb-galera-conn-secondary"
+							return &s
+						}(),
+						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+							Key: &testConnSecretKey,
+						},
+					},
 				},
 			}
 
@@ -717,6 +765,9 @@ var _ = Describe("MariaDB Galera", func() {
 			Expect(k8sClient.Get(testCtx, ctrlresources.PrimaryServiceKey(&testMariaDbGalera), &svc)).To(Succeed())
 			Expect(svc.Spec.Selector["statefulset.kubernetes.io/pod-name"]).To(Equal(statefulset.PodName(testMariaDbGalera.ObjectMeta, 0)))
 
+			By("Expecting to create a secondary Service")
+			Expect(k8sClient.Get(testCtx, ctrlresources.SecondaryServiceKey(&testMariaDbGalera), &svc)).To(Succeed())
+
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
@@ -734,6 +785,21 @@ var _ = Describe("MariaDB Galera", func() {
 				}
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting secondary Connection to be ready eventually")
+			Eventually(func() bool {
+				var conn mariadbv1alpha1.Connection
+				if err := k8sClient.Get(testCtx, ctrlresources.SecondaryConnectioneKey(&testMariaDbGalera), &conn); err != nil {
+					return false
+				}
+				return conn.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting to create secondary Endpoints")
+			var endpoints corev1.Endpoints
+			Expect(k8sClient.Get(testCtx, ctrlresources.SecondaryServiceKey(&testMariaDbGalera), &endpoints)).To(Succeed())
+			Expect(endpoints.Subsets).To(HaveLen(1))
+			Expect(endpoints.Subsets[0].Addresses).To(HaveLen(int(testMariaDbGalera.Spec.Replicas) - 1))
 
 			By("Expecting to create a PodDisruptionBudget")
 			var pdb policyv1.PodDisruptionBudget

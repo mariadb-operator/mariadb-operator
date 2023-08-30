@@ -10002,6 +10002,60 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              secondaryConnection:
+                properties:
+                  healthCheck:
+                    properties:
+                      interval:
+                        type: string
+                      retryInterval:
+                        type: string
+                    type: object
+                  params:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  secretName:
+                    type: string
+                  secretTemplate:
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      databaseKey:
+                        type: string
+                      format:
+                        type: string
+                      hostKey:
+                        type: string
+                      key:
+                        type: string
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      passwordKey:
+                        type: string
+                      portKey:
+                        type: string
+                      usernameKey:
+                        type: string
+                    type: object
+                  serviceName:
+                    type: string
+                type: object
+              secondaryService:
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  type:
+                    description: Service Type string describes ingress methods for
+                      a service
+                    type: string
+                type: object
               securityContext:
                 description: SecurityContext holds security configuration that will
                   be applied to a container. Some fields are present in both SecurityContext

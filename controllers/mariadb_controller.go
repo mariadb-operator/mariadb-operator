@@ -23,11 +23,13 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
@@ -67,6 +69,7 @@ type MariaDBReconciler struct {
 	ConfigMapReconciler *configmap.ConfigMapReconciler
 	SecretReconciler    *secret.SecretReconciler
 	ServiceReconciler   *service.ServiceReconciler
+	EndpointsReconciler *endpoints.EndpointsReconciler
 	RBACReconciler      *rbac.RBACReconciler
 
 	ReplicationReconciler *replication.ReplicationReconciler
@@ -87,7 +90,7 @@ type patcher func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups="",resources=endpoints,verbs=list;watch
+//+kubebuilder:rbac:groups="",resources=endpoints,verbs=create;patch;get;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;delete
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
@@ -269,14 +272,34 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 		if err := r.reconcilePrimaryService(ctx, mariadb); err != nil {
 			return err
 		}
+		if err := r.reconcileSecondaryService(ctx, mariadb); err != nil {
+			return err
+		}
 	}
 	return r.reconcileDefaultService(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.IsHAEnabled() {
-		if err := r.reconcilePrimaryConnection(ctx, mariadb); err != nil {
-			return err
+		if mariadb.Spec.PrimaryConnection != nil {
+			key := resources.PrimaryConnectioneKey(mariadb)
+			serviceName := resources.PrimaryServiceKey(mariadb).Name
+			connTpl := mariadb.Spec.PrimaryConnection
+			connTpl.ServiceName = &serviceName
+
+			if err := r.reconcileConnectionTemplate(ctx, key, connTpl, mariadb); err != nil {
+				return err
+			}
+		}
+		if mariadb.Spec.SecondaryConnection != nil {
+			key := resources.SecondaryConnectioneKey(mariadb)
+			serviceName := resources.SecondaryServiceKey(mariadb).Name
+			connTpl := mariadb.Spec.SecondaryConnection
+			connTpl.ServiceName = &serviceName
+
+			if err := r.reconcileConnectionTemplate(ctx, key, connTpl, mariadb); err != nil {
+				return err
+			}
 		}
 	}
 	return r.reconcileDefaultConnection(ctx, mariadb)
@@ -433,36 +456,6 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
-func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return errors.New("'status.currentPrimaryPodIndex' must be set")
-	}
-	key := ctrlresources.PrimaryServiceKey(mariadb)
-	serviceLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDBSelectorLabels(mariadb).
-			WithStatefulSetPod(mariadb, *mariadb.Status.CurrentPrimaryPodIndex).
-			Build()
-	opts := builder.ServiceOpts{
-		Selectorlabels: serviceLabels,
-		Ports: []corev1.ServicePort{
-			{
-				Name: builder.MariaDbContainerName,
-				Port: mariadb.Spec.Port,
-			},
-		},
-	}
-	if mariadb.Spec.PrimaryService != nil {
-		opts.Type = mariadb.Spec.PrimaryService.Type
-		opts.Annotations = mariadb.Spec.PrimaryService.Annotations
-	}
-	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
-	if err != nil {
-		return fmt.Errorf("error building Service: %v", err)
-	}
-	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
-}
-
 func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := ctrlresources.InternalServiceKey(mariadb)
 	clusterIp := "None"
@@ -510,6 +503,61 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
+func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	key := ctrlresources.PrimaryServiceKey(mariadb)
+	serviceLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDBSelectorLabels(mariadb).
+			WithStatefulSetPod(mariadb, *mariadb.Status.CurrentPrimaryPodIndex).
+			Build()
+	opts := builder.ServiceOpts{
+		Selectorlabels: serviceLabels,
+		Ports: []corev1.ServicePort{
+			{
+				Name: builder.MariaDbPortName,
+				Port: mariadb.Spec.Port,
+			},
+		},
+	}
+	if mariadb.Spec.PrimaryService != nil {
+		opts.Type = mariadb.Spec.PrimaryService.Type
+		opts.Annotations = mariadb.Spec.PrimaryService.Annotations
+	}
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	if err != nil {
+		return fmt.Errorf("error building Service: %v", err)
+	}
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
+func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	key := ctrlresources.SecondaryServiceKey(mariadb)
+	opts := builder.ServiceOpts{
+		ExcludeSelectorLabels: true,
+		Ports: []corev1.ServicePort{
+			{
+				Name: builder.MariaDbPortName,
+				Port: mariadb.Spec.Port,
+			},
+		},
+	}
+	if mariadb.Spec.SecondaryService != nil {
+		opts.Type = mariadb.Spec.SecondaryService.Type
+		opts.Annotations = mariadb.Spec.SecondaryService.Annotations
+	}
+	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	if err != nil {
+		return fmt.Errorf("error building Service: %v", err)
+	}
+	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
+		return err
+	}
+	return r.EndpointsReconciler.Reconcile(ctx, resources.SecondaryServiceKey(mariadb), mariadb)
+}
+
 func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Spec.Connection == nil || mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
 		!mariadb.IsReady() {
@@ -536,21 +584,15 @@ func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mari
 	return r.Create(ctx, conn)
 }
 
-func (r *MariaDBReconciler) reconcilePrimaryConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.PrimaryConnection == nil ||
-		mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
-		!mariadb.IsReady() {
+func (r *MariaDBReconciler) reconcileConnectionTemplate(ctx context.Context, key types.NamespacedName,
+	connTpl *mariadbv1alpha1.ConnectionTemplate, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil || !mariadb.IsReady() {
 		return nil
 	}
-	key := ctrlresources.PrimaryConnectioneKey(mariadb)
 	var existingConn mariadbv1alpha1.Connection
 	if err := r.Get(ctx, key, &existingConn); err == nil {
 		return nil
 	}
-
-	connTpl := mariadb.Spec.PrimaryConnection
-	serviceName := ctrlresources.PrimaryServiceKey(mariadb).Name
-	connTpl.ServiceName = &serviceName
 
 	connOpts := builder.ConnectionOpts{
 		MariaDB:              mariadb,
@@ -562,7 +604,7 @@ func (r *MariaDBReconciler) reconcilePrimaryConnection(ctx context.Context, mari
 	}
 	conn, err := r.Builder.BuildConnection(connOpts, mariadb)
 	if err != nil {
-		return fmt.Errorf("erro building primary Connection: %v", err)
+		return fmt.Errorf("erro building Connection: %v", err)
 	}
 	return r.Create(ctx, conn)
 }

@@ -111,6 +111,9 @@ type MariaDBSpec struct {
 
 	PrimaryService    *ServiceTemplate    `json:"primaryService,omitempty"`
 	PrimaryConnection *ConnectionTemplate `json:"primaryConnection,omitempty" webhook:"inmutable"`
+
+	SecondaryService    *ServiceTemplate    `json:"secondaryService,omitempty"`
+	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB

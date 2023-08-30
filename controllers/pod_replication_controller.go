@@ -27,7 +27,6 @@ import (
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -37,46 +36,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type Option func(*PodReplicationController)
-
-func WithRefResolver(rr *refresolver.RefResolver) Option {
-	return func(prc *PodReplicationController) {
-		prc.refResolver = rr
-	}
-}
-
-func WithSecretReconciler(sr *secret.SecretReconciler) Option {
-	return func(prc *PodReplicationController) {
-		prc.secretReconciler = sr
-	}
-}
-
-func WithReplConfig(rc *replication.ReplicationConfig) Option {
-	return func(prc *PodReplicationController) {
-		prc.replConfig = rc
-	}
-}
-
 // PodReplicationController reconciles a Pod object
 type PodReplicationController struct {
 	client.Client
-	recorder         record.EventRecorder
-	builder          *builder.Builder
-	refResolver      *refresolver.RefResolver
-	secretReconciler *secret.SecretReconciler
-	replConfig       *replication.ReplicationConfig
+	recorder    record.EventRecorder
+	builder     *builder.Builder
+	refResolver *refresolver.RefResolver
+	replConfig  *replication.ReplicationConfig
 }
 
 func NewPodReplicationController(client client.Client, recorder record.EventRecorder, builder *builder.Builder,
-	refResolver *refresolver.RefResolver, secretReconciler *secret.SecretReconciler,
-	replConfig *replication.ReplicationConfig) PodReadinessController {
+	refResolver *refresolver.RefResolver, replConfig *replication.ReplicationConfig) PodReadinessController {
 	return &PodReplicationController{
-		Client:           client,
-		recorder:         recorder,
-		builder:          builder,
-		refResolver:      refResolver,
-		secretReconciler: secretReconciler,
-		replConfig:       replConfig,
+		Client:      client,
+		recorder:    recorder,
+		builder:     builder,
+		refResolver: refResolver,
+		replConfig:  replConfig,
 	}
 }
 
@@ -115,6 +91,9 @@ func (r *PodReplicationController) ReconcilePodReady(ctx context.Context, pod co
 func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
 	if !r.shouldReconcile(mariadb) || !*mariadb.Replication().Primary.AutomaticFailover {
 		return nil
+	}
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
