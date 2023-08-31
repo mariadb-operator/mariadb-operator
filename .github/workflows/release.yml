@@ -75,20 +75,3 @@ jobs:
           args: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate bundles
-        run: make bundle
-        env:
-          BUNDLE_CRDS_DIR: dist/crds
-          BUNDLE_MANIFESTS_DIR: dist/manifests
-
-      - name: Update Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.prep.outputs.VERSION }}
-          files: |
-            dist/crds/crds.yaml
-            dist/manifests/manifests.yaml
-            dist/manifests/manifests.min.yaml
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

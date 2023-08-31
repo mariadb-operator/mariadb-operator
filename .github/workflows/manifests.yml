@@ -1,0 +1,40 @@
+name: Manifests
+
+on:
+  push:
+    tags:
+      - "helm-chart-*"
+  workflow_dispatch:
+
+jobs:
+  manifests:
+    name: Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Tag
+        id: tag
+        run: |
+          tag="helm-chart-$(make helm-chart-version)""
+          echo "::set-output name=name::$(tag)"
+
+      - name: Generate bundles
+        run: make bundle
+        env:
+          BUNDLE_CRDS_DIR: dist/crds
+          BUNDLE_MANIFESTS_DIR: dist/manifests
+
+      - name: Update Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "${{ steps.tag.outputs.name }}"
+          files: |
+            dist/crds/crds.yaml
+            dist/manifests/manifests.yaml
+            dist/manifests/manifests.min.yaml
+        env:
+          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
