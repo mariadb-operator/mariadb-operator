@@ -142,8 +142,13 @@ func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
 
 // FillWithDefaults fills the current MariaDBStatus object with defaults.
 func (s *MariaDBStatus) FillWithDefaults(mariadb *MariaDB) {
-	if s.CurrentPrimaryPodIndex == nil && s.CurrentPrimary == nil {
-		s.UpdateCurrentPrimary(mariadb, 0)
+	if s.CurrentPrimaryPodIndex == nil {
+		index := 0
+		s.CurrentPrimaryPodIndex = &index
+	}
+	if s.CurrentPrimary == nil {
+		currentPrimary := statefulset.PodName(mariadb.ObjectMeta, *s.CurrentPrimaryPodIndex)
+		s.CurrentPrimary = &currentPrimary
 	}
 }
 
