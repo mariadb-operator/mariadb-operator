@@ -239,6 +239,8 @@ func (g *GaleraSpec) FillWithDefaults() {
 	if g.Primary == nil {
 		primary := *DefaultGaleraSpec.Primary
 		g.Primary = &primary
+	} else {
+		g.Primary.FillWithDefaults()
 	}
 	if g.SST == nil {
 		sst := *DefaultGaleraSpec.SST
