@@ -57,9 +57,12 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	if opts.PublishNotReadyAddresses != nil {
 		svc.Spec.PublishNotReadyAddresses = *opts.PublishNotReadyAddresses
 	}
+	if opts.ExternalTrafficPolicy != nil {
+		svc.Spec.PublishNotReadyAddresses = *opts.ExternalTrafficPolicy
+	}
 	if !opts.ExcludeSelectorLabels {
 		svc.Spec.Selector = selectorLabels
-	}
+	} 
 	if err := controllerutil.SetControllerReference(mariadb, svc, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Service: %v", err)
 	}
