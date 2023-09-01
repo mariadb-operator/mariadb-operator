@@ -93,7 +93,7 @@ func (r *Connection) validateHealthCheck() error {
 }
 
 func (r *Connection) validateCustomDSNFormat() error {
-	if r.Spec.SecretTemplate.Format == nil {
+	if r.Spec.SecretTemplate == nil || r.Spec.SecretTemplate.Format == nil {
 		return nil
 	}
 
