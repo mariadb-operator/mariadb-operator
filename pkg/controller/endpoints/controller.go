@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -15,6 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var ErrNoAddressesAvailable = errors.New("no addresses available")
 
 type EndpointsReconciler struct {
 	client.Client
@@ -31,6 +34,9 @@ func NewEndpointsReconciler(client client.Client, builder *builder.Builder) *End
 func (r *EndpointsReconciler) Reconcile(ctx context.Context, key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) error {
 	desiredEndpoints, err := r.endpoints(ctx, key, mariadb)
 	if err != nil {
+		if errors.Is(err, ErrNoAddressesAvailable) {
+			return err
+		}
 		return fmt.Errorf("error building desired Endpoints: %v", err)
 	}
 
@@ -88,6 +94,10 @@ func (r *EndpointsReconciler) endpoints(ctx context.Context, key types.Namespace
 			notReadyAddresses = append(notReadyAddresses, *addr)
 		}
 	}
+	if len(addresses) == 0 && len(notReadyAddresses) == 0 {
+		return nil, ErrNoAddressesAvailable
+	}
+
 	subsets := []corev1.EndpointSubset{
 		{
 			Addresses:         addresses,
@@ -101,7 +111,6 @@ func (r *EndpointsReconciler) endpoints(ctx context.Context, key types.Namespace
 			},
 		},
 	}
-
 	endpoints, err := r.builder.BuildEndpoints(key, mariadb, subsets)
 	if err != nil {
 		return nil, fmt.Errorf("error building Endpoints: %v", err)

@@ -49,6 +49,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -555,7 +556,14 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
 		return err
 	}
-	return r.EndpointsReconciler.Reconcile(ctx, resources.SecondaryServiceKey(mariadb), mariadb)
+	if err := r.EndpointsReconciler.Reconcile(ctx, resources.SecondaryServiceKey(mariadb), mariadb); err != nil {
+		if errors.Is(err, endpoints.ErrNoAddressesAvailable) {
+			log.FromContext(ctx).V(1).Info("No addresses available for secondary Endpoints")
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
