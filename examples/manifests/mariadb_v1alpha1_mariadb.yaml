@@ -27,11 +27,12 @@ spec:
     accessModes:
       - ReadWriteOnce
   volumes: 
-    - name: tmp
-      emptyDir: {}
+    - name: mariabackup
+      persistentVolumeClaim:
+        claimName: mariabackup
   volumeMounts: 
-    - name: tmp
-      mountPath: /tmp
+    - name: mariabackup
+      mountPath: /var/mariadb/backup/
 
   myCnf: |
     [mariadb]
