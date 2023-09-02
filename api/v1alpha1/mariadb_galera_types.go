@@ -274,6 +274,7 @@ func (g *GaleraSpec) FillWithDefaults() {
 
 var (
 	fiveSeconds    = metav1.Duration{Duration: 5 * time.Second}
+	threeMinutes   = metav1.Duration{Duration: 3 * time.Minute}
 	fiveMinutes    = metav1.Duration{Duration: 5 * time.Minute}
 	tenMinutes     = metav1.Duration{Duration: 10 * time.Minute}
 	sst            = SSTMariaBackup
@@ -303,10 +304,10 @@ var (
 		},
 		Recovery: &GaleraRecovery{
 			Enabled:                 true,
-			ClusterHealthyTimeout:   &fiveMinutes,
+			ClusterHealthyTimeout:   &threeMinutes,
 			ClusterBootstrapTimeout: &tenMinutes,
 			PodRecoveryTimeout:      &fiveMinutes,
-			PodSyncTimeout:          &tenMinutes,
+			PodSyncTimeout:          &fiveMinutes,
 		},
 		InitContainer: &ContainerTemplate{
 			Image: Image{
