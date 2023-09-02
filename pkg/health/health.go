@@ -11,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -57,12 +58,16 @@ func HealthyReplica(ctx context.Context, client client.Client, mariadb *mariadbv
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	podLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
-			Build()
 	podList := corev1.PodList{}
-	if err := client.List(ctx, &podList, ctrlclient.MatchingLabels(podLabels)); err != nil {
+	listOpts := &ctrlclient.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDB(mariadb).
+				Build(),
+		),
+		Namespace: mariadb.GetNamespace(),
+	}
+	if err := client.List(ctx, &podList, listOpts); err != nil {
 		return nil, fmt.Errorf("error listing Pods: %v", err)
 	}
 	for _, p := range podList.Items {
