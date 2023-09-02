@@ -173,16 +173,16 @@ func (r *MariaDB) validateReplication() error {
 	return nil
 }
 
-func (r *MariaDB) validatePrimarySwitchover(oldMariadb *MariaDB) error {
-	if oldMariadb.Replication().Enabled && oldMariadb.IsSwitchingPrimary() {
-		if oldMariadb.Replication().Primary.PodIndex != r.Replication().Primary.PodIndex {
+func (r *MariaDB) validatePrimarySwitchover(old *MariaDB) error {
+	if old.Replication().Enabled && old.IsSwitchingPrimary() {
+		if *old.Replication().Primary.PodIndex != *r.Replication().Primary.PodIndex {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
 				r.Replication().Primary.PodIndex,
 				"'spec.replication.primary.podIndex' cannot be updated during a primary switchover",
 			)
 		}
-		if *oldMariadb.Replication().Primary.AutomaticFailover != *r.Replication().Primary.AutomaticFailover &&
+		if *old.Replication().Primary.AutomaticFailover != *r.Replication().Primary.AutomaticFailover &&
 			*r.Replication().Primary.AutomaticFailover {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication").Child("primary").Child("automaticFailover"),
