@@ -10,6 +10,7 @@ spec:
     - "SELECT"
     - "INSERT"
     - "UPDATE"
+    - "ALTER"
   database: "*"
   table: "*"
   username: photoprism
