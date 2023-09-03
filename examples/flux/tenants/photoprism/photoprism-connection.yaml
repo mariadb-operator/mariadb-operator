@@ -12,3 +12,5 @@ spec:
     key: password
   database: photoprism
   secretName: photoprism-conn
+  params:
+    parseTime: "true"
