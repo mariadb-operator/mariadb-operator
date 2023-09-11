@@ -29,9 +29,9 @@ type ServiceOpts struct {
 	Ports                    []corev1.ServicePort
 	ClusterIP                *string
 	PublishNotReadyAddresses *bool
-	ExternalTrafficPolicy    string
+	ExternalTrafficPolicy    *string
 	LoadBalancerSourceRanges []string
-	LoadBalancerIp           string
+	LoadBalancerIp           *string
 }
 
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
