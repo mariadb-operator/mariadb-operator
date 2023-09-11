@@ -70,7 +70,9 @@ func (p *PodDisruptionBudget) Validate() error {
 type ServiceTemplate struct {
 	Type        corev1.ServiceType `json:"type,omitempty"`
 	Annotations map[string]string  `json:"annotations,omitempty"`
-	ExternalTrafficPolicy [string]string `json:"externaltrafficpolicy,omitempty"`
+	externalTrafficPolicy string `json:"externalTrafficPolicy,omitempty"`
+	loadBalancerSourceRanges []string `json:"loadBalancerSourceRanges,omitempty"`
+	loadBalancerIp string `json:"loadBalancerIp,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
