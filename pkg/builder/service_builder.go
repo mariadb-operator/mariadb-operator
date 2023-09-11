@@ -29,7 +29,7 @@ type ServiceOpts struct {
 	Ports                    []corev1.ServicePort
 	ClusterIP                *string
 	PublishNotReadyAddresses *bool
-	ExternalTrafficPolicy    *string
+	ExternalTrafficPolicy    corev1.ServiceExternalTrafficPolicy
 	LoadBalancerSourceRanges []string
 }
 
