@@ -22,13 +22,11 @@ func MariaDBPort(svc *corev1.Service) (*v1.ServicePort, error) {
 }
 
 type ServiceOpts struct {
-	Selectorlabels           map[string]string
-	ExcludeSelectorLabels    bool
-	Annotations              map[string]string
-	Type                     corev1.ServiceType
-	Ports                    []corev1.ServicePort
-	ClusterIP                *string
-	PublishNotReadyAddresses *bool
+	mariadbv1alpha1.ServiceTemplate
+	Selectorlabels        map[string]string
+	ExcludeSelectorLabels bool
+	Ports                 []corev1.ServicePort
+	Headless              bool
 }
 
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
@@ -42,7 +40,7 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
 			WithAnnotations(opts.Annotations).
-			WithLabels(selectorLabels).
+			WithLabels(opts.Labels).
 			Build()
 	svc := &corev1.Service{
 		ObjectMeta: objMeta,
@@ -51,14 +49,24 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 			Ports: opts.Ports,
 		},
 	}
-	if opts.ClusterIP != nil {
-		svc.Spec.ClusterIP = *opts.ClusterIP
-	}
-	if opts.PublishNotReadyAddresses != nil {
-		svc.Spec.PublishNotReadyAddresses = *opts.PublishNotReadyAddresses
+	if opts.Headless {
+		svc.Spec.ClusterIP = "None"
+		svc.Spec.PublishNotReadyAddresses = true
 	}
 	if !opts.ExcludeSelectorLabels {
 		svc.Spec.Selector = selectorLabels
+	}
+	if opts.LoadBalancerIP != nil {
+		svc.Spec.LoadBalancerIP = *opts.LoadBalancerIP
+	}
+	if opts.LoadBalancerSourceRanges != nil {
+		svc.Spec.LoadBalancerSourceRanges = opts.LoadBalancerSourceRanges
+	}
+	if opts.ExternalTrafficPolicy != nil {
+		svc.Spec.ExternalTrafficPolicy = *opts.ExternalTrafficPolicy
+	}
+	if opts.SessionAffinity != nil {
+		svc.Spec.SessionAffinity = *opts.SessionAffinity
 	}
 	if err := controllerutil.SetControllerReference(mariadb, svc, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Service: %v", err)

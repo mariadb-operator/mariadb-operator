@@ -447,8 +447,7 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 		Ports: ports,
 	}
 	if mariadb.Spec.Service != nil {
-		opts.Type = mariadb.Spec.Service.Type
-		opts.Annotations = mariadb.Spec.Service.Annotations
+		opts.ServiceTemplate = *mariadb.Spec.Service
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
@@ -459,8 +458,6 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 
 func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := ctrlresources.InternalServiceKey(mariadb)
-	clusterIp := "None"
-	publishNotReadyAddresses := true
 	ports := []corev1.ServicePort{
 		{
 			Name: builder.MariaDbPortName,
@@ -489,13 +486,8 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 	}
 
 	opts := builder.ServiceOpts{
-		Type:                     corev1.ServiceTypeClusterIP,
-		Ports:                    ports,
-		ClusterIP:                &clusterIp,
-		PublishNotReadyAddresses: &publishNotReadyAddresses,
-	}
-	if mariadb.Spec.Service != nil {
-		opts.Annotations = mariadb.Spec.Service.Annotations
+		Ports:    ports,
+		Headless: true,
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
@@ -524,8 +516,7 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 		},
 	}
 	if mariadb.Spec.PrimaryService != nil {
-		opts.Type = mariadb.Spec.PrimaryService.Type
-		opts.Annotations = mariadb.Spec.PrimaryService.Annotations
+		opts.ServiceTemplate = *mariadb.Spec.PrimaryService
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
@@ -546,8 +537,7 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 		},
 	}
 	if mariadb.Spec.SecondaryService != nil {
-		opts.Type = mariadb.Spec.SecondaryService.Type
-		opts.Annotations = mariadb.Spec.SecondaryService.Annotations
+		opts.ServiceTemplate = *mariadb.Spec.SecondaryService
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
