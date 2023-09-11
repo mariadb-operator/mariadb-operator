@@ -448,6 +448,9 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 	if mariadb.Spec.Service != nil {
 		opts.Type = mariadb.Spec.Service.Type
 		opts.Annotations = mariadb.Spec.Service.Annotations
+		opts.externalTrafficPolicy = mariadb.Spec.Service.externalTrafficPolicy
+		opts.loadBalancerSourceRanges = mariadb.Spec.Service.loadBalancerSourceRanges
+		opts.loadBalancerIp = mariadb.Spec.Service.loadBalancerIp	
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
@@ -525,6 +528,9 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 	if mariadb.Spec.PrimaryService != nil {
 		opts.Type = mariadb.Spec.PrimaryService.Type
 		opts.Annotations = mariadb.Spec.PrimaryService.Annotations
+		opts.externalTrafficPolicy = mariadb.Spec.Service.externalTrafficPolicy
+		opts.loadBalancerSourceRanges = mariadb.Spec.Service.loadBalancerSourceRanges
+		opts.loadBalancerIp = mariadb.Spec.Service.loadBalancerIp
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
@@ -547,6 +553,9 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 	if mariadb.Spec.SecondaryService != nil {
 		opts.Type = mariadb.Spec.SecondaryService.Type
 		opts.Annotations = mariadb.Spec.SecondaryService.Annotations
+		opts.externalTrafficPolicy = mariadb.Spec.Service.externalTrafficPolicy
+		opts.loadBalancerSourceRanges = mariadb.Spec.Service.loadBalancerSourceRanges
+		opts.loadBalancerIp = mariadb.Spec.Service.loadBalancerIp
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
