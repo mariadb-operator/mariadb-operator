@@ -6310,9 +6310,6 @@ spec:
                   loadbalancersourceranges:
                     description: restricts traffic through the load balancer to the IPs specified in this field. 
                     type: array
-                  loadbalancerip:
-                    description: enables you to choose a specific IP address for the load balancer. 
-                    type: string
                 type: object
               readinessProbe:
                 description: Probe describes a health check to be performed against
@@ -6645,9 +6642,6 @@ spec:
                   loadbalancersourceranges:
                     description: restricts traffic through the load balancer to the IPs specified in this field. 
                     type: array
-                  loadbalancerip:
-                    description: enables you to choose a specific IP address for the load balancer. 
-                    type: string
                 type: object
               securityContext:
                 description: SecurityContext holds security configuration that will
@@ -6831,9 +6825,6 @@ spec:
                   loadbalancersourceranges:
                     description: restricts traffic through the load balancer to the IPs specified in this field. 
                     type: array
-                  loadbalancerip:
-                    description: enables you to choose a specific IP address for the load balancer. 
-                    type: string
                 type: object
               tolerations:
                 items:
