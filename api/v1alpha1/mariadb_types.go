@@ -72,7 +72,6 @@ type ServiceTemplate struct {
 	Annotations map[string]string  `json:"annotations,omitempty"`
 	ExternalTrafficPolicy *string `json:"externalTrafficPolicy,omitempty"`
 	LoadBalancerSourceRanges []string `json:"loadBalancerSourceRanges,omitempty"`
-	LoadBalancerIp *string `json:"loadBalancerIp,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
