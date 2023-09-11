@@ -31,7 +31,6 @@ type ServiceOpts struct {
 	PublishNotReadyAddresses *bool
 	ExternalTrafficPolicy    *string
 	LoadBalancerSourceRanges []string
-	LoadBalancerIp           *string
 }
 
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
@@ -62,9 +61,6 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	}
 	if opts.ExternalTrafficPolicy != nil {
 		svc.Spec.ExternalTrafficPolicy = *opts.ExternalTrafficPolicy
-	}
-	if opts.LoadBalancerIp != nil {
-		svc.Spec.LoadBalancerIp = *opts.LoadBalancerIp
 	}
 	if opts.LoadBalancerSourceRanges != nil {
 		svc.Spec.LoadBalancerSourceRanges = *opts.LoadBalancerSourceRanges
