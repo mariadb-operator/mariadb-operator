@@ -29,6 +29,9 @@ type ServiceOpts struct {
 	Ports                    []corev1.ServicePort
 	ClusterIP                *string
 	PublishNotReadyAddresses *bool
+	externalTrafficPolicy    string
+	loadBalancerSourceRanges []string
+	loadBalancerIp           string
 }
 
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
@@ -57,8 +60,14 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	if opts.PublishNotReadyAddresses != nil {
 		svc.Spec.PublishNotReadyAddresses = *opts.PublishNotReadyAddresses
 	}
-	if opts.ExternalTrafficPolicy != nil {
-		svc.Spec.PublishNotReadyAddresses = *opts.ExternalTrafficPolicy
+	if opts.externalTrafficPolicy != nil {
+		svc.Spec.externalTrafficPolicy = *opts.externalTrafficPolicy
+	}
+	if opts.loadBalancerIp != nil {
+		svc.Spec.loadBalancerIp = *opts.loadBalancerIp
+	}
+	if opts.loadBalancerSourceRanges != nil {
+		svc.Spec.loadBalancerSourceRanges = *opts.loadBalancerSourceRanges
 	}
 	if !opts.ExcludeSelectorLabels {
 		svc.Spec.Selector = selectorLabels
