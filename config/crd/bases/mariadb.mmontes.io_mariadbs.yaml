@@ -6064,6 +6064,10 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              podAnnotations:
+                additionalProperties:
+                  type: string
+                type: object
               podDisruptionBudget:
                 properties:
                   maxUnavailable:

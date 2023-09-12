@@ -93,6 +93,8 @@ type MariaDBSpec struct {
 	MyCnf                *string                      `json:"myCnf,omitempty" webhook:"inmutable"`
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
 
+	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
+
 	BootstrapFrom *RestoreSource `json:"bootstrapFrom,omitempty"`
 
 	Metrics *Metrics `json:"metrics,omitempty"`
