@@ -107,6 +107,7 @@ func (b *Builder) buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *cor
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
 			WithMariaDB(mariadb).
 			WithLabels(labels).
+			WithAnnotations(mariadb.Spec.PodAnnotations).
 			WithAnnotations(buildHAAnnotations(mariadb)).
 			Build()
 	automount, serviceAccount := buildStsServiceAccountName(mariadb)
