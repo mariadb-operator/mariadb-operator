@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *Grant) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -34,16 +35,19 @@ func (r *Grant) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &Grant{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Grant) ValidateCreate() error {
-	return nil
+func (r *Grant) ValidateCreate() (admission.Warnings, error) {
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Grant) ValidateUpdate(old runtime.Object) error {
-	return inmutableWebhook.ValidateUpdate(r, old.(*Grant))
+func (r *Grant) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	if err := inmutableWebhook.ValidateUpdate(r, old.(*Grant)); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Grant) ValidateDelete() error {
-	return nil
+func (r *Grant) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }

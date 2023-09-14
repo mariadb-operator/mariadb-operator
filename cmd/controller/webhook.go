@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
@@ -44,13 +45,15 @@ var webhookCmd = &cobra.Command{
 		setupLogger()
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:                 scheme,
-			MetricsBindAddress:     metricsAddr,
+			Scheme: scheme,
+			Metrics: metricsserver.Options{
+				BindAddress: metricsAddr,
+			},
 			HealthProbeBindAddress: healthAddr,
-			WebhookServer: &webhook.Server{
+			WebhookServer: webhook.NewServer(webhook.Options{
 				CertDir: certDir,
 				Port:    port,
-			},
+			}),
 		})
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")

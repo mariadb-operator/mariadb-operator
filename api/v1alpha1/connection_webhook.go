@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *Connection) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -39,30 +40,28 @@ func (r *Connection) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &Connection{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Connection) ValidateCreate() error {
-	if err := r.validateHealthCheck(); err != nil {
-		return err
-	}
-	if err := r.validateCustomDSNFormat(); err != nil {
-		return err
-	}
-	return nil
+func (r *Connection) ValidateCreate() (admission.Warnings, error) {
+	return r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Connection) ValidateUpdate(old runtime.Object) error {
-	if err := r.validateHealthCheck(); err != nil {
-		return err
+func (r *Connection) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	if err := inmutableWebhook.ValidateUpdate(r, old.(*Connection)); err != nil {
+		return nil, err
 	}
-	if err := r.validateCustomDSNFormat(); err != nil {
-		return err
-	}
-	return inmutableWebhook.ValidateUpdate(r, old.(*Connection))
+	return r.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Connection) ValidateDelete() error {
-	return nil
+func (r *Connection) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
+}
+
+func (r *Connection) validate() (admission.Warnings, error) {
+	if err := r.validateHealthCheck(); err != nil {
+		return nil, err
+	}
+	return nil, r.validateCustomDSNFormat()
 }
 
 func (r *Connection) validateHealthCheck() error {

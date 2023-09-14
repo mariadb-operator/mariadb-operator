@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -83,7 +82,7 @@ func (r *GrantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.Grant{}).
 		Watches(
-			&source.Kind{Type: &mariadbv1alpha1.User{}},
+			&mariadbv1alpha1.User{},
 			handler.EnqueueRequestsFromMapFunc(r.mapUserToRequests),
 			builder.WithPredicates(predicate.Funcs{
 				CreateFunc: func(ce event.CreateEvent) bool {
@@ -108,7 +107,7 @@ func (r *GrantReconciler) createIndex(mgr ctrl.Manager) error {
 	return nil
 }
 
-func (r *GrantReconciler) mapUserToRequests(user client.Object) []reconcile.Request {
+func (r *GrantReconciler) mapUserToRequests(ctx context.Context, user client.Object) []reconcile.Request {
 	grantsToReconcile := &mariadbv1alpha1.GrantList{}
 	listOpts := &client.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(usernameField, user.GetName()),

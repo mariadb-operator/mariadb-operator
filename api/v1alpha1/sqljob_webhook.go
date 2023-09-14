@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *SqlJob) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -37,27 +38,31 @@ func (r *SqlJob) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &SqlJob{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (s *SqlJob) ValidateCreate() error {
-	if err := s.validateSql(); err != nil {
-		return err
-	}
-	return s.validateSchedule()
+func (s *SqlJob) ValidateCreate() (admission.Warnings, error) {
+	return s.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (s *SqlJob) ValidateUpdate(old runtime.Object) error {
-	if err := s.validateSql(); err != nil {
-		return err
+func (s *SqlJob) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	if err := inmutableWebhook.ValidateUpdate(s, old.(*SqlJob)); err != nil {
+		return nil, err
 	}
-	if err := s.validateSchedule(); err != nil {
-		return err
-	}
-	return inmutableWebhook.ValidateUpdate(s, old.(*SqlJob))
+	return s.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *SqlJob) ValidateDelete() error {
-	return nil
+func (r *SqlJob) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
+}
+
+func (s *SqlJob) validate() (admission.Warnings, error) {
+	if err := s.validateSql(); err != nil {
+		return nil, err
+	}
+	if err := s.validateSchedule(); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 func (s *SqlJob) validateSql() error {

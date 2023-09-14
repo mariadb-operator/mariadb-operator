@@ -24,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	log "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 var logger = log.Log.WithName("mariadb")
@@ -59,26 +60,30 @@ func (r *MariaDB) Default() {
 var _ webhook.Validator = &MariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *MariaDB) ValidateCreate() error {
+func (r *MariaDB) ValidateCreate() (admission.Warnings, error) {
 	logger.V(1).Info("Validate MariaDB creation", "mariadb", r.Name)
-	validateFns := []func() error{
-		r.validateHA,
-		r.validateGalera,
-		r.validateReplication,
-		r.validateBootstrapFrom,
-		r.validatePodDisruptionBudget,
-	}
-	for _, fn := range validateFns {
-		if err := fn(); err != nil {
-			return err
-		}
-	}
-	return nil
+	return nil, r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
+func (r *MariaDB) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	logger.V(1).Info("Validate MariaDB update", "mariadb", r.Name)
+	oldMariadb := old.(*MariaDB)
+	if err := inmutableWebhook.ValidateUpdate(r, oldMariadb); err != nil {
+		return nil, err
+	}
+	if err := r.validate(); err != nil {
+		return nil, err
+	}
+	return nil, r.validatePrimarySwitchover(oldMariadb)
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *MariaDB) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
+}
+
+func (r *MariaDB) validate() error {
 	validateFns := []func() error{
 		r.validateHA,
 		r.validateGalera,
@@ -91,15 +96,6 @@ func (r *MariaDB) ValidateUpdate(old runtime.Object) error {
 			return err
 		}
 	}
-	oldMariadb := old.(*MariaDB)
-	if err := r.validatePrimarySwitchover(oldMariadb); err != nil {
-		return err
-	}
-	return inmutableWebhook.ValidateUpdate(r, oldMariadb)
-}
-
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *MariaDB) ValidateDelete() error {
 	return nil
 }
 

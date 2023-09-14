@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *Backup) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -37,33 +38,28 @@ func (r *Backup) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &Backup{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Backup) ValidateCreate() error {
-	if err := r.validateSchedule(); err != nil {
-		return err
-	}
-	if err := r.validateStorage(); err != nil {
-		return err
-	}
-	return nil
+func (r *Backup) ValidateCreate() (admission.Warnings, error) {
+	return r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Backup) ValidateUpdate(old runtime.Object) error {
+func (r *Backup) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	if err := inmutableWebhook.ValidateUpdate(r, old.(*Backup)); err != nil {
-		return err
+		return nil, err
 	}
-	if err := r.validateSchedule(); err != nil {
-		return err
-	}
-	if err := r.validateStorage(); err != nil {
-		return err
-	}
-	return nil
+	return r.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Backup) ValidateDelete() error {
-	return nil
+func (r *Backup) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
+}
+
+func (r *Backup) validate() (admission.Warnings, error) {
+	if err := r.validateSchedule(); err != nil {
+		return nil, err
+	}
+	return nil, r.validateStorage()
 }
 
 func (r *Backup) validateSchedule() error {
