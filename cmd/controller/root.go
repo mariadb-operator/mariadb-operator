@@ -51,6 +51,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var (
@@ -92,9 +93,10 @@ var rootCmd = &cobra.Command{
 		defer cancel()
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:                 scheme,
-			MetricsBindAddress:     metricsAddr,
-			Port:                   9443,
+			Scheme: scheme,
+			Metrics: metricsserver.Options{
+				BindAddress: metricsAddr,
+			},
 			HealthProbeBindAddress: healthAddr,
 			LeaderElection:         leaderElect,
 			LeaderElectionID:       "mariadb-operator.mmontes.io",
