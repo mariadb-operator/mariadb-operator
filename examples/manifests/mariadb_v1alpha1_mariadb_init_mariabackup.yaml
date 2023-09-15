@@ -27,7 +27,7 @@ spec:
         tag: "11.0.3"
         pullPolicy: IfNotPresent
       args:
-        - maria-backup 
+        - mariadb-backup 
         - --copy-back 
         - --target-dir=/var/mariadb/backup/
 
