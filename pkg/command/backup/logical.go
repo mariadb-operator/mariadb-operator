@@ -29,7 +29,7 @@ func (l *logicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
 		),
 		"echo '🧹 Cleaning up old backups'",
 		fmt.Sprintf(
-			"find %s -name *.sql -type f -mtime +%d -exec rm {} ';'",
+			"find %s -name *.sql -type f -mtime +%d -delete",
 			l.BasePath,
 			backup.Spec.MaxRetentionDays,
 		),
