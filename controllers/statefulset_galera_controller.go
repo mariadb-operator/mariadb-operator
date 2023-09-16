@@ -96,13 +96,11 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	sts *appsv1.StatefulSet, logger logr.Logger) (bool, error) {
-	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
-	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
-	err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(context.Context) (bool, error) {
+	err := wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(ctx context.Context) (bool, error) {
 		return r.isHealthy(ctx, mariadb, sts, logger)
 	})
 	if err != nil {
-		if errors.Is(err, wait.ErrWaitTimeout) {
+		if wait.Interrupted(err) {
 			return false, nil
 		}
 		return false, fmt.Errorf("error polling health: %v", err)

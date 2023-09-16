@@ -418,9 +418,7 @@ func (r *GaleraReconciler) patchRecoveryStatus(ctx context.Context, mdb *mariadb
 }
 
 func pollUntilSucessWithTimeout(ctx context.Context, logger logr.Logger, fn func(ctx context.Context) error) error {
-	// TODO: bump apimachinery and migrate to PollUntilContextTimeout.
-	// See: https://pkg.go.dev/k8s.io/apimachinery@v0.27.2/pkg/util/wait#PollUntilContextTimeout
-	if err := wait.PollImmediateUntilWithContext(ctx, 1*time.Second, func(ctx context.Context) (bool, error) {
+	if err := wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(ctx context.Context) (bool, error) {
 		if err := fn(ctx); err != nil {
 			logger.V(1).Info("Error polling", "err", err)
 			return false, nil

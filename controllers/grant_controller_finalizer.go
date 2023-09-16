@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -70,7 +69,7 @@ func (wf *wrappedGrantFinalizer) ContainsFinalizer() bool {
 }
 
 func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
-	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 5*time.Second, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
 		var user mariadbv1alpha1.User
 		if err := wf.Get(ctx, userKey(wf.grant), &user); err != nil {
 			if apierrors.IsNotFound(err) {
@@ -84,7 +83,7 @@ func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *maria
 	if err == nil {
 		return nil
 	}
-	if err != nil && !errors.Is(err, wait.ErrWaitTimeout) {
+	if err != nil && !wait.Interrupted(err) {
 		return fmt.Errorf("error checking if user exists in MariaDB: %v", err)
 	}
 
