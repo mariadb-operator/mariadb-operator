@@ -25,15 +25,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("User webhook", func() {
+var _ = Describe("User webhook", Ordered, func() {
 	Context("When updating a User", func() {
-		It("Should validate", func() {
-			By("Creating User")
-			key := types.NamespacedName{
-				Name:      "user-mariadb-webhook",
-				Namespace: testNamespace,
-			}
-			initialUser := User{
+		key := types.NamespacedName{
+			Name:      "user-create-webhook",
+			Namespace: testNamespace,
+		}
+		BeforeAll(func() {
+			user := User{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
@@ -54,52 +53,45 @@ var _ = Describe("User webhook", func() {
 					MaxUserConnections: 10,
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &initialUser)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+		})
+		DescribeTable(
+			"Should validate",
+			func(patchFn func(u *User), wantErr bool) {
+				var user User
+				Expect(k8sClient.Get(testCtx, key, &user)).To(Succeed())
 
-			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mariadb-operator/mariadb-operator/issues/3
-			tt := []struct {
-				by      string
-				patchFn func(mdb *User)
-				wantErr bool
-			}{
-				{
-					by: "Updating MariaDBRef",
-					patchFn: func(umdb *User) {
-						umdb.Spec.MariaDBRef.Name = "another-mariadb"
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating PasswordSecretKeyRef",
-					patchFn: func(umdb *User) {
-						umdb.Spec.PasswordSecretKeyRef.Name = "another-secret"
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating MaxUserConnections",
-					patchFn: func(umdb *User) {
-						umdb.Spec.MaxUserConnections = 20
-					},
-					wantErr: true,
-				},
-			}
+				patch := client.MergeFrom(user.DeepCopy())
+				patchFn(&user)
 
-			for _, t := range tt {
-				By(t.by)
-				Expect(k8sClient.Get(testCtx, key, &initialUser)).To(Succeed())
-
-				patch := client.MergeFrom(initialUser.DeepCopy())
-				t.patchFn(&initialUser)
-
-				err := k8sClient.Patch(testCtx, &initialUser, patch)
-				if t.wantErr {
+				err := k8sClient.Patch(testCtx, &user, patch)
+				if wantErr {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
 				}
-			}
-		})
+			},
+			Entry(
+				"Updating MariaDBRef",
+				func(umdb *User) {
+					umdb.Spec.MariaDBRef.Name = "another-mariadb"
+				},
+				true,
+			),
+			Entry(
+				"Updating PasswordSecretKeyRef",
+				func(umdb *User) {
+					umdb.Spec.PasswordSecretKeyRef.Name = "another-secret"
+				},
+				true,
+			),
+			Entry(
+				"Updating MaxUserConnections",
+				func(umdb *User) {
+					umdb.Spec.MaxUserConnections = 20
+				},
+				true,
+			),
+		)
 	})
 })

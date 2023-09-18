@@ -28,153 +28,144 @@ import (
 
 var _ = Describe("Restore webhook", func() {
 	Context("When creating a Restore", func() {
-		It("Should validate", func() {
-			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mariadb-operator/mariadb-operator/issues/3
-			tt := []struct {
-				by      string
-				restore Restore
-				wantErr bool
-			}{
-				{
-					by: "Creating a restore with invalid source 1",
-					restore: Restore{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "restore-invalid-source-1",
-							Namespace: testNamespace,
-						},
-						Spec: RestoreSpec{
-							RestoreSource: RestoreSource{},
-							MariaDBRef: MariaDBRef{
-								ObjectReference: corev1.ObjectReference{
-									Name: "mariadb-webhook",
-								},
-								WaitForIt: true,
-							},
-							BackoffLimit: 10,
-						},
-					},
-					wantErr: true,
-				},
-				{
-					by: "Creating a restore with invalid source 2",
-					restore: Restore{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "restore-invalid-source-2",
-							Namespace: testNamespace,
-						},
-						Spec: RestoreSpec{
-							RestoreSource: RestoreSource{
-								FileName: func() *string { s := "foo.sql"; return &s }(),
-							},
-							MariaDBRef: MariaDBRef{
-								ObjectReference: corev1.ObjectReference{
-									Name: "mariadb-webhook",
-								},
-								WaitForIt: true,
-							},
-							BackoffLimit: 10,
-						},
-					},
-					wantErr: true,
-				},
-				{
-					by: "Creating a restore with valid source 1",
-					restore: Restore{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "restore-webhook-1",
-							Namespace: testNamespace,
-						},
-						Spec: RestoreSpec{
-							RestoreSource: RestoreSource{
-								BackupRef: &corev1.LocalObjectReference{
-									Name: "backup-webhook",
-								},
-							},
-							MariaDBRef: MariaDBRef{
-								ObjectReference: corev1.ObjectReference{
-									Name: "mariadb-webhook",
-								},
-								WaitForIt: true,
-							},
-							BackoffLimit: 10,
-						},
-					},
-					wantErr: false,
-				},
-				{
-					by: "Creating a restore with valid source 2",
-					restore: Restore{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "restore-webhook-2",
-							Namespace: testNamespace,
-						},
-						Spec: RestoreSpec{
-							RestoreSource: RestoreSource{
-								Volume: &corev1.VolumeSource{
-									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-										ClaimName: "pvc-webhook",
-									},
-								},
-							},
-							MariaDBRef: MariaDBRef{
-								ObjectReference: corev1.ObjectReference{
-									Name: "mariadb-webhook",
-								},
-								WaitForIt: true,
-							},
-							BackoffLimit: 10,
-						},
-					},
-					wantErr: false,
-				},
-				{
-					by: "Creating a restore with valid source 3",
-					restore: Restore{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "restore-webhook-3",
-							Namespace: testNamespace,
-						},
-						Spec: RestoreSpec{
-							RestoreSource: RestoreSource{
-								Volume: &corev1.VolumeSource{
-									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-										ClaimName: "pvc-webhook",
-									},
-								},
-							},
-							MariaDBRef: MariaDBRef{
-								ObjectReference: corev1.ObjectReference{
-									Name: "mariadb-webhook",
-								},
-								WaitForIt: true,
-							},
-							BackoffLimit: 10,
-						},
-					},
-					wantErr: false,
-				},
-			}
-
-			for _, t := range tt {
-				By(t.by)
-				err := k8sClient.Create(testCtx, &t.restore)
-				if t.wantErr {
+		DescribeTable(
+			"Should validate",
+			func(restore *Restore, wantErr bool) {
+				_ = k8sClient.Delete(testCtx, restore)
+				err := k8sClient.Create(testCtx, restore)
+				if wantErr {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
 				}
-			}
-		})
+			},
+			Entry(
+				"Invalid source 1",
+				&Restore{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "restore-invalid-source-1",
+						Namespace: testNamespace,
+					},
+					Spec: RestoreSpec{
+						RestoreSource: RestoreSource{},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				true,
+			),
+			Entry(
+				"Invalid source 2",
+				&Restore{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "restore-invalid-source-2",
+						Namespace: testNamespace,
+					},
+					Spec: RestoreSpec{
+						RestoreSource: RestoreSource{
+							FileName: func() *string { s := "foo.sql"; return &s }(),
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid source 1",
+				&Restore{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "restore-webhook-1",
+						Namespace: testNamespace,
+					},
+					Spec: RestoreSpec{
+						RestoreSource: RestoreSource{
+							BackupRef: &corev1.LocalObjectReference{
+								Name: "backup-webhook",
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				false,
+			),
+			Entry(
+				"Valid source 2",
+				&Restore{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "restore-webhook-2",
+						Namespace: testNamespace,
+					},
+					Spec: RestoreSpec{
+						RestoreSource: RestoreSource{
+							Volume: &corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "pvc-webhook",
+								},
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				false,
+			),
+			Entry(
+				"Valid source 3",
+				&Restore{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "restore-webhook-3",
+						Namespace: testNamespace,
+					},
+					Spec: RestoreSpec{
+						RestoreSource: RestoreSource{
+							Volume: &corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "pvc-webhook",
+								},
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				false,
+			),
+		)
 	})
 
-	Context("When updating a Restore", func() {
-		It("Should validate", func() {
-			By("Creating a Restore")
-			key := types.NamespacedName{
-				Name:      "restore-mariadb-webhook",
-				Namespace: testNamespace,
-			}
+	Context("When updating a Restore", Ordered, func() {
+		key := types.NamespacedName{
+			Name:      "restore-mariadb-webhook",
+			Namespace: testNamespace,
+		}
+		BeforeAll(func() {
 			restore := Restore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
@@ -202,91 +193,84 @@ var _ = Describe("Restore webhook", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &restore)).To(Succeed())
-
-			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mariadb-operator/mariadb-operator/issues/3
-			tt := []struct {
-				by      string
-				patchFn func(mdb *Restore)
-				wantErr bool
-			}{
-				{
-					by: "Updating BackoffLimit",
-					patchFn: func(rmdb *Restore) {
-						rmdb.Spec.BackoffLimit = 20
-					},
-					wantErr: false,
-				},
-				{
-					by: "Updating RestartPolicy",
-					patchFn: func(rmdb *Restore) {
-						rmdb.Spec.RestartPolicy = corev1.RestartPolicyNever
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating Resources",
-					patchFn: func(rmdb *Restore) {
-						rmdb.Spec.Resources = &corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"cpu": resource.MustParse("200m"),
-							},
-						}
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating MariaDBRef",
-					patchFn: func(rmdb *Restore) {
-						rmdb.Spec.MariaDBRef.Name = "another-mariadb"
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating BackupRef source",
-					patchFn: func(rmdb *Restore) {
-						rmdb.Spec.RestoreSource.BackupRef.Name = "another-backup"
-					},
-					wantErr: true,
-				},
-				{
-					by: "Init Volume source",
-					patchFn: func(rmdb *Restore) {
-						rmdb.Spec.RestoreSource.Volume = &corev1.VolumeSource{
-							NFS: &corev1.NFSVolumeSource{
-								Server: "nas.local",
-								Path:   "/volume/foo",
-							},
-						}
-					},
-					wantErr: false,
-				},
-				{
-					by: "Init FileName source",
-					patchFn: func(rmdb *Restore) {
-						rmdb.Spec.RestoreSource.FileName = func() *string {
-							f := "backup.sql"
-							return &f
-						}()
-					},
-					wantErr: false,
-				},
-			}
-
-			for _, t := range tt {
-				By(t.by)
+		})
+		DescribeTable(
+			"Should validate",
+			func(patchFn func(restore *Restore), wantErr bool) {
+				var restore Restore
 				Expect(k8sClient.Get(testCtx, key, &restore)).To(Succeed())
 
 				patch := client.MergeFrom(restore.DeepCopy())
-				t.patchFn(&restore)
+				patchFn(&restore)
 
 				err := k8sClient.Patch(testCtx, &restore, patch)
-				if t.wantErr {
+				if wantErr {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
 				}
-			}
-		})
+			},
+			Entry(
+				"Updating BackoffLimit",
+				func(rmdb *Restore) {
+					rmdb.Spec.BackoffLimit = 20
+				},
+				false,
+			),
+			Entry(
+				"Updating RestartPolicy",
+				func(rmdb *Restore) {
+					rmdb.Spec.RestartPolicy = corev1.RestartPolicyNever
+				},
+				true,
+			),
+			Entry(
+				"Updating Resources",
+				func(rmdb *Restore) {
+					rmdb.Spec.Resources = &corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"cpu": resource.MustParse("200m"),
+						},
+					}
+				},
+				true,
+			),
+			Entry(
+				"Updating MariaDBRef",
+				func(rmdb *Restore) {
+					rmdb.Spec.MariaDBRef.Name = "another-mariadb"
+				},
+				true,
+			),
+			Entry(
+				"Updating BackupRef source",
+				func(rmdb *Restore) {
+					rmdb.Spec.RestoreSource.BackupRef.Name = "another-backup"
+				},
+				true,
+			),
+			Entry(
+				"Init Volume source",
+				func(rmdb *Restore) {
+					rmdb.Spec.RestoreSource.Volume = &corev1.VolumeSource{
+						NFS: &corev1.NFSVolumeSource{
+							Server: "nas.local",
+							Path:   "/volume/foo",
+						},
+					}
+				},
+				false,
+			),
+			Entry(
+				"Init FileName source",
+				func(rmdb *Restore) {
+					rmdb.Spec.RestoreSource.FileName = func() *string {
+						f := "backup.sql"
+						return &f
+					}()
+				},
+				false,
+			),
+		)
 	})
 })

@@ -26,13 +26,12 @@ import (
 )
 
 var _ = Describe("Database webhook", func() {
-	Context("When updating a Database", func() {
-		It("Should validate", func() {
-			By("Creating Database")
-			key := types.NamespacedName{
-				Name:      "database-mariadb-webhook",
-				Namespace: testNamespace,
-			}
+	Context("When updating a Database", Ordered, func() {
+		key := types.NamespacedName{
+			Name:      "database-mariadb-webhook",
+			Namespace: testNamespace,
+		}
+		BeforeAll(func() {
 			database := Database{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
@@ -50,51 +49,45 @@ var _ = Describe("Database webhook", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
+		})
 
-			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mariadb-operator/mariadb-operator/issues/3
-			tt := []struct {
-				by      string
-				patchFn func(mdb *Database)
-				wantErr bool
-			}{
-				{
-					by: "Updating MariaDBRef",
-					patchFn: func(dmdb *Database) {
-						dmdb.Spec.MariaDBRef.Name = "another-mariadb"
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating CharacterSet",
-					patchFn: func(dmdb *Database) {
-						dmdb.Spec.CharacterSet = "utf16"
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating Collate",
-					patchFn: func(dmdb *Database) {
-						dmdb.Spec.Collate = "latin2_general_ci"
-					},
-					wantErr: true,
-				},
-			}
+		DescribeTable(
+			"Should validate",
+			func(patchFn func(db *Database), wantErr bool) {
+				var db Database
+				Expect(k8sClient.Get(testCtx, key, &db)).To(Succeed())
 
-			for _, t := range tt {
-				By(t.by)
-				Expect(k8sClient.Get(testCtx, key, &database)).To(Succeed())
+				patch := client.MergeFrom(db.DeepCopy())
+				patchFn(&db)
 
-				patch := client.MergeFrom(database.DeepCopy())
-				t.patchFn(&database)
-
-				err := k8sClient.Patch(testCtx, &database, patch)
-				if t.wantErr {
+				err := k8sClient.Patch(testCtx, &db, patch)
+				if wantErr {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
 				}
-			}
-		})
+			},
+			Entry(
+				"Updating MariaDBRef",
+				func(db *Database) {
+					db.Spec.MariaDBRef.Name = "another-mariadb"
+				},
+				true,
+			),
+			Entry(
+				"Updating CharacterSet",
+				func(db *Database) {
+					db.Spec.CharacterSet = "utf16"
+				},
+				true,
+			),
+			Entry(
+				"Updating Collate",
+				func(db *Database) {
+					db.Spec.Collate = "latin2_general_ci"
+				},
+				true,
+			),
+		)
 	})
 })

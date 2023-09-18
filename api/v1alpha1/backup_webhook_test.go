@@ -28,140 +28,131 @@ import (
 
 var _ = Describe("Backup webhook", func() {
 	Context("When creating a Backup", func() {
-		It("Should validate", func() {
-			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mariadb-operator/mariadb-operator/issues/3
-			tt := []struct {
-				by      string
-				backup  Backup
-				wantErr bool
-			}{
-				{
-					by: "Creating a Backup with invalid storage",
-					backup: Backup{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "backup-invalid-storage",
-							Namespace: testNamespace,
-						},
-						Spec: BackupSpec{
-							Storage: BackupStorage{},
-							MariaDBRef: MariaDBRef{
-								ObjectReference: corev1.ObjectReference{
-									Name: "mariadb-webhook",
-								},
-								WaitForIt: true,
-							},
-							BackoffLimit: 10,
-							Resources: &corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu": resource.MustParse("100m"),
-								},
-							},
-							RestartPolicy: corev1.RestartPolicyOnFailure,
-						},
-					},
-					wantErr: true,
-				},
-				{
-					by: "Creating a Backup with invalid schedule",
-					backup: Backup{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "backup-invalid-schedule",
-							Namespace: testNamespace,
-						},
-						Spec: BackupSpec{
-							Schedule: &Schedule{
-								Cron: "foo",
-							},
-							Storage: BackupStorage{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
-										Requests: corev1.ResourceList{
-											"storage": resource.MustParse("100Mi"),
-										},
-									},
-									AccessModes: []corev1.PersistentVolumeAccessMode{
-										corev1.ReadWriteOnce,
-									},
-								},
-							},
-							MariaDBRef: MariaDBRef{
-								ObjectReference: corev1.ObjectReference{
-									Name: "mariadb-webhook",
-								},
-								WaitForIt: true,
-							},
-							BackoffLimit: 10,
-							Resources: &corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu": resource.MustParse("100m"),
-								},
-							},
-							RestartPolicy: corev1.RestartPolicyOnFailure,
-						},
-					},
-					wantErr: true,
-				},
-				{
-					by: "Creating a valid Backup",
-					backup: Backup{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "backup-valid",
-							Namespace: testNamespace,
-						},
-						Spec: BackupSpec{
-							Schedule: &Schedule{
-								Cron: "*/1 * * * *",
-							},
-							Storage: BackupStorage{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
-										Requests: corev1.ResourceList{
-											"storage": resource.MustParse("100Mi"),
-										},
-									},
-									AccessModes: []corev1.PersistentVolumeAccessMode{
-										corev1.ReadWriteOnce,
-									},
-								},
-							},
-							MariaDBRef: MariaDBRef{
-								ObjectReference: corev1.ObjectReference{
-									Name: "mariadb-webhook",
-								},
-								WaitForIt: true,
-							},
-							BackoffLimit: 10,
-							Resources: &corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu": resource.MustParse("100m"),
-								},
-							},
-							RestartPolicy: corev1.RestartPolicyOnFailure,
-						},
-					},
-					wantErr: false,
-				},
-			}
-
-			for _, t := range tt {
-				By(t.by)
-				err := k8sClient.Create(testCtx, &t.backup)
-				if t.wantErr {
+		DescribeTable(
+			"Should validate",
+			func(backup *Backup, wantErr bool) {
+				err := k8sClient.Create(testCtx, backup)
+				if wantErr {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
 				}
-			}
-		})
+			},
+			Entry(
+				"Invalid storage",
+				&Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-invalid-storage",
+						Namespace: testNamespace,
+					},
+					Spec: BackupSpec{
+						Storage: BackupStorage{},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("100m"),
+							},
+						},
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				true,
+			),
+			Entry(
+				"Invalid schedule",
+				&Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-invalid-schedule",
+						Namespace: testNamespace,
+					},
+					Spec: BackupSpec{
+						Schedule: &Schedule{
+							Cron: "foo",
+						},
+						Storage: BackupStorage{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("100Mi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("100m"),
+							},
+						},
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid",
+				&Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-valid",
+						Namespace: testNamespace,
+					},
+					Spec: BackupSpec{
+						Schedule: &Schedule{
+							Cron: "*/1 * * * *",
+						},
+						Storage: BackupStorage{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("100Mi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("100m"),
+							},
+						},
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				false,
+			),
+		)
 	})
-	Context("When updating a Backup", func() {
-		It("Should validate", func() {
-			By("Creating Backup")
-			key := types.NamespacedName{
-				Name:      "backup-update",
-				Namespace: testNamespace,
-			}
+
+	Context("When updating a Backup", Ordered, func() {
+		key := types.NamespacedName{
+			Name:      "backup-update",
+			Namespace: testNamespace,
+		}
+		BeforeAll(func() {
 			backup := Backup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
@@ -196,86 +187,80 @@ var _ = Describe("Backup webhook", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
+		})
 
-			// TODO: migrate to Ginkgo v2 and use Ginkgo table tests
-			// https://github.com/mariadb-operator/mariadb-operator/issues/3
-			tt := []struct {
-				by      string
-				patchFn func(mdb *Backup)
-				wantErr bool
-			}{
-				{
-					by: "Updating BackoffLimit",
-					patchFn: func(bmdb *Backup) {
-						bmdb.Spec.BackoffLimit = 20
-					},
-					wantErr: false,
-				},
-				{
-					by: "Updating Schedule",
-					patchFn: func(bmdb *Backup) {
-						bmdb.Spec.Schedule = &Schedule{
-							Cron: "*/1 * * * *",
-						}
-					},
-					wantErr: false,
-				},
-				{
-					by: "Updating MaxBackupRetainDays",
-					patchFn: func(bmdb *Backup) {
-						bmdb.Spec.MaxRetentionDays = 40
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating Storage",
-					patchFn: func(bmdb *Backup) {
-						newStorageClass := "fast-storage"
-						bmdb.Spec.Storage.PersistentVolumeClaim.StorageClassName = &newStorageClass
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating MariaDBRef",
-					patchFn: func(bmdb *Backup) {
-						bmdb.Spec.MariaDBRef.Name = "another-mariadb"
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating RestartPolicy",
-					patchFn: func(bmdb *Backup) {
-						bmdb.Spec.RestartPolicy = corev1.RestartPolicyNever
-					},
-					wantErr: true,
-				},
-				{
-					by: "Updating Resources",
-					patchFn: func(bmdb *Backup) {
-						bmdb.Spec.Resources = &corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"cpu": resource.MustParse("200m"),
-							},
-						}
-					},
-					wantErr: true,
-				},
-			}
-
-			for _, t := range tt {
-				By(t.by)
+		DescribeTable(
+			"Should validate",
+			func(patchFn func(backup *Backup), wantErr bool) {
+				var backup Backup
 				Expect(k8sClient.Get(testCtx, key, &backup)).To(Succeed())
 
 				patch := client.MergeFrom(backup.DeepCopy())
-				t.patchFn(&backup)
+				patchFn(&backup)
 
 				err := k8sClient.Patch(testCtx, &backup, patch)
-				if t.wantErr {
+				if wantErr {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
 				}
-			}
-		})
+			},
+			Entry(
+				"Updating BackoffLimit",
+				func(bmdb *Backup) {
+					bmdb.Spec.BackoffLimit = 20
+				},
+				false,
+			),
+			Entry(
+				"Updating Schedule",
+				func(bmdb *Backup) {
+					bmdb.Spec.Schedule = &Schedule{
+						Cron: "*/1 * * * *",
+					}
+				},
+				false,
+			),
+			Entry(
+				"Updating MaxBackupRetainDays",
+				func(bmdb *Backup) {
+					bmdb.Spec.MaxRetentionDays = 40
+				},
+				true,
+			),
+			Entry(
+				"Updating Storage",
+				func(bmdb *Backup) {
+					newStorageClass := "fast-storage"
+					bmdb.Spec.Storage.PersistentVolumeClaim.StorageClassName = &newStorageClass
+				},
+				true,
+			),
+			Entry(
+				"Updating MariaDBRef",
+				func(bmdb *Backup) {
+					bmdb.Spec.MariaDBRef.Name = "another-mariadb"
+				},
+				true,
+			),
+			Entry(
+				"Updating RestartPolicy",
+				func(bmdb *Backup) {
+					bmdb.Spec.RestartPolicy = corev1.RestartPolicyNever
+				},
+				true,
+			),
+			Entry(
+				"Updating Resources",
+				func(bmdb *Backup) {
+					bmdb.Spec.Resources = &corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"cpu": resource.MustParse("200m"),
+						},
+					}
+				},
+				true,
+			),
+		)
 	})
 })
