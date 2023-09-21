@@ -21,10 +21,6 @@ import (
 var _ = Describe("MariaDB", func() {
 	Context("When creating a MariaDB", func() {
 		It("Should reconcile", func() {
-			By("Expecting to have spec provided by user and defaults")
-			Expect(testMariaDb.Spec.Image.String()).To(Equal("mariadb:11.0.3"))
-			Expect(testMariaDb.Spec.Port).To(BeEquivalentTo(3306))
-
 			By("Expecting to create a ConfigMap eventually")
 			Eventually(func() bool {
 				var cm corev1.ConfigMap

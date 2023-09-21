@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var _ = Describe("Database controller", func() {
@@ -59,7 +60,13 @@ var _ = Describe("Database controller", func() {
 				return database.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			Expect(database.ObjectMeta.Finalizers).To(ContainElement(databaseFinalizerName))
+			By("Expecting Database to eventually have finalizer")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, databaseKey, &database); err != nil {
+					return false
+				}
+				return controllerutil.ContainsFinalizer(&database, databaseFinalizerName)
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting Database")
 			Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())

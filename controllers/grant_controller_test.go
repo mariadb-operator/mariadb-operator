@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var _ = Describe("Grant controller", func() {
@@ -102,7 +103,13 @@ var _ = Describe("Grant controller", func() {
 				return grant.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			Expect(grant.ObjectMeta.Finalizers).To(ContainElement(grantFinalizerName))
+			By("Expecting Grant to eventually have finalizer")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, grantKey, &grant); err != nil {
+					return false
+				}
+				return controllerutil.ContainsFinalizer(&grant, grantFinalizerName)
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting User")
 			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
@@ -217,7 +224,13 @@ var _ = Describe("Grant controller", func() {
 				return grant.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			Expect(grant.ObjectMeta.Finalizers).To(ContainElement(grantFinalizerName))
+			By("Expecting Grant to eventually have finalizer")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, grantKey, &grant); err != nil {
+					return false
+				}
+				return controllerutil.ContainsFinalizer(&grant, grantFinalizerName)
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting Grant")
 			Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
