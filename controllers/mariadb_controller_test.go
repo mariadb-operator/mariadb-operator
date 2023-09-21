@@ -123,8 +123,8 @@ var _ = Describe("MariaDB", func() {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
+							Repository: "quay.io/mariadb-foundation/mariadb-devel",
+							Tag:        "11.3-preview",
 						},
 					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
@@ -185,8 +185,8 @@ var _ = Describe("MariaDB", func() {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
+							Repository: "quay.io/mariadb-foundation/mariadb-devel",
+							Tag:        "11.3-preview",
 						},
 					},
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
@@ -233,8 +233,8 @@ var _ = Describe("MariaDB", func() {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
+							Repository: "quay.io/mariadb-foundation/mariadb-devel",
+							Tag:        "11.3-preview",
 						},
 					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
@@ -292,8 +292,8 @@ var _ = Describe("MariaDB", func() {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
+							Repository: "quay.io/mariadb-foundation/mariadb-devel",
+							Tag:        "11.3-preview",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -359,8 +359,8 @@ var _ = Describe("MariaDB replication", func() {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
+							Repository: "quay.io/mariadb-foundation/mariadb-devel",
+							Tag:        "11.3-preview",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -610,8 +610,8 @@ var _ = Describe("MariaDB Galera", func() {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
+							Repository: "quay.io/mariadb-foundation/mariadb-devel",
+							Tag:        "11.3-preview",
 						},
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{

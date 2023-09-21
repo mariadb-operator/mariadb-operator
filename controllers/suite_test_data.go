@@ -89,8 +89,8 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 				Image: mariadbv1alpha1.Image{
-					Repository: "mariadb",
-					Tag:        "11.0.3",
+					Repository: "quay.io/mariadb-foundation/mariadb-devel",
+					Tag:        "11.3-preview",
 				},
 				SecurityContext: &corev1.SecurityContext{
 					AllowPrivilegeEscalation: func() *bool { b := false; return &b }(),
