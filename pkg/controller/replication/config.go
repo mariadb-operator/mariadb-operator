@@ -61,15 +61,17 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 }
 
 func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
-	replicaPodIndex, primaryPodIndex int) error {
+	replicaPodIndex, primaryPodIndex int, resetSlavePos bool) error {
 	if err := client.ResetMaster(ctx); err != nil {
 		return fmt.Errorf("error resetting master: %v", err)
 	}
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
-	if err := client.ResetSlavePos(ctx); err != nil {
-		return fmt.Errorf("error resetting slave position: %v", err)
+	if resetSlavePos {
+		if err := client.ResetSlavePos(ctx); err != nil {
+			return fmt.Errorf("error resetting slave position: %v", err)
+		}
 	}
 	if err := client.EnableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error enabling read_only: %v", err)
