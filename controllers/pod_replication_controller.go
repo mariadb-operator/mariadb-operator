@@ -82,7 +82,7 @@ func (r *PodReplicationController) ReconcilePodReady(ctx context.Context, pod co
 		}
 		return nil
 	}
-	if err := r.replConfig.ConfigureReplica(ctx, mariadb, client, *index, *mariadb.Status.CurrentPrimaryPodIndex); err != nil {
+	if err := r.replConfig.ConfigureReplica(ctx, mariadb, client, *index, *mariadb.Status.CurrentPrimaryPodIndex, false); err != nil {
 		return fmt.Errorf("error configuring replication in replica '%d': %v", *index, err)
 	}
 	return nil

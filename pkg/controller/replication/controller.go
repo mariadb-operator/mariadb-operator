@@ -208,7 +208,7 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 		}
 
 		logger.V(1).Info("Configuring replica", "pod-index", i)
-		if err := r.replConfig.ConfigureReplica(ctx, req.mariadb, client, i, *req.mariadb.Replication().Primary.PodIndex); err != nil {
+		if err := r.replConfig.ConfigureReplica(ctx, req.mariadb, client, i, *req.mariadb.Replication().Primary.PodIndex, false); err != nil {
 			return fmt.Errorf("error configuring replica '%d': %v", i, err)
 		}
 	}

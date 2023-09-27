@@ -260,7 +260,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 			}
 
 			logger.V(1).Info("Connecting replica to new primary", "replica", i)
-			if err := r.replConfig.ConfigureReplica(ctx, mariadb, replClient, i, *mariadb.Replication().Primary.PodIndex); err != nil {
+			if err := r.replConfig.ConfigureReplica(ctx, mariadb, replClient, i, *mariadb.Replication().Primary.PodIndex, true); err != nil {
 				errChan <- fmt.Errorf("error configuring replica vars in replica '%d': %v", i, err)
 				return
 			}
@@ -310,6 +310,7 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 		currentPrimaryClient,
 		currentPrimary,
 		newPrimary,
+		true,
 	)
 }
 
