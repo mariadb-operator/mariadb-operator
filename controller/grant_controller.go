@@ -22,7 +22,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"k8s.io/apimachinery/pkg/fields"
@@ -46,7 +46,7 @@ type GrantReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
 	RefResolver    *refresolver.RefResolver
-	ConditionReady *conditions.Ready
+	ConditionReady *condition.Ready
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=grants,verbs=get;list;watch;create;update;patch;delete
@@ -163,7 +163,7 @@ func (wr *wrappedGrantReconciler) Reconcile(ctx context.Context, mdbClient *mari
 	return nil
 }
 
-func (wr *wrappedGrantReconciler) PatchStatus(ctx context.Context, patcher conditions.Patcher) error {
+func (wr *wrappedGrantReconciler) PatchStatus(ctx context.Context, patcher condition.Patcher) error {
 	patch := client.MergeFrom(wr.grant.DeepCopy())
 	patcher(&wr.grant.Status)
 

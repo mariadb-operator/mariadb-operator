@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controller/resource"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"

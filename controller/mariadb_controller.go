@@ -23,11 +23,10 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/controllers/resources"
-	ctrlresources "github.com/mariadb-operator/mariadb-operator/controllers/resources"
+	ctrlresources "github.com/mariadb-operator/mariadb-operator/controller/resource"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
@@ -63,7 +62,7 @@ type MariaDBReconciler struct {
 
 	Builder        *builder.Builder
 	RefResolver    *refresolver.RefResolver
-	ConditionReady *conditions.Ready
+	ConditionReady *condition.Ready
 
 	ServiceMonitorReconciler bool
 
@@ -283,8 +282,8 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.IsHAEnabled() {
 		if mariadb.Spec.PrimaryConnection != nil {
-			key := resources.PrimaryConnectioneKey(mariadb)
-			serviceName := resources.PrimaryServiceKey(mariadb).Name
+			key := ctrlresources.PrimaryConnectioneKey(mariadb)
+			serviceName := ctrlresources.PrimaryServiceKey(mariadb).Name
 			connTpl := mariadb.Spec.PrimaryConnection
 			connTpl.ServiceName = &serviceName
 
@@ -293,8 +292,8 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 			}
 		}
 		if mariadb.Spec.SecondaryConnection != nil {
-			key := resources.SecondaryConnectioneKey(mariadb)
-			serviceName := resources.SecondaryServiceKey(mariadb).Name
+			key := ctrlresources.SecondaryConnectioneKey(mariadb)
+			serviceName := ctrlresources.SecondaryServiceKey(mariadb).Name
 			connTpl := mariadb.Spec.SecondaryConnection
 			connTpl.ServiceName = &serviceName
 
@@ -321,9 +320,9 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 		}
 		return r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			if existingRestore.IsComplete() {
-				conditions.SetRestoredBackup(status)
+				condition.SetRestoredBackup(status)
 			} else {
-				conditions.SetRestoringBackup(status)
+				condition.SetRestoringBackup(status)
 			}
 			return nil
 		})
@@ -344,7 +343,7 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 	}
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		conditions.SetRestoringBackup(status)
+		condition.SetRestoringBackup(status)
 		return nil
 	}); err != nil {
 		return fmt.Errorf("error patching status: %v", err)
@@ -546,7 +545,7 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
 		return err
 	}
-	if err := r.EndpointsReconciler.Reconcile(ctx, resources.SecondaryServiceKey(mariadb), mariadb); err != nil {
+	if err := r.EndpointsReconciler.Reconcile(ctx, ctrlresources.SecondaryServiceKey(mariadb), mariadb); err != nil {
 		if errors.Is(err, endpoints.ErrNoAddressesAvailable) {
 			log.FromContext(ctx).V(1).Info("No addresses available for secondary Endpoints")
 			return nil
@@ -629,7 +628,7 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha
 		if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
 			return err
 		}
-		conditions.SetReadyWithStatefulSet(&mariadb.Status, &sts)
+		condition.SetReadyWithStatefulSet(&mariadb.Status, &sts)
 		return nil
 	}
 }

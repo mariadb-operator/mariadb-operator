@@ -25,7 +25,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
@@ -114,8 +114,8 @@ var _ = BeforeSuite(func() {
 	builder := builder.NewBuilder(scheme, env)
 	refResolver := refresolver.New(client)
 
-	conditionReady := conditions.NewReady()
-	conditionComplete := conditions.NewComplete(client)
+	conditionReady := condition.NewReady()
+	conditionComplete := condition.NewComplete(client)
 
 	configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 	secretReconciler := secret.NewSecretReconciler(client, builder)

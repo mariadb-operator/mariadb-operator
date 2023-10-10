@@ -31,7 +31,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -54,7 +54,7 @@ type ConnectionReconciler struct {
 	Scheme          *runtime.Scheme
 	Builder         *builder.Builder
 	RefResolver     *refresolver.RefResolver
-	ConditionReady  *conditions.Ready
+	ConditionReady  *condition.Ready
 	RequeueInterval time.Duration
 }
 
@@ -291,7 +291,7 @@ func (r *ConnectionReconciler) healthResult(conn *mariadbv1alpha1.Connection) ct
 }
 
 func (r *ConnectionReconciler) patchStatus(ctx context.Context, conn *mariadbv1alpha1.Connection,
-	patcher conditions.Patcher) error {
+	patcher condition.Patcher) error {
 	patch := client.MergeFrom(conn.DeepCopy())
 	patcher(&conn.Status)
 

@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -18,13 +18,13 @@ import (
 type SqlReconciler struct {
 	Client         client.Client
 	RefResolver    *refresolver.RefResolver
-	ConditionReady *conditions.Ready
+	ConditionReady *condition.Ready
 
 	WrappedReconciler WrappedReconciler
 	Finalizer         Finalizer
 }
 
-func NewSqlReconciler(client client.Client, cr *conditions.Ready, wr WrappedReconciler, f Finalizer) Reconciler {
+func NewSqlReconciler(client client.Client, cr *condition.Ready, wr WrappedReconciler, f Finalizer) Reconciler {
 	return &SqlReconciler{
 		Client:            client,
 		RefResolver:       refresolver.New(client),

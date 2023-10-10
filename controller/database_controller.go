@@ -22,7 +22,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,7 +35,7 @@ type DatabaseReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
 	RefResolver    *refresolver.RefResolver
-	ConditionReady *conditions.Ready
+	ConditionReady *condition.Ready
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=databases,verbs=get;list;watch;create;update;patch;delete
@@ -95,7 +95,7 @@ func (wr *wrappedDatabaseReconciler) Reconcile(ctx context.Context, mdbClient *m
 	return nil
 }
 
-func (wr *wrappedDatabaseReconciler) PatchStatus(ctx context.Context, patcher conditions.Patcher) error {
+func (wr *wrappedDatabaseReconciler) PatchStatus(ctx context.Context, patcher condition.Patcher) error {
 	patch := client.MergeFrom(wr.database.DeepCopy())
 	patcher(&wr.database.Status)
 

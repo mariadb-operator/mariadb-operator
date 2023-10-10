@@ -8,7 +8,7 @@ import (
 	agentclient "github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -97,8 +97,8 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy, "Galera cluster is healthy")
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-			conditions.SetGaleraReady(&mariadb.Status)
-			conditions.SetGaleraConfigured(&mariadb.Status)
+			condition.SetGaleraReady(&mariadb.Status)
+			condition.SetGaleraConfigured(&mariadb.Status)
 		}); err != nil {
 			return fmt.Errorf("error patching Galera status: %v", err)
 		}

@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +39,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	logger := switchoverLogger.WithValues("mariadb", req.mariadb.Name, "from-index", fromIndex, "to-index", toIndex)
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		conditions.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
+		condition.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
@@ -78,7 +78,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.UpdateCurrentPrimary(req.mariadb, toIndex)
-		conditions.SetPrimarySwitched(&req.mariadb.Status)
+		condition.SetPrimarySwitched(&req.mariadb.Status)
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}

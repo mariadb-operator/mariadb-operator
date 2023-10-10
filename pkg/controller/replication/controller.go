@@ -7,7 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
@@ -175,7 +175,7 @@ func (r *ReplicationReconciler) setConfiguringReplication(ctx context.Context, r
 	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationConfiguring, "Configuring replication")
 
 	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		conditions.SetConfiguringReplication(&req.mariadb.Status, req.mariadb)
+		condition.SetConfiguringReplication(&req.mariadb.Status, req.mariadb)
 	})
 }
 
@@ -224,7 +224,7 @@ func (r *ReplicationReconciler) setConfiguredReplication(ctx context.Context, re
 
 	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.UpdateCurrentPrimary(req.mariadb, *req.mariadb.Replication().Primary.PodIndex)
-		conditions.SetConfiguredReplication(&req.mariadb.Status, req.mariadb)
+		condition.SetConfiguredReplication(&req.mariadb.Status, req.mariadb)
 	})
 }
 
