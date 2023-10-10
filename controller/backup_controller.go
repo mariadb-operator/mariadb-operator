@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
@@ -41,7 +41,7 @@ type BackupReconciler struct {
 	Scheme            *runtime.Scheme
 	Builder           *builder.Builder
 	RefResolver       *refresolver.RefResolver
-	ConditionComplete *conditions.Complete
+	ConditionComplete *condition.Complete
 	BatchReconciler   *batch.BatchReconciler
 }
 
@@ -100,7 +100,7 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 }
 
 func (r *BackupReconciler) patcher(ctx context.Context, err error,
-	key types.NamespacedName, backup *mariadbv1alpha1.Backup) (conditions.Patcher, error) {
+	key types.NamespacedName, backup *mariadbv1alpha1.Backup) (condition.Patcher, error) {
 
 	if backup.Spec.Schedule != nil {
 		return r.ConditionComplete.PatcherWithCronJob(ctx, err, key)
@@ -109,7 +109,7 @@ func (r *BackupReconciler) patcher(ctx context.Context, err error,
 }
 
 func (r *BackupReconciler) patchStatus(ctx context.Context, backup *mariadbv1alpha1.Backup,
-	patcher conditions.Patcher) error {
+	patcher condition.Patcher) error {
 	patch := client.MergeFrom(backup.DeepCopy())
 	patcher(&backup.Status)
 

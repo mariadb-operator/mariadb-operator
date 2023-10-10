@@ -26,7 +26,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
@@ -49,7 +49,7 @@ type SqlJobReconciler struct {
 	Scheme              *runtime.Scheme
 	Builder             *builder.Builder
 	RefResolver         *refresolver.RefResolver
-	ConditionComplete   *conditions.Complete
+	ConditionComplete   *condition.Complete
 	ConfigMapReconciler *configmap.ConfigMapReconciler
 	RequeueInterval     time.Duration
 }
@@ -188,7 +188,7 @@ func (r *SqlJobReconciler) reconcileBatch(ctx context.Context, sqlJob *mariadbv1
 }
 
 func (r *SqlJobReconciler) patcher(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob, err error,
-	key types.NamespacedName) (conditions.Patcher, error) {
+	key types.NamespacedName) (condition.Patcher, error) {
 	if sqlJob.Spec.Schedule != nil {
 		return r.ConditionComplete.PatcherWithCronJob(ctx, err, key)
 	}
@@ -254,7 +254,7 @@ func (r *SqlJobReconciler) reconcileCronJob(ctx context.Context, sqlJob *mariadb
 }
 
 func (r *SqlJobReconciler) patchStatus(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
-	patcher conditions.Patcher) error {
+	patcher condition.Patcher) error {
 	patch := client.MergeFrom(sqlJob.DeepCopy())
 	patcher(&sqlJob.Status)
 

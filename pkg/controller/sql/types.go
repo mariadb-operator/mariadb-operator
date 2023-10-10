@@ -5,7 +5,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -22,7 +22,7 @@ type Reconciler interface {
 
 type WrappedReconciler interface {
 	Reconcile(context.Context, *mariadbclient.Client) error
-	PatchStatus(context.Context, conditions.Patcher) error
+	PatchStatus(context.Context, condition.Patcher) error
 }
 
 type Finalizer interface {

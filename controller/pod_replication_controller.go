@@ -25,7 +25,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -119,7 +119,7 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	errBundle = multierror.Append(errBundle, err)
 
 	err = r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		conditions.SetPrimarySwitching(status, mariadb)
+		condition.SetPrimarySwitching(status, mariadb)
 	})
 	errBundle = multierror.Append(errBundle, err)
 

@@ -29,10 +29,10 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/controllers"
+	controller "github.com/mariadb-operator/mariadb-operator/controller"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
@@ -120,8 +120,8 @@ var rootCmd = &cobra.Command{
 		builder := builder.NewBuilder(scheme, env)
 		refResolver := refresolver.New(client)
 
-		conditionReady := conditions.NewReady()
-		conditionComplete := conditions.NewComplete(client)
+		conditionReady := condition.NewReady()
+		conditionComplete := condition.NewComplete(client)
 
 		configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 		secretReconciler := secret.NewSecretReconciler(client, builder)
@@ -150,10 +150,10 @@ var rootCmd = &cobra.Command{
 			galera.WithServiceReconciler(serviceReconciler),
 		)
 
-		podReplicationController := controllers.NewPodController(
+		podReplicationController := controller.NewPodController(
 			client,
 			refResolver,
-			controllers.NewPodReplicationController(
+			controller.NewPodReplicationController(
 				client,
 				replRecorder,
 				builder,
@@ -165,17 +165,17 @@ var rootCmd = &cobra.Command{
 				annotation.ReplicationAnnotation,
 			},
 		)
-		podGaleraController := controllers.NewPodController(
+		podGaleraController := controller.NewPodController(
 			client,
 			refResolver,
-			controllers.NewPodGaleraController(client, galeraRecorder),
+			controller.NewPodGaleraController(client, galeraRecorder),
 			[]string{
 				annotation.MariadbAnnotation,
 				annotation.GaleraAnnotation,
 			},
 		)
 
-		if err = (&controllers.MariaDBReconciler{
+		if err = (&controller.MariaDBReconciler{
 			Client: client,
 			Scheme: scheme,
 
@@ -197,7 +197,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
 		}
-		if err = (&controllers.BackupReconciler{
+		if err = (&controller.BackupReconciler{
 			Client:            client,
 			Scheme:            scheme,
 			Builder:           builder,
@@ -208,7 +208,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "Backup")
 			os.Exit(1)
 		}
-		if err = (&controllers.RestoreReconciler{
+		if err = (&controller.RestoreReconciler{
 			Client:            client,
 			Scheme:            scheme,
 			Builder:           builder,
@@ -219,7 +219,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "restore")
 			os.Exit(1)
 		}
-		if err = (&controllers.UserReconciler{
+		if err = (&controller.UserReconciler{
 			Client:         client,
 			Scheme:         scheme,
 			RefResolver:    refResolver,
@@ -228,7 +228,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
-		if err = (&controllers.GrantReconciler{
+		if err = (&controller.GrantReconciler{
 			Client:         client,
 			Scheme:         scheme,
 			RefResolver:    refResolver,
@@ -237,7 +237,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "Grant")
 			os.Exit(1)
 		}
-		if err = (&controllers.DatabaseReconciler{
+		if err = (&controller.DatabaseReconciler{
 			Client:         client,
 			Scheme:         scheme,
 			RefResolver:    refResolver,
@@ -246,7 +246,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "Database")
 			os.Exit(1)
 		}
-		if err = (&controllers.ConnectionReconciler{
+		if err = (&controller.ConnectionReconciler{
 			Client:          client,
 			Scheme:          scheme,
 			Builder:         builder,
@@ -257,7 +257,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "Connection")
 			os.Exit(1)
 		}
-		if err = (&controllers.SqlJobReconciler{
+		if err = (&controller.SqlJobReconciler{
 			Client:              client,
 			Scheme:              scheme,
 			Builder:             builder,
@@ -277,7 +277,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to create controller", "controller", "PodGalera")
 			os.Exit(1)
 		}
-		if err = (&controllers.StatefulSetGaleraReconciler{
+		if err = (&controller.StatefulSetGaleraReconciler{
 			Client:      client,
 			RefResolver: refResolver,
 			Recorder:    galeraRecorder,

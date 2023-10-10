@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/pkg/conditions"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
@@ -40,7 +40,7 @@ type RestoreReconciler struct {
 	Scheme            *runtime.Scheme
 	Builder           *builder.Builder
 	RefResolver       *refresolver.RefResolver
-	ConditionComplete *conditions.Complete
+	ConditionComplete *condition.Complete
 	BatchReconciler   *batch.BatchReconciler
 }
 
@@ -153,7 +153,7 @@ func (r *RestoreReconciler) initSource(ctx context.Context, restore *mariadbv1al
 }
 
 func (r *RestoreReconciler) patchStatus(ctx context.Context, restore *mariadbv1alpha1.Restore,
-	patcher conditions.Patcher) error {
+	patcher condition.Patcher) error {
 	patch := client.MergeFrom(restore.DeepCopy())
 	patcher(&restore.Status)
 
