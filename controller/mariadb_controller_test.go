@@ -122,10 +122,8 @@ var _ = Describe("MariaDB", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
@@ -184,10 +182,8 @@ var _ = Describe("MariaDB", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
@@ -232,10 +228,8 @@ var _ = Describe("MariaDB", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
@@ -291,10 +285,8 @@ var _ = Describe("MariaDB", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -358,10 +350,8 @@ var _ = Describe("MariaDB replication", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -609,10 +599,8 @@ var _ = Describe("MariaDB Galera", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{

@@ -23,10 +23,7 @@ spec:
     params:
       parseTime: "true"
       
-  image:
-    repository: mariadb
-    tag: "11.0.3"
-    pullPolicy: IfNotPresent
+  image: mariadb:11.0.3
 
   port: 3306
 

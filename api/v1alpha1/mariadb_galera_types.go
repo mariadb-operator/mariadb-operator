@@ -290,11 +290,8 @@ var (
 		ReplicaThreads: &replicaThreads,
 		Agent: &GaleraAgent{
 			ContainerTemplate: ContainerTemplate{
-				Image: Image{
-					Repository: "ghcr.io/mariadb-operator/agent",
-					Tag:        "v0.0.2",
-					PullPolicy: corev1.PullIfNotPresent,
-				},
+				Image:           "ghcr.io/mariadb-operator/agent:v0.0.2",
+				ImagePullPolicy: corev1.PullIfNotPresent,
 			},
 			Port: func() *int32 { p := int32(5555); return &p }(),
 			KubernetesAuth: &KubernetesAuth{
@@ -310,11 +307,8 @@ var (
 			PodSyncTimeout:          &fiveMinutes,
 		},
 		InitContainer: &ContainerTemplate{
-			Image: Image{
-				Repository: "ghcr.io/mariadb-operator/init",
-				Tag:        "v0.0.5",
-				PullPolicy: corev1.PullIfNotPresent,
-			},
+			Image:           "ghcr.io/mariadb-operator/init:v0.0.5",
+			ImagePullPolicy: corev1.PullIfNotPresent,
 		},
 		VolumeClaimTemplate: &VolumeClaimTemplate{
 			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{

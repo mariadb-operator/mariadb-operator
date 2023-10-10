@@ -2845,20 +2845,12 @@ spec:
                           requests.
                         type: string
                       image:
-                        properties:
-                          pullPolicy:
-                            default: IfNotPresent
-                            description: PullPolicy describes a policy for if/when
-                              to pull a container image
-                            type: string
-                          repository:
-                            type: string
-                          tag:
-                            default: latest
-                            type: string
-                        required:
-                        - repository
-                        type: object
+                        type: string
+                      imagePullPolicy:
+                        default: IfNotPresent
+                        description: PullPolicy describes a policy for if/when to
+                          pull a container image
+                        type: string
                       kubernetesAuth:
                         description: KubernetesAuth to be used by the agent container
                         properties:
@@ -3622,20 +3614,12 @@ spec:
                           type: object
                         type: array
                       image:
-                        properties:
-                          pullPolicy:
-                            default: IfNotPresent
-                            description: PullPolicy describes a policy for if/when
-                              to pull a container image
-                            type: string
-                          repository:
-                            type: string
-                          tag:
-                            default: latest
-                            type: string
-                        required:
-                        - repository
-                        type: object
+                        type: string
+                      imagePullPolicy:
+                        default: IfNotPresent
+                        description: PullPolicy describes a policy for if/when to
+                          pull a container image
+                        type: string
                       livenessProbe:
                         description: Probe describes a health check to be performed
                           against a container to determine whether it is alive or
@@ -4485,20 +4469,12 @@ spec:
                     type: object
                 type: object
               image:
-                properties:
-                  pullPolicy:
-                    default: IfNotPresent
-                    description: PullPolicy describes a policy for if/when to pull
-                      a container image
-                    type: string
-                  repository:
-                    type: string
-                  tag:
-                    default: latest
-                    type: string
-                required:
-                - repository
-                type: object
+                type: string
+              imagePullPolicy:
+                default: IfNotPresent
+                description: PullPolicy describes a policy for if/when to pull a container
+                  image
+                type: string
               imagePullSecrets:
                 items:
                   description: LocalObjectReference contains enough information to
@@ -4689,20 +4665,12 @@ spec:
                         type: object
                       type: array
                     image:
-                      properties:
-                        pullPolicy:
-                          default: IfNotPresent
-                          description: PullPolicy describes a policy for if/when to
-                            pull a container image
-                          type: string
-                        repository:
-                          type: string
-                        tag:
-                          default: latest
-                          type: string
-                      required:
-                      - repository
-                      type: object
+                      type: string
+                    imagePullPolicy:
+                      default: IfNotPresent
+                      description: PullPolicy describes a policy for if/when to pull
+                        a container image
+                      type: string
                     livenessProbe:
                       description: Probe describes a health check to be performed
                         against a container to determine whether it is alive or ready
@@ -5583,20 +5551,12 @@ spec:
                           type: object
                         type: array
                       image:
-                        properties:
-                          pullPolicy:
-                            default: IfNotPresent
-                            description: PullPolicy describes a policy for if/when
-                              to pull a container image
-                            type: string
-                          repository:
-                            type: string
-                          tag:
-                            default: latest
-                            type: string
-                        required:
-                        - repository
-                        type: object
+                        type: string
+                      imagePullPolicy:
+                        default: IfNotPresent
+                        description: PullPolicy describes a policy for if/when to
+                          pull a container image
+                        type: string
                       livenessProbe:
                         description: Probe describes a health check to be performed
                           against a container to determine whether it is alive or

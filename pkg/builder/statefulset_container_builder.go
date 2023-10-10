@@ -289,8 +289,8 @@ func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretK
 
 func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 	container := corev1.Container{
-		Image:           tpl.Image.String(),
-		ImagePullPolicy: tpl.Image.PullPolicy,
+		Image:           tpl.Image,
+		ImagePullPolicy: tpl.ImagePullPolicy,
 		Command:         tpl.Command,
 		Args:            tpl.Args,
 		Env:             tpl.Env,

@@ -13,10 +13,7 @@ spec:
     name: mariadb
     key: password
 
-  image:
-    repository: mariadb
-    tag: "11.0.3"
-    pullPolicy: IfNotPresent
+  image: mariadb:11.0.3
 
   port: 3306
 
@@ -30,10 +27,7 @@ spec:
     sst: mariabackup
     replicaThreads: 1
     agent:
-      image:
-        repository: ghcr.io/mariadb-operator/agent
-        tag: "v0.0.2"
-        pullPolicy: IfNotPresent
+      image: ghcr.io/mariadb-operator/agent:v0.0.2
       port: 5555
       kubernetesAuth:
         enabled: true
@@ -45,10 +39,7 @@ spec:
       podRecoveryTimeout: 5m
       podSyncTimeout: 5m
     initContainer:
-      image:
-        repository: ghcr.io/mariadb-operator/init
-        tag: "v0.0.5"
-        pullPolicy: IfNotPresent
+      image: ghcr.io/mariadb-operator/init:v0.0.5
     volumeClaimTemplate:
       resources:
         requests:
