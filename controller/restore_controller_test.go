@@ -85,10 +85,8 @@ var _ = Describe("Restore controller", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image: mariadbv1alpha1.Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{

@@ -322,11 +322,8 @@ var _ = Describe("MariaDB webhook", func() {
 				},
 				Spec: MariaDBSpec{
 					ContainerTemplate: ContainerTemplate{
-						Image: Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-							PullPolicy: corev1.PullIfNotPresent,
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -368,11 +365,8 @@ var _ = Describe("MariaDB webhook", func() {
 				},
 				Spec: MariaDBSpec{
 					ContainerTemplate: ContainerTemplate{
-						Image: Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-							PullPolicy: corev1.PullIfNotPresent,
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -414,7 +408,7 @@ var _ = Describe("MariaDB webhook", func() {
 			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(DefaultReplicationSpec))
 		})
 
-		It("Should default Galera", func() {
+		It("Should partially default Galera", func() {
 			mariadb := MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mariadb-galera-default-webhook",
@@ -422,11 +416,8 @@ var _ = Describe("MariaDB webhook", func() {
 				},
 				Spec: MariaDBSpec{
 					ContainerTemplate: ContainerTemplate{
-						Image: Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-							PullPolicy: corev1.PullIfNotPresent,
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -453,11 +444,8 @@ var _ = Describe("MariaDB webhook", func() {
 						GaleraSpec: GaleraSpec{
 							Agent: &GaleraAgent{
 								ContainerTemplate: ContainerTemplate{
-									Image: Image{
-										Repository: "ghcr.io/mariadb-operator/agent",
-										Tag:        "v0.0.2",
-										PullPolicy: corev1.PullIfNotPresent,
-									},
+									Image:           "ghcr.io/mariadb-operator/agent:v0.0.2",
+									ImagePullPolicy: corev1.PullIfNotPresent,
 								},
 							},
 							Recovery: &GaleraRecovery{
@@ -474,7 +462,7 @@ var _ = Describe("MariaDB webhook", func() {
 			Expect(mariadb.Spec.Galera.GaleraSpec).To(Equal(DefaultGaleraSpec))
 		})
 
-		It("Should partially default Galera", func() {
+		It("Should default Galera", func() {
 			mariadb := MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mariadb-galera-partial-default-webhook",
@@ -482,11 +470,8 @@ var _ = Describe("MariaDB webhook", func() {
 				},
 				Spec: MariaDBSpec{
 					ContainerTemplate: ContainerTemplate{
-						Image: Image{
-							Repository: "mariadb",
-							Tag:        "11.0.2",
-							PullPolicy: corev1.PullIfNotPresent,
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -534,10 +519,8 @@ var _ = Describe("MariaDB webhook", func() {
 				},
 				Spec: MariaDBSpec{
 					ContainerTemplate: ContainerTemplate{
-						Image: Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 						Resources: &corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),
@@ -594,10 +577,8 @@ var _ = Describe("MariaDB webhook", func() {
 					Metrics: &Metrics{
 						Exporter: Exporter{
 							ContainerTemplate: ContainerTemplate{
-								Image: Image{
-									Repository: "prom/mysqld-exporter",
-									Tag:        "v0.14.0",
-								},
+								Image:           "prom/mysqld-exporter:v0.14.0",
+								ImagePullPolicy: corev1.PullIfNotPresent,
 							},
 						},
 						ServiceMonitor: ServiceMonitor{
@@ -657,7 +638,7 @@ var _ = Describe("MariaDB webhook", func() {
 			Entry(
 				"Updating Image",
 				func(mdb *MariaDB) {
-					mdb.Spec.Image.Tag = "10.7.5"
+					mdb.Spec.Image = "mariadb:10.7.5"
 				},
 				false,
 			),
@@ -706,7 +687,7 @@ var _ = Describe("MariaDB webhook", func() {
 			Entry(
 				"Updating Metrics",
 				func(mdb *MariaDB) {
-					mdb.Spec.Metrics.Exporter.Image.Tag = "v0.14.1"
+					mdb.Spec.Metrics.Exporter.Image = "prom/mysqld-exporter:v0.14.1"
 				},
 				false,
 			),
@@ -769,10 +750,8 @@ var _ = Describe("MariaDB webhook", func() {
 				},
 				Spec: MariaDBSpec{
 					ContainerTemplate: ContainerTemplate{
-						Image: Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -820,10 +799,8 @@ var _ = Describe("MariaDB webhook", func() {
 				},
 				Spec: MariaDBSpec{
 					ContainerTemplate: ContainerTemplate{
-						Image: Image{
-							Repository: "mariadb",
-							Tag:        "11.0.3",
-						},
+						Image:           "mariadb:11.0.3",
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{

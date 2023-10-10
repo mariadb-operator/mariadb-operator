@@ -7,10 +7,7 @@ spec:
     name: mariadb
     key: root-password
 
-  image:
-    repository: mariadb
-    tag: "11.0.3"
-    pullPolicy: IfNotPresent
+  image: mariadb:11.0.3
 
   port: 3306
 
@@ -28,10 +25,7 @@ spec:
 
   metrics:
     exporter:
-      image:
-        repository: prom/mysqld-exporter
-        tag: "v0.14.0"
-        pullPolicy: IfNotPresent
+      image: prom/mysqld-exporter:v0.14.0
       resources:
         requests:
           cpu: 50m

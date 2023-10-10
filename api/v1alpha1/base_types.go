@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
 	cron "github.com/robfig/cron/v3"
@@ -18,19 +17,6 @@ var (
 		cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
 	)
 )
-
-type Image struct {
-	// +kubebuilder:validation:Required
-	Repository string `json:"repository"`
-	// +kubebuilder:default=latest
-	Tag string `json:"tag,omitempty"`
-	// +kubebuilder:default=IfNotPresent
-	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
-}
-
-func (i *Image) String() string {
-	return fmt.Sprintf("%s:%s", i.Repository, i.Tag)
-}
 
 type MariaDBRef struct {
 	// +kubebuilder:validation:Required
@@ -54,7 +40,9 @@ type SecretTemplate struct {
 
 type ContainerTemplate struct {
 	// +kubebuilder:validation:Required
-	Image Image `json:"image"`
+	Image string `json:"image"`
+	// +kubebuilder:default=IfNotPresent
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 
 	Command []string `json:"command,omitempty"`
 	Args    []string `json:"args,omitempty"`

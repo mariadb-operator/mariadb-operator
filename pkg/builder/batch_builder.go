@@ -395,8 +395,8 @@ func jobContainers(cmd *cmd.Command, env []v1.EnvVar, volumeMounts []corev1.Volu
 
 	container := corev1.Container{
 		Name:            "mariadb",
-		Image:           mariadb.Spec.Image.String(),
-		ImagePullPolicy: mariadb.Spec.Image.PullPolicy,
+		Image:           mariadb.Spec.Image,
+		ImagePullPolicy: mariadb.Spec.ImagePullPolicy,
 		Command:         cmd.Command,
 		Args:            cmd.Args,
 		Env:             env,
