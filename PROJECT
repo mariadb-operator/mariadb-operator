@@ -1,6 +1,6 @@
 domain: mmontes.io
 layout:
-- go.kubebuilder.io/v3
+- go.kubebuilder.io/v4
 projectName: mariadb-operator
 repo: github.com/mariadb-operator/mariadb-operator
 resources:
