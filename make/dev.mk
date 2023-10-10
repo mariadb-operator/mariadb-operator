@@ -16,7 +16,7 @@ lint: golangci-lint ## Lint.
 
 .PHONY: build
 build: ## Build binary.
-	go build -o bin/mariadb-operator main.go
+	go build -o bin/mariadb-operator cmd/main.go
 
 .PHONY: test
 test: envtest ## Run tests.
@@ -35,11 +35,11 @@ release: goreleaser ## Test release locally.
 RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --service-monitor-reconciler
 .PHONY: run
 run: lint ## Run a controller from your host.
-	go run main.go $(RUN_FLAGS)
+	go run cmd/main.go $(RUN_FLAGS)
 
 ##@ Webhook
 
 WEBHOOK_FLAGS ?= --log-dev
 .PHONY: webhook
 webhook: lint ## Run a webhook from your host.
-	go run main.go webhook $(WEBHOOK_FLAGS)
+	go run cmd/main.go webhook $(WEBHOOK_FLAGS)

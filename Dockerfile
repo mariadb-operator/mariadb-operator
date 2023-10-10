@@ -10,7 +10,7 @@ COPY go.mod go.sum /app/
 RUN go mod download
 
 COPY . /app
-RUN go build -o mariadb-operator main.go
+RUN go build -o mariadb-operator cmd/main.go
 
 FROM gcr.io/distroless/static AS app
 
