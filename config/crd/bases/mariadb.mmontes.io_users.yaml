@@ -120,6 +120,8 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              retryInterval:
+                type: string
             required:
             - mariaDbRef
             - passwordSecretKeyRef

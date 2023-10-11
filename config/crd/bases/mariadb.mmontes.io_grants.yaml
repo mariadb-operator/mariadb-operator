@@ -114,6 +114,8 @@ spec:
                   type: string
                 minItems: 1
                 type: array
+              retryInterval:
+                type: string
               table:
                 default: '*'
                 type: string

@@ -3256,6 +3256,8 @@ spec:
               name:
                 maxLength: 80
                 type: string
+              retryInterval:
+                type: string
             required:
             - mariaDbRef
             type: object
@@ -3452,6 +3454,8 @@ spec:
                   type: string
                 minItems: 1
                 type: array
+              retryInterval:
+                type: string
               table:
                 default: '*'
                 type: string
@@ -16497,6 +16501,8 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              retryInterval:
+                type: string
             required:
             - mariaDbRef
             - passwordSecretKeyRef

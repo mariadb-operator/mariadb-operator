@@ -107,6 +107,8 @@ spec:
               name:
                 maxLength: 80
                 type: string
+              retryInterval:
+                type: string
             required:
             - mariaDbRef
             type: object

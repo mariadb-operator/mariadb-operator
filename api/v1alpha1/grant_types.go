@@ -25,6 +25,7 @@ import (
 
 // GrantSpec defines the desired state of Grant
 type GrantSpec struct {
+	SQLTemplate `json:",inline"`
 	// +kubebuilder:validation:Required
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
@@ -85,6 +86,10 @@ func (m *Grant) IsReady() bool {
 
 func (g *Grant) MariaDBRef() *MariaDBRef {
 	return &g.Spec.MariaDBRef
+}
+
+func (g *Grant) RetryInterval() *metav1.Duration {
+	return g.Spec.RetryInterval
 }
 
 func (g *Grant) AccountName() string {

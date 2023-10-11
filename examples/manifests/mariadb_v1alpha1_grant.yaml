@@ -14,3 +14,4 @@ spec:
   username: user
   grantOption: true
   host: "%"
+  retryInterval: 5s
