@@ -26,6 +26,7 @@ import (
 
 // UserSpec defines the desired state of User
 type UserSpec struct {
+	SQLTemplate `json:",inline"`
 	// +kubebuilder:validation:Required
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:validation:Required
@@ -82,6 +83,10 @@ func (u *User) IsReady() bool {
 
 func (u *User) MariaDBRef() *MariaDBRef {
 	return &u.Spec.MariaDBRef
+}
+
+func (u *User) RetryInterval() *metav1.Duration {
+	return u.Spec.RetryInterval
 }
 
 func (u *User) usernameOrDefault() string {

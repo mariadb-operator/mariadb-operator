@@ -106,6 +106,10 @@ type ConnectionTemplate struct {
 	ServiceName    *string           `json:"serviceName,omitempty" webhook:"inmutable"`
 }
 
+type SQLTemplate struct {
+	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
+}
+
 type RestoreSource struct {
 	BackupRef *corev1.LocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
 	Volume    *corev1.VolumeSource         `json:"volume,omitempty" webhook:"inmutableinit"`

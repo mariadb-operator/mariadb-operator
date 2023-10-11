@@ -111,13 +111,13 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherFailed("MariaDB not healthy")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
 		}
-		return r.retryResult(&conn), nil
+		return r.retryResult(&conn)
 	}
 
 	var secretErr *multierror.Error
 	err = r.reconcileSecret(ctx, &conn, mariadb)
 	if errors.Is(err, errConnHealthCheck) {
-		return r.retryResult(&conn), nil
+		return r.retryResult(&conn)
 	}
 	secretErr = multierror.Append(secretErr, err)
 
@@ -127,7 +127,7 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := secretErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Secret: %v", err)
 	}
-	return r.healthResult(&conn), nil
+	return r.healthResult(&conn)
 }
 
 func (r *ConnectionReconciler) init(ctx context.Context, conn *mariadbv1alpha1.Connection) error {
@@ -276,18 +276,18 @@ func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1a
 	return nil
 }
 
-func (r *ConnectionReconciler) retryResult(conn *mariadbv1alpha1.Connection) ctrl.Result {
+func (r *ConnectionReconciler) retryResult(conn *mariadbv1alpha1.Connection) (ctrl.Result, error) {
 	if conn.Spec.HealthCheck != nil && conn.Spec.HealthCheck.RetryInterval != nil {
-		return ctrl.Result{RequeueAfter: (*conn.Spec.HealthCheck.RetryInterval).Duration}
+		return ctrl.Result{RequeueAfter: (*conn.Spec.HealthCheck.RetryInterval).Duration}, nil
 	}
-	return ctrl.Result{RequeueAfter: r.RequeueInterval}
+	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 }
 
-func (r *ConnectionReconciler) healthResult(conn *mariadbv1alpha1.Connection) ctrl.Result {
+func (r *ConnectionReconciler) healthResult(conn *mariadbv1alpha1.Connection) (ctrl.Result, error) {
 	if conn.Spec.HealthCheck != nil && conn.Spec.HealthCheck.Interval != nil {
-		return ctrl.Result{RequeueAfter: (*conn.Spec.HealthCheck.Interval).Duration}
+		return ctrl.Result{RequeueAfter: (*conn.Spec.HealthCheck.Interval).Duration}, nil
 	}
-	return ctrl.Result{}
+	return ctrl.Result{}, nil
 }
 
 func (r *ConnectionReconciler) patchStatus(ctx context.Context, conn *mariadbv1alpha1.Connection,

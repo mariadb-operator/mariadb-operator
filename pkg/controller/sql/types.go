@@ -6,6 +6,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -14,6 +15,7 @@ type Resource interface {
 	v1.Object
 	MariaDBRef() *mariadbv1alpha1.MariaDBRef
 	IsBeingDeleted() bool
+	RetryInterval() *metav1.Duration
 }
 
 type Reconciler interface {

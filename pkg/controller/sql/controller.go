@@ -13,6 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type SqlReconciler struct {
@@ -34,67 +35,80 @@ func NewSqlReconciler(client client.Client, cr *condition.Ready, wr WrappedRecon
 	}
 }
 
-func (tr *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.Result, error) {
+func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.Result, error) {
 	if resource.IsBeingDeleted() {
-		if err := tr.Finalizer.Finalize(ctx, resource); err != nil {
+		if err := r.Finalizer.Finalize(ctx, resource); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error finalizing %s: %v", resource.GetName(), err)
 		}
 		return ctrl.Result{}, nil
 	}
 
-	mariadb, err := tr.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.GetNamespace())
+	mariadb, err := r.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.GetNamespace())
 	if err != nil {
-		var mariadbErr *multierror.Error
-		mariadbErr = multierror.Append(mariadbErr, err)
-
-		err = tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.PatcherRefResolver(err, mariadb))
-		mariadbErr = multierror.Append(mariadbErr, err)
-
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariadbErr)
-	}
-
-	if err := waitForMariaDB(ctx, tr.Client, resource, mariadb); err != nil {
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, err)
 
-		if err := tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.PatcherWithError(err)); err != nil {
-			errBundle = multierror.Append(errBundle, err)
-		}
+		err = r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherRefResolver(err, mariadb))
+		errBundle = multierror.Append(errBundle, err)
 
-		if err := errBundle.ErrorOrNil(); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error waiting for MariaDB: %v", err)
-		}
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", errBundle)
+	}
+
+	if err := waitForMariaDB(ctx, r.Client, resource, mariadb); err != nil {
+		var errBundle *multierror.Error
+		errBundle = multierror.Append(errBundle, err)
+
+		err := r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherWithError(err))
+		errBundle = multierror.Append(errBundle, err)
+
+		return ctrl.Result{}, fmt.Errorf("error waiting for MariaDB: %v", errBundle)
 	}
 
 	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
-	mdbClient, err := mariadbclient.NewClientWithMariaDB(ctx, mariadb, tr.RefResolver)
+	mdbClient, err := mariadbclient.NewClientWithMariaDB(ctx, mariadb, r.RefResolver)
 	if err != nil {
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, err)
 
-		err = tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.PatcherFailed("Error connecting to MariaDB"))
+		msg := fmt.Sprintf("Error connecting to MariaDB: %v", err)
+		err = r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherFailed(msg))
 		errBundle = multierror.Append(errBundle, err)
 
-		return ctrl.Result{}, fmt.Errorf("error creating MariaDB client: %v", errBundle)
+		return r.retryResult(ctx, resource, errBundle)
 	}
 	defer mdbClient.Close()
 
+	err = r.WrappedReconciler.Reconcile(ctx, mdbClient)
 	var errBundle *multierror.Error
-	err = tr.WrappedReconciler.Reconcile(ctx, mdbClient)
-	errBundle = multierror.Append(errBundle, err)
-
-	err = tr.WrappedReconciler.PatchStatus(ctx, tr.ConditionReady.PatcherWithError(err))
 	errBundle = multierror.Append(errBundle, err)
 
 	if err := errBundle.ErrorOrNil(); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating %s: %v", resource.GetName(), err)
+		msg := fmt.Sprintf("Error creating %s: %v", resource.GetName(), err)
+		err = r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherFailed(msg))
+		errBundle = multierror.Append(errBundle, err)
+
+		return r.retryResult(ctx, resource, errBundle)
 	}
 
-	if err := tr.Finalizer.AddFinalizer(ctx); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error adding finalizer to %s: %v", resource.GetName(), err)
+	if err = r.Finalizer.AddFinalizer(ctx); err != nil {
+		errBundle = multierror.Append(errBundle, fmt.Errorf("error adding finalizer to %s: %v", resource.GetName(), err))
 	}
 
+	err = r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherWithError(errBundle.ErrorOrNil()))
+	errBundle = multierror.Append(errBundle, err)
+
+	if err := errBundle.ErrorOrNil(); err != nil {
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
+}
+
+func (r *SqlReconciler) retryResult(ctx context.Context, resource Resource, err error) (ctrl.Result, error) {
+	if resource.RetryInterval() != nil {
+		log.FromContext(ctx).Error(err, "Error reconciling SQL resource")
+		return ctrl.Result{RequeueAfter: resource.RetryInterval().Duration}, nil
+	}
+	return ctrl.Result{}, err
 }
 
 func waitForMariaDB(ctx context.Context, client client.Client, resource Resource,

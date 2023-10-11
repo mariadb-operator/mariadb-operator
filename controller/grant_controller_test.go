@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"time"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -76,6 +78,9 @@ var _ = Describe("Grant controller", func() {
 					Namespace: grantKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.GrantSpec{
+					SQLTemplate: mariadbv1alpha1.SQLTemplate{
+						RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
+					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbKey.Name,
@@ -199,6 +204,9 @@ var _ = Describe("Grant controller", func() {
 					Namespace: grantKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.GrantSpec{
+					SQLTemplate: mariadbv1alpha1.SQLTemplate{
+						RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
+					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
 							Name: testMariaDbKey.Name,

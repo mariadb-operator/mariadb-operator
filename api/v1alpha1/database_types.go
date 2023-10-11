@@ -23,6 +23,7 @@ import (
 
 // DatabaseSpec defines the desired state of Database
 type DatabaseSpec struct {
+	SQLTemplate `json:",inline"`
 	// +kubebuilder:validation:Required
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// +kubebuilder:default=utf8
@@ -77,12 +78,16 @@ func (d *Database) IsBeingDeleted() bool {
 	return !d.DeletionTimestamp.IsZero()
 }
 
-func (m *Database) IsReady() bool {
-	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+func (d *Database) IsReady() bool {
+	return meta.IsStatusConditionTrue(d.Status.Conditions, ConditionTypeReady)
 }
 
-func (m *Database) MariaDBRef() *MariaDBRef {
-	return &m.Spec.MariaDBRef
+func (d *Database) MariaDBRef() *MariaDBRef {
+	return &d.Spec.MariaDBRef
+}
+
+func (d *Database) RetryInterval() *metav1.Duration {
+	return d.Spec.RetryInterval
 }
 
 // +kubebuilder:object:root=true
