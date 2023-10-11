@@ -59,14 +59,14 @@ kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases
   -     repository: ghcr.io/mariadb-operator/agent
   -     tag: "v0.0.2"
   -     pullPolicy: IfNotPresent
-  +   image: ghcr.io/mariadb-operator/agent:v0.0.2
+  +   image: ghcr.io/mariadb-operator/agent:v0.0.3
   +   imagePullPolicy: IfNotPresent
     initContainer:
   -   image:
   -     repository: ghcr.io/mariadb-operator/init
   -     tag: "v0.0.5"
   -     pullPolicy: IfNotPresent
-  +   image: ghcr.io/mariadb-operator/init:v0.0.5
+  +   image: ghcr.io/mariadb-operator/init:v0.0.6
   +   imagePullPolicy: IfNotPresent
    ```
  

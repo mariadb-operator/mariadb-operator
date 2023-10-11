@@ -290,7 +290,7 @@ var (
 		ReplicaThreads: &replicaThreads,
 		Agent: &GaleraAgent{
 			ContainerTemplate: ContainerTemplate{
-				Image:           "ghcr.io/mariadb-operator/agent:v0.0.2",
+				Image:           "ghcr.io/mariadb-operator/agent:v0.0.3",
 				ImagePullPolicy: corev1.PullIfNotPresent,
 			},
 			Port: func() *int32 { p := int32(5555); return &p }(),
@@ -307,7 +307,7 @@ var (
 			PodSyncTimeout:          &fiveMinutes,
 		},
 		InitContainer: &ContainerTemplate{
-			Image:           "ghcr.io/mariadb-operator/init:v0.0.5",
+			Image:           "ghcr.io/mariadb-operator/init:v0.0.6",
 			ImagePullPolicy: corev1.PullIfNotPresent,
 		},
 		VolumeClaimTemplate: &VolumeClaimTemplate{
