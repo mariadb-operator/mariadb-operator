@@ -76,7 +76,7 @@ helm repo update mariadb-operator
 helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.21.0 
 ```
 
-- If you previously decided to downscale the operator, make sure you upscale back:
+- If you previously decided to downscale the operator, make sure you upscale it back:
 ```bash
 kubectl scale deployment mariadb-operator -n default --replicas=1
 kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
