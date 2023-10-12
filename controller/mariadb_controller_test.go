@@ -9,6 +9,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -51,10 +52,24 @@ var _ = Describe("MariaDB", func() {
 				}
 				Expect(svc.ObjectMeta.Labels).NotTo(BeNil())
 				Expect(svc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(svc.ObjectMeta.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", "mariadb"))
+				Expect(svc.ObjectMeta.Labels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDbName))
 				Expect(svc.ObjectMeta.Annotations).NotTo(BeNil())
 				Expect(svc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting to create a ServiceMonitor eventually")
+			Eventually(func() bool {
+				var svcMonitor monitoringv1.ServiceMonitor
+				if err := k8sClient.Get(testCtx, testMariaDbKey, &svcMonitor); err != nil {
+					return false
+				}
+				Expect(svcMonitor.Spec.Selector).NotTo(BeNil())
+				Expect(svcMonitor.Spec.Selector).To(HaveKeyWithValue("app.kubernetes.io/name", "mariadb"))
+				Expect(svcMonitor.Spec.Selector).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDbName))
+				return true
+			})
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
