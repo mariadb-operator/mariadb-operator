@@ -183,6 +183,17 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 					"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.100",
 				},
 			},
+			Metrics: &mariadbv1alpha1.Metrics{
+				Exporter: mariadbv1alpha1.Exporter{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Image: "prom/mysqld-exporter:v0.14.0",
+					},
+					Port: 9104,
+				},
+				ServiceMonitor: mariadbv1alpha1.ServiceMonitor{
+					PrometheusRelease: "kube-prometheus-stack",
+				},
+			},
 		},
 	}
 	Expect(k8sClient.Create(ctx, &testMariaDb)).To(Succeed())

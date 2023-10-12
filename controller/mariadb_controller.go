@@ -430,23 +430,28 @@ func (r *MariaDBReconciler) reconcileHighAvailabilityPDB(ctx context.Context, ma
 
 func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
-	ports := []corev1.ServicePort{
-		{
-			Name: builder.MariaDbPortName,
-			Port: mariadb.Spec.Port,
-		},
-	}
-	if mariadb.Spec.Metrics != nil {
-		ports = append(ports, corev1.ServicePort{
-			Name: builder.MetricsContainerName,
-			Port: mariadb.Spec.Metrics.Exporter.Port,
-		})
-	}
 	opts := builder.ServiceOpts{
-		Ports: ports,
+		Ports: []corev1.ServicePort{
+			{
+				Name: builder.MariaDbPortName,
+				Port: mariadb.Spec.Port,
+			},
+		},
 	}
 	if mariadb.Spec.Service != nil {
 		opts.ServiceTemplate = *mariadb.Spec.Service
+	}
+	if mariadb.Spec.Metrics != nil {
+		opts.Ports = append(opts.Ports, corev1.ServicePort{
+			Name: builder.MetricsContainerName,
+			Port: mariadb.Spec.Metrics.Exporter.Port,
+		})
+		// To match ServiceMonitor selector
+		opts.Labels =
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mariadb).
+				WithLabels(opts.Labels).
+				Build()
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {

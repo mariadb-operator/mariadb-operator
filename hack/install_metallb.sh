@@ -17,7 +17,7 @@ helm upgrade --install \
 kubectl wait -n metallb \
   --for=condition=ready pod \
   --selector=app.kubernetes.io/name=metallb \
-  --timeout=90s
+  --timeout=120s
 
 export CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix.go)
 
