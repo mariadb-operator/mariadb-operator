@@ -13,6 +13,7 @@ metadata:
   name: {{ $fullName }}-webhook-default-cert
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
+    mariadb.mmontes.io/component: webhook
   annotations:
     {{ with .Values.webhook.certificate.default.hook }}
     helm.sh/hook: {{ . }}
@@ -31,6 +32,7 @@ metadata:
   name: {{ $fullName }}-webhook
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
+    mariadb.mmontes.io/component: webhook
   annotations:
     {{ if .Values.webhook.certificate.certManager }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert

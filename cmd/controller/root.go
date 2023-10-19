@@ -29,7 +29,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	controller "github.com/mariadb-operator/mariadb-operator/controller"
+	"github.com/mariadb-operator/mariadb-operator/controller"
 	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -306,8 +306,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&logTimeEncoder, "log-time-encoder", "epoch", "Log time encoder to use, one of: "+
 		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
+	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 
-	rootCmd.Flags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
 		"Enabling this requires Prometheus CRDs installed in the cluster.")
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")

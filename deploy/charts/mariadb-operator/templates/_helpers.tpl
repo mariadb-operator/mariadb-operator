@@ -71,17 +71,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Webhook certificate
-*/}}
-{{- define "mariadb-operator-webhook.certificate" -}}
-{{- if .Values.webhook.certificate.certManager }}
-{{- include "mariadb-operator.fullname" . }}-webhook-cert
-{{- else }}
-{{- include "mariadb-operator.fullname" . }}-webhook-default-cert
-{{- end }}
-{{- end }}
-
-{{/*
 Webhook certificate subject name
 */}}
 {{- define "mariadb-operator-webhook.subjectName" -}}

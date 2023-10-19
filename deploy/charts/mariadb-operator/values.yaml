@@ -98,16 +98,8 @@ webhook:
   certificate:
     # -- Use cert-manager to issue and rotate the certificate. If set to false, a default certificate will be used.
     certManager: false
-    # -- Default certificate generated when the chart is installed or upgraded.
-    default:
-      # -- Certificate authority expiration in days.
-      caExpirationDays: 365
-      # -- Certificate expiration in days.
-      certExpirationDays: 365
-      # -- Annotations for certificate Secret.
-      annotations: {}
-      # -- Helm hook to be added to the default certificate.
-      hook: ""
+    # -- Annotattios to be added to webhook TLS secret.
+    secretAnnotations: {}
     # -- Path where the certificate will be mounted.
     path: /tmp/k8s-webhook-server/serving-certs
   # -- Port to be used by the webhook server
