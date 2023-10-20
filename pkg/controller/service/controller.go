@@ -36,7 +36,12 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, desiredSvc *corev1.Se
 	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
 	existingSvc.Spec.Selector = desiredSvc.Spec.Selector
 	existingSvc.Spec.Type = desiredSvc.Spec.Type
-	existingSvc.Annotations = desiredSvc.Annotations
-	existingSvc.Labels = desiredSvc.Labels
+	for k, v := range desiredSvc.Annotations {
+		existingSvc.Annotations[k] = v
+	}
+	for k, v := range desiredSvc.Labels {
+		existingSvc.Labels[k] = v
+	}
+
 	return r.Patch(ctx, &existingSvc, patch)
 }
