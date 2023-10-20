@@ -34,6 +34,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, desiredSvc *corev1.Se
 
 	patch := client.MergeFrom(existingSvc.DeepCopy())
 	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
+	existingSvc.Spec.AllocateLoadBalancerNodePorts = desiredSvc.Spec.AllocateLoadBalancerNodePorts
 	existingSvc.Spec.Selector = desiredSvc.Spec.Selector
 	existingSvc.Spec.Type = desiredSvc.Spec.Type
 	for k, v := range desiredSvc.Annotations {

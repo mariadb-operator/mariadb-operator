@@ -68,6 +68,9 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	if opts.SessionAffinity != nil {
 		svc.Spec.SessionAffinity = *opts.SessionAffinity
 	}
+	if opts.AllocateLoadBalancerNodePorts != nil {
+		svc.Spec.AllocateLoadBalancerNodePorts = opts.AllocateLoadBalancerNodePorts
+	}
 	if err := controllerutil.SetControllerReference(mariadb, svc, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Service: %v", err)
 	}
