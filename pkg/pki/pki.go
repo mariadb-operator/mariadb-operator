@@ -13,36 +13,40 @@ import (
 	"time"
 )
 
-type KeyPair struct {
-	Cert    *x509.Certificate
-	Key     *rsa.PrivateKey
+type KeyPairPEM struct {
 	CertPEM []byte
 	KeyPEM  []byte
 }
 
+type KeyPair struct {
+	KeyPairPEM
+	Cert *x509.Certificate
+	Key  *rsa.PrivateKey
+}
+
 type CAOpts struct {
-	Name string
-	Org  string
+	CommonName   string
+	Organization string
 }
 
 type CAOpt func(*CAOpts)
 
-func WithCAName(name string) CAOpt {
+func WithCACommonName(name string) CAOpt {
 	return func(c *CAOpts) {
-		c.Name = name
+		c.CommonName = name
 	}
 }
 
-func WithCAOrg(org string) CAOpt {
+func WithCAOrganization(org string) CAOpt {
 	return func(c *CAOpts) {
-		c.Org = org
+		c.Organization = org
 	}
 }
 
 func CreateCACert(begin, end time.Time, opts ...CAOpt) (*KeyPair, error) {
 	caOpts := CAOpts{
-		Name: "mariadb-operator",
-		Org:  "mariadb-operator",
+		CommonName:   "mariadb-operator",
+		Organization: "mariadb-operator",
 	}
 	for _, setOpt := range opts {
 		setOpt(&caOpts)
@@ -50,11 +54,11 @@ func CreateCACert(begin, end time.Time, opts ...CAOpt) (*KeyPair, error) {
 	tpl := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
 		Subject: pkix.Name{
-			CommonName:   caOpts.Name,
-			Organization: []string{caOpts.Org},
+			CommonName:   caOpts.CommonName,
+			Organization: []string{caOpts.Organization},
 		},
 		DNSNames: []string{
-			caOpts.Name,
+			caOpts.CommonName,
 		},
 		NotBefore:             begin,
 		NotAfter:              end,
@@ -74,21 +78,48 @@ func CreateCACert(begin, end time.Time, opts ...CAOpt) (*KeyPair, error) {
 	if err != nil {
 		return nil, err
 	}
-	certPEM, keyPEM, err := pemEncodeKeyPair(der, key)
+	keyPairPEM, err := pemEncodeKeyPair(der, key)
 	if err != nil {
 		return nil, err
 	}
 
 	return &KeyPair{
-		Cert:    cert,
-		Key:     key,
-		CertPEM: certPEM,
-		KeyPEM:  keyPEM,
+		Cert:       cert,
+		Key:        key,
+		KeyPairPEM: *keyPairPEM,
 	}, nil
 }
 
-func ValidCert(caCert, cert, key []byte, dnsName string, at time.Time) (bool, error) {
-	if len(caCert) == 0 || len(cert) == 0 || len(key) == 0 {
+func CreateCertPEM(ca *KeyPair, begin, end time.Time, commonName string, dnsNames []string) (*KeyPairPEM, error) {
+	templ := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName: commonName,
+		},
+		DNSNames:              dnsNames,
+		NotBefore:             begin,
+		NotAfter:              end,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+	der, err := x509.CreateCertificate(rand.Reader, templ, ca.Cert, key.Public(), ca.Key)
+	if err != nil {
+		return nil, err
+	}
+	keyPairPEM, err := pemEncodeKeyPair(der, key)
+	if err != nil {
+		return nil, err
+	}
+	return keyPairPEM, nil
+}
+
+func ValidCert(caCert []byte, keyPairPEM *KeyPairPEM, dnsName string, at time.Time) (bool, error) {
+	if len(caCert) == 0 || len(keyPairPEM.CertPEM) == 0 || len(keyPairPEM.KeyPEM) == 0 {
 		return false, errors.New("CA certificate, certificate and private key must be provided")
 	}
 
@@ -103,12 +134,12 @@ func ValidCert(caCert, cert, key []byte, dnsName string, at time.Time) (bool, er
 	}
 	pool.AddCert(ca)
 
-	_, err = tls.X509KeyPair(cert, key)
+	_, err = tls.X509KeyPair(keyPairPEM.CertPEM, keyPairPEM.KeyPEM)
 	if err != nil {
 		return false, err
 	}
 
-	certBytes, _ := pem.Decode(cert)
+	certBytes, _ := pem.Decode(keyPairPEM.CertPEM)
 	if certBytes == nil {
 		return false, err
 	}
@@ -128,17 +159,17 @@ func ValidCert(caCert, cert, key []byte, dnsName string, at time.Time) (bool, er
 	return true, nil
 }
 
-func pemEncodeKeyPair(certificateDER []byte, key *rsa.PrivateKey) (certBytes []byte, keyBytes []byte, err error) {
+func pemEncodeKeyPair(certificateDER []byte, key *rsa.PrivateKey) (*KeyPairPEM, error) {
 	certBuf := &bytes.Buffer{}
 	if err := pem.Encode(certBuf, &pem.Block{Type: "CERTIFICATE", Bytes: certificateDER}); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	keyBuf := &bytes.Buffer{}
 	if err := pem.Encode(keyBuf, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	certBytes = certBuf.Bytes()
-	keyBytes = keyBuf.Bytes()
-	err = nil
-	return
+	return &KeyPairPEM{
+		CertPEM: certBuf.Bytes(),
+		KeyPEM:  keyBuf.Bytes(),
+	}, nil
 }
