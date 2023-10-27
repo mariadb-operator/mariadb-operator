@@ -159,6 +159,10 @@ func ValidCert(caCert []byte, keyPairPEM *KeyPairPEM, dnsName string, at time.Ti
 	return true, nil
 }
 
+func ValidCACert(keyPairPEM *KeyPairPEM, dnsName string, at time.Time) (bool, error) {
+	return ValidCert(keyPairPEM.CertPEM, keyPairPEM, dnsName, at)
+}
+
 func pemEncodeKeyPair(certificateDER []byte, key *rsa.PrivateKey) (*KeyPairPEM, error) {
 	certBuf := &bytes.Buffer{}
 	if err := pem.Encode(certBuf, &pem.Block{Type: "CERTIFICATE", Bytes: certificateDER}); err != nil {
