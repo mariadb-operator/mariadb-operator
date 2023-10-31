@@ -37,31 +37,36 @@ import (
 
 type ValidatingWebhookConfigReconciler struct {
 	client.Client
-	scheme           *runtime.Scheme
-	recorder         record.EventRecorder
-	requeueDuration  time.Duration
-	serviceName      string
-	serviceNamespace string
-	secretName       string
-	secretNamespace  string
+	scheme              *runtime.Scheme
+	recorder            record.EventRecorder
+	requeueDuration     time.Duration
+	serviceName         string
+	serviceNamespace    string
+	caSecretName        string
+	caSecretNamespace   string
+	certSecretName      string
+	certSecretNamespace string
 
 	readyMux *sync.Mutex
 	ready    bool
 }
 
 func NewValidatingWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
-	requeueInterval time.Duration, svcName, svcNamespace, secretName, secretNamespace string) *ValidatingWebhookConfigReconciler {
+	requeueInterval time.Duration, svcName, svcNamespace, caSecretName, caSecretNamespace,
+	certSecretName, certSecretNamespace string) *ValidatingWebhookConfigReconciler {
 	return &ValidatingWebhookConfigReconciler{
-		Client:           client,
-		scheme:           scheme,
-		recorder:         recorder,
-		requeueDuration:  requeueInterval,
-		serviceName:      svcName,
-		serviceNamespace: svcNamespace,
-		secretName:       secretName,
-		secretNamespace:  secretNamespace,
-		readyMux:         &sync.Mutex{},
-		ready:            false,
+		Client:              client,
+		scheme:              scheme,
+		recorder:            recorder,
+		requeueDuration:     requeueInterval,
+		serviceName:         svcName,
+		serviceNamespace:    svcNamespace,
+		caSecretName:        caSecretName,
+		caSecretNamespace:   caSecretNamespace,
+		certSecretName:      certSecretName,
+		certSecretNamespace: certSecretNamespace,
+		readyMux:            &sync.Mutex{},
+		ready:               false,
 	}
 }
 
@@ -119,7 +124,7 @@ func (r *ValidatingWebhookConfigReconciler) ReadyCheck(_ *http.Request) error {
 		return errors.New("Webhook not ready")
 	}
 	healthy, err := health.IsServiceHealthy(context.Background(), r.Client, types.NamespacedName{
-		Name:      r.secretName,
+		Name:      r.certSecretName,
 		Namespace: r.serviceNamespace,
 	})
 	if err != nil {
@@ -131,18 +136,17 @@ func (r *ValidatingWebhookConfigReconciler) ReadyCheck(_ *http.Request) error {
 	return nil
 }
 
-func (r *ValidatingWebhookConfigReconciler) updateWebhookConfig(ctx context.Context, cfg *admissionregistration.ValidatingWebhookConfiguration) error {
+func (r *ValidatingWebhookConfigReconciler) updateWebhookConfig(ctx context.Context,
+	cfg *admissionregistration.ValidatingWebhookConfiguration) error {
 	secret := v1.Secret{}
 	secretKey := types.NamespacedName{
-		Name:      r.secretName,
-		Namespace: r.secretNamespace,
+		Name:      r.certSecretName,
+		Namespace: r.certSecretNamespace,
 	}
 	err := r.Get(ctx, secretKey, &secret)
 	if err != nil {
 		return err
 	}
-
-	// TODO: issue CA and TLS certificate
 
 	crt, ok := secret.Data[caCertName]
 	if !ok {

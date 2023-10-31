@@ -2,7 +2,6 @@ package pki
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -15,17 +14,13 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	tlsCert              = "tls.crt"
-	tlsKey               = "tls.key"
-	lookaheadInterval    = 90 * 24 * time.Hour
-	certValidityDuration = 10 * 365 * 24 * time.Hour
+	tlsCert                     = "tls.crt"
+	tlsKey                      = "tls.key"
+	defaultCAValidityDuration   = 4 * 365 * 24 * time.Hour
+	defaultCertValidityDuration = 365 * 24 * time.Hour
 )
 
 type KeyPair struct {
@@ -75,44 +70,67 @@ func KeyPairFromTLSSecret(secret *corev1.Secret) (*KeyPair, error) {
 	}, nil
 }
 
-type CAOpts struct {
+type X509Opts struct {
 	CommonName   string
+	DNSNames     []string
 	Organization string
+	NotBefore    time.Time
+	NotAfter     time.Time
 }
 
-type CAOpt func(*CAOpts)
+type X509Opt func(*X509Opts)
 
-func WithCACommonName(name string) CAOpt {
-	return func(c *CAOpts) {
-		c.CommonName = name
+func WithCommonName(name string) X509Opt {
+	return func(x *X509Opts) {
+		x.CommonName = name
 	}
 }
 
-func WithCAOrganization(org string) CAOpt {
-	return func(c *CAOpts) {
-		c.Organization = org
+func WithDNSNames(dnsNames []string) X509Opt {
+	return func(x *X509Opts) {
+		x.DNSNames = dnsNames
 	}
 }
 
-func CreateCACert(begin, end time.Time, opts ...CAOpt) (*KeyPair, error) {
-	caOpts := CAOpts{
+func WithOrganization(org string) X509Opt {
+	return func(x *X509Opts) {
+		x.Organization = org
+	}
+}
+
+func WithNotBefore(notBefore time.Time) X509Opt {
+	return func(x *X509Opts) {
+		x.NotBefore = notBefore
+	}
+}
+
+func WithNotAfter(notAfter time.Time) X509Opt {
+	return func(x *X509Opts) {
+		x.NotAfter = notAfter
+	}
+}
+
+func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
+	opts := X509Opts{
 		CommonName:   "mariadb-operator",
 		Organization: "mariadb-operator",
+		NotBefore:    time.Now().Add(-1 * time.Hour),
+		NotAfter:     time.Now().Add(defaultCAValidityDuration),
 	}
-	for _, setOpt := range opts {
-		setOpt(&caOpts)
+	for _, setOpt := range x509Opts {
+		setOpt(&opts)
 	}
 	tpl := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
 		Subject: pkix.Name{
-			CommonName:   caOpts.CommonName,
-			Organization: []string{caOpts.Organization},
+			CommonName:   opts.CommonName,
+			Organization: []string{opts.Organization},
 		},
 		DNSNames: []string{
-			caOpts.CommonName,
+			opts.CommonName,
 		},
-		NotBefore:             begin,
-		NotAfter:              end,
+		NotBefore:             opts.NotBefore,
+		NotAfter:              opts.NotAfter,
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 		IsCA:                  true,
@@ -120,15 +138,26 @@ func CreateCACert(begin, end time.Time, opts ...CAOpt) (*KeyPair, error) {
 	return createKeyPair(tpl, nil)
 }
 
-func CreateCert(caKeyPair *KeyPair, begin, end time.Time, commonName string, dnsNames []string) (*KeyPair, error) {
+func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
+	opts := X509Opts{
+		NotBefore: time.Now().Add(-1 * time.Hour),
+		NotAfter:  time.Now().Add(defaultCertValidityDuration),
+	}
+	for _, setOpt := range x509Opts {
+		setOpt(&opts)
+	}
+	if opts.CommonName == "" || opts.DNSNames == nil {
+		return nil, errors.New("CommonName and DNSNames are mandatory")
+	}
+
 	tpl := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			CommonName: commonName,
+			CommonName: opts.CommonName,
 		},
-		DNSNames:              dnsNames,
-		NotBefore:             begin,
-		NotAfter:              end,
+		DNSNames:              opts.DNSNames,
+		NotBefore:             opts.NotBefore,
+		NotAfter:              opts.NotAfter,
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
@@ -174,93 +203,6 @@ func ValidCert(caKeyPair *KeyPair, certKeyPair *KeyPair, dnsName string, at time
 
 func ValidCACert(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
 	return ValidCert(keyPair, keyPair, dnsName, at)
-}
-
-func CreateOrUpdateTLSSecret(ctx context.Context, client client.Client, key types.NamespacedName, keyPair *KeyPair) error {
-	var secret corev1.Secret
-	if err := client.Get(ctx, key, &secret); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("Error getting TLS secret: %v", err)
-		}
-		emptySecret := corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      key.Name,
-				Namespace: key.Namespace,
-			},
-			Data: nil,
-		}
-		if err := client.Create(ctx, &emptySecret); err != nil {
-			return fmt.Errorf("Error creating Secret: %v", err)
-		}
-		if err := client.Get(ctx, key, &secret); err != nil {
-			return fmt.Errorf("Error getting Secret: %v", err)
-		}
-	}
-
-	keyPair.FillTLSSecret(&secret)
-	if err := client.Update(ctx, &secret); err != nil {
-		return fmt.Errorf("Error updating Secret: %v", err)
-	}
-	return nil
-}
-
-type RefreshResult struct {
-	RefreshedCA   bool
-	RefreshedCert bool
-}
-
-func RefreshCert(ctx context.Context, client client.Client, caKey, certKey types.NamespacedName,
-	caName, certName string) (*RefreshResult, error) {
-	refreshResult := &RefreshResult{}
-	var caSecret corev1.Secret
-	if err := client.Get(ctx, caKey, &caSecret); err != nil {
-		return refreshResult, fmt.Errorf("Error getting CA Secret: %v", err)
-	}
-	var caKeyPair *KeyPair
-	var err error
-	caKeyPair, err = KeyPairFromTLSSecret(&caSecret)
-	if err != nil {
-		return refreshResult, fmt.Errorf("Error getting CA KeyPair: %v", err)
-	}
-
-	valid, err := ValidCACert(caKeyPair, caName, lookaheadTime())
-	if caSecret.Data == nil || !valid || err != nil {
-		begin := time.Now().Add(-1 * time.Hour)
-		end := time.Now().Add(certValidityDuration)
-		caKeyPair, err = CreateCACert(begin, end)
-		if err != nil {
-			return refreshResult, fmt.Errorf("Error creating CA cert: %v", err)
-		}
-		refreshResult.RefreshedCA = true
-	}
-
-	var certSecret corev1.Secret
-	if err := client.Get(ctx, certKey, &certSecret); err != nil {
-		return refreshResult, fmt.Errorf("Error getting certificate Secret: %v", err)
-	}
-	certKeyPair, err := KeyPairFromTLSSecret(&certSecret)
-	if err != nil {
-		return refreshResult, fmt.Errorf("Error getting certificate KeyPair: %v", err)
-	}
-
-	valid, err = ValidCert(caKeyPair, certKeyPair, certName, lookaheadTime())
-	if refreshResult.RefreshedCA || certSecret.Data == nil || !valid || err != nil {
-		begin := time.Now().Add(-1 * time.Hour)
-		end := time.Now().Add(certValidityDuration)
-		certKeyPair, err := CreateCert(caKeyPair, begin, end, certKeyPair.Cert.Subject.CommonName, certKeyPair.Cert.DNSNames)
-		if err != nil {
-			return refreshResult, fmt.Errorf("Error creating certificate %v", err)
-		}
-		if err := CreateOrUpdateTLSSecret(ctx, client, certKey, certKeyPair); err != nil {
-			return refreshResult, fmt.Errorf("Error creating certificate TLS Secret: %v", err)
-		}
-		refreshResult.RefreshedCert = true
-	}
-	return refreshResult, nil
-}
-
-func lookaheadTime() time.Time {
-	return time.Now().Add(lookaheadInterval)
 }
 
 func createKeyPair(tpl *x509.Certificate, caKeyPair *KeyPair) (*KeyPair, error) {

@@ -7,7 +7,12 @@ import (
 
 func TestCACert(t *testing.T) {
 	caName := "test-mariadb-operator"
-	caKeyPair, err := CreateCACert(time.Now(), time.Now().Add(24*time.Hour), WithCACommonName(caName), WithCAOrganization("test-org"))
+	caKeyPair, err := CreateCA(
+		WithCommonName(caName),
+		WithOrganization("test-org"),
+		WithNotBefore(time.Now()),
+		WithNotAfter(time.Now().Add(24*time.Hour)),
+	)
 	if err != nil {
 		t.Fatalf("CA cert creation should succeed. Got error: %v", err)
 	}
@@ -38,7 +43,7 @@ func TestCACert(t *testing.T) {
 }
 
 func TestCert(t *testing.T) {
-	caKeyPair, err := CreateCACert(time.Now(), time.Now().Add(24*time.Hour))
+	caKeyPair, err := CreateCA()
 	if err != nil {
 		t.Fatalf("CA cert creation should succeed. Got error: %v", err)
 	}
@@ -46,14 +51,14 @@ func TestCert(t *testing.T) {
 	fqdn := "mariadb-operator.default.svc.cluster.local"
 	keyPairPEM, err := CreateCert(
 		caKeyPair,
-		time.Now(),
-		time.Now().Add(24*time.Hour),
-		fqdn,
-		[]string{
+		WithCommonName(fqdn),
+		WithDNSNames([]string{
 			"mariadb-operator",
 			"mariadb-operator.default",
 			fqdn,
-		},
+		}),
+		WithNotBefore(time.Now()),
+		WithNotAfter(time.Now().Add(24*time.Hour)),
 	)
 	if err != nil {
 		t.Fatalf("Certificate creation should succeed. Got error: %v", err)
