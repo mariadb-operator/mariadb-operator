@@ -35,6 +35,9 @@ func (k *KeyPair) IsValid() bool {
 }
 
 func (k *KeyPair) FillTLSSecret(secret *corev1.Secret) {
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
 	secret.Data[tlsCert] = k.CertPEM
 	secret.Data[tlsKey] = k.KeyPEM
 }

@@ -108,7 +108,6 @@ var webhookCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(webhookCmd)
-
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs",
 		"Path containing the TLS certificate for the webhook server.")
 	webhookCmd.Flags().IntVar(&port, "port", 10250, "Port to be used by the webhook server.")

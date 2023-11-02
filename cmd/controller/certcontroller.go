@@ -27,15 +27,16 @@ import (
 
 	"github.com/mariadb-operator/mariadb-operator/controller"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var (
-	serviceName, serviceNamespace       string
-	caSecretName, caSecretNamespace     string
-	certSecretName, certSecretNamespace string
-	webhookConfigRequeueInterval        time.Duration
+	caSecretName, caSecretNamespace, caCommonName string
+	certSecretName, certSecretNamespace           string
+	serviceName, serviceNamespace                 string
+	requeueInterval                               time.Duration
 )
 
 var certcontrollerCmd = &cobra.Command{
@@ -61,20 +62,25 @@ var certcontrollerCmd = &cobra.Command{
 			mgr.GetClient(),
 			mgr.GetScheme(),
 			mgr.GetEventRecorderFor("validating-webhook-config"),
-			5*time.Minute,
-			serviceName,
-			serviceNamespace,
-			caSecretName,
-			caSecretNamespace,
-			certSecretName,
-			certSecretNamespace,
+			types.NamespacedName{
+				Name:      caSecretName,
+				Namespace: caSecretNamespace,
+			},
+			caCommonName,
+			types.NamespacedName{
+				Name:      certSecretName,
+				Namespace: certSecretNamespace,
+			},
+			types.NamespacedName{
+				Name:      serviceName,
+				Namespace: serviceNamespace,
+			},
+			requeueInterval,
 		)
-
 		if err = validatingWebhookReconciler.SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Uable to create controller", "controller", "ValidatingWebhookConfig")
 			os.Exit(1)
 		}
-
 		if err := mgr.AddHealthzCheck("validating-webhook-inject", validatingWebhookReconciler.ReadyCheck); err != nil {
 			setupLog.Error(err, "Unable to set up health check")
 			os.Exit(1)
@@ -90,16 +96,17 @@ var certcontrollerCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(certcontrollerCmd)
-	certcontrollerCmd.Flags().StringVar(&serviceName, "service-name", "mariadb-operator-webhook", "Webhook service name")
-	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
 	certcontrollerCmd.Flags().StringVar(&caSecretName, "ca-secret-name", "mariadb-operator-webhook-ca",
 		"Secret to store CA certificate for webhook")
 	certcontrollerCmd.Flags().StringVar(&caSecretNamespace, "ca-secret-namespace", "default",
 		"Namespace of the Secret to store the CA certificate for webhook")
+	certcontrollerCmd.Flags().StringVar(&caCommonName, "ca-common-name", "mariadb-operator", "CA certificate common name")
 	certcontrollerCmd.Flags().StringVar(&certSecretName, "cert-secret-name", "mariadb-operator-webhook-cert",
 		"Secret to store the certificate for webhook")
 	certcontrollerCmd.Flags().StringVar(&certSecretNamespace, "cert-secret-namespace", "default",
 		"Namespace of the Secret to store the certificate for webhook")
-	certcontrollerCmd.Flags().DurationVar(&webhookConfigRequeueInterval, "webhook-config-requeue-interval", time.Minute*5,
+	certcontrollerCmd.Flags().StringVar(&serviceName, "service-name", "mariadb-operator-webhook", "Webhook service name")
+	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
+	certcontrollerCmd.Flags().DurationVar(&requeueInterval, "requeue-interval", time.Minute*5,
 		"Time duration between reconciling webhook config for new certs")
 }

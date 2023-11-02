@@ -23,6 +23,8 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
+	"github.com/mariadb-operator/mariadb-operator/pkg/dns"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
@@ -35,47 +37,45 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type ValidatingWebhookConfigReconciler struct {
-	client.Client
-	scheme              *runtime.Scheme
-	recorder            record.EventRecorder
-	requeueDuration     time.Duration
-	serviceName         string
-	serviceNamespace    string
-	caSecretName        string
-	caSecretNamespace   string
-	certSecretName      string
-	certSecretNamespace string
-
-	readyMux *sync.Mutex
-	ready    bool
-}
-
-func NewValidatingWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
-	requeueInterval time.Duration, svcName, svcNamespace, caSecretName, caSecretNamespace,
-	certSecretName, certSecretNamespace string) *ValidatingWebhookConfigReconciler {
-	return &ValidatingWebhookConfigReconciler{
-		Client:              client,
-		scheme:              scheme,
-		recorder:            recorder,
-		requeueDuration:     requeueInterval,
-		serviceName:         svcName,
-		serviceNamespace:    svcNamespace,
-		caSecretName:        caSecretName,
-		caSecretNamespace:   caSecretNamespace,
-		certSecretName:      certSecretName,
-		certSecretNamespace: certSecretNamespace,
-		readyMux:            &sync.Mutex{},
-		ready:               false,
-	}
-}
-
 const (
 	wellKnownLabelKey   = "mariadb.mmontes.io/component"
 	wellKnownLabelValue = "webhook"
-
-	caCertName = "ca.crt"
 )
+
+type ValidatingWebhookConfigReconciler struct {
+	client.Client
+	scheme          *runtime.Scheme
+	recorder        record.EventRecorder
+	certReconciler  *certctrl.CertReconciler
+	serviceKey      types.NamespacedName
+	requeueInterval time.Duration
+	readyMux        *sync.Mutex
+	ready           bool
+}
+
+func NewValidatingWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
+	caSecretKey types.NamespacedName, caCommonName string, certSecretKey types.NamespacedName, serviceKey types.NamespacedName,
+	requeueInterval time.Duration) *ValidatingWebhookConfigReconciler {
+
+	certDNSnames := dns.ServiceDNSNames(serviceKey)
+	return &ValidatingWebhookConfigReconciler{
+		Client:   client,
+		scheme:   scheme,
+		recorder: recorder,
+		certReconciler: certctrl.NewCertReconciler(
+			client,
+			caSecretKey,
+			caCommonName,
+			certSecretKey,
+			certDNSnames.FQDN,
+			certDNSnames.Names,
+		),
+		serviceKey:      serviceKey,
+		requeueInterval: requeueInterval,
+		readyMux:        &sync.Mutex{},
+		ready:           false,
+	}
+}
 
 func (r *ValidatingWebhookConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
@@ -107,7 +107,7 @@ func (r *ValidatingWebhookConfigReconciler) Reconcile(ctx context.Context, req c
 	r.ready = true
 
 	return ctrl.Result{
-		RequeueAfter: r.requeueDuration,
+		RequeueAfter: r.requeueInterval,
 	}, nil
 }
 
@@ -123,10 +123,7 @@ func (r *ValidatingWebhookConfigReconciler) ReadyCheck(_ *http.Request) error {
 	if !r.ready {
 		return errors.New("Webhook not ready")
 	}
-	healthy, err := health.IsServiceHealthy(context.Background(), r.Client, types.NamespacedName{
-		Name:      r.certSecretName,
-		Namespace: r.serviceNamespace,
-	})
+	healthy, err := health.IsServiceHealthy(context.Background(), r.Client, r.serviceKey)
 	if err != nil {
 		return fmt.Errorf("Service not ready: %s", err)
 	}
@@ -138,33 +135,31 @@ func (r *ValidatingWebhookConfigReconciler) ReadyCheck(_ *http.Request) error {
 
 func (r *ValidatingWebhookConfigReconciler) updateWebhookConfig(ctx context.Context,
 	cfg *admissionregistration.ValidatingWebhookConfiguration) error {
-	secret := v1.Secret{}
-	secretKey := types.NamespacedName{
-		Name:      r.certSecretName,
-		Namespace: r.certSecretNamespace,
-	}
-	err := r.Get(ctx, secretKey, &secret)
+	result, err := r.certReconciler.Reconcile(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error reconciling webhook certificate: %v", err)
 	}
-
-	crt, ok := secret.Data[caCertName]
-	if !ok {
-		return errors.New("CA certificate not ready")
-	}
-	if err := r.inject(ctx, cfg, r.serviceName, r.serviceNamespace, crt); err != nil {
-		return err
-	}
-	return r.Update(ctx, cfg)
+	return r.patch(ctx, cfg, func(cfg *admissionregistration.ValidatingWebhookConfiguration) {
+		r.inject(ctx, cfg, result.CAKeyPair.CertPEM)
+	})
 }
 
 func (r *ValidatingWebhookConfigReconciler) inject(ctx context.Context, cfg *admissionregistration.ValidatingWebhookConfiguration,
-	svcName, svcNamespace string, certData []byte) error {
+	certData []byte) {
 	log.FromContext(ctx).Info("Injecting CA certificate and service names", "name", cfg.Name)
 	for i := range cfg.Webhooks {
-		cfg.Webhooks[i].ClientConfig.Service.Name = svcName
-		cfg.Webhooks[i].ClientConfig.Service.Namespace = svcNamespace
+		cfg.Webhooks[i].ClientConfig.Service.Name = r.serviceKey.Name
+		cfg.Webhooks[i].ClientConfig.Service.Namespace = r.serviceKey.Namespace
 		cfg.Webhooks[i].ClientConfig.CABundle = certData
+	}
+}
+
+func (r *ValidatingWebhookConfigReconciler) patch(ctx context.Context, cfg *admissionregistration.ValidatingWebhookConfiguration,
+	patchFn func(cfg *admissionregistration.ValidatingWebhookConfiguration)) error {
+	patch := client.MergeFrom(cfg.DeepCopy())
+	patchFn(cfg)
+	if err := r.Patch(ctx, cfg, patch); err != nil {
+		return err
 	}
 	return nil
 }

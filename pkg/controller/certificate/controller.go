@@ -39,7 +39,7 @@ type CertReconciler struct {
 
 func NewCertReconciler(client client.Client, caKey types.NamespacedName, caCommonName string,
 	certKey types.NamespacedName, certCommonName string, certDNSNames []string,
-	reconcilerOpts ...CertReconcilerOpt) (*CertReconciler, error) {
+	reconcilerOpts ...CertReconcilerOpt) *CertReconciler {
 	opts := CertReconcilerOpts{
 		caKey:        caKey,
 		caCommonName: caCommonName,
@@ -59,7 +59,7 @@ func NewCertReconciler(client client.Client, caKey types.NamespacedName, caCommo
 	return &CertReconciler{
 		Client:             client,
 		CertReconcilerOpts: opts,
-	}, nil
+	}
 }
 
 type ReconcileResult struct {
@@ -112,7 +112,7 @@ func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.Namespa
 		if err != nil {
 			return nil, false, err
 		}
-		if err := r.updateTLSSecret(ctx, key, keyPair); err != nil {
+		if err := r.patchSecret(ctx, key, keyPair); err != nil {
 			return nil, false, err
 		}
 		return keyPair, true, nil
@@ -145,7 +145,7 @@ func (r *CertReconciler) createCertFn(caKeyPair *pki.KeyPair) func() (*pki.KeyPa
 	}
 }
 
-func (r *CertReconciler) updateTLSSecret(ctx context.Context, key types.NamespacedName, keyPair *pki.KeyPair) error {
+func (r *CertReconciler) patchSecret(ctx context.Context, key types.NamespacedName, keyPair *pki.KeyPair) error {
 	var secret corev1.Secret
 	if err := r.Get(ctx, key, &secret); err != nil {
 		return err

@@ -39,7 +39,14 @@ run: lint ## Run a controller from your host.
 
 ##@ Webhook
 
-WEBHOOK_FLAGS ?= --log-dev
+WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 .PHONY: webhook
 webhook: lint ## Run a webhook from your host.
 	go run cmd/main.go webhook $(WEBHOOK_FLAGS)
+
+##@ Cert controller
+
+CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
+.PHONY: certctrl
+certctrl: lint ## Run a cert controller from your host.
+	go run cmd/main.go certcontroller $(CERT_CONTROLLER_FLAGS)
