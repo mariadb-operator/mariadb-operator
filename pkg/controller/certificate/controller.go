@@ -18,11 +18,11 @@ var (
 )
 
 type CertReconcilerOpts struct {
-	caKey        types.NamespacedName
+	caSecretKey  types.NamespacedName
 	caCommonName string
 	caValidity   time.Duration
 
-	certKey        types.NamespacedName
+	certSecretKey  types.NamespacedName
 	certCommonName string
 	certDNSNames   []string
 	certValidity   time.Duration
@@ -32,20 +32,38 @@ type CertReconcilerOpts struct {
 
 type CertReconcilerOpt func(opts *CertReconcilerOpts)
 
+func WithCAValidity(validity time.Duration) CertReconcilerOpt {
+	return func(opts *CertReconcilerOpts) {
+		opts.caValidity = validity
+	}
+}
+
+func WithCertValidity(validity time.Duration) CertReconcilerOpt {
+	return func(opts *CertReconcilerOpts) {
+		opts.certValidity = validity
+	}
+}
+
+func WithLookaheadValidity(validity time.Duration) CertReconcilerOpt {
+	return func(opts *CertReconcilerOpts) {
+		opts.lookaheadValidity = validity
+	}
+}
+
 type CertReconciler struct {
 	client.Client
 	CertReconcilerOpts
 }
 
-func NewCertReconciler(client client.Client, caKey types.NamespacedName, caCommonName string,
-	certKey types.NamespacedName, certCommonName string, certDNSNames []string,
+func NewCertReconciler(client client.Client, caSecretKey types.NamespacedName, caCommonName string,
+	certSecretKey types.NamespacedName, certCommonName string, certDNSNames []string,
 	reconcilerOpts ...CertReconcilerOpt) *CertReconciler {
 	opts := CertReconcilerOpts{
-		caKey:        caKey,
+		caSecretKey:  caSecretKey,
 		caCommonName: caCommonName,
 		caValidity:   defaultCAValidityDuration,
 
-		certKey:        certKey,
+		certSecretKey:  certSecretKey,
 		certCommonName: certCommonName,
 		certValidity:   defaultCertValidityDuration,
 		certDNSNames:   certDNSNames,
@@ -72,28 +90,28 @@ type ReconcileResult struct {
 func (r *CertReconciler) Reconcile(ctx context.Context) (*ReconcileResult, error) {
 	result := &ReconcileResult{}
 	var err error
-	result.CAKeyPair, result.RefreshedCA, err = r.reconcileKeyPair(ctx, r.caKey, false, r.createCA)
+	result.CAKeyPair, result.RefreshedCA, err = r.reconcileKeyPair(ctx, r.caSecretKey, false, r.createCA)
 	if err != nil {
 		return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
 	}
 
 	valid, err := pki.ValidCACert(result.CAKeyPair, r.caCommonName, r.lookaheadTime())
 	if !valid || err != nil {
-		result.CAKeyPair, result.RefreshedCA, err = r.reconcileKeyPair(ctx, r.caKey, true, r.createCA)
+		result.CAKeyPair, result.RefreshedCA, err = r.reconcileKeyPair(ctx, r.caSecretKey, true, r.createCA)
 		if err != nil {
 			return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
 		}
 	}
 
 	createCert := r.createCertFn(result.CAKeyPair)
-	result.CertKeyPair, result.RefreshedCert, err = r.reconcileKeyPair(ctx, r.certKey, false, createCert)
+	result.CertKeyPair, result.RefreshedCert, err = r.reconcileKeyPair(ctx, r.certSecretKey, false, createCert)
 	if err != nil {
 		return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 	}
 
 	valid, err = pki.ValidCert(result.CAKeyPair, result.CertKeyPair, r.certCommonName, r.lookaheadTime())
 	if result.RefreshedCA || !valid || err != nil {
-		result.CertKeyPair, result.RefreshedCert, err = r.reconcileKeyPair(ctx, r.certKey, true, createCert)
+		result.CertKeyPair, result.RefreshedCert, err = r.reconcileKeyPair(ctx, r.certSecretKey, true, createCert)
 		if err != nil {
 			return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 		}

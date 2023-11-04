@@ -46,7 +46,7 @@ webhook: lint ## Run a webhook from your host.
 
 ##@ Cert controller
 
-CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
+CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --ca-validity=24h --cert-validity=1h --lookahead-validity=8h --requeue-duration=1m
 .PHONY: certctrl
 certctrl: lint ## Run a cert controller from your host.
 	go run cmd/main.go certcontroller $(CERT_CONTROLLER_FLAGS)

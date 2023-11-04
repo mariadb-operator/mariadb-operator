@@ -48,14 +48,15 @@ type ValidatingWebhookConfigReconciler struct {
 	recorder        record.EventRecorder
 	certReconciler  *certctrl.CertReconciler
 	serviceKey      types.NamespacedName
-	requeueInterval time.Duration
+	requeueDuration time.Duration
 	readyMux        *sync.Mutex
 	ready           bool
 }
 
 func NewValidatingWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
-	caSecretKey types.NamespacedName, caCommonName string, certSecretKey types.NamespacedName, serviceKey types.NamespacedName,
-	requeueInterval time.Duration) *ValidatingWebhookConfigReconciler {
+	caSecretKey types.NamespacedName, caCommonName string, caValidity time.Duration,
+	certSecretKey types.NamespacedName, certValidity time.Duration, lookaheadValidity time.Duration,
+	serviceKey types.NamespacedName, requeueDuration time.Duration) *ValidatingWebhookConfigReconciler {
 
 	certDNSnames := dns.ServiceDNSNames(serviceKey)
 	return &ValidatingWebhookConfigReconciler{
@@ -69,9 +70,12 @@ func NewValidatingWebhookConfigReconciler(client client.Client, scheme *runtime.
 			certSecretKey,
 			certDNSnames.FQDN,
 			certDNSnames.Names,
+			certctrl.WithCAValidity(caValidity),
+			certctrl.WithCertValidity(certValidity),
+			certctrl.WithLookaheadValidity(lookaheadValidity),
 		),
 		serviceKey:      serviceKey,
-		requeueInterval: requeueInterval,
+		requeueDuration: requeueDuration,
 		readyMux:        &sync.Mutex{},
 		ready:           false,
 	}
@@ -107,7 +111,7 @@ func (r *ValidatingWebhookConfigReconciler) Reconcile(ctx context.Context, req c
 	r.ready = true
 
 	return ctrl.Result{
-		RequeueAfter: r.requeueInterval,
+		RequeueAfter: r.requeueDuration,
 	}, nil
 }
 

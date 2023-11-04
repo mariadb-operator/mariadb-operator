@@ -34,9 +34,12 @@ import (
 
 var (
 	caSecretName, caSecretNamespace, caCommonName string
+	caValidity                                    time.Duration
 	certSecretName, certSecretNamespace           string
+	certValidity                                  time.Duration
+	lookaheadValidity                             time.Duration
 	serviceName, serviceNamespace                 string
-	requeueInterval                               time.Duration
+	requeueDuration                               time.Duration
 )
 
 var certcontrollerCmd = &cobra.Command{
@@ -67,15 +70,18 @@ var certcontrollerCmd = &cobra.Command{
 				Namespace: caSecretNamespace,
 			},
 			caCommonName,
+			caValidity,
 			types.NamespacedName{
 				Name:      certSecretName,
 				Namespace: certSecretNamespace,
 			},
+			certValidity,
+			lookaheadValidity,
 			types.NamespacedName{
 				Name:      serviceName,
 				Namespace: serviceNamespace,
 			},
-			requeueInterval,
+			requeueDuration,
 		)
 		if err = validatingWebhookReconciler.SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Uable to create controller", "controller", "ValidatingWebhookConfig")
@@ -101,12 +107,16 @@ func init() {
 	certcontrollerCmd.Flags().StringVar(&caSecretNamespace, "ca-secret-namespace", "default",
 		"Namespace of the Secret to store the CA certificate for webhook")
 	certcontrollerCmd.Flags().StringVar(&caCommonName, "ca-common-name", "mariadb-operator", "CA certificate common name")
+	certcontrollerCmd.Flags().DurationVar(&caValidity, "ca-validity", 4*365*24*time.Hour, "CA certificate validity")
 	certcontrollerCmd.Flags().StringVar(&certSecretName, "cert-secret-name", "mariadb-operator-webhook-cert",
 		"Secret to store the certificate for webhook")
 	certcontrollerCmd.Flags().StringVar(&certSecretNamespace, "cert-secret-namespace", "default",
 		"Namespace of the Secret to store the certificate for webhook")
+	certcontrollerCmd.Flags().DurationVar(&certValidity, "cert-validity", 365*24*time.Hour, "Certificate validity")
+	certcontrollerCmd.Flags().DurationVar(&lookaheadValidity, "lookahead-validity", 90*24*time.Hour,
+		"Lookahead validity used to determine whether a certificate is valid or not")
 	certcontrollerCmd.Flags().StringVar(&serviceName, "service-name", "mariadb-operator-webhook", "Webhook service name")
 	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
-	certcontrollerCmd.Flags().DurationVar(&requeueInterval, "requeue-interval", time.Minute*5,
+	certcontrollerCmd.Flags().DurationVar(&requeueDuration, "requeue-duration", time.Minute*5,
 		"Time duration between reconciling webhook config for new certs")
 }
