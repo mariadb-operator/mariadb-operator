@@ -42,7 +42,7 @@
       "mode": "auto",
       "program": "cmd/main.go",
       "args": [
-        "certcontroller",
+        "cert-controller",
         "--log-dev",
         "--log-level=debug",
         "--log-time-encoder=iso8601",

@@ -5,6 +5,9 @@ metadata:
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
 spec:
+  {{ if .Values.webhook.ha.enabled }}
+  replicas: {{ .Values.webhook.ha.replicas}}
+  {{ end }}
   selector:
     matchLabels:
       {{ include "mariadb-operator-webhook.selectorLabels" . | nindent 6 }}
@@ -51,7 +54,7 @@ spec:
             - --metrics-addr=:8080
             - --health-addr=:8081
             - --log-level={{ .Values.logLevel }}
-            {{- range .Values.extrArgs }}
+            {{- range .Values.webhook.extrArgs }}
             - {{ . }}
             {{- end }}
           ports:
@@ -101,7 +104,7 @@ spec:
         - name: cert
           secret:
             defaultMode: 420
-            secretName: {{ include "mariadb-operator.fullname" . }}-webhook
+            secretName: {{ include "mariadb-operator.fullname" . }}-webhook-cert
       {{- if .Values.webhook.extraVolumes }}
       {{- toYaml .Values.webhook.extraVolumes | nindent 8 }}
       {{- end }}

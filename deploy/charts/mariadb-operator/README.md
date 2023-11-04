@@ -26,13 +26,42 @@ helm uninstall mariadb-operator
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity to add to controller Pod |
+| certController.affinity | object | `{}` | Affinity to add to controller Pod |
+| certController.caValidity | string | `"35064h"` | CA certificate validity. It must be greater than certValidity. |
+| certController.certValidity | string | `"8766h"` | Certificate validity. |
+| certController.enabled | bool | `true` | Specifies whether the cert-controller should be created. |
+| certController.extrArgs | list | `[]` | Extra arguments to be passed to the cert-controller entrypoint |
+| certController.extraVolumeMounts | list | `[]` | Extra volumes to mount to cert-controller container |
+| certController.extraVolumes | list | `[]` | Extra volumes to pass to cert-controller Pod |
+| certController.ha.enabled | bool | `false` | Enable high availability |
+| certController.ha.replicas | int | `3` | Number of replicas |
+| certController.image.pullPolicy | string | `"IfNotPresent"` |  |
+| certController.image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
+| certController.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
+| certController.imagePullSecrets | list | `[]` |  |
+| certController.lookaheadValidity | string | `"2160h"` | Duration used to verify whether a certificate is valid or not. |
+| certController.nodeSelector | object | `{}` | Node selectors to add to controller Pod |
+| certController.podAnnotations | object | `{}` | Annotations to add to cert-controller Pod |
+| certController.podSecurityContext | object | `{}` | Security context to add to cert-controller Pod |
+| certController.requeueDuration | string | `"5m"` | Requeue duration to ensure that certificate gets renewed. |
+| certController.resources | object | `{}` | Resources to add to cert-controller container |
+| certController.securityContext | object | `{}` | Security context to add to cert-controller container |
+| certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
+| certController.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the Pod |
+| certController.serviceAccount.enabled | bool | `true` | Specifies whether a service account should be created |
+| certController.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account |
+| certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and enabled is true, a name is generated using the fullname template |
+| certController.serviceMonitor.additionalLabels | object | `{}` | Labels to be added to the cert-controller ServiceMonitor |
+| certController.serviceMonitor.enabled | bool | `true` | Enable cert-controller ServiceMonitor. Metrics must be enabled |
+| certController.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
+| certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
+| certController.tolerations | list | `[]` | Tolerations to add to controller Pod |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
 | extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
 | extraVolumeMounts | list | `[]` | Extra volumes to mount to the container. |
 | extraVolumes | list | `[]` | Extra volumes to pass to pod. |
 | fullnameOverride | string | `""` |  |
 | ha.enabled | bool | `false` | Enable high availability |
-| ha.leaseId | string | `"mariadb.mmontes.io"` | Lease resource name to be used for leader election |
 | ha.replicas | int | `3` | Number of replicas |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
@@ -59,12 +88,14 @@ helm uninstall mariadb-operator
 | tolerations | list | `[]` | Tolerations to add to controller Pod |
 | webhook.affinity | object | `{}` | Affinity to add to controller Pod |
 | webhook.annotations | object | `{}` | Annotations for webhook configurations. |
-| webhook.certificate.certManager | bool | `false` | Use cert-manager to issue and rotate the certificate. If set to false, a default certificate will be used. |
+| webhook.certificate.certManager | bool | `false` | Use cert-manager to issue and rotate the certificate. If set to false, mariadb-operator's cert controller will be used instead. |
 | webhook.certificate.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. |
 | webhook.certificate.secretAnnotations | object | `{}` | Annotattios to be added to webhook TLS secret. |
 | webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
 | webhook.extraVolumeMounts | list | `[]` | Extra volumes to mount to webhook container |
 | webhook.extraVolumes | list | `[]` | Extra volumes to pass to webhook Pod |
+| webhook.ha.enabled | bool | `false` | Enable high availability |
+| webhook.ha.replicas | int | `3` | Number of replicas |
 | webhook.hostNetwork | bool | `false` | Expose the webhook server in the host network |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
 | webhook.image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |

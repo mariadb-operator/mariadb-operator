@@ -43,7 +43,7 @@ var (
 )
 
 var certControllerCmd = &cobra.Command{
-	Use:   "certcontroller",
+	Use:   "cert-controller",
 	Short: "MariaDB operator certificate controller.",
 	Long:  `Issues and injects certificates for validation and mutation webhooks.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -55,6 +55,8 @@ var certControllerCmd = &cobra.Command{
 				BindAddress: metricsAddr,
 			},
 			HealthProbeBindAddress: healthAddr,
+			LeaderElection:         leaderElect,
+			LeaderElectionID:       "mariadb-operator.mmontes.io/cert-controller",
 		})
 		if err != nil {
 			setupLog.Error(err, "Unable to start manager")
