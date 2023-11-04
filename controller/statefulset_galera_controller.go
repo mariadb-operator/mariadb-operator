@@ -24,9 +24,9 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -185,8 +185,8 @@ func (r *StatefulSetGaleraReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithEventFilter(
 			predicate.PredicateWithAnnotations(
 				[]string{
-					annotation.MariadbAnnotation,
-					annotation.GaleraAnnotation,
+					metadata.MariadbAnnotation,
+					metadata.GaleraAnnotation,
 				},
 			),
 		).

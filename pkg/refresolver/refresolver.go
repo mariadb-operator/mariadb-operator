@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -51,7 +51,7 @@ func (r *RefResolver) MariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBR
 }
 
 func (r *RefResolver) MariaDBFromAnnotation(ctx context.Context, objMeta metav1.ObjectMeta) (*mariadbv1alpha1.MariaDB, error) {
-	mariadbAnnotation, ok := objMeta.Annotations[annotation.MariadbAnnotation]
+	mariadbAnnotation, ok := objMeta.Annotations[metadata.MariadbAnnotation]
 	if !ok {
 		return nil, ErrMariaDBAnnotationNotFound
 	}

@@ -2,8 +2,8 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: mariadb-operator-webhook
-  labels:
-    mariadb.mmontes.io/component: webhook
+  annotations:
+    mariadb.mmontes.io/webhook: ""
 webhooks:
   - admissionReviewVersions:
       - v1

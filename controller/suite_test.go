@@ -23,7 +23,6 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
@@ -36,6 +35,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -155,8 +155,8 @@ var _ = BeforeSuite(func() {
 			replConfig,
 		),
 		[]string{
-			annotation.MariadbAnnotation,
-			annotation.ReplicationAnnotation,
+			metadata.MariadbAnnotation,
+			metadata.ReplicationAnnotation,
 		},
 	)
 	podGaleraController := NewPodController(
@@ -164,8 +164,8 @@ var _ = BeforeSuite(func() {
 		refResolver,
 		NewPodGaleraController(client, galeraRecorder),
 		[]string{
-			annotation.MariadbAnnotation,
-			annotation.GaleraAnnotation,
+			metadata.MariadbAnnotation,
+			metadata.GaleraAnnotation,
 		},
 	)
 

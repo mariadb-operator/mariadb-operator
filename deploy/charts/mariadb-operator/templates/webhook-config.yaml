@@ -32,7 +32,6 @@ metadata:
   name: {{ $fullName }}-webhook
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
-    mariadb.mmontes.io/component: webhook
   annotations:
     {{ if .Values.webhook.certificate.certManager }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
@@ -43,6 +42,7 @@ metadata:
     {{ with .Values.webhook.annotations }}
     {{ toYaml . | indent 4 }}
     {{ end }}
+    mariadb.mmontes.io/webhook: ""
 webhooks:
 - admissionReviewVersions:
   - v1
@@ -84,6 +84,7 @@ metadata:
     {{ with .Values.webhook.annotations }}
     {{ toYaml . | indent 4 }}
     {{ end }}
+    mariadb.mmontes.io/webhook: ""
 webhooks:
   - admissionReviewVersions:
       - v1

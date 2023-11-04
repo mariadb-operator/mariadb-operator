@@ -30,7 +30,6 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/controller"
-	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
@@ -42,6 +41,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -161,8 +161,8 @@ var rootCmd = &cobra.Command{
 				replConfig,
 			),
 			[]string{
-				annotation.MariadbAnnotation,
-				annotation.ReplicationAnnotation,
+				metadata.MariadbAnnotation,
+				metadata.ReplicationAnnotation,
 			},
 		)
 		podGaleraController := controller.NewPodController(
@@ -170,8 +170,8 @@ var rootCmd = &cobra.Command{
 			refResolver,
 			controller.NewPodGaleraController(client, galeraRecorder),
 			[]string{
-				annotation.MariadbAnnotation,
-				annotation.GaleraAnnotation,
+				metadata.MariadbAnnotation,
+				metadata.GaleraAnnotation,
 			},
 		)
 

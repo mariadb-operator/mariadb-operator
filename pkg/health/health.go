@@ -87,17 +87,17 @@ func HealthyReplica(ctx context.Context, client client.Client, mariadb *mariadbv
 	return nil, errors.New("no healthy replicas available")
 }
 
-func IsServiceHealthy(ctx context.Context, client client.Client, svcKey types.NamespacedName) (bool, error) {
+func IsServiceHealthy(ctx context.Context, client client.Client, serviceKey types.NamespacedName) (bool, error) {
 	var endpoints v1.Endpoints
-	err := client.Get(context.TODO(), svcKey, &endpoints)
+	err := client.Get(ctx, serviceKey, &endpoints)
 	if err != nil {
 		return false, err
 	}
 	if len(endpoints.Subsets) == 0 {
-		return false, fmt.Errorf("'%s/%s' subsets not ready", svcKey.Name, svcKey.Namespace)
+		return false, fmt.Errorf("'%s/%s' subsets not ready", serviceKey.Name, serviceKey.Namespace)
 	}
 	if len(endpoints.Subsets[0].Addresses) == 0 {
-		return false, fmt.Errorf("'%s/%s' addresses not ready", svcKey.Name, svcKey.Namespace)
+		return false, fmt.Errorf("'%s/%s' addresses not ready", serviceKey.Name, serviceKey.Namespace)
 	}
 	return true, nil
 }
