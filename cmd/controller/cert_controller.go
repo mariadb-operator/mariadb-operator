@@ -89,8 +89,9 @@ var certControllerCmd = &cobra.Command{
 			setupLog.Error(err, "Uable to create controller", "controller", "webhookconfiguration")
 			os.Exit(1)
 		}
-		if err := mgr.AddHealthzCheck("healthz", webhookConfigReconciler.ReadyCheck); err != nil {
-			setupLog.Error(err, "Unable to set up health check")
+
+		if err := mgr.AddReadyzCheck("webhook-inject", webhookConfigReconciler.ReadyCheck); err != nil {
+			setupLog.Error(err, "Unable to add webhook readyz check")
 			os.Exit(1)
 		}
 

@@ -22,19 +22,28 @@ THE SOFTWARE.
 package controller
 
 import (
+	"errors"
+	"net/http"
 	"os"
+	"path/filepath"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
+	caDir   string
 	certDir string
+	dnsName string
 	port    int
+
+	tlsCert = "tls.crt"
+	tlsKey  = "tls.key"
 )
 
 var webhookCmd = &cobra.Command{
@@ -56,59 +65,101 @@ var webhookCmd = &cobra.Command{
 			}),
 		})
 		if err != nil {
-			setupLog.Error(err, "unable to start manager")
+			setupLog.Error(err, "Unable to start manager")
 			os.Exit(1)
 		}
 
 		if err = (&mariadbv1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MariaDB")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "MariaDB")
 			os.Exit(1)
 		}
 		if err = (&mariadbv1alpha1.Backup{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Backup")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "Backup")
 			os.Exit(1)
 		}
 		if err = (&mariadbv1alpha1.Restore{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "restore")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "restore")
 			os.Exit(1)
 		}
 		if err = (&mariadbv1alpha1.User{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "User")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "User")
 			os.Exit(1)
 		}
 		if err = (&mariadbv1alpha1.Grant{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Grant")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "Grant")
 			os.Exit(1)
 		}
 		if err = (&mariadbv1alpha1.Database{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Database")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "Database")
 			os.Exit(1)
 		}
 		if err = (&mariadbv1alpha1.Connection{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "Connection")
 			os.Exit(1)
 		}
 		if err = (&mariadbv1alpha1.SqlJob{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "SqlJob")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "SqlJob")
 			os.Exit(1)
 		}
 
-		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-			setupLog.Error(err, "unable to set up health check")
+		if err := mgr.AddReadyzCheck("certs", func(_ *http.Request) error {
+			return checkCerts(dnsName, time.Now())
+		}); err != nil {
+			setupLog.Error(err, "Unable to add readyz check")
 			os.Exit(1)
 		}
 
-		setupLog.Info("starting manager")
+		setupLog.Info("Starting manager")
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-			setupLog.Error(err, "problem running manager")
+			setupLog.Error(err, "Error running manager")
 			os.Exit(1)
 		}
 	},
 }
 
+func checkCerts(dnsName string, at time.Time) error {
+	caKeyPair, err := readKeyPair(caDir)
+	if err != nil {
+		return err
+	}
+	certKeyPair, err := readKeyPair(certDir)
+	if err != nil {
+		return err
+	}
+	valid, err := pki.ValidCert(caKeyPair, certKeyPair, dnsName, at)
+	if !valid || err != nil {
+		return errors.New("Certificate is not valid")
+	}
+	return nil
+}
+
+func readKeyPair(dir string) (*pki.KeyPair, error) {
+	certFile := filepath.Join(dir, tlsCert)
+	if _, err := os.Stat(certFile); err != nil {
+		return nil, err
+	}
+	keyFile := filepath.Join(dir, tlsKey)
+	if _, err := os.Stat(certFile); err != nil {
+		return nil, err
+	}
+	certBytes, err := os.ReadFile(certFile)
+	if err != nil {
+		return nil, err
+	}
+	keyBytes, err := os.ReadFile(keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return pki.KeyPairFromPEM(certBytes, keyBytes)
+}
+
 func init() {
 	rootCmd.AddCommand(webhookCmd)
+	webhookCmd.Flags().StringVar(&caDir, "ca-dir", "/tmp/k8s-webhook-server/certificate-authority",
+		"Path containing the CA TLS certificate for the webhook server.")
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs",
 		"Path containing the TLS certificate for the webhook server.")
+	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "mariadb-operator-webhook.default.svc",
+		"TLS certificate DNS name.")
 	webhookCmd.Flags().IntVar(&port, "port", 10250, "Port to be used by the webhook server.")
 }

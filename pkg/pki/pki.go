@@ -43,12 +43,18 @@ func (k *KeyPair) FillTLSSecret(secret *corev1.Secret) {
 }
 
 func KeyPairFromTLSSecret(secret *corev1.Secret) (*KeyPair, error) {
-	if secret.Data == nil || len(secret.Data[tlsCert]) == 0 || len(secret.Data[tlsKey]) == 0 {
+	if secret.Data == nil {
 		return nil, errors.New("TLS Secret is empty")
 	}
 	certPEM := secret.Data[tlsCert]
 	keyPEM := secret.Data[tlsKey]
+	return KeyPairFromPEM(certPEM, keyPEM)
+}
 
+func KeyPairFromPEM(certPEM, keyPEM []byte) (*KeyPair, error) {
+	if len(certPEM) == 0 || len(keyPEM) == 0 {
+		return nil, errors.New("TLS Secret is empty")
+	}
 	certDer, _ := pem.Decode(certPEM)
 	if certDer == nil {
 		return nil, errors.New("Bad certificate")

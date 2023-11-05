@@ -75,22 +75,10 @@ spec:
           {{- end }}
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: 8081
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8081
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          startupProbe:
-            httpGet:
-              path: /healthz
-              port: 8081
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            initialDelaySeconds: 20
+            periodSeconds: 5
           {{ with .Values.certController.resources }}
           resources:
             {{ toYaml . | nindent 12 }}

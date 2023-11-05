@@ -101,6 +101,8 @@ webhook:
     certManager: false
     # -- Annotattios to be added to webhook TLS secret.
     secretAnnotations: {}
+    # -- Path where the CA certificate will be mounted.
+    caPath: /tmp/k8s-webhook-server/certificate-authority
     # -- Path where the certificate will be mounted.
     path: /tmp/k8s-webhook-server/serving-certs
   # -- Port to be used by the webhook server
