@@ -6,7 +6,7 @@
 <img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb-operator.png" alt="mariadb" width="250"/>
 </p>
 
-![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![Version: 0.22.0](https://img.shields.io/badge/Version-0.22.0-informational?style=flat-square) ![AppVersion: v0.0.22](https://img.shields.io/badge/AppVersion-v0.0.22-informational?style=flat-square)
+![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![Version: 0.23.0](https://img.shields.io/badge/Version-0.23.0-informational?style=flat-square) ![AppVersion: v0.0.23](https://img.shields.io/badge/AppVersion-v0.0.23-informational?style=flat-square)
 
 Run and operate MariaDB in a cloud native way
 
@@ -88,7 +88,9 @@ helm uninstall mariadb-operator
 | tolerations | list | `[]` | Tolerations to add to controller Pod |
 | webhook.affinity | object | `{}` | Affinity to add to controller Pod |
 | webhook.annotations | object | `{}` | Annotations for webhook configurations. |
-| webhook.certificate.certManager | bool | `false` | Use cert-manager to issue and rotate the certificate. If set to false, mariadb-operator's cert controller will be used instead. |
+| webhook.certificate.caPath | string | `"/tmp/k8s-webhook-server/certificate-authority"` | Path where the CA certificate will be mounted. |
+| webhook.certificate.certManager.enabled | bool | `false` | Whether to use cert-manager to issue and rotate the certificate. If set to false, mariadb-operator's cert-controller will be used instead. |
+| webhook.certificate.certManager.issuerRef | object | `{}` | Issuer reference to be used in the Certificate resource. If not provided, a self-signed issuer will be used.    |
 | webhook.certificate.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. |
 | webhook.certificate.secretAnnotations | object | `{}` | Annotattios to be added to webhook TLS secret. |
 | webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |

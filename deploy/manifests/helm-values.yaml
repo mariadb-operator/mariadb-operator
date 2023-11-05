@@ -8,6 +8,7 @@ metrics:
 webhook:
   enabled: true
   certificate:
-    certManager: true
+    certManager:
+      enabled: true
   serviceMonitor:
     enabled: true
