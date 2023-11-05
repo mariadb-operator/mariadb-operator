@@ -6,7 +6,7 @@ metadata:
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
   annotations:
-    {{ if .Values.webhook.certificate.certManager }}
+    {{ if .Values.webhook.certificate.certManager.enabled }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
     {{ end }}
     {{ with .Values.webhook.annotations }}
@@ -42,7 +42,7 @@ metadata:
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
   annotations:
-    {{ if .Values.webhook.certificate.certManager }}
+    {{ if .Values.webhook.certificate.certManager.enabled }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
     {{ end }}
     {{ with .Values.webhook.annotations }}
