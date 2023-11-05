@@ -16,7 +16,7 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "mariadb-operator.fullname" . }}-webhook
+  name: {{ include "mariadb-operator.fullname" . }}-cert-controller
   labels:
     {{ include "mariadb-operator-cert-controller.labels" . | nindent 4 }}
     {{ with .Values.certController.serviceMonitor.additionalLabels }}

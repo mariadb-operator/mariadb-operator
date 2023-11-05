@@ -22,6 +22,7 @@ func ServiceDNSNames(serviceKey types.NamespacedName) *DNSNames {
 		FQDN: fqdn,
 		Names: []string{
 			fqdn,
+			fmt.Sprintf("%s.%s.svc", serviceKey.Name, serviceKey.Namespace),
 			fmt.Sprintf("%s.%s", serviceKey.Name, serviceKey.Namespace),
 			serviceKey.Name,
 		},

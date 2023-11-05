@@ -6,15 +6,6 @@ metadata:
   name: {{ $fullName }}-cert-controller
 rules:
 - apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - create
-  - update
-  - patch
-- apiGroups:
   - coordination.k8s.io
   resources:
   - leases
@@ -53,11 +44,21 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - secrets
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - endpoints
   - endpoints/restricted
   verbs:
   - get
   - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -66,10 +67,10 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ $fullName }}
+  name: {{ $fullName }}-cert-controller
 subjects:
 - kind: ServiceAccount
-  name: {{ include "mariadb-operator-cert-controller.serviceAccountName" . }}
+  name: {{ include "mariadb-operator-cert-controller.serviceAccountName" . }}-cert-controller
   namespace: {{ .Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -79,9 +80,9 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ $fullName }}
+  name: {{ $fullName }}-cert-controller
 subjects:
 - kind: ServiceAccount
-  name: {{ include "mariadb-operator-cert-controller.serviceAccountName" . }}
+  name: {{ include "mariadb-operator-cert-controller.serviceAccountName" . }}-cert-controller
   namespace: {{ .Release.Namespace }}
 {{- end }}
