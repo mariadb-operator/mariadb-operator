@@ -1,4 +1,4 @@
-package dns
+package pki
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 )
 
 type DNSNames struct {
-	FQDN  string
-	Names []string
+	CommonName string
+	Names      []string
 }
 
 func ServiceDNSNames(serviceKey types.NamespacedName) *DNSNames {
@@ -17,12 +17,12 @@ func ServiceDNSNames(serviceKey types.NamespacedName) *DNSNames {
 	if clusterName == "" {
 		clusterName = "cluster.local"
 	}
-	fqdn := fmt.Sprintf("%s.%s.svc.%s", serviceKey.Name, serviceKey.Namespace, clusterName)
+	commonName := fmt.Sprintf("%s.%s.svc", serviceKey.Name, serviceKey.Namespace)
 	return &DNSNames{
-		FQDN: fqdn,
+		CommonName: commonName,
 		Names: []string{
-			fqdn,
-			fmt.Sprintf("%s.%s.svc", serviceKey.Name, serviceKey.Namespace),
+			fmt.Sprintf("%s.%s.svc.%s", serviceKey.Name, serviceKey.Namespace, clusterName),
+			commonName,
 			fmt.Sprintf("%s.%s", serviceKey.Name, serviceKey.Namespace),
 			serviceKey.Name,
 		},

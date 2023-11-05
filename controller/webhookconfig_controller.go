@@ -25,9 +25,9 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
-	"github.com/mariadb-operator/mariadb-operator/pkg/dns"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
@@ -57,7 +57,7 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 	certSecretKey types.NamespacedName, certValidity time.Duration, lookaheadValidity time.Duration,
 	serviceKey types.NamespacedName, requeueDuration time.Duration) *WebhookConfigReconciler {
 
-	certDNSnames := dns.ServiceDNSNames(serviceKey)
+	certDNSnames := pki.ServiceDNSNames(serviceKey)
 	return &WebhookConfigReconciler{
 		Client:   client,
 		scheme:   scheme,
@@ -67,7 +67,7 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 			caSecretKey,
 			caCommonName,
 			certSecretKey,
-			certDNSnames.FQDN,
+			certDNSnames.CommonName,
 			certDNSnames.Names,
 			certctrl.WithCAValidity(caValidity),
 			certctrl.WithCertValidity(certValidity),
