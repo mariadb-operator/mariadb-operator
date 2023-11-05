@@ -268,6 +268,21 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
+	err = NewWebhookConfigReconciler(
+		client,
+		scheme,
+		k8sManager.GetEventRecorderFor("webhook-config"),
+		testCASecretKey,
+		"test",
+		4*365*24*time.Hour,
+		testCertSecretKey,
+		365*24*time.Hour,
+		90*24*time.Hour,
+		testWebhookServiceKey,
+		5*time.Minute,
+	).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
 	go func() {
 		defer GinkgoRecover()
 		err = k8sManager.Start(testCtx)
