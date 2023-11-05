@@ -55,22 +55,24 @@ func KeyPairFromPEM(certPEM, keyPEM []byte) (*KeyPair, error) {
 	if len(certPEM) == 0 || len(keyPEM) == 0 {
 		return nil, errors.New("TLS Secret is empty")
 	}
-	certDer, _ := pem.Decode(certPEM)
-	if certDer == nil {
+	pemBlockCert, _ := pem.Decode(certPEM)
+	if pemBlockCert == nil {
 		return nil, errors.New("Bad certificate")
 	}
-	cert, err := x509.ParseCertificate(certDer.Bytes)
+	cert, err := x509.ParseCertificate(pemBlockCert.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing x509 certificate: %v", err)
 	}
-	keyDer, _ := pem.Decode(keyPEM)
-	if keyDer == nil {
+
+	pemBlockKey, _ := pem.Decode(keyPEM)
+	if pemBlockKey == nil {
 		return nil, fmt.Errorf("Bad private key")
 	}
-	key, err := x509.ParsePKCS1PrivateKey(keyDer.Bytes)
+	key, err := x509.ParsePKCS1PrivateKey(pemBlockKey.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing PKCS1 private key: %v", err)
 	}
+
 	return &KeyPair{
 		Cert:    cert,
 		Key:     key,
@@ -182,23 +184,21 @@ func ValidCert(caKeyPair *KeyPair, certKeyPair *KeyPair, dnsName string, at time
 		return false, errors.New("Invalid certificate KeyPair")
 	}
 
-	pool := x509.NewCertPool()
-	pool.AddCert(caKeyPair.Cert)
-
 	_, err := tls.X509KeyPair(certKeyPair.CertPEM, certKeyPair.KeyPEM)
 	if err != nil {
 		return false, err
 	}
-
-	certBytes, _ := pem.Decode(certKeyPair.CertPEM)
-	if certBytes == nil {
+	pemBlockCert, _ := pem.Decode(certKeyPair.CertPEM)
+	if pemBlockCert == nil {
 		return false, err
 	}
-
-	parsedCert, err := x509.ParseCertificate(certBytes.Bytes)
+	parsedCert, err := x509.ParseCertificate(pemBlockCert.Bytes)
 	if err != nil {
 		return false, err
 	}
+
+	pool := x509.NewCertPool()
+	pool.AddCert(caKeyPair.Cert)
 	_, err = parsedCert.Verify(x509.VerifyOptions{
 		DNSName:     dnsName,
 		Roots:       pool,
@@ -219,26 +219,26 @@ func createKeyPair(tpl *x509.Certificate, caKeyPair *KeyPair) (*KeyPair, error) 
 	if err != nil {
 		return nil, err
 	}
-	issuerCert := tpl
+	parent := tpl
+	privateKey := key
 	if caKeyPair != nil {
-		issuerCert = caKeyPair.Cert
+		parent = caKeyPair.Cert
+		privateKey = caKeyPair.Key
 	}
-	issuerPrivateKey := key
-	if caKeyPair != nil {
-		issuerPrivateKey = caKeyPair.Key
-	}
-	der, err := x509.CreateCertificate(rand.Reader, tpl, issuerCert, key.Public(), issuerPrivateKey)
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, tpl, parent, key.Public(), privateKey)
 	if err != nil {
 		return nil, err
 	}
-	cert, err := x509.ParseCertificate(der)
+	cert, err := x509.ParseCertificate(certBytes)
 	if err != nil {
 		return nil, err
 	}
-	certPEM, keyPEM, err := pemEncodeKeyPair(der, key)
+	certPEM, keyPEM, err := pemEncodeKeyPair(certBytes, key)
 	if err != nil {
 		return nil, err
 	}
+
 	return &KeyPair{
 		Cert:    cert,
 		Key:     key,

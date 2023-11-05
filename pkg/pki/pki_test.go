@@ -136,7 +136,7 @@ func TestCACert(t *testing.T) {
 
 	caKeyPair, err = CreateCA(x509Opts...)
 	if err != nil {
-		t.Fatalf("CA cert creation should succeed. Got error: %v", err)
+		t.Fatalf("CA cert renewal should succeed. Got error: %v", err)
 	}
 
 	valid, err = ValidCACert(caKeyPair, caName, time.Now())
@@ -196,7 +196,7 @@ func TestCert(t *testing.T) {
 
 	keyPairPEM, err = CreateCert(caKeyPair, x509Opts...)
 	if err != nil {
-		t.Fatalf("Certificate creation should succeed after renewal. Got error: %v", err)
+		t.Fatalf("Certificate renewal should succeed. Got error: %v", err)
 	}
 
 	valid, err = ValidCert(caKeyPair, keyPairPEM, commonName, time.Now())

@@ -24,7 +24,6 @@ func TestServiceDNSNames(t *testing.T) {
 	}
 	expectedDNSNames := []string{
 		"test.test-namespace.svc.cluster.test",
-		"test.test-namespace.svc",
 		"test.test-namespace",
 		"test",
 	}

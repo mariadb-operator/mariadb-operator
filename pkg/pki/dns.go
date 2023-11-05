@@ -17,12 +17,10 @@ func ServiceDNSNames(serviceKey types.NamespacedName) *DNSNames {
 	if clusterName == "" {
 		clusterName = "cluster.local"
 	}
-	commonName := fmt.Sprintf("%s.%s.svc", serviceKey.Name, serviceKey.Namespace)
 	return &DNSNames{
-		CommonName: commonName,
+		CommonName: fmt.Sprintf("%s.%s.svc", serviceKey.Name, serviceKey.Namespace),
 		Names: []string{
 			fmt.Sprintf("%s.%s.svc.%s", serviceKey.Name, serviceKey.Namespace, clusterName),
-			commonName,
 			fmt.Sprintf("%s.%s", serviceKey.Name, serviceKey.Namespace),
 			serviceKey.Name,
 		},
