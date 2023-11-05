@@ -69,6 +69,9 @@ spec:
             - containerPort: 8081
               protocol: TCP
               name: health
+          env: 
+            - name: CLUSTER_NAME
+              value: {{ .Values.clusterName }}
           {{- with .Values.certController.extraVolumeMounts }}
           volumeMounts:
           {{- toYaml . | nindent 12 }}
