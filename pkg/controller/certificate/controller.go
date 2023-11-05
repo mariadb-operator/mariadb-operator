@@ -7,6 +7,8 @@ import (
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -121,16 +123,27 @@ func (r *CertReconciler) Reconcile(ctx context.Context) (*ReconcileResult, error
 
 func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.NamespacedName, refresh bool,
 	createKeyPairFn func() (*pki.KeyPair, error)) (keyPair *pki.KeyPair, refreshed bool, err error) {
-	var secret corev1.Secret
+	secret := corev1.Secret{}
 	if err := r.Get(ctx, key, &secret); err != nil {
-		return nil, false, err
+		if !apierrors.IsNotFound(err) {
+			return nil, false, err
+		}
+		keyPair, err := createKeyPairFn()
+		if err != nil {
+			return nil, false, err
+		}
+		if err := r.createSecret(ctx, key, &secret, keyPair); err != nil {
+			return nil, false, err
+		}
+		return keyPair, true, nil
 	}
+
 	if secret.Data == nil || refresh {
 		keyPair, err := createKeyPairFn()
 		if err != nil {
 			return nil, false, err
 		}
-		if err := r.patchSecret(ctx, key, keyPair); err != nil {
+		if err := r.patchSecret(ctx, &secret, keyPair); err != nil {
 			return nil, false, err
 		}
 		return keyPair, true, nil
@@ -163,14 +176,23 @@ func (r *CertReconciler) createCertFn(caKeyPair *pki.KeyPair) func() (*pki.KeyPa
 	}
 }
 
-func (r *CertReconciler) patchSecret(ctx context.Context, key types.NamespacedName, keyPair *pki.KeyPair) error {
-	var secret corev1.Secret
-	if err := r.Get(ctx, key, &secret); err != nil {
-		return err
+func (r *CertReconciler) createSecret(ctx context.Context, key types.NamespacedName, secret *corev1.Secret, keyPair *pki.KeyPair) error {
+	secret.ObjectMeta = metav1.ObjectMeta{
+		Name:      key.Name,
+		Namespace: key.Namespace,
 	}
+	secret.Type = corev1.SecretTypeTLS
+	keyPair.FillTLSSecret(secret)
+	if err := r.Create(ctx, secret); err != nil {
+		return fmt.Errorf("Error creating TLS Secret: %v", err)
+	}
+	return nil
+}
+
+func (r *CertReconciler) patchSecret(ctx context.Context, secret *corev1.Secret, keyPair *pki.KeyPair) error {
 	patch := client.MergeFrom(secret.DeepCopy())
-	keyPair.FillTLSSecret(&secret)
-	if err := r.Patch(ctx, &secret, patch); err != nil {
+	keyPair.FillTLSSecret(secret)
+	if err := r.Patch(ctx, secret, patch); err != nil {
 		return fmt.Errorf("Error patching TLS Secret: %v", err)
 	}
 	return nil
