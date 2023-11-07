@@ -90,7 +90,7 @@ helm uninstall mariadb-operator
 | webhook.annotations | object | `{}` | Annotations for webhook configurations. |
 | webhook.certificate.caPath | string | `"/tmp/k8s-webhook-server/certificate-authority"` | Path where the CA certificate will be mounted. |
 | webhook.certificate.certManager.enabled | bool | `false` | Whether to use cert-manager to issue and rotate the certificate. If set to false, mariadb-operator's cert-controller will be used instead. |
-| webhook.certificate.certManager.issuerRef | object | `{}` | Issuer reference to be used in the Certificate resource. If not provided, a self-signed issuer will be used.    |
+| webhook.certificate.certManager.issuerRef | object | `{}` | Issuer reference to be used in the Certificate resource. If not provided, a self-signed issuer will be used. |
 | webhook.certificate.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. |
 | webhook.certificate.secretAnnotations | object | `{}` | Annotattios to be added to webhook TLS secret. |
 | webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
