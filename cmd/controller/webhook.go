@@ -22,13 +22,13 @@ THE SOFTWARE.
 package controller
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/spf13/cobra"
@@ -53,6 +53,12 @@ var webhookCmd = &cobra.Command{
 	Long:  `Provides validation and inmutability checks for MariaDB resources.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		setupLogger()
+
+		err := waitForCerts(dnsName, time.Now(), 3*time.Minute)
+		if err != nil {
+			setupLog.Error(err, "Unable to validate certificates")
+			os.Exit(1)
+		}
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme: scheme,
@@ -104,7 +110,7 @@ var webhookCmd = &cobra.Command{
 		}
 
 		if err := mgr.AddReadyzCheck("certs", func(_ *http.Request) error {
-			return checkCerts(dnsName, time.Now(), setupLog)
+			return checkCerts(dnsName, time.Now())
 		}); err != nil {
 			setupLog.Error(err, "Unable to add readyz check")
 			os.Exit(1)
@@ -118,21 +124,40 @@ var webhookCmd = &cobra.Command{
 	},
 }
 
-func checkCerts(dnsName string, at time.Time, logger logr.Logger) error {
+func waitForCerts(dnsName string, at time.Time, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	for {
+		setupLog.Info("Validating certs")
+		err := checkCerts(dnsName, at)
+		if err == nil {
+			return nil
+		}
+		if err != nil {
+			setupLog.Error(err, "invalid certs. retrying...")
+			<-time.After(time.Second * 10)
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+	}
+}
+
+func checkCerts(dnsName string, at time.Time) error {
 	caKeyPair, err := readKeyPair(caDir)
 	if err != nil {
-		logger.Error(err, "Error reading CA KeyPair")
+		setupLog.Error(err, "Error reading CA KeyPair")
 		return err
 	}
 	certKeyPair, err := readKeyPair(certDir)
 	if err != nil {
-		logger.Error(err, "Error reading certificate KeyPair")
+		setupLog.Error(err, "Error reading certificate KeyPair")
 		return err
 	}
 	valid, err := pki.ValidCert(caKeyPair, certKeyPair, dnsName, at)
 	if !valid || err != nil {
 		err := fmt.Errorf("Certificate is not valid for %s", dnsName)
-		logger.Error(err, "Error validating certificate")
+		setupLog.Error(err, "Error validating certificate")
 		return err
 	}
 	return nil
