@@ -4,11 +4,26 @@ export MARIADB_OPERATOR_NAME ?= mariadb-operator
 export MARIADB_OPERATOR_NAMESPACE ?= default
 export MARIADB_OPERATOR_SA_PATH ?= /tmp/mariadb-operator/token
 
-CERTS_DIR=/tmp/k8s-webhook-server/serving-certs
-CERTS_CONFIG=./hack/config/openssl.conf
-certs: ## Generates development certificates.
-	@mkdir -p $(CERTS_DIR)
-	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -config $(CERTS_CONFIG) -out $(CERTS_DIR)/tls.crt -keyout $(CERTS_DIR)/tls.key
+CA_DIR=/tmp/k8s-webhook-server/certificate-authority
+CA_SECRET=mariadb-operator-webhook-ca 
+CERT_DIR=/tmp/k8s-webhook-server/serving-certs
+CERT_SECRET=mariadb-operator-webhook-cert
+CERT_CONFIG=./hack/config/openssl.conf
+
+.PHONY: cert
+cert: ## Generates development certificate.
+	@mkdir -p $(CERT_DIR)
+	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -config $(CERT_CONFIG) -out $(CERT_DIR)/tls.crt -keyout $(CERT_DIR)/tls.key
+
+
+.PHONY: cert-from-cluster
+cert-from-cluster: ## Get certificate from cluster.
+	@mkdir -p $(CA_DIR)
+	@mkdir -p $(CERT_DIR)
+	@kubectl get secret -o json $(CA_SECRET) | jq -r ".data.\"tls.crt\"" | base64 -d > $(CA_DIR)/tls.crt
+	@kubectl get secret -o json $(CA_SECRET) | jq -r ".data.\"tls.key\"" | base64 -d > $(CA_DIR)/tls.key
+	@kubectl get secret -o json $(CERT_SECRET) | jq -r ".data.\"tls.crt\"" | base64 -d > $(CERT_DIR)/tls.crt
+	@kubectl get secret -o json $(CERT_SECRET) | jq -r ".data.\"tls.key\"" | base64 -d > $(CERT_DIR)/tls.key
 
 .PHONY: lint
 lint: golangci-lint ## Lint.
@@ -41,12 +56,12 @@ run: lint ## Run a controller from your host.
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 .PHONY: webhook
-webhook: lint ## Run a webhook from your host.
+webhook: lint cert-from-cluster ## Run a webhook from your host.
 	go run cmd/main.go webhook $(WEBHOOK_FLAGS)
 
 ##@ Cert controller
 
 CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --ca-validity=24h --cert-validity=1h --lookahead-validity=8h --requeue-duration=1m
-.PHONY: certctrl
-certctrl: lint ## Run a cert-controller from your host.
+.PHONY: cert-controller
+cert-controller: lint ## Run a cert-controller from your host.
 	go run cmd/main.go cert-controller $(CERT_CONTROLLER_FLAGS)

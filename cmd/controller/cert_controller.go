@@ -90,7 +90,8 @@ var certControllerCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if err := mgr.AddReadyzCheck("webhook-inject", webhookConfigReconciler.ReadyCheck); err != nil {
+		handler := webhookConfigReconciler.ReadyHandler(setupLog)
+		if err := mgr.AddReadyzCheck("webhook-inject", handler); err != nil {
 			setupLog.Error(err, "Unable to add webhook readyz check")
 			os.Exit(1)
 		}

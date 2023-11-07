@@ -120,20 +120,29 @@ func (r *WebhookConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *WebhookConfigReconciler) ReadyCheck(_ *http.Request) error {
-	r.readyMux.Lock()
-	defer r.readyMux.Unlock()
-	if !r.ready {
-		return errors.New("Webhook not ready")
+func (r *WebhookConfigReconciler) ReadyHandler(logger logr.Logger) func(_ *http.Request) error {
+	return func(_ *http.Request) error {
+		r.readyMux.Lock()
+		defer r.readyMux.Unlock()
+		if !r.ready {
+			err := errors.New("Webhook not ready")
+			logger.Error(err, "Readiness probe failed")
+			return err
+		}
+		healthy, err := health.IsServiceHealthy(context.Background(), r.Client, r.serviceKey)
+		if err != nil {
+			err := fmt.Errorf("Service not ready: %s", err)
+			logger.Error(err, "Readiness probe failed")
+			return err
+		}
+		if !healthy {
+			err := errors.New("Service not ready")
+			logger.Error(err, "Readiness probe failed")
+			return err
+		}
+		return nil
 	}
-	healthy, err := health.IsServiceHealthy(context.Background(), r.Client, r.serviceKey)
-	if err != nil {
-		return fmt.Errorf("Service not ready: %s", err)
-	}
-	if !healthy {
-		return errors.New("Service not ready")
-	}
-	return nil
+
 }
 
 func (r *WebhookConfigReconciler) reconcileValidatingWebhook(ctx context.Context, key types.NamespacedName,

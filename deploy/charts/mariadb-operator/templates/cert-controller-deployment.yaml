@@ -52,6 +52,8 @@ spec:
             - --ca-validity={{ .Values.certController.caValidity }}
             - --cert-validity={{ .Values.certController.certValidity }}
             - --lookahead-validity={{ .Values.certController.lookaheadValidity }}
+            - --service-name={{ include "mariadb-operator.fullname" . }}-webhook
+            - --service-namespace={{ .Release.Namespace }}
             - --requeue-duration={{ .Values.certController.requeueDuration }}
             - --metrics-addr=:8080
             - --health-addr=:8081

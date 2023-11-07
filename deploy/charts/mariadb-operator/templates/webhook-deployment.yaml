@@ -73,6 +73,7 @@ spec:
           volumeMounts:
             - mountPath: {{ .Values.webhook.certificate.caPath }}
               name: ca
+              readOnly: true
             - mountPath: {{ .Values.webhook.certificate.path }}
               name: cert
               readOnly: true
