@@ -111,7 +111,8 @@ var _ = Describe("WebhookConfig", func() {
 			Expect(err).To(BeNil())
 			Expect(valid).To(BeTrue())
 
-			By("Deleting Secret")
+			By("Deleting resources")
+			Expect(k8sClient.Delete(testCtx, &mutatingConfig)).To(Succeed())
 			Expect(k8sClient.Delete(testCtx, &caSecret)).To(Succeed())
 			Expect(k8sClient.Delete(testCtx, &certSecret)).To(Succeed())
 		})
@@ -237,6 +238,7 @@ var _ = Describe("WebhookConfig", func() {
 			Expect(valid).To(BeTrue())
 
 			By("Deleting Secret")
+			Expect(k8sClient.Delete(testCtx, &validatingConfig)).To(Succeed())
 			Expect(k8sClient.Delete(testCtx, &caSecret)).To(Succeed())
 			Expect(k8sClient.Delete(testCtx, &certSecret)).To(Succeed())
 		})

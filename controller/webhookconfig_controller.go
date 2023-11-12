@@ -142,7 +142,6 @@ func (r *WebhookConfigReconciler) ReadyHandler(logger logr.Logger) func(_ *http.
 		}
 		return nil
 	}
-
 }
 
 func (r *WebhookConfigReconciler) reconcileValidatingWebhook(ctx context.Context, key types.NamespacedName,
@@ -165,7 +164,6 @@ func (r *WebhookConfigReconciler) reconcileValidatingWebhook(ctx context.Context
 		return err
 	}
 	logger.Info("Updated webhook config")
-
 	return nil
 }
 
@@ -209,7 +207,6 @@ func (r *WebhookConfigReconciler) reconcileMutatingWebhook(ctx context.Context, 
 		return err
 	}
 	logger.Info("Updated webhook config")
-
 	return nil
 }
 

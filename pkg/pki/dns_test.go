@@ -24,8 +24,9 @@ func TestServiceDNSNames(t *testing.T) {
 	}
 	expectedDNSNames := []string{
 		"test.test-namespace.svc.cluster.test",
+		expectedCN,
 		"test.test-namespace",
-		"test",
+		serviceKey.Name,
 	}
 	if !reflect.DeepEqual(expectedDNSNames, dnsNames.Names) {
 		t.Fatalf("Expected DNS names to be %s. Got %s", expectedDNSNames, dnsNames.CommonName)
