@@ -134,7 +134,7 @@ func waitForCerts(dnsName string, at time.Time, timeout time.Duration) error {
 			return nil
 		}
 		if err != nil {
-			setupLog.Error(err, "invalid certs. retrying...")
+			setupLog.V(1).Info("Invalid certs. Retrying...", "error", err)
 			<-time.After(time.Second * 10)
 		}
 		if ctx.Err() != nil {
@@ -146,18 +146,18 @@ func waitForCerts(dnsName string, at time.Time, timeout time.Duration) error {
 func checkCerts(dnsName string, at time.Time) error {
 	caKeyPair, err := readKeyPair(caDir)
 	if err != nil {
-		setupLog.Error(err, "Error reading CA KeyPair")
+		setupLog.V(1).Info("Error reading CA KeyPair", "error", err)
 		return err
 	}
 	certKeyPair, err := readKeyPair(certDir)
 	if err != nil {
-		setupLog.Error(err, "Error reading certificate KeyPair")
+		setupLog.V(1).Info("Error reading certificate KeyPair", "error", err)
 		return err
 	}
 	valid, err := pki.ValidCert(caKeyPair, certKeyPair, dnsName, at)
 	if !valid || err != nil {
 		err := fmt.Errorf("Certificate is not valid for %s", dnsName)
-		setupLog.Error(err, "Error validating certificate")
+		setupLog.V(1).Info("Error validating certificate", "error", err)
 		return err
 	}
 	return nil
