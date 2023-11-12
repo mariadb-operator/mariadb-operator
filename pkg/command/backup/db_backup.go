@@ -8,11 +8,11 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 )
 
-type logicalBackup struct {
+type DBBackup struct {
 	*BackupOpts
 }
 
-func (l *logicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
+func (l *DBBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) *command.Command {
 	dumpOpts := "--single-transaction --events --routines --dump-slave=2 --master-data=2 --gtid --all-databases"
 	if l.BackupOpts.DumpOpts != nil {
@@ -43,7 +43,7 @@ func (l *logicalBackup) BackupCommand(backup *mariadbv1alpha1.Backup,
 	return command.ExecCommand(cmds)
 }
 
-func (l *logicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command {
+func (l *DBBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command {
 	restorePath := l.restorePath()
 	cmds := []string{
 		"set -euo pipefail",
@@ -60,7 +60,38 @@ func (l *logicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *comman
 	return command.ExecCommand(cmds)
 }
 
-func (l *logicalBackup) backupPath() string {
+func (l *DBBackup) MariaBackupCommand(backup *mariadbv1alpha1.MariaBackup,
+	mariadb *mariadbv1alpha1.MariaDB) *command.Command {
+
+	cmds := []string{
+		"set -euo pipefail",
+		"echo '💾 Taking physical backup'",
+		"export backupdir=/backup/mariabackup-$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+		"mkdir -p ${backupdir}",
+		fmt.Sprintf("socat -u TCP-LISTEN:4444,reuseaddr stdio | mbstream —p 4 -x -C ${backupdir}"),
+		"sleep 3",
+		"echo '📜 Backup completed'",
+		"echo '🧹 Cleaning up old backups'",
+		fmt.Sprintf(
+			"find /backup/ -type d -mtime +%d -delete",
+			backup.Spec.MaxRetentionDays,
+		),
+		"echo '📜 Backup history'",
+		fmt.Sprintf(
+			"ls -ltr /backup/ ",
+		),
+	}
+	return command.ExecCommand(cmds)
+}
+
+func (l *DBBackup) MariaRestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command {
+	cmds := []string{
+		"echo 'not implemented yet'",
+	}
+	return command.ExecCommand(cmds)
+}
+
+func (l *DBBackup) backupPath() string {
 	if l.BackupFile != "" {
 		return fmt.Sprintf("%s/%s", l.BasePath, l.BackupFile)
 	}
@@ -71,7 +102,7 @@ func (l *logicalBackup) backupPath() string {
 	)
 }
 
-func (l *logicalBackup) restorePath() string {
+func (l *DBBackup) restorePath() string {
 	if l.BackupFile != "" {
 		return fmt.Sprintf("%s/%s", l.BasePath, l.BackupFile)
 	}

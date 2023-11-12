@@ -86,6 +86,97 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	return job, nil
 }
 
+func (b *Builder) BuildMariaBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.MariaBackup,
+	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(mariadb).
+			WithBackupRef(backup).
+			Build()
+
+	cmdOpts := []backupcmd.Option{
+		backupcmd.WithBasePath(batchStorageMountPath),
+		backupcmd.WithUserEnv(batchUserEnv),
+		backupcmd.WithPasswordEnv(batchPasswordEnv),
+	}
+	if backup.Spec.Args != nil {
+		cmdOpts = append(cmdOpts, backupcmd.WithDumpOpts(backup.Spec.Args))
+	}
+	cmd, err := backupcmd.New(cmdOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("error building backup command: %v", err)
+	}
+
+	volume, err := backup.Volume()
+	if err != nil {
+		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
+	}
+	volumes, volumeSources := jobBatchStorageVolume(volume)
+
+	opts := []jobOption{
+		withJobMeta(objMeta),
+		withJobVolumes(volumes),
+		withJobContainers(
+			jobContainers(
+				cmd.MariaBackupCommand(backup, mariadb),
+				jobEnv(mariadb),
+				volumeSources,
+				backup.Spec.Resources,
+				mariadb,
+			),
+		),
+		withJobBackoffLimit(backup.Spec.BackoffLimit),
+		withJobRestartPolicy(backup.Spec.RestartPolicy),
+		withAffinity(backup.Spec.Affinity),
+		withNodeSelector(backup.Spec.NodeSelector),
+		withTolerations(backup.Spec.Tolerations),
+	}
+
+	builder, err := newJobBuilder(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error building backup Job: %v", err)
+	}
+
+	job := builder.build()
+	if err := controllerutil.SetControllerReference(backup, job, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+	return job, nil
+}
+
+func (b *Builder) BuildMariaBackupCronJob(key types.NamespacedName, backup *mariadbv1alpha1.MariaBackup,
+	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.CronJob, error) {
+	if backup.Spec.Schedule == nil {
+		return nil, errors.New("schedule field is mandatory when building a CronJob")
+	}
+
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(mariadb).
+			Build()
+	job, err := b.BuildMariaBackupJob(key, backup, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error building Backup: %v", err)
+	}
+
+	cronJob := &batchv1.CronJob{
+		ObjectMeta: objMeta,
+		Spec: batchv1.CronJobSpec{
+			Schedule:          backup.Spec.Schedule.Cron,
+			ConcurrencyPolicy: batchv1.ForbidConcurrent,
+			Suspend:           &backup.Spec.Schedule.Suspend,
+			JobTemplate: batchv1.JobTemplateSpec{
+				ObjectMeta: job.ObjectMeta,
+				Spec:       job.Spec,
+			},
+		},
+	}
+	if err := controllerutil.SetControllerReference(backup, cronJob, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to CronJob: %v", err)
+	}
+	return cronJob, nil
+}
+
 func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.CronJob, error) {
 	if backup.Spec.Schedule == nil {

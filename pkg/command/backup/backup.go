@@ -10,6 +10,7 @@ import (
 type Commander interface {
 	BackupCommand(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) *command.Command
 	RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command
+	MariaBackupCommand(backup *mariadbv1alpha1.MariaBackup, mariadb *mariadbv1alpha1.MariaDB) *command.Command
 }
 
 type BackupOpts struct {
@@ -67,5 +68,5 @@ func New(userOpts ...Option) (Commander, error) {
 		return nil, errors.New("password environment variable not provided")
 	}
 
-	return &logicalBackup{opts}, nil
+	return &DBBackup{opts}, nil
 }

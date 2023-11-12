@@ -1,0 +1,135 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  database: mariadb
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+
+  image:
+    repository: mariadb
+    tag: "11.0.3"
+    pullPolicy: IfNotPresent
+
+  port: 3306
+  replicas: 2
+
+ readinessProbe:
+    exec:
+      command: 
+        - bash
+        - -c
+        - | 
+            CMD="mariadb -u root -p${MARIADB_ROOT_PASSWORD}"
+            LAST_ERROR_NO=$($CMD -e "SHOW ALL SLAVES STATUS\G"|grep Last_IO_Errno|awk '{print $2}')
+            if [ "$LAST_ERROR_NO" = "1236" ] ; then
+                echo "slave is broken"
+
+                echo "getting data directory"
+                DATADIR=$($CMD -Ns -e "SHOW GLOBAL VARIABLES like 'datadir'"|awk '{print $2}')
+
+                echo "finding error log file"
+                ERROR_LOG_FILE=$(ls ${DATADIR}*.err|head -n1)
+
+                echo "Finding the correct slave position"
+
+                POSITION=$(grep -oE "GTID position '[0-9]+-[0-9]+-[0-9]+'"  $ERROR_LOG_FILE|grep -oE '[0-9]+-[0-9]+-[0-9]+'| tail -n 1)
+
+                echo "found correct slave position as $POSITION. "
+
+                if [ -n "$POSITION" ]; then
+                    echo "fixing broken slave from the correct position"
+                    $CMD -e "STOP ALL SLAVES;"
+                    $CMD -e "SET GLOBAL gtid_slave_pos='$POSITION';"
+                    $CMD -e "START ALL SLAVES;"
+                else
+                    echo "Could not find slave position. $POSITION"
+                    exit 1
+                fi
+            fi
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+
+  replication:
+    enabled: true
+    primary:
+      podIndex: 0
+      automaticFailover: true
+    replica:
+      waitPoint: AfterSync
+      gtid: CurrentPos
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+      connectionTimeout: 10s
+      connectionRetries: 10
+      syncTimeout: 10s
+    syncBinlog: true
+
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+  connection:
+    secretName: mariadb-repl-conn
+    secretTemplate:
+      key: dsn
+
+  primaryService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+  primaryConnection:
+    secretName: mariadb-repl-conn-primary
+    secretTemplate:
+      key: dsn
+
+  secondaryService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+  secondaryConnection:
+    secretName: mariadb-repl-conn-secondary
+    secretTemplate:
+      key: dsn
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: "kubernetes.io/hostname"
+
+  tolerations:
+    - key: "mariadb.mmontes.io/ha"
+      operator: "Exists"
+      effect: "NoSchedule"
+
+  podDisruptionBudget:
+    maxUnavailable: 66%
+
+  updateStrategy:
+    type: RollingUpdate
+
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    max_allowed_packet=256M
+    log_error=error.log
+
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
