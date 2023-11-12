@@ -87,13 +87,13 @@ var _ = Describe("WebhookConfig", func() {
 			Expect("Expecting to create a CA Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCASecretKey, &caSecret) == nil
-			})
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			var certSecret corev1.Secret
 			Expect("Expecting to create a certificate Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCertSecretKey, &certSecret) == nil
-			})
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to get CA KeyPair")
 			caKeyPair, err := pki.KeyPairFromTLSSecret(&caSecret)
@@ -212,13 +212,13 @@ var _ = Describe("WebhookConfig", func() {
 			Expect("Expecting to create a CA Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCASecretKey, &caSecret) == nil
-			})
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			var certSecret corev1.Secret
 			Expect("Expecting to create a certificate Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCertSecretKey, &certSecret) == nil
-			})
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to get CA KeyPair")
 			caKeyPair, err := pki.KeyPairFromTLSSecret(&caSecret)
