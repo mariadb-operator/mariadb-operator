@@ -67,6 +67,7 @@ var certControllerCmd = &cobra.Command{
 			mgr.GetClient(),
 			mgr.GetScheme(),
 			mgr.GetEventRecorderFor("webhook-config"),
+			mgr.Elected(),
 			types.NamespacedName{
 				Name:      caSecretName,
 				Namespace: caSecretNamespace,

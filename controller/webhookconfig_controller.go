@@ -48,11 +48,13 @@ type WebhookConfigReconciler struct {
 	certReconciler  *certctrl.CertReconciler
 	serviceKey      types.NamespacedName
 	requeueDuration time.Duration
+	leaderChan      <-chan struct{}
+	leaderElected   bool
 	readyMux        *sync.Mutex
 	ready           bool
 }
 
-func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
+func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder, leaderChan <-chan struct{},
 	caSecretKey types.NamespacedName, caCommonName string, caValidity time.Duration,
 	certSecretKey types.NamespacedName, certValidity time.Duration, lookaheadValidity time.Duration,
 	serviceKey types.NamespacedName, requeueDuration time.Duration) *WebhookConfigReconciler {
@@ -75,6 +77,8 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 		),
 		serviceKey:      serviceKey,
 		requeueDuration: requeueDuration,
+		leaderChan:      leaderChan,
+		leaderElected:   false,
 		readyMux:        &sync.Mutex{},
 		ready:           false,
 	}
@@ -122,6 +126,14 @@ func (r *WebhookConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *WebhookConfigReconciler) ReadyHandler(logger logr.Logger) func(_ *http.Request) error {
 	return func(_ *http.Request) error {
+		if !r.leaderElected {
+			select {
+			case <-r.leaderChan:
+				r.leaderElected = true
+			default:
+				return nil
+			}
+		}
 		r.readyMux.Lock()
 		defer r.readyMux.Unlock()
 		if !r.ready {

@@ -272,6 +272,7 @@ var _ = BeforeSuite(func() {
 		client,
 		scheme,
 		k8sManager.GetEventRecorderFor("webhook-config"),
+		k8sManager.Elected(),
 		testCASecretKey,
 		"test",
 		4*365*24*time.Hour,
