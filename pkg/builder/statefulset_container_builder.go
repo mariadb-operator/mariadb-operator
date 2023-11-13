@@ -33,6 +33,19 @@ func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *core
 		}
 		containers = append(containers, buildMetricsContainer(mariadb.Spec.Metrics, dsn))
 	}
+	if mariadb.Spec.SidecarContainers != nil {
+		for index, containerTpl := range mariadb.Spec.InitContainers {
+			sidecarContainer := buildContainer(&containerTpl)
+			sidecarContainer.Name = fmt.Sprintf("init-%d", index)
+			if sidecarContainer.Env == nil {
+				sidecarContainer.Env = buildStsEnv(mariadb)
+			}
+			if sidecarContainer.VolumeMounts == nil {
+				sidecarContainer.VolumeMounts = buildStsVolumeMounts(mariadb)
+			}
+			containers = append(containers, sidecarContainer)
+		}
+	}
 
 	return containers, nil
 }
