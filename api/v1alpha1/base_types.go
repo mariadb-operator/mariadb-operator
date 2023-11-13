@@ -63,7 +63,8 @@ type ContainerTemplate struct {
 type PodTemplate struct {
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 
-	InitContainers []ContainerTemplate `json:"initContainers,omitempty"`
+	InitContainers    []ContainerTemplate `json:"initContainers,omitempty"`
+	SidecarContainers []ContainerTemplate `json:"sidecarContainers,omitempty"`
 
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 
