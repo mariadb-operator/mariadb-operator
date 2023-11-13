@@ -176,29 +176,33 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 	return createKeyPair(tpl, caKeyPair)
 }
 
-func ValidCert(caKeyPair *KeyPair, certKeyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
-	if !caKeyPair.IsValid() {
-		return false, errors.New("Invalid CA KeyPair")
+func ParseCert(bytes []byte) (*x509.Certificate, error) {
+	pemBlockCert, _ := pem.Decode(bytes)
+	if pemBlockCert == nil {
+		return nil, errors.New("Error parsing PEM block")
 	}
+	parsedCert, err := x509.ParseCertificate(pemBlockCert.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	return parsedCert, nil
+}
+
+func ValidCert(caCert *x509.Certificate, certKeyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
 	if !certKeyPair.IsValid() {
 		return false, errors.New("Invalid certificate KeyPair")
 	}
-
 	_, err := tls.X509KeyPair(certKeyPair.CertPEM, certKeyPair.KeyPEM)
 	if err != nil {
 		return false, err
 	}
-	pemBlockCert, _ := pem.Decode(certKeyPair.CertPEM)
-	if pemBlockCert == nil {
-		return false, err
-	}
-	parsedCert, err := x509.ParseCertificate(pemBlockCert.Bytes)
+	parsedCert, err := ParseCert(certKeyPair.CertPEM)
 	if err != nil {
 		return false, err
 	}
 
 	pool := x509.NewCertPool()
-	pool.AddCert(caKeyPair.Cert)
+	pool.AddCert(caCert)
 	_, err = parsedCert.Verify(x509.VerifyOptions{
 		DNSName:     dnsName,
 		Roots:       pool,
@@ -211,7 +215,7 @@ func ValidCert(caKeyPair *KeyPair, certKeyPair *KeyPair, dnsName string, at time
 }
 
 func ValidCACert(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
-	return ValidCert(keyPair, keyPair, dnsName, at)
+	return ValidCert(keyPair.Cert, keyPair, dnsName, at)
 }
 
 func createKeyPair(tpl *x509.Certificate, caKeyPair *KeyPair) (*KeyPair, error) {

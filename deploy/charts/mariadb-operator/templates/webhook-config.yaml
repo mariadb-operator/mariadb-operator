@@ -6,13 +6,14 @@ metadata:
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
   annotations:
-    {{ if .Values.webhook.certificate.certManager.enabled }}
+    {{- if .Values.webhook.cert.certManager.enabled }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
-    {{ end }}
+    {{- else }}
+    mariadb.mmontes.io/webhook: ""
+    {{- end }}
     {{ with .Values.webhook.annotations }}
     {{ toYaml . | indent 4 }}
     {{ end }}
-    mariadb.mmontes.io/webhook: ""
 webhooks:
 - admissionReviewVersions:
   - v1
@@ -42,13 +43,14 @@ metadata:
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
   annotations:
-    {{ if .Values.webhook.certificate.certManager.enabled }}
+    {{- if .Values.webhook.cert.certManager.enabled }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
-    {{ end }}
+    {{- else }}
+    mariadb.mmontes.io/webhook: ""
+    {{- end }}
     {{ with .Values.webhook.annotations }}
     {{ toYaml . | indent 4 }}
     {{ end }}
-    mariadb.mmontes.io/webhook: ""
 webhooks:
   - admissionReviewVersions:
       - v1

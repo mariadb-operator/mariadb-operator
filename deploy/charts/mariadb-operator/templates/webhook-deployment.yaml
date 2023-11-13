@@ -50,8 +50,12 @@ spec:
           name: webhook
           args:
             - webhook
-            - --ca-dir={{ .Values.webhook.certificate.caPath }}
-            - --cert-dir={{ .Values.webhook.certificate.path }}
+            {{- if .Values.webhook.cert.certManager.enabled }}
+            - --ca-cert-path={{ .Values.webhook.cert.path }}/ca.crt
+            {{- else }}
+            - --ca-cert-path={{ .Values.webhook.cert.caPath }}/tls.crt
+            {{- end }}
+            - --cert-dir={{ .Values.webhook.cert.path }}
             - --dns-name={{ $fullName }}-webhook.{{ .Release.Namespace }}.svc
             - --port={{ .Values.webhook.port }}
             - --metrics-addr=:8080
@@ -71,10 +75,12 @@ spec:
               protocol: TCP
               name: health
           volumeMounts:
-            - mountPath: {{ .Values.webhook.certificate.caPath }}
+            {{- if not .Values.webhook.cert.certManager.enabled }}
+            - mountPath: {{ .Values.webhook.cert.caPath }}
               name: ca
               readOnly: true
-            - mountPath: {{ .Values.webhook.certificate.path }}
+            {{- end }}
+            - mountPath: {{ .Values.webhook.cert.path }}
               name: cert
               readOnly: true
           {{- if .Values.webhook.extraVolumeMounts }}
@@ -95,10 +101,12 @@ spec:
             {{ toYaml . | nindent 12 }}
           {{ end }}
       volumes:
+        {{- if not .Values.webhook.cert.certManager.enabled }}
         - name: ca
           secret:
             defaultMode: 420
             secretName: {{ $fullName }}-webhook-ca
+        {{- end }}
         - name: cert
           secret:
             defaultMode: 420

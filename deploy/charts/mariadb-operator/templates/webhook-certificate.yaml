@@ -1,5 +1,5 @@
-{{ if .Values.webhook.certificate.certManager.enabled }}
-{{ if not .Values.webhook.certificate.certManager.issuerRef }}
+{{ if .Values.webhook.cert.certManager.enabled }}
+{{ if not .Values.webhook.cert.certManager.issuerRef }}
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -13,26 +13,34 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ include "mariadb-operator.fullname" . }}-webhook
+  name: {{ include "mariadb-operator.fullname" . }}-webhook-cert
   labels:
     {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
 spec:
+  commonName: {{ include "mariadb-operator.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
   dnsNames:
     - {{ include "mariadb-operator.fullname" . }}-webhook.{{ .Release.Namespace }}.svc.{{ .Values.clusterName }}
     - {{ include "mariadb-operator.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
+    - {{ include "mariadb-operator.fullname" . }}-webhook.{{ .Release.Namespace }}
     - {{ include "mariadb-operator.fullname" . }}-webhook
   issuerRef:
-  {{- if .Values.webhook.certificate.certManager.issuerRef -}}
-    {{ toYaml .Values.webhook.certificate.certManager.issuerRef | nindent 4 }}
+  {{- if .Values.webhook.cert.certManager.issuerRef -}}
+    {{ toYaml .Values.webhook.cert.certManager.issuerRef | nindent 4 }}
   {{- else }}
     kind: Issuer
     name: {{ include "mariadb-operator.fullname" . }}-selfsigned-issuer
   {{- end }}
+  {{- with .Values.webhook.cert.certManager.duration }}
+  duration: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.webhook.cert.certManager.renewBefore }}
+  renewBefore: {{ . | quote }}
+  {{- end }}
   secretName: {{ include "mariadb-operator.fullname" . }}-webhook-cert
   secretTemplate:
     labels:
-      {{- include "mariadb-operator-webhook.labels" . | nindent 4 }}
-    {{- with .Values.webhook.certificate.secretAnnotations }}
+      {{- include "mariadb-operator-webhook.labels" . | nindent 6 }}
+    {{- with .Values.webhook.cert.secretAnnotations }}
     annotations:
       {{- toYaml . | nindent 4 }}
     {{- end }}

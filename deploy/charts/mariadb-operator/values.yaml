@@ -96,13 +96,17 @@ webhook:
     enabled: false
     # -- Number of replicas
     replicas: 3
-  certificate:
+  cert:
     certManager:
       # -- Whether to use cert-manager to issue and rotate the certificate. If set to false, mariadb-operator's cert-controller will be used instead.
       enabled: false
       # -- Issuer reference to be used in the Certificate resource. If not provided, a self-signed issuer will be used.
       issuerRef: {}
-    # -- Annotattios to be added to webhook TLS secret.
+       # -- Duration to be used in the Certificate resource,
+      duration: ""
+       # -- Renew before duration to be used in the Certificate resource.
+      renewBefore: ""
+    # -- Annotatioms to be added to webhook TLS secret.
     secretAnnotations: {}
     # -- Path where the CA certificate will be mounted.
     caPath: /tmp/k8s-webhook-server/certificate-authority

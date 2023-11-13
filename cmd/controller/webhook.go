@@ -23,6 +23,7 @@ package controller
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"os"
@@ -38,10 +39,10 @@ import (
 )
 
 var (
-	caDir   string
-	certDir string
-	dnsName string
-	port    int
+	caCertPath string
+	certDir    string
+	dnsName    string
+	port       int
 
 	tlsCert = "tls.crt"
 	tlsKey  = "tls.key"
@@ -144,7 +145,7 @@ func waitForCerts(dnsName string, at time.Time, timeout time.Duration) error {
 }
 
 func checkCerts(dnsName string, at time.Time) error {
-	caKeyPair, err := readKeyPair(caDir)
+	caCert, err := readCert(caCertPath)
 	if err != nil {
 		setupLog.V(1).Info("Error reading CA KeyPair", "error", err)
 		return err
@@ -154,13 +155,24 @@ func checkCerts(dnsName string, at time.Time) error {
 		setupLog.V(1).Info("Error reading certificate KeyPair", "error", err)
 		return err
 	}
-	valid, err := pki.ValidCert(caKeyPair, certKeyPair, dnsName, at)
+	valid, err := pki.ValidCert(caCert, certKeyPair, dnsName, at)
 	if !valid || err != nil {
 		err := fmt.Errorf("Certificate is not valid for %s", dnsName)
 		setupLog.V(1).Info("Error validating certificate", "error", err)
 		return err
 	}
 	return nil
+}
+
+func readCert(certPath string) (*x509.Certificate, error) {
+	if _, err := os.Stat(certPath); err != nil {
+		return nil, err
+	}
+	certBytes, err := os.ReadFile(certPath)
+	if err != nil {
+		return nil, err
+	}
+	return pki.ParseCert(certBytes)
 }
 
 func readKeyPair(dir string) (*pki.KeyPair, error) {
@@ -185,10 +197,10 @@ func readKeyPair(dir string) (*pki.KeyPair, error) {
 
 func init() {
 	rootCmd.AddCommand(webhookCmd)
-	webhookCmd.Flags().StringVar(&caDir, "ca-dir", "/tmp/k8s-webhook-server/certificate-authority",
+	webhookCmd.Flags().StringVar(&caCertPath, "ca-cert-path", "/tmp/k8s-webhook-server/certificate-authority/tls.crt",
 		"Path containing the CA TLS certificate for the webhook server.")
-	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs",
-		"Path containing the TLS certificate for the webhook server.")
+	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs/tls.crt",
+		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory.")
 	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "mariadb-operator-webhook.default.svc",
 		"TLS certificate DNS name.")
 	webhookCmd.Flags().IntVar(&port, "port", 10250, "Port to be used by the webhook server.")
