@@ -87,7 +87,7 @@ var certControllerCmd = &cobra.Command{
 			requeueDuration,
 		)
 		if err = webhookConfigReconciler.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "Uable to create controller", "controller", "webhookconfiguration")
+			setupLog.Error(err, "Unable to create controller", "controller", "webhookconfiguration")
 			os.Exit(1)
 		}
 
