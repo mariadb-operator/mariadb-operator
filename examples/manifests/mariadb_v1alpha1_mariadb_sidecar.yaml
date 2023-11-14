@@ -21,7 +21,7 @@ spec:
     - image: busybox:1.36
       args:
         - sleep
-        - "9999999"
+        - infinity
 
   volumeClaimTemplate:
     resources:
