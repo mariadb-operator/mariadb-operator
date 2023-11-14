@@ -1181,6 +1181,13 @@ func (in *PodTemplate) DeepCopyInto(out *PodTemplate) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.SidecarContainers != nil {
+		in, out := &in.SidecarContainers, &out.SidecarContainers
+		*out = make([]ContainerTemplate, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.PodSecurityContext != nil {
 		in, out := &in.PodSecurityContext, &out.PodSecurityContext
 		*out = new(v1.PodSecurityContext)
