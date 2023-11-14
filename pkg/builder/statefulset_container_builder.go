@@ -36,7 +36,7 @@ func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *core
 	if mariadb.Spec.SidecarContainers != nil {
 		for index, containerTpl := range mariadb.Spec.SidecarContainers {
 			sidecarContainer := buildContainer(&containerTpl)
-			sidecarContainer.Name = fmt.Sprintf("init-%d", index)
+			sidecarContainer.Name = fmt.Sprintf("sidecar-%d", index)
 			if sidecarContainer.Env == nil {
 				sidecarContainer.Env = buildStsEnv(mariadb)
 			}
