@@ -88,21 +88,6 @@ spec:
           securityContext:
             {{ toYaml . | nindent 12 }}
           {{ end }}
-          readinessProbe:
-            tcpSocket:
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          livenessProbe:
-            tcpSocket:
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          startupProbe:
-            tcpSocket:
-              port: 8080
-            initialDelaySeconds: 20
-            periodSeconds: 10
       {{- if .Values.extraVolumes }}
       volumes:
       {{- toYaml .Values.extraVolumes | nindent 8 }}

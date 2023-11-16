@@ -11,7 +11,9 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -83,4 +85,19 @@ func HealthyReplica(ctx context.Context, client client.Client, mariadb *mariadbv
 		}
 	}
 	return nil, errors.New("no healthy replicas available")
+}
+
+func IsServiceHealthy(ctx context.Context, client client.Client, serviceKey types.NamespacedName) (bool, error) {
+	var endpoints v1.Endpoints
+	err := client.Get(ctx, serviceKey, &endpoints)
+	if err != nil {
+		return false, err
+	}
+	if len(endpoints.Subsets) == 0 {
+		return false, fmt.Errorf("'%s/%s' subsets not ready", serviceKey.Name, serviceKey.Namespace)
+	}
+	if len(endpoints.Subsets[0].Addresses) == 0 {
+		return false, fmt.Errorf("'%s/%s' addresses not ready", serviceKey.Name, serviceKey.Namespace)
+	}
+	return true, nil
 }

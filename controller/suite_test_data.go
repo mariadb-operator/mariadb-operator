@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package controller
 
 import (
 	"context"
@@ -51,6 +51,19 @@ var (
 	testDatabase       = "test"
 	testConnSecretName = "test-conn"
 	testConnSecretKey  = "dsn"
+
+	testCASecretKey = types.NamespacedName{
+		Name:      "test-ca",
+		Namespace: testNamespace,
+	}
+	testCertSecretKey = types.NamespacedName{
+		Name:      "test-cert",
+		Namespace: testNamespace,
+	}
+	testWebhookServiceKey = types.NamespacedName{
+		Name:      "test-webhook-service",
+		Namespace: testNamespace,
+	}
 )
 
 var testMariaDbKey types.NamespacedName

@@ -1,63 +1,16 @@
-{{ $fullName := include "mariadb-operator.fullname" . }}
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingWebhookConfiguration
-metadata:
-  name: {{ $fullName }}-webhook
-  labels:
-    {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
-  annotations:
-    {{- if .Values.webhook.cert.certManager.enabled }}
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
-    {{- else }}
-    mariadb.mmontes.io/webhook: ""
-    {{- end }}
-    {{ with .Values.webhook.annotations }}
-    {{ toYaml . | indent 4 }}
-    {{ end }}
-webhooks:
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: {{ $fullName }}-webhook
-      namespace: {{ .Release.Namespace }}
-      path: /mutate-mariadb-mmontes-io-v1alpha1-mariadb
-  failurePolicy: Fail
-  name: mmariadb.kb.io
-  rules:
-  - apiGroups:
-    - mariadb.mmontes.io
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - mariadbs
-  sideEffects: None
----
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: {{ $fullName }}-webhook
-  labels:
-    {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
+  name: mariadb-operator-webhook
   annotations:
-    {{- if .Values.webhook.cert.certManager.enabled }}
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
-    {{- else }}
     mariadb.mmontes.io/webhook: ""
-    {{- end }}
-    {{ with .Values.webhook.annotations }}
-    {{ toYaml . | indent 4 }}
-    {{ end }}
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
-        name: {{ $fullName }}-webhook
-        namespace: {{ .Release.Namespace }}
+        name: mariadb-operator-webhook
+        namespace: default
         path: /validate-mariadb-mmontes-io-v1alpha1-backup
     failurePolicy: Fail
     name: vbackup.kb.io
@@ -76,8 +29,8 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ $fullName }}-webhook
-        namespace: {{ .Release.Namespace }}
+        name: mariadb-operator-webhook
+        namespace: default
         path: /validate-mariadb-mmontes-io-v1alpha1-connection
     failurePolicy: Fail
     name: vconnection.kb.io
@@ -96,8 +49,8 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ $fullName }}-webhook
-        namespace: {{ .Release.Namespace }}
+        name: mariadb-operator-webhook
+        namespace: default
         path: /validate-mariadb-mmontes-io-v1alpha1-database
     failurePolicy: Fail
     name: vdatabase.kb.io
@@ -116,8 +69,8 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ $fullName }}-webhook
-        namespace: {{ .Release.Namespace }}
+        name: mariadb-operator-webhook
+        namespace: default
         path: /validate-mariadb-mmontes-io-v1alpha1-grant
     failurePolicy: Fail
     name: vgrant.kb.io
@@ -136,8 +89,8 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ $fullName }}-webhook
-        namespace: {{ .Release.Namespace }}
+        name: mariadb-operator-webhook
+        namespace: default
         path: /validate-mariadb-mmontes-io-v1alpha1-mariadb
     failurePolicy: Fail
     name: vmariadb.kb.io
@@ -156,8 +109,8 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ $fullName }}-webhook
-        namespace: {{ .Release.Namespace }}
+        name: mariadb-operator-webhook
+        namespace: default
         path: /validate-mariadb-mmontes-io-v1alpha1-restore
     failurePolicy: Fail
     name: vrestore.kb.io
@@ -176,8 +129,8 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ $fullName }}-webhook
-        namespace: {{ .Release.Namespace }}
+        name: mariadb-operator-webhook
+        namespace: default
         path: /validate-mariadb-mmontes-io-v1alpha1-sqljob
     failurePolicy: Fail
     name: vsqljob.kb.io
@@ -196,8 +149,8 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ $fullName }}-webhook
-        namespace: {{ .Release.Namespace }}
+        name: mariadb-operator-webhook
+        namespace: default
         path: /validate-mariadb-mmontes-io-v1alpha1-user
     failurePolicy: Fail
     name: vuser.kb.io

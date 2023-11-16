@@ -185,7 +185,7 @@ uninstall-crds: cluster-ctx manifests kustomize ## Uninstall CRDs.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: install
-install: cluster-ctx install-crds install-prometheus-crds install-samples serviceaccount certs ## Install CRDs and dependencies for local development.
+install: cluster-ctx install-crds install-prometheus-crds install-samples serviceaccount cert ## Install CRDs and dependencies for local development.
 
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.

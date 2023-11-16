@@ -29,8 +29,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	controller "github.com/mariadb-operator/mariadb-operator/controller"
-	"github.com/mariadb-operator/mariadb-operator/pkg/annotation"
+	"github.com/mariadb-operator/mariadb-operator/controller"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
@@ -42,6 +41,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -102,7 +102,7 @@ var rootCmd = &cobra.Command{
 			LeaderElectionID:       "mariadb-operator.mmontes.io",
 		})
 		if err != nil {
-			setupLog.Error(err, "unable to start manager")
+			setupLog.Error(err, "Unable to start manager")
 			os.Exit(1)
 		}
 
@@ -113,7 +113,7 @@ var rootCmd = &cobra.Command{
 
 		env, err := environment.GetEnvironment(ctx)
 		if err != nil {
-			setupLog.Error(err, "error getting environment")
+			setupLog.Error(err, "Error getting environment")
 			os.Exit(1)
 		}
 
@@ -161,8 +161,8 @@ var rootCmd = &cobra.Command{
 				replConfig,
 			),
 			[]string{
-				annotation.MariadbAnnotation,
-				annotation.ReplicationAnnotation,
+				metadata.MariadbAnnotation,
+				metadata.ReplicationAnnotation,
 			},
 		)
 		podGaleraController := controller.NewPodController(
@@ -170,8 +170,8 @@ var rootCmd = &cobra.Command{
 			refResolver,
 			controller.NewPodGaleraController(client, galeraRecorder),
 			[]string{
-				annotation.MariadbAnnotation,
-				annotation.GaleraAnnotation,
+				metadata.MariadbAnnotation,
+				metadata.GaleraAnnotation,
 			},
 		)
 
@@ -194,7 +194,7 @@ var rootCmd = &cobra.Command{
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "MariaDB")
+			setupLog.Error(err, "Unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
 		}
 		if err = (&controller.BackupReconciler{
@@ -205,7 +205,7 @@ var rootCmd = &cobra.Command{
 			ConditionComplete: conditionComplete,
 			BatchReconciler:   batchReconciler,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Backup")
+			setupLog.Error(err, "Unable to create controller", "controller", "Backup")
 			os.Exit(1)
 		}
 		if err = (&controller.RestoreReconciler{
@@ -216,7 +216,7 @@ var rootCmd = &cobra.Command{
 			ConditionComplete: conditionComplete,
 			BatchReconciler:   batchReconciler,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "restore")
+			setupLog.Error(err, "Unable to create controller", "controller", "restore")
 			os.Exit(1)
 		}
 		if err = (&controller.UserReconciler{
@@ -225,7 +225,7 @@ var rootCmd = &cobra.Command{
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "User")
+			setupLog.Error(err, "Unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
 		if err = (&controller.GrantReconciler{
@@ -234,7 +234,7 @@ var rootCmd = &cobra.Command{
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Grant")
+			setupLog.Error(err, "Unable to create controller", "controller", "Grant")
 			os.Exit(1)
 		}
 		if err = (&controller.DatabaseReconciler{
@@ -243,7 +243,7 @@ var rootCmd = &cobra.Command{
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Database")
+			setupLog.Error(err, "Unable to create controller", "controller", "Database")
 			os.Exit(1)
 		}
 		if err = (&controller.ConnectionReconciler{
@@ -254,7 +254,7 @@ var rootCmd = &cobra.Command{
 			ConditionReady:  conditionReady,
 			RequeueInterval: requeueConnection,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Connection")
+			setupLog.Error(err, "Unable to create controller", "controller", "Connection")
 			os.Exit(1)
 		}
 		if err = (&controller.SqlJobReconciler{
@@ -266,15 +266,15 @@ var rootCmd = &cobra.Command{
 			ConditionComplete:   conditionComplete,
 			RequeueInterval:     requeueSqlJob,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "SqlJob")
+			setupLog.Error(err, "Unable to create controller", "controller", "SqlJob")
 			os.Exit(1)
 		}
 		if err = podReplicationController.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "PodReplication")
+			setupLog.Error(err, "Unable to create controller", "controller", "PodReplication")
 			os.Exit(1)
 		}
 		if err := podGaleraController.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "PodGalera")
+			setupLog.Error(err, "Unable to create controller", "controller", "PodGalera")
 			os.Exit(1)
 		}
 		if err = (&controller.StatefulSetGaleraReconciler{
@@ -282,13 +282,13 @@ var rootCmd = &cobra.Command{
 			RefResolver: refResolver,
 			Recorder:    galeraRecorder,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "StatefulSetGalera")
+			setupLog.Error(err, "Unable to create controller", "controller", "StatefulSetGalera")
 			os.Exit(1)
 		}
 
-		setupLog.Info("starting manager")
+		setupLog.Info("Starting manager")
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-			setupLog.Error(err, "problem running manager")
+			setupLog.Error(err, "Error running manager")
 			os.Exit(1)
 		}
 	},
@@ -306,8 +306,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&logTimeEncoder, "log-time-encoder", "epoch", "Log time encoder to use, one of: "+
 		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
+	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 
-	rootCmd.Flags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
 		"Enabling this requires Prometheus CRDs installed in the cluster.")
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")

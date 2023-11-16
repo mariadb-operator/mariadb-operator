@@ -37,4 +37,7 @@ const (
 	ReasonPrimarySwitching = "PrimarySwitching"
 	// ReasonPrimarySwitched indicates that primary has been switched.
 	ReasonPrimarySwitched = "PrimarySwitched"
+
+	// ReasonWebhookUpdateFailed indicates that the webhook configuration update failed.
+	ReasonWebhookUpdateFailed = "WebhookUpdateFailed"
 )
