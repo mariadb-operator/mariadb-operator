@@ -34,6 +34,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
+			WithLabels(backup.Spec.Labels).
 			Build()
 
 	cmdOpts := []backupcmd.Option{
@@ -95,6 +96,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
+			WithLabels(backup.Spec.Labels).
 			Build()
 	job, err := b.BuildBackupJob(key, backup, mariadb)
 	if err != nil {
@@ -124,6 +126,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
+			WithLabels(restore.Spec.Labels).
 			Build()
 	cmdOpts := []backupcmd.Option{
 		backupcmd.WithBasePath(batchStorageMountPath),
@@ -175,6 +178,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
+			WithLabels(sqlJob.Spec.Labels).
 			Build()
 
 	volumes, volumeMounts := sqlJobvolumes(sqlJob)
@@ -232,6 +236,7 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
+			WithLabels(sqlJob.Spec.Labels).
 			Build()
 	job, err := b.BuildSqlJob(key, sqlJob, mariadb)
 	if err != nil {

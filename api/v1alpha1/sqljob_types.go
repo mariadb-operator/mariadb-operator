@@ -49,6 +49,7 @@ type SqlJobSpec struct {
 	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
 	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
 	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
+	Labels       map[string]string   `json:"labels,omitempty"`
 }
 
 // SqlJobStatus defines the observed state of SqlJob

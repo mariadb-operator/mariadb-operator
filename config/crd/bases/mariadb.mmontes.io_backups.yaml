@@ -886,6 +886,10 @@ spec:
                 default: 5
                 format: int32
                 type: integer
+              labels:
+                additionalProperties:
+                  type: string
+                type: object
               mariaDbRef:
                 properties:
                   apiVersion:

@@ -894,6 +894,10 @@ spec:
                 x-kubernetes-map-type: atomic
               fileName:
                 type: string
+              labels:
+                additionalProperties:
+                  type: string
+                type: object
               mariaDbRef:
                 properties:
                   apiVersion:

@@ -896,6 +896,10 @@ spec:
                   type: object
                   x-kubernetes-map-type: atomic
                 type: array
+              labels:
+                additionalProperties:
+                  type: string
+                type: object
               mariaDbRef:
                 properties:
                   apiVersion:

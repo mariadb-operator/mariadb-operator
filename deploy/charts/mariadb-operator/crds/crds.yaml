@@ -885,6 +885,10 @@ spec:
                 default: 5
                 format: int32
                 type: integer
+              labels:
+                additionalProperties:
+                  type: string
+                type: object
               mariaDbRef:
                 properties:
                   apiVersion:
@@ -14216,6 +14220,10 @@ spec:
                 x-kubernetes-map-type: atomic
               fileName:
                 type: string
+              labels:
+                additionalProperties:
+                  type: string
+                type: object
               mariaDbRef:
                 properties:
                   apiVersion:
@@ -16856,6 +16864,10 @@ spec:
                   type: object
                   x-kubernetes-map-type: atomic
                 type: array
+              labels:
+                additionalProperties:
+                  type: string
+                type: object
               mariaDbRef:
                 properties:
                   apiVersion:
