@@ -364,15 +364,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - servicemonitors
-  verbs:
-  - create
-  - list
-  - patch
-  - watch
-- apiGroups:
   - policy
   resources:
   - poddisruptionbudgets
