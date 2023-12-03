@@ -1,4 +1,4 @@
-package client
+package sql
 
 import (
 	"bytes"

@@ -22,7 +22,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -137,13 +137,13 @@ func (r *MariaDBReconciler) createMetricsDsn(ctx context.Context, mariadb *maria
 	if err != nil {
 		return nil, fmt.Errorf("error getting password: %v", err)
 	}
-	mdbOpts := mariadbclient.Opts{
+	mdbOpts := sqlClient.Opts{
 		Username: user.Name,
 		Password: password,
 		Host:     "127.0.0.1",
 		Port:     mariadb.Spec.Port,
 	}
-	dsn, err := mariadbclient.BuildDSN(mdbOpts)
+	dsn, err := sqlClient.BuildDSN(mdbOpts)
 	if err != nil {
 		return nil, fmt.Errorf("error building DSN: %v", err)
 	}

@@ -21,10 +21,10 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -85,13 +85,13 @@ func newWrapperUserReconciler(client client.Client, refResolver *refresolver.Ref
 	}
 }
 
-func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
+func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
 	password, err := wr.refResolver.SecretKeyRef(ctx, wr.user.Spec.PasswordSecretKeyRef, wr.user.Namespace)
 	if err != nil {
 		return fmt.Errorf("error reading user password secret: %v", err)
 	}
 
-	opts := mariadbclient.CreateUserOpts{
+	opts := sqlClient.CreateUserOpts{
 		IdentifiedBy:       password,
 		MaxUserConnections: wr.user.Spec.MaxUserConnections,
 	}

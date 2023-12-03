@@ -24,11 +24,11 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -70,7 +70,7 @@ func (r *PodReplicationController) ReconcilePodReady(ctx context.Context, pod co
 		return fmt.Errorf("error getting Pod index: %v", err)
 	}
 
-	client, err := mariadbclient.NewInternalClientWithPodIndex(ctx, mariadb, r.refResolver, *index)
+	client, err := sqlClient.NewInternalClientWithPodIndex(ctx, mariadb, r.refResolver, *index)
 	if err != nil {
 		return fmt.Errorf("error connecting to replica '%d': %v", *index, err)
 	}

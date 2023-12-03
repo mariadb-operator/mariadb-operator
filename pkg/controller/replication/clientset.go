@@ -6,13 +6,13 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/client"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
 )
 
 type replicationClientSet struct {
-	*client.ClientSet
+	*sqlClientSet.ClientSet
 }
 
 func newReplicationClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver) (*replicationClientSet, error) {
@@ -20,7 +20,7 @@ func newReplicationClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refr
 		return nil, errors.New("'mariadb.spec.replication' is required to create a replicationClientSet")
 	}
 	return &replicationClientSet{
-		ClientSet: client.NewClientSet(mariadb, refResolver),
+		ClientSet: sqlClientSet.NewClientSet(mariadb, refResolver),
 	}, nil
 }
 
@@ -28,11 +28,11 @@ func (c *replicationClientSet) close() error {
 	return c.Close()
 }
 
-func (c *replicationClientSet) clientForIndex(ctx context.Context, index int) (*mariadbclient.Client, error) {
+func (c *replicationClientSet) clientForIndex(ctx context.Context, index int) (*sqlClient.Client, error) {
 	return c.ClientForIndex(ctx, index)
 }
 
-func (c *replicationClientSet) currentPrimaryClient(ctx context.Context) (*mariadbclient.Client, error) {
+func (c *replicationClientSet) currentPrimaryClient(ctx context.Context) (*sqlClient.Client, error) {
 	if c.Mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
@@ -43,7 +43,7 @@ func (c *replicationClientSet) currentPrimaryClient(ctx context.Context) (*maria
 	return client, nil
 }
 
-func (c *replicationClientSet) newPrimaryClient(ctx context.Context) (*mariadbclient.Client, error) {
+func (c *replicationClientSet) newPrimaryClient(ctx context.Context) (*sqlClient.Client, error) {
 	client, err := c.ClientForIndex(ctx, *c.Mariadb.Replication().Primary.PodIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting new primary client: %v", err)

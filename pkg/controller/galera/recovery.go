@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	sqlclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
+	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -31,7 +31,7 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 	if err != nil {
 		return fmt.Errorf("error getting agent client: %v", err)
 	}
-	sqlClientSet := sqlclient.NewClientSet(mariadb, r.refResolver)
+	sqlClientSet := sqlClientSet.NewClientSet(mariadb, r.refResolver)
 	defer sqlClientSet.Close()
 
 	if sts.Status.ReadyReplicas == 0 {
@@ -102,7 +102,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 }
 
 func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
-	clientSet *sqlclient.ClientSet, logger logr.Logger) error {
+	clientSet *sqlClientSet.ClientSet, logger logr.Logger) error {
 	doneChan := make(chan struct{})
 
 	var wg sync.WaitGroup
@@ -131,7 +131,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 }
 
 func (r *GaleraReconciler) recoverPod(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podKey types.NamespacedName,
-	clientSet *sqlclient.ClientSet, logger logr.Logger) error {
+	clientSet *sqlClientSet.ClientSet, logger logr.Logger) error {
 	syncTimeout := mariadb.Galera().Recovery.PodSyncTimeout.Duration
 	syncCtx, cancelSync := context.WithTimeout(ctx, syncTimeout)
 	defer cancelSync()

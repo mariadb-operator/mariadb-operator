@@ -21,10 +21,10 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -84,8 +84,8 @@ func newWrappedDatabaseReconciler(client client.Client, refResolver *refresolver
 	}
 }
 
-func (wr *wrappedDatabaseReconciler) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
-	opts := mariadbclient.DatabaseOpts{
+func (wr *wrappedDatabaseReconciler) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
+	opts := sqlClient.DatabaseOpts{
 		CharacterSet: wr.database.Spec.CharacterSet,
 		Collate:      wr.database.Spec.Collate,
 	}
