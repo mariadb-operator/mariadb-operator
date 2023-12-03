@@ -24,12 +24,13 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -121,7 +122,7 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 	clientCtx, cancelClient := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelClient()
 
-	clientSet := mariadbclient.NewClientSet(mariadb, r.RefResolver)
+	clientSet := sqlClientSet.NewClientSet(mariadb, r.RefResolver)
 	defer clientSet.Close()
 	client, err := r.readyClient(clientCtx, mariadb, clientSet)
 	if err != nil {
@@ -150,7 +151,7 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 }
 
 func (r *StatefulSetGaleraReconciler) readyClient(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *mariadbclient.ClientSet) (*mariadbclient.Client, error) {
+	clientSet *sqlClientSet.ClientSet) (*sqlClient.Client, error) {
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		key := types.NamespacedName{
 			Name:      statefulset.PodName(mariadb.ObjectMeta, i),

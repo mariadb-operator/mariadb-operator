@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -66,7 +66,7 @@ func (wr *wrappedDatabaseFinalizer) ContainsFinalizer() bool {
 	return controllerutil.ContainsFinalizer(wr.database, databaseFinalizerName)
 }
 
-func (wf *wrappedDatabaseFinalizer) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
+func (wf *wrappedDatabaseFinalizer) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
 	if err := mdbClient.DropDatabase(ctx, wf.database.DatabaseNameOrDefault()); err != nil {
 		return fmt.Errorf("error dropping database in MariaDB: %v", err)
 	}

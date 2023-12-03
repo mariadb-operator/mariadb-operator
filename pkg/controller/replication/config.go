@@ -7,9 +7,9 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	ctrlresources "github.com/mariadb-operator/mariadb-operator/controller/resource"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,7 +37,7 @@ func NewReplicationConfig(client client.Client, builder *builder.Builder, secret
 	}
 }
 
-func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
+func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
 	podIndex int) error {
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
@@ -60,7 +60,7 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	return nil
 }
 
-func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
+func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
 	replicaPodIndex, primaryPodIndex int, resetSlavePos bool) error {
 	if err := client.ResetMaster(ctx); err != nil {
 		return fmt.Errorf("error resetting master: %v", err)
@@ -88,7 +88,7 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 	return nil
 }
 
-func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
+func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
 	primaryPodIndex int) error {
 	kv := map[string]string{
 		"sync_binlog":                  binaryFromBool(mariadb.Replication().SyncBinlog),
@@ -113,7 +113,7 @@ func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *m
 }
 
 func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	client *mariadbclient.Client, ordinal int) error {
+	client *sqlClient.Client, ordinal int) error {
 	kv := map[string]string{
 		"sync_binlog":                  binaryFromBool(mariadb.Replication().SyncBinlog),
 		"rpl_semi_sync_master_enabled": "OFF",
@@ -126,7 +126,7 @@ func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *m
 	return nil
 }
 
-func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
+func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
 	primaryPodIndex int) error {
 	replPasswordRef := newReplPasswordRef(mariadb)
 	var replSecret corev1.Secret
@@ -143,7 +143,7 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 		return fmt.Errorf("error getting GTID: %v", err)
 	}
 
-	changeMasterOpts := &mariadbclient.ChangeMasterOpts{
+	changeMasterOpts := &sqlClient.ChangeMasterOpts{
 		Connection: connectionName,
 		Host: statefulset.PodFQDNWithService(
 			mariadb.ObjectMeta,
@@ -161,13 +161,13 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 	return nil
 }
 
-func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client) error {
+func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client) error {
 	if mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
 		password, err := r.refResolver.SecretKeyRef(ctx, *mariadb.Spec.PasswordSecretKeyRef, mariadb.Namespace)
 		if err != nil {
 			return fmt.Errorf("error getting password: %v", err)
 		}
-		userOpts := mariadbclient.CreateUserOpts{
+		userOpts := sqlClient.CreateUserOpts{
 			IdentifiedBy: password,
 		}
 		accountName := formatAccountName(*mariadb.Spec.Username, "%")
@@ -184,7 +184,7 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 	}
 
 	if mariadb.Spec.Database != nil {
-		databaseOpts := mariadbclient.DatabaseOpts{
+		databaseOpts := sqlClient.DatabaseOpts{
 			CharacterSet: "utf8",
 			Collate:      "utf8_general_ci",
 		}
@@ -208,7 +208,7 @@ type userSqlOpts struct {
 	privileges []string
 }
 
-func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *mariadbclient.Client,
+func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
 	opts *userSqlOpts) error {
 	replPasswordRef := newReplPasswordRef(mariadb)
 	var replPassword string
@@ -236,7 +236,7 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 			return fmt.Errorf("error altering replication user: %v", err)
 		}
 	} else {
-		userOpts := mariadbclient.CreateUserOpts{
+		userOpts := sqlClient.CreateUserOpts{
 			IdentifiedBy: replPassword,
 		}
 		if err := client.CreateUser(ctx, accountName, userOpts); err != nil {

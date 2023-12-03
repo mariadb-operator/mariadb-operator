@@ -22,8 +22,8 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,7 +68,7 @@ func (wf *wrappedGrantFinalizer) ContainsFinalizer() bool {
 	return controllerutil.ContainsFinalizer(wf.grant, grantFinalizerName)
 }
 
-func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
+func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
 	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
 		var user mariadbv1alpha1.User
 		if err := wf.Get(ctx, userKey(wf.grant), &user); err != nil {
@@ -87,9 +87,9 @@ func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *maria
 		return fmt.Errorf("error checking if user exists in MariaDB: %v", err)
 	}
 
-	var opts []mariadbclient.GrantOption
+	var opts []sqlClient.GrantOption
 	if wf.grant.Spec.GrantOption {
-		opts = append(opts, mariadbclient.WithGrantOption())
+		opts = append(opts, sqlClient.WithGrantOption())
 	}
 	if err := mdbClient.Revoke(
 		ctx,

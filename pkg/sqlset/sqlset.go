@@ -7,12 +7,13 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 )
 
 type ClientSet struct {
 	Mariadb       *mariadbv1alpha1.MariaDB
 	refResolver   *refresolver.RefResolver
-	clientByIndex map[int]*Client
+	clientByIndex map[int]*sql.Client
 	mux           *sync.Mutex
 }
 
@@ -20,7 +21,7 @@ func NewClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.Ref
 	return &ClientSet{
 		Mariadb:       mariadb,
 		refResolver:   refResolver,
-		clientByIndex: make(map[int]*Client),
+		clientByIndex: make(map[int]*sql.Client),
 		mux:           &sync.Mutex{},
 	}
 }
@@ -34,14 +35,14 @@ func (c *ClientSet) Close() error {
 	return nil
 }
 
-func (c *ClientSet) ClientForIndex(ctx context.Context, index int, clientOpts ...Opt) (*Client, error) {
+func (c *ClientSet) ClientForIndex(ctx context.Context, index int, clientOpts ...sql.Opt) (*sql.Client, error) {
 	if err := c.validateIndex(index); err != nil {
 		return nil, fmt.Errorf("invalid index. %v", err)
 	}
 	if c, ok := c.clientByIndex[index]; ok {
 		return c, nil
 	}
-	client, err := NewInternalClientWithPodIndex(ctx, c.Mariadb, c.refResolver, index, clientOpts...)
+	client, err := sql.NewInternalClientWithPodIndex(ctx, c.Mariadb, c.refResolver, index, clientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating replica '%d' client: %v", index, err)
 	}

@@ -9,9 +9,9 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -157,7 +157,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 				var errBundle *multierror.Error
 				errBundle = multierror.Append(errBundle, fmt.Errorf("error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err))
 
-				if errors.Is(err, mariadbclient.ErrWaitReplicaTimeout) {
+				if errors.Is(err, sqlClient.ErrWaitReplicaTimeout) {
 					logger.Error(err, "Timeout waiting for GTID in replica", "gtid", primaryGtid, "replica", i, "timeout", timeout)
 					r.recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
 						"Timeout(%s) waiting for GTID '%s' in replica '%d': %v", timeout, primaryGtid, i, err)
@@ -314,7 +314,7 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 	)
 }
 
-func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *mariadbclient.Client) error {
+func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *sqlClient.Client) error {
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}

@@ -7,10 +7,10 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -65,7 +65,7 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 	}
 
 	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
-	mdbClient, err := mariadbclient.NewClientWithMariaDB(ctx, mariadb, r.RefResolver)
+	mdbClient, err := sqlClient.NewClientWithMariaDB(ctx, mariadb, r.RefResolver)
 	if err != nil {
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, err)

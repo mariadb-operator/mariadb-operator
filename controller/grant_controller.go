@@ -21,10 +21,10 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -145,10 +145,10 @@ func newWrappedGrantReconciler(client client.Client, refResolver refresolver.Ref
 	}
 }
 
-func (wr *wrappedGrantReconciler) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
-	var opts []mariadbclient.GrantOption
+func (wr *wrappedGrantReconciler) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
+	var opts []sqlClient.GrantOption
 	if wr.grant.Spec.GrantOption {
-		opts = append(opts, mariadbclient.WithGrantOption())
+		opts = append(opts, sqlClient.WithGrantOption())
 	}
 	if err := mdbClient.Grant(
 		ctx,

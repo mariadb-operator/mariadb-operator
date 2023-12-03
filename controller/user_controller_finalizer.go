@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbclient "github.com/mariadb-operator/mariadb-operator/pkg/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -65,7 +65,7 @@ func (wf *wrappedUserFinalizer) ContainsFinalizer() bool {
 	return controllerutil.ContainsFinalizer(wf.user, userFinalizerName)
 }
 
-func (wf *wrappedUserFinalizer) Reconcile(ctx context.Context, mdbClient *mariadbclient.Client) error {
+func (wf *wrappedUserFinalizer) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
 	if err := mdbClient.DropUser(ctx, wf.user.AccountName()); err != nil {
 		return fmt.Errorf("error dropping user in MariaDB: %v", err)
 	}
