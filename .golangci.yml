@@ -30,4 +30,4 @@ linters:
 
 run:
   timeout: 5m
-  go: "1.20"
+  go: "1.21"
