@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -27,7 +28,6 @@ import (
 	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
@@ -59,7 +59,7 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 	certSecretKey types.NamespacedName, certValidity time.Duration, lookaheadValidity time.Duration,
 	serviceKey types.NamespacedName, requeueDuration time.Duration) *WebhookConfigReconciler {
 
-	certDNSnames := pki.ServiceDNSNames(serviceKey)
+	certDNSnames := serviceDNSNames(serviceKey)
 	return &WebhookConfigReconciler{
 		Client:   client,
 		scheme:   scheme,
@@ -240,4 +240,26 @@ func (r *WebhookConfigReconciler) patchMutatingWebhook(ctx context.Context, cfg 
 		return err
 	}
 	return nil
+}
+
+type dnsNames struct {
+	CommonName string
+	Names      []string
+}
+
+func serviceDNSNames(serviceKey types.NamespacedName) *dnsNames {
+	clusterName := os.Getenv("CLUSTER_NAME")
+	if clusterName == "" {
+		clusterName = "cluster.local"
+	}
+	commonName := fmt.Sprintf("%s.%s.svc", serviceKey.Name, serviceKey.Namespace)
+	return &dnsNames{
+		CommonName: commonName,
+		Names: []string{
+			fmt.Sprintf("%s.%s.svc.%s", serviceKey.Name, serviceKey.Namespace, clusterName),
+			commonName,
+			fmt.Sprintf("%s.%s", serviceKey.Name, serviceKey.Namespace),
+			serviceKey.Name,
+		},
+	}
 }
