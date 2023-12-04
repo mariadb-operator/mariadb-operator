@@ -54,7 +54,7 @@ The recommended installation includes the following features to provide a better
 ```bash
 helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator \
-  --set metrics.enabled=true --set webhook.cert.certManager=true
+  --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
 ```
 
 ## Openshift
