@@ -49,7 +49,11 @@ spec:
           name: cert-controller
           args:
             - cert-controller
+            - --ca-secret-name={{ include "mariadb-operator.fullname" . }}-webhook-ca
+            - --ca-secret-namespace={{ .Release.Namespace }}
             - --ca-validity={{ .Values.certController.caValidity }}
+            - --cert-secret-name={{ include "mariadb-operator.fullname" . }}-webhook-cert
+            - --cert-secret-namespace={{ .Release.Namespace }}
             - --cert-validity={{ .Values.certController.certValidity }}
             - --lookahead-validity={{ .Values.certController.lookaheadValidity }}
             - --service-name={{ include "mariadb-operator.fullname" . }}-webhook
