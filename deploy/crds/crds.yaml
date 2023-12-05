@@ -50,7 +50,7 @@ spec:
             description: BackupSpec defines the desired state of Backup
             properties:
               affinity:
-                description: Affinity is a group of affinity scheduling rules.
+                description: Affinity to be used in the Backup Pod.
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -878,14 +878,18 @@ spec:
                     type: object
                 type: object
               args:
+                description: Args to be used in the Backup container.
                 items:
                   type: string
                 type: array
               backoffLimit:
                 default: 5
+                description: BackoffLimit defines the maximum number of attempts to
+                  successfully take a Backup.
                 format: int32
                 type: integer
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -921,19 +925,24 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               maxRetentionDays:
                 default: 30
+                description: MaxRetentionDays defined the maximum age that Backups
+                  should have. Old backup will be cleaned up by the Backup Job.
                 format: int32
                 type: integer
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: NodeSelector to be used in the Backup Pod.
                 type: object
               resources:
-                description: ResourceRequirements describes the compute resource requirements.
+                description: Resouces describes the compute resource requirements.
                 properties:
                   claims:
                     description: "Claims lists the names of resources, defined in
@@ -982,27 +991,31 @@ spec:
                 type: object
               restartPolicy:
                 default: OnFailure
-                description: RestartPolicy describes how the container should be restarted.
-                  Only one of the following restart policies may be specified. If
-                  none of the following policies is specified, the default one is
-                  RestartPolicyAlways.
+                description: RestartPolicy to be added to the Backup Pod.
+                enum:
+                - Always
+                - OnFailure
+                - Never
                 type: string
               schedule:
+                description: Schedule defines when the Backup will be taken.
                 properties:
                   cron:
+                    description: Cron is a cron expression that defines the schedule.
                     type: string
                   suspend:
                     default: false
+                    description: Suspend defines whether the schedule is active or
+                      not.
                     type: boolean
                 required:
                 - cron
                 type: object
               storage:
+                description: Storage to be used in the Backup.
                 properties:
                   persistentVolumeClaim:
-                    description: PersistentVolumeClaimSpec describes the common attributes
-                      of storage devices and allows a Source for provider-specific
-                      attributes
+                    description: PersistentVolumeClaim is a Kubernetes PVC specification.
                     properties:
                       accessModes:
                         description: 'accessModes contains the desired access modes
@@ -1210,8 +1223,7 @@ spec:
                         type: string
                     type: object
                   volume:
-                    description: Represents the source of a volume to mount. Only
-                      one of its members may be specified.
+                    description: Volume is a Kubernetes volume specification.
                     properties:
                       awsElasticBlockStore:
                         description: 'awsElasticBlockStore represents an AWS Disk
@@ -2790,6 +2802,7 @@ spec:
                     type: object
                 type: object
               tolerations:
+                description: Tolerations to be used in the Backup Pod.
                 items:
                   description: The pod this Toleration is attached to tolerates any
                     taint that matches the triple <key,value,effect> using the matching
@@ -2836,6 +2849,7 @@ spec:
             description: BackupStatus defines the observed state of Backup
             properties:
               conditions:
+                description: Conditions for the Backup object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -2965,15 +2979,21 @@ spec:
             description: ConnectionSpec defines the desired state of Connection
             properties:
               database:
+                description: Database to use for configuring the Connection.
                 type: string
               healthCheck:
+                description: HealthCheck to be used in the Connection.
                 properties:
                   interval:
+                    description: Interval used to perform health checks.
                     type: string
                   retryInterval:
+                    description: RetryInterval is the intervañ used to perform health
+                      check retries.
                     type: string
                 type: object
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -3009,15 +3029,19 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               params:
                 additionalProperties:
                   type: string
+                description: Params to be used in the Connection.
                 type: object
               passwordSecretKeyRef:
-                description: SecretKeySelector selects a key of a Secret.
+                description: PasswordSecretKeyRef is a reference to the password to
+                  use for configuring the Connection.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -3035,35 +3059,48 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               secretName:
+                description: SecretName to be used in the Connection.
                 type: string
               secretTemplate:
+                description: SecretTemplate to be used in the Connection.
                 properties:
                   annotations:
                     additionalProperties:
                       type: string
+                    description: Annotations to be added to the Secret object.
                     type: object
                   databaseKey:
+                    description: DatabaseKey to be used in the Secret.
                     type: string
                   format:
+                    description: Format to be used in the Secret.
                     type: string
                   hostKey:
+                    description: HostKey to be used in the Secret.
                     type: string
                   key:
+                    description: Key to be used in the Secret.
                     type: string
                   labels:
                     additionalProperties:
                       type: string
+                    description: Labels to be added to the Secret object.
                     type: object
                   passwordKey:
+                    description: PasswordKey to be used in the Secret.
                     type: string
                   portKey:
+                    description: PortKey to be used in the Secret.
                     type: string
                   usernameKey:
+                    description: UsernameKey to be used in the Secret.
                     type: string
                 type: object
               serviceName:
+                description: ServiceName to be used in the Connection.
                 type: string
               username:
+                description: Username to use for configuring the Connection.
                 type: string
             required:
             - mariaDbRef
@@ -3074,6 +3111,7 @@ spec:
             description: ConnectionStatus defines the observed state of Connection
             properties:
               conditions:
+                description: Conditions for the Connection object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -3210,11 +3248,14 @@ spec:
             properties:
               characterSet:
                 default: utf8
+                description: CharacterSet to use in the Database.
                 type: string
               collate:
                 default: utf8_general_ci
+                description: CharacterSet to use in the Database.
                 type: string
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -3250,13 +3291,19 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               name:
+                description: Name overrides the default Database name provided by
+                  metadata.name.
                 maxLength: 80
                 type: string
               retryInterval:
+                description: RetryInterval is the interval used to perform health
+                  check retries.
                 type: string
             required:
             - mariaDbRef
@@ -3265,6 +3312,7 @@ spec:
             description: DatabaseStatus defines the observed state of Database
             properties:
               conditions:
+                description: Conditions for the Database object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -3404,13 +3452,17 @@ spec:
             properties:
               database:
                 default: '*'
+                description: Database to use in the Grant.
                 type: string
               grantOption:
                 default: false
+                description: GrantOption to use in the Grant.
                 type: boolean
               host:
+                description: Host to use in the Grant.
                 type: string
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -3446,20 +3498,27 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               privileges:
+                description: Privileges to use in the Grant.
                 items:
                   type: string
                 minItems: 1
                 type: array
               retryInterval:
+                description: RetryInterval is the interval used to perform health
+                  check retries.
                 type: string
               table:
                 default: '*'
+                description: Table to use in the Grant.
                 type: string
               username:
+                description: Username to use in the Grant.
                 type: string
             required:
             - mariaDbRef
@@ -3470,6 +3529,7 @@ spec:
             description: GrantStatus defines the observed state of Grant
             properties:
               conditions:
+                description: Conditions for the Grant object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -3596,7 +3656,7 @@ spec:
             description: MariaDBSpec defines the desired state of MariaDB
             properties:
               affinity:
-                description: Affinity is a group of affinity scheduling rules.
+                description: Affinity to be used in the Pod.
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -4424,14 +4484,15 @@ spec:
                     type: object
                 type: object
               args:
+                description: Args to be used in the Container.
                 items:
                   type: string
                 type: array
               bootstrapFrom:
+                description: BootstrapFrom defines a source to bootstrap from.
                 properties:
                   backupRef:
-                    description: LocalObjectReference contains enough information
-                      to let you locate the referenced object inside the same namespace.
+                    description: BackupRef is a reference to a Backup object.
                     properties:
                       name:
                         description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -4440,10 +4501,11 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   fileName:
+                    description: FileName is the file within the source to be restored.
                     type: string
                   volume:
-                    description: Represents the source of a volume to mount. Only
-                      one of its members may be specified.
+                    description: Volume is a Kubernetes Volume object that contains
+                      a backup.
                     properties:
                       awsElasticBlockStore:
                         description: 'awsElasticBlockStore represents an AWS Disk
@@ -6022,55 +6084,78 @@ spec:
                     type: object
                 type: object
               command:
+                description: Command to be used in the Container.
                 items:
                   type: string
                 type: array
               connection:
+                description: Connection defines templates to configure the general
+                  Connection object.
                 properties:
                   healthCheck:
+                    description: HealthCheck to be used in the Connection.
                     properties:
                       interval:
+                        description: Interval used to perform health checks.
                         type: string
                       retryInterval:
+                        description: RetryInterval is the intervañ used to perform
+                          health check retries.
                         type: string
                     type: object
                   params:
                     additionalProperties:
                       type: string
+                    description: Params to be used in the Connection.
                     type: object
                   secretName:
+                    description: SecretName to be used in the Connection.
                     type: string
                   secretTemplate:
+                    description: SecretTemplate to be used in the Connection.
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations to be added to the Secret object.
                         type: object
                       databaseKey:
+                        description: DatabaseKey to be used in the Secret.
                         type: string
                       format:
+                        description: Format to be used in the Secret.
                         type: string
                       hostKey:
+                        description: HostKey to be used in the Secret.
                         type: string
                       key:
+                        description: Key to be used in the Secret.
                         type: string
                       labels:
                         additionalProperties:
                           type: string
+                        description: Labels to be added to the Secret object.
                         type: object
                       passwordKey:
+                        description: PasswordKey to be used in the Secret.
                         type: string
                       portKey:
+                        description: PortKey to be used in the Secret.
                         type: string
                       usernameKey:
+                        description: UsernameKey to be used in the Secret.
                         type: string
                     type: object
                   serviceName:
+                    description: ServiceName to be used in the Connection.
                     type: string
                 type: object
               database:
+                description: Database is the database to be created on bootstrap.
                 type: string
               env:
+                description: Env represents the environment variables to be injected
+                  in a container.
                 items:
                   description: EnvVar represents an environment variable present in
                     a Container.
@@ -6179,6 +6264,8 @@ spec:
                   type: object
                 type: array
               envFrom:
+                description: EnvFrom represents the references (via ConfigMap and
+                  Secrets) to environment variables to be injected in the container.
                 items:
                   description: EnvFromSource represents the source of a set of ConfigMaps
                   properties:
@@ -6213,22 +6300,25 @@ spec:
                   type: object
                 type: array
               galera:
-                description: Galera allows you to enable multi-master HA via Galera
-                  in your MariaDB cluster.
+                description: Replication configures high availability via Galera.
                 properties:
                   agent:
                     description: 'GaleraAgent is a sidecar agent that co-operates
                       with mariadb-operator. More info: https://github.com/mariadb-operator/agent.'
                     properties:
                       args:
+                        description: Args to be used in the Container.
                         items:
                           type: string
                         type: array
                       command:
+                        description: Command to be used in the Container.
                         items:
                           type: string
                         type: array
                       env:
+                        description: Env represents the environment variables to be
+                          injected in a container.
                         items:
                           description: EnvVar represents an environment variable present
                             in a Container.
@@ -6346,6 +6436,9 @@ spec:
                           type: object
                         type: array
                       envFrom:
+                        description: EnvFrom represents the references (via ConfigMap
+                          and Secrets) to environment variables to be injected in
+                          the container.
                         items:
                           description: EnvFromSource represents the source of a set
                             of ConfigMaps
@@ -6390,11 +6483,17 @@ spec:
                           requests.
                         type: string
                       image:
+                        description: Image name to be used by the MariaDB instances.
+                          The supported format is `<image>:<tag>`.
                         type: string
                       imagePullPolicy:
-                        default: IfNotPresent
-                        description: PullPolicy describes a policy for if/when to
-                          pull a container image
+                        description: ImagePullPolicy is the image pull policy. One
+                          of `Always`, `Never` or `IfNotPresent`. If not defined,
+                          it defaults to `IfNotPresent`.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
                         type: string
                       kubernetesAuth:
                         description: KubernetesAuth to be used by the agent container
@@ -6411,9 +6510,7 @@ spec:
                             type: boolean
                         type: object
                       livenessProbe:
-                        description: Probe describes a health check to be performed
-                          against a container to determine whether it is alive or
-                          ready to receive traffic.
+                        description: LivenessProbe to be used in the Container.
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -6564,13 +6661,12 @@ spec:
                             type: integer
                         type: object
                       port:
-                        description: Port to be used by the agent container
+                        default: 5555
+                        description: Port where the agent will be listening for connections.
                         format: int32
                         type: integer
                       readinessProbe:
-                        description: Probe describes a health check to be performed
-                          against a container to determine whether it is alive or
-                          ready to receive traffic.
+                        description: ReadinessProbe to be used in the Container.
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -6721,8 +6817,7 @@ spec:
                             type: integer
                         type: object
                       resources:
-                        description: ResourceRequirements describes the compute resource
-                          requirements.
+                        description: Resouces describes the compute resource requirements.
                         properties:
                           claims:
                             description: "Claims lists the names of resources, defined
@@ -6772,9 +6867,7 @@ spec:
                         type: object
                       securityContext:
                         description: SecurityContext holds security configuration
-                          that will be applied to a container. Some fields are present
-                          in both SecurityContext and PodSecurityContext.  When both
-                          are set, the values in SecurityContext take precedence.
+                          that will be applied to a container.
                         properties:
                           allowPrivilegeEscalation:
                             description: 'AllowPrivilegeEscalation controls whether
@@ -6945,6 +7038,7 @@ spec:
                             type: object
                         type: object
                       volumeMounts:
+                        description: VolumeMounts to be used in the Container.
                         items:
                           description: VolumeMount describes a mounting of a Volume
                             within a container.
@@ -6995,14 +7089,18 @@ spec:
                       with mariadb-operator. More info: https://github.com/mariadb-operator/init.'
                     properties:
                       args:
+                        description: Args to be used in the Container.
                         items:
                           type: string
                         type: array
                       command:
+                        description: Command to be used in the Container.
                         items:
                           type: string
                         type: array
                       env:
+                        description: Env represents the environment variables to be
+                          injected in a container.
                         items:
                           description: EnvVar represents an environment variable present
                             in a Container.
@@ -7120,6 +7218,9 @@ spec:
                           type: object
                         type: array
                       envFrom:
+                        description: EnvFrom represents the references (via ConfigMap
+                          and Secrets) to environment variables to be injected in
+                          the container.
                         items:
                           description: EnvFromSource represents the source of a set
                             of ConfigMaps
@@ -7159,16 +7260,20 @@ spec:
                           type: object
                         type: array
                       image:
+                        description: Image name to be used by the MariaDB instances.
+                          The supported format is `<image>:<tag>`.
                         type: string
                       imagePullPolicy:
-                        default: IfNotPresent
-                        description: PullPolicy describes a policy for if/when to
-                          pull a container image
+                        description: ImagePullPolicy is the image pull policy. One
+                          of `Always`, `Never` or `IfNotPresent`. If not defined,
+                          it defaults to `IfNotPresent`.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
                         type: string
                       livenessProbe:
-                        description: Probe describes a health check to be performed
-                          against a container to determine whether it is alive or
-                          ready to receive traffic.
+                        description: LivenessProbe to be used in the Container.
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -7319,9 +7424,7 @@ spec:
                             type: integer
                         type: object
                       readinessProbe:
-                        description: Probe describes a health check to be performed
-                          against a container to determine whether it is alive or
-                          ready to receive traffic.
+                        description: ReadinessProbe to be used in the Container.
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -7472,8 +7575,7 @@ spec:
                             type: integer
                         type: object
                       resources:
-                        description: ResourceRequirements describes the compute resource
-                          requirements.
+                        description: Resouces describes the compute resource requirements.
                         properties:
                           claims:
                             description: "Claims lists the names of resources, defined
@@ -7523,9 +7625,7 @@ spec:
                         type: object
                       securityContext:
                         description: SecurityContext holds security configuration
-                          that will be applied to a container. Some fields are present
-                          in both SecurityContext and PodSecurityContext.  When both
-                          are set, the values in SecurityContext take precedence.
+                          that will be applied to a container.
                         properties:
                           allowPrivilegeEscalation:
                             description: 'AllowPrivilegeEscalation controls whether
@@ -7696,6 +7796,7 @@ spec:
                             type: object
                         type: object
                       volumeMounts:
+                        description: VolumeMounts to be used in the Container.
                         items:
                           description: VolumeMount describes a mounting of a Volume
                             within a container.
@@ -7793,6 +7894,10 @@ spec:
                   sst:
                     description: 'SST is the Snapshot State Transfer used when new
                       Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html.'
+                    enum:
+                    - rsync
+                    - mariabackup
+                    - mysqldump
                     type: string
                   volumeClaimTemplate:
                     description: VolumeClaimTemplate is a template for the PVC that
@@ -7808,6 +7913,7 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations to be used in the PVC.
                         type: object
                       dataSource:
                         description: 'dataSource field can be used to specify either:
@@ -7896,6 +8002,7 @@ spec:
                       labels:
                         additionalProperties:
                           type: string
+                        description: Labels to be used in the PVC.
                         type: object
                       resources:
                         description: 'resources represents the minimum resources the
@@ -8014,13 +8121,20 @@ spec:
                     type: object
                 type: object
               image:
+                description: Image name to be used by the MariaDB instances. The supported
+                  format is `<image>:<tag>`.
                 type: string
               imagePullPolicy:
-                default: IfNotPresent
-                description: PullPolicy describes a policy for if/when to pull a container
-                  image
+                description: ImagePullPolicy is the image pull policy. One of `Always`,
+                  `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+                enum:
+                - Always
+                - Never
+                - IfNotPresent
                 type: string
               imagePullSecrets:
+                description: ImagePullSecrets is the list of pull Secrets to be used
+                  to pull the image.
                 items:
                   description: LocalObjectReference contains enough information to
                     let you locate the referenced object inside the same namespace.
@@ -8033,28 +8147,39 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               inheritMetadata:
+                description: InheritMetadata defines the metadata to be inherited
+                  by children resources.
                 properties:
                   annotations:
                     additionalProperties:
                       type: string
+                    description: Annotations to be added to children resources.
                     type: object
                   labels:
                     additionalProperties:
                       type: string
+                    description: Labels to be added to children resources.
                     type: object
                 type: object
               initContainers:
+                description: InitContainers to be used in the Pod.
                 items:
+                  description: ContainerTemplate defines a template to configure Container
+                    objects.
                   properties:
                     args:
+                      description: Args to be used in the Container.
                       items:
                         type: string
                       type: array
                     command:
+                      description: Command to be used in the Container.
                       items:
                         type: string
                       type: array
                     env:
+                      description: Env represents the environment variables to be
+                        injected in a container.
                       items:
                         description: EnvVar represents an environment variable present
                           in a Container.
@@ -8172,6 +8297,9 @@ spec:
                         type: object
                       type: array
                     envFrom:
+                      description: EnvFrom represents the references (via ConfigMap
+                        and Secrets) to environment variables to be injected in the
+                        container.
                       items:
                         description: EnvFromSource represents the source of a set
                           of ConfigMaps
@@ -8210,16 +8338,20 @@ spec:
                         type: object
                       type: array
                     image:
+                      description: Image name to be used by the MariaDB instances.
+                        The supported format is `<image>:<tag>`.
                       type: string
                     imagePullPolicy:
-                      default: IfNotPresent
-                      description: PullPolicy describes a policy for if/when to pull
-                        a container image
+                      description: ImagePullPolicy is the image pull policy. One of
+                        `Always`, `Never` or `IfNotPresent`. If not defined, it defaults
+                        to `IfNotPresent`.
+                      enum:
+                      - Always
+                      - Never
+                      - IfNotPresent
                       type: string
                     livenessProbe:
-                      description: Probe describes a health check to be performed
-                        against a container to determine whether it is alive or ready
-                        to receive traffic.
+                      description: LivenessProbe to be used in the Container.
                       properties:
                         exec:
                           description: Exec specifies the action to take.
@@ -8368,9 +8500,7 @@ spec:
                           type: integer
                       type: object
                     readinessProbe:
-                      description: Probe describes a health check to be performed
-                        against a container to determine whether it is alive or ready
-                        to receive traffic.
+                      description: ReadinessProbe to be used in the Container.
                       properties:
                         exec:
                           description: Exec specifies the action to take.
@@ -8519,8 +8649,7 @@ spec:
                           type: integer
                       type: object
                     resources:
-                      description: ResourceRequirements describes the compute resource
-                        requirements.
+                      description: Resouces describes the compute resource requirements.
                       properties:
                         claims:
                           description: "Claims lists the names of resources, defined
@@ -8570,9 +8699,7 @@ spec:
                       type: object
                     securityContext:
                       description: SecurityContext holds security configuration that
-                        will be applied to a container. Some fields are present in
-                        both SecurityContext and PodSecurityContext.  When both are
-                        set, the values in SecurityContext take precedence.
+                        will be applied to a container.
                       properties:
                         allowPrivilegeEscalation:
                           description: 'AllowPrivilegeEscalation controls whether
@@ -8741,6 +8868,7 @@ spec:
                           type: object
                       type: object
                     volumeMounts:
+                      description: VolumeMounts to be used in the Container.
                       items:
                         description: VolumeMount describes a mounting of a Volume
                           within a container.
@@ -8784,9 +8912,7 @@ spec:
                   type: object
                 type: array
               livenessProbe:
-                description: Probe describes a health check to be performed against
-                  a container to determine whether it is alive or ready to receive
-                  traffic.
+                description: LivenessProbe to be used in the Container.
                 properties:
                   exec:
                     description: Exec specifies the action to take.
@@ -8928,18 +9054,24 @@ spec:
                     type: integer
                 type: object
               metrics:
+                description: Metrics configures metrics and how to scrape them.
                 properties:
                   exporter:
+                    description: Exporter defines the metrics exporter container.
                     properties:
                       args:
+                        description: Args to be used in the Container.
                         items:
                           type: string
                         type: array
                       command:
+                        description: Command to be used in the Container.
                         items:
                           type: string
                         type: array
                       env:
+                        description: Env represents the environment variables to be
+                          injected in a container.
                         items:
                           description: EnvVar represents an environment variable present
                             in a Container.
@@ -9057,6 +9189,9 @@ spec:
                           type: object
                         type: array
                       envFrom:
+                        description: EnvFrom represents the references (via ConfigMap
+                          and Secrets) to environment variables to be injected in
+                          the container.
                         items:
                           description: EnvFromSource represents the source of a set
                             of ConfigMaps
@@ -9096,16 +9231,20 @@ spec:
                           type: object
                         type: array
                       image:
+                        description: Image name to be used by the MariaDB instances.
+                          The supported format is `<image>:<tag>`.
                         type: string
                       imagePullPolicy:
-                        default: IfNotPresent
-                        description: PullPolicy describes a policy for if/when to
-                          pull a container image
+                        description: ImagePullPolicy is the image pull policy. One
+                          of `Always`, `Never` or `IfNotPresent`. If not defined,
+                          it defaults to `IfNotPresent`.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
                         type: string
                       livenessProbe:
-                        description: Probe describes a health check to be performed
-                          against a container to determine whether it is alive or
-                          ready to receive traffic.
+                        description: LivenessProbe to be used in the Container.
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -9257,12 +9396,12 @@ spec:
                         type: object
                       port:
                         default: 9104
+                        description: Port where the exporter will be listening for
+                          connections.
                         format: int32
                         type: integer
                       readinessProbe:
-                        description: Probe describes a health check to be performed
-                          against a container to determine whether it is alive or
-                          ready to receive traffic.
+                        description: ReadinessProbe to be used in the Container.
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -9413,8 +9552,7 @@ spec:
                             type: integer
                         type: object
                       resources:
-                        description: ResourceRequirements describes the compute resource
-                          requirements.
+                        description: Resouces describes the compute resource requirements.
                         properties:
                           claims:
                             description: "Claims lists the names of resources, defined
@@ -9464,9 +9602,7 @@ spec:
                         type: object
                       securityContext:
                         description: SecurityContext holds security configuration
-                          that will be applied to a container. Some fields are present
-                          in both SecurityContext and PodSecurityContext.  When both
-                          are set, the values in SecurityContext take precedence.
+                          that will be applied to a container.
                         properties:
                           allowPrivilegeEscalation:
                             description: 'AllowPrivilegeEscalation controls whether
@@ -9637,6 +9773,7 @@ spec:
                             type: object
                         type: object
                       volumeMounts:
+                        description: VolumeMounts to be used in the Container.
                         items:
                           description: VolumeMount describes a mounting of a Volume
                             within a container.
@@ -9680,12 +9817,18 @@ spec:
                     - image
                     type: object
                   serviceMonitor:
+                    description: ServiceMonitor defines the ServiceMonior object.
                     properties:
                       interval:
+                        description: Interval for scraping metrics.
                         type: string
                       prometheusRelease:
+                        description: PrometheusRelease is the release label to add
+                          to the ServiceMonitor object.
                         type: string
                       scrapeTimeout:
+                        description: ScrapeTimeout defines the timeout for scraping
+                          metrics.
                         type: string
                     required:
                     - prometheusRelease
@@ -9695,9 +9838,12 @@ spec:
                 - serviceMonitor
                 type: object
               myCnf:
+                description: MyCnf allows to specify the my.cnf file mounted by Mariadb.
                 type: string
               myCnfConfigMapKeyRef:
-                description: Selects a key from a ConfigMap.
+                description: MyCnfConfigMapKeyRef is a reference to the my.cnf config
+                  file provided via a ConfigMap. If not provided, it will be defaulted
+                  with reference to a ConfigMap with the contents of the MyCnf field.
                 properties:
                   key:
                     description: The key to select.
@@ -9717,9 +9863,11 @@ spec:
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: NodeSelector to be used in the Pod.
                 type: object
               passwordSecretKeyRef:
-                description: SecretKeySelector selects a key of a Secret.
+                description: PasswordSecretKeyRef is a reference to the password of
+                  the initial user provided via a Secret.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -9739,25 +9887,29 @@ spec:
               podAnnotations:
                 additionalProperties:
                   type: string
+                description: PodAnnotations to add to the Pods metadata.
                 type: object
               podDisruptionBudget:
+                description: PodDisruptionBudget defines the budget for replica availability.
                 properties:
                   maxUnavailable:
                     anyOf:
                     - type: integer
                     - type: string
+                    description: MaxUnavailable defines the number of maximum unavailable
+                      Pods.
                     x-kubernetes-int-or-string: true
                   minAvailable:
                     anyOf:
                     - type: integer
                     - type: string
+                    description: MinAvailable defines the number of minimum available
+                      Pods.
                     x-kubernetes-int-or-string: true
                 type: object
               podSecurityContext:
-                description: PodSecurityContext holds pod-level security attributes
-                  and common container settings. Some fields are also present in container.securityContext.  Field
-                  values of container.securityContext take precedence over field values
-                  of PodSecurityContext.
+                description: SecurityContext holds pod-level security attributes and
+                  common container settings.
                 properties:
                   fsGroup:
                     description: "A special supplemental group that applies to all
@@ -9924,87 +10076,114 @@ spec:
                 type: object
               port:
                 default: 3306
+                description: Port where the instances will be listening for connections.
                 format: int32
                 type: integer
               primaryConnection:
+                description: PrimaryConnection defines templates to configure the
+                  primary Connection object.
                 properties:
                   healthCheck:
+                    description: HealthCheck to be used in the Connection.
                     properties:
                       interval:
+                        description: Interval used to perform health checks.
                         type: string
                       retryInterval:
+                        description: RetryInterval is the intervañ used to perform
+                          health check retries.
                         type: string
                     type: object
                   params:
                     additionalProperties:
                       type: string
+                    description: Params to be used in the Connection.
                     type: object
                   secretName:
+                    description: SecretName to be used in the Connection.
                     type: string
                   secretTemplate:
+                    description: SecretTemplate to be used in the Connection.
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations to be added to the Secret object.
                         type: object
                       databaseKey:
+                        description: DatabaseKey to be used in the Secret.
                         type: string
                       format:
+                        description: Format to be used in the Secret.
                         type: string
                       hostKey:
+                        description: HostKey to be used in the Secret.
                         type: string
                       key:
+                        description: Key to be used in the Secret.
                         type: string
                       labels:
                         additionalProperties:
                           type: string
+                        description: Labels to be added to the Secret object.
                         type: object
                       passwordKey:
+                        description: PasswordKey to be used in the Secret.
                         type: string
                       portKey:
+                        description: PortKey to be used in the Secret.
                         type: string
                       usernameKey:
+                        description: UsernameKey to be used in the Secret.
                         type: string
                     type: object
                   serviceName:
+                    description: ServiceName to be used in the Connection.
                     type: string
                 type: object
               primaryService:
+                description: PrimaryService defines templates to configure the primary
+                  Service object.
                 properties:
                   allocateLoadBalancerNodePorts:
+                    description: AllocateLoadBalancerNodePorts Service field.
                     type: boolean
                   annotations:
                     additionalProperties:
                       type: string
+                    description: Annotations to add to the Service metadata.
                     type: object
                   externalTrafficPolicy:
-                    description: ServiceExternalTrafficPolicy describes how nodes
-                      distribute service traffic they receive on one of the Service's
-                      "externally-facing" addresses (NodePorts, ExternalIPs, and LoadBalancer
-                      IPs.
+                    description: ExternalTrafficPolicy Service field.
                     type: string
                   labels:
                     additionalProperties:
                       type: string
+                    description: Labels to add to the Service metadata.
                     type: object
                   loadBalancerIP:
+                    description: LoadBalancerIP Service field.
                     type: string
                   loadBalancerSourceRanges:
+                    description: LoadBalancerSourceRanges Service field.
                     items:
                       type: string
                     type: array
                   sessionAffinity:
-                    description: Session Affinity Type string
+                    description: SessionAffinity Service field.
                     type: string
                   type:
-                    description: Service Type string describes ingress methods for
-                      a service
+                    default: ClusterIP
+                    description: Type is the Service type. One of `ClusterIP`, `NodePort`
+                      or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+                    enum:
+                    - ClusterIP
+                    - NodePort
+                    - LoadBalancer
                     type: string
                 type: object
               readinessProbe:
-                description: Probe describes a health check to be performed against
-                  a container to determine whether it is alive or ready to receive
-                  traffic.
+                description: ReadinessProbe to be used in the Container.
                 properties:
                   exec:
                     description: Exec specifies the action to take.
@@ -10147,11 +10326,11 @@ spec:
                 type: object
               replicas:
                 default: 1
+                description: Replicas indicates the number of instances.
                 format: int32
                 type: integer
               replication:
-                description: Replication allows you to enable single-master HA via
-                  semi-synchronours replication in your MariaDB cluster.
+                description: Replication configures high availability via replication.
                 properties:
                   enabled:
                     description: Enabled is a flag to enable Replication.
@@ -10186,6 +10365,9 @@ spec:
                       gtid:
                         description: 'Gtid indicates which Global Transaction ID should
                           be used when connecting a replica to the master. See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.'
+                        enum:
+                        - CurrentPos
+                        - SlavePos
                         type: string
                       replPasswordSecretKeyRef:
                         description: ReplPasswordSecretKeyRef provides a reference
@@ -10217,6 +10399,9 @@ spec:
                         description: 'WaitPoint defines whether the transaction should
                           wait for ACK before committing to the storage engine. More
                           info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.'
+                        enum:
+                        - AfterSync
+                        - AfterCommit
                         type: string
                     type: object
                   syncBinlog:
@@ -10226,7 +10411,7 @@ spec:
                     type: boolean
                 type: object
               resources:
-                description: ResourceRequirements describes the compute resource requirements.
+                description: Resouces describes the compute resource requirements.
                 properties:
                   claims:
                     description: "Claims lists the names of resources, defined in
@@ -10274,7 +10459,8 @@ spec:
                     type: object
                 type: object
               rootPasswordSecretKeyRef:
-                description: SecretKeySelector selects a key of a Secret.
+                description: RootPasswordSecretKeyRef is a reference to a Secret key
+                  containing the root password.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -10292,85 +10478,111 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               secondaryConnection:
+                description: SecondaryConnection defines templates to configure the
+                  secondary Connection object.
                 properties:
                   healthCheck:
+                    description: HealthCheck to be used in the Connection.
                     properties:
                       interval:
+                        description: Interval used to perform health checks.
                         type: string
                       retryInterval:
+                        description: RetryInterval is the intervañ used to perform
+                          health check retries.
                         type: string
                     type: object
                   params:
                     additionalProperties:
                       type: string
+                    description: Params to be used in the Connection.
                     type: object
                   secretName:
+                    description: SecretName to be used in the Connection.
                     type: string
                   secretTemplate:
+                    description: SecretTemplate to be used in the Connection.
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations to be added to the Secret object.
                         type: object
                       databaseKey:
+                        description: DatabaseKey to be used in the Secret.
                         type: string
                       format:
+                        description: Format to be used in the Secret.
                         type: string
                       hostKey:
+                        description: HostKey to be used in the Secret.
                         type: string
                       key:
+                        description: Key to be used in the Secret.
                         type: string
                       labels:
                         additionalProperties:
                           type: string
+                        description: Labels to be added to the Secret object.
                         type: object
                       passwordKey:
+                        description: PasswordKey to be used in the Secret.
                         type: string
                       portKey:
+                        description: PortKey to be used in the Secret.
                         type: string
                       usernameKey:
+                        description: UsernameKey to be used in the Secret.
                         type: string
                     type: object
                   serviceName:
+                    description: ServiceName to be used in the Connection.
                     type: string
                 type: object
               secondaryService:
+                description: SecondaryService defines templates to configure the secondary
+                  Service object.
                 properties:
                   allocateLoadBalancerNodePorts:
+                    description: AllocateLoadBalancerNodePorts Service field.
                     type: boolean
                   annotations:
                     additionalProperties:
                       type: string
+                    description: Annotations to add to the Service metadata.
                     type: object
                   externalTrafficPolicy:
-                    description: ServiceExternalTrafficPolicy describes how nodes
-                      distribute service traffic they receive on one of the Service's
-                      "externally-facing" addresses (NodePorts, ExternalIPs, and LoadBalancer
-                      IPs.
+                    description: ExternalTrafficPolicy Service field.
                     type: string
                   labels:
                     additionalProperties:
                       type: string
+                    description: Labels to add to the Service metadata.
                     type: object
                   loadBalancerIP:
+                    description: LoadBalancerIP Service field.
                     type: string
                   loadBalancerSourceRanges:
+                    description: LoadBalancerSourceRanges Service field.
                     items:
                       type: string
                     type: array
                   sessionAffinity:
-                    description: Session Affinity Type string
+                    description: SessionAffinity Service field.
                     type: string
                   type:
-                    description: Service Type string describes ingress methods for
-                      a service
+                    default: ClusterIP
+                    description: Type is the Service type. One of `ClusterIP`, `NodePort`
+                      or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+                    enum:
+                    - ClusterIP
+                    - NodePort
+                    - LoadBalancer
                     type: string
                 type: object
               securityContext:
                 description: SecurityContext holds security configuration that will
-                  be applied to a container. Some fields are present in both SecurityContext
-                  and PodSecurityContext.  When both are set, the values in SecurityContext
-                  take precedence.
+                  be applied to a container.
                 properties:
                   allowPrivilegeEscalation:
                     description: 'AllowPrivilegeEscalation controls whether a process
@@ -10527,49 +10739,65 @@ spec:
                     type: object
                 type: object
               service:
+                description: Service defines templates to configure the general Service
+                  object.
                 properties:
                   allocateLoadBalancerNodePorts:
+                    description: AllocateLoadBalancerNodePorts Service field.
                     type: boolean
                   annotations:
                     additionalProperties:
                       type: string
+                    description: Annotations to add to the Service metadata.
                     type: object
                   externalTrafficPolicy:
-                    description: ServiceExternalTrafficPolicy describes how nodes
-                      distribute service traffic they receive on one of the Service's
-                      "externally-facing" addresses (NodePorts, ExternalIPs, and LoadBalancer
-                      IPs.
+                    description: ExternalTrafficPolicy Service field.
                     type: string
                   labels:
                     additionalProperties:
                       type: string
+                    description: Labels to add to the Service metadata.
                     type: object
                   loadBalancerIP:
+                    description: LoadBalancerIP Service field.
                     type: string
                   loadBalancerSourceRanges:
+                    description: LoadBalancerSourceRanges Service field.
                     items:
                       type: string
                     type: array
                   sessionAffinity:
-                    description: Session Affinity Type string
+                    description: SessionAffinity Service field.
                     type: string
                   type:
-                    description: Service Type string describes ingress methods for
-                      a service
+                    default: ClusterIP
+                    description: Type is the Service type. One of `ClusterIP`, `NodePort`
+                      or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+                    enum:
+                    - ClusterIP
+                    - NodePort
+                    - LoadBalancer
                     type: string
                 type: object
               sidecarContainers:
+                description: SidecarContainers to be used in the Pod.
                 items:
+                  description: ContainerTemplate defines a template to configure Container
+                    objects.
                   properties:
                     args:
+                      description: Args to be used in the Container.
                       items:
                         type: string
                       type: array
                     command:
+                      description: Command to be used in the Container.
                       items:
                         type: string
                       type: array
                     env:
+                      description: Env represents the environment variables to be
+                        injected in a container.
                       items:
                         description: EnvVar represents an environment variable present
                           in a Container.
@@ -10687,6 +10915,9 @@ spec:
                         type: object
                       type: array
                     envFrom:
+                      description: EnvFrom represents the references (via ConfigMap
+                        and Secrets) to environment variables to be injected in the
+                        container.
                       items:
                         description: EnvFromSource represents the source of a set
                           of ConfigMaps
@@ -10725,16 +10956,20 @@ spec:
                         type: object
                       type: array
                     image:
+                      description: Image name to be used by the MariaDB instances.
+                        The supported format is `<image>:<tag>`.
                       type: string
                     imagePullPolicy:
-                      default: IfNotPresent
-                      description: PullPolicy describes a policy for if/when to pull
-                        a container image
+                      description: ImagePullPolicy is the image pull policy. One of
+                        `Always`, `Never` or `IfNotPresent`. If not defined, it defaults
+                        to `IfNotPresent`.
+                      enum:
+                      - Always
+                      - Never
+                      - IfNotPresent
                       type: string
                     livenessProbe:
-                      description: Probe describes a health check to be performed
-                        against a container to determine whether it is alive or ready
-                        to receive traffic.
+                      description: LivenessProbe to be used in the Container.
                       properties:
                         exec:
                           description: Exec specifies the action to take.
@@ -10883,9 +11118,7 @@ spec:
                           type: integer
                       type: object
                     readinessProbe:
-                      description: Probe describes a health check to be performed
-                        against a container to determine whether it is alive or ready
-                        to receive traffic.
+                      description: ReadinessProbe to be used in the Container.
                       properties:
                         exec:
                           description: Exec specifies the action to take.
@@ -11034,8 +11267,7 @@ spec:
                           type: integer
                       type: object
                     resources:
-                      description: ResourceRequirements describes the compute resource
-                        requirements.
+                      description: Resouces describes the compute resource requirements.
                       properties:
                         claims:
                           description: "Claims lists the names of resources, defined
@@ -11085,9 +11317,7 @@ spec:
                       type: object
                     securityContext:
                       description: SecurityContext holds security configuration that
-                        will be applied to a container. Some fields are present in
-                        both SecurityContext and PodSecurityContext.  When both are
-                        set, the values in SecurityContext take precedence.
+                        will be applied to a container.
                       properties:
                         allowPrivilegeEscalation:
                           description: 'AllowPrivilegeEscalation controls whether
@@ -11256,6 +11486,7 @@ spec:
                           type: object
                       type: object
                     volumeMounts:
+                      description: VolumeMounts to be used in the Container.
                       items:
                         description: VolumeMount describes a mounting of a Volume
                           within a container.
@@ -11299,6 +11530,7 @@ spec:
                   type: object
                 type: array
               tolerations:
+                description: Tolerations to be used in the Pod.
                 items:
                   description: The pod this Toleration is attached to tolerates any
                     taint that matches the triple <key,value,effect> using the matching
@@ -11338,10 +11570,8 @@ spec:
                   type: object
                 type: array
               updateStrategy:
-                description: StatefulSetUpdateStrategy indicates the strategy that
-                  the StatefulSet controller will use to perform updates. It includes
-                  any additional parameters necessary to perform the update for the
-                  indicated strategy.
+                description: PodDisruptionBudget defines the update strategy for the
+                  StatefulSet object.
                 properties:
                   rollingUpdate:
                     description: RollingUpdate is used to communicate parameters when
@@ -11377,8 +11607,12 @@ spec:
                     type: string
                 type: object
               username:
+                description: Username is the username of the user to be created on
+                  bootstrap.
                 type: string
               volumeClaimTemplate:
+                description: VolumeClaimTemplate provides a template to define the
+                  Pod PVCs.
                 properties:
                   accessModes:
                     description: 'accessModes contains the desired access modes the
@@ -11389,6 +11623,7 @@ spec:
                   annotations:
                     additionalProperties:
                       type: string
+                    description: Annotations to be used in the PVC.
                     type: object
                   dataSource:
                     description: 'dataSource field can be used to specify either:
@@ -11473,6 +11708,7 @@ spec:
                   labels:
                     additionalProperties:
                       type: string
+                    description: Labels to be used in the PVC.
                     type: object
                   resources:
                     description: 'resources represents the minimum resources the volume
@@ -11588,6 +11824,7 @@ spec:
                     type: string
                 type: object
               volumeMounts:
+                description: VolumeMounts to be used in the Container.
                 items:
                   description: VolumeMount describes a mounting of a Volume within
                     a container.
@@ -11626,6 +11863,7 @@ spec:
                   type: object
                 type: array
               volumes:
+                description: Volumes to be used in the Pod.
                 items:
                   description: Volume represents a named volume in a pod that may
                     be accessed by any container in the pod.
@@ -13192,6 +13430,7 @@ spec:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:
               conditions:
+                description: Conditions for the Mariadb object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -13260,12 +13499,13 @@ spec:
                   type: object
                 type: array
               currentPrimary:
+                description: CurrentPrimary is the primary Pod.
                 type: string
               currentPrimaryPodIndex:
+                description: CurrentPrimaryPodIndex is the primary Pod index.
                 type: integer
               galeraRecovery:
-                description: GaleraRecoveryStatus is the current state of the Galera
-                  recovery process.
+                description: GaleraRecovery is the Galera recovery current state.
                 properties:
                   bootstrap:
                     description: Bootstrap indicates when and in which Pod the cluster
@@ -13373,7 +13613,7 @@ spec:
             description: RestoreSpec defines the desired state of restore
             properties:
               affinity:
-                description: Affinity is a group of affinity scheduling rules.
+                description: Affinity to be used in the Restore Pod.
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -14202,11 +14442,12 @@ spec:
                 type: object
               backoffLimit:
                 default: 5
+                description: BackoffLimit defines the maximum number of attempts to
+                  successfully perform a Backup.
                 format: int32
                 type: integer
               backupRef:
-                description: LocalObjectReference contains enough information to let
-                  you locate the referenced object inside the same namespace.
+                description: BackupRef is a reference to a Backup object.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -14215,8 +14456,10 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               fileName:
+                description: FileName is the file within the source to be restored.
                 type: string
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -14252,15 +14495,18 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: NodeSelector to be used in the Restore Pod.
                 type: object
               resources:
-                description: ResourceRequirements describes the compute resource requirements.
+                description: Resouces describes the compute resource requirements.
                 properties:
                   claims:
                     description: "Claims lists the names of resources, defined in
@@ -14309,12 +14555,14 @@ spec:
                 type: object
               restartPolicy:
                 default: OnFailure
-                description: RestartPolicy describes how the container should be restarted.
-                  Only one of the following restart policies may be specified. If
-                  none of the following policies is specified, the default one is
-                  RestartPolicyAlways.
+                description: RestartPolicy to be added to the Backup Job.
+                enum:
+                - Always
+                - OnFailure
+                - Never
                 type: string
               tolerations:
+                description: Tolerations to be used in the Restore Pod.
                 items:
                   description: The pod this Toleration is attached to tolerates any
                     taint that matches the triple <key,value,effect> using the matching
@@ -14354,8 +14602,8 @@ spec:
                   type: object
                 type: array
               volume:
-                description: Represents the source of a volume to mount. Only one
-                  of its members may be specified.
+                description: Volume is a Kubernetes Volume object that contains a
+                  backup.
                 properties:
                   awsElasticBlockStore:
                     description: 'awsElasticBlockStore represents an AWS Disk resource
@@ -15885,6 +16133,7 @@ spec:
             description: RestoreStatus defines the observed state of restore
             properties:
               conditions:
+                description: Conditions for the Restore object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -16011,7 +16260,7 @@ spec:
             description: SqlJobSpec defines the desired state of SqlJob
             properties:
               affinity:
-                description: Affinity is a group of affinity scheduling rules.
+                description: Affinity to be used in the SqlJob Pod.
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -16840,11 +17089,15 @@ spec:
                 type: object
               backoffLimit:
                 default: 5
+                description: BackoffLimit defines the maximum number of attempts to
+                  successfully execute a SqlJob.
                 format: int32
                 type: integer
               database:
+                description: Username to be used when executing the SqlJob.
                 type: string
               dependsOn:
+                description: DependsOn defines dependencies with other SqlJob objectecs.
                 items:
                   description: LocalObjectReference contains enough information to
                     let you locate the referenced object inside the same namespace.
@@ -16857,6 +17110,7 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -16892,15 +17146,19 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: NodeSelector to be used in the SqlJob Pod.
                 type: object
               passwordSecretKeyRef:
-                description: SecretKeySelector selects a key of a Secret.
+                description: UserPasswordSecretKeyRef is a reference to the impersonated
+                  user's password to be used when executing the SqlJob.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -16918,7 +17176,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               resources:
-                description: ResourceRequirements describes the compute resource requirements.
+                description: Resouces describes the compute resource requirements.
                 properties:
                   claims:
                     description: "Claims lists the names of resources, defined in
@@ -16967,25 +17225,33 @@ spec:
                 type: object
               restartPolicy:
                 default: OnFailure
-                description: RestartPolicy describes how the container should be restarted.
-                  Only one of the following restart policies may be specified. If
-                  none of the following policies is specified, the default one is
-                  RestartPolicyAlways.
+                description: RestartPolicy to be added to the SqlJob Pod.
+                enum:
+                - Always
+                - OnFailure
+                - Never
                 type: string
               schedule:
+                description: Schedule defines when the SqlJob will be executed.
                 properties:
                   cron:
+                    description: Cron is a cron expression that defines the schedule.
                     type: string
                   suspend:
                     default: false
+                    description: Suspend defines whether the schedule is active or
+                      not.
                     type: boolean
                 required:
                 - cron
                 type: object
               sql:
+                description: Sql is the script to be executed by the SqlJob.
                 type: string
               sqlConfigMapKeyRef:
-                description: Selects a key from a ConfigMap.
+                description: SqlConfigMapKeyRef is a reference to a ConfigMap containing
+                  the Sql script. It is defaulted to a ConfigMap with the contents
+                  of the Sql field.
                 properties:
                   key:
                     description: The key to select.
@@ -17003,6 +17269,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               tolerations:
+                description: Tolerations to be used in the SqlJob Pod.
                 items:
                   description: The pod this Toleration is attached to tolerates any
                     taint that matches the triple <key,value,effect> using the matching
@@ -17042,6 +17309,7 @@ spec:
                   type: object
                 type: array
               username:
+                description: Username to be impersonated when executing the SqlJob.
                 type: string
             required:
             - mariaDbRef
@@ -17052,6 +17320,7 @@ spec:
             description: SqlJobStatus defines the observed state of SqlJob
             properties:
               conditions:
+                description: Conditions for the SqlJob object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -17181,9 +17450,11 @@ spec:
             description: UserSpec defines the desired state of User
             properties:
               host:
+                description: Host related to the User.
                 maxLength: 255
                 type: string
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -17219,18 +17490,24 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               maxUserConnections:
                 default: 10
+                description: MaxUserConnections defines the maximum number of connections
+                  that the User can have.
                 format: int32
                 type: integer
               name:
+                description: Name overrides the default name provided by metadata.name.
                 maxLength: 80
                 type: string
               passwordSecretKeyRef:
-                description: SecretKeySelector selects a key of a Secret.
+                description: PasswordSecretKeyRef is a reference to the password to
+                  be used by the User.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -17248,6 +17525,8 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               retryInterval:
+                description: RetryInterval is the interval used to perform health
+                  check retries.
                 type: string
             required:
             - mariaDbRef
@@ -17257,6 +17536,7 @@ spec:
             description: UserStatus defines the observed state of User
             properties:
               conditions:
+                description: Conditions for the User object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct

@@ -54,15 +54,21 @@ spec:
             description: ConnectionSpec defines the desired state of Connection
             properties:
               database:
+                description: Database to use for configuring the Connection.
                 type: string
               healthCheck:
+                description: HealthCheck to be used in the Connection.
                 properties:
                   interval:
+                    description: Interval used to perform health checks.
                     type: string
                   retryInterval:
+                    description: RetryInterval is the intervañ used to perform health
+                      check retries.
                     type: string
                 type: object
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -98,15 +104,19 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               params:
                 additionalProperties:
                   type: string
+                description: Params to be used in the Connection.
                 type: object
               passwordSecretKeyRef:
-                description: SecretKeySelector selects a key of a Secret.
+                description: PasswordSecretKeyRef is a reference to the password to
+                  use for configuring the Connection.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -124,35 +134,48 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               secretName:
+                description: SecretName to be used in the Connection.
                 type: string
               secretTemplate:
+                description: SecretTemplate to be used in the Connection.
                 properties:
                   annotations:
                     additionalProperties:
                       type: string
+                    description: Annotations to be added to the Secret object.
                     type: object
                   databaseKey:
+                    description: DatabaseKey to be used in the Secret.
                     type: string
                   format:
+                    description: Format to be used in the Secret.
                     type: string
                   hostKey:
+                    description: HostKey to be used in the Secret.
                     type: string
                   key:
+                    description: Key to be used in the Secret.
                     type: string
                   labels:
                     additionalProperties:
                       type: string
+                    description: Labels to be added to the Secret object.
                     type: object
                   passwordKey:
+                    description: PasswordKey to be used in the Secret.
                     type: string
                   portKey:
+                    description: PortKey to be used in the Secret.
                     type: string
                   usernameKey:
+                    description: UsernameKey to be used in the Secret.
                     type: string
                 type: object
               serviceName:
+                description: ServiceName to be used in the Connection.
                 type: string
               username:
+                description: Username to use for configuring the Connection.
                 type: string
             required:
             - mariaDbRef
@@ -163,6 +186,7 @@ spec:
             description: ConnectionStatus defines the observed state of Connection
             properties:
               conditions:
+                description: Conditions for the Connection object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct

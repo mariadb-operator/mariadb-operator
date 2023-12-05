@@ -98,9 +98,11 @@ func (g Gtid) MariaDBFormat() (string, error) {
 type PrimaryReplication struct {
 	// PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodIndex *int `json:"podIndex,omitempty"`
 	// AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
 }
 
@@ -122,23 +124,31 @@ type ReplicaReplication struct {
 	// WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
 	// More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
 	// +optional
+	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
 	// Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
 	// See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
 	// +optional
+	// +kubebuilder:validation:Enum=CurrentPos;SlavePos
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Gtid *Gtid `json:"gtid,omitempty"`
 	// ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplPasswordSecretKeyRef *corev1.SecretKeySelector `json:"replPasswordSecretKeyRef,omitempty"`
 	// ConnectionTimeout to be used when the replica connects to the primary.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
 	// ConnectionRetries to be used when the replica connects to the primary.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	ConnectionRetries *int `json:"connectionRetries,omitempty"`
 	// SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
 	// If the timeout is reached, the replica GTID will be reset and the switchover will continue.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
 }
 
@@ -186,9 +196,11 @@ func (r *ReplicaReplication) Validate() error {
 type Replication struct {
 	// ReplicationSpec is the Replication desired state specification.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicationSpec `json:",inline"`
 	// Enabled is a flag to enable Replication.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
 }
 
@@ -196,14 +208,17 @@ type Replication struct {
 type ReplicationSpec struct {
 	// Primary is the replication configuration for the primary node.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Primary *PrimaryReplication `json:"primary,omitempty"`
 	// ReplicaReplication is the replication configuration for the replica nodes.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Replica *ReplicaReplication `json:"replica,omitempty"`
 	// SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.
 	// It trades off performance for consistency.
 	// See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	SyncBinlog *bool `json:"syncBinlog,omitempty"`
 }
 

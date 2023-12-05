@@ -64,13 +64,17 @@ spec:
             properties:
               database:
                 default: '*'
+                description: Database to use in the Grant.
                 type: string
               grantOption:
                 default: false
+                description: GrantOption to use in the Grant.
                 type: boolean
               host:
+                description: Host to use in the Grant.
                 type: string
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -106,20 +110,27 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               privileges:
+                description: Privileges to use in the Grant.
                 items:
                   type: string
                 minItems: 1
                 type: array
               retryInterval:
+                description: RetryInterval is the interval used to perform health
+                  check retries.
                 type: string
               table:
                 default: '*'
+                description: Table to use in the Grant.
                 type: string
               username:
+                description: Username to use in the Grant.
                 type: string
             required:
             - mariaDbRef
@@ -130,6 +141,7 @@ spec:
             description: GrantStatus defines the observed state of Grant
             properties:
               conditions:
+                description: Conditions for the Grant object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct

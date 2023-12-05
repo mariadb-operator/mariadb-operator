@@ -26,21 +26,40 @@ import (
 
 // UserSpec defines the desired state of User
 type UserSpec struct {
+	// SQLTemplate defines templates to configure SQL objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SQLTemplate `json:",inline"`
+	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// PasswordSecretKeyRef is a reference to the password to be used by the User.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
+	// MaxUserConnections defines the maximum number of connections that the User can have.
+	// +optional
 	// +kubebuilder:default=10
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	MaxUserConnections int32 `json:"maxUserConnections,omitempty" webhook:"inmutable"`
+	// Name overrides the default name provided by metadata.name.
+	// +optional
 	// +kubebuilder:validation:MaxLength=80
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Name string `json:"name,omitempty" webhook:"inmutable"`
+	// Host related to the User.
+	// +optional
 	// +kubebuilder:validation:MaxLength=255
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Host string `json:"host,omitempty" webhook:"inmutable"`
 }
 
 // UserStatus defines the observed state of User
 type UserStatus struct {
+	// Conditions for the User object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -59,6 +78,7 @@ func (u *UserStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="MaxConns",type="string",JSONPath=".spec.maxUserConnections"
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +operator-sdk:csv:customresourcedefinitions:resources={{User,v1alpha1}}
 
 // User is the Schema for the users API
 type User struct {

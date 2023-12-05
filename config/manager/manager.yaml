@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: deployment
+    app.kubernetes.io/instance: controller-manager
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/created-by: mariadb-operator
+    app.kubernetes.io/part-of: mariadb-operator
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  selector:
+    matchLabels:
+      control-plane: mariadb-operator-controller-manager
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: mariadb-operator-enterprise
+      labels:
+        control-plane: mariadb-operator-controller-manager
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - args:
+            - --leader-elect
+          image: controller:latest
+          name: mariadb-operator-enterprise
+          env:
+            - name: RELATED_IMAGE_MARIADB
+              value: mariadb:11.2.2
+            - name: MARIADB_OPERATOR_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: MARIADB_OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MARIADB_OPERATOR_SA_PATH
+              value: /var/run/secrets/kubernetes.io/serviceaccount/token
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - "ALL"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              memory: 2Gi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      serviceAccountName: mariadb-operator-manager
+      terminationGracePeriodSeconds: 10

@@ -27,33 +27,68 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+// InheritMetadata defines the metadata to be inherited by children resources.
 type InheritMetadata struct {
-	Labels      map[string]string `json:"labels,omitempty"`
+	// Labels to be added to children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Labels map[string]string `json:"labels,omitempty"`
+	// Annotations to be added to children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
+// Exporter defines a metrics exporter container.
 type Exporter struct {
+	// ContainerTemplate defines a template to configure Container objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
+	// Port where the exporter will be listening for connections.
+	// +optional
 	// +kubebuilder:default=9104
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Port int32 `json:"port,omitempty"`
 }
 
+// ServiceMonitor defines a prometheus ServiceMonitor object.
 type ServiceMonitor struct {
+	// PrometheusRelease is the release label to add to the ServiceMonitor object.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PrometheusRelease string `json:"prometheusRelease"`
-	Interval          string `json:"interval,omitempty"`
-	ScrapeTimeout     string `json:"scrapeTimeout,omitempty"`
+	// Interval for scraping metrics.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Interval string `json:"interval,omitempty"`
+	// ScrapeTimeout defines the timeout for scraping metrics.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ScrapeTimeout string `json:"scrapeTimeout,omitempty"`
 }
 
+// Metrics defines the metrics for a MariaDB.
 type Metrics struct {
+	// Exporter defines the metrics exporter container.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Exporter Exporter `json:"exporter"`
+	// ServiceMonitor defines the ServiceMonior object.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
 }
 
+// PodDisruptionBudget is the Pod availability bundget for a MariaDb
 type PodDisruptionBudget struct {
-	MinAvailable   *intstr.IntOrString `json:"minAvailable,omitempty"`
+	// MinAvailable defines the number of minimum available Pods.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MinAvailable *intstr.IntOrString `json:"minAvailable,omitempty"`
+	// MaxUnavailable defines the number of maximum unavailable Pods.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
 }
 
@@ -67,70 +102,167 @@ func (p *PodDisruptionBudget) Validate() error {
 	return errors.New("either minAvailable or maxUnavailable must be specified")
 }
 
+// ServiceTemplate defines a template to customize Service objects.
 type ServiceTemplate struct {
-	Type                          corev1.ServiceType                       `json:"type,omitempty"`
-	Labels                        map[string]string                        `json:"labels,omitempty"`
-	Annotations                   map[string]string                        `json:"annotations,omitempty"`
-	LoadBalancerIP                *string                                  `json:"loadBalancerIP,omitempty"`
-	LoadBalancerSourceRanges      []string                                 `json:"loadBalancerSourceRanges,omitempty"`
-	ExternalTrafficPolicy         *corev1.ServiceExternalTrafficPolicyType `json:"externalTrafficPolicy,omitempty"`
-	SessionAffinity               *corev1.ServiceAffinity                  `json:"sessionAffinity,omitempty"`
-	AllocateLoadBalancerNodePorts *bool                                    `json:"allocateLoadBalancerNodePorts,omitempty"`
+	// Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+	// +optional
+	// +kubebuilder:default=ClusterIP
+	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Type corev1.ServiceType `json:"type,omitempty"`
+	// Labels to add to the Service metadata.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Labels map[string]string `json:"labels,omitempty"`
+	// Annotations to add to the Service metadata.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// LoadBalancerIP Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	LoadBalancerIP *string `json:"loadBalancerIP,omitempty"`
+	// LoadBalancerSourceRanges Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	LoadBalancerSourceRanges []string `json:"loadBalancerSourceRanges,omitempty"`
+	// ExternalTrafficPolicy Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ExternalTrafficPolicy *corev1.ServiceExternalTrafficPolicyType `json:"externalTrafficPolicy,omitempty"`
+	// SessionAffinity Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SessionAffinity *corev1.ServiceAffinity `json:"sessionAffinity,omitempty"`
+	// AllocateLoadBalancerNodePorts Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AllocateLoadBalancerNodePorts *bool `json:"allocateLoadBalancerNodePorts,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
+	// ContainerTemplate defines templates to configure Container objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
-	PodTemplate       `json:",inline"`
-
+	// PodTemplate defines templates to configure Pod objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodTemplate `json:",inline"`
+	// InheritMetadata defines the metadata to be inherited by children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
+	// RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef" webhook:"inmutable"`
-
-	Database             *string                   `json:"database,omitempty" webhook:"inmutable"`
-	Username             *string                   `json:"username,omitempty" webhook:"inmutable"`
+	// Database is the database to be created on bootstrap.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Database *string `json:"database,omitempty" webhook:"inmutable"`
+	// Username is the username of the user to be created on bootstrap.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Username *string `json:"username,omitempty" webhook:"inmutable"`
+	// PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutable"`
-
-	MyCnf                *string                      `json:"myCnf,omitempty" webhook:"inmutable"`
+	// MyCnf allows to specify the my.cnf file mounted by Mariadb.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MyCnf *string `json:"myCnf,omitempty" webhook:"inmutable"`
+	// MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.
+	// If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
-
+	// PodAnnotations to add to the Pods metadata.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
-
+	// BootstrapFrom defines a source to bootstrap from.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	BootstrapFrom *RestoreSource `json:"bootstrapFrom,omitempty"`
-
+	// Metrics configures metrics and how to scrape them.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Metrics *Metrics `json:"metrics,omitempty"`
-
+	// Replication configures high availability via replication.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Replication *Replication `json:"replication,omitempty"`
-
+	// Replication configures high availability via Galera.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
+	// Replicas indicates the number of instances.
 	// +kubebuilder:default=1
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	Replicas int32 `json:"replicas,omitempty"`
+	// Port where the instances will be listening for connections.
+	// +optional
 	// +kubebuilder:default=3306
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Port int32 `json:"port,omitempty"`
+	// VolumeClaimTemplate provides a template to define the Pod PVCs.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate" webhook:"inmutable"`
-
+	// PodDisruptionBudget defines the budget for replica availability.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
-
+	// PodDisruptionBudget defines the update strategy for the StatefulSet object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
-
-	Service    *ServiceTemplate    `json:"service,omitempty"`
+	// Service defines templates to configure the general Service object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Service *ServiceTemplate `json:"service,omitempty"`
+	// Connection defines templates to configure the general Connection object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Connection *ConnectionTemplate `json:"connection,omitempty" webhook:"inmutable"`
-
-	PrimaryService    *ServiceTemplate    `json:"primaryService,omitempty"`
+	// PrimaryService defines templates to configure the primary Service object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PrimaryService *ServiceTemplate `json:"primaryService,omitempty"`
+	// PrimaryConnection defines templates to configure the primary Connection object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PrimaryConnection *ConnectionTemplate `json:"primaryConnection,omitempty" webhook:"inmutable"`
-
-	SecondaryService    *ServiceTemplate    `json:"secondaryService,omitempty"`
+	// SecondaryService defines templates to configure the secondary Service object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SecondaryService *ServiceTemplate `json:"secondaryService,omitempty"`
+	// SecondaryConnection defines templates to configure the secondary Connection object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
 type MariaDBStatus struct {
+	// Conditions for the Mariadb object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	CurrentPrimaryPodIndex *int    `json:"currentPrimaryPodIndex,omitempty"`
-	CurrentPrimary         *string `json:"currentPrimary,omitempty"`
-
+	// CurrentPrimaryPodIndex is the primary Pod index.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	CurrentPrimaryPodIndex *int `json:"currentPrimaryPodIndex,omitempty"`
+	// CurrentPrimary is the primary Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes:Pod"}
+	CurrentPrimary *string `json:"currentPrimary,omitempty"`
+	// GaleraRecovery is the Galera recovery current state.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
 	GaleraRecovery *GaleraRecoveryStatus `json:"galeraRecovery,omitempty"`
 }
 
@@ -167,6 +299,8 @@ func (s *MariaDBStatus) FillWithDefaults(mariadb *MariaDB) {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Primary Pod",type="string",JSONPath=".status.currentPrimary"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// nolint:lll
+// +operator-sdk:csv:customresourcedefinitions:resources={{MariaDB,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
 
 // MariaDB is the Schema for the mariadbs API
 type MariaDB struct {

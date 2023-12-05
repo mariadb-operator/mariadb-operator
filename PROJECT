@@ -1,7 +1,10 @@
 domain: mmontes.io
 layout:
-- go.kubebuilder.io/v4
-projectName: mariadb-operator
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: mariadb-operator-enterprise
 repo: github.com/mariadb-operator/mariadb-operator
 resources:
 - api:

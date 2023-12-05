@@ -1,0 +1,11 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- mariadb_v1alpha1_backup.yaml
+- mariadb_v1alpha1_connection.yaml
+- mariadb_v1alpha1_database.yaml
+- mariadb_v1alpha1_grant.yaml
+- mariadb_v1alpha1_mariadb.yaml
+- mariadb_v1alpha1_restore.yaml
+- mariadb_v1alpha1_sqljob.yaml
+- mariadb_v1alpha1_user.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

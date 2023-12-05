@@ -28,19 +28,33 @@ var (
 
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
+	// ContainerTemplate defines templates to configure Container objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ConnectionTemplate `json:",inline"`
+	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// Username to use for configuring the Connection.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Username string `json:"username" webhook:"inmutable"`
+	// PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
-
+	// Database to use for configuring the Connection.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Database *string `json:"database,omitempty" webhook:"inmutable"`
 }
 
 // ConnectionStatus defines the observed state of Connection
 type ConnectionStatus struct {
+	// Conditions for the Connection object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -59,6 +73,7 @@ func (c *ConnectionStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Secret",type="string",JSONPath=".spec.secretName"
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +operator-sdk:csv:customresourcedefinitions:resources={{Connection,v1alpha1},{Secret,v1}}
 
 // Connection is the Schema for the connections API
 type Connection struct {

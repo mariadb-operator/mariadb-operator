@@ -24,8 +24,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// BackupStorage defines the storage for a Backup.
 type BackupStorage struct {
-	Volume                *corev1.VolumeSource              `json:"volume,omitempty"`
+	// Volume is a Kubernetes volume specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Volume *corev1.VolumeSource `json:"volume,omitempty"`
+	// PersistentVolumeClaim is a Kubernetes PVC specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PersistentVolumeClaim *corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
 }
 
@@ -38,30 +45,61 @@ func (s *BackupStorage) Validate() error {
 
 // BackupSpec defines the desired state of Backup
 type BackupSpec struct {
+	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// Storage to be used in the Backup.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Storage BackupStorage `json:"storage" webhook:"inmutable"`
-
+	// Args to be used in the Backup container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Args []string `json:"args,omitempty"`
-
+	// Schedule defines when the Backup will be taken.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Schedule *Schedule `json:"schedule,omitempty"`
+	// MaxRetentionDays defined the maximum age that Backups should have. Old backup will be cleaned up by the Backup Job.
+	// +optional
 	// +kubebuilder:default=30
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	MaxRetentionDays int32 `json:"maxRetentionDays,omitempty" webhook:"inmutable"`
+	// BackoffLimit defines the maximum number of attempts to successfully take a Backup.
+	// +optional
 	// +kubebuilder:default=5
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
+	// RestartPolicy to be added to the Backup Pod.
+	// +optional
 	// +kubebuilder:default=OnFailure
+	// +kubebuilder:validation:Enum=Always;OnFailure;Never
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
-	// +kubebuilder:validation:Optional
+	// Resouces describes the compute resource requirements.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty" webhook:"inmutable"`
-
-	Affinity     *corev1.Affinity    `json:"affinity,omitempty"`
-	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
+	// Affinity to be used in the Backup Pod.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// NodeSelector to be used in the Backup Pod.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// Tolerations to be used in the Backup Pod.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 // BackupStatus defines the observed state of Backup
 type BackupStatus struct {
+	// Conditions for the Backup object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -79,6 +117,7 @@ func (b *BackupStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].message"
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +operator-sdk:csv:customresourcedefinitions:resources={{Backup,v1alpha1},{CronJob,v1},{Job,v1}}
 
 // Backup is the Schema for the backups API
 type Backup struct {

@@ -19,11 +19,11 @@ jobs:
         id: tag
         run: echo "name=helm-chart-$(make helm-chart-version)" >> $GITHUB_OUTPUT
 
-      - name: Generate bundles
-        run: make bundle
+      - name: Generate manifests bundle
+        run: make manifests-bundle
         env:
-          BUNDLE_CRDS_DIR: dist/crds
-          BUNDLE_MANIFESTS_DIR: dist/manifests
+          MANIFESTS_CRDS_DIR: dist/crds
+          MANIFESTS_DIR: dist/manifests
 
       - name: Update Release
         uses: softprops/action-gh-release@v1

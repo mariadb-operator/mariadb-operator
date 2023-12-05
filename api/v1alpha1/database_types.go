@@ -23,19 +23,36 @@ import (
 
 // DatabaseSpec defines the desired state of Database
 type DatabaseSpec struct {
+	// SQLTemplate defines templates to configure SQL objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SQLTemplate `json:",inline"`
+	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// CharacterSet to use in the Database.
+	// +optional
 	// +kubebuilder:default=utf8
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CharacterSet string `json:"characterSet,omitempty" webhook:"inmutable"`
+	// CharacterSet to use in the Database.
+	// +optional
 	// +kubebuilder:default=utf8_general_ci
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Collate string `json:"collate,omitempty" webhook:"inmutable"`
+	// Name overrides the default Database name provided by metadata.name.
+	// +optional
 	// +kubebuilder:validation:MaxLength=80
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Name string `json:"name,omitempty" webhook:"inmutable"`
 }
 
 // DatabaseStatus defines the observed state of Database
 type DatabaseStatus struct {
+	// Conditions for the Database object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -57,6 +74,7 @@ func (d *DatabaseStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".spec.name"
+// +operator-sdk:csv:customresourcedefinitions:resources={{Database,v1alpha1}}
 
 // Database is the Schema for the databases API
 type Database struct {
