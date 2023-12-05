@@ -1,37 +1,6 @@
 HELM_DIR ?= deploy/charts/mariadb-operator
 CLUSTER ?= mdb
 
-##@ Docker
-
-PLATFORM ?= linux/amd64,linux/arm64
-IMG ?= ghcr.io/mariadb-operator/mariadb-operator:v0.0.22
-BUILDX ?= docker buildx build --platform $(PLATFORM) -t $(IMG) 
-BUILDER ?= mariadb-operator
-
-.PHONY: docker-builder
-docker-builder: ## Configure docker builder.
-	docker buildx create --name $(BUILDER) --use --platform $(PLATFORM)
-
-.PHONY: docker-build
-docker-build: ## Build docker image.
-	docker build -t $(IMG) .  
-
-.PHONY: docker-buildx
-docker-buildx: ## Build multi-arch docker image.
-	$(BUILDX) .
-
-.PHONY: docker-push
-docker-push: ## Build multi-arch docker image and push it to the registry.
-	$(BUILDX) --push .
-
-.PHONY: docker-inspect
-docker-inspect: ## Inspect docker image.
-	docker buildx imagetools inspect $(IMG)
-
-.PHONY: docker-load
-docker-load: ## Load docker image in KIND.
-	$(KIND) load docker-image --name ${CLUSTER} ${IMG}
-
 ##@ Cluster
 
 KIND_CONFIG ?= hack/config/kind.yaml
@@ -85,7 +54,7 @@ start-all-mariadb: ## Stop all mariadb Nodes
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=mariadb-manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: code
 code: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -114,37 +83,37 @@ helm: helm-crds helm-docs ## Generate manifests for Helm chart.
 helm-chart-version: yq ## Get helm chart version.
 	@cat $(HELM_DIR)/Chart.yaml | $(YQ) e ".version"
 
-##@ Bundle
+##@ Manifests
 
-BUNDLE_CRDS_DIR ?= deploy/crds
-.PHONY: bundle-crds
-bundle-crds: manifests kustomize ## Generate CRDs bundle.
-	mkdir -p $(BUNDLE_CRDS_DIR)
-	$(KUSTOMIZE) build config/crd > $(BUNDLE_CRDS_DIR)/crds.yaml
+MANIFESTS_CRDS_DIR ?= deploy/crds
+.PHONY: manifests-crds
+manifests-crds: manifests kustomize ## Generate manifests CRDs.
+	mkdir -p $(MANIFESTS_CRDS_DIR)
+	$(KUSTOMIZE) build config/crd > $(MANIFESTS_CRDS_DIR)/crds.yaml
 
-BUNDLE_MANIFESTS_DIR ?= deploy/manifests
+MANIFESTS_DIR ?= deploy/manifests
 
-BUNDLE_VALUES ?= deploy/manifests/helm-values.yaml 
-.PHONY: bundle-manifests
-bundle-manifests: manifests bundle-crds ## Generate manifests bundle.
-	mkdir -p $(BUNDLE_MANIFESTS_DIR)
-	cat $(BUNDLE_CRDS_DIR)/crds.yaml > $(BUNDLE_MANIFESTS_DIR)/manifests.yaml
-	helm template -n default mariadb-operator $(HELM_DIR) -f $(BUNDLE_VALUES) >> $(BUNDLE_MANIFESTS_DIR)/manifests.yaml
+MANIFESTS_BUNDLE_VALUES ?= deploy/manifests/helm-values.yaml 
+.PHONY: manifests-bundle-helm
+manifests-bundle-helm: manifests manifests-crds ## Generate manifests bundle from helm chart.
+	mkdir -p $(MANIFESTS_DIR)
+	cat $(MANIFESTS_CRDS_DIR)/crds.yaml > $(MANIFESTS_DIR)/manifests.yaml
+	helm template -n default mariadb-operator $(HELM_DIR) -f $(MANIFESTS_BUNDLE_VALUES) >> $(MANIFESTS_DIR)/manifests.yaml
 
-BUNDLE_MIN_VALUES ?= deploy/manifests/helm-values.min.yaml 
-.PHONY: bundle-min-manifests
-bundle-min-manifests: manifests bundle-crds ## Generate minimal manifests bundle.
-	mkdir -p $(BUNDLE_MANIFESTS_DIR)
-	cat $(BUNDLE_CRDS_DIR)/crds.yaml > $(BUNDLE_MANIFESTS_DIR)/manifests.min.yaml
-	helm template -n default mariadb-operator $(HELM_DIR) -f $(BUNDLE_MIN_VALUES) >> $(BUNDLE_MANIFESTS_DIR)/manifests.min.yaml
+MANIFESTS_BUNDLE_MIN_VALUES ?= deploy/manifests/helm-values.min.yaml 
+.PHONY: manifests-bundle-helm-min
+manifests-bundle-helm-min: manifests manifests-crds ## Generate minimal manifests bundle.
+	mkdir -p $(MANIFESTS_DIR)
+	cat $(MANIFESTS_CRDS_DIR)/crds.yaml > $(MANIFESTS_DIR)/manifests.min.yaml
+	helm template -n default mariadb-operator $(HELM_DIR) -f $(MANIFESTS_BUNDLE_MIN_VALUES) >> $(MANIFESTS_DIR)/manifests.min.yaml
 
-.PHONY: bundle
-bundle: bundle-crds bundle-manifests bundle-min-manifests ## Generate bundles.
+.PHONY: manifests-bundle
+manifests-bundle: manifests-crds manifests-bundle-helm manifests-bundle-helm-min ## Generate manifests.
 
 ##@ Generate
 
 .PHONY: generate
-generate: manifests code helm bundle ## Generate manifests, code, helm chart and manifests bundle.
+generate: manifests code helm manifests-bundle ## Generate manifests, code, helm chart and manifests bundle.
 
 .PHONY: gen
 gen: generate ## Generate alias.
@@ -171,10 +140,6 @@ install-metallb: cluster-ctx ## Install metallb helm chart.
 	@./hack/install_metallb.sh
 
 ##@ Install
-
-ifndef ignore-not-found
-  ignore-not-found = false
-endif
 
 .PHONY: install-crds
 install-crds: cluster-ctx manifests kustomize ## Install CRDs.

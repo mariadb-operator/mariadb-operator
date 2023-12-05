@@ -29,10 +29,6 @@ cert-from-cluster: ## Get certificate from cluster.
 lint: golangci-lint ## Lint.
 	$(GOLANGCI_LINT) run
 
-.PHONY: build
-build: ## Build binary.
-	go build -o bin/mariadb-operator cmd/main.go
-
 .PHONY: test
 test: envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test -timeout 20m -v ./... -coverprofile cover.out

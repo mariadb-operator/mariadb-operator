@@ -1,0 +1,9 @@
+resources:
+- manager.yaml
+- namespace.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: controller
+  newName: mariadb/mariadb-operator-enterprise
+  newTag: v0.0.23

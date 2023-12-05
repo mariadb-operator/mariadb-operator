@@ -54,9 +54,11 @@ spec:
             description: UserSpec defines the desired state of User
             properties:
               host:
+                description: Host related to the User.
                 maxLength: 255
                 type: string
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -92,18 +94,24 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               maxUserConnections:
                 default: 10
+                description: MaxUserConnections defines the maximum number of connections
+                  that the User can have.
                 format: int32
                 type: integer
               name:
+                description: Name overrides the default name provided by metadata.name.
                 maxLength: 80
                 type: string
               passwordSecretKeyRef:
-                description: SecretKeySelector selects a key of a Secret.
+                description: PasswordSecretKeyRef is a reference to the password to
+                  be used by the User.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -121,6 +129,8 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               retryInterval:
+                description: RetryInterval is the interval used to perform health
+                  check retries.
                 type: string
             required:
             - mariaDbRef
@@ -130,6 +140,7 @@ spec:
             description: UserStatus defines the observed state of User
             properties:
               conditions:
+                description: Conditions for the User object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct

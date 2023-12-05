@@ -63,8 +63,6 @@ jobs:
 
       - name: Build Docker
         run: make docker-build
-        env:
-          PLATFORM: linux/amd64
 
   test:
     name: Test
@@ -93,6 +91,27 @@ jobs:
           MARIADB_OPERATOR_NAME: mariadb-operator
           MARIADB_OPERATOR_NAMESPACE: default
           MARIADB_OPERATOR_SA_PATH: /tmp/mariadb-operator/token
+
+  bundle:
+    name: Bundle
+    runs-on: ubuntu-latest
+    needs: detect-noop
+    if: ${{ needs.detect-noop.outputs.noop != 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Validate
+        run: make bundle-validate
+
+      - name: Build image
+        run: make bundle-build
+
+      - name: Cluster
+        run: make cluster
+
+      - name: Scorecard
+        run: make bundle-scorecard
 
   check-diff:
     name: Check diff

@@ -1,0 +1,30 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Connection
+metadata:
+  name: connection
+spec:
+  mariaDbRef:
+    name: mariadb
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+  params:
+    parseTime: "true"
+  secretName: connection
+  secretTemplate:
+    labels:
+      mariadb.mmontes.io/connection: sample
+    annotations:
+      mariadb.mmontes.io/connection: sample
+    key: dsn
+    usernameKey: username
+    passwordKey: password
+    hostKey: host
+    portKey: port
+    databaseKey: database
+  healthCheck:
+    interval: 10s
+    retryInterval: 3s
+  serviceName: mariadb

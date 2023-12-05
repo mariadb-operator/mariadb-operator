@@ -69,9 +69,11 @@ func (s SST) MariaDBFormat() (string, error) {
 type PrimaryGalera struct {
 	// PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodIndex *int `json:"podIndex,omitempty"`
 	// AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
 }
 
@@ -93,10 +95,12 @@ func (r *PrimaryGalera) FillWithDefaults() {
 type KubernetesAuth struct {
 	// Enabled is a flag to enable KubernetesAuth
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
 	// AuthDelegatorRoleName is the name of the ClusterRoleBinding that is associated with the "system:auth-delegator" ClusterRole.
 	// It is necessary for creating TokenReview objects in order for the agent to validate the service account token.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AuthDelegatorRoleName string `json:"authDelegatorRoleName,omitempty"`
 }
 
@@ -117,17 +121,22 @@ func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string
 // GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
 // More info: https://github.com/mariadb-operator/agent.
 type GaleraAgent struct {
-	// ContainerTemplate to be used in the agent container.
+	// ContainerTemplate defines a template to configure Container objects.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
-	// Port to be used by the agent container
+	// Port where the agent will be listening for connections.
 	// +optional
+	// +kubebuilder:default=5555
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Port *int32 `json:"port,omitempty"`
 	// KubernetesAuth to be used by the agent container
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	KubernetesAuth *KubernetesAuth `json:"kubernetesAuth,omitempty"`
 	// GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
 }
 
@@ -153,23 +162,28 @@ func (r *GaleraAgent) FillWithDefaults() {
 type GaleraRecovery struct {
 	// Enabled is a flag to enable GaleraRecovery.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
 	// ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,
 	// is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ClusterHealthyTimeout *metav1.Duration `json:"clusterHealthyTimeout,omitempty"`
 	// ClusterBootstrapTimeout is the time limit for bootstrapping a cluster.
 	// Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ClusterBootstrapTimeout *metav1.Duration `json:"clusterBootstrapTimeout,omitempty"`
 	// PodRecoveryTimeout is the time limit for executing the recovery sequence within a Pod.
 	// This process includes enabling the recovery mode in the Galera configuration file, restarting the Pod
 	// and retrieving the sequence from a log file.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodRecoveryTimeout *metav1.Duration `json:"podRecoveryTimeout,omitempty"`
 	// PodSyncTimeout is the time limit we give to a Pod to reach the Sync state.
 	// Once this timeout is reached, the Pod is restarted.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
 }
 
@@ -196,9 +210,11 @@ func (g *GaleraRecovery) FillWithDefaults() {
 type Galera struct {
 	// GaleraSpec is the Galera desired state specification.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GaleraSpec `json:",inline"`
 	// Enabled is a flag to enable Galera.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
 }
 
@@ -206,30 +222,38 @@ type Galera struct {
 type GaleraSpec struct {
 	// Primary is the Galera configuration for the primary node.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Primary *PrimaryGalera `json:"primary,omitempty"`
 	// SST is the Snapshot State Transfer used when new Pods join the cluster.
 	// More info: https://galeracluster.com/library/documentation/sst.html.
 	// +optional
+	// +kubebuilder:validation:Enum=rsync;mariabackup;mysqldump
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SST *SST `json:"sst,omitempty"`
 	// ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.
 	// More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaThreads *int `json:"replicaThreads,omitempty"`
 	// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
 	// More info: https://github.com/mariadb-operator/agent.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Agent *GaleraAgent `json:"agent,omitempty"`
 	// GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
 	// More info: https://galeracluster.com/library/documentation/crash-recovery.html.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Recovery *GaleraRecovery `json:"recovery,omitempty"`
 	// InitContainer is an init container that co-operates with mariadb-operator.
 	// More info: https://github.com/mariadb-operator/init.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	InitContainer *ContainerTemplate `json:"initContainer,omitempty"`
 	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files
 	// shared between the InitContainer, Agent and MariaDB.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
 }
 

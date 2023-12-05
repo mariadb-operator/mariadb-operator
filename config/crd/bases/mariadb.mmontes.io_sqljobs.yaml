@@ -51,7 +51,7 @@ spec:
             description: SqlJobSpec defines the desired state of SqlJob
             properties:
               affinity:
-                description: Affinity is a group of affinity scheduling rules.
+                description: Affinity to be used in the SqlJob Pod.
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -880,11 +880,15 @@ spec:
                 type: object
               backoffLimit:
                 default: 5
+                description: BackoffLimit defines the maximum number of attempts to
+                  successfully execute a SqlJob.
                 format: int32
                 type: integer
               database:
+                description: Username to be used when executing the SqlJob.
                 type: string
               dependsOn:
+                description: DependsOn defines dependencies with other SqlJob objectecs.
                 items:
                   description: LocalObjectReference contains enough information to
                     let you locate the referenced object inside the same namespace.
@@ -897,6 +901,7 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -932,15 +937,19 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: NodeSelector to be used in the SqlJob Pod.
                 type: object
               passwordSecretKeyRef:
-                description: SecretKeySelector selects a key of a Secret.
+                description: UserPasswordSecretKeyRef is a reference to the impersonated
+                  user's password to be used when executing the SqlJob.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -958,7 +967,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               resources:
-                description: ResourceRequirements describes the compute resource requirements.
+                description: Resouces describes the compute resource requirements.
                 properties:
                   claims:
                     description: "Claims lists the names of resources, defined in
@@ -1007,25 +1016,33 @@ spec:
                 type: object
               restartPolicy:
                 default: OnFailure
-                description: RestartPolicy describes how the container should be restarted.
-                  Only one of the following restart policies may be specified. If
-                  none of the following policies is specified, the default one is
-                  RestartPolicyAlways.
+                description: RestartPolicy to be added to the SqlJob Pod.
+                enum:
+                - Always
+                - OnFailure
+                - Never
                 type: string
               schedule:
+                description: Schedule defines when the SqlJob will be executed.
                 properties:
                   cron:
+                    description: Cron is a cron expression that defines the schedule.
                     type: string
                   suspend:
                     default: false
+                    description: Suspend defines whether the schedule is active or
+                      not.
                     type: boolean
                 required:
                 - cron
                 type: object
               sql:
+                description: Sql is the script to be executed by the SqlJob.
                 type: string
               sqlConfigMapKeyRef:
-                description: Selects a key from a ConfigMap.
+                description: SqlConfigMapKeyRef is a reference to a ConfigMap containing
+                  the Sql script. It is defaulted to a ConfigMap with the contents
+                  of the Sql field.
                 properties:
                   key:
                     description: The key to select.
@@ -1043,6 +1060,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               tolerations:
+                description: Tolerations to be used in the SqlJob Pod.
                 items:
                   description: The pod this Toleration is attached to tolerates any
                     taint that matches the triple <key,value,effect> using the matching
@@ -1082,6 +1100,7 @@ spec:
                   type: object
                 type: array
               username:
+                description: Username to be impersonated when executing the SqlJob.
                 type: string
             required:
             - mariaDbRef
@@ -1092,6 +1111,7 @@ spec:
             description: SqlJobStatus defines the observed state of SqlJob
             properties:
               conditions:
+                description: Conditions for the SqlJob object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct

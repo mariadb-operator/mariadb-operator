@@ -25,26 +25,50 @@ import (
 
 // GrantSpec defines the desired state of Grant
 type GrantSpec struct {
+	// SQLTemplate defines templates to configure SQL objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SQLTemplate `json:",inline"`
+	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// Privileges to use in the Grant.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Privileges []string `json:"privileges" webhook:"inmutable"`
+	// Database to use in the Grant.
+	// +optional
 	// +kubebuilder:default=*
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Database string `json:"database,omitempty" webhook:"inmutable"`
+	// Table to use in the Grant.
+	// +optional
 	// +kubebuilder:default=*
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Table string `json:"table,omitempty" webhook:"inmutable"`
+	// Username to use in the Grant.
 	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Username string `json:"username" webhook:"inmutable"`
+	// Host to use in the Grant.
+	// +optional
 	// +kubebuilder:MaxLength=255
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Host *string `json:"host,omitempty" webhook:"inmutable"`
+	// GrantOption to use in the Grant.
+	// +optional
 	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GrantOption bool `json:"grantOption,omitempty" webhook:"inmutable"`
 }
 
 // GrantStatus defines the observed state of Grant
 type GrantStatus struct {
+	// Conditions for the Grant object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -66,6 +90,7 @@ func (g *GrantStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="GrantOpt",type="string",JSONPath=".spec.grantOption"
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +operator-sdk:csv:customresourcedefinitions:resources={{Grant,v1alpha1}}
 
 // Grant is the Schema for the grants API
 type Grant struct {

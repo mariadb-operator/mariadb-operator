@@ -1,0 +1,21 @@
+FROM golang:1.21-alpine3.18 AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+ENV CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}
+
+WORKDIR /app
+
+COPY go.mod go.sum /app/
+RUN go mod download
+
+COPY . /app
+RUN go build -o mariadb-operator cmd/main.go
+
+FROM registry.access.redhat.com/ubi8/ubi-micro AS app
+
+WORKDIR /
+COPY --from=builder /app/mariadb-operator /bin/mariadb-operator 
+USER 65532:65532
+
+ENTRYPOINT ["/bin/mariadb-operator"]

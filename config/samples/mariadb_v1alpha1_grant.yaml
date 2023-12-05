@@ -1,0 +1,17 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Grant
+metadata:
+  name: grant
+spec:
+  mariaDbRef:
+    name: mariadb
+  privileges:
+    - "SELECT"
+    - "INSERT"
+    - "UPDATE"
+  database: "*"
+  table: "*"
+  username: user
+  grantOption: true
+  host: "%"
+  retryInterval: 5s

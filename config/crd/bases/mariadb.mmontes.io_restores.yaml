@@ -51,7 +51,7 @@ spec:
             description: RestoreSpec defines the desired state of restore
             properties:
               affinity:
-                description: Affinity is a group of affinity scheduling rules.
+                description: Affinity to be used in the Restore Pod.
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -880,11 +880,12 @@ spec:
                 type: object
               backoffLimit:
                 default: 5
+                description: BackoffLimit defines the maximum number of attempts to
+                  successfully perform a Backup.
                 format: int32
                 type: integer
               backupRef:
-                description: LocalObjectReference contains enough information to let
-                  you locate the referenced object inside the same namespace.
+                description: BackupRef is a reference to a Backup object.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -893,8 +894,10 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               fileName:
+                description: FileName is the file within the source to be restored.
                 type: string
               mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -930,15 +933,18 @@ spec:
                     type: string
                   waitForIt:
                     default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: NodeSelector to be used in the Restore Pod.
                 type: object
               resources:
-                description: ResourceRequirements describes the compute resource requirements.
+                description: Resouces describes the compute resource requirements.
                 properties:
                   claims:
                     description: "Claims lists the names of resources, defined in
@@ -987,12 +993,14 @@ spec:
                 type: object
               restartPolicy:
                 default: OnFailure
-                description: RestartPolicy describes how the container should be restarted.
-                  Only one of the following restart policies may be specified. If
-                  none of the following policies is specified, the default one is
-                  RestartPolicyAlways.
+                description: RestartPolicy to be added to the Backup Job.
+                enum:
+                - Always
+                - OnFailure
+                - Never
                 type: string
               tolerations:
+                description: Tolerations to be used in the Restore Pod.
                 items:
                   description: The pod this Toleration is attached to tolerates any
                     taint that matches the triple <key,value,effect> using the matching
@@ -1032,8 +1040,8 @@ spec:
                   type: object
                 type: array
               volume:
-                description: Represents the source of a volume to mount. Only one
-                  of its members may be specified.
+                description: Volume is a Kubernetes Volume object that contains a
+                  backup.
                 properties:
                   awsElasticBlockStore:
                     description: 'awsElasticBlockStore represents an AWS Disk resource
@@ -2563,6 +2571,7 @@ spec:
             description: RestoreStatus defines the observed state of restore
             properties:
               conditions:
+                description: Conditions for the Restore object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
