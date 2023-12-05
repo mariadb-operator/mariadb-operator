@@ -46,14 +46,13 @@ jobs:
         if: steps.list-changed.outputs.changed == 'true'
         run: ct lint --config=.github/config/ct.yml
       
-      # TODO: re-enable aver releasing v0.0.23
-      # - name: Cluster
-      #   if: steps.list-changed.outputs.changed == 'true'
-      #   run: make cluster
+      - name: Cluster
+        if: steps.list-changed.outputs.changed == 'true'
+        run: make cluster
 
-      # - name: Test install
-      #   if: steps.list-changed.outputs.changed == 'true'
-      #   run: ct install --config=.github/config/ct.yml
+      - name: Test install
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct install --config=.github/config/ct.yml
 
   release:
     runs-on: ubuntu-latest
