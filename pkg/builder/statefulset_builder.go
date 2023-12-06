@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"errors"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -46,19 +45,6 @@ func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 		Name:      fmt.Sprintf("%s-%s", StorageVolume, podName),
 		Namespace: mariadb.Namespace,
 	}
-}
-
-func StatefulSetPort(sts *appsv1.StatefulSet) (*corev1.ContainerPort, error) {
-	for _, c := range sts.Spec.Template.Spec.Containers {
-		if c.Name == MariaDbContainerName {
-			for _, p := range c.Ports {
-				if p.Name == MariaDbPortName {
-					return &p, nil
-				}
-			}
-		}
-	}
-	return nil, errors.New("StatefulSet port not found")
 }
 
 func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
