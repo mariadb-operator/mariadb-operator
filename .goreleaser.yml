@@ -2,7 +2,7 @@ changelog:
   use: github-native
 builds:
   - id: mariadb-operator
-    main: cmd/main.go
+    main: ./cmd/controller
     binary: "mariadb-operator_{{ .Version }}_{{ .Arch }}"
     env:
       - CGO_ENABLED=0

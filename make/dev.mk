@@ -46,18 +46,18 @@ release: goreleaser ## Test release locally.
 RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --service-monitor-reconciler
 .PHONY: run
 run: lint ## Run a controller from your host.
-	go run cmd/main.go $(RUN_FLAGS)
+	go run cmd/controller/*.go $(RUN_FLAGS)
 
 ##@ Webhook
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 .PHONY: webhook
 webhook: lint cert-from-cluster ## Run a webhook from your host.
-	go run cmd/main.go webhook $(WEBHOOK_FLAGS)
+	go run cmd/controller/*.go webhook $(WEBHOOK_FLAGS)
 
 ##@ Cert controller
 
 CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --ca-validity=24h --cert-validity=1h --lookahead-validity=8h --requeue-duration=1m
 .PHONY: cert-controller
 cert-controller: lint ## Run a cert-controller from your host.
-	go run cmd/main.go cert-controller $(CERT_CONTROLLER_FLAGS)
+	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)

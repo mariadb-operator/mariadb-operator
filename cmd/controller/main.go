@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package controller
+package main
 
 import (
 	"context"
@@ -41,16 +41,15 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
@@ -73,6 +72,20 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
+
+	rootCmd.PersistentFlags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	rootCmd.PersistentFlags().StringVar(&healthAddr, "health-addr", ":8081", "The address the probe endpoint binds to.")
+	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "Log level to use, one of: "+
+		"debug, info, warn, error, dpanic, panic, fatal.")
+	rootCmd.PersistentFlags().StringVar(&logTimeEncoder, "log-time-encoder", "epoch", "Log time encoder to use, one of: "+
+		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
+	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
+	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
+
+	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
+		"Enabling this requires Prometheus CRDs installed in the cluster.")
+	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
 }
 
 var rootCmd = &cobra.Command{
@@ -81,7 +94,7 @@ var rootCmd = &cobra.Command{
 	Long:  `This operator reconciles MariaDB resources so you can declaratively manage your instance using Kubernetes CRDs.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		setupLogger()
+		log.SetupLogger(logLevel, logTimeEncoder, logDev)
 
 		ctx, cancel := signal.NotifyContext(context.Background(), []os.Signal{
 			syscall.SIGINT,
@@ -294,45 +307,6 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func Execute() {
+func main() {
 	cobra.CheckErr(rootCmd.Execute())
-}
-
-func init() {
-	rootCmd.PersistentFlags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	rootCmd.PersistentFlags().StringVar(&healthAddr, "health-addr", ":8081", "The address the probe endpoint binds to.")
-	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "Log level to use, one of: "+
-		"debug, info, warn, error, dpanic, panic, fatal.")
-	rootCmd.PersistentFlags().StringVar(&logTimeEncoder, "log-time-encoder", "epoch", "Log time encoder to use, one of: "+
-		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
-	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
-	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
-
-	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
-		"Enabling this requires Prometheus CRDs installed in the cluster.")
-	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
-	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
-}
-
-func setupLogger() {
-	var lvl zapcore.Level
-	var enc zapcore.TimeEncoder
-
-	lvlErr := lvl.UnmarshalText([]byte(logLevel))
-	if lvlErr != nil {
-		setupLog.Error(lvlErr, "error unmarshalling log level")
-		os.Exit(1)
-	}
-	encErr := enc.UnmarshalText([]byte(logTimeEncoder))
-	if encErr != nil {
-		setupLog.Error(encErr, "error unmarshalling time encoder")
-		os.Exit(1)
-	}
-	opts := zap.Options{
-		Level:       lvl,
-		TimeEncoder: enc,
-		Development: logDev,
-	}
-	logger := zap.New(zap.UseFlagOptions(&opts))
-	ctrl.SetLogger(logger)
 }
