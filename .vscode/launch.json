@@ -9,7 +9,7 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "cmd/main.go",
+      "program": "cmd/controller",
       "args": [
         "--log-dev",
         "--log-level=debug",
@@ -27,7 +27,7 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "cmd/main.go",
+      "program": "cmd/controller",
       "args": [
         "webhook",
         "--log-dev",
@@ -40,7 +40,7 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "cmd/main.go",
+      "program": "cmd/controller",
       "args": [
         "cert-controller",
         "--log-dev",

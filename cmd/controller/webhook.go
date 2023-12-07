@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package controller
+package main
 
 import (
 	"context"
@@ -31,6 +31,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,12 +49,23 @@ var (
 	tlsKey  = "tls.key"
 )
 
+func init() {
+	rootCmd.AddCommand(webhookCmd)
+	webhookCmd.Flags().StringVar(&caCertPath, "ca-cert-path", "/tmp/k8s-webhook-server/certificate-authority/tls.crt",
+		"Path containing the CA TLS certificate for the webhook server.")
+	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs/tls.crt",
+		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory.")
+	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "mariadb-operator-webhook.default.svc",
+		"TLS certificate DNS name.")
+	webhookCmd.Flags().IntVar(&port, "port", 10250, "Port to be used by the webhook server.")
+}
+
 var webhookCmd = &cobra.Command{
 	Use:   "webhook",
 	Short: "MariaDB operator webhook server.",
 	Long:  `Provides validation and inmutability checks for MariaDB resources.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		setupLogger()
+		log.SetupLogger(logLevel, logTimeEncoder, logDev)
 
 		err := waitForCerts(dnsName, time.Now(), 3*time.Minute)
 		if err != nil {
@@ -193,15 +205,4 @@ func readKeyPair(dir string) (*pki.KeyPair, error) {
 		return nil, err
 	}
 	return pki.KeyPairFromPEM(certBytes, keyBytes)
-}
-
-func init() {
-	rootCmd.AddCommand(webhookCmd)
-	webhookCmd.Flags().StringVar(&caCertPath, "ca-cert-path", "/tmp/k8s-webhook-server/certificate-authority/tls.crt",
-		"Path containing the CA TLS certificate for the webhook server.")
-	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs/tls.crt",
-		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory.")
-	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "mariadb-operator-webhook.default.svc",
-		"TLS certificate DNS name.")
-	webhookCmd.Flags().IntVar(&port, "port", 10250, "Port to be used by the webhook server.")
 }

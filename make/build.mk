@@ -5,7 +5,7 @@ IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
 
 .PHONY: build
 build: ## Build binary.
-	go build -o bin/mariadb-operator cmd/main.go
+	go build -o bin/mariadb-operator cmd/controller/*.go
 
 .PHONY: docker-build
 docker-build: ## Build docker image.
