@@ -13,9 +13,6 @@ spec:
     name: mariadb
     key: password
 
-  image: mariadb:11.0.3
-  imagePullPolicy: IfNotPresent
-
   port: 3306
 
   volumeClaimTemplate:

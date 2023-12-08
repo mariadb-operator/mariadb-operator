@@ -125,6 +125,15 @@ type GaleraAgent struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
+	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Image string `json:"image,omitempty"`
+	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+	// +optional
+	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Port where the agent will be listening for connections.
 	// +optional
 	// +kubebuilder:default=5555
@@ -143,17 +152,20 @@ type GaleraAgent struct {
 // FillWithDefaults fills the current GaleraAgent object with DefaultReplicationSpec.
 // This enables having minimal GaleraAgent objects and provides sensible defaults.
 func (r *GaleraAgent) FillWithDefaults() {
+	if r.Image == "" {
+		r.Image = DefaultGaleraSpec.Agent.Image
+	}
+	if r.ImagePullPolicy == "" {
+		r.ImagePullPolicy = DefaultGaleraSpec.Agent.ImagePullPolicy
+	}
 	if r.Port == nil {
-		port := DefaultGaleraSpec.Agent.Port
-		r.Port = port
+		r.Port = DefaultGaleraSpec.Agent.Port
 	}
 	if r.KubernetesAuth == nil {
-		auth := DefaultGaleraSpec.Agent.KubernetesAuth
-		r.KubernetesAuth = auth
+		r.KubernetesAuth = DefaultGaleraSpec.Agent.KubernetesAuth
 	}
 	if r.GracefulShutdownTimeout == nil {
-		timeout := DefaultGaleraSpec.Agent.GracefulShutdownTimeout
-		r.GracefulShutdownTimeout = timeout
+		r.GracefulShutdownTimeout = DefaultGaleraSpec.Agent.GracefulShutdownTimeout
 	}
 }
 
@@ -249,7 +261,7 @@ type GaleraSpec struct {
 	// More info: https://github.com/mariadb-operator/init.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	InitContainer *ContainerTemplate `json:"initContainer,omitempty"`
+	InitContainer *Container `json:"initContainer,omitempty"`
 	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files
 	// shared between the InitContainer, Agent and MariaDB.
 	// +optional
@@ -313,11 +325,9 @@ var (
 		SST:            &sst,
 		ReplicaThreads: &replicaThreads,
 		Agent: &GaleraAgent{
-			ContainerTemplate: ContainerTemplate{
-				Image:           "ghcr.io/mariadb-operator/agent:v0.0.3",
-				ImagePullPolicy: corev1.PullIfNotPresent,
-			},
-			Port: func() *int32 { p := int32(5555); return &p }(),
+			Image:           "ghcr.io/mariadb-operator/agent:v0.0.3",
+			ImagePullPolicy: corev1.PullIfNotPresent,
+			Port:            func() *int32 { p := int32(5555); return &p }(),
 			KubernetesAuth: &KubernetesAuth{
 				Enabled: true,
 			},
@@ -330,7 +340,7 @@ var (
 			PodRecoveryTimeout:      &fiveMinutes,
 			PodSyncTimeout:          &fiveMinutes,
 		},
-		InitContainer: &ContainerTemplate{
+		InitContainer: &Container{
 			Image:           "ghcr.io/mariadb-operator/init:v0.0.6",
 			ImagePullPolicy: corev1.PullIfNotPresent,
 		},

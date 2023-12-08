@@ -321,10 +321,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
-					ContainerTemplate: ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",
@@ -364,10 +360,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
-					ContainerTemplate: ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",
@@ -415,10 +407,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
-					ContainerTemplate: ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",
@@ -443,10 +431,8 @@ var _ = Describe("MariaDB webhook", func() {
 						Enabled: true,
 						GaleraSpec: GaleraSpec{
 							Agent: &GaleraAgent{
-								ContainerTemplate: ContainerTemplate{
-									Image:           "ghcr.io/mariadb-operator/agent:v0.0.3",
-									ImagePullPolicy: corev1.PullIfNotPresent,
-								},
+								Image:           "ghcr.io/mariadb-operator/agent:v0.0.3",
+								ImagePullPolicy: corev1.PullIfNotPresent,
 							},
 							Recovery: &GaleraRecovery{
 								Enabled: true,
@@ -469,10 +455,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
-					ContainerTemplate: ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",
@@ -518,9 +500,9 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
+					Image:           "mariadb:11.3.3",
+					ImagePullPolicy: corev1.PullIfNotPresent,
 					ContainerTemplate: ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
 						Resources: &corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),
@@ -576,10 +558,8 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 					Metrics: &Metrics{
 						Exporter: Exporter{
-							ContainerTemplate: ContainerTemplate{
-								Image:           "prom/mysqld-exporter:v0.14.0",
-								ImagePullPolicy: corev1.PullIfNotPresent,
-							},
+							Image:           "prom/mysqld-exporter:v0.14.0",
+							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 						ServiceMonitor: ServiceMonitor{
 							PrometheusRelease: "prometheus",
@@ -638,7 +618,7 @@ var _ = Describe("MariaDB webhook", func() {
 			Entry(
 				"Updating Image",
 				func(mdb *MariaDB) {
-					mdb.Spec.Image = "mariadb:10.7.5"
+					mdb.Spec.Image = "mariadb:11.2.2"
 				},
 				false,
 			),
@@ -749,10 +729,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: noSwitchoverKey.Namespace,
 				},
 				Spec: MariaDBSpec{
-					ContainerTemplate: ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",
@@ -798,10 +774,8 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: switchoverKey.Namespace,
 				},
 				Spec: MariaDBSpec{
-					ContainerTemplate: ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
+					Image:           "mariadb:11.0.3",
+					ImagePullPolicy: corev1.PullIfNotPresent,
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",

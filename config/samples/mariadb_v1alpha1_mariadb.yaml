@@ -12,9 +12,7 @@ spec:
   passwordSecretKeyRef:
     name: mariadb
     key: password
-
-  image: mariadb:11.0.3
-
+    
   port: 3306
 
   replicas: 3

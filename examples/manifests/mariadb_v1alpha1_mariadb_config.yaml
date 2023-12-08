@@ -7,8 +7,6 @@ spec:
     name: mariadb
     key: root-password
 
-  image: mariadb:11.0.3
-
   port: 3306
 
   volumeClaimTemplate:

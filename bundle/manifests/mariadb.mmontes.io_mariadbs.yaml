@@ -3472,8 +3472,6 @@ spec:
                           - name
                           type: object
                         type: array
-                    required:
-                    - image
                     type: object
                   enabled:
                     description: Enabled is a flag to enable Galera.
@@ -4558,8 +4556,7 @@ spec:
               initContainers:
                 description: InitContainers to be used in the Pod.
                 items:
-                  description: ContainerTemplate defines a template to configure Container
-                    objects.
+                  description: Container object definition.
                   properties:
                     args:
                       description: Args to be used in the Container.
@@ -6207,8 +6204,6 @@ spec:
                           - name
                           type: object
                         type: array
-                    required:
-                    - image
                     type: object
                   serviceMonitor:
                     description: ServiceMonitor defines the ServiceMonior object.
@@ -7176,8 +7171,7 @@ spec:
               sidecarContainers:
                 description: SidecarContainers to be used in the Pod.
                 items:
-                  description: ContainerTemplate defines a template to configure Container
-                    objects.
+                  description: Container object definition.
                   properties:
                     args:
                       description: Args to be used in the Container.
@@ -9816,7 +9810,6 @@ spec:
                   type: object
                 type: array
             required:
-            - image
             - rootPasswordSecretKeyRef
             - volumeClaimTemplate
             type: object

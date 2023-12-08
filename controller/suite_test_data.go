@@ -101,8 +101,6 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-				Image:           "mariadb:11.0.3",
-				ImagePullPolicy: corev1.PullIfNotPresent,
 				SecurityContext: &corev1.SecurityContext{
 					AllowPrivilegeEscalation: func() *bool { b := false; return &b }(),
 				},
@@ -198,10 +196,8 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 			},
 			Metrics: &mariadbv1alpha1.Metrics{
 				Exporter: mariadbv1alpha1.Exporter{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image: "prom/mysqld-exporter:v0.14.0",
-					},
-					Port: 9104,
+					Image: "prom/mysqld-exporter:v0.14.0",
+					Port:  9104,
 				},
 				ServiceMonitor: mariadbv1alpha1.ServiceMonitor{
 					PrometheusRelease: "kube-prometheus-stack",
