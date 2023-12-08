@@ -28,8 +28,20 @@ spec:
       containers:
         - args:
             - --leader-elect
+            - --webhook-cert-dir=/tmp/k8s-webhook-server/serving-certs
+            - --webhook-port=9443
           image: controller:latest
           name: mariadb-operator-enterprise
+          ports:
+            - containerPort: 9443
+              protocol: TCP
+              name: https
+            - containerPort: 8080
+              protocol: TCP
+              name: metrics
+            - containerPort: 8081
+              protocol: TCP
+              name: health
           env:
             - name: RELATED_IMAGE_MARIADB
               value: mariadb:11.2.2

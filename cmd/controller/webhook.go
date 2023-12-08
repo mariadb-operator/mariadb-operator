@@ -53,11 +53,11 @@ func init() {
 	rootCmd.AddCommand(webhookCmd)
 	webhookCmd.Flags().StringVar(&caCertPath, "ca-cert-path", "/tmp/k8s-webhook-server/certificate-authority/tls.crt",
 		"Path containing the CA TLS certificate for the webhook server.")
-	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs/tls.crt",
+	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs",
 		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory.")
 	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "mariadb-operator-webhook.default.svc",
 		"TLS certificate DNS name.")
-	webhookCmd.Flags().IntVar(&port, "port", 10250, "Port to be used by the webhook server.")
+	webhookCmd.Flags().IntVar(&port, "port", 9443, "Port to be used by the webhook server.")
 }
 
 var webhookCmd = &cobra.Command{

@@ -1,3 +1,5 @@
+##@ OLM
+
 ifneq ($(origin CHANNELS), undefined)
 BUNDLE_CHANNELS := --channels=$(CHANNELS)
 endif
@@ -17,8 +19,6 @@ ifneq ($(origin CATALOG_BASE_IMG), undefined)
 FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
 endif
 
-ENT_IMG ?= mariadb/mariadb-operator-enterprise:v$(VERSION)
-
 BUNDLE_IMG ?= mariadb/mariadb-operator-enterprise-bundle:v$(VERSION)
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
 
@@ -26,41 +26,6 @@ CATALOG_IMG ?= mariadb/mariadb-operator-enterprise-catalog:v$(VERSION)
 CATALOG_REGISTRY_CONF ?= $(HOME)/.docker/config.json
 CATALOG_REGISTRY_URL ?= https://index.docker.io/v1/
 CATALOG_REGISTRY_AUTH = $(shell cat $(CATALOG_REGISTRY_CONF) | $(JQ) '.auths["$(CATALOG_REGISTRY_URL)"]')
-
-##@ Build Enterprise
-
-.PHONY: docker-build-ent
-docker-build-ent: ## Build the enterprise image.
-	docker build -f Dockerfile.ubi -t $(ENT_IMG) .
-
-.PHONY: docker-push-ent
-docker-push-ent: ## Push the enterprise image.
-	$(MAKE) docker-push IMG=$(ENT_IMG)
-
-.PHONY: docker-load-ent
-docker-load-ent: ## Load the enterprise image in KIND.
-	$(MAKE) docker-load IMG=$(ENT_IMG)
-
-##@ Deploy Enterprise
-
-.PHONY: kustomize-install
-kustomize-install: manifests kustomize cluster-ctx ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | $(KUBECTL) apply --server-side=true -f -
-
-.PHONY: kustomize-uninstall
-kustomize-uninstall: manifests kustomize cluster-ctx ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/crd | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
-
-.PHONY: kustomize-deploy
-kustomize-deploy: manifests kustomize cluster-ctx ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${ENT_IMG}
-	$(KUSTOMIZE) build config/default | $(KUBECTL) apply --server-side=true -f -
-
-.PHONY: kustomize-undeploy
-kustomize-undeploy: cluster-ctx ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
-
-##@ OLM
 
 .PHONY: scorecard-sa
 scorecard-sa: ## Create scorecard ServiceAccount.
@@ -93,9 +58,6 @@ bundle-build: ## Build the bundle image.
 bundle-push: ## Push the bundle image.
 	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
 
-# Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
-# This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
-# https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
 	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
@@ -120,3 +82,7 @@ catalog-config: oc jq catalog-registry-login ## Setup catalog registry credentia
 catalog-deploy: catalog-config ## Deploy catalog to a OpenShift cluster.
 	cd hack/manifests/catalog && $(KUSTOMIZE) edit set image catalog=$(CATALOG_IMG)
 	$(KUSTOMIZE) build hack/manifests/catalog	| $(KUBECTL) apply -f -
+
+.PHONY: catalog-undeploy
+catalog-undeploy: ## Undeploy catalog from a OpenShift cluster.
+	$(KUSTOMIZE) build hack/manifests/catalog	| $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -

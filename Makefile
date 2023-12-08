@@ -13,6 +13,8 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 VERSION ?= 0.0.23
+IMG ?= ghcr.io/mariadb-operator/mariadb-operator:v$(VERSION)
+ENT_IMG ?= mariadb/mariadb-operator-enterprise:v$(VERSION)
 
 export RELATED_IMAGE_MARIADB ?= mariadb:11.2.2
 
