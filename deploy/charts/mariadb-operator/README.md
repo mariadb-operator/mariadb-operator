@@ -108,7 +108,7 @@ helm uninstall mariadb-operator
 | webhook.nodeSelector | object | `{}` | Node selectors to add to controller Pod |
 | webhook.podAnnotations | object | `{}` | Annotations to add to webhook Pod |
 | webhook.podSecurityContext | object | `{}` | Security context to add to webhook Pod |
-| webhook.port | int | `10250` | Port to be used by the webhook server |
+| webhook.port | int | `9443` | Port to be used by the webhook server |
 | webhook.resources | object | `{}` | Resources to add to webhook container |
 | webhook.securityContext | object | `{}` | Security context to add to webhook container |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account |

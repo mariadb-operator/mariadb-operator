@@ -160,6 +160,17 @@ install-samples: cluster-ctx  ## Install sample configuration.
 serviceaccount: cluster-ctx  ## Create long-lived ServiceAccount token for development.
 	@./hack/create_serviceaccount.sh
 
+##@ Deploy
+
+.PHONY: deploy-ent
+deploy-ent: manifests kustomize cluster-ctx ## Deploy enterprise controller.
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${ENT_IMG}
+	$(KUSTOMIZE) build config/default | $(KUBECTL) apply --server-side=true -f -
+
+.PHONY: undeploy-ent
+undeploy-ent: cluster-ctx ## Undeploy enterprise controller.
+	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
+
 ##@ Examples
 
 GITHUB_USER := mariadb-operator

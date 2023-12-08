@@ -1,24 +1,3 @@
-/*
-Copyright © 2023 Martín Montes <martin11lrx@gmail.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
 package main
 
 import (
@@ -50,7 +29,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -65,6 +46,8 @@ var (
 	serviceMonitorReconciler bool
 	requeueConnection        time.Duration
 	requeueSqlJob            time.Duration
+	webhookPort              int
+	webhookCertDir           string
 )
 
 func init() {
@@ -84,12 +67,15 @@ func init() {
 		"Enabling this requires Prometheus CRDs installed in the cluster.")
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
+	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server.")
+	rootCmd.Flags().StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs",
+		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory.")
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "mariadb-operator",
-	Short: "MariaDB operator.",
-	Long:  `Run and operate MariaDB in a cloud native way.`,
+	Use:   "mariadb-operator-enterprise",
+	Short: "MariaDB Operator Enterprise.",
+	Long:  `Run and operate MariaDB Enterprise in OpenShift.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.SetupLogger(logLevel, logTimeEncoder, logDev)
@@ -110,7 +96,11 @@ var rootCmd = &cobra.Command{
 			},
 			HealthProbeBindAddress: healthAddr,
 			LeaderElection:         leaderElect,
-			LeaderElectionID:       "mariadb-operator.mmontes.io",
+			LeaderElectionID:       "mariadb-operator-enterprisse.k8s.mariadb.com",
+			WebhookServer: webhook.NewServer(webhook.Options{
+				CertDir: webhookCertDir,
+				Port:    webhookPort,
+			}),
 		})
 		if err != nil {
 			setupLog.Error(err, "Unable to start manager")
@@ -294,6 +284,48 @@ var rootCmd = &cobra.Command{
 			Recorder:    galeraRecorder,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "StatefulSetGalera")
+			os.Exit(1)
+		}
+
+		if err = (&mariadbv1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "MariaDB")
+			os.Exit(1)
+		}
+		if err = (&mariadbv1alpha1.Backup{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "Backup")
+			os.Exit(1)
+		}
+		if err = (&mariadbv1alpha1.Restore{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "restore")
+			os.Exit(1)
+		}
+		if err = (&mariadbv1alpha1.User{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "User")
+			os.Exit(1)
+		}
+		if err = (&mariadbv1alpha1.Grant{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "Grant")
+			os.Exit(1)
+		}
+		if err = (&mariadbv1alpha1.Database{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "Database")
+			os.Exit(1)
+		}
+		if err = (&mariadbv1alpha1.Connection{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "Connection")
+			os.Exit(1)
+		}
+		if err = (&mariadbv1alpha1.SqlJob{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "SqlJob")
+			os.Exit(1)
+		}
+
+		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+			setupLog.Error(err, "Unable to set up health check")
+			os.Exit(1)
+		}
+		if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+			setupLog.Error(err, "Unable to set up ready check")
 			os.Exit(1)
 		}
 

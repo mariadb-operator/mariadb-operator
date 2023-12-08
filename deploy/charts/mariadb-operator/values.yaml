@@ -113,7 +113,7 @@ webhook:
     # -- Path where the certificate will be mounted.
     path: /tmp/k8s-webhook-server/serving-certs
   # -- Port to be used by the webhook server
-  port: 10250
+  port: 9443
   # -- Expose the webhook server in the host network
   hostNetwork: false
   serviceMonitor:

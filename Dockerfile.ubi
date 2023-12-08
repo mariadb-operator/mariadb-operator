@@ -10,12 +10,12 @@ COPY go.mod go.sum /app/
 RUN go mod download
 
 COPY . /app
-RUN go build -o mariadb-operator cmd/main.go
+RUN go build -o mariadb-operator-enterprise cmd/enterprise/*.go
 
 FROM registry.access.redhat.com/ubi8/ubi-micro AS app
 
 WORKDIR /
-COPY --from=builder /app/mariadb-operator /bin/mariadb-operator 
+COPY --from=builder /app/mariadb-operator-enterprise /bin/mariadb-operator-enterprise
 USER 65532:65532
 
-ENTRYPOINT ["/bin/mariadb-operator"]
+ENTRYPOINT ["/bin/mariadb-operator-enterprise"]
