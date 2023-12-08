@@ -73,15 +73,6 @@ type SecretTemplate struct {
 
 // ContainerTemplate defines a template to configure Container objects.
 type ContainerTemplate struct {
-	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Image string `json:"image"`
-	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-	// +optional
-	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Command to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -120,20 +111,33 @@ type ContainerTemplate struct {
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
 }
 
-// PodTemplate defines a template to configure Container objects.
-type PodTemplate struct {
-	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+// Container object definition.
+type Container struct {
+	// ContainerTemplate defines a template to configure Container objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ContainerTemplate `json:",inline"`
+	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Image string `json:"image"`
+	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+	// +optional
+	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+}
+
+// PodTemplate defines a template to configure Container objects.
+type PodTemplate struct {
 	// InitContainers to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	InitContainers []ContainerTemplate `json:"initContainers,omitempty"`
+	InitContainers []Container `json:"initContainers,omitempty"`
 	// SidecarContainers to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SidecarContainers []ContainerTemplate `json:"sidecarContainers,omitempty"`
+	SidecarContainers []Container `json:"sidecarContainers,omitempty"`
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

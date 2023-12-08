@@ -190,6 +190,7 @@ var rootCmd = &cobra.Command{
 			Client: client,
 			Scheme: scheme,
 
+			Environment:    env,
 			Builder:        builder,
 			RefResolver:    refResolver,
 			ConditionReady: conditionReady,

@@ -173,6 +173,7 @@ var _ = BeforeSuite(func() {
 		Client: client,
 		Scheme: scheme,
 
+		Environment:    env,
 		Builder:        builder,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,

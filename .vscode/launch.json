@@ -19,7 +19,8 @@
       "env": {
         "MARIADB_OPERATOR_NAME": "mariadb-operator",
         "MARIADB_OPERATOR_NAMESPACE": "default",
-        "MARIADB_OPERATOR_SA_PATH": "/tmp/mariadb-operator/token"
+        "MARIADB_OPERATOR_SA_PATH": "/tmp/mariadb-operator/token",
+        "RELATED_IMAGE_MARIADB": "mariadb:11.2.2",
       }
     },
     {

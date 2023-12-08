@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"os"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -20,6 +21,16 @@ import (
 
 var _ = Describe("MariaDB", func() {
 	Context("When creating a MariaDB", func() {
+		It("Should default", func() {
+			By("Getting MariaDB")
+			var mdb mariadbv1alpha1.MariaDB
+			Expect(k8sClient.Get(testCtx, testMariaDbKey, &mdb)).To(Succeed())
+
+			By("Expecting to default image")
+			expectedImage := os.Getenv("RELATED_IMAGE_MARIADB")
+			Expect(expectedImage).ToNot(BeEmpty())
+			Expect(mdb.Spec.Image).To(BeEquivalentTo(expectedImage))
+		})
 		It("Should reconcile", func() {
 			By("Expecting to create a ConfigMap eventually")
 			Eventually(func() bool {
@@ -135,10 +146,6 @@ var _ = Describe("MariaDB", func() {
 					Namespace: bootstrapMariaDBKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: backupKey.Name,
@@ -195,10 +202,6 @@ var _ = Describe("MariaDB", func() {
 					Namespace: invalidMariaDbKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -241,10 +244,6 @@ var _ = Describe("MariaDB", func() {
 					Namespace: noBackupKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "foo",
@@ -298,10 +297,6 @@ var _ = Describe("MariaDB", func() {
 					Namespace: updateMariaDBKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image:           "mariadb:11.0.2",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
@@ -329,7 +324,7 @@ var _ = Describe("MariaDB", func() {
 				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
 					return false
 				}
-				updateMariaDB.Spec.ContainerTemplate.Image = "mariadb:11.0.3"
+				updateMariaDB.Spec.Image = "mariadb:lts"
 				return k8sClient.Update(testCtx, &updateMariaDB) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
@@ -344,7 +339,7 @@ var _ = Describe("MariaDB", func() {
 			By("Expecting image to be updated in StatefulSet")
 			var sts appsv1.StatefulSet
 			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &sts)).To(Succeed())
-			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(BeEquivalentTo("mariadb:11.0.3"))
+			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(BeEquivalentTo("mariadb:lts"))
 
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &updateMariaDB)).To(Succeed())
@@ -361,10 +356,6 @@ var _ = Describe("MariaDB replication", func() {
 					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
@@ -610,10 +601,6 @@ var _ = Describe("MariaDB Galera", func() {
 					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Image:           "mariadb:11.0.3",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-					},
 					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,

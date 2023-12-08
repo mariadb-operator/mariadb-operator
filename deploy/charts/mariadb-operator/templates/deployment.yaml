@@ -63,7 +63,10 @@ spec:
             - containerPort: 8080
               protocol: TCP
               name: metrics
-          env: 
+          envFrom:
+            - configMapRef:
+                name: mariadb-operator-related-images
+          env:
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName }}
             - name: MARIADB_OPERATOR_NAME

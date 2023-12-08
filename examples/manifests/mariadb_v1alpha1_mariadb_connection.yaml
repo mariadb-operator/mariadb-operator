@@ -22,8 +22,6 @@ spec:
       retryInterval: 3s
     params:
       parseTime: "true"
-      
-  image: mariadb:11.0.3
 
   port: 3306
 

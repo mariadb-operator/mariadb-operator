@@ -35,6 +35,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -63,6 +64,7 @@ type MariaDBReconciler struct {
 	Builder        *builder.Builder
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready
+	Environment    *environment.Environment
 
 	ServiceMonitorReconciler bool
 
@@ -111,8 +113,12 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	phases := []reconcilePhase{
 		{
+			Name:      "Spec",
+			Reconcile: r.setSpecDefaults,
+		},
+		{
 			Name:      "Status",
-			Reconcile: r.defaultStatus,
+			Reconcile: r.setStatusDefaults,
 		},
 		{
 			Name:      "ConfigMap",
@@ -611,7 +617,13 @@ func (r *MariaDBReconciler) reconcileConnectionTemplate(ctx context.Context, key
 	return r.Create(ctx, conn)
 }
 
-func (r *MariaDBReconciler) defaultStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	return r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
+		mdb.SetDefaults(r.Environment)
+	})
+}
+
+func (r *MariaDBReconciler) setStatusDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Status.CurrentPrimaryPodIndex != nil && mariadb.Status.CurrentPrimary != nil {
 		return nil
 	}

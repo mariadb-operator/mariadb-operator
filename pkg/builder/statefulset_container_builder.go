@@ -12,7 +12,7 @@ import (
 )
 
 func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]corev1.Container, error) {
-	mariadbContainer := buildContainer(&mariadb.Spec.ContainerTemplate)
+	mariadbContainer := buildContainer(mariadb.Spec.Image, mariadb.Spec.ImagePullPolicy, &mariadb.Spec.ContainerTemplate)
 	mariadbContainer.Name = MariaDbContainerName
 	mariadbContainer.Args = buildStsArgs(mariadb)
 	mariadbContainer.Env = buildStsEnv(mariadb)
@@ -34,8 +34,8 @@ func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *core
 		containers = append(containers, buildMetricsContainer(mariadb.Spec.Metrics, dsn))
 	}
 	if mariadb.Spec.SidecarContainers != nil {
-		for index, containerTpl := range mariadb.Spec.SidecarContainers {
-			sidecarContainer := buildContainer(&containerTpl)
+		for index, container := range mariadb.Spec.SidecarContainers {
+			sidecarContainer := buildContainer(container.Image, container.ImagePullPolicy, &container.ContainerTemplate)
 			sidecarContainer.Name = fmt.Sprintf("sidecar-%d", index)
 			if sidecarContainer.Env == nil {
 				sidecarContainer.Env = buildStsEnv(mariadb)
@@ -51,7 +51,8 @@ func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *core
 }
 
 func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
-	container := buildContainer(&mariadb.Galera().Agent.ContainerTemplate)
+	agent := mariadb.Galera().Agent
+	container := buildContainer(agent.Image, agent.ImagePullPolicy, &agent.ContainerTemplate)
 	container.Name = AgentContainerName
 	container.Ports = []corev1.ContainerPort{
 		{
@@ -108,8 +109,8 @@ func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) co
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 	initContainers := []corev1.Container{}
 	if mariadb.Spec.InitContainers != nil {
-		for index, containerTpl := range mariadb.Spec.InitContainers {
-			initContainer := buildContainer(&containerTpl)
+		for index, container := range mariadb.Spec.InitContainers {
+			initContainer := buildContainer(container.Image, container.ImagePullPolicy, &container.ContainerTemplate)
 			initContainer.Name = fmt.Sprintf("init-%d", index)
 			if initContainer.Env == nil {
 				initContainer.Env = buildStsEnv(mariadb)
@@ -130,7 +131,8 @@ func buildGaleraInitContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container
 	if !mariadb.Galera().Enabled {
 		return corev1.Container{}
 	}
-	container := buildContainer(mariadb.Galera().InitContainer)
+	init := mariadb.Galera().InitContainer
+	container := buildContainer(init.Image, init.ImagePullPolicy, &init.ContainerTemplate)
 
 	container.Name = InitContainerName
 	container.Args = func() []string {
@@ -283,7 +285,7 @@ func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 }
 
 func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretKeySelector) corev1.Container {
-	container := buildContainer(&metrics.Exporter.ContainerTemplate)
+	container := buildContainer(metrics.Exporter.Image, metrics.Exporter.ImagePullPolicy, &metrics.Exporter.ContainerTemplate)
 	container.Name = MetricsContainerName
 	container.Ports = []corev1.ContainerPort{
 		{
@@ -300,10 +302,10 @@ func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretK
 	return container
 }
 
-func buildContainer(tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
+func buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
 	container := corev1.Container{
-		Image:           tpl.Image,
-		ImagePullPolicy: tpl.ImagePullPolicy,
+		Image:           image,
+		ImagePullPolicy: pullPolicy,
 		Command:         tpl.Command,
 		Args:            tpl.Args,
 		Env:             tpl.Env,

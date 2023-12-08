@@ -30,9 +30,10 @@ cert-from-cluster: ## Get certificate from cluster.
 lint: golangci-lint ## Lint.
 	$(GOLANGCI_LINT) run
 
+TEST_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) MARIADB_OPERATOR_NAME=$(MARIADB_OPERATOR_NAME) MARIADB_OPERATOR_NAMESPACE=$(MARIADB_OPERATOR_NAMESPACE) MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
 .PHONY: test
 test: envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test -timeout 20m -v ./... -coverprofile cover.out
+	 $(TEST_ENV) go test -timeout 20m -v ./... -coverprofile cover.out
 
 .PHONY: cover
 cover: test ## Run tests and generate coverage.
@@ -44,9 +45,10 @@ release: goreleaser ## Test release locally.
 
 ##@ Run
 
+RUN_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) 
 .PHONY: run
 run: lint ## Run a controller from your host.
-	go run cmd/controller/*.go $(RUN_FLAGS)
+	$(RUN_ENV) go run cmd/controller/*.go $(RUN_FLAGS)
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 .PHONY: webhook
@@ -58,6 +60,7 @@ CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 cert-controller: lint ## Run a cert-controller from your host.
 	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
+RUN_ENT_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB_ENT)
 .PHONY: run-ent
 run-ent: lint cert ## Run a enterprise from your host.
-	go run cmd/enterprise/*.go $(RUN_FLAGS)
+	$(RUN_ENT_ENV) go run cmd/enterprise/*.go $(RUN_FLAGS)

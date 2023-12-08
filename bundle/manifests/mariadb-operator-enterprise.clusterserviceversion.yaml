@@ -145,7 +145,6 @@ metadata:
               }
             },
             "database": "mariadb",
-            "image": "mariadb:11.0.3",
             "myCnf": "[mariadb]\nbind-address=*\ndefault_storage_engine=InnoDB\nbinlog_format=row\ninnodb_autoinc_lock_mode=2\nmax_allowed_packet=256M\n",
             "passwordSecretKeyRef": {
               "key": "password",
@@ -312,7 +311,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:251f91e5e28ce2983554e6f9890a38bf061720158e366510f3fda02bfed42bd0
-    createdAt: "2023-12-08T12:10:41Z"
+    createdAt: "2023-12-09T10:37:34Z"
     olm.operatorGroup: global-operators
     olm.operatorNamespace: openshift-operators
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
@@ -2022,10 +2021,10 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadb@sha256:c006c05608604cf21c9f5b13af3ba7d6ccb3df5bc042c3fe294e0b6d34689b55
-      name: mariadb
     - image: mariadb/mariadb-operator-enterprise@sha256:251f91e5e28ce2983554e6f9890a38bf061720158e366510f3fda02bfed42bd0
       name: mariadb-operator-enterprise
+    - image: mariadb@sha256:c006c05608604cf21c9f5b13af3ba7d6ccb3df5bc042c3fe294e0b6d34689b55
+      name: mariadb
   version: 0.0.23
   webhookdefinitions:
     - admissionReviewVersions:
