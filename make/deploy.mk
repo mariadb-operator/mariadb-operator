@@ -30,6 +30,13 @@ cluster-ps: ## List all cluster Nodes.
 cluster-workers: ## List cluster worker Nodes.
 	docker ps --filter="name=$(CLUSTER)-worker-*"
 
+##@ Registry
+
+.PHONY: registry-sa
+registry-sa: ## Configure default ServiceAccount to pull from registry-
+	$(KUBECTL) create secret docker-registry registry --from-file=.dockerconfigjson=$(HOME)/.docker/config.json -n default --dry-run=client -o yaml | $(KUBECTL) apply -f -
+	$(KUBECTL) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "registry"}]}'
+
 ##@ DR
 
 MARIADB_INSTANCE ?= mariadb-galera

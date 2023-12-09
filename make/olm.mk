@@ -23,9 +23,8 @@ BUNDLE_IMG ?= mariadb/mariadb-operator-enterprise-bundle:v$(VERSION)
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
 
 CATALOG_IMG ?= mariadb/mariadb-operator-enterprise-catalog:v$(VERSION)
-CATALOG_REGISTRY_CONF ?= $(HOME)/.docker/config.json
 CATALOG_REGISTRY_URL ?= https://index.docker.io/v1/
-CATALOG_REGISTRY_AUTH = $(shell cat $(CATALOG_REGISTRY_CONF) | $(JQ) '.auths["$(CATALOG_REGISTRY_URL)"]')
+CATALOG_REGISTRY_AUTH = $(shell cat $(HOME)/.docker/config.json | $(JQ) '.auths["$(CATALOG_REGISTRY_URL)"]')
 
 .PHONY: scorecard-sa
 scorecard-sa: ## Create scorecard ServiceAccount.
