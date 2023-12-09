@@ -15,7 +15,8 @@ RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --service-mo
 .PHONY: cert
 cert: ## Generates development certificate.
 	@mkdir -p $(CERT_DIR)
-	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -config $(CERT_CONFIG) -out $(CERT_DIR)/tls.crt -keyout $(CERT_DIR)/tls.key
+	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
+		-config $(CERT_CONFIG) -out $(CERT_DIR)/tls.crt -keyout $(CERT_DIR)/tls.key
 
 .PHONY: cert-from-cluster
 cert-from-cluster: ## Get certificate from cluster.
@@ -30,7 +31,9 @@ cert-from-cluster: ## Get certificate from cluster.
 lint: golangci-lint ## Lint.
 	$(GOLANGCI_LINT) run
 
-TEST_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) MARIADB_OPERATOR_NAME=$(MARIADB_OPERATOR_NAME) MARIADB_OPERATOR_NAMESPACE=$(MARIADB_OPERATOR_NAMESPACE) MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
+TEST_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
+	MARIADB_OPERATOR_NAME=$(MARIADB_OPERATOR_NAME) MARIADB_OPERATOR_NAMESPACE=$(MARIADB_OPERATOR_NAMESPACE) MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
 .PHONY: test
 test: envtest ## Run tests.
 	 $(TEST_ENV) go test -timeout 20m -v ./... -coverprofile cover.out
@@ -55,7 +58,8 @@ WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601
 webhook: lint cert-from-cluster ## Run a webhook from your host.
 	go run cmd/controller/*.go webhook $(WEBHOOK_FLAGS)
 
-CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --ca-validity=24h --cert-validity=1h --lookahead-validity=8h --requeue-duration=1m
+CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
+	--ca-validity=24h --cert-validity=1h --lookahead-validity=8h --requeue-duration=1m
 .PHONY: cert-controller
 cert-controller: lint ## Run a cert-controller from your host.
 	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)

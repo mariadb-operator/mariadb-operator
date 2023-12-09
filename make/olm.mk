@@ -21,10 +21,7 @@ endif
 
 BUNDLE_IMG ?= mariadb/mariadb-operator-enterprise-bundle:v$(VERSION)
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
-
 CATALOG_IMG ?= mariadb/mariadb-operator-enterprise-catalog:v$(VERSION)
-CATALOG_REGISTRY_URL ?= https://index.docker.io/v1/
-CATALOG_REGISTRY_AUTH = $(shell cat $(HOME)/.docker/config.json | $(JQ) '.auths["$(CATALOG_REGISTRY_URL)"]')
 
 .PHONY: scorecard-sa
 scorecard-sa: ## Create scorecard ServiceAccount.
@@ -66,19 +63,8 @@ catalog-build: opm ## Build a catalog image.
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
-.PHONY: catalog-registry-login
-catalog-registry-login: ## Login in the catalog registry.
-	docker login $(CATALOG_REGISTRY_URL)
-
-.PHONY: catalog-config
-catalog-config: oc jq catalog-registry-login ## Setup catalog registry credentials in OpenShift global config.
-	$(OC) extract secret/pull-secret -n openshift-config --confirm
-	@cat .dockerconfigjson | $(JQ) -c --argjson registryauth '$(CATALOG_REGISTRY_AUTH)' '.auths["$(CATALOG_REGISTRY_URL)"] |= . + $$registryauth' > .new_dockerconfigjson 
-	$(OC) set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=.new_dockerconfigjson 
-	@rm .dockerconfigjson .new_dockerconfigjson 
-
 .PHONY: catalog-deploy
-catalog-deploy: catalog-config ## Deploy catalog to a OpenShift cluster.
+catalog-deploy: ## Deploy catalog to a OpenShift cluster.
 	cd hack/manifests/catalog && $(KUSTOMIZE) edit set image catalog=$(CATALOG_IMG)
 	$(KUSTOMIZE) build hack/manifests/catalog	| $(KUBECTL) apply -f -
 

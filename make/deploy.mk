@@ -34,10 +34,27 @@ cluster-workers: ## List cluster worker Nodes.
 
 .PHONY: registry-sa
 registry-sa: ## Configure default ServiceAccount to pull from registry-
-	$(KUBECTL) create secret docker-registry registry --from-file=.dockerconfigjson=$(HOME)/.docker/config.json -n default --dry-run=client -o yaml | $(KUBECTL) apply -f -
+	$(KUBECTL) create secret docker-registry registry \
+		--from-file=.dockerconfigjson=$(HOME)/.docker/config.json -n default --dry-run=client -o yaml \
+		| $(KUBECTL) apply -f -
 	$(KUBECTL) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "registry"}]}'
 
-##@ DR
+OCP_REGISTRY_URL ?= https://index.docker.io/v1/
+.PHONY: openshift-registry
+openshift-registry-add: oc jq ## Add catalog registry in OpenShift global config.
+	$(OC) extract secret/pull-secret -n openshift-config --confirm
+	@cat .dockerconfigjson | $(JQ) -c \
+		--argjson registryauth '$(shell cat $(HOME)/.docker/config.json | $(JQ) '.auths["$(OCP_REGISTRY_URL)"]')' '.auths["$(OCP_REGISTRY_URL)"] |= . + $$registryauth' \
+		> .new_dockerconfigjson 
+	$(OC) set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=.new_dockerconfigjson 
+	@rm .dockerconfigjson .new_dockerconfigjson 
+
+.PHONY: openshift-registry
+openshift-registry: ## Setup registries in OpenShift global config.
+	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=https://index.docker.io/v1/
+	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=us-central1-docker.pkg.dev
+
+##@ Disaster recovery
 
 MARIADB_INSTANCE ?= mariadb-galera
 
@@ -75,7 +92,9 @@ helm-crds: kustomize ## Generate CRDs for Helm chart.
 
 .PHONY: helm-related-img
 helm-related-img: ## Update related image in Helm chart.
-	$(KUBECTL) create configmap mariadb-operator-related-images --from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) --dry-run=client -o yaml > deploy/charts/mariadb-operator/templates/configmap.yaml
+	$(KUBECTL) create configmap mariadb-operator-related-images \
+		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) --dry-run=client -o yaml \
+		> deploy/charts/mariadb-operator/templates/configmap.yaml
 
 DOCS_IMG ?= jnorwood/helm-docs:v1.11.0
 .PHONY: helm-docs
