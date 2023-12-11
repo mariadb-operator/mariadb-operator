@@ -3,10 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
-
   port: 3306
 
   volumeClaimTemplate:

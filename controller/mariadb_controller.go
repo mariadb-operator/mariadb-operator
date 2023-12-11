@@ -106,6 +106,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.setStatusDefaults,
 		},
 		{
+			Name:      "Secret",
+			Reconcile: r.reconcileSecret,
+		},
+		{
 			Name:      "ConfigMap",
 			Reconcile: r.reconcileConfigMap,
 		},
@@ -181,6 +185,16 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	secretKeyRef := mariadb.Spec.RootPasswordSecretKeyRef
+	key := types.NamespacedName{
+		Name:      secretKeyRef.Name,
+		Namespace: mariadb.Namespace,
+	}
+	_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, key, secretKeyRef.Key, mariadb)
+	return err
 }
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

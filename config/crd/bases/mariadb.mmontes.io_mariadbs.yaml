@@ -9814,7 +9814,6 @@ spec:
                   type: object
                 type: array
             required:
-            - rootPasswordSecretKeyRef
             - volumeClaimTemplate
             type: object
           status:

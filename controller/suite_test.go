@@ -276,7 +276,7 @@ var _ = BeforeSuite(func() {
 	}()
 
 	By("Creating initial test data")
-	createTestData(testCtx, k8sClient)
+	createTestData(testCtx, k8sClient, *env)
 })
 
 var _ = AfterSuite(func() {

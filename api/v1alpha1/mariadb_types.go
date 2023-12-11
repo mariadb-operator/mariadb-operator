@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -166,9 +167,9 @@ type MariaDBSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
 	// RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef" webhook:"inmutable"`
+	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef,omitempty" webhook:"inmutable"`
 	// Database is the database to be created on bootstrap.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -326,6 +327,9 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMariadbImage
 	}
+	if m.Spec.RootPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+		m.Spec.RootPasswordSecretKeyRef = m.RootPasswordSecretKeyRef()
+	}
 }
 
 func (m *MariaDB) Replication() Replication {
@@ -362,6 +366,16 @@ func (m *MariaDB) IsRestoringBackup() bool {
 
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
+}
+
+// RootPasswordSecretKeyRef defines the key selector for the root password Secret.
+func (m *MariaDB) RootPasswordSecretKeyRef() corev1.SecretKeySelector {
+	return corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: fmt.Sprintf("%s-root", m.Name),
+		},
+		Key: "password",
+	}
 }
 
 // +kubebuilder:object:root=true
