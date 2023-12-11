@@ -1,0 +1,21 @@
+name: OLM Helm
+
+on:
+  push:
+    tags:
+      - "helm-chart-*"
+
+jobs:
+  olm:
+    name: OLM Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Dispatch helm workflow
+        run: gh workflow run bundle.yaml --repo mariadb-operator/mariadb-operator-helm -f version=$(make helm-chart-version)
+        env:
+          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
