@@ -3,18 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb-from-pvc
 spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
-
-  database: mariadb
-  username: mariadb
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
-
-  port: 3306
-
   volumeClaimTemplate:
     resources:
       requests:

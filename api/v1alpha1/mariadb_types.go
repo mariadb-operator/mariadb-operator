@@ -333,6 +333,10 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	if m.Spec.Port == 0 {
 		m.Spec.Port = 3306
 	}
+	if m.Spec.MyCnf != nil && m.Spec.MyCnfConfigMapKeyRef == nil {
+		myCnfKeyRef := m.MyCnfConfigMapKeyRef()
+		m.Spec.MyCnfConfigMapKeyRef = &myCnfKeyRef
+	}
 }
 
 func (m *MariaDB) Replication() Replication {
@@ -378,6 +382,16 @@ func (m *MariaDB) RootPasswordSecretKeyRef() corev1.SecretKeySelector {
 			Name: fmt.Sprintf("%s-root", m.Name),
 		},
 		Key: "password",
+	}
+}
+
+// MyCnfConfigMapKeyRef defines the key selector for the my.cnf ConfigMap.
+func (m *MariaDB) MyCnfConfigMapKeyRef() corev1.ConfigMapKeySelector {
+	return corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: fmt.Sprintf("%s-config", m.Name),
+		},
+		Key: "my.cnf",
 	}
 }
 

@@ -3,85 +3,9 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
-  database: mariadb
-  username: mariadb
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
-
   volumeClaimTemplate:
     resources:
       requests:
         storage: 1Gi
     accessModes:
       - ReadWriteOnce
-  volumes: 
-    - name: mariabackup
-      persistentVolumeClaim:
-        claimName: mariabackup
-  volumeMounts: 
-    - name: mariabackup
-      mountPath: /var/mariadb/backup/
-
-  myCnf: |
-    [mariadb]
-    bind-address=*
-    default_storage_engine=InnoDB
-    binlog_format=row
-    innodb_autoinc_lock_mode=2
-    max_allowed_packet=256M
-
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 512Mi
-
-  env:
-    - name: TZ
-      value: SYSTEM
-
-  envFrom:
-    - configMapRef:
-        name: mariadb
-
-  podSecurityContext:
-    runAsUser: 0
-
-  securityContext:
-    allowPrivilegeEscalation: false
-
-  livenessProbe:
-    exec:
-      command:
-        - bash
-        - -c
-        - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
-    initialDelaySeconds: 20
-    periodSeconds: 10
-    timeoutSeconds: 5
-
-  readinessProbe:
-    exec:
-      command:
-        - bash
-        - -c
-        - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
-    initialDelaySeconds: 20
-    periodSeconds: 10
-    timeoutSeconds: 5
-
-  podDisruptionBudget:
-    maxUnavailable: 50%
-
-  updateStrategy:
-    type: RollingUpdate
-
-  service:
-    type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.20
-    externalTrafficPolicy: Cluster
-    sessionAffinity: None
