@@ -111,7 +111,7 @@ jobs:
       - name: Create pull request
         run: |
           gh pr create -B ${{ github.event.repository.default_branch }} -H olm-${{ steps.version.outputs.VERSION }}-update-bundle --title 'Updated OLM bundle (${{ steps.version.outputs.VERSION }})' --body 'Automatically created by GitHub actions afer releasing OLM bundle.'
-          gh pr merge olm-${{ steps.version.outputs.VERSION }}-update-bundle --auto --rebase --delete-branch  
+          gh pr merge --auto --rebase --delete-branch  
         env:
           GITHUB_TOKEN: ${{ secrets.GHA_TOKEN }}
 
