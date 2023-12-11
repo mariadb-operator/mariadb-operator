@@ -9,8 +9,6 @@ spec:
     name: mariadb
     key: password
 
-  port: 3306
-
   volumeClaimTemplate:
     resources:
       requests:

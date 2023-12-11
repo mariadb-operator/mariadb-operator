@@ -3,14 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb-repl
 spec:
-  database: mariadb
-  username: mariadb
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
-    
-  port: 3306
-
   replicas: 3
 
   replication:
