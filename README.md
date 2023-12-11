@@ -8,7 +8,6 @@
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml/badge.svg" alt="Helm"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/manifests.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/manifests.yml/badge.svg" alt="Manifests"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/olm-helm.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/olm-helm.yml/badge.svg" alt="OLM Helm"></a>
-<a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/olm.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/olm.yml/badge.svg" alt="OLM"></a>
 </p>
 
 <p align="center">
