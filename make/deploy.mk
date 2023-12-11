@@ -149,7 +149,7 @@ manifests-bundle: manifests-crds manifests-bundle-helm manifests-bundle-helm-min
 ##@ Generate
 
 .PHONY: generate
-generate: manifests code helm manifests-bundle ## Generate manifests, code, helm chart and manifests bundle.
+generate: manifests code helm manifests-bundle licenses ## Generate artifacts.
 
 .PHONY: gen
 gen: generate ## Generate alias.
