@@ -104,13 +104,13 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Updated OLM bundle (${{ steps.version.outputs.VERSION }})
-          branch: olm-${{ steps.version.outputs.VERSION }}
+          branch: olm-${{ steps.version.outputs.VERSION }}-update-bundle
           create_branch: true
 
       - name: Create pull request
-        run: gh pr create -B main -H olm-${{ steps.version.outputs.VERSION }} --title 'Updated OLM bundle (${{ steps.version.outputs.VERSION }})' --body 'Automatically created by GitHub Actions after releasing OLM bundle ${{ steps.version.outputs.VERSION }}.'
+        run: gh pr create -B main -H olm-${{ steps.version.outputs.VERSION }}-update-bundle --title 'Updated OLM bundle (${{ steps.version.outputs.VERSION }})' --body 'Automatically created by GitHub Actions after releasing OLM bundle ${{ steps.version.outputs.VERSION }}.'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GHA_TOKEN }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
