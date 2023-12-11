@@ -12,6 +12,7 @@ CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 GORELEASER ?= $(LOCALBIN)/goreleaser
+GO_LICENSES = $(LOCALBIN)/go-licenses
 FLUX ?= $(LOCALBIN)/flux
 YQ ?= $(LOCALBIN)/yq
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
@@ -26,6 +27,7 @@ CONTROLLER_GEN_VERSION ?= v0.11.1
 ENVTEST_K8S_VERSION ?= 1.26
 GOLANGCI_LINT_VERSION ?= v1.52.2
 GORELEASER_VERSION ?= v1.18.2
+GO_LICENSES_VERSION ?= v1.6.0
 FLUX_VERSION ?= 0.40.1
 JQ_VERSION ?= jq-1.7
 YQ_VERSION ?= v4.18.1
@@ -79,6 +81,11 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 goreleaser: $(GORELEASER) ## Download goreleaser locally if necessary.
 $(GORELEASER): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/goreleaser/goreleaser@$(GORELEASER_VERSION)
+
+.PHONY: go-licenses
+go-licenses: $(GO_LICENSES) ## Download go-licenses locally if necessary.
+$(GO_LICENSES): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install github.com/google/go-licenses@$(GO_LICENSES_VERSION)
 
 .PHONY: flux
 flux: ## Download flux locally if necessary.
