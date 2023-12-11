@@ -6,6 +6,9 @@ ENV CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
 WORKDIR /app
 
+COPY licenses /licenses
+COPY LICENSE /licenses
+
 COPY go.mod go.sum /app/
 RUN go mod download
 
@@ -15,6 +18,7 @@ RUN go build -o mariadb-operator-enterprise cmd/enterprise/*.go
 FROM registry.access.redhat.com/ubi8/ubi-micro AS app
 
 WORKDIR /
+COPY --from=builder /licenses /licenses
 COPY --from=builder /app/mariadb-operator-enterprise /bin/mariadb-operator-enterprise
 USER 65532:65532
 
