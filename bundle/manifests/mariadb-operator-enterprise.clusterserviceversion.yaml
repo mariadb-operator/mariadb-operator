@@ -311,7 +311,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:787e2da4bfe7e32ccb6e61c1c06f9f892b20f53061f55eece6884f95d32f0d76
-    createdAt: "2023-12-10T12:49:37Z"
+    createdAt: "2023-12-11T12:05:17Z"
     olm.operatorGroup: global-operators
     olm.operatorNamespace: openshift-operators
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
@@ -1915,7 +1915,7 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:9487cf17f7dfe2025eb5b009b77454a6aa6fbd95b8c1e85a6dd919683767268e
+                        value: mariadb@sha256:c006c05608604cf21c9f5b13af3ba7d6ccb3df5bc042c3fe294e0b6d34689b55
                       - name: MARIADB_OPERATOR_NAME
                         valueFrom:
                           fieldRef:
@@ -2031,7 +2031,7 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:9487cf17f7dfe2025eb5b009b77454a6aa6fbd95b8c1e85a6dd919683767268e
+    - image: mariadb@sha256:c006c05608604cf21c9f5b13af3ba7d6ccb3df5bc042c3fe294e0b6d34689b55
       name: mariadb
     - image: mariadb/mariadb-operator-enterprise@sha256:787e2da4bfe7e32ccb6e61c1c06f9f892b20f53061f55eece6884f95d32f0d76
       name: mariadb-operator-enterprise
