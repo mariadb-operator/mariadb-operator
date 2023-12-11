@@ -84,6 +84,14 @@ spec:
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
 
+  metrics:
+    enabled: true
+    exporter:
+      image: prom/mysqld-exporter:v0.14.0
+      port: 9104
+    serviceMonitor:
+      prometheusRelease: kube-prometheus-stack
+
   volumeClaimTemplate:
     resources:
       requests:
