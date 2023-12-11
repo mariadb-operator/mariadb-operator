@@ -71,9 +71,7 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
           file: ./Dockerfile.ubi
-          # TODO: re-enable after testing
-          # platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
           tags: |
             mariadb/mariadb-operator-enterprise:v${{ steps.version.outputs.VERSION }}
             mariadb/mariadb-operator-enterprise:latest
