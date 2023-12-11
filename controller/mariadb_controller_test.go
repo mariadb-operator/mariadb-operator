@@ -2,7 +2,6 @@ package controller
 
 import (
 	"os"
-	"reflect"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -17,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -34,6 +34,14 @@ var _ = Describe("MariaDB", func() {
 					Namespace: testDefaultKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					MyCnf: ptr.To(`
+					[mariadb]
+					bind-address=*
+					default_storage_engine=InnoDB
+					binlog_format=row
+					innodb_autoinc_lock_mode=2
+					max_allowed_packet=256M
+					`),
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -50,39 +58,30 @@ var _ = Describe("MariaDB", func() {
 			}
 			Expect(k8sClient.Create(testCtx, &testDefaultMariaDb)).To(Succeed())
 
-			By("Expecting to evantually default image")
+			By("Expecting to eventually default")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, testDefaultKey, &testDefaultMariaDb); err != nil {
 					return false
 				}
-				expectedImage := os.Getenv("RELATED_IMAGE_MARIADB")
-				return expectedImage == testDefaultMariaDb.Spec.Image
+				return testDefaultMariaDb.Spec.Image != ""
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Expecting to evantually default root password")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, testDefaultKey, &testDefaultMariaDb); err != nil {
-					return false
-				}
-				return reflect.DeepEqual(
-					testDefaultMariaDb.Spec.RootPasswordSecretKeyRef,
-					testDefaultMariaDb.RootPasswordSecretKeyRef(),
-				)
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting to evantually default root password")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, testDefaultKey, &testDefaultMariaDb); err != nil {
-					return false
-				}
-				return testDefaultMariaDb.Spec.Port == 3306
-			}, testTimeout, testInterval).Should(BeTrue())
+			expectedImage := os.Getenv("RELATED_IMAGE_MARIADB")
+			Expect(expectedImage).ToNot((BeEmpty()))
+			Expect(testDefaultMariaDb.Spec.Image).To(Equal(expectedImage))
+			Expect(testDefaultMariaDb.Spec.RootPasswordSecretKeyRef).To(BeEquivalentTo(testDefaultMariaDb.RootPasswordSecretKeyRef()))
+			Expect(testDefaultMariaDb.Spec.Port).To(BeEquivalentTo(3306))
+			Expect(testDefaultMariaDb.Spec.MyCnfConfigMapKeyRef).ToNot(BeNil())
 		})
 		It("Should reconcile", func() {
 			By("Expecting to create a ConfigMap eventually")
 			Eventually(func() bool {
 				var cm corev1.ConfigMap
-				if err := k8sClient.Get(testCtx, configMapMariaDBKey(&testMariaDb), &cm); err != nil {
+				key := types.NamespacedName{
+					Name:      testMariaDb.MyCnfConfigMapKeyRef().Name,
+					Namespace: testMariaDb.Namespace,
+				}
+				if err := k8sClient.Get(testCtx, key, &cm); err != nil {
 					return false
 				}
 				Expect(cm.ObjectMeta.Labels).NotTo(BeNil())

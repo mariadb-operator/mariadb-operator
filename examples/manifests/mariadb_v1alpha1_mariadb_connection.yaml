@@ -3,16 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
-
-  database: mariadb
-  username: mariadb
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
-
   connection:
     secretName: connection-mariadb
     secretTemplate:
@@ -22,8 +12,6 @@ spec:
       retryInterval: 3s
     params:
       parseTime: "true"
-
-  port: 3306
 
   volumeClaimTemplate:
     resources:

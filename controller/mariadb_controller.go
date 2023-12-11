@@ -36,10 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var (
-	myCnfConfigMapKey = "my.cnf"
-)
-
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
@@ -198,35 +194,22 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 }
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.MyCnf == nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
-		return nil
-	}
-	key := configMapMariaDBKey(mariadb)
-	if mariadb.Spec.MyCnf != nil && mariadb.Spec.MyCnfConfigMapKeyRef == nil {
+	if mariadb.Spec.MyCnf != nil && mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		configMapKeyRef := *mariadb.Spec.MyCnfConfigMapKeyRef
 		req := configmap.ReconcileRequest{
 			Mariadb: mariadb,
 			Owner:   mariadb,
-			Key:     key,
+			Key: types.NamespacedName{
+				Name:      configMapKeyRef.Name,
+				Namespace: mariadb.Namespace,
+			},
 			Data: map[string]string{
-				myCnfConfigMapKey: *mariadb.Spec.MyCnf,
+				configMapKeyRef.Key: *mariadb.Spec.MyCnf,
 			},
 		}
-		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
-			return err
-		}
+		return r.ConfigMapReconciler.Reconcile(ctx, &req)
 	}
-	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
-		return nil
-	}
-
-	return r.patch(ctx, mariadb, func(md *mariadbv1alpha1.MariaDB) {
-		mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: key.Name,
-			},
-			Key: myCnfConfigMapKey,
-		}
-	})
+	return nil
 }
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -663,13 +646,6 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(mariadb)
 	return r.Patch(ctx, mariadb, patch)
-}
-
-func configMapMariaDBKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("config-%s", mariadb.Name),
-		Namespace: mariadb.Namespace,
-	}
 }
 
 func restoreKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
