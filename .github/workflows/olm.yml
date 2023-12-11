@@ -15,6 +15,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          token: ${{ secrets.GHA_TOKEN }}
 
       - name: Fetch tags
         run: git fetch --force --tags
@@ -103,8 +104,6 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Updated OLM bundle (${{ steps.version.outputs.VERSION }})
-        env:
-          GITHUB_TOKEN: ${{ secrets.GHA_TOKEN }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
