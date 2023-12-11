@@ -1,3 +1,4 @@
+// nolint:lll
 package v1alpha1
 
 import (
@@ -151,12 +152,12 @@ type MariaDBSpec struct {
 	PodTemplate `json:",inline"`
 	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Image string `json:"image,omitempty"`
 	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
 	// +optional
 	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
@@ -168,7 +169,7 @@ type MariaDBSpec struct {
 	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
 	// RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef,omitempty" webhook:"inmutable"`
 	// Database is the database to be created on bootstrap.
 	// +optional
@@ -218,7 +219,7 @@ type MariaDBSpec struct {
 	// Port where the instances will be listening for connections.
 	// +optional
 	// +kubebuilder:default=3306
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Port int32 `json:"port,omitempty"`
 	// VolumeClaimTemplate provides a template to define the Pod PVCs.
 	// +kubebuilder:validation:Required
@@ -311,7 +312,6 @@ func (s *MariaDBStatus) FillWithDefaults(mariadb *MariaDB) {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Primary Pod",type="string",JSONPath=".status.currentPrimary"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// nolint:lll
 // +operator-sdk:csv:customresourcedefinitions:resources={{MariaDB,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
 
 // MariaDB is the Schema for the mariadbs API
@@ -329,6 +329,9 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	}
 	if m.Spec.RootPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.Spec.RootPasswordSecretKeyRef = m.RootPasswordSecretKeyRef()
+	}
+	if m.Spec.Port == 0 {
+		m.Spec.Port = 3306
 	}
 }
 

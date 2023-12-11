@@ -22,7 +22,7 @@ import (
 
 var _ = Describe("MariaDB", func() {
 	Context("When creating a MariaDB", func() {
-		It("Should default", Focus, func() {
+		It("Should default", func() {
 			By("Creating MariaDB")
 			testDefaultKey = types.NamespacedName{
 				Name:      "test-default",
@@ -34,7 +34,6 @@ var _ = Describe("MariaDB", func() {
 					Namespace: testDefaultKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Port: 3306,
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -69,6 +68,14 @@ var _ = Describe("MariaDB", func() {
 					testDefaultMariaDb.Spec.RootPasswordSecretKeyRef,
 					testDefaultMariaDb.RootPasswordSecretKeyRef(),
 				)
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting to evantually default root password")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, testDefaultKey, &testDefaultMariaDb); err != nil {
+					return false
+				}
+				return testDefaultMariaDb.Spec.Port == 3306
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
 		It("Should reconcile", func() {
@@ -191,12 +198,6 @@ var _ = Describe("MariaDB", func() {
 							Name: backupKey.Name,
 						},
 					},
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -289,12 +290,6 @@ var _ = Describe("MariaDB", func() {
 							Name: "foo",
 						},
 					},
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -337,12 +332,6 @@ var _ = Describe("MariaDB", func() {
 					Namespace: updateMariaDBKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -396,12 +385,6 @@ var _ = Describe("MariaDB replication", func() {
 					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
 					Username: &testUser,
 					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -641,12 +624,6 @@ var _ = Describe("MariaDB Galera", func() {
 					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
 					Username: &testUser,
 					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{

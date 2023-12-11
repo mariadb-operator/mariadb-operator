@@ -305,13 +305,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "secret",
-						},
-						Key: "root-password",
-					},
-					Port: 3306,
 					VolumeClaimTemplate: VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -344,13 +337,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "secret",
-						},
-						Key: "root-password",
-					},
-					Port: 3306,
 					VolumeClaimTemplate: VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -391,13 +377,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "secret",
-						},
-						Key: "root-password",
-					},
-					Port: 3306,
 					VolumeClaimTemplate: VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -439,13 +418,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: testNamespace,
 				},
 				Spec: MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "secret",
-						},
-						Key: "root-password",
-					},
-					Port: 3306,
 					VolumeClaimTemplate: VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
@@ -713,12 +685,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: noSwitchoverKey.Namespace,
 				},
 				Spec: MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "secret",
-						},
-						Key: "root-password",
-					},
 					Database: &test,
 					Username: &test,
 					PasswordSecretKeyRef: &corev1.SecretKeySelector{
@@ -758,14 +724,6 @@ var _ = Describe("MariaDB webhook", func() {
 					Namespace: switchoverKey.Namespace,
 				},
 				Spec: MariaDBSpec{
-					Image:           "mariadb:11.0.3",
-					ImagePullPolicy: corev1.PullIfNotPresent,
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "secret",
-						},
-						Key: "root-password",
-					},
 					Database: &test,
 					Username: &test,
 					PasswordSecretKeyRef: &corev1.SecretKeySelector{

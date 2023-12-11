@@ -3,8 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
-  port: 3306
-
   volumeClaimTemplate:
     resources:
       requests:

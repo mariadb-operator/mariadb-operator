@@ -68,12 +68,6 @@ var _ = Describe("Restore controller", func() {
 					Namespace: mariaDBKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 							Resources: corev1.ResourceRequirements{
