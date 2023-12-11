@@ -113,6 +113,12 @@ helm: helm-crds helm-related-img helm-docs ## Generate manifests for Helm chart.
 helm-chart-version: yq ## Get helm chart version.
 	@cat $(HELM_DIR)/Chart.yaml | $(YQ) e ".version"
 
+##@ Documentation
+
+.PHONY: licenses
+licenses: go-licenses ## Generate licenses folder.
+	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force
+
 ##@ Manifests
 
 MANIFESTS_CRDS_DIR ?= deploy/crds
