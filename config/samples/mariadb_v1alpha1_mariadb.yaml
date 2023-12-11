@@ -3,10 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb-repl
 spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
-
   database: mariadb
   username: mariadb
   passwordSecretKeyRef:

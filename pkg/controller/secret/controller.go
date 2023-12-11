@@ -30,7 +30,7 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, key type
 	if err := r.Get(ctx, key, &existingSecret); err == nil {
 		return string(existingSecret.Data[secretKey]), nil
 	}
-	password, err := password.Generate(16, 4, 0, false, false)
+	password, err := password.Generate(16, 4, 2, false, false)
 	if err != nil {
 		return "", fmt.Errorf("error generating replication password: %v", err)
 	}

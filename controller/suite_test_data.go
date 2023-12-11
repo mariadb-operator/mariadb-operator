@@ -7,6 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -50,12 +51,12 @@ var (
 	}
 )
 
-var testMariaDbKey types.NamespacedName
+var testDefaultKey types.NamespacedName
 var testMariaDb mariadbv1alpha1.MariaDB
 var testPwdKey types.NamespacedName
 var testPwd v1.Secret
 
-func createTestData(ctx context.Context, k8sClient client.Client) {
+func createTestData(ctx context.Context, k8sClient client.Client, env environment.Environment) {
 	var testCidrPrefix, err = docker.GetKindCidrPrefix()
 	Expect(testCidrPrefix, err).ShouldNot(Equal(""))
 
@@ -74,14 +75,14 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 	}
 	Expect(k8sClient.Create(ctx, &testPwd)).To(Succeed())
 
-	testMariaDbKey = types.NamespacedName{
+	testDefaultKey = types.NamespacedName{
 		Name:      testMariaDbName,
 		Namespace: testNamespace,
 	}
 	testMariaDb = mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      testMariaDbKey.Name,
-			Namespace: testMariaDbKey.Namespace,
+			Name:      testDefaultKey.Name,
+			Namespace: testDefaultKey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -122,6 +123,8 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 					RunAsUser: func() *int64 { u := int64(0); return &u }(),
 				},
 			},
+			Image:           env.RelatedMariadbImage,
+			ImagePullPolicy: corev1.PullIfNotPresent,
 			InheritMetadata: &mariadbv1alpha1.InheritMetadata{
 				Labels: map[string]string{
 					"mariadb.mmontes.io/test": "test",
@@ -194,7 +197,7 @@ func createTestData(ctx context.Context, k8sClient client.Client) {
 
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
-		if err := k8sClient.Get(ctx, testMariaDbKey, &testMariaDb); err != nil {
+		if err := k8sClient.Get(ctx, testDefaultKey, &testMariaDb); err != nil {
 			return false
 		}
 		return testMariaDb.IsReady()
