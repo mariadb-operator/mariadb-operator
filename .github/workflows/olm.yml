@@ -9,13 +9,13 @@ jobs:
   olm:
     name: OLM
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: main
           fetch-depth: 0
-          token: ${{ secrets.GHA_TOKEN }}
 
       - name: Fetch tags
         run: git fetch --force --tags
@@ -64,9 +64,11 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
           file: ./Dockerfile.ubi
-          platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+          # TODO: re-enable after testing
+          # platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+          platforms: linux/amd64
           tags: |
-            mariadb/mariadb-operator-enterprise:${{ steps.version.outputs.VERSION }}
+            mariadb/mariadb-operator-enterprise:v${{ steps.version.outputs.VERSION }}
             mariadb/mariadb-operator-enterprise:latest
           labels: |
             org.opencontainers.image.title=MariaDB Operator Enterprise
@@ -84,7 +86,7 @@ jobs:
           context: .
           file: ./bundle.Dockerfile
           tags: |
-            mariadb/mariadb-operator-enterprise-bundle:${{ steps.version.outputs.VERSION }}
+            mariadb/mariadb-operator-enterprise-bundle:v${{ steps.version.outputs.VERSION }}
             mariadb/mariadb-operator-enterprise-bundle:latest
           labels: |
             org.opencontainers.image.title=MariaDB Operator Enterprise bundle
@@ -102,6 +104,16 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Updated OLM bundle (${{ steps.version.outputs.VERSION }})
+          branch: olm-${{ steps.version.outputs.VERSION }}-update-bundle
+          push_options: '--force'
+          create_branch: true
+
+      - name: Create pull request
+        run: |
+          gh pr create -B ${{ github.event.repository.default_branch }} -H olm-${{ steps.version.outputs.VERSION }}-update-bundle --title 'Updated OLM bundle (${{ steps.version.outputs.VERSION }})' --body 'Automatically created by GitHub actions afer releasing OLM bundle.'
+          gh pr merge olm-${{ steps.version.outputs.VERSION }}-update-bundle --auto --rebase --delete-branch  
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHA_TOKEN }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
