@@ -310,8 +310,8 @@ metadata:
     capabilities: Auto Pilot
     categories: Database
     certified: "true"
-    containerImage: mariadb/mariadb-operator-enterprise@sha256:3190e677cb1385b37ddbd887c9bee07dabbe59c5eff165580af33a159c2fcf70
-    createdAt: "2023-12-11T16:06:58Z"
+    containerImage: mariadb/mariadb-operator-enterprise@sha256:f097825d8f35db4789b1c65b69395fb2f2a51a53a95678bb0985a77aaa8dbe33
+    createdAt: "2023-12-11T17:01:20Z"
     olm.operatorGroup: global-operators
     olm.operatorNamespace: openshift-operators
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
@@ -1926,7 +1926,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: mariadb/mariadb-operator-enterprise@sha256:3190e677cb1385b37ddbd887c9bee07dabbe59c5eff165580af33a159c2fcf70
+                    image: mariadb/mariadb-operator-enterprise@sha256:f097825d8f35db4789b1c65b69395fb2f2a51a53a95678bb0985a77aaa8dbe33
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -2033,7 +2033,7 @@ spec:
   relatedImages:
     - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:9487cf17f7dfe2025eb5b009b77454a6aa6fbd95b8c1e85a6dd919683767268e
       name: mariadb
-    - image: mariadb/mariadb-operator-enterprise@sha256:3190e677cb1385b37ddbd887c9bee07dabbe59c5eff165580af33a159c2fcf70
+    - image: mariadb/mariadb-operator-enterprise@sha256:f097825d8f35db4789b1c65b69395fb2f2a51a53a95678bb0985a77aaa8dbe33
       name: mariadb-operator-enterprise
   version: 0.0.23
   webhookdefinitions:
