@@ -218,7 +218,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
 	var dsn *corev1.SecretKeySelector
-	if mariadb.Spec.Metrics != nil {
+	if mariadb.AreMetricsEnabled() {
 		var err error
 		dsn, err = r.reconcileMetricsCredentials(ctx, mariadb)
 		if err != nil {
@@ -432,7 +432,7 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 	if mariadb.Spec.Service != nil {
 		opts.ServiceTemplate = *mariadb.Spec.Service
 	}
-	if mariadb.Spec.Metrics != nil {
+	if mariadb.AreMetricsEnabled() {
 		opts.Ports = append(opts.Ports, corev1.ServicePort{
 			Name: builder.MetricsContainerName,
 			Port: mariadb.Spec.Metrics.Exporter.Port,

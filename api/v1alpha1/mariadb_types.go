@@ -64,6 +64,10 @@ type ServiceMonitor struct {
 
 // Metrics defines the metrics for a MariaDB.
 type Metrics struct {
+	// Enabled is a flag to enable Metrics
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
 	// Exporter defines the metrics exporter container.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -342,6 +346,10 @@ func (m *MariaDB) Galera() Galera {
 
 func (m *MariaDB) IsHAEnabled() bool {
 	return m.Replication().Enabled || m.Galera().Enabled
+}
+
+func (m *MariaDB) AreMetricsEnabled() bool {
+	return m.Spec.Metrics != nil && m.Spec.Metrics.Enabled
 }
 
 func (m *MariaDB) IsReady() bool {

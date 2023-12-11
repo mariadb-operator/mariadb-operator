@@ -27,7 +27,7 @@ func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *core
 	if mariadb.Galera().Enabled {
 		containers = append(containers, b.buildGaleraAgentContainer(mariadb))
 	}
-	if mariadb.Spec.Metrics != nil {
+	if mariadb.AreMetricsEnabled() {
 		if dsn == nil {
 			return nil, fmt.Errorf("DSN secret is mandatory when MariaDB specifies metrics")
 		}
