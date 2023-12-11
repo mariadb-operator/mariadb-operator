@@ -16,8 +16,7 @@ VERSION ?= 0.0.23
 IMG ?= ghcr.io/mariadb-operator/mariadb-operator:v$(VERSION)
 IMG_ENT ?= mariadb/mariadb-operator-enterprise:v$(VERSION)
 RELATED_IMAGE_MARIADB ?= mariadb:11.2.2
-RELATED_IMAGE_MARIADB_ENT ?= mariadb:11.2.2
-# RELATED_IMAGE_MARIADB_ENT ?= us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6
+RELATED_IMAGE_MARIADB_ENT ?= us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6
 # RELATED_IMAGE_MARIADB_ENT ?= docker.mariadb.com/enterprise-server:10.6
 
 .PHONY: all
