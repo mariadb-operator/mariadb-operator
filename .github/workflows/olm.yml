@@ -15,7 +15,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: main
           fetch-depth: 0
 
       - name: Fetch tags
@@ -104,7 +103,14 @@ jobs:
       - name: Commit bundle changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: Updated bundle (${{ steps.version.outputs.VERSION }})
+          commit_message: Updated OLM bundle (${{ steps.version.outputs.VERSION }})
+          branch: olm-${{ steps.version.outputs.VERSION }}
+          create_branch: true
+
+      - name: Create pull request
+        run: gh pr create -B main -H olm-${{ steps.version.outputs.VERSION }} --title 'Updated OLM bundle (${{ steps.version.outputs.VERSION }})' --body 'Automatically created by GitHub Actions after releasing OLM bundle ${{ steps.version.outputs.VERSION }}.'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
