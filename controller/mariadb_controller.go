@@ -19,6 +19,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -41,12 +42,11 @@ type MariaDBReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
-	Builder        *builder.Builder
-	RefResolver    *refresolver.RefResolver
-	ConditionReady *condition.Ready
-	Environment    *environment.Environment
-
-	ServiceMonitorReconciler bool
+	Builder         *builder.Builder
+	RefResolver     *refresolver.RefResolver
+	ConditionReady  *condition.Ready
+	Environment     *environment.Environment
+	DiscoveryClient *discovery.DiscoveryClient
 
 	ConfigMapReconciler *configmap.ConfigMapReconciler
 	SecretReconciler    *secret.SecretReconciler
@@ -141,12 +141,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
 		},
-	}
-	if r.ServiceMonitorReconciler {
-		phases = append(phases, reconcilePhase{
+		{
 			Name:      "ServiceMonitor",
 			Reconcile: r.reconcileServiceMonitor,
-		})
+		},
 	}
 
 	for _, p := range phases {
@@ -657,7 +655,7 @@ func restoreKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	builder := ctrl.NewControllerManagedBy(mgr).
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MariaDB{}).
 		Owns(&mariadbv1alpha1.Connection{}).
 		Owns(&mariadbv1alpha1.Restore{}).
@@ -670,9 +668,6 @@ func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Owns(&rbacv1.ClusterRoleBinding{})
-	if r.ServiceMonitorReconciler {
-		builder = builder.Owns(&monitoringv1.ServiceMonitor{})
-	}
-	return builder.Complete(r)
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		Complete(r)
 }
