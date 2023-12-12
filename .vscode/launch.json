@@ -14,7 +14,6 @@
         "--log-dev",
         "--log-level=debug",
         "--log-time-encoder=iso8601",
-        "--service-monitor-reconciler"
       ],
       "env": {
         "MARIADB_OPERATOR_NAME": "mariadb-operator",
