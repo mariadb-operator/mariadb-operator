@@ -4,9 +4,57 @@ metadata:
   name: mariadb-repl
 spec:
   replicas: 3
-     
+
   replication:
     enabled: true
+
+  service:
+    type: ClusterIP
+  connection:
+    secretName: mariadb-conn
+    secretTemplate:
+      key: dsn
+
+  primaryService:
+    type: ClusterIP
+  primaryConnection:
+    secretName: mariadb-conn-primary
+    secretTemplate:
+      key: dsn
+
+  secondaryService:
+    type: ClusterIP
+  secondaryConnection:
+    secretName: mariadb-conn-secondary
+    secretTemplate:
+      key: dsn
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: "kubernetes.io/hostname"
+
+  podDisruptionBudget:
+    maxUnavailable: 66%
+
+  updateStrategy:
+    type: RollingUpdate
+
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    max_allowed_packet=256M
+
+  metrics:
+    enabled: true
+    exporter:
+      image: prom/mysqld-exporter:v0.14.0
+      port: 9104
+    serviceMonitor:
+      prometheusRelease: kube-prometheus-stack
 
   volumeClaimTemplate:
     resources:
