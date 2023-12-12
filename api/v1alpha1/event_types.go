@@ -40,4 +40,7 @@ const (
 
 	// ReasonWebhookUpdateFailed indicates that the webhook configuration update failed.
 	ReasonWebhookUpdateFailed = "WebhookUpdateFailed"
+
+	// ReasonCRDNotFound indicates that a third party CRD is not present in the cluster.
+	ReasonCRDNotFound = "CRDNotFound"
 )
