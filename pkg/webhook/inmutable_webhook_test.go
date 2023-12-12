@@ -25,7 +25,7 @@ func TestInmutableWebhook(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "update mutable field",
+			name: "inmutable - update mutable field",
 			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
@@ -41,7 +41,7 @@ func TestInmutableWebhook(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "update inmutable field",
+			name: "inmutable - update inmutable field",
 			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
@@ -57,31 +57,7 @@ func TestInmutableWebhook(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "update inmutableinit field",
-			old: &mariadbv1alpha1.Restore{
-				ObjectMeta: objectMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
-							Name: "foo",
-						},
-					},
-				},
-			},
-			new: &mariadbv1alpha1.Restore{
-				ObjectMeta: objectMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
-							Name: "bar",
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "init inmutableinit field",
+			name: "inmutableinit - nil field",
 			old: &mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
@@ -101,6 +77,77 @@ func TestInmutableWebhook(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "inmutableinit - non nil field",
+			old: &mariadbv1alpha1.Restore{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
+						BackupRef: &corev1.LocalObjectReference{
+							Name: "bar",
+						},
+					},
+				},
+			},
+			new: &mariadbv1alpha1.Restore{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestoreSource: mariadbv1alpha1.RestoreSource{
+						BackupRef: &corev1.LocalObjectReference{
+							Name: "foo",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "inmutableinit - zero field",
+			old: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{},
+				},
+			},
+			new: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "mariadb-root",
+						},
+						Key: "password",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "inmutableinit - non zero field",
+			old: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "mariadb-root",
+						},
+						Key: "password",
+					},
+				},
+			},
+			new: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "mariadb-root",
+						},
+						Key: "another-password",
+					},
+				},
+			},
+			wantErr: true,
 		},
 		{
 			name: "restore init",

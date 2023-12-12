@@ -86,12 +86,19 @@ func (w *InmutableWebhook) validateInmutable(val, oldVal reflect.Value, pathElem
 				errBundle = append(errBundle, inmutableFieldError(fieldStruct, fieldIface, pathElements...))
 			}
 		case inmutableInitTagValue:
-			if !oldFieldVal.IsNil() && !reflect.DeepEqual(fieldIface, oldFieldIface) {
+			if !isNilOrZero(oldFieldVal) && !reflect.DeepEqual(fieldIface, oldFieldIface) {
 				errBundle = append(errBundle, inmutableFieldError(fieldStruct, fieldIface, pathElements...))
 			}
 		}
 	}
 	return errBundle
+}
+
+func isNilOrZero(val reflect.Value) bool {
+	if val.Kind() == reflect.Ptr {
+		return val.IsNil()
+	}
+	return val.IsZero()
 }
 
 func inmutableFieldError(structField reflect.StructField, value interface{}, pathElements ...string) *field.Error {
