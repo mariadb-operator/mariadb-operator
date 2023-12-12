@@ -171,7 +171,7 @@ type MariaDBSpec struct {
 	// RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef,omitempty" webhook:"inmutable"`
+	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// Database is the database to be created on bootstrap.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
