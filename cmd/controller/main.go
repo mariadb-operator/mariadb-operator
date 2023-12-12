@@ -196,8 +196,9 @@ var rootCmd = &cobra.Command{
 		)
 
 		if err = (&controller.MariaDBReconciler{
-			Client: client,
-			Scheme: scheme,
+			Client:   client,
+			Scheme:   scheme,
+			Recorder: mgr.GetEventRecorderFor("mariadb"),
 
 			Environment:     env,
 			Builder:         builder,
