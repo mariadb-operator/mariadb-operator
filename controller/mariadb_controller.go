@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	ctrlresources "github.com/mariadb-operator/mariadb-operator/controller/resource"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -277,8 +276,8 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if mariadb.IsHAEnabled() {
 		if mariadb.Spec.PrimaryConnection != nil {
-			key := ctrlresources.PrimaryConnectioneKey(mariadb)
-			serviceName := ctrlresources.PrimaryServiceKey(mariadb).Name
+			key := mariadb.PrimaryConnectioneKey()
+			serviceName := mariadb.PrimaryServiceKey().Name
 			connTpl := mariadb.Spec.PrimaryConnection
 			connTpl.ServiceName = &serviceName
 
@@ -287,8 +286,8 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 			}
 		}
 		if mariadb.Spec.SecondaryConnection != nil {
-			key := ctrlresources.SecondaryConnectioneKey(mariadb)
-			serviceName := ctrlresources.SecondaryServiceKey(mariadb).Name
+			key := mariadb.SecondaryConnectioneKey()
+			serviceName := mariadb.SecondaryServiceKey().Name
 			connTpl := mariadb.Spec.SecondaryConnection
 			connTpl.ServiceName = &serviceName
 
@@ -472,7 +471,7 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 }
 
 func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := ctrlresources.InternalServiceKey(mariadb)
+	key := mariadb.InternalServiceKey()
 	ports := []corev1.ServicePort{
 		{
 			Name: builder.MariaDbPortName,
@@ -515,7 +514,7 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	key := ctrlresources.PrimaryServiceKey(mariadb)
+	key := mariadb.PrimaryServiceKey()
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
@@ -541,7 +540,7 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 }
 
 func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := ctrlresources.SecondaryServiceKey(mariadb)
+	key := mariadb.SecondaryServiceKey()
 	opts := builder.ServiceOpts{
 		ExcludeSelectorLabels: true,
 		Ports: []corev1.ServicePort{
@@ -561,7 +560,7 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
 		return err
 	}
-	if err := r.EndpointsReconciler.Reconcile(ctx, ctrlresources.SecondaryServiceKey(mariadb), mariadb); err != nil {
+	if err := r.EndpointsReconciler.Reconcile(ctx, mariadb.SecondaryServiceKey(), mariadb); err != nil {
 		if errors.Is(err, endpoints.ErrNoAddressesAvailable) {
 			log.FromContext(ctx).V(1).Info("No addresses available for secondary Endpoints")
 			return nil

@@ -7,7 +7,6 @@ import (
 
 	"github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	ctrlresources "github.com/mariadb-operator/mariadb-operator/controller/resource"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
 
@@ -62,7 +61,7 @@ func baseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) string {
 		statefulset.PodFQDNWithService(
 			mariadb.ObjectMeta,
 			index,
-			ctrlresources.InternalServiceKey(mariadb).Name,
+			mariadb.InternalServiceKey().Name,
 		),
 		*mariadb.Galera().Agent.Port,
 	)

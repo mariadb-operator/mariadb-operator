@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	ctrlresources "github.com/mariadb-operator/mariadb-operator/controller/resource"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
@@ -116,7 +115,7 @@ func (b *Builder) buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *cor
 
 func buildStsServiceName(mariadb *mariadbv1alpha1.MariaDB) string {
 	if mariadb.IsHAEnabled() {
-		return ctrlresources.InternalServiceKey(mariadb).Name
+		return mariadb.InternalServiceKey().Name
 	}
 	return mariadb.Name
 }
