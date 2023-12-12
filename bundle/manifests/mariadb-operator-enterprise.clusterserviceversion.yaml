@@ -310,7 +310,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:807f0f9be0fd367efc24e488d5a0b728a7675c554e7bb2798a62c237fafb4540
-    createdAt: "2023-12-12T13:08:08Z"
+    createdAt: "2023-12-12T13:23:15Z"
     olm.operatorGroup: global-operators
     olm.operatorNamespace: openshift-operators
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
