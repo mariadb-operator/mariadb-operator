@@ -658,7 +658,7 @@ func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1a
 	patcher patcher) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	if err := patcher(&mariadb.Status); err != nil {
-		return fmt.Errorf("error patching MariaDB status object: %v", err)
+		return err
 	}
 	return r.Status().Patch(ctx, mariadb, patch)
 }
