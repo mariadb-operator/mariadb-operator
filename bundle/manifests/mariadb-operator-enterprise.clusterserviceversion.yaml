@@ -144,16 +144,20 @@ metadata:
                 "key": "dsn"
               }
             },
-            "database": "mariadb",
-            "myCnf": "[mariadb]\nbind-address=*\ndefault_storage_engine=InnoDB\nbinlog_format=row\ninnodb_autoinc_lock_mode=2\nmax_allowed_packet=256M\n",
-            "passwordSecretKeyRef": {
-              "key": "password",
-              "name": "mariadb"
+            "metrics": {
+              "enabled": true,
+              "exporter": {
+                "image": "prom/mysqld-exporter:v0.14.0",
+                "port": 9104
+              },
+              "serviceMonitor": {
+                "prometheusRelease": "kube-prometheus-stack"
+              }
             },
+            "myCnf": "[mariadb]\nbind-address=*\ndefault_storage_engine=InnoDB\nbinlog_format=row\ninnodb_autoinc_lock_mode=2\nmax_allowed_packet=256M\n",
             "podDisruptionBudget": {
               "maxUnavailable": "66%"
             },
-            "port": 3306,
             "primaryConnection": {
               "secretName": "mariadb-repl-conn-primary",
               "secretTemplate": {
@@ -186,10 +190,6 @@ metadata:
               },
               "syncBinlog": true
             },
-            "rootPasswordSecretKeyRef": {
-              "key": "root-password",
-              "name": "mariadb"
-            },
             "secondaryConnection": {
               "secretName": "mariadb-repl-conn-secondary",
               "secretTemplate": {
@@ -218,7 +218,6 @@ metadata:
             "updateStrategy": {
               "type": "RollingUpdate"
             },
-            "username": "mariadb",
             "volumeClaimTemplate": {
               "accessModes": [
                 "ReadWriteOnce"
@@ -310,8 +309,8 @@ metadata:
     capabilities: Auto Pilot
     categories: Database
     certified: "true"
-    containerImage: mariadb/mariadb-operator-enterprise@sha256:f097825d8f35db4789b1c65b69395fb2f2a51a53a95678bb0985a77aaa8dbe33
-    createdAt: "2023-12-11T17:01:20Z"
+    containerImage: mariadb/mariadb-operator-enterprise@sha256:807f0f9be0fd367efc24e488d5a0b728a7675c554e7bb2798a62c237fafb4540
+    createdAt: "2023-12-12T13:08:08Z"
     olm.operatorGroup: global-operators
     olm.operatorNamespace: openshift-operators
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
@@ -844,11 +843,14 @@ spec:
           - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
             displayName: Image
             path: image
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
             displayName: Image Pull Policy
             path: imagePullPolicy
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
             displayName: Image Pull Secrets
             path: imagePullSecrets
@@ -907,6 +909,11 @@ spec:
           - description: Metrics configures metrics and how to scrape them.
             displayName: Metrics
             path: metrics
+          - description: Enabled is a flag to enable Metrics
+            displayName: Enabled
+            path: metrics.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Exporter defines the metrics exporter container.
             displayName: Exporter
             path: metrics.exporter
@@ -996,6 +1003,7 @@ spec:
             path: port
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: PrimaryConnection defines templates to configure the primary Connection object.
             displayName: Primary Connection
             path: primaryConnection
@@ -1137,6 +1145,8 @@ spec:
           - description: RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
             displayName: Root Password Secret Key Ref
             path: rootPasswordSecretKeyRef
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: SecondaryConnection defines templates to configure the secondary Connection object.
             displayName: Secondary Connection
             path: secondaryConnection
@@ -1926,7 +1936,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: mariadb/mariadb-operator-enterprise@sha256:f097825d8f35db4789b1c65b69395fb2f2a51a53a95678bb0985a77aaa8dbe33
+                    image: mariadb/mariadb-operator-enterprise@sha256:807f0f9be0fd367efc24e488d5a0b728a7675c554e7bb2798a62c237fafb4540
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -2033,7 +2043,7 @@ spec:
   relatedImages:
     - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:9487cf17f7dfe2025eb5b009b77454a6aa6fbd95b8c1e85a6dd919683767268e
       name: mariadb
-    - image: mariadb/mariadb-operator-enterprise@sha256:f097825d8f35db4789b1c65b69395fb2f2a51a53a95678bb0985a77aaa8dbe33
+    - image: mariadb/mariadb-operator-enterprise@sha256:807f0f9be0fd367efc24e488d5a0b728a7675c554e7bb2798a62c237fafb4540
       name: mariadb-operator-enterprise
   version: 0.0.23
   webhookdefinitions:

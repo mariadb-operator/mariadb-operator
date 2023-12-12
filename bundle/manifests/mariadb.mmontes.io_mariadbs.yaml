@@ -5447,6 +5447,9 @@ spec:
               metrics:
                 description: Metrics configures metrics and how to scrape them.
                 properties:
+                  enabled:
+                    description: Enabled is a flag to enable Metrics
+                    type: boolean
                   exporter:
                     description: Exporter defines the metrics exporter container.
                     properties:
@@ -9810,7 +9813,6 @@ spec:
                   type: object
                 type: array
             required:
-            - rootPasswordSecretKeyRef
             - volumeClaimTemplate
             type: object
           status:

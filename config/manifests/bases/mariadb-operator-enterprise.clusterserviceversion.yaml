@@ -812,12 +812,15 @@ spec:
           format is `<image>:<tag>`.
         displayName: Image
         path: image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
           or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
         displayName: Image Pull Policy
         path: imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ImagePullSecrets is the list of pull Secrets to be used to pull
           the image.
         displayName: Image Pull Secrets
@@ -883,6 +886,11 @@ spec:
       - description: Metrics configures metrics and how to scrape them.
         displayName: Metrics
         path: metrics
+      - description: Enabled is a flag to enable Metrics
+        displayName: Enabled
+        path: metrics.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: Exporter defines the metrics exporter container.
         displayName: Exporter
         path: metrics.exporter
@@ -982,6 +990,7 @@ spec:
         path: port
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PrimaryConnection defines templates to configure the primary
           Connection object.
         displayName: Primary Connection
@@ -1139,6 +1148,8 @@ spec:
           the root password.
         displayName: Root Password Secret Key Ref
         path: rootPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SecondaryConnection defines templates to configure the secondary
           Connection object.
         displayName: Secondary Connection
