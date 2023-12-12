@@ -93,8 +93,8 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if err := r.patchStatus(ctx, &mariadb, r.patcher(ctx, &mariadb)); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	if err := r.patchStatus(ctx, &mariadb, r.patcher(ctx, &mariadb)); err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, err
 	}
 
 	phases := []reconcilePhase{

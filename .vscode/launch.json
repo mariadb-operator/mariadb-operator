@@ -47,6 +47,24 @@
         "--log-level=debug",
         "--log-time-encoder=iso8601",
       ],
+    },
+    {
+      "name": "Enterprise",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/enterprise",
+      "args": [
+        "--log-dev",
+        "--log-level=debug",
+        "--log-time-encoder=iso8601",
+      ],
+      "env": {
+        "MARIADB_OPERATOR_NAME": "mariadb-operator",
+        "MARIADB_OPERATOR_NAMESPACE": "default",
+        "MARIADB_OPERATOR_SA_PATH": "/tmp/mariadb-operator/token",
+        "RELATED_IMAGE_MARIADB": "us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6",
+      }
     }
   ]
 }
