@@ -51,7 +51,7 @@ var (
 	}
 )
 
-var testDefaultKey types.NamespacedName
+var testMariaDbKey types.NamespacedName
 var testMariaDb mariadbv1alpha1.MariaDB
 var testPwdKey types.NamespacedName
 var testPwd v1.Secret
@@ -75,14 +75,14 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 	}
 	Expect(k8sClient.Create(ctx, &testPwd)).To(Succeed())
 
-	testDefaultKey = types.NamespacedName{
+	testMariaDbKey = types.NamespacedName{
 		Name:      testMariaDbName,
 		Namespace: testNamespace,
 	}
 	testMariaDb = mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      testDefaultKey.Name,
-			Namespace: testDefaultKey.Namespace,
+			Name:      testMariaDbKey.Name,
+			Namespace: testMariaDbKey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -197,7 +197,7 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
-		if err := k8sClient.Get(ctx, testDefaultKey, &testMariaDb); err != nil {
+		if err := k8sClient.Get(ctx, testMariaDbKey, &testMariaDb); err != nil {
 			return false
 		}
 		return testMariaDb.IsReady()

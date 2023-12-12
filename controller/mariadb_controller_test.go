@@ -24,7 +24,7 @@ var _ = Describe("MariaDB", func() {
 	Context("When creating a MariaDB", func() {
 		It("Should default", func() {
 			By("Creating MariaDB")
-			testDefaultKey = types.NamespacedName{
+			testDefaultKey := types.NamespacedName{
 				Name:      "test-default",
 				Namespace: testNamespace,
 			}
@@ -92,7 +92,7 @@ var _ = Describe("MariaDB", func() {
 			By("Expecting to create a StatefulSet eventually")
 			Eventually(func() bool {
 				var sts appsv1.StatefulSet
-				if err := k8sClient.Get(testCtx, testDefaultKey, &sts); err != nil {
+				if err := k8sClient.Get(testCtx, testMariaDbKey, &sts); err != nil {
 					return false
 				}
 				Expect(sts.ObjectMeta.Labels).NotTo(BeNil())
@@ -103,7 +103,7 @@ var _ = Describe("MariaDB", func() {
 			By("Expecting to create a Service eventually")
 			Eventually(func() bool {
 				var svc corev1.Service
-				if err := k8sClient.Get(testCtx, testDefaultKey, &svc); err != nil {
+				if err := k8sClient.Get(testCtx, testMariaDbKey, &svc); err != nil {
 					return false
 				}
 				Expect(svc.ObjectMeta.Labels).NotTo(BeNil())
@@ -118,7 +118,7 @@ var _ = Describe("MariaDB", func() {
 			By("Expecting to create a ServiceMonitor eventually")
 			Eventually(func() bool {
 				var svcMonitor monitoringv1.ServiceMonitor
-				if err := k8sClient.Get(testCtx, testDefaultKey, &svcMonitor); err != nil {
+				if err := k8sClient.Get(testCtx, testMariaDbKey, &svcMonitor); err != nil {
 					return false
 				}
 				Expect(svcMonitor.Spec.Selector).NotTo(BeNil())

@@ -17,6 +17,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
@@ -94,6 +95,8 @@ var _ = BeforeSuite(func() {
 
 	env, err := environment.GetEnvironment(testCtx)
 	Expect(err).ToNot(HaveOccurred())
+	discoveryClient, err := discovery.NewDiscoveryClient(cfg)
+	Expect(err).ToNot(HaveOccurred())
 
 	builder := builder.NewBuilder(scheme, env)
 	refResolver := refresolver.New(client)
@@ -157,12 +160,11 @@ var _ = BeforeSuite(func() {
 		Client: client,
 		Scheme: scheme,
 
-		Environment:    env,
-		Builder:        builder,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-
-		ServiceMonitorReconciler: true,
+		Environment:     env,
+		Builder:         builder,
+		RefResolver:     refResolver,
+		ConditionReady:  conditionReady,
+		DiscoveryClient: discoveryClient,
 
 		ConfigMapReconciler: configMapReconciler,
 		SecretReconciler:    secretReconciler,

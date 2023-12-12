@@ -343,7 +343,14 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 }
 
 func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Metrics == nil {
+	if mariadb.AreMetricsEnabled() {
+		return nil
+	}
+	exist, err := r.DiscoveryClient.ServiceMonitorExist()
+	if err != nil {
+		return err
+	}
+	if !exist {
 		return nil
 	}
 

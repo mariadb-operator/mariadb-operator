@@ -14,7 +14,7 @@ import (
 )
 
 func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*monitoringv1.ServiceMonitor, error) {
-	if mariadb.Spec.Metrics == nil {
+	if !mariadb.AreMetricsEnabled() {
 		return nil, errors.New("MariaDB instance does not specify Metrics")
 	}
 	objMeta :=
