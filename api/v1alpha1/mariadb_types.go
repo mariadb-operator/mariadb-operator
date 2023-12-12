@@ -369,17 +369,17 @@ func (m *MariaDB) AreMetricsEnabled() bool {
 	return m.Spec.Metrics != nil && m.Spec.Metrics.Enabled
 }
 
-// AreMetricsEnabled indicates whether the MariaDB instance is ready
+// IsReady indicates whether the MariaDB instance is ready
 func (m *MariaDB) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
 }
 
-// AreMetricsEnabled indicates whether the MariaDB instance is restoring backup
+// IsRestoringBackup indicates whether the MariaDB instance is restoring backup
 func (m *MariaDB) IsRestoringBackup() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeBackupRestored)
 }
 
-// AreMetricsEnabled indicates whether the MariaDB instance has restored a Backup
+// HasRestoredBackup indicates whether the MariaDB instance has restored a Backup
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
 }
