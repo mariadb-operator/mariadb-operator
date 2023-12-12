@@ -9,25 +9,17 @@ spec:
     enabled: true
 
   service:
-    type: ClusterIP
-  connection:
-    secretName: mariadb-conn
-    secretTemplate:
-      key: dsn
-
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.120
   primaryService:
-    type: ClusterIP
-  primaryConnection:
-    secretName: mariadb-conn-primary
-    secretTemplate:
-      key: dsn
-
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.130
   secondaryService:
-    type: ClusterIP
-  secondaryConnection:
-    secretName: mariadb-conn-secondary
-    secretTemplate:
-      key: dsn
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.131
 
   affinity:
     podAntiAffinity:

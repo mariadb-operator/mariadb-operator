@@ -10,24 +10,10 @@ spec:
 
   service:
     type: ClusterIP
-  connection:
-    secretName: mariadb-conn
-    secretTemplate:
-      key: dsn
-
   primaryService:
     type: ClusterIP
-  primaryConnection:
-    secretName: mariadb-conn-primary
-    secretTemplate:
-      key: dsn
-
   secondaryService:
     type: ClusterIP
-  secondaryConnection:
-    secretName: mariadb-conn-secondary
-    secretTemplate:
-      key: dsn
 
   affinity:
     podAntiAffinity:

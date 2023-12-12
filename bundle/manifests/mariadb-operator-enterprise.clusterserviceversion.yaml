@@ -126,7 +126,7 @@ metadata:
           "apiVersion": "mariadb.mmontes.io/v1alpha1",
           "kind": "MariaDB",
           "metadata": {
-            "name": "mariadb-repl"
+            "name": "mariadb"
           },
           "spec": {
             "affinity": {
@@ -136,12 +136,6 @@ metadata:
                     "topologyKey": "kubernetes.io/hostname"
                   }
                 ]
-              }
-            },
-            "connection": {
-              "secretName": "mariadb-repl-conn",
-              "secretTemplate": {
-                "key": "dsn"
               }
             },
             "metrics": {
@@ -158,63 +152,19 @@ metadata:
             "podDisruptionBudget": {
               "maxUnavailable": "66%"
             },
-            "primaryConnection": {
-              "secretName": "mariadb-repl-conn-primary",
-              "secretTemplate": {
-                "key": "dsn"
-              }
-            },
             "primaryService": {
-              "annotations": {
-                "metallb.universe.tf/loadBalancerIPs": "172.18.0.130"
-              },
-              "type": "LoadBalancer"
+              "type": "ClusterIP"
             },
             "replicas": 3,
             "replication": {
-              "enabled": true,
-              "primary": {
-                "automaticFailover": true,
-                "podIndex": 0
-              },
-              "replica": {
-                "connectionRetries": 10,
-                "connectionTimeout": "10s",
-                "gtid": "CurrentPos",
-                "replPasswordSecretKeyRef": {
-                  "key": "password",
-                  "name": "mariadb"
-                },
-                "syncTimeout": "10s",
-                "waitPoint": "AfterSync"
-              },
-              "syncBinlog": true
-            },
-            "secondaryConnection": {
-              "secretName": "mariadb-repl-conn-secondary",
-              "secretTemplate": {
-                "key": "dsn"
-              }
+              "enabled": true
             },
             "secondaryService": {
-              "annotations": {
-                "metallb.universe.tf/loadBalancerIPs": "172.18.0.131"
-              },
-              "type": "LoadBalancer"
+              "type": "ClusterIP"
             },
             "service": {
-              "annotations": {
-                "metallb.universe.tf/loadBalancerIPs": "172.18.0.120"
-              },
-              "type": "LoadBalancer"
+              "type": "ClusterIP"
             },
-            "tolerations": [
-              {
-                "effect": "NoSchedule",
-                "key": "mariadb.mmontes.io/ha",
-                "operator": "Exists"
-              }
-            ],
             "updateStrategy": {
               "type": "RollingUpdate"
             },
@@ -310,7 +260,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:534d936e59bb297f8b262d01acd980ffd2f4d71a056c0788b6b129844b1268d7
-    createdAt: "2023-12-12T13:59:07Z"
+    createdAt: "2023-12-12T17:26:40Z"
     olm.operatorGroup: global-operators
     olm.operatorNamespace: openshift-operators
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
