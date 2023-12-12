@@ -65,12 +65,16 @@ var _ = Describe("MariaDB", func() {
 				return testDefaultMariaDb.Spec.Image != ""
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			By("Expecting fields to be defaulted")
 			expectedImage := os.Getenv("RELATED_IMAGE_MARIADB")
 			Expect(expectedImage).ToNot((BeEmpty()))
 			Expect(testDefaultMariaDb.Spec.Image).To(Equal(expectedImage))
 			Expect(testDefaultMariaDb.Spec.RootPasswordSecretKeyRef).To(BeEquivalentTo(testDefaultMariaDb.RootPasswordSecretKeyRef()))
 			Expect(testDefaultMariaDb.Spec.Port).To(BeEquivalentTo(3306))
 			Expect(testDefaultMariaDb.Spec.MyCnfConfigMapKeyRef).ToNot(BeNil())
+
+			By("Deleting MariaDB")
+			Expect(k8sClient.Delete(testCtx, &testDefaultMariaDb)).To(Succeed())
 		})
 		It("Should reconcile", func() {
 			By("Expecting to create a ConfigMap eventually")
