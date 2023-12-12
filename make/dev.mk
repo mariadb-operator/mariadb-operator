@@ -10,7 +10,7 @@ CERT_DIR=/tmp/k8s-webhook-server/serving-certs
 CERT_SECRET=mariadb-operator-webhook-cert
 CERT_CONFIG=./hack/config/openssl.conf
 
-RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --service-monitor-reconciler
+RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601
 
 .PHONY: cert
 cert: ## Generates development certificate.

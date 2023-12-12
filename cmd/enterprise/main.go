@@ -36,19 +36,18 @@ import (
 )
 
 var (
-	scheme                   = runtime.NewScheme()
-	setupLog                 = ctrl.Log.WithName("setup")
-	metricsAddr              string
-	healthAddr               string
-	logLevel                 string
-	logTimeEncoder           string
-	logDev                   bool
-	leaderElect              bool
-	serviceMonitorReconciler bool
-	requeueConnection        time.Duration
-	requeueSqlJob            time.Duration
-	webhookPort              int
-	webhookCertDir           string
+	scheme            = runtime.NewScheme()
+	setupLog          = ctrl.Log.WithName("setup")
+	metricsAddr       string
+	healthAddr        string
+	logLevel          string
+	logTimeEncoder    string
+	logDev            bool
+	leaderElect       bool
+	requeueConnection time.Duration
+	requeueSqlJob     time.Duration
+	webhookPort       int
+	webhookCertDir    string
 )
 
 func init() {
@@ -64,8 +63,6 @@ func init() {
 		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
 	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
-	rootCmd.Flags().BoolVar(&serviceMonitorReconciler, "service-monitor-reconciler", false, "Enable ServiceMonitor reconciler. "+
-		"Enabling this requires Prometheus CRDs installed in the cluster.")
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
 	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server.")
