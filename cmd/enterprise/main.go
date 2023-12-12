@@ -19,6 +19,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
@@ -89,7 +90,13 @@ var rootCmd = &cobra.Command{
 		)
 		defer cancel()
 
-		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		restConfig, err := ctrl.GetConfig()
+		if err != nil {
+			setupLog.Error(err, "Unable to get config")
+			os.Exit(1)
+		}
+
+		mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 			Scheme: scheme,
 			Metrics: metricsserver.Options{
 				BindAddress: metricsAddr,
@@ -115,6 +122,11 @@ var rootCmd = &cobra.Command{
 		env, err := environment.GetEnvironment(ctx)
 		if err != nil {
 			setupLog.Error(err, "Error getting environment")
+			os.Exit(1)
+		}
+		discoveryClient, err := discovery.NewDiscoveryClient(restConfig)
+		if err != nil {
+			setupLog.Error(err, "Error getting discovery client")
 			os.Exit(1)
 		}
 
@@ -180,12 +192,11 @@ var rootCmd = &cobra.Command{
 			Client: client,
 			Scheme: scheme,
 
-			Environment:    env,
-			Builder:        builder,
-			RefResolver:    refResolver,
-			ConditionReady: conditionReady,
-
-			ServiceMonitorReconciler: serviceMonitorReconciler,
+			Environment:     env,
+			Builder:         builder,
+			RefResolver:     refResolver,
+			ConditionReady:  conditionReady,
+			DiscoveryClient: discoveryClient,
 
 			ConfigMapReconciler: configMapReconciler,
 			SecretReconciler:    secretReconciler,
