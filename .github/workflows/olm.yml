@@ -103,9 +103,7 @@ jobs:
             org.opencontainers.image.created=${{ steps.version.outputs.BUILD_DATE }}
 
       - name: Regenerate bundle with new digests
-        run: |
-          make generate
-          make bundle
+        run: make bundle
 
       - name: Commit bundle changes
         uses: stefanzweifel/git-auto-commit-action@v5
