@@ -355,6 +355,15 @@ var _ = Describe("MariaDB", func() {
 				return k8sClient.Update(testCtx, &updateMariaDB) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			By("Expecting image to be updated in StatefulSet eventually")
+			Eventually(func() bool {
+				var sts appsv1.StatefulSet
+				if err := k8sClient.Get(testCtx, updateMariaDBKey, &sts); err != nil {
+					return false
+				}
+				return sts.Spec.Template.Spec.Containers[0].Image == "mariadb:lts"
+			}, testTimeout, testInterval).Should(BeTrue())
+
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
@@ -362,11 +371,6 @@ var _ = Describe("MariaDB", func() {
 				}
 				return updateMariaDB.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting image to be updated in StatefulSet")
-			var sts appsv1.StatefulSet
-			Expect(k8sClient.Get(testCtx, updateMariaDBKey, &sts)).To(Succeed())
-			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(BeEquivalentTo("mariadb:lts"))
 
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &updateMariaDB)).To(Succeed())
