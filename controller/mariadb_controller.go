@@ -316,9 +316,8 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, nil
 	}
 	if mariadb.IsRestoringBackup() {
-		key := restoreKey(mariadb)
 		var existingRestore mariadbv1alpha1.Restore
-		if err := r.Get(ctx, key, &existingRestore); err != nil {
+		if err := r.Get(ctx, mariadb.RestoreKey(), &existingRestore); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -339,9 +338,8 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, nil
 	}
 
-	key := restoreKey(mariadb)
 	var existingRestore mariadbv1alpha1.Restore
-	if err := r.Get(ctx, key, &existingRestore); err == nil {
+	if err := r.Get(ctx, mariadb.RestoreKey(), &existingRestore); err == nil {
 		return ctrl.Result{}, nil
 	}
 
@@ -352,7 +350,7 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
 	}
 
-	restore, err := r.Builder.BuildRestore(mariadb, key)
+	restore, err := r.Builder.BuildRestore(mariadb, mariadb.RestoreKey())
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building restore: %v", err)
 	}
@@ -671,13 +669,6 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(mariadb)
 	return r.Patch(ctx, mariadb, patch)
-}
-
-func restoreKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("restore-%s", mariadb.Name),
-		Namespace: mariadb.Namespace,
-	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
