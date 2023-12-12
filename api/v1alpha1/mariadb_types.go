@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -392,6 +393,14 @@ func (m *MariaDB) MyCnfConfigMapKeyRef() corev1.ConfigMapKeySelector {
 			Name: fmt.Sprintf("%s-config", m.Name),
 		},
 		Key: "my.cnf",
+	}
+}
+
+// RestoreKey defines the key for the Restore resource used to bootstrap.
+func (m *MariaDB) RestoreKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-restore", m.Name),
+		Namespace: m.Namespace,
 	}
 }
 
