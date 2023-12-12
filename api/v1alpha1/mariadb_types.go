@@ -280,6 +280,7 @@ type MariaDBStatus struct {
 	GaleraRecovery *GaleraRecoveryStatus `json:"galeraRecovery,omitempty"`
 }
 
+// SetCondition sets a status condition to MariaDB
 func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 	if s.Conditions == nil {
 		s.Conditions = make([]metav1.Condition, 0)
@@ -340,6 +341,7 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	}
 }
 
+// Replication with defaulting accessor
 func (m *MariaDB) Replication() Replication {
 	if m.Spec.Replication == nil {
 		m.Spec.Replication = &Replication{}
@@ -348,6 +350,7 @@ func (m *MariaDB) Replication() Replication {
 	return *m.Spec.Replication
 }
 
+// Galera with defaulting accessor
 func (m *MariaDB) Galera() Galera {
 	if m.Spec.Galera == nil {
 		m.Spec.Galera = &Galera{}
@@ -356,22 +359,27 @@ func (m *MariaDB) Galera() Galera {
 	return *m.Spec.Galera
 }
 
+// IsHAEnabled indicates whether the MariaDB instance has HA enabled
 func (m *MariaDB) IsHAEnabled() bool {
 	return m.Replication().Enabled || m.Galera().Enabled
 }
 
+// AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
 func (m *MariaDB) AreMetricsEnabled() bool {
 	return m.Spec.Metrics != nil && m.Spec.Metrics.Enabled
 }
 
+// AreMetricsEnabled indicates whether the MariaDB instance is ready
 func (m *MariaDB) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
 }
 
+// AreMetricsEnabled indicates whether the MariaDB instance is restoring backup
 func (m *MariaDB) IsRestoringBackup() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeBackupRestored)
 }
 
+// AreMetricsEnabled indicates whether the MariaDB instance has restored a Backup
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
 }
@@ -400,6 +408,46 @@ func (m *MariaDB) MyCnfConfigMapKeyRef() corev1.ConfigMapKeySelector {
 func (m *MariaDB) RestoreKey() types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-restore", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// InternalServiceKey defines the key for the internal headless Service
+func (m *MariaDB) InternalServiceKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-internal", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// PrimaryServiceKey defines the key for the primary Service
+func (m *MariaDB) PrimaryServiceKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-primary", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// PrimaryConnectioneKey defines the key for the primary Connection
+func (m *MariaDB) PrimaryConnectioneKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-primary", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// SecondaryServiceKey defines the key for the secondary Service
+func (m *MariaDB) SecondaryServiceKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-secondary", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// SecondaryConnectioneKey defines the key for the secondary Connection
+func (m *MariaDB) SecondaryConnectioneKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-secondary", m.Name),
 		Namespace: m.Namespace,
 	}
 }

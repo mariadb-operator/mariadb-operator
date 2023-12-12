@@ -5,7 +5,6 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	ctrlresources "github.com/mariadb-operator/mariadb-operator/controller/resource"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -492,11 +491,11 @@ var _ = Describe("MariaDB replication", func() {
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &svc)).To(Succeed())
 
 			By("Expecting to create a primary Service")
-			Expect(k8sClient.Get(testCtx, ctrlresources.PrimaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, testRplMariaDb.PrimaryServiceKey(), &svc)).To(Succeed())
 			Expect(svc.Spec.Selector["statefulset.kubernetes.io/pod-name"]).To(Equal(statefulset.PodName(testRplMariaDb.ObjectMeta, 0)))
 
 			By("Expecting to create a secondary Service")
-			Expect(k8sClient.Get(testCtx, ctrlresources.SecondaryServiceKey(&testRplMariaDb), &svc)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, testRplMariaDb.SecondaryServiceKey(), &svc)).To(Succeed())
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
@@ -510,7 +509,7 @@ var _ = Describe("MariaDB replication", func() {
 			By("Expecting primary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, testRplMariaDb.PrimaryConnectioneKey(), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
@@ -519,7 +518,7 @@ var _ = Describe("MariaDB replication", func() {
 			By("Expecting secondary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, ctrlresources.SecondaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, testRplMariaDb.SecondaryConnectioneKey(), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
@@ -527,7 +526,7 @@ var _ = Describe("MariaDB replication", func() {
 
 			By("Expecting to create secondary Endpoints")
 			var endpoints corev1.Endpoints
-			Expect(k8sClient.Get(testCtx, ctrlresources.SecondaryServiceKey(&testRplMariaDb), &endpoints)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, testRplMariaDb.SecondaryServiceKey(), &endpoints)).To(Succeed())
 			Expect(endpoints.Subsets).To(HaveLen(1))
 			Expect(endpoints.Subsets[0].Addresses).To(HaveLen(int(testRplMariaDb.Spec.Replicas) - 1))
 
@@ -554,7 +553,7 @@ var _ = Describe("MariaDB replication", func() {
 			By("Expecting primary Service to eventually change primary")
 			Eventually(func() bool {
 				var svc corev1.Service
-				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryServiceKey(&testRplMariaDb), &svc); err != nil {
+				if err := k8sClient.Get(testCtx, testRplMariaDb.PrimaryServiceKey(), &svc); err != nil {
 					return false
 				}
 				return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(testRplMariaDb.ObjectMeta, podIndex)
@@ -600,7 +599,7 @@ var _ = Describe("MariaDB replication", func() {
 			By("Expecting primary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryConnectioneKey(&testRplMariaDb), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, testRplMariaDb.PrimaryConnectioneKey(), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
@@ -761,11 +760,11 @@ var _ = Describe("MariaDB Galera", func() {
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDbGalera), &svc)).To(Succeed())
 
 			By("Expecting to create a primary Service")
-			Expect(k8sClient.Get(testCtx, ctrlresources.PrimaryServiceKey(&testMariaDbGalera), &svc)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, testMariaDbGalera.PrimaryServiceKey(), &svc)).To(Succeed())
 			Expect(svc.Spec.Selector["statefulset.kubernetes.io/pod-name"]).To(Equal(statefulset.PodName(testMariaDbGalera.ObjectMeta, 0)))
 
 			By("Expecting to create a secondary Service")
-			Expect(k8sClient.Get(testCtx, ctrlresources.SecondaryServiceKey(&testMariaDbGalera), &svc)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, testMariaDbGalera.SecondaryServiceKey(), &svc)).To(Succeed())
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
@@ -779,7 +778,7 @@ var _ = Describe("MariaDB Galera", func() {
 			By("Expecting primary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryConnectioneKey(&testMariaDbGalera), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, testMariaDbGalera.PrimaryConnectioneKey(), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
@@ -788,7 +787,7 @@ var _ = Describe("MariaDB Galera", func() {
 			By("Expecting secondary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, ctrlresources.SecondaryConnectioneKey(&testMariaDbGalera), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, testMariaDbGalera.SecondaryConnectioneKey(), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
@@ -796,7 +795,7 @@ var _ = Describe("MariaDB Galera", func() {
 
 			By("Expecting to create secondary Endpoints")
 			var endpoints corev1.Endpoints
-			Expect(k8sClient.Get(testCtx, ctrlresources.SecondaryServiceKey(&testMariaDbGalera), &endpoints)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, testMariaDbGalera.SecondaryServiceKey(), &endpoints)).To(Succeed())
 			Expect(endpoints.Subsets).To(HaveLen(1))
 			Expect(endpoints.Subsets[0].Addresses).To(HaveLen(int(testMariaDbGalera.Spec.Replicas) - 1))
 
@@ -823,7 +822,7 @@ var _ = Describe("MariaDB Galera", func() {
 			By("Expecting primary Service to eventually change primary")
 			Eventually(func() bool {
 				var svc corev1.Service
-				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryServiceKey(&testMariaDbGalera), &svc); err != nil {
+				if err := k8sClient.Get(testCtx, testMariaDbGalera.PrimaryServiceKey(), &svc); err != nil {
 					return false
 				}
 				return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(testMariaDbGalera.ObjectMeta, podIndex)
@@ -882,7 +881,7 @@ var _ = Describe("MariaDB Galera", func() {
 			By("Expecting primary Connection to be ready eventually")
 			Eventually(func() bool {
 				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, ctrlresources.PrimaryConnectioneKey(&testMariaDbGalera), &conn); err != nil {
+				if err := k8sClient.Get(testCtx, testMariaDbGalera.PrimaryConnectioneKey(), &conn); err != nil {
 					return false
 				}
 				return conn.IsReady()
