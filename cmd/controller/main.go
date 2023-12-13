@@ -51,6 +51,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
@@ -106,8 +107,13 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to get config")
 			os.Exit(1)
 		}
+		env, err := environment.GetEnvironment(ctx)
+		if err != nil {
+			setupLog.Error(err, "Error getting environment")
+			os.Exit(1)
+		}
 
-		mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
+		mgrOpts := ctrl.Options{
 			Scheme: scheme,
 			Metrics: metricsserver.Options{
 				BindAddress: metricsAddr,
@@ -115,7 +121,22 @@ var rootCmd = &cobra.Command{
 			HealthProbeBindAddress: healthAddr,
 			LeaderElection:         leaderElect,
 			LeaderElectionID:       "mariadb-operator.mmontes.io",
-		})
+		}
+		if env.WatchNamespace != "" {
+			namespaces, err := env.WatchNamespaces()
+			if err != nil {
+				setupLog.Error(err, "Error getting namespaces to watch")
+				os.Exit(1)
+			}
+			setupLog.Info("Watching namespaces", "namespaces", namespaces)
+			mgrOpts.Cache.DefaultNamespaces = make(map[string]cache.Config, len(namespaces))
+			for _, ns := range namespaces {
+				mgrOpts.Cache.DefaultNamespaces[ns] = cache.Config{}
+			}
+		} else {
+			setupLog.Info("Watching all namespaces")
+		}
+		mgr, err := ctrl.NewManager(restConfig, mgrOpts)
 		if err != nil {
 			setupLog.Error(err, "Unable to start manager")
 			os.Exit(1)
@@ -126,11 +147,6 @@ var rootCmd = &cobra.Command{
 		galeraRecorder := mgr.GetEventRecorderFor("galera")
 		replRecorder := mgr.GetEventRecorderFor("replication")
 
-		env, err := environment.GetEnvironment(ctx)
-		if err != nil {
-			setupLog.Error(err, "Error getting environment")
-			os.Exit(1)
-		}
 		discoveryClient, err := discovery.NewDiscoveryClient(restConfig)
 		if err != nil {
 			setupLog.Error(err, "Error getting discovery client")

@@ -76,6 +76,9 @@ spec:
                   fieldPath: metadata.namespace
             - name: MARIADB_OPERATOR_SA_PATH
               value: /var/run/secrets/kubernetes.io/serviceaccount/token
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- if .Values.extraVolumeMounts }}
           volumeMounts:
           {{- toYaml .Values.extraVolumeMounts | nindent 12 }}

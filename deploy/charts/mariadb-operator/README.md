@@ -58,6 +58,7 @@ helm uninstall mariadb-operator
 | certController.tolerations | list | `[]` | Tolerations to add to controller Pod |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
 | extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
+| extraEnv | list | `[]` | Extra environment variables to be passed to the controller |
 | extraVolumeMounts | list | `[]` | Extra volumes to mount to the container. |
 | extraVolumes | list | `[]` | Extra volumes to pass to pod. |
 | fullnameOverride | string | `""` |  |
