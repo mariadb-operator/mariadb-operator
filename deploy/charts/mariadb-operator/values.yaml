@@ -54,6 +54,9 @@ rbac:
 # -- Extra arguments to be passed to the controller entrypoint
 extrArgs: []
 
+# -- Extra environment variables to be passed to the controller
+extraEnv: []
+
 # -- Extra volumes to pass to pod.
 extraVolumes: []
 

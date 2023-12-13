@@ -260,7 +260,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:534d936e59bb297f8b262d01acd980ffd2f4d71a056c0788b6b129844b1268d7
-    createdAt: "2023-12-13T15:58:22Z"
+    createdAt: "2023-12-13T17:27:05Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -1874,6 +1874,10 @@ spec:
                     env:
                       - name: RELATED_IMAGE_MARIADB
                         value: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
                       - name: MARIADB_OPERATOR_NAME
                         valueFrom:
                           fieldRef:

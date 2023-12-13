@@ -48,7 +48,9 @@ release: goreleaser ## Test release locally.
 
 ##@ Run
 
-RUN_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) 
+WATCH_NAMESPACE ?= ""
+
+RUN_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) WATCH_NAMESPACE=$(WATCH_NAMESPACE)
 .PHONY: run
 run: lint ## Run a controller from your host.
 	$(RUN_ENV) go run cmd/controller/*.go $(RUN_FLAGS)
@@ -64,7 +66,7 @@ CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 cert-controller: lint ## Run a cert-controller from your host.
 	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
-RUN_ENT_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB_ENT)
+RUN_ENT_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB_ENT) WATCH_NAMESPACE=$(WATCH_NAMESPACE)
 .PHONY: run-ent
 run-ent: lint cert ## Run a enterprise from your host.
 	$(RUN_ENT_ENV) go run cmd/enterprise/*.go $(RUN_FLAGS)
