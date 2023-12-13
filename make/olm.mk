@@ -28,6 +28,7 @@ scorecard-sa: ## Create scorecard ServiceAccount.
 	$(KUBECTL) apply -f ./hack/manifests/scorecard-serviceaccount.yaml
 
 BUNDLE_VALIDATE_FLAGS ?= --select-optional suite=operatorframework
+# BUNDLE_VALIDATE_FLAGS ?= --select-optional suite=operatorframework --select-optional name=multiarch
 .PHONY: bundle-validate
 bundle-validate: operator-sdk ## Validate content and format of the operator bundle.
 	$(OPERATOR_SDK) bundle validate ./bundle $(BUNDLE_VALIDATE_FLAGS)
