@@ -260,9 +260,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:534d936e59bb297f8b262d01acd980ffd2f4d71a056c0788b6b129844b1268d7
-    createdAt: "2023-12-13T11:54:18Z"
-    olm.operatorGroup: global-operators
-    olm.operatorNamespace: openshift-operators
+    createdAt: "2023-12-13T15:58:22Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3

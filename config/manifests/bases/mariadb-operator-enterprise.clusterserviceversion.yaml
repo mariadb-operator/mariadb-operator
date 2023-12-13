@@ -7,8 +7,6 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise:v0.0.23
-    olm.operatorGroup: global-operators
-    olm.operatorNamespace: openshift-operators
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     support: MariaDB Corporation
   labels:
