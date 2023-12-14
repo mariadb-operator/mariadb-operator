@@ -59,7 +59,6 @@ bundle-push: ## Push the bundle image.
 catalog-build: opm ## Build a catalog image.
 	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
 
-# Push the catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
@@ -72,3 +71,11 @@ catalog-deploy: ## Deploy catalog to a OpenShift cluster.
 .PHONY: catalog-undeploy
 catalog-undeploy: ## Undeploy catalog from a OpenShift cluster.
 	$(KUSTOMIZE) build hack/manifests/catalog	| $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
+
+.PHONY: preflight-operator
+preflight-operator: preflight ## Run preflight tests on the operator image.
+	$(PREFLIGHT) check container --docker-config $(DOCKER_CONFIG) $(IMG_ENT)
+
+.PHONY: preflight-bundle
+preflight-bundle: preflight ## Run preflight tests on the bundle image.
+	PFLT_INDEXIMAGE=$(CATALOG_IMG) $(PREFLIGHT) check operator --docker-config $(DOCKER_CONFIG) $(BUNDLE_IMG)

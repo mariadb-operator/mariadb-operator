@@ -63,70 +63,78 @@ jobs:
           registry: us-central1-docker.pkg.dev
           username: _json_key
           password: ${{ secrets.GAR_JSON_KEY }}
+      
+      # - name: Publish multi-arch operator image
+      #   uses: docker/build-push-action@v2
+      #   with:
+      #     push: true
+      #     builder: ${{ steps.buildx.outputs.name }}
+      #     context: .
+      #     file: ./Dockerfile.ubi
+      #     platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+      #     tags: |
+      #       mariadb/mariadb-operator-enterprise:v${{ steps.version.outputs.VERSION }}
+      #       mariadb/mariadb-operator-enterprise:latest
+      #     labels: |
+      #       org.opencontainers.image.title=MariaDB Operator Enterprise
+      #       org.opencontainers.image.description=Run and operate MariaDB Enterprise in OpenShift
+      #       org.opencontainers.image.source=${{ github.event.repository.html_url }}
+      #       org.opencontainers.image.url=${{ github.event.repository.html_url }}
+      #       org.opencontainers.image.revision=${{ github.sha }}
+      #       org.opencontainers.image.version=${{ steps.version.outputs.VERSION }}
+      #       org.opencontainers.image.created=${{ steps.version.outputs.BUILD_DATE }}
 
-      - name: Publish multi-arch operator image
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          builder: ${{ steps.buildx.outputs.name }}
-          context: .
-          file: ./Dockerfile.ubi
-          platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
-          tags: |
-            mariadb/mariadb-operator-enterprise:v${{ steps.version.outputs.VERSION }}
-            mariadb/mariadb-operator-enterprise:latest
-          labels: |
-            org.opencontainers.image.title=MariaDB Operator Enterprise
-            org.opencontainers.image.description=Run and operate MariaDB Enterprise in OpenShift
-            org.opencontainers.image.source=${{ github.event.repository.html_url }}
-            org.opencontainers.image.url=${{ github.event.repository.html_url }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.version.outputs.VERSION }}
-            org.opencontainers.image.created=${{ steps.version.outputs.BUILD_DATE }}
+      - name: Preflight operator image
+        run: make preflight-operator
 
-      - name: Publish bundle image
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          context: .
-          file: ./bundle.Dockerfile
-          tags: |
-            mariadb/mariadb-operator-enterprise-bundle:v${{ steps.version.outputs.VERSION }}
-            mariadb/mariadb-operator-enterprise-bundle:latest
-          labels: |
-            org.opencontainers.image.title=MariaDB Operator Enterprise bundle
-            org.opencontainers.image.description=Run and operate MariaDB Enterprise in OpenShift
-            org.opencontainers.image.source=${{ github.event.repository.html_url }}
-            org.opencontainers.image.url=${{ github.event.repository.html_url }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.version.outputs.VERSION }}
-            org.opencontainers.image.created=${{ steps.version.outputs.BUILD_DATE }}
+      # - name: Publish bundle image
+      #   uses: docker/build-push-action@v2
+      #   with:
+      #     push: true
+      #     context: .
+      #     file: ./bundle.Dockerfile
+      #     tags: |
+      #       mariadb/mariadb-operator-enterprise-bundle:v${{ steps.version.outputs.VERSION }}
+      #       mariadb/mariadb-operator-enterprise-bundle:latest
+      #     labels: |
+      #       org.opencontainers.image.title=MariaDB Operator Enterprise bundle
+      #       org.opencontainers.image.description=Run and operate MariaDB Enterprise in OpenShift
+      #       org.opencontainers.image.source=${{ github.event.repository.html_url }}
+      #       org.opencontainers.image.url=${{ github.event.repository.html_url }}
+      #       org.opencontainers.image.revision=${{ github.sha }}
+      #       org.opencontainers.image.version=${{ steps.version.outputs.VERSION }}
+      #       org.opencontainers.image.created=${{ steps.version.outputs.BUILD_DATE }}
+  
+      - name: Create cluster for scorecard tests
+        run: make cluster
 
       - name: Regenerate bundle with new digests
-        run: make bundle
+        run: |
+          make bundle
+          make bundle-scorecard
         env:
           BUNDLE_VALIDATE_FLAGS: "--select-optional suite=operatorframework --select-optional name=multiarch"
 
-      - name: Commit bundle changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Updated OLM bundle (${{ steps.version.outputs.VERSION }})
-          commit_author: Martin Montes <martin11lrx@gmail.com
-          branch: olm-${{ steps.version.outputs.VERSION }}-update-bundle
-          push_options: '--force'
-          create_branch: true
+      # - name: Commit bundle changes
+      #   uses: stefanzweifel/git-auto-commit-action@v5
+      #   with:
+      #     commit_message: Updated OLM bundle (${{ steps.version.outputs.VERSION }})
+      #     commit_author: Martin Montes <martin11lrx@gmail.com
+      #     branch: olm-${{ steps.version.outputs.VERSION }}-update-bundle
+      #     push_options: '--force'
+      #     create_branch: true
 
-      - name: Create pull request
-        run: |
-          gh pr create -B ${{ github.event.repository.default_branch }} -H olm-${{ steps.version.outputs.VERSION }}-update-bundle --title 'Updated OLM bundle (${{ steps.version.outputs.VERSION }})' --body 'Automatically created by GitHub actions afer releasing OLM bundle.'
-          gh pr merge olm-${{ steps.version.outputs.VERSION }}-update-bundle --auto --rebase --delete-branch  
-        env:
-          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
+      # - name: Create pull request
+      #   run: |
+      #     gh pr create -B ${{ github.event.repository.default_branch }} -H olm-${{ steps.version.outputs.VERSION }}-update-bundle --title 'Updated OLM bundle (${{ steps.version.outputs.VERSION }})' --body 'Automatically created by GitHub actions afer releasing OLM bundle.'
+      #     gh pr merge olm-${{ steps.version.outputs.VERSION }}-update-bundle --auto --rebase --delete-branch  
+      #   env:
+      #     GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: "${{ steps.version.outputs.TAG }}"
-          files: bundle/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
-        env:
-          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
+      # - name: Release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     tag_name: "${{ steps.version.outputs.TAG }}"
+      #     files: bundle/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
+      #   env:
+      #     GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"

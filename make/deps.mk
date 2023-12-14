@@ -18,6 +18,7 @@ YQ ?= $(LOCALBIN)/yq
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 OPM ?= $(LOCALBIN)/opm
 OC ?= $(LOCALBIN)/oc
+PREFLIGHT ?= $(LOCALBIN)/preflight
 
 ## Tool Versions
 KIND_VERSION ?= v0.20.0
@@ -34,6 +35,7 @@ YQ_VERSION ?= v4.18.1
 OPERATOR_SDK_VERSION ?= v1.32.0
 OPM_VERSION ?= v1.23.0
 OC_TAR_GZ_URL ?= https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest-4.9/openshift-client-linux-4.9.59.tar.gz
+PREFLIGHT_VERSION ?= 1.7.2
 
 .PHONY: kind
 kind: $(KIND) ## Download kind locally if necessary.
@@ -56,7 +58,6 @@ KUBECTL = $(shell which kubectl)
 endif
 endif
 
-KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
@@ -177,6 +178,22 @@ ifeq (,$(shell which oc 2>/dev/null))
 	tar -C $(LOCALBIN) -zxvf $(OC).tar.gz ;\
 	chmod +x $(OC) ;\
 	rm $(OC).tar.gz ;\
+	}
+else
+OC = $(shell which oc)
+endif
+endif
+
+.PHONY: preflight
+preflight: ## Download preflight locally if necessary.
+ifeq (,$(wildcard $(PREFLIGHT)))
+ifeq (,$(shell which preflight 2>/dev/null))
+	@{ \
+	set -e ;\
+	mkdir -p $(dir $(PREFLIGHT)) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	curl -sSLo $(PREFLIGHT) https://github.com/redhat-openshift-ecosystem/openshift-preflight/releases/download/$(PREFLIGHT_VERSION)/preflight-$${OS}-$${ARCH} ;\
+	chmod +x $(PREFLIGHT) ;\
 	}
 else
 OC = $(shell which oc)

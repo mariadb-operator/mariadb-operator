@@ -19,6 +19,8 @@ RELATED_IMAGE_MARIADB ?= mariadb:11.2.2
 RELATED_IMAGE_MARIADB_ENT ?= us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6
 # RELATED_IMAGE_MARIADB_ENT ?= docker.mariadb.com/enterprise-server:10.6
 
+DOCKER_CONFIG ?= $(HOME)/.docker/config.json 
+
 .PHONY: all
 all: help
 
