@@ -1,0 +1,53 @@
+time="2023-12-14T11:44:16Z" level=info msg="certification library version" version="1.7.2 <commit: f1bfa27d3f87bc9b95936aaeb4edc6a92a268645>"
+time="2023-12-14T11:44:17Z" level=info msg="running checks for mariadb/mariadb-operator-enterprise:v0.0.23 for platform amd64"
+time="2023-12-14T11:44:17Z" level=info msg="target image" image="mariadb/mariadb-operator-enterprise:v0.0.23"
+time="2023-12-14T11:44:20Z" level=info msg="check completed" check=HasLicense result=PASSED
+time="2023-12-14T11:44:20Z" level=info msg="check completed" check=HasUniqueTag result=PASSED
+time="2023-12-14T11:44:20Z" level=info msg="check completed" check=LayerCountAcceptable result=PASSED
+time="2023-12-14T11:44:20Z" level=info msg="check completed" check=HasNoProhibitedPackages result=PASSED
+time="2023-12-14T11:44:20Z" level=info msg="check completed" check=HasRequiredLabel result=PASSED
+time="2023-12-14T11:44:20Z" level=info msg="USER 65532:65532 specified that is non-root"
+time="2023-12-14T11:44:20Z" level=info msg="check completed" check=RunAsNonRoot result=PASSED
+time="2023-12-14T11:44:22Z" level=info msg="check completed" check=HasModifiedFiles result=PASSED
+time="2023-12-14T11:44:23Z" level=info msg="check completed" check=BasedOnUbi result=PASSED
+time="2023-12-14T11:44:23Z" level=info msg="This image's tag v0.0.23 will be paired with digest sha256:9eaea5791092bd27f3c7ec458e607908933defc55f37b8b0c3e604ce85cece7d once this image has been published in accordance with Red Hat Certification policy. You may then add or remove any supplemental tags through your Red Hat Connect portal as you see fit."
+time="2023-12-14T11:44:24Z" level=info msg="Preflight result: PASSED"
+time="2023-12-14T11:44:24Z" level=info msg="running checks for mariadb/mariadb-operator-enterprise:v0.0.23 for platform arm64"
+time="2023-12-14T11:44:24Z" level=info msg="target image" image="mariadb/mariadb-operator-enterprise:v0.0.23"
+time="2023-12-14T11:44:26Z" level=info msg="check completed" check=HasLicense result=PASSED
+time="2023-12-14T11:44:26Z" level=info msg="check completed" check=HasUniqueTag result=PASSED
+time="2023-12-14T11:44:26Z" level=info msg="check completed" check=LayerCountAcceptable result=PASSED
+time="2023-12-14T11:44:26Z" level=info msg="check completed" check=HasNoProhibitedPackages result=PASSED
+time="2023-12-14T11:44:26Z" level=info msg="check completed" check=HasRequiredLabel result=PASSED
+time="2023-12-14T11:44:26Z" level=info msg="USER 65532:65532 specified that is non-root"
+time="2023-12-14T11:44:26Z" level=info msg="check completed" check=RunAsNonRoot result=PASSED
+time="2023-12-14T11:44:28Z" level=info msg="check completed" check=HasModifiedFiles result=PASSED
+time="2023-12-14T11:44:29Z" level=info msg="check completed" check=BasedOnUbi result=PASSED
+time="2023-12-14T11:44:29Z" level=info msg="This image's tag v0.0.23 will be paired with digest sha256:6ef14283b9c5ff6c82aff73fa4ccc39226d27f30cc2fbc03a0387c2d33925660 once this image has been published in accordance with Red Hat Certification policy. You may then add or remove any supplemental tags through your Red Hat Connect portal as you see fit."
+time="2023-12-14T11:44:29Z" level=info msg="Preflight result: PASSED"
+time="2023-12-14T11:44:29Z" level=info msg="running checks for mariadb/mariadb-operator-enterprise:v0.0.23 for platform ppc64le"
+time="2023-12-14T11:44:29Z" level=info msg="target image" image="mariadb/mariadb-operator-enterprise:v0.0.23"
+time="2023-12-14T11:44:32Z" level=info msg="check completed" check=HasLicense result=PASSED
+time="2023-12-14T11:44:32Z" level=info msg="check completed" check=HasUniqueTag result=PASSED
+time="2023-12-14T11:44:32Z" level=info msg="check completed" check=LayerCountAcceptable result=PASSED
+time="2023-12-14T11:44:32Z" level=info msg="check completed" check=HasNoProhibitedPackages result=PASSED
+time="2023-12-14T11:44:32Z" level=info msg="check completed" check=HasRequiredLabel result=PASSED
+time="2023-12-14T11:44:32Z" level=info msg="USER 65532:65532 specified that is non-root"
+time="2023-12-14T11:44:32Z" level=info msg="check completed" check=RunAsNonRoot result=PASSED
+time="2023-12-14T11:44:34Z" level=info msg="check completed" check=HasModifiedFiles result=PASSED
+time="2023-12-14T11:44:36Z" level=info msg="check completed" check=BasedOnUbi result=PASSED
+time="2023-12-14T11:44:36Z" level=info msg="This image's tag v0.0.23 will be paired with digest sha256:ee4f067512f4e53c30448ec4b9c12a7b9c12dad9c09a6445431ea25949523af6 once this image has been published in accordance with Red Hat Certification policy. You may then add or remove any supplemental tags through your Red Hat Connect portal as you see fit."
+time="2023-12-14T11:44:36Z" level=info msg="Preflight result: PASSED"
+time="2023-12-14T11:44:36Z" level=info msg="running checks for mariadb/mariadb-operator-enterprise:v0.0.23 for platform s390x"
+time="2023-12-14T11:44:36Z" level=info msg="target image" image="mariadb/mariadb-operator-enterprise:v0.0.23"
+time="2023-12-14T11:44:39Z" level=info msg="check completed" check=HasLicense result=PASSED
+time="2023-12-14T11:44:39Z" level=info msg="check completed" check=HasUniqueTag result=PASSED
+time="2023-12-14T11:44:39Z" level=info msg="check completed" check=LayerCountAcceptable result=PASSED
+time="2023-12-14T11:44:39Z" level=info msg="check completed" check=HasNoProhibitedPackages result=PASSED
+time="2023-12-14T11:44:39Z" level=info msg="check completed" check=HasRequiredLabel result=PASSED
+time="2023-12-14T11:44:39Z" level=info msg="USER 65532:65532 specified that is non-root"
+time="2023-12-14T11:44:39Z" level=info msg="check completed" check=RunAsNonRoot result=PASSED
+time="2023-12-14T11:44:40Z" level=info msg="check completed" check=HasModifiedFiles result=PASSED
+time="2023-12-14T11:44:42Z" level=info msg="check completed" check=BasedOnUbi result=PASSED
+time="2023-12-14T11:44:42Z" level=info msg="This image's tag v0.0.23 will be paired with digest sha256:9156c8e74723f7bf10982363c5766af48a86a745964b9b648f794be972acd52a once this image has been published in accordance with Red Hat Certification policy. You may then add or remove any supplemental tags through your Red Hat Connect portal as you see fit."
+time="2023-12-14T11:44:42Z" level=info msg="Preflight result: PASSED"
