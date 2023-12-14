@@ -35,7 +35,7 @@ cluster-workers: ## List cluster worker Nodes.
 .PHONY: registry-sa
 registry-sa: ## Configure default ServiceAccount to pull from registry-
 	$(KUBECTL) create secret docker-registry registry \
-		--from-file=.dockerconfigjson=$(HOME)/.docker/config.json -n default --dry-run=client -o yaml \
+		--from-file=.dockerconfigjson=$(DOCKER_CONFIG) -n default --dry-run=client -o yaml \
 		| $(KUBECTL) apply -f -
 	$(KUBECTL) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "registry"}]}'
 
@@ -44,7 +44,7 @@ OCP_REGISTRY_URL ?= https://index.docker.io/v1/
 openshift-registry-add: oc jq ## Add catalog registry in OpenShift global config.
 	$(OC) extract secret/pull-secret -n openshift-config --confirm
 	@cat .dockerconfigjson | $(JQ) -c \
-		--argjson registryauth '$(shell cat $(HOME)/.docker/config.json | $(JQ) '.auths["$(OCP_REGISTRY_URL)"]')' '.auths["$(OCP_REGISTRY_URL)"] |= . + $$registryauth' \
+		--argjson registryauth '$(shell cat $(DOCKER_CONFIG) | $(JQ) '.auths["$(OCP_REGISTRY_URL)"]')' '.auths["$(OCP_REGISTRY_URL)"] |= . + $$registryauth' \
 		> .new_dockerconfigjson 
 	$(OC) set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=.new_dockerconfigjson 
 	@rm .dockerconfigjson .new_dockerconfigjson 
