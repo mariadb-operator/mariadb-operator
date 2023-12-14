@@ -112,8 +112,9 @@ jobs:
         run: |
           make bundle
           make bundle-scorecard
-        env:
-          BUNDLE_VALIDATE_FLAGS: "--select-optional suite=operatorframework --select-optional name=multiarch"
+        # TODO: re-enable when the multi-arch operand images are available
+        # env:
+        #   BUNDLE_VALIDATE_FLAGS: "--select-optional suite=operatorframework --select-optional name=multiarch"
 
       - name: Commit bundle changes
         uses: stefanzweifel/git-auto-commit-action@v5
