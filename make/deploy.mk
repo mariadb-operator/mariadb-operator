@@ -30,14 +30,17 @@ cluster-ps: ## List all cluster Nodes.
 cluster-workers: ## List cluster worker Nodes.
 	docker ps --filter="name=$(CLUSTER)-worker-*"
 
+.PHONY: cluster-nodes
+cluster-nodes: kind ## Get cluster nodes.
+	@$(KIND) get nodes --name $(CLUSTER)
+
 ##@ Registry
 
-.PHONY: registry-sa
-registry-sa: ## Configure default ServiceAccount to pull from registry-
-	$(KUBECTL) create secret docker-registry registry \
-		--from-file=.dockerconfigjson=$(DOCKER_CONFIG) -n default --dry-run=client -o yaml \
-		| $(KUBECTL) apply -f -
-	$(KUBECTL) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "registry"}]}'
+.PHONY: registry
+registry: ## Configure registry auth.
+	@for node in $$(make -s cluster-nodes); do \
+		docker cp $(DOCKER_CONFIG) $$node:/var/lib/kubelet/config.json; \
+	done
 
 OCP_REGISTRY_URL ?= https://index.docker.io/v1/
 .PHONY: openshift-registry
