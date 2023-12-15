@@ -4,7 +4,7 @@ CLUSTER ?= mdb
 ##@ Cluster
 
 KIND_CONFIG ?= hack/config/kind.yaml
-KIND_IMAGE ?= kindest/node:v1.27.3
+KIND_IMAGE ?= kindest/node:v1.28.0
 
 .PHONY: cluster
 cluster: kind ## Create a single node kind cluster.
@@ -18,9 +18,9 @@ cluster-ha: kind ## Create a HA kind cluster.
 cluster-delete: kind ## Delete the kind cluster.
 	$(KIND) delete cluster --name $(CLUSTER)
 
-.PHONY: cluster-ctx
+.PHONY: kubectl cluster-ctx
 cluster-ctx: ## Sets cluster context.
-	@kubectl config use-context kind-$(CLUSTER)
+	$(KUBECTL) config use-context kind-$(CLUSTER)
 
 .PHONY: cluster-ls
 cluster-ps: ## List all cluster Nodes.
