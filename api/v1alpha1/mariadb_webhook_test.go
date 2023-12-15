@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -486,8 +487,8 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 						Key: "root-password",
 					},
-					Database: func() *string { t := "test"; return &t }(),
-					Username: func() *string { t := "test"; return &t }(),
+					Database: ptr.To("test"),
+					Username: ptr.To("test"),
 					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "secret",
@@ -551,16 +552,14 @@ var _ = Describe("MariaDB webhook", func() {
 			Entry(
 				"Updating Database",
 				func(mdb *MariaDB) {
-					another := "another-database"
-					mdb.Spec.Database = &another
+					mdb.Spec.Database = ptr.To("another-database")
 				},
 				true,
 			),
 			Entry(
 				"Updating Username",
 				func(mdb *MariaDB) {
-					another := "another-username"
-					mdb.Spec.Username = &another
+					mdb.Spec.Username = ptr.To("another-username")
 				},
 				true,
 			),

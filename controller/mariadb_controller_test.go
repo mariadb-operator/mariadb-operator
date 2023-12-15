@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("MariaDB", func() {
+var _ = Describe("MariaDB controller", func() {
 	Context("When creating a MariaDB", func() {
 		It("Should default", func() {
 			By("Creating MariaDB")
@@ -33,6 +33,8 @@ var _ = Describe("MariaDB", func() {
 					Namespace: testDefaultKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Username: ptr.To("test"),
+					Database: ptr.To("test"),
 					MyCnf: ptr.To(`
 					[mariadb]
 					bind-address=*
@@ -71,7 +73,8 @@ var _ = Describe("MariaDB", func() {
 			Expect(testDefaultMariaDb.Spec.Image).To(Equal(expectedImage))
 			Expect(testDefaultMariaDb.Spec.RootPasswordSecretKeyRef).To(BeEquivalentTo(testDefaultMariaDb.RootPasswordSecretKeyRef()))
 			Expect(testDefaultMariaDb.Spec.Port).To(BeEquivalentTo(3306))
-			Expect(testDefaultMariaDb.Spec.MyCnfConfigMapKeyRef).ToNot(BeNil())
+			Expect(testDefaultMariaDb.Spec.MyCnfConfigMapKeyRef).To(BeEquivalentTo(testDefaultMariaDb.MyCnfConfigMapKeyRef()))
+			Expect(testDefaultMariaDb.Spec.PasswordSecretKeyRef).To(BeEquivalentTo(testDefaultMariaDb.PasswordSecretKeyRef()))
 
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &testDefaultMariaDb)).To(Succeed())

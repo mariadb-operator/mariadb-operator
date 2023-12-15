@@ -5,10 +5,7 @@ metadata:
 spec:
   database: mariadb
   username: mariadb
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
-    
+  
   replicas: 3
 
   replication:

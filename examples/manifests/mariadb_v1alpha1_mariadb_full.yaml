@@ -32,6 +32,16 @@ spec:
     - name: mariabackup
       mountPath: /var/mariadb/backup/
 
+  connection:
+    secretName: connection-mariadb
+    secretTemplate:
+      key: dsn
+    healthCheck:
+      interval: 10s
+      retryInterval: 3s
+    params:
+      parseTime: "true"
+
   myCnf: |
     [mariadb]
     bind-address=*

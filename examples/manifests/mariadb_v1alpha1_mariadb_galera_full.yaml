@@ -3,6 +3,9 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
+  database: mariadb
+  username: mariadb
+  
   replicas: 3
 
   galera:

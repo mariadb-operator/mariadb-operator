@@ -157,8 +157,9 @@ var _ = BeforeSuite(func() {
 	)
 
 	err = (&MariaDBReconciler{
-		Client: client,
-		Scheme: scheme,
+		Client:   client,
+		Scheme:   scheme,
+		Recorder: k8sManager.GetEventRecorderFor("mariadb"),
 
 		Environment:     env,
 		Builder:         builder,

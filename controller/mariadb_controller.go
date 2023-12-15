@@ -190,6 +190,20 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 		Namespace: mariadb.Namespace,
 	}
 	_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, key, secretKeyRef.Key, mariadb)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if mariadb.IsInitialDataEnabled() && mariadb.Spec.PasswordSecretKeyRef != nil {
+		secretKeyRef := *mariadb.Spec.PasswordSecretKeyRef
+		key := types.NamespacedName{
+			Name:      secretKeyRef.Name,
+			Namespace: mariadb.Namespace,
+		}
+		_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, key, secretKeyRef.Key, mariadb)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 	return ctrl.Result{}, err
 }
 
@@ -571,8 +585,7 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 }
 
 func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Connection == nil || mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil ||
-		!mariadb.IsReady() {
+	if mariadb.Spec.Connection == nil || !mariadb.IsInitialDataEnabled() || !mariadb.IsReady() {
 		return nil
 	}
 	key := client.ObjectKeyFromObject(mariadb)
@@ -581,6 +594,15 @@ func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mari
 		return nil
 	}
 
+	if mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil {
+		log.FromContext(ctx).Error(
+			errors.New("unable to reconcile default Connection"),
+			"spec.user and spec.passwordSecretKeyRef must have been initialized",
+			"user", mariadb.Spec.Username,
+			"passwordKeyRef", mariadb.Spec.PasswordSecretKeyRef,
+		)
+		return nil
+	}
 	connOpts := builder.ConnectionOpts{
 		MariaDB:              mariadb,
 		Key:                  key,
@@ -598,7 +620,7 @@ func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mari
 
 func (r *MariaDBReconciler) reconcileConnectionTemplate(ctx context.Context, key types.NamespacedName,
 	connTpl *mariadbv1alpha1.ConnectionTemplate, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil || !mariadb.IsReady() {
+	if !mariadb.IsInitialDataEnabled() || !mariadb.IsReady() {
 		return nil
 	}
 	var existingConn mariadbv1alpha1.Connection
@@ -606,6 +628,15 @@ func (r *MariaDBReconciler) reconcileConnectionTemplate(ctx context.Context, key
 		return nil
 	}
 
+	if mariadb.Spec.Username == nil || mariadb.Spec.PasswordSecretKeyRef == nil {
+		log.FromContext(ctx).Error(
+			errors.New("unable to reconcile Connection"),
+			"spec.user and spec.passwordSecretKeyRef must have been initialized",
+			"user", mariadb.Spec.Username,
+			"passwordKeyRef", mariadb.Spec.PasswordSecretKeyRef,
+		)
+		return nil
+	}
 	connOpts := builder.ConnectionOpts{
 		MariaDB:              mariadb,
 		Key:                  key,
