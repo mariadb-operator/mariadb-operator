@@ -3,6 +3,9 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
+  database: mariadb
+  username: mariadb
+  
   connection:
     secretName: connection-mariadb
     secretTemplate:

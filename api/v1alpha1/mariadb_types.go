@@ -183,7 +183,7 @@ type MariaDBSpec struct {
 	// PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutable"`
+	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// MyCnf allows to specify the my.cnf file mounted by Mariadb.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -339,6 +339,10 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 		myCnfKeyRef := m.MyCnfConfigMapKeyRef()
 		m.Spec.MyCnfConfigMapKeyRef = &myCnfKeyRef
 	}
+	if m.IsInitialDataEnabled() && m.Spec.PasswordSecretKeyRef == nil {
+		secretKeyRef := m.PasswordSecretKeyRef()
+		m.Spec.PasswordSecretKeyRef = &secretKeyRef
+	}
 }
 
 // Replication with defaulting accessor
@@ -369,6 +373,11 @@ func (m *MariaDB) AreMetricsEnabled() bool {
 	return m.Spec.Metrics != nil && m.Spec.Metrics.Enabled
 }
 
+// IsInitialDataEnabled indicates whether the MariaDB instance has initial data enabled
+func (m *MariaDB) IsInitialDataEnabled() bool {
+	return m.Spec.Username != nil
+}
+
 // IsReady indicates whether the MariaDB instance is ready
 func (m *MariaDB) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
@@ -389,6 +398,16 @@ func (m *MariaDB) RootPasswordSecretKeyRef() corev1.SecretKeySelector {
 	return corev1.SecretKeySelector{
 		LocalObjectReference: corev1.LocalObjectReference{
 			Name: fmt.Sprintf("%s-root", m.Name),
+		},
+		Key: "password",
+	}
+}
+
+// PasswordSecretKeyRef defines the key selector for the initial user password Secret.
+func (m *MariaDB) PasswordSecretKeyRef() corev1.SecretKeySelector {
+	return corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: fmt.Sprintf("%s-password", m.Name),
 		},
 		Key: "password",
 	}

@@ -3,6 +3,9 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
+  database: mariadb
+  username: mariadb
+
   replicas: 3
 
   replication:
@@ -10,10 +13,22 @@ spec:
 
   service:
     type: ClusterIP
+  connection:
+    secretName: mariadb-repl-conn
+    secretTemplate:
+      key: dsn
   primaryService:
     type: ClusterIP
+  primaryConnection:
+    secretName: mariadb-repl-conn-primary
+    secretTemplate:
+      key: dsn
   secondaryService:
     type: ClusterIP
+  secondaryConnection:
+    secretName: mariadb-repl-conn-secondary
+    secretTemplate:
+      key: dsn
 
   affinity:
     podAntiAffinity:

@@ -3,6 +3,9 @@ kind: MariaDB
 metadata:
   name: mariadb-repl
 spec:
+  database: mariadb
+  username: mariadb
+  
   replicas: 3
 
   replication:
@@ -12,14 +15,28 @@ spec:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+  connection:
+    secretName: mariadb-repl-conn
+    secretTemplate:
+      key: dsn
+
   primaryService:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+  primaryConnection:
+    secretName: mariadb-repl-conn-primary
+    secretTemplate:
+      key: dsn
+
   secondaryService:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+  secondaryConnection:
+    secretName: mariadb-repl-conn-secondary
+    secretTemplate:
+      key: dsn
 
   affinity:
     podAntiAffinity:
