@@ -150,7 +150,14 @@ func (r *MariaBackupReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		cmd := []string{
 			"/bin/sh",
 			"-c",
-			fmt.Sprintf("mariadb-backup --backup --user=root --password=${MARIADB_ROOT_PASSWORD} --compress --stream=mbstream --parallel 1 --target-dir=/tmp | socat -u stdio TCP:%s:4444 &", podIP),
+			fmt.Sprintf(`mariadb-backup \
+			--backup \
+			--user=root \
+			--password=${MARIADB_ROOT_PASSWORD} \
+			--compress \
+			--stream=mbstream \
+			--parallel 1 \
+			--target-dir=/tmp | socat -u stdio TCP:%s:4444 &`, podIP),
 		}
 
 		execReq := r.RESTClient.
@@ -172,7 +179,7 @@ func (r *MariaBackupReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, fmt.Errorf("error while creating remote command executor: %v", err)
 		}
 
-		err = exec.Stream(remotecommand.StreamOptions{
+		err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
 			Stdin:  os.Stdin,
 			Stdout: os.Stdout,
 			Stderr: os.Stderr,
