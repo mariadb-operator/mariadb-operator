@@ -355,6 +355,14 @@ var _ = Describe("MariaDB controller", func() {
 			}
 			Expect(k8sClient.Create(testCtx, &updateMariaDB)).To(Succeed())
 
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
+					return false
+				}
+				return updateMariaDB.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
 			By("Updating MariaDB image")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
