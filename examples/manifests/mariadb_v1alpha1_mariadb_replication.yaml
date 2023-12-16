@@ -5,13 +5,32 @@ metadata:
 spec:
   username: mariadb
   database: mariadb
-  
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+
+  image: mariadb:11.0.3
+
   port: 3306
 
   replicas: 3
 
   replication:
     enabled: true
+    primary:
+      podIndex: 0
+      automaticFailover: true
+    replica:
+      waitPoint: AfterSync
+      gtid: CurrentPos
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+      connectionTimeout: 10s
+      connectionRetries: 10
+      syncTimeout: 10s
+    syncBinlog: true
 
   service:
     type: LoadBalancer
@@ -73,4 +92,3 @@ spec:
         storage: 1Gi
     accessModes:
       - ReadWriteOnce
-      
