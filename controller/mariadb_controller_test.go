@@ -73,8 +73,10 @@ var _ = Describe("MariaDB controller", func() {
 			Expect(testDefaultMariaDb.Spec.Image).To(Equal(expectedImage))
 			Expect(testDefaultMariaDb.Spec.RootPasswordSecretKeyRef).To(BeEquivalentTo(testDefaultMariaDb.RootPasswordSecretKeyRef()))
 			Expect(testDefaultMariaDb.Spec.Port).To(BeEquivalentTo(3306))
-			Expect(testDefaultMariaDb.Spec.MyCnfConfigMapKeyRef).To(BeEquivalentTo(testDefaultMariaDb.MyCnfConfigMapKeyRef()))
-			Expect(testDefaultMariaDb.Spec.PasswordSecretKeyRef).To(BeEquivalentTo(testDefaultMariaDb.PasswordSecretKeyRef()))
+			Expect(testDefaultMariaDb.Spec.MyCnfConfigMapKeyRef).ToNot(BeNil())
+			Expect(*testDefaultMariaDb.Spec.MyCnfConfigMapKeyRef).To(BeEquivalentTo(testDefaultMariaDb.MyCnfConfigMapKeyRef()))
+			Expect(testDefaultMariaDb.Spec.PasswordSecretKeyRef).ToNot(BeNil())
+			Expect(*testDefaultMariaDb.Spec.PasswordSecretKeyRef).To(BeEquivalentTo(testDefaultMariaDb.PasswordSecretKeyRef()))
 
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &testDefaultMariaDb)).To(Succeed())
