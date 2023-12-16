@@ -1,10 +1,10 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: Backup
 metadata:
-  name: mariadb-repl-backup
+  name: backup
 spec:
   mariaDbRef:
-    name: mariadb-repl
+    name: mariadb
   storage:
     persistentVolumeClaim:
       resources:
