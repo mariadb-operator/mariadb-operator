@@ -14,7 +14,7 @@ spec:
 
   port: 3306
 
-  replicas: 3
+  replicas: 2
 
   replication:
     enabled: true
