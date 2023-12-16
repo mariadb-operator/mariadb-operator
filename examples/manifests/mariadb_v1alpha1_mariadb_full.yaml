@@ -7,11 +7,11 @@ spec:
     name: mariadb
     key: root-password
 
-  database: mariadb
   username: mariadb
   passwordSecretKeyRef:
     name: mariadb
     key: password
+  database: mariadb
 
   image: mariadb:11.0.3
   imagePullPolicy: IfNotPresent
