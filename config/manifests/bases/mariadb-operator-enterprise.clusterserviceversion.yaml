@@ -1080,7 +1080,7 @@ spec:
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: readinessProbe
-      - description: Replicas indicates the number of instances.
+      - description: Replicas indicates the number of desired instances.
         displayName: Replicas
         path: replicas
         x-descriptors:

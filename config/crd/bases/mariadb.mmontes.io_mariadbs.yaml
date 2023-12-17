@@ -6719,7 +6719,7 @@ spec:
                 type: object
               replicas:
                 default: 1
-                description: Replicas indicates the number of instances.
+                description: Replicas indicates the number of desired instances.
                 format: int32
                 type: integer
               replication:
@@ -9942,6 +9942,10 @@ spec:
                       file (grastate.dat).
                     type: object
                 type: object
+              replicas:
+                description: Replicas indicates the number of current instances.
+                format: int32
+                type: integer
             type: object
         required:
         - spec
@@ -9949,4 +9953,7 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
       status: {}

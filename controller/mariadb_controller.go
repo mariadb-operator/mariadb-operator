@@ -670,15 +670,16 @@ func (r *MariaDBReconciler) setStatusDefaults(ctx context.Context, mariadb *mari
 
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcher {
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
+		var sts appsv1.StatefulSet
+		if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
+			return err
+		}
+		mariadb.Status.Replicas = sts.Status.ReadyReplicas
+
 		if mariadb.IsRestoringBackup() ||
 			mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() ||
 			mariadb.HasGaleraNotReadyCondition() {
 			return nil
-		}
-
-		var sts appsv1.StatefulSet
-		if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
-			return err
 		}
 		condition.SetReadyWithStatefulSet(&mariadb.Status, &sts)
 		return nil
