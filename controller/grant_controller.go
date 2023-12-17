@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -10,7 +11,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -28,9 +28,19 @@ const (
 // GrantReconciler reconciles a Grant object
 type GrantReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	RefResolver    *refresolver.RefResolver
-	ConditionReady *condition.Ready
+	RefResolver     *refresolver.RefResolver
+	ConditionReady  *condition.Ready
+	RequeueInterval time.Duration
+}
+
+func NewGrantReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
+	requeueInterval time.Duration) *GrantReconciler {
+	return &GrantReconciler{
+		Client:          client,
+		RefResolver:     refResolver,
+		ConditionReady:  conditionReady,
+		RequeueInterval: requeueInterval,
+	}
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=grants,verbs=get;list;watch;create;update;patch;delete
@@ -48,7 +58,7 @@ func (r *GrantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	wr := newWrappedGrantReconciler(r.Client, *r.RefResolver, &grant)
 	wf := newWrappedGrantFinalizer(r.Client, &grant)
 	tf := sql.NewSqlFinalizer(r.Client, wf)
-	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf)
+	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.RequeueInterval)
 
 	result, err := tr.Reconcile(ctx, &grant)
 	if err != nil {

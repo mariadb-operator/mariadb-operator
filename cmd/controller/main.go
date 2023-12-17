@@ -65,6 +65,7 @@ var (
 	logDev            bool
 	leaderElect       bool
 	requeueConnection time.Duration
+	requeueSql        time.Duration
 	requeueSqlJob     time.Duration
 )
 
@@ -81,8 +82,9 @@ func init() {
 		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
 	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
-	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
-	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
+	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 30*time.Second, "The interval at which Connections are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
 }
 
 var rootCmd = &cobra.Command{
@@ -256,30 +258,15 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create controller", "controller", "restore")
 			os.Exit(1)
 		}
-		if err = (&controller.UserReconciler{
-			Client:         client,
-			Scheme:         scheme,
-			RefResolver:    refResolver,
-			ConditionReady: conditionReady,
-		}).SetupWithManager(mgr); err != nil {
+		if err = controller.NewUserReconciler(client, refResolver, conditionReady, requeueSql).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
-		if err = (&controller.GrantReconciler{
-			Client:         client,
-			Scheme:         scheme,
-			RefResolver:    refResolver,
-			ConditionReady: conditionReady,
-		}).SetupWithManager(mgr); err != nil {
+		if err = controller.NewGrantReconciler(client, refResolver, conditionReady, requeueSql).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Grant")
 			os.Exit(1)
 		}
-		if err = (&controller.DatabaseReconciler{
-			Client:         client,
-			Scheme:         scheme,
-			RefResolver:    refResolver,
-			ConditionReady: conditionReady,
-		}).SetupWithManager(mgr); err != nil {
+		if err = controller.NewDatabaseReconciler(client, refResolver, conditionReady, requeueSql).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Database")
 			os.Exit(1)
 		}

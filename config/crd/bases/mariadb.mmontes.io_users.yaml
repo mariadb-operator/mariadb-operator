@@ -128,9 +128,11 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              requeueInterval:
+                description: RequeueInterval is used to perform requeue reconcilizations.
+                type: string
               retryInterval:
-                description: RetryInterval is the interval used to perform health
-                  check retries.
+                description: RetryInterval is the interval used to perform retries.
                 type: string
             required:
             - mariaDbRef

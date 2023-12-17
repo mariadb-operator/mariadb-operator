@@ -3,13 +3,13 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -17,9 +17,19 @@ import (
 // DatabaseReconciler reconciles a Database object
 type DatabaseReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	RefResolver    *refresolver.RefResolver
-	ConditionReady *condition.Ready
+	RefResolver     *refresolver.RefResolver
+	ConditionReady  *condition.Ready
+	RequeueInterval time.Duration
+}
+
+func NewDatabaseReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
+	requeueInterval time.Duration) *DatabaseReconciler {
+	return &DatabaseReconciler{
+		Client:          client,
+		RefResolver:     refResolver,
+		ConditionReady:  conditionReady,
+		RequeueInterval: requeueInterval,
+	}
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=databases,verbs=get;list;watch;create;update;patch;delete
@@ -37,7 +47,7 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	wr := newWrappedDatabaseReconciler(r.Client, r.RefResolver, &database)
 	wf := newWrappedDatabaseFinalizer(r.Client, &database)
 	tf := sql.NewSqlFinalizer(r.Client, wf)
-	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf)
+	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.RequeueInterval)
 
 	result, err := tr.Reconcile(ctx, &database)
 	if err != nil {

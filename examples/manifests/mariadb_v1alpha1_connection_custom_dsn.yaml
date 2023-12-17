@@ -26,6 +26,6 @@ spec:
     portKey: port
     databaseKey: database
   healthCheck:
-    interval: 10s
+    interval: 30s
     retryInterval: 3s
   serviceName: mariadb

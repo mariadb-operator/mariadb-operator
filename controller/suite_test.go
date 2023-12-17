@@ -198,28 +198,13 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&UserReconciler{
-		Client:         client,
-		Scheme:         scheme,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-	}).SetupWithManager(k8sManager)
+	err = NewUserReconciler(client, refResolver, conditionReady, 5*time.Second).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&GrantReconciler{
-		Client:         client,
-		Scheme:         scheme,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-	}).SetupWithManager(k8sManager)
+	err = NewGrantReconciler(client, refResolver, conditionReady, 5*time.Second).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&DatabaseReconciler{
-		Client:         client,
-		Scheme:         scheme,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-	}).SetupWithManager(k8sManager)
+	err = NewDatabaseReconciler(client, refResolver, conditionReady, 5*time.Second).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ConnectionReconciler{

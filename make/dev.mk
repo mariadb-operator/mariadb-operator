@@ -10,8 +10,6 @@ CERT_DIR=/tmp/k8s-webhook-server/serving-certs
 CERT_SECRET=mariadb-operator-webhook-cert
 CERT_CONFIG=./hack/config/openssl.conf
 
-RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601
-
 .PHONY: cert
 cert: ## Generates development certificate.
 	@mkdir -p $(CERT_DIR)
@@ -49,6 +47,7 @@ release: goreleaser ## Test release locally.
 ##@ Run
 
 WATCH_NAMESPACE ?= ""
+RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601
 
 RUN_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) WATCH_NAMESPACE=$(WATCH_NAMESPACE)
 .PHONY: run

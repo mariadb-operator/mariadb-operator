@@ -89,6 +89,10 @@ func (u *User) MariaDBRef() *MariaDBRef {
 	return &u.Spec.MariaDBRef
 }
 
+func (d *User) RequeueInterval() *metav1.Duration {
+	return d.Spec.RequeueInterval
+}
+
 func (u *User) RetryInterval() *metav1.Duration {
 	return u.Spec.RetryInterval
 }

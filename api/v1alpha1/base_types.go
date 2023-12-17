@@ -214,7 +214,11 @@ type ConnectionTemplate struct {
 
 // SQLTemplate defines a template to customize SQL objects.
 type SQLTemplate struct {
-	// RetryInterval is the interval used to perform health check retries.
+	// RequeueInterval is used to perform requeue reconcilizations.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
+	// RetryInterval is the interval used to perform retries.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`

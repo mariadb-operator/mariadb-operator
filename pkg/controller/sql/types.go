@@ -15,6 +15,7 @@ type Resource interface {
 	v1.Object
 	MariaDBRef() *mariadbv1alpha1.MariaDBRef
 	IsBeingDeleted() bool
+	RequeueInterval() *metav1.Duration
 	RetryInterval() *metav1.Duration
 }
 
