@@ -280,7 +280,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise:v0.0.23
-    createdAt: "2023-12-17T11:15:16Z"
+    createdAt: "2023-12-17T12:06:51Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -1123,7 +1123,7 @@ spec:
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: readinessProbe
-      - description: Replicas indicates the number of instances.
+      - description: Replicas indicates the number of desired instances.
         displayName: Replicas
         path: replicas
         x-descriptors:

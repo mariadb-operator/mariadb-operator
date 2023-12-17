@@ -213,7 +213,7 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
-	// Replicas indicates the number of instances.
+	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	Replicas int32 `json:"replicas,omitempty"`
@@ -266,6 +266,9 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// Replicas indicates the number of current instances.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
+	Replicas int32 `json:"replicas,omitempty"`
 	// CurrentPrimaryPodIndex is the primary Pod index.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -310,6 +313,7 @@ func (s *MariaDBStatus) FillWithDefaults(mariadb *MariaDB) {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mdb
 // +kubebuilder:subresource:status
+// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Primary Pod",type="string",JSONPath=".status.currentPrimary"
