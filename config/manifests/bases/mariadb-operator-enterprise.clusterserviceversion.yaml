@@ -442,7 +442,10 @@ spec:
       - description: Name overrides the default Database name provided by metadata.name.
         displayName: Name
         path: name
-      - description: RetryInterval is the interval used to perform health check retries.
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+        displayName: Requeue Interval
+        path: requeueInterval
+      - description: RetryInterval is the interval used to perform retries.
         displayName: Retry Interval
         path: retryInterval
       statusDescriptors:
@@ -480,7 +483,10 @@ spec:
       - description: Privileges to use in the Grant.
         displayName: Privileges
         path: privileges
-      - description: RetryInterval is the interval used to perform health check retries.
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+        displayName: Requeue Interval
+        path: requeueInterval
+      - description: RetryInterval is the interval used to perform retries.
         displayName: Retry Interval
         path: retryInterval
       - description: Table to use in the Grant.
@@ -1527,7 +1533,10 @@ spec:
           by the User.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
-      - description: RetryInterval is the interval used to perform health check retries.
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+        displayName: Requeue Interval
+        path: requeueInterval
+      - description: RetryInterval is the interval used to perform retries.
         displayName: Retry Interval
         path: retryInterval
       statusDescriptors:

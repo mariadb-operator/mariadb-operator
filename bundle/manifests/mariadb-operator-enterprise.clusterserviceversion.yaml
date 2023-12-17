@@ -280,7 +280,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise:v0.0.23
-    createdAt: "2023-12-15T22:11:56Z"
+    createdAt: "2023-12-17T11:15:16Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -485,7 +485,10 @@ spec:
       - description: Name overrides the default Database name provided by metadata.name.
         displayName: Name
         path: name
-      - description: RetryInterval is the interval used to perform health check retries.
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+        displayName: Requeue Interval
+        path: requeueInterval
+      - description: RetryInterval is the interval used to perform retries.
         displayName: Retry Interval
         path: retryInterval
       statusDescriptors:
@@ -523,7 +526,10 @@ spec:
       - description: Privileges to use in the Grant.
         displayName: Privileges
         path: privileges
-      - description: RetryInterval is the interval used to perform health check retries.
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+        displayName: Requeue Interval
+        path: requeueInterval
+      - description: RetryInterval is the interval used to perform retries.
         displayName: Retry Interval
         path: retryInterval
       - description: Table to use in the Grant.
@@ -1570,7 +1576,10 @@ spec:
           by the User.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
-      - description: RetryInterval is the interval used to perform health check retries.
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+        displayName: Requeue Interval
+        path: requeueInterval
+      - description: RetryInterval is the interval used to perform retries.
         displayName: Retry Interval
         path: retryInterval
       statusDescriptors:

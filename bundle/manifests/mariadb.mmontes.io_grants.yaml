@@ -120,9 +120,11 @@ spec:
                   type: string
                 minItems: 1
                 type: array
+              requeueInterval:
+                description: RequeueInterval is used to perform requeue reconcilizations.
+                type: string
               retryInterval:
-                description: RetryInterval is the interval used to perform health
-                  check retries.
+                description: RetryInterval is the interval used to perform retries.
                 type: string
               table:
                 default: '*'
