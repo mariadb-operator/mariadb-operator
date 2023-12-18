@@ -45,6 +45,8 @@ spec:
           env:
             - name: RELATED_IMAGE_MARIADB
               value: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6
+            - name: MARIADB_OPERATOR_IMGE
+              value: mariadb/mariadb-operator-enterprise:v0.0.24
             - name: WATCH_NAMESPACE
               valueFrom:
                 fieldRef:

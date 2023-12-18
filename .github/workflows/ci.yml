@@ -90,6 +90,8 @@ jobs:
           make cluster
           make install
           make net
+          make docker-build
+          make docker-load
 
       - name: Test
         run: make test
