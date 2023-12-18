@@ -70,7 +70,7 @@ CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 cert-controller: lint ## Run a cert-controller from your host.
 	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
-PITR_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601
+PITR_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --backup-path=backup --result-file-path=backup/0-point-in-time-recovery.txt --target-recovery-time=1970-01-01T00:00:00Z
 
 .PHONY: pitr
 pitr: lint ## Run PITR from your host.
