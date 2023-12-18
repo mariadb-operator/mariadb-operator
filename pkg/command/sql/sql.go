@@ -27,7 +27,7 @@ func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Comm
 			s.SqlFile,
 		),
 	}
-	return command.ExecCommand(cmds)
+	return command.NewBashCommand(cmds)
 }
 
 type Option func(*SqlOpts)

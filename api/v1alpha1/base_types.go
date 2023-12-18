@@ -234,17 +234,23 @@ type RestoreSource struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Volume *corev1.VolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
-	// FileName is the file within the source to be restored.
+	// TargetRecoveryFile is the file within the source to be restored.
+	// If provided, TargetRecoveryFile is ignored.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	FileName *string `json:"fileName,omitempty" webhook:"inmutableinit"`
+	TargetRecoveryFile *string `json:"targetRecoveryFile,omitempty" webhook:"inmutableinit"`
+	// TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.
+	// It is used to determine the closest restoration source in time.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutableinit"`
 }
 
-func (r *RestoreSource) IsInit() bool {
+func (r *RestoreSource) IsDefaulted() bool {
 	return r.Volume != nil
 }
 
-func (r *RestoreSource) Init(backup *Backup) {
+func (r *RestoreSource) SetDefaults(backup *Backup) {
 	if backup.Spec.Storage.Volume != nil {
 		r.Volume = backup.Spec.Storage.Volume
 	}
@@ -258,10 +264,7 @@ func (r *RestoreSource) Init(backup *Backup) {
 }
 
 func (r *RestoreSource) Validate() error {
-	if r.BackupRef != nil {
-		return nil
-	}
-	if r.Volume == nil {
+	if r.BackupRef == nil && r.Volume == nil {
 		return errors.New("unable to determine restore source")
 	}
 	return nil

@@ -2,6 +2,7 @@ package backup
 
 import (
 	"errors"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
@@ -9,45 +10,55 @@ import (
 
 type Commander interface {
 	BackupCommand(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) *command.Command
+	PitrCommand() (*command.Command, error)
 	RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command
 }
 
 type BackupOpts struct {
 	command.CommandOpts
-	BackupFile string
-	BasePath   string
-	DumpOpts   []string
+	BackupPath         string
+	TargetRecoveryFile string
+	PitrFile           string
+	PitrTime           *time.Time
+	DumpOpts           []string
 }
 
 type Option func(*BackupOpts)
 
-func WithFile(f string) Option {
-	return func(co *BackupOpts) {
-		co.BackupFile = f
+func WithBackupPath(backupPath string) Option {
+	return func(o *BackupOpts) {
+		o.BackupPath = backupPath
 	}
 }
 
-func WithBasePath(p string) Option {
-	return func(co *BackupOpts) {
-		co.BasePath = p
+func WithTargetRecoveryFile(targetRecoveryFile string) Option {
+	return func(o *BackupOpts) {
+		o.TargetRecoveryFile = targetRecoveryFile
+	}
+}
+
+func WithPitr(file string, targetTime *time.Time) Option {
+	return func(o *BackupOpts) {
+		o.PitrFile = file
+		o.PitrTime = targetTime
 	}
 }
 
 func WithUserEnv(u string) Option {
-	return func(co *BackupOpts) {
-		co.UserEnv = u
+	return func(o *BackupOpts) {
+		o.UserEnv = u
 	}
 }
 
 func WithPasswordEnv(p string) Option {
-	return func(co *BackupOpts) {
-		co.PasswordEnv = p
+	return func(o *BackupOpts) {
+		o.PasswordEnv = p
 	}
 }
 
 func WithDumpOpts(opts []string) Option {
-	return func(co *BackupOpts) {
-		co.DumpOpts = opts
+	return func(o *BackupOpts) {
+		o.DumpOpts = opts
 	}
 }
 
@@ -57,7 +68,7 @@ func New(userOpts ...Option) (Commander, error) {
 	for _, setOpt := range userOpts {
 		setOpt(opts)
 	}
-	if opts.BasePath == "" {
+	if opts.BackupPath == "" {
 		return nil, errors.New("base path not provided")
 	}
 	if opts.UserEnv == "" {

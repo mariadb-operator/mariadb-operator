@@ -4504,8 +4504,15 @@ spec:
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic
-                  fileName:
-                    description: FileName is the file within the source to be restored.
+                  targetRecoveryFile:
+                    description: TargetRecoveryFile is the file within the source
+                      to be restored. If provided, TargetRecoveryFile is ignored.
+                    type: string
+                  targetRecoveryTime:
+                    description: TargetRecoveryTime defines the point in time recovery
+                      objective. It is used to determine the closest restoration source
+                      in time.
+                    format: date-time
                     type: string
                   volume:
                     description: Volume is a Kubernetes Volume object that contains
@@ -14461,9 +14468,6 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
-              fileName:
-                description: FileName is the file within the source to be restored.
-                type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
@@ -14566,6 +14570,16 @@ spec:
                 - Always
                 - OnFailure
                 - Never
+                type: string
+              targetRecoveryFile:
+                description: TargetRecoveryFile is the file within the source to be
+                  restored. If provided, TargetRecoveryFile is ignored.
+                type: string
+              targetRecoveryTime:
+                description: TargetRecoveryTime defines the point in time recovery
+                  objective. It is used to determine the closest restoration source
+                  in time.
+                format: date-time
                 type: string
               tolerations:
                 description: Tolerations to be used in the Restore Pod.

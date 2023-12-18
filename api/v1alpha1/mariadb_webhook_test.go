@@ -61,7 +61,7 @@ var _ = Describe("MariaDB webhook", func() {
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
 						BootstrapFrom: &RestoreSource{
-							FileName: func() *string { b := "backup.sql"; return &b }(),
+							TargetRecoveryFile: func() *string { b := "backup.sql"; return &b }(),
 						},
 					},
 				},
