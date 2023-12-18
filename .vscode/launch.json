@@ -24,6 +24,25 @@
       }
     },
     {
+      "name": "Enterprise",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/enterprise",
+      "args": [
+        "--log-dev",
+        "--log-level=debug",
+        "--log-time-encoder=iso8601",
+      ],
+      "env": {
+        "MARIADB_OPERATOR_NAME": "mariadb-operator",
+        "MARIADB_OPERATOR_NAMESPACE": "default",
+        "MARIADB_OPERATOR_SA_PATH": "/tmp/mariadb-operator/token",
+        "MARIADB_OPERATOR_IMAGE": "mariadb/mariadb-operator-enterprise:v0.0.24",
+        "RELATED_IMAGE_MARIADB": "us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6",
+      }
+    },
+    {
       "name": "Webhook",
       "type": "go",
       "request": "launch",
@@ -50,23 +69,38 @@
       ],
     },
     {
-      "name": "Enterprise",
+      "name": "PITR",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/controller",
+      "args": [
+        "pitr",
+        "--backup-path=backup",
+        "--result-file-path=backup/0-point-in-time-recovery.txt",
+        "--target-recovery-time=1970-01-01T00:00:00Z",
+        "--log-dev",
+        "--log-level=debug",
+        "--log-time-encoder=iso8601",
+      ],
+      "cwd": "${workspaceRoot}"
+    },
+    {
+      "name": "PITR Enterprise",
       "type": "go",
       "request": "launch",
       "mode": "auto",
       "program": "cmd/enterprise",
       "args": [
+        "pitr",
+        "--backup-path=backup",
+        "--result-file-path=backup/0-point-in-time-recovery.txt",
+        "--target-recovery-time=1970-01-01T00:00:00Z",
         "--log-dev",
         "--log-level=debug",
         "--log-time-encoder=iso8601",
       ],
-      "env": {
-        "MARIADB_OPERATOR_NAME": "mariadb-operator",
-        "MARIADB_OPERATOR_NAMESPACE": "default",
-        "MARIADB_OPERATOR_SA_PATH": "/tmp/mariadb-operator/token",
-        "MARIADB_OPERATOR_IMAGE": "mariadb/mariadb-operator-enterprise:v0.0.24",
-        "RELATED_IMAGE_MARIADB": "us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6",
-      }
-    }
+      "cwd": "${workspaceRoot}"
+    },
   ]
 }
