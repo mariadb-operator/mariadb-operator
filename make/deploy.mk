@@ -93,10 +93,12 @@ code: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and Dee
 helm-crds: kustomize ## Generate CRDs for Helm chart.
 	$(KUSTOMIZE) build config/crd > deploy/charts/mariadb-operator/crds/crds.yaml
 
-.PHONY: helm-related-img
-helm-related-img: ## Update related image in Helm chart.
-	$(KUBECTL) create configmap mariadb-operator-related-images \
-		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) --dry-run=client -o yaml \
+.PHONY: helm-images
+helm-images: ## Update images in Helm chart.
+	$(KUBECTL) create configmap mariadb-operator-images \
+		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
+		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
+		--dry-run=client -o yaml \
 		> deploy/charts/mariadb-operator/templates/configmap.yaml
 
 DOCS_IMG ?= jnorwood/helm-docs:v1.11.0
@@ -110,7 +112,7 @@ helm-lint: ## Lint Helm charts.
 	docker run --rm --workdir /repo -v $(shell pwd):/repo $(CT_IMG) ct lint --config .github/config/ct.yml 
 
 .PHONY: helm
-helm: helm-crds helm-related-img helm-docs ## Generate manifests for Helm chart.
+helm: helm-crds helm-images helm-docs ## Generate manifests for Helm chart.
 
 .PHONY: helm-chart-version
 helm-chart-version: yq ## Get helm chart version.

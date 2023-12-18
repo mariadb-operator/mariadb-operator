@@ -559,9 +559,15 @@ spec:
       - description: BackupRef is a reference to a Backup object.
         displayName: Backup Ref
         path: bootstrapFrom.backupRef
-      - description: FileName is the file within the source to be restored.
-        displayName: File Name
-        path: bootstrapFrom.fileName
+      - description: TargetRecoveryFile is the file within the source to be restored.
+          If provided, TargetRecoveryFile is ignored.
+        displayName: Target Recovery File
+        path: bootstrapFrom.targetRecoveryFile
+      - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
+          time that defines the point in time recovery objective. It is used to determine
+          the closest restoration source in time.
+        displayName: Target Recovery Time
+        path: bootstrapFrom.targetRecoveryTime
       - description: Volume is a Kubernetes Volume object that contains a backup.
         displayName: Volume
         path: bootstrapFrom.volume
@@ -1382,9 +1388,6 @@ spec:
       - description: BackupRef is a reference to a Backup object.
         displayName: Backup Ref
         path: backupRef
-      - description: FileName is the file within the source to be restored.
-        displayName: File Name
-        path: fileName
       - description: MariaDBRef is a reference to a MariaDB object.
         displayName: Maria DBRef
         path: mariaDbRef
@@ -1403,6 +1406,15 @@ spec:
       - description: RestartPolicy to be added to the Backup Job.
         displayName: Restart Policy
         path: restartPolicy
+      - description: TargetRecoveryFile is the file within the source to be restored.
+          If provided, TargetRecoveryFile is ignored.
+        displayName: Target Recovery File
+        path: targetRecoveryFile
+      - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
+          time that defines the point in time recovery objective. It is used to determine
+          the closest restoration source in time.
+        displayName: Target Recovery Time
+        path: targetRecoveryTime
       - description: Tolerations to be used in the Restore Pod.
         displayName: Tolerations
         path: tolerations

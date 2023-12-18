@@ -1001,9 +1001,9 @@ spec:
                   restored. If provided, TargetRecoveryFile is ignored.
                 type: string
               targetRecoveryTime:
-                description: TargetRecoveryTime defines the point in time recovery
-                  objective. It is used to determine the closest restoration source
-                  in time.
+                description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z)
+                  date and time that defines the point in time recovery objective.
+                  It is used to determine the closest restoration source in time.
                 format: date-time
                 type: string
               tolerations:
