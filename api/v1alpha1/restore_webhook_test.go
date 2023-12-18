@@ -52,7 +52,7 @@ var _ = Describe("Restore webhook", func() {
 					},
 					Spec: RestoreSpec{
 						RestoreSource: RestoreSource{
-							FileName: func() *string { s := "foo.sql"; return &s }(),
+							TargetRecoveryFile: func() *string { s := "foo.sql"; return &s }(),
 						},
 						MariaDBRef: MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
@@ -248,7 +248,7 @@ var _ = Describe("Restore webhook", func() {
 			Entry(
 				"Init FileName source",
 				func(rmdb *Restore) {
-					rmdb.Spec.RestoreSource.FileName = func() *string {
+					rmdb.Spec.RestoreSource.TargetRecoveryFile = func() *string {
 						f := "backup.sql"
 						return &f
 					}()

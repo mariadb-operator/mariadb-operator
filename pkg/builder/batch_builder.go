@@ -18,15 +18,17 @@ import (
 )
 
 const (
-	batchDataVolume         = "data"
-	batchDataMountPath      = "/var/lib/mysql"
-	batchStorageVolume      = "backup"
-	batchStorageMountPath   = "/backup"
-	batchScriptsVolume      = "scripts"
-	batchScriptsMountPath   = "/opt"
-	batchScriptsSqlFileName = "job.sql"
-	batchUserEnv            = "MARIADB_OPERATOR_USER"
-	batchPasswordEnv        = "MARIADB_OPERATOR_PASSWORD"
+	batchStorageVolume    = "backup"
+	batchStorageMountPath = "/backup"
+	batchScriptsVolume    = "scripts"
+	batchScriptsMountPath = "/opt"
+	batchScriptsSqlFile   = "job.sql"
+	batchUserEnv          = "MARIADB_OPERATOR_USER"
+	batchPasswordEnv      = "MARIADB_OPERATOR_PASSWORD"
+)
+
+var (
+	batchPitrFile = fmt.Sprintf("%s/0-point-in-time-recovery.txt", batchStorageMountPath)
 )
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
@@ -37,7 +39,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			Build()
 
 	cmdOpts := []backupcmd.Option{
-		backupcmd.WithBasePath(batchStorageMountPath),
+		backupcmd.WithBackupPath(batchStorageMountPath),
 		backupcmd.WithUserEnv(batchUserEnv),
 		backupcmd.WithPasswordEnv(batchPasswordEnv),
 	}
@@ -126,12 +128,17 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 			WithMariaDB(mariadb).
 			Build()
 	cmdOpts := []backupcmd.Option{
-		backupcmd.WithBasePath(batchStorageMountPath),
+		backupcmd.WithBackupPath(batchStorageMountPath),
 		backupcmd.WithUserEnv(batchUserEnv),
 		backupcmd.WithPasswordEnv(batchPasswordEnv),
 	}
-	if restore.Spec.RestoreSource.FileName != nil {
-		cmdOpts = append(cmdOpts, backupcmd.WithFile(*restore.Spec.RestoreSource.FileName))
+	if restore.Spec.RestoreSource.TargetRecoveryFile != nil {
+		cmdOpts = append(cmdOpts, backupcmd.WithTargetRecoveryFile(*restore.Spec.RestoreSource.TargetRecoveryFile))
+	} else if restore.Spec.RestoreSource.TargetRecoveryTime != nil {
+		cmdOpts = append(cmdOpts, backupcmd.WithPitr(
+			batchPitrFile,
+			&restore.Spec.RestoreSource.TargetRecoveryTime.Time,
+		))
 	}
 	cmd, err := backupcmd.New(cmdOpts...)
 	if err != nil {
@@ -156,6 +163,21 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		withAffinity(restore.Spec.Affinity),
 		withNodeSelector(restore.Spec.NodeSelector),
 		withTolerations(restore.Spec.Tolerations),
+	}
+	if restore.Spec.RestoreSource.TargetRecoveryTime != nil {
+		pitrCmd, err := cmd.PitrCommand()
+		if err != nil {
+			return nil, fmt.Errorf("error building PITR command: %v", err)
+		}
+		jobOpts = append(jobOpts, withJobInitContainers(
+			[]corev1.Container{
+				jobPointInTimeRecoveryContainer(
+					pitrCmd,
+					volumeSources,
+					restore.Spec.Resources,
+				),
+			},
+		))
 	}
 
 	builder, err := newJobBuilder(jobOpts...)
@@ -182,7 +204,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 	sqlOpts := []sqlcmd.Option{
 		sqlcmd.WithUserEnv(batchUserEnv),
 		sqlcmd.WithPasswordEnv(batchPasswordEnv),
-		sqlcmd.WithSqlFile(fmt.Sprintf("%s/%s", batchScriptsMountPath, batchScriptsSqlFileName)),
+		sqlcmd.WithSqlFile(fmt.Sprintf("%s/%s", batchScriptsMountPath, batchScriptsSqlFile)),
 	}
 	if sqlJob.Spec.Database != nil {
 		sqlOpts = append(sqlOpts, sqlcmd.WithDatabase(*sqlJob.Spec.Database))
@@ -267,6 +289,12 @@ func withJobMeta(meta metav1.ObjectMeta) jobOption {
 func withJobVolumes(volumes []corev1.Volume) jobOption {
 	return func(b *jobBuilder) {
 		b.volumes = volumes
+	}
+}
+
+func withJobInitContainers(initContainers []v1.Container) jobOption {
+	return func(b *jobBuilder) {
+		b.initContainers = initContainers
 	}
 }
 
@@ -376,7 +404,7 @@ func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.Vo
 						Items: []corev1.KeyToPath{
 							{
 								Key:  sqlJob.Spec.SqlConfigMapKeyRef.Key,
-								Path: batchScriptsSqlFileName,
+								Path: batchScriptsSqlFile,
 							},
 						},
 					},
@@ -388,6 +416,24 @@ func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.Vo
 				MountPath: batchScriptsMountPath,
 			},
 		}
+}
+
+func jobPointInTimeRecoveryContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount,
+	resources *corev1.ResourceRequirements) corev1.Container {
+
+	container := corev1.Container{
+		Name: "point-in-time-recovery",
+		// TODO: use operator image, glued CLI
+		// Image:           mariadb.Spec.Image,
+		// ImagePullPolicy: mariadb.Spec.ImagePullPolicy,
+		Command:      cmd.Command,
+		Args:         cmd.Args,
+		VolumeMounts: volumeMounts,
+	}
+	if resources != nil {
+		container.Resources = *resources
+	}
+	return container
 }
 
 func jobContainers(cmd *cmd.Command, env []v1.EnvVar, volumeMounts []corev1.VolumeMount,

@@ -7,7 +7,7 @@ spec:
     name: mariadb
   backupRef:
     name: backup-scheduled
-  fileName: backup.2023-01-02T21:35:01Z.sql
+  targetRecoveryFile: backup.2023-12-18T13:00:00Z.sql
   resources:
     requests:
       cpu: 100m
