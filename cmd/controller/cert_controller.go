@@ -44,7 +44,6 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(certControllerCmd)
 	certControllerCmd.Flags().StringVar(&caSecretName, "ca-secret-name", "mariadb-operator-webhook-ca",
 		"Secret to store CA certificate for webhook")
 	certControllerCmd.Flags().StringVar(&caSecretNamespace, "ca-secret-namespace", "default",
