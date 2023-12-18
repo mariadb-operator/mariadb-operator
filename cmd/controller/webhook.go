@@ -50,7 +50,6 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(webhookCmd)
 	webhookCmd.Flags().StringVar(&caCertPath, "ca-cert-path", "/tmp/k8s-webhook-server/certificate-authority/tls.crt",
 		"Path containing the CA TLS certificate for the webhook server.")
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs",

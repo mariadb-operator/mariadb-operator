@@ -54,6 +54,11 @@ RUN_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) MARIADB_OPERATOR_IMAGE
 run: lint ## Run a controller from your host.
 	$(RUN_ENV) go run cmd/controller/*.go $(RUN_FLAGS)
 
+RUN_ENT_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB_ENT) MARIADB_OPERATOR_IMAGE=$(IMG_ENT) WATCH_NAMESPACE=$(WATCH_NAMESPACE)
+.PHONY: run-ent
+run-ent: lint cert ## Run a enterprise from your host.
+	$(RUN_ENT_ENV) go run cmd/enterprise/*.go $(RUN_FLAGS)
+
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 .PHONY: webhook
 webhook: lint cert-from-cluster ## Run a webhook from your host.
@@ -65,7 +70,13 @@ CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 cert-controller: lint ## Run a cert-controller from your host.
 	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
-RUN_ENT_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB_ENT) MARIADB_OPERATOR_IMAGE=$(IMG_ENT) WATCH_NAMESPACE=$(WATCH_NAMESPACE)
-.PHONY: run-ent
-run-ent: lint cert ## Run a enterprise from your host.
-	$(RUN_ENT_ENV) go run cmd/enterprise/*.go $(RUN_FLAGS)
+PITR_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601
+
+.PHONY: pitr
+pitr: lint ## Run PITR from your host.
+	go run cmd/controller/*.go pitr $(PITR_FLAGS)
+
+.PHONY: pitr-ent
+pitr-ent: lint ## Run PITR enterprise from your host.
+	go run cmd/enterprise/*.go pitr $(PITR_FLAGS)
+
