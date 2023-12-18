@@ -3,7 +3,6 @@ package pitr
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
@@ -63,7 +62,7 @@ var PitrCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		targetRecoveryFile, err := pitr.GetTargetRecoveryFile(backupFileNames, targetRecoveryTime)
+		targetRecoveryFile, err := pitr.GetTargetRecoveryFile(backupFileNames, targetRecoveryTime, ctrl.Log.WithName("pitr"))
 		if err != nil {
 			setupLog.Error(err, "error reading getting target recovery file", "time", targetRecoveryTime)
 			os.Exit(1)
@@ -84,7 +83,7 @@ func getBackupFileNames() ([]string, error) {
 	var fileNames []string
 	for _, e := range entries {
 		name := e.Name()
-		if strings.HasPrefix(name, "backup.") && strings.HasSuffix(name, ".sql") {
+		if pitr.IsValidBackupFile(name) {
 			fileNames = append(fileNames, name)
 		} else {
 			setupLog.V(1).Info("ignoring file", "file", name)
