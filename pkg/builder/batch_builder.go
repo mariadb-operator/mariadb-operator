@@ -9,6 +9,7 @@ import (
 	cmd "github.com/mariadb-operator/mariadb-operator/pkg/command"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/backup"
 	sqlcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/sql"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -175,6 +176,8 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 					pitrCmd,
 					volumeSources,
 					restore.Spec.Resources,
+					mariadb,
+					b.env,
 				),
 			},
 		))
@@ -418,17 +421,16 @@ func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.Vo
 		}
 }
 
-func jobPointInTimeRecoveryContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount,
-	resources *corev1.ResourceRequirements) corev1.Container {
+func jobPointInTimeRecoveryContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, resources *corev1.ResourceRequirements,
+	mariadb *mariadbv1alpha1.MariaDB, env *environment.Environment) corev1.Container {
 
 	container := corev1.Container{
-		Name: "point-in-time-recovery",
-		// TODO: use operator image, glued CLI
-		// Image:           mariadb.Spec.Image,
-		// ImagePullPolicy: mariadb.Spec.ImagePullPolicy,
-		Command:      cmd.Command,
-		Args:         cmd.Args,
-		VolumeMounts: volumeMounts,
+		Name:            "point-in-time-recovery",
+		Image:           env.MariadbOperatorImage,
+		ImagePullPolicy: mariadb.Spec.ImagePullPolicy,
+		Command:         cmd.Command,
+		Args:            cmd.Args,
+		VolumeMounts:    volumeMounts,
 	}
 	if resources != nil {
 		container.Resources = *resources
