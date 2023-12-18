@@ -104,3 +104,11 @@ spec:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.20
     externalTrafficPolicy: Cluster
     sessionAffinity: None
+
+  metrics:
+    enabled: true
+    exporter:
+      image: prom/mysqld-exporter:v0.14.0
+      port: 9104
+    serviceMonitor:
+      prometheusRelease: kube-prometheus-stack
