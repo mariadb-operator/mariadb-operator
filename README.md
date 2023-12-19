@@ -24,7 +24,8 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Provisioning](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers.
 - Multiple [HA modes](#high-availability) supported: [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml) and [Galera](./docs/GALERA.md). Automatic primary failover.
 - [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
-- [PVCs](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)) backup storage
+- [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_target_recovery_time.yaml) (PITR)
+- [PVCs](./examples/manifests/mariadb_v1alpha1_backup.yaml) and all Kubernetes-compatible [volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)) supported as backup storage
 - Bootstrap new instances from [backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes (i.e [NFS](./examples/manifests/mariadb_v1alpha1_mariadb_from_nfs.yaml))
 - Manage [users](./examples/manifests/mariadb_v1alpha1_user.yaml), [grants](./examples/manifests/mariadb_v1alpha1_grant.yaml) and logical [databases](./examples/manifests/mariadb_v1alpha1_database.yaml)
 - Configure [connections](./examples/manifests/mariadb_v1alpha1_connection.yaml) for your applications
