@@ -234,11 +234,6 @@ type RestoreSource struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Volume *corev1.VolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
-	// TargetRecoveryFile is the file within the source to be restored.
-	// If provided, TargetRecoveryFile is ignored.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TargetRecoveryFile *string `json:"targetRecoveryFile,omitempty" webhook:"inmutableinit"`
 	// TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.
 	// It is used to determine the closest restoration source in time.
 	// +optional

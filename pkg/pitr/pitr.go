@@ -10,6 +10,8 @@ import (
 	"github.com/go-logr/logr"
 )
 
+const timeLayout = time.RFC3339
+
 type backupDiff struct {
 	fileName string
 	diff     time.Duration
@@ -52,13 +54,18 @@ func IsValidBackupFile(fileName string) bool {
 	return err == nil
 }
 
+// FormatBackupDate formats a time with the layout compatible with this module.
+func FormatBackupDate(t time.Time) string {
+	return t.Format(timeLayout)
+}
+
 func parseBackupDate(fileName string) (time.Time, error) {
 	parts := strings.Split(fileName, ".")
 	if len(parts) != 3 {
 		return time.Time{}, fmt.Errorf("invalid file name: %s", fileName)
 	}
 	timeRaw := parts[1]
-	t, err := time.Parse(time.RFC3339, timeRaw)
+	t, err := time.Parse(timeLayout, timeRaw)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("error parsing file date: %v", err)
 	}

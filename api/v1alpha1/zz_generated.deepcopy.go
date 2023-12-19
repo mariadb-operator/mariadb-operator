@@ -1468,11 +1468,6 @@ func (in *RestoreSource) DeepCopyInto(out *RestoreSource) {
 		*out = new(v1.VolumeSource)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.TargetRecoveryFile != nil {
-		in, out := &in.TargetRecoveryFile, &out.TargetRecoveryFile
-		*out = new(string)
-		**out = **in
-	}
 	if in.TargetRecoveryTime != nil {
 		in, out := &in.TargetRecoveryTime, &out.TargetRecoveryTime
 		*out = (*in).DeepCopy()

@@ -7,6 +7,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pitr"
 )
 
 type logicalBackup struct {
@@ -51,18 +52,16 @@ func (l *logicalBackup) PitrCommand() (*command.Command, error) {
 	if l.PitrTime == nil {
 		return nil, errors.New("PitrTime must be set")
 	}
-	cmd := []string{
-		"pitr",
-	}
 	args := []string{
+		"pitr",
 		"--backup-path",
 		l.BackupPath,
 		"--result-file-path",
 		l.PitrFile,
 		"--target-recovery-time",
-		l.PitrTime.String(),
+		pitr.FormatBackupDate(*l.PitrTime),
 	}
-	return command.NewCommand(cmd, args), nil
+	return command.NewCommand(nil, args), nil
 }
 
 func (l *logicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command {
@@ -83,8 +82,8 @@ func (l *logicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *comman
 }
 
 func (l *logicalBackup) backupPath() string {
-	if backupFile := l.backupFile(); backupFile != "" {
-		return backupFile
+	if pitrPath := l.pitrPath(); pitrPath != "" {
+		return pitrPath
 	}
 	return fmt.Sprintf(
 		"%s/backup.$(date -u +'%s').sql",
@@ -94,8 +93,8 @@ func (l *logicalBackup) backupPath() string {
 }
 
 func (l *logicalBackup) restorePath() string {
-	if backupFile := l.backupFile(); backupFile != "" {
-		return backupFile
+	if pitrPath := l.pitrPath(); pitrPath != "" {
+		return pitrPath
 	}
 	return fmt.Sprintf(
 		"%s/$(find %s -name *.sql -type f -printf '%s' | sort | tail -n 1)",
@@ -105,10 +104,7 @@ func (l *logicalBackup) restorePath() string {
 	)
 }
 
-func (l *logicalBackup) backupFile() string {
-	if l.TargetRecoveryFile != "" {
-		return fmt.Sprintf("%s/%s", l.BackupPath, l.TargetRecoveryFile)
-	}
+func (l *logicalBackup) pitrPath() string {
 	if l.PitrFile != "" {
 		return fmt.Sprintf("%s/$(cat '%s')", l.BackupPath, l.PitrFile)
 	}
