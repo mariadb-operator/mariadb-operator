@@ -82,9 +82,6 @@ func (l *logicalBackup) RestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *comman
 }
 
 func (l *logicalBackup) backupPath() string {
-	if pitrPath := l.pitrPath(); pitrPath != "" {
-		return pitrPath
-	}
 	return fmt.Sprintf(
 		"%s/backup.$(date -u +'%s').sql",
 		l.BackupPath,
@@ -93,8 +90,8 @@ func (l *logicalBackup) backupPath() string {
 }
 
 func (l *logicalBackup) restorePath() string {
-	if pitrPath := l.pitrPath(); pitrPath != "" {
-		return pitrPath
+	if l.PitrFile != "" {
+		return fmt.Sprintf("%s/$(cat '%s')", l.BackupPath, l.PitrFile)
 	}
 	return fmt.Sprintf(
 		"%s/$(find %s -name *.sql -type f -printf '%s' | sort | tail -n 1)",
@@ -102,11 +99,4 @@ func (l *logicalBackup) restorePath() string {
 		l.BackupPath,
 		"%f\n",
 	)
-}
-
-func (l *logicalBackup) pitrPath() string {
-	if l.PitrFile != "" {
-		return fmt.Sprintf("%s/$(cat '%s')", l.BackupPath, l.PitrFile)
-	}
-	return ""
 }
