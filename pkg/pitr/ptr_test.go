@@ -107,7 +107,7 @@ func TestGetTargerRecoveryFile(t *testing.T) {
 			backupFiles: []string{
 				"backup.2023-12-18T15:58:00Z.sql",
 				"backup.2023-12-18T15:58:01Z.sql",
-				"backup.2023-12-18T16:00:00Z.sql",
+				"backup.2023-12-18T16:00:Z.sql",
 			},
 			targetRecovery: mustParseDate(t, "2023-12-18T15:59:00Z"),
 			wantFile:       "backup.2023-12-18T15:58:01Z.sql",
@@ -204,7 +204,7 @@ func TestGetTargerRecoveryFile(t *testing.T) {
 }
 
 func mustParseDate(t *testing.T, dateString string) time.Time {
-	target, err := time.Parse(time.RFC3339, dateString)
+	target, err := time.Parse(timeLayout, dateString)
 	if err != nil {
 		t.Fatalf("unexpected error parsing date: %v", err)
 	}
