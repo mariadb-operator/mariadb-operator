@@ -6,6 +6,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -122,13 +123,19 @@ var _ = Describe("Restore controller", func() {
 			Expect(k8sClient.Create(testCtx, &restore)).To(Succeed())
 
 			By("Expecting to create a Job eventually")
+			var job batchv1.Job
 			Eventually(func() bool {
-				var job batchv1.Job
 				if err := k8sClient.Get(testCtx, restoreKey, &job); err != nil {
 					return false
 				}
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting Job to have PITR init container")
+			Expect(job.Spec.Template.Spec.InitContainers).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"Name": Equal("point-in-time-recovery"),
+				})))
 
 			By("Expecting restore to be complete eventually")
 			Eventually(func() bool {
