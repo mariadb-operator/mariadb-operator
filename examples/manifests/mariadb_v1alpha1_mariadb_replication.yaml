@@ -3,9 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb-repl
 spec:
-  username: mariadb
-  database: mariadb
-  
   replicas: 3
 
   replication:
@@ -15,55 +12,16 @@ spec:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.120
-  connection:
-    secretName: mariadb-repl-conn
-    secretTemplate:
-      key: dsn
 
   primaryService:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.130
-  primaryConnection:
-    secretName: mariadb-repl-conn-primary
-    secretTemplate:
-      key: dsn
 
   secondaryService:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.131
-  secondaryConnection:
-    secretName: mariadb-repl-conn-secondary
-    secretTemplate:
-      key: dsn
-
-  affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - topologyKey: "kubernetes.io/hostname"
-
-  podDisruptionBudget:
-    maxUnavailable: 66%
-
-  updateStrategy:
-    type: RollingUpdate
-
-  myCnf: |
-    [mariadb]
-    bind-address=*
-    default_storage_engine=InnoDB
-    binlog_format=row
-    innodb_autoinc_lock_mode=2
-    max_allowed_packet=256M
-
-  metrics:
-    enabled: true
-    exporter:
-      image: prom/mysqld-exporter:v0.14.0
-      port: 9104
-    serviceMonitor:
-      prometheusRelease: kube-prometheus-stack
 
   volumeClaimTemplate:
     resources:
