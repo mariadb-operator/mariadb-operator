@@ -248,7 +248,7 @@ var _ = Describe("Restore webhook", func() {
 				false,
 			),
 			Entry(
-				"Init FileName source",
+				"Init TargetRecoveryTime source",
 				func(rmdb *Restore) {
 					rmdb.Spec.RestoreSource.TargetRecoveryTime = &metav1.Time{Time: time.Now().Add(1 * time.Hour)}
 				},
