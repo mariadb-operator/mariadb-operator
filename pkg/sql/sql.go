@@ -352,6 +352,14 @@ func (c *Client) SetSystemVariables(ctx context.Context, keyVal map[string]strin
 	return nil
 }
 
+func (c *Client) LockTablesWithReadLock(ctx context.Context) error {
+	return c.Exec(ctx, "FLUSH TABLES WITH READ LOCK;")
+}
+
+func (c *Client) UnlockTables(ctx context.Context) error {
+	return c.Exec(ctx, "UNLOCK TABLES;")
+}
+
 func (c *Client) EnableReadOnly(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "read_only", "1")
 }

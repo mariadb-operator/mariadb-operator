@@ -5,8 +5,10 @@ const (
 	ReasonReplicationConfiguring = "ReplicationConfiguring"
 	// ReasonReplicationConfigured indicates that replication has been configured.
 	ReasonReplicationConfigured = "ReplicationConfigured"
-	// ReasonReplicationPrimaryReadonly indicates that primary is being changed to readonly mode.
-	ReasonReplicationPrimaryReadonly = "PrimaryReadonly"
+	// ReasonReplicationPrimaryLock indicates that primary tables have a read lock.
+	ReasonReplicationPrimaryLock = "PrimaryLock"
+	// ReasonReplicationPrimaryUnlock indicates that primary tables have been unlocked.
+	ReasonReplicationPrimaryUnlock = "PrimaryUnlock"
 	// ReasonReplicationReplicaSync indicates that replicas are being synced with primary.
 	ReasonReplicationReplicaSync = "ReplicaSync"
 	// ReasonReplicationReplicaSyncErr indicates that an error has happened while replicas were being synced with primary.
