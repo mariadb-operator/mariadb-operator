@@ -190,7 +190,7 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Creating a MariaDB bootstrapping from backup")
 			bootstrapMariaDBKey := types.NamespacedName{
-				Name:      "mariadb-backup",
+				Name:      "mariadb-from-backup",
 				Namespace: testNamespace,
 			}
 			bootstrapMariaDB := mariadbv1alpha1.MariaDB{
@@ -228,6 +228,9 @@ var _ = Describe("MariaDB controller", func() {
 				}
 				return bootstrapMariaDB.IsReady()
 			}, 60*time.Second, testInterval).Should(BeTrue())
+
+			By("Expecting MariaDB to have restored backup")
+			Expect(bootstrapMariaDB.HasRestoredBackup()).To(BeTrue())
 
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &bootstrapMariaDB)).To(Succeed())
