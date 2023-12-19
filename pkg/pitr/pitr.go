@@ -59,13 +59,12 @@ func FormatBackupDate(t time.Time) string {
 	return t.Format(timeLayout)
 }
 
-func parseBackupDate(fileName string) (time.Time, error) {
-	parts := strings.Split(fileName, ".")
+func parseBackupDate(backupFileName string) (time.Time, error) {
+	parts := strings.Split(backupFileName, ".")
 	if len(parts) != 3 {
-		return time.Time{}, fmt.Errorf("invalid file name: %s", fileName)
+		return time.Time{}, fmt.Errorf("invalid file name: %s", backupFileName)
 	}
-	timeRaw := parts[1]
-	t, err := time.Parse(timeLayout, timeRaw)
+	t, err := time.Parse(timeLayout, parts[1])
 	if err != nil {
 		return time.Time{}, fmt.Errorf("error parsing file date: %v", err)
 	}
