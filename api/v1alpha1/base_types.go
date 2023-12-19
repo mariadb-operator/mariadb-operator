@@ -238,7 +238,7 @@ type RestoreSource struct {
 	// It is used to determine the closest restoration source in time.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutableinit"`
+	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
 }
 
 func (r *RestoreSource) IsDefaulted() bool {
