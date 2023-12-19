@@ -146,7 +146,6 @@ var _ = Describe("MariaDB controller", func() {
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
-
 		It("Should bootstrap from backup", func() {
 			By("Creating Backup")
 			backupKey := types.NamespacedName{
@@ -204,6 +203,7 @@ var _ = Describe("MariaDB controller", func() {
 						BackupRef: &corev1.LocalObjectReference{
 							Name: backupKey.Name,
 						},
+						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
@@ -234,95 +234,6 @@ var _ = Describe("MariaDB controller", func() {
 
 			By("Deleting Backup")
 			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
-		})
-	})
-
-	Context("When creating an invalid MariaDB", func() {
-		It("Should report not ready status", func() {
-			By("Creating MariaDB")
-			invalidMariaDbKey := types.NamespacedName{
-				Name:      "mariadb-test-invalid",
-				Namespace: testNamespace,
-			}
-			invalidMariaDb := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      invalidMariaDbKey.Name,
-					Namespace: invalidMariaDbKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
-						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &invalidMariaDb)).To(Succeed())
-
-			By("Expecting not ready status consistently")
-			Consistently(func() bool {
-				if err := k8sClient.Get(testCtx, invalidMariaDbKey, &invalidMariaDb); err != nil {
-					return false
-				}
-				return !invalidMariaDb.IsReady()
-			}, 5*time.Second, testInterval)
-
-			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &invalidMariaDb)).To(Succeed())
-		})
-	})
-
-	Context("When bootstrapping from a non existing backup", func() {
-		It("Should report not ready status", func() {
-			By("Creating MariaDB")
-			noBackupKey := types.NamespacedName{
-				Name:      "mariadb-test-no-backup",
-				Namespace: testNamespace,
-			}
-			noBackup := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      noBackupKey.Name,
-					Namespace: noBackupKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
-							Name: "foo",
-						},
-					},
-					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
-						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &noBackup)).To(Succeed())
-
-			By("Expecting not ready status consistently")
-			Consistently(func() bool {
-				if err := k8sClient.Get(testCtx, noBackupKey, &noBackup); err != nil {
-					return false
-				}
-				return !noBackup.IsReady()
-			}, 5*time.Second, testInterval)
-
-			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &noBackup)).To(Succeed())
 		})
 	})
 

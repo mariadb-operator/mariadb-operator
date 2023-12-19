@@ -115,6 +115,7 @@ var _ = Describe("Restore controller", func() {
 						BackupRef: &corev1.LocalObjectReference{
 							Name: backup.Name,
 						},
+						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
 				},
 			}
