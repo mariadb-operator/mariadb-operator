@@ -46,8 +46,8 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 
 	phases := []switchoverPhase{
 		{
-			name:      "Set read_only in current primary",
-			reconcile: r.currentPrimaryReadOnly,
+			name:      "Lock primary with read lock",
+			reconcile: r.lockPrimaryWithReadLock,
 		},
 		{
 			name:      "Wait for replica sync",
@@ -60,6 +60,10 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		{
 			name:      "Connect replicas to new primary",
 			reconcile: r.connectReplicasToNewPrimary,
+		},
+		{
+			name:      "Unlock primary",
+			reconcile: r.unlockPrimary,
 		},
 		{
 			name:      "Change current primary to replica",
@@ -90,7 +94,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	return nil
 }
 
-func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *replicationClientSet, logger logr.Logger) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
@@ -104,10 +108,31 @@ func (r *ReplicationReconciler) currentPrimaryReadOnly(ctx context.Context, mari
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 
-	logger.Info("Enabling readonly mode in current primary")
-	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryReadonly,
-		"Enabling readonly mode in current primary")
-	return client.EnableReadOnly(ctx)
+	logger.Info("Locking primary with read lock")
+	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock,
+		"Locking primary with read lock")
+
+	return client.LockTablesWithReadLock(ctx)
+}
+
+func (r *ReplicationReconciler) unlockPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	clientSet *replicationClientSet, logger logr.Logger) error {
+	ready, err := r.currentPrimaryReady(ctx, mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting current primary readiness: %v", err)
+	}
+	if !ready {
+		return nil
+	}
+	client, err := clientSet.currentPrimaryClient(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting current primary client: %v", err)
+	}
+
+	logger.Info("Unlocking primary")
+	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryUnlock, "Unlocking primary")
+
+	return client.UnlockTables(ctx)
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
