@@ -162,6 +162,7 @@ var _ = Describe("Restore webhook", func() {
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "backup-webhook",
 						},
+						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
 					MariaDBRef: MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
@@ -252,7 +253,7 @@ var _ = Describe("Restore webhook", func() {
 				func(rmdb *Restore) {
 					rmdb.Spec.RestoreSource.TargetRecoveryTime = &metav1.Time{Time: time.Now().Add(1 * time.Hour)}
 				},
-				false,
+				true,
 			),
 		)
 	})
