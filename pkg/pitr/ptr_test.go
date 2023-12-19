@@ -72,12 +72,45 @@ func TestGetTargerRecoveryFile(t *testing.T) {
 			wantErr:        true,
 		},
 		{
+			name: "invalid backups",
+			backupFiles: []string{
+				"backup.foo.sql",
+				"backup.bar.sql",
+				"backup.sql",
+			},
+			targetRecovery: time.Now(),
+			wantFile:       "",
+			wantErr:        true,
+		},
+		{
 			name: "single backup",
 			backupFiles: []string{
 				"backup.2023-12-18T15:58:00Z.sql",
 			},
 			targetRecovery: time.UnixMilli(0),
 			wantFile:       "backup.2023-12-18T15:58:00Z.sql",
+			wantErr:        false,
+		},
+		{
+			name: "multiple backups with invalid",
+			backupFiles: []string{
+				"backup.2023-12-18T15:58:00Z.sql",
+				"backup.foo.sql",
+				"backup.foo.sql",
+			},
+			targetRecovery: mustParseDate(t, "2023-12-18T15:59:00Z"),
+			wantFile:       "backup.2023-12-18T15:58:00Z.sql",
+			wantErr:        false,
+		},
+		{
+			name: "fine grained",
+			backupFiles: []string{
+				"backup.2023-12-18T15:58:00Z.sql",
+				"backup.2023-12-18T15:58:01Z.sql",
+				"backup.2023-12-18T16:00:00Z.sql",
+			},
+			targetRecovery: mustParseDate(t, "2023-12-18T15:59:00Z"),
+			wantFile:       "backup.2023-12-18T15:58:01Z.sql",
 			wantErr:        false,
 		},
 		{
@@ -127,15 +160,9 @@ func TestGetTargerRecoveryFile(t *testing.T) {
 				"backup.2023-12-18T16:12:00Z.sql",
 				"backup.2023-12-18T16:13:00Z.sql",
 			},
-			targetRecovery: func() time.Time {
-				target, err := time.Parse(time.RFC3339, "2023-12-18T16:04:00Z")
-				if err != nil {
-					t.Fatalf("unexpected error parsing date: %v", err)
-				}
-				return target
-			}(),
-			wantFile: "backup.2023-12-18T16:03:00Z.sql",
-			wantErr:  false,
+			targetRecovery: mustParseDate(t, "2023-12-18T16:04:00Z"),
+			wantFile:       "backup.2023-12-18T16:03:00Z.sql",
+			wantErr:        false,
 		},
 		{
 			name: "exact target",
@@ -150,15 +177,9 @@ func TestGetTargerRecoveryFile(t *testing.T) {
 				"backup.2023-12-18T16:12:00Z.sql",
 				"backup.2023-12-18T16:13:00Z.sql",
 			},
-			targetRecovery: func() time.Time {
-				target, err := time.Parse(time.RFC3339, "2023-12-18T16:07:00Z")
-				if err != nil {
-					t.Fatalf("unexpected error parsing date: %v", err)
-				}
-				return target
-			}(),
-			wantFile: "backup.2023-12-18T16:07:00Z.sql",
-			wantErr:  false,
+			targetRecovery: mustParseDate(t, "2023-12-18T16:07:00Z"),
+			wantFile:       "backup.2023-12-18T16:07:00Z.sql",
+			wantErr:        false,
 		},
 	}
 
@@ -180,4 +201,12 @@ func TestGetTargerRecoveryFile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustParseDate(t *testing.T, dateString string) time.Time {
+	target, err := time.Parse(time.RFC3339, dateString)
+	if err != nil {
+		t.Fatalf("unexpected error parsing date: %v", err)
+	}
+	return target
 }
