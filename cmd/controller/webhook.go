@@ -40,10 +40,11 @@ import (
 )
 
 var (
-	caCertPath string
-	certDir    string
-	dnsName    string
-	port       int
+	caCertPath   string
+	certDir      string
+	dnsName      string
+	port         int
+	validateCert bool
 
 	tlsCert = "tls.crt"
 	tlsKey  = "tls.key"
@@ -57,6 +58,8 @@ func init() {
 	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "mariadb-operator-webhook.default.svc",
 		"TLS certificate DNS name.")
 	webhookCmd.Flags().IntVar(&port, "port", 9443, "Port to be used by the webhook server.")
+	webhookCmd.Flags().BoolVar(&validateCert, "validate-cert", true,
+		"Validate certificate as a requirement for the webhook server to be healthy.")
 }
 
 var webhookCmd = &cobra.Command{
@@ -156,6 +159,10 @@ func waitForCerts(dnsName string, at time.Time, timeout time.Duration) error {
 }
 
 func checkCerts(dnsName string, at time.Time) error {
+	if !validateCert {
+		setupLog.V(1).Info("Omitting certificate validation. Set --validate-cert to enable it.")
+		return nil
+	}
 	caCert, err := readCert(caCertPath)
 	if err != nil {
 		setupLog.V(1).Info("Error reading CA KeyPair", "error", err)
