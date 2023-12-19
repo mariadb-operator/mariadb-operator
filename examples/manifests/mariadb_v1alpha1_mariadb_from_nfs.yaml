@@ -15,6 +15,7 @@ spec:
       nfs:
         server: nas.local
         path: /volume1/mariadb
+    targetRecoveryTime: 2023-12-19T09:00:00Z
 
   resources:
     requests:

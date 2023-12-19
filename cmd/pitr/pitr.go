@@ -28,8 +28,8 @@ func init() {
 
 var PitrCmd = &cobra.Command{
 	Use:   "pitr",
-	Short: "PITR.",
-	Long:  `Point In Time Recovery.`,
+	Short: "Point In Time Recovery.",
+	Long:  `Finds the backup file with the closest date to the target recovery time.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logLevel, err := cmd.Flags().GetString("log-level")
 		if err != nil {

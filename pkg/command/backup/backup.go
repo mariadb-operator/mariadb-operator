@@ -16,11 +16,10 @@ type Commander interface {
 
 type BackupOpts struct {
 	command.CommandOpts
-	BackupPath         string
-	TargetRecoveryFile string
-	PitrFile           string
-	PitrTime           *time.Time
-	DumpOpts           []string
+	BackupPath string
+	PitrFile   string
+	PitrTime   *time.Time
+	DumpOpts   []string
 }
 
 type Option func(*BackupOpts)
@@ -28,12 +27,6 @@ type Option func(*BackupOpts)
 func WithBackupPath(backupPath string) Option {
 	return func(o *BackupOpts) {
 		o.BackupPath = backupPath
-	}
-}
-
-func WithTargetRecoveryFile(targetRecoveryFile string) Option {
-	return func(o *BackupOpts) {
-		o.TargetRecoveryFile = targetRecoveryFile
 	}
 }
 

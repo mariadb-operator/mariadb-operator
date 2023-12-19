@@ -133,9 +133,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		backupcmd.WithUserEnv(batchUserEnv),
 		backupcmd.WithPasswordEnv(batchPasswordEnv),
 	}
-	if restore.Spec.RestoreSource.TargetRecoveryFile != nil {
-		cmdOpts = append(cmdOpts, backupcmd.WithTargetRecoveryFile(*restore.Spec.RestoreSource.TargetRecoveryFile))
-	} else if restore.Spec.RestoreSource.TargetRecoveryTime != nil {
+	if restore.Spec.RestoreSource.TargetRecoveryTime != nil {
 		cmdOpts = append(cmdOpts, backupcmd.WithPitr(
 			batchPitrFile,
 			&restore.Spec.RestoreSource.TargetRecoveryTime.Time,
