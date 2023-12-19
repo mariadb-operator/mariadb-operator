@@ -559,10 +559,6 @@ spec:
       - description: BackupRef is a reference to a Backup object.
         displayName: Backup Ref
         path: bootstrapFrom.backupRef
-      - description: TargetRecoveryFile is the file within the source to be restored.
-          If provided, TargetRecoveryFile is ignored.
-        displayName: Target Recovery File
-        path: bootstrapFrom.targetRecoveryFile
       - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
           time that defines the point in time recovery objective. It is used to determine
           the closest restoration source in time.
@@ -1406,10 +1402,6 @@ spec:
       - description: RestartPolicy to be added to the Backup Job.
         displayName: Restart Policy
         path: restartPolicy
-      - description: TargetRecoveryFile is the file within the source to be restored.
-          If provided, TargetRecoveryFile is ignored.
-        displayName: Target Recovery File
-        path: targetRecoveryFile
       - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
           time that defines the point in time recovery objective. It is used to determine
           the closest restoration source in time.
