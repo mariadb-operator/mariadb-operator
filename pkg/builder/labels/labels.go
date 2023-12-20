@@ -10,6 +10,7 @@ const (
 	instanceLabel      = "app.kubernetes.io/instance"
 	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
 	appMariaDb         = "mariadb"
+	appExporter        = "exporter"
 )
 
 type LabelsBuilder struct {
@@ -55,6 +56,11 @@ func (b *LabelsBuilder) WithMariaDBSelectorLabels(mdb *mariadbv1alpha1.MariaDB) 
 		b = b.WithLabels(mdb.Spec.InheritMetadata.Labels)
 	}
 	return b
+}
+
+func (b *LabelsBuilder) WithMetricsSelectorLabels(mdb *mariadbv1alpha1.MariaDB) *LabelsBuilder {
+	return b.WithApp(appExporter).
+		WithInstance(mdb.Name)
 }
 
 func (b *LabelsBuilder) Build() map[string]string {

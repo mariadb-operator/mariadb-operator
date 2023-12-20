@@ -18,7 +18,7 @@ spec:
   metrics:
     enabled: true
     exporter:
-      image: prom/mysqld-exporter:v0.14.0
+      image: prom/mysqld-exporter:v0.15.0
       resources:
         requests:
           cpu: 50m
