@@ -62,10 +62,6 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 			reconcile: r.connectReplicasToNewPrimary,
 		},
 		{
-			name:      "Unlock primary",
-			reconcile: r.unlockPrimary,
-		},
-		{
 			name:      "Change current primary to replica",
 			reconcile: r.changeCurrentPrimaryToReplica,
 		},
@@ -111,26 +107,6 @@ func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mar
 	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock,
 		"Locking primary with read lock")
 	return client.LockTablesWithReadLock(ctx)
-}
-
-func (r *ReplicationReconciler) unlockPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet, logger logr.Logger) error {
-	ready, err := r.currentPrimaryReady(ctx, mariadb)
-	if err != nil {
-		return fmt.Errorf("error getting current primary readiness: %v", err)
-	}
-	if !ready {
-		return nil
-	}
-	client, err := clientSet.currentPrimaryClient(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting current primary client: %v", err)
-	}
-
-	logger.Info("Unlocking primary")
-	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryUnlock, "Unlocking primary")
-
-	return client.UnlockTables(ctx)
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
