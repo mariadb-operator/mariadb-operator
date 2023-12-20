@@ -519,6 +519,9 @@ spec:
       - kind: Event
         name: ""
         version: v1
+      - kind: Grant
+        name: ""
+        version: v1alpha1
       - kind: MariaDB
         name: ""
         version: v1alpha1
@@ -546,6 +549,9 @@ spec:
       - kind: StatefulSet
         name: ""
         version: v1
+      - kind: User
+        name: ""
+        version: v1alpha1
       specDescriptors:
       - description: Affinity to be used in the Pod.
         displayName: Affinity

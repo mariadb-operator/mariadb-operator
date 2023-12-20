@@ -31,11 +31,6 @@ type ServiceOpts struct {
 
 func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
 	opts ServiceOpts) (*corev1.Service, error) {
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDBSelectorLabels(mariadb).
-			WithLabels(opts.Selectorlabels).
-			Build()
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
@@ -54,7 +49,7 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		svc.Spec.PublishNotReadyAddresses = true
 	}
 	if !opts.ExcludeSelectorLabels {
-		svc.Spec.Selector = selectorLabels
+		svc.Spec.Selector = serviceSelectorLabels(opts, mariadb)
 	}
 	if opts.LoadBalancerIP != nil {
 		svc.Spec.LoadBalancerIP = *opts.LoadBalancerIP
@@ -75,4 +70,14 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		return nil, fmt.Errorf("error setting controller reference to Service: %v", err)
 	}
 	return svc, nil
+}
+
+func serviceSelectorLabels(opts ServiceOpts, mariadb *mariadbv1alpha1.MariaDB) map[string]string {
+	if opts.Selectorlabels != nil {
+		return opts.Selectorlabels
+	}
+	return labels.NewLabelsBuilder().
+		WithMariaDBSelectorLabels(mariadb).
+		WithLabels(opts.Selectorlabels).
+		Build()
 }

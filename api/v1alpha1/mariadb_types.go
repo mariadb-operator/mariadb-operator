@@ -3,7 +3,6 @@ package v1alpha1
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -11,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -318,7 +316,7 @@ func (s *MariaDBStatus) FillWithDefaults(mariadb *MariaDB) {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Primary Pod",type="string",JSONPath=".status.currentPrimary"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +operator-sdk:csv:customresourcedefinitions:resources={{MariaDB,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{MariaDB,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
 
 // MariaDB is the Schema for the mariadbs API
 type MariaDB struct {
@@ -395,84 +393,6 @@ func (m *MariaDB) IsRestoringBackup() bool {
 // HasRestoredBackup indicates whether the MariaDB instance has restored a Backup
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
-}
-
-// RootPasswordSecretKeyRef defines the key selector for the root password Secret.
-func (m *MariaDB) RootPasswordSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-root", m.Name),
-		},
-		Key: "password",
-	}
-}
-
-// PasswordSecretKeyRef defines the key selector for the initial user password Secret.
-func (m *MariaDB) PasswordSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-password", m.Name),
-		},
-		Key: "password",
-	}
-}
-
-// MyCnfConfigMapKeyRef defines the key selector for the my.cnf ConfigMap.
-func (m *MariaDB) MyCnfConfigMapKeyRef() corev1.ConfigMapKeySelector {
-	return corev1.ConfigMapKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-config", m.Name),
-		},
-		Key: "my.cnf",
-	}
-}
-
-// RestoreKey defines the key for the Restore resource used to bootstrap.
-func (m *MariaDB) RestoreKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-restore", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// InternalServiceKey defines the key for the internal headless Service
-func (m *MariaDB) InternalServiceKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-internal", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// PrimaryServiceKey defines the key for the primary Service
-func (m *MariaDB) PrimaryServiceKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-primary", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// PrimaryConnectioneKey defines the key for the primary Connection
-func (m *MariaDB) PrimaryConnectioneKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-primary", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// SecondaryServiceKey defines the key for the secondary Service
-func (m *MariaDB) SecondaryServiceKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-secondary", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// SecondaryConnectioneKey defines the key for the secondary Connection
-func (m *MariaDB) SecondaryConnectioneKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-secondary", m.Name),
-		Namespace: m.Namespace,
-	}
 }
 
 // +kubebuilder:object:root=true
