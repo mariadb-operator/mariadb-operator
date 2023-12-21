@@ -15,10 +15,6 @@ grafana:
             path: /var/lib/grafana/dashboards/default
   dashboards:
     default:
-      mysql-basic:
-        gnetId: 6239
-        revision: 1
-        datasource: Prometheus
       mysql-overview:
         gnetId: 7362
         revision: 5
