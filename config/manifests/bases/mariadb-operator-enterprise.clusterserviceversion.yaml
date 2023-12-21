@@ -822,7 +822,7 @@ spec:
         displayName: Labels
         path: galera.volumeClaimTemplate.labels
       - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
+          format is `<image>:<tag>`. Only MariaDB official images are supported.
         displayName: Image
         path: image
         x-descriptors:
@@ -921,8 +921,8 @@ spec:
           to environment variables to be injected in the container.
         displayName: Env From
         path: metrics.exporter.envFrom
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
+      - description: 'Image name to be used as metrics exporter. The supported format
+          is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
         displayName: Image
         path: metrics.exporter.image
       - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
