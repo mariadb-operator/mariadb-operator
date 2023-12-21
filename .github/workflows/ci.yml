@@ -91,11 +91,6 @@ jobs:
           make install
           make net
 
-      - name: Image
-        run: |
-          make docker-build
-          make docker-load
-
       - name: Test
         run: make test
 

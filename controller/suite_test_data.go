@@ -89,34 +89,6 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 				SecurityContext: &corev1.SecurityContext{
 					AllowPrivilegeEscalation: func() *bool { b := false; return &b }(),
 				},
-				LivenessProbe: &v1.Probe{
-					ProbeHandler: v1.ProbeHandler{
-						Exec: &v1.ExecAction{
-							Command: []string{
-								"bash",
-								"-c",
-								"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-							},
-						},
-					},
-					InitialDelaySeconds: 10,
-					TimeoutSeconds:      5,
-					PeriodSeconds:       5,
-				},
-				ReadinessProbe: &v1.Probe{
-					ProbeHandler: v1.ProbeHandler{
-						Exec: &v1.ExecAction{
-							Command: []string{
-								"bash",
-								"-c",
-								"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-							},
-						},
-					},
-					InitialDelaySeconds: 10,
-					TimeoutSeconds:      5,
-					PeriodSeconds:       5,
-				},
 			},
 			PodTemplate: mariadbv1alpha1.PodTemplate{
 				PodSecurityContext: &corev1.PodSecurityContext{
@@ -184,11 +156,21 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			Metrics: &mariadbv1alpha1.Metrics{
 				Enabled: true,
 				Exporter: mariadbv1alpha1.Exporter{
-					Image: "prom/mysqld-exporter:v0.15.1",
+					Image: env.RelatedExporterImage,
 					Port:  9104,
 				},
 				ServiceMonitor: mariadbv1alpha1.ServiceMonitor{
 					PrometheusRelease: "kube-prometheus-stack",
+					JobLabel:          "mariadb-monitoring",
+					Interval:          "10s",
+					ScrapeTimeout:     "10s",
+				},
+				Username: "monitoring",
+				PasswordSecretKeyRef: corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
 				},
 			},
 		},
