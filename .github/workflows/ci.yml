@@ -89,7 +89,6 @@ jobs:
         run: |
           make cluster
           make install
-          make install-prometheus
           make net
 
       - name: Image
