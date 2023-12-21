@@ -31,7 +31,8 @@ type Exporter struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
-	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// Image name to be used as metrics exporter. The supported format is `<image>:<tag>`.
+	// Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Image string `json:"image,omitempty"`
@@ -162,6 +163,7 @@ type MariaDBSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodTemplate `json:",inline"`
 	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// Only MariaDB official images are supported.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Image string `json:"image,omitempty"`
@@ -359,7 +361,7 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	}
 	if m.AreMetricsEnabled() {
 		if m.Spec.Metrics.Exporter.Image == "" {
-			m.Spec.Metrics.Exporter.Image = "prom/mysqld-exporter:v0.15.1"
+			m.Spec.Metrics.Exporter.Image = env.RelatedExporterImage
 		}
 		if m.Spec.Metrics.Exporter.Port == 0 {
 			m.Spec.Metrics.Exporter.Port = 9104

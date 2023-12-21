@@ -8127,7 +8127,7 @@ spec:
                 type: object
               image:
                 description: Image name to be used by the MariaDB instances. The supported
-                  format is `<image>:<tag>`.
+                  format is `<image>:<tag>`. Only MariaDB official images are supported.
                 type: string
               imagePullPolicy:
                 description: ImagePullPolicy is the image pull policy. One of `Always`,
@@ -9238,8 +9238,9 @@ spec:
                           type: object
                         type: array
                       image:
-                        description: Image name to be used by the MariaDB instances.
-                          The supported format is `<image>:<tag>`.
+                        description: 'Image name to be used as metrics exporter. The
+                          supported format is `<image>:<tag>`. Only mysqld-exporter
+                          >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
                         type: string
                       imagePullPolicy:
                         description: ImagePullPolicy is the image pull policy. One
