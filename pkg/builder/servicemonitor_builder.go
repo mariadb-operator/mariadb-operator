@@ -34,6 +34,9 @@ func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB, key type
 			Endpoints: serviceMonitorEndpoints(mariadb),
 		},
 	}
+	if mariadb.Spec.Metrics.ServiceMonitor.JobLabel != "" {
+		serviceMonitor.Spec.JobLabel = mariadb.Spec.Metrics.ServiceMonitor.JobLabel
+	}
 	if err := controllerutil.SetControllerReference(mariadb, serviceMonitor, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to ServiceMonitor: %v", err)
 	}

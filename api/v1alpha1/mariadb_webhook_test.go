@@ -515,7 +515,7 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 					Metrics: &Metrics{
 						Exporter: Exporter{
-							Image:           "prom/mysqld-exporter:v0.15.0",
+							Image:           "prom/mysqld-exporter:v0.15.1",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 						ServiceMonitor: ServiceMonitor{

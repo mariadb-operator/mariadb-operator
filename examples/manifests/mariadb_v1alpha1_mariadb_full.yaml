@@ -107,8 +107,3 @@ spec:
 
   metrics:
     enabled: true
-    exporter:
-      image: prom/mysqld-exporter:v0.15.0
-      port: 9104
-    serviceMonitor:
-      prometheusRelease: kube-prometheus-stack

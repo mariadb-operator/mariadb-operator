@@ -3,6 +3,13 @@ kind: MariaDB
 metadata:
   name: mariadb-repl
 spec:
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
   replicas: 3
 
   replication:
@@ -22,10 +29,3 @@ spec:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.131
-
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce

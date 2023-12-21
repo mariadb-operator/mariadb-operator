@@ -6,6 +6,13 @@ spec:
   username: mariadb
   database: mariadb
   
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
   replicas: 3
 
   replication:
@@ -77,24 +84,3 @@ spec:
 
   metrics:
     enabled: true
-    exporter:
-      image: prom/mysqld-exporter:v0.15.0
-      resources:
-        requests:
-          cpu: 50m
-          memory: 64Mi
-        limits:
-          cpu: 300m
-          memory: 512Mi
-      port: 9104
-    serviceMonitor:
-      prometheusRelease: kube-prometheus-stack
-      interval: 10s
-      scrapeTimeout: 10s
-
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce

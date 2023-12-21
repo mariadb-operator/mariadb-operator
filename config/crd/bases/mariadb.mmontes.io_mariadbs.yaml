@@ -6212,11 +6212,34 @@ spec:
                           type: object
                         type: array
                     type: object
+                  passwordSecretKeyRef:
+                    description: PasswordSecretKeyRef is a reference to the password
+                      of the monitoring user used by the exporter.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
                   serviceMonitor:
                     description: ServiceMonitor defines the ServiceMonior object.
                     properties:
                       interval:
                         description: Interval for scraping metrics.
+                        type: string
+                      jobLabel:
+                        description: JobLabel to add to the ServiceMonitor object.
                         type: string
                       prometheusRelease:
                         description: PrometheusRelease is the release label to add
@@ -6226,12 +6249,11 @@ spec:
                         description: ScrapeTimeout defines the timeout for scraping
                           metrics.
                         type: string
-                    required:
-                    - prometheusRelease
                     type: object
-                required:
-                - exporter
-                - serviceMonitor
+                  username:
+                    description: Username is the username of the monitoring user used
+                      by the exporter.
+                    type: string
                 type: object
               myCnf:
                 description: MyCnf allows to specify the my.cnf file mounted by Mariadb.

@@ -15,6 +15,7 @@ type UserOpts struct {
 	Key                  types.NamespacedName
 	PasswordSecretKeyRef v1.SecretKeySelector
 	MaxUserConnections   int32
+	Name                 string
 }
 
 func (b *Builder) BuildUser(mariadb *mariadbv1alpha1.MariaDB, opts UserOpts) (*mariadbv1alpha1.User, error) {
@@ -33,6 +34,7 @@ func (b *Builder) BuildUser(mariadb *mariadbv1alpha1.MariaDB, opts UserOpts) (*m
 			},
 			PasswordSecretKeyRef: opts.PasswordSecretKeyRef,
 			MaxUserConnections:   opts.MaxUserConnections,
+			Name:                 opts.Name,
 		},
 	}
 	if err := controllerutil.SetControllerReference(mariadb, user, b.scheme); err != nil {

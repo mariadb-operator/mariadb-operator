@@ -15,7 +15,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -72,7 +71,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 }
 
 func (r *MariaDBReconciler) reconcileMetricsPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	secretKeyRef := mariadb.MetricsPasswordSecretKeyRef()
+	secretKeyRef := mariadb.Spec.Metrics.PasswordSecretKeyRef
 	key := types.NamespacedName{
 		Name:      secretKeyRef.Name,
 		Namespace: mariadb.Namespace,
@@ -90,8 +89,9 @@ func (r *MariaDBReconciler) reconcileMetricsUser(ctx context.Context, mariadb *m
 
 	opts := builder.UserOpts{
 		Key:                  key,
-		PasswordSecretKeyRef: mariadb.MetricsPasswordSecretKeyRef(),
+		PasswordSecretKeyRef: mariadb.Spec.Metrics.PasswordSecretKeyRef,
 		MaxUserConnections:   3,
+		Name:                 mariadb.Spec.Metrics.Username,
 	}
 	user, err := r.Builder.BuildUser(mariadb, opts)
 	if err != nil {
@@ -124,7 +124,7 @@ func (r *MariaDBReconciler) reconcileMetricsGrant(ctx context.Context, mariadb *
 		Privileges:  exporterPrivileges,
 		Database:    "*",
 		Table:       "*",
-		Username:    key.Name,
+		Username:    mariadb.Spec.Metrics.Username,
 		GrantOption: false,
 	}
 	grant, err := r.Builder.BuildGrant(mariadb, opts)
@@ -145,7 +145,7 @@ func (r *MariaDBReconciler) reconcileExporterConfig(ctx context.Context, mariadb
 		return nil
 	}
 
-	passwordSecretKeyRef := mariadb.MetricsPasswordSecretKeyRef()
+	passwordSecretKeyRef := mariadb.Spec.Metrics.PasswordSecretKeyRef
 	passwordSecretKey := types.NamespacedName{
 		Name:      passwordSecretKeyRef.Name,
 		Namespace: mariadb.Namespace,
@@ -164,7 +164,7 @@ user = {{ .User }}
 password = {{ .Password }}`)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, tplOpts{
-		User:     mariadb.MetricsKey().Name,
+		User:     mariadb.Spec.Metrics.Username,
 		Password: string(passwordSecret.Data[passwordSecretKeyRef.Key]),
 	})
 	if err != nil {
@@ -195,9 +195,6 @@ func (r *MariaDBReconciler) reconcileExporterDeployment(ctx context.Context, mar
 }
 
 func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.Metrics == nil {
-		return errors.New("spec.metrics must be set")
-	}
 	key := mariadb.MetricsKey()
 	metricsSelectorLabels :=
 		labels.NewLabelsBuilder().
@@ -223,7 +220,7 @@ func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariad
 }
 
 func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := client.ObjectKeyFromObject(mariadb)
+	key := mariadb.MetricsKey()
 	desiredSvcMonitor, err := r.Builder.BuildServiceMonitor(mariadb, key)
 	if err != nil {
 		return fmt.Errorf("error building Service Monitor: %v", err)

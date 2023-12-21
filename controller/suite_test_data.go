@@ -184,7 +184,7 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			Metrics: &mariadbv1alpha1.Metrics{
 				Enabled: true,
 				Exporter: mariadbv1alpha1.Exporter{
-					Image: "prom/mysqld-exporter:v0.15.0",
+					Image: "prom/mysqld-exporter:v0.15.1",
 					Port:  9104,
 				},
 				ServiceMonitor: mariadbv1alpha1.ServiceMonitor{

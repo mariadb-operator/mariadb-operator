@@ -1,6 +1,7 @@
 apiVersion: v1
 data:
   MARIADB_OPERATOR_IMAGE: ghcr.io/mariadb-operator/mariadb-operator:v0.0.24
+  RELATED_IMAGE_EXPORTER: prom/mysqld-exporter:v0.15.1
   RELATED_IMAGE_MARIADB: mariadb:11.2.2
 kind: ConfigMap
 metadata:
