@@ -105,7 +105,7 @@ make install-prometheus
 
 ## Grafana dashboards
 
-To visualize MariaDB metrics, our [prometheus reference installation](#prometheus-reference-installation) has some interesting Grafana dashboards [configured](../hack/config/kube-prometheus-stack.yaml) that make use of the metrics configured by `mariadb-operator`. They are all available on [grafana.com](https://grafana.com/grafana/dashboards/):
+To visualize MariaDB metrics, our [Prometheus reference installation](#prometheus-reference-installation) has some interesting Grafana dashboards [configured](../hack/config/kube-prometheus-stack.yaml) that make use of the metrics configured by `mariadb-operator`. They are all available on [grafana.com](https://grafana.com/grafana/dashboards/):
 
 
 ##### [MySQL Overview](https://grafana.com/grafana/dashboards/7362-mysql-overview/)
