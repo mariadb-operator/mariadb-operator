@@ -97,6 +97,7 @@ helm-crds: kustomize ## Generate CRDs for Helm chart.
 helm-images: ## Update images in Helm chart.
 	$(KUBECTL) create configmap mariadb-operator-images \
 		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
+		--from-literal=RELATED_IMAGE_EXPORTER=$(RELATED_IMAGE_EXPORTER) \
 		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
 		--dry-run=client -o yaml \
 		> deploy/charts/mariadb-operator/templates/configmap.yaml
@@ -161,11 +162,7 @@ gen: generate ## Generate alias.
 
 ##@ Dependencies
 
-PROMETHEUS_VERSION ?= kube-prometheus-stack-33.2.0
-.PHONY: install-prometheus-crds
-install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs.
-	kubectl apply -f https://raw.githubusercontent.com/prometheus-community/helm-charts/$(PROMETHEUS_VERSION)/charts/kube-prometheus-stack/crds/crd-servicemonitors.yaml
-
+PROMETHEUS_VERSION ?= "55.5.0"
 .PHONY: install-prometheus
 install-prometheus: cluster-ctx ## Install kube-prometheus-stack helm chart.
 	@./hack/install_prometheus.sh
@@ -191,7 +188,7 @@ uninstall-crds: cluster-ctx manifests kustomize ## Uninstall CRDs.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: install
-install: cluster-ctx install-crds install-prometheus-crds install-samples serviceaccount cert ## Install CRDs and dependencies for local development.
+install: cluster-ctx install-crds install-samples serviceaccount cert ## Install CRDs and dependencies for local development.
 
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.

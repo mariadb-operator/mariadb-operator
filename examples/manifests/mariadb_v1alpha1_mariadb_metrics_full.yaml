@@ -1,0 +1,38 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.20
+
+  metrics:
+    enabled: true
+    exporter:
+      image: prom/mysqld-exporter:v0.15.1
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi
+      port: 9104
+    serviceMonitor:
+      prometheusRelease: kube-prometheus-stack
+      jobLabel: mariadb-monitoring
+      interval: 10s
+      scrapeTimeout: 10s
+    username: monitoring
+    passwordSecretKeyRef:
+      name: mariadb
+      key: password

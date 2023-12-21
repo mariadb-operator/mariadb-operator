@@ -50,9 +50,13 @@ type Exporter struct {
 // ServiceMonitor defines a prometheus ServiceMonitor object.
 type ServiceMonitor struct {
 	// PrometheusRelease is the release label to add to the ServiceMonitor object.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PrometheusRelease string `json:"prometheusRelease"`
+	PrometheusRelease string `json:"prometheusRelease,omitempty"`
+	// JobLabel to add to the ServiceMonitor object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	JobLabel string `json:"jobLabel,omitempty"`
 	// Interval for scraping metrics.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -70,13 +74,21 @@ type Metrics struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
 	// Exporter defines the metrics exporter container.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Exporter Exporter `json:"exporter"`
 	// ServiceMonitor defines the ServiceMonior object.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
+	// Username is the username of the monitoring user used by the exporter.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Username string `json:"username,omitempty" webhook:"inmutable"`
+	// PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 }
 
 // PodDisruptionBudget is the Pod availability bundget for a MariaDb
@@ -344,6 +356,20 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	if m.IsInitialDataEnabled() && m.Spec.PasswordSecretKeyRef == nil {
 		secretKeyRef := m.PasswordSecretKeyRef()
 		m.Spec.PasswordSecretKeyRef = &secretKeyRef
+	}
+	if m.AreMetricsEnabled() {
+		if m.Spec.Metrics.Exporter.Image == "" {
+			m.Spec.Metrics.Exporter.Image = "prom/mysqld-exporter:v0.15.1"
+		}
+		if m.Spec.Metrics.Exporter.Port == 0 {
+			m.Spec.Metrics.Exporter.Port = 9104
+		}
+		if m.Spec.Metrics.Username == "" {
+			m.Spec.Metrics.Username = m.MetricsKey().Name
+		}
+		if m.Spec.Metrics.PasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+			m.Spec.Metrics.PasswordSecretKeyRef = m.MetricsPasswordSecretKeyRef()
+		}
 	}
 }
 

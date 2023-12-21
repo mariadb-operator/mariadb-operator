@@ -954,12 +954,19 @@ spec:
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: metrics.exporter.volumeMounts
+      - description: PasswordSecretKeyRef is a reference to the password of the monitoring
+          user used by the exporter.
+        displayName: Password Secret Key Ref
+        path: metrics.passwordSecretKeyRef
       - description: ServiceMonitor defines the ServiceMonior object.
         displayName: Service Monitor
         path: metrics.serviceMonitor
       - description: Interval for scraping metrics.
         displayName: Interval
         path: metrics.serviceMonitor.interval
+      - description: JobLabel to add to the ServiceMonitor object.
+        displayName: Job Label
+        path: metrics.serviceMonitor.jobLabel
       - description: PrometheusRelease is the release label to add to the ServiceMonitor
           object.
         displayName: Prometheus Release
@@ -967,6 +974,9 @@ spec:
       - description: ScrapeTimeout defines the timeout for scraping metrics.
         displayName: Scrape Timeout
         path: metrics.serviceMonitor.scrapeTimeout
+      - description: Username is the username of the monitoring user used by the exporter.
+        displayName: Username
+        path: metrics.username
       - description: MyCnf allows to specify the my.cnf file mounted by Mariadb.
         displayName: My Cnf
         path: myCnf
