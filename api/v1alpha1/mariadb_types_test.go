@@ -239,6 +239,45 @@ var _ = Describe("MariaDB types", func() {
 				env,
 			),
 			Entry(
+				"metrics",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Metrics: &Metrics{
+							Enabled: true,
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Image: env.RelatedMariadbImage,
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-obj-root",
+							},
+							Key: "password",
+						},
+						Port: 3306,
+						Metrics: &Metrics{
+							Enabled: true,
+							Exporter: Exporter{
+								Image: env.RelatedExporterImage,
+								Port:  9104,
+							},
+							Username: "mariadb-obj-metrics",
+							PasswordSecretKeyRef: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-metrics-password",
+								},
+								Key: "password",
+							},
+						},
+					},
+				},
+				env,
+			),
+			Entry(
 				"Full",
 				&MariaDB{
 					ObjectMeta: objMeta,
@@ -250,7 +289,15 @@ var _ = Describe("MariaDB types", func() {
 							},
 							Key: "pwd",
 						},
-						Port: 3307,
+						Port:     3307,
+						Username: ptr.To("user"),
+						Database: ptr.To("test"),
+						PasswordSecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "user-password",
+							},
+							Key: "pwd",
+						},
 						MyCnf: ptr.To(`
 						[mariadb]
 						bind-address=*
@@ -265,13 +312,8 @@ var _ = Describe("MariaDB types", func() {
 							},
 							Key: "mariadb.cnf",
 						},
-						Username: ptr.To("user"),
-						Database: ptr.To("test"),
-						PasswordSecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "user-password",
-							},
-							Key: "pwd",
+						Metrics: &Metrics{
+							Enabled: true,
 						},
 					},
 				},
@@ -285,7 +327,15 @@ var _ = Describe("MariaDB types", func() {
 							},
 							Key: "pwd",
 						},
-						Port: 3307,
+						Port:     3307,
+						Username: ptr.To("user"),
+						Database: ptr.To("test"),
+						PasswordSecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "user-password",
+							},
+							Key: "pwd",
+						},
 						MyCnf: ptr.To(`
 						[mariadb]
 						bind-address=*
@@ -300,13 +350,19 @@ var _ = Describe("MariaDB types", func() {
 							},
 							Key: "mariadb.cnf",
 						},
-						Username: ptr.To("user"),
-						Database: ptr.To("test"),
-						PasswordSecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "user-password",
+						Metrics: &Metrics{
+							Enabled: true,
+							Exporter: Exporter{
+								Image: env.RelatedExporterImage,
+								Port:  9104,
 							},
-							Key: "pwd",
+							Username: "mariadb-obj-metrics",
+							PasswordSecretKeyRef: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-metrics-password",
+								},
+								Key: "password",
+							},
 						},
 					},
 				},

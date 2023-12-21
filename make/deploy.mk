@@ -192,9 +192,6 @@ install-crds: cluster-ctx manifests kustomize ## Install CRDs.
 uninstall-crds: cluster-ctx manifests kustomize ## Uninstall CRDs.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
-.PHONY: install
-install: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount cert ## Install CRDs and dependencies for local development.
-
 .PHONY: install-samples
 install-samples: cluster-ctx  ## Install sample configuration.
 	kubectl apply -f examples/manifests/config
@@ -202,6 +199,9 @@ install-samples: cluster-ctx  ## Install sample configuration.
 .PHONY: serviceaccount
 serviceaccount: cluster-ctx  ## Create long-lived ServiceAccount token for development.
 	@./hack/create_serviceaccount.sh
+
+.PHONY: install
+install: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount cert docker-dev ## Install everything you need for local development.
 
 ##@ Deploy
 
