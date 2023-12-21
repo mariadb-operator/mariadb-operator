@@ -58,7 +58,7 @@ func serviceMonitorEndpoints(mariadb *mariadbv1alpha1.MariaDB) []monitoringv1.En
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		podName := statefulset.PodName(mariadb.ObjectMeta, i)
 		podFQDN := statefulset.PodFQDNWithService(mariadb.ObjectMeta, i, mariadb.InternalServiceKey().Name)
-		endpoints = append(endpoints, monitoringv1.Endpoint{
+		endpoints[i] = monitoringv1.Endpoint{
 			Path:          "/probe",
 			Port:          MetricsPortName,
 			Scheme:        "http",
@@ -87,7 +87,7 @@ func serviceMonitorEndpoints(mariadb *mariadbv1alpha1.MariaDB) []monitoringv1.En
 					fmt.Sprintf("%s:%d", podFQDN, mariadb.Spec.Port),
 				},
 			},
-		})
+		}
 	}
 	return endpoints
 }
