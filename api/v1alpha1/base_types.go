@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
 	cron "github.com/robfig/cron/v3"
@@ -263,6 +264,13 @@ func (r *RestoreSource) Validate() error {
 		return errors.New("unable to determine restore source")
 	}
 	return nil
+}
+
+func (r *RestoreSource) TargetRecoveryTimeOrDefault() time.Time {
+	if r.TargetRecoveryTime != nil {
+		return r.TargetRecoveryTime.Time
+	}
+	return time.Now()
 }
 
 // Schedule contains parameters to define a schedule
