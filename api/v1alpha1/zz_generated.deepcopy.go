@@ -112,6 +112,7 @@ func (in *BackupSpec) DeepCopyInto(out *BackupSpec) {
 		*out = new(Schedule)
 		**out = **in
 	}
+	out.MaxRetentionDuration = in.MaxRetentionDuration
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
 		*out = new(v1.ResourceRequirements)
