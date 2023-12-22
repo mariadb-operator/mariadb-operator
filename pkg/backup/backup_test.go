@@ -1,11 +1,14 @@
 package backup
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 )
+
+var logger = ctrl.Log.WithName("test")
 
 func TestIsValidBackupFile(t *testing.T) {
 	tests := []struct {
@@ -56,7 +59,6 @@ func TestIsValidBackupFile(t *testing.T) {
 }
 
 func TestGetTargerRecoveryFile(t *testing.T) {
-	logger := ctrl.Log.WithName("test")
 	tests := []struct {
 		name           string
 		backupFiles    []string
@@ -201,6 +203,136 @@ func TestGetTargerRecoveryFile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetBackupFilesToDelete(t *testing.T) {
+	previousNowFunc := now
+	tests := []struct {
+		name         string
+		now          func() time.Time
+		backupFiles  []string
+		maxRetention time.Duration
+		wantBackups  []string
+	}{
+		{
+			name:         "no backups",
+			now:          timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			backupFiles:  nil,
+			maxRetention: 1 * time.Hour,
+			wantBackups:  nil,
+		},
+		{
+			name: "invalid backups",
+			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			backupFiles: []string{
+				"backup.foo.sql",
+				"backup.bar.sql",
+				"backup.sql",
+			},
+			maxRetention: 1 * time.Hour,
+			wantBackups:  nil,
+		},
+		{
+			name: "no old backups",
+			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			backupFiles: []string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+			},
+			maxRetention: 24 * time.Hour,
+			wantBackups:  nil,
+		},
+		{
+			name: "multiple old backups",
+			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			backupFiles: []string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+			},
+			maxRetention: 8 * time.Hour,
+			wantBackups: []string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+			},
+		},
+		{
+			name: "multiple old backups with invalid",
+			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			backupFiles: []string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+				"backup.foo.sql",
+				"backup.bar.sql",
+				"backup.sql",
+			},
+			maxRetention: 8 * time.Hour,
+			wantBackups: []string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+			},
+		},
+		{
+			name: "all old backups",
+			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			backupFiles: []string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+			},
+			maxRetention: 1 * time.Hour,
+			wantBackups: []string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			now = tt.now
+			t.Cleanup(func() {
+				now = previousNowFunc
+			})
+
+			backups := GetBackupFilesToDelete(tt.backupFiles, tt.maxRetention, logger)
+			if !reflect.DeepEqual(tt.wantBackups, backups) {
+				t.Fatalf("unexpected backup files, expected: %v got: %v", tt.wantBackups, backups)
+			}
+		})
+	}
+}
+
+func timeFn(t time.Time) func() time.Time {
+	return func() time.Time { return t }
 }
 
 func mustParseDate(t *testing.T, dateString string) time.Time {

@@ -3,10 +3,18 @@ package backup
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/spf13/cobra"
 )
+
+var targetTimeRaw string
+
+func init() {
+	restoreCommand.Flags().StringVar(&targetTimeRaw, "target-time", "",
+		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the backup target time.")
+}
 
 var restoreCommand = &cobra.Command{
 	Use:   "restore",
@@ -17,14 +25,15 @@ var restoreCommand = &cobra.Command{
 			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("Starting restore")
+		logger.Info("starting restore",
+			"path", path, "target-file-path", targetFilePath, "target-time", targetTimeRaw)
 
 		targetTime, err := getTargetTime()
 		if err != nil {
 			logger.Error(err, "error getting target time")
 			os.Exit(1)
 		}
-		logger.Info("Target time", "time", targetTime.String())
+		logger.Info("target time", "time", targetTime.String())
 
 		backupFileNames, err := getBackupFileNames()
 		if err != nil {
@@ -37,9 +46,9 @@ var restoreCommand = &cobra.Command{
 			logger.Error(err, "error reading getting target recovery file")
 			os.Exit(1)
 		}
-		backupTargetFilepath := fmt.Sprintf("%s/%s", path, backupTargetFile)
-		logger.Info("Target file", "time", backupTargetFilepath)
+		backupTargetFilepath := getBackupPath(backupTargetFile)
 
+		logger.Info("writing target file", "file", backupTargetFilepath)
 		if err := os.WriteFile(targetFilePath, []byte(backupTargetFilepath), 0644); err != nil {
 			logger.Error(err, "error writing target file")
 			os.Exit(1)
@@ -47,19 +56,9 @@ var restoreCommand = &cobra.Command{
 	},
 }
 
-func getBackupFileNames() ([]string, error) {
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return nil, err
+func getTargetTime() (time.Time, error) {
+	if targetTimeRaw == "" {
+		return time.Now(), nil
 	}
-	var fileNames []string
-	for _, e := range entries {
-		name := e.Name()
-		if backup.IsValidBackupFile(name) {
-			fileNames = append(fileNames, name)
-		} else {
-			logger.V(1).Info("ignoring file", "file", name)
-		}
-	}
-	return fileNames, nil
+	return backup.ParseBackupDate(targetTimeRaw)
 }

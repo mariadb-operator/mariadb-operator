@@ -16,6 +16,11 @@ type RestoreSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// LogLevel to be used n the Backup Job. It defaults to 'info'.
+	// +optional
+	// +kubebuilder:default=info
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	LogLevel string `json:"logLevel,omitempty"`
 	// BackoffLimit defines the maximum number of attempts to successfully perform a Backup.
 	// +optional
 	// +kubebuilder:default=5

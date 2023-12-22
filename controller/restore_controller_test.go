@@ -122,8 +122,8 @@ var _ = Describe("Restore controller", func() {
 			}
 			Expect(k8sClient.Create(testCtx, &restore)).To(Succeed())
 
-			By("Expecting to create a Job eventually")
 			var job batchv1.Job
+			By("Expecting to create a Job eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, restoreKey, &job); err != nil {
 					return false

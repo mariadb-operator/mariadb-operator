@@ -893,6 +893,11 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              logLevel:
+                default: info
+                description: LogLevel to be used n the Backup Job. It defaults to
+                  'info'.
+                type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
