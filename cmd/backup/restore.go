@@ -1,59 +1,64 @@
 package backup
 
 import (
+	"fmt"
 	"os"
-	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/pitr"
+	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/spf13/cobra"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var PitrCmd = &cobra.Command{
+var restoreCommand = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore.",
-	Long:  `Finds the backup file to restore taking into account the target recovery time.`,
+	Long:  `Finds the backup file to be restored in order to implement point in time recovery.`,
 	Run: func(cmd *cobra.Command, args []string) {
-
-		setupLog.Info("Starting PITR")
-		targetRecoveryTime, err := time.Parse(time.RFC3339, targetRecoveryTimeRaw)
-		if err != nil {
-			setupLog.Error(err, "error parsing target recovery time")
+		if err := setupLogger(cmd); err != nil {
+			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		setupLog.Info("Target recovery time", "time", targetRecoveryTime.String())
+		logger.Info("Starting restore")
+
+		targetTime, err := getTargetTime()
+		if err != nil {
+			logger.Error(err, "error getting target time")
+			os.Exit(1)
+		}
+		logger.Info("Target time", "time", targetTime.String())
 
 		backupFileNames, err := getBackupFileNames()
 		if err != nil {
-			setupLog.Error(err, "error reading backup files", "path", backupPath)
+			logger.Error(err, "error reading backup files", "path", path)
 			os.Exit(1)
 		}
 
-		targetRecoveryFile, err := pitr.GetTargetRecoveryFile(backupFileNames, targetRecoveryTime, ctrl.Log.WithName("pitr"))
+		backupTargetFile, err := backup.GetBackupTargetFile(backupFileNames, targetTime, logger.WithName("point-in-time-recovery"))
 		if err != nil {
-			setupLog.Error(err, "error reading getting target recovery file", "time", targetRecoveryTime)
+			logger.Error(err, "error reading getting target recovery file")
 			os.Exit(1)
 		}
+		backupTargetFilepath := fmt.Sprintf("%s/%s", path, backupTargetFile)
+		logger.Info("Target file", "time", backupTargetFilepath)
 
-		if err := os.WriteFile(backupTargetPath, []byte(targetRecoveryFile), 0644); err != nil {
-			setupLog.Error(err, "error writing target recovery file")
+		if err := os.WriteFile(targetFilePath, []byte(backupTargetFilepath), 0644); err != nil {
+			logger.Error(err, "error writing target file")
 			os.Exit(1)
 		}
 	},
 }
 
 func getBackupFileNames() ([]string, error) {
-	entries, err := os.ReadDir(backupPath)
+	entries, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
 	var fileNames []string
 	for _, e := range entries {
 		name := e.Name()
-		if pitr.IsValidBackupFile(name) {
+		if backup.IsValidBackupFile(name) {
 			fileNames = append(fileNames, name)
 		} else {
-			setupLog.V(1).Info("ignoring file", "file", name)
+			logger.V(1).Info("ignoring file", "file", name)
 		}
 	}
 	return fileNames, nil

@@ -1,4 +1,4 @@
-package pitr
+package backup
 
 import (
 	"errors"
@@ -17,11 +17,11 @@ type backupDiff struct {
 	diff     time.Duration
 }
 
-// GetTargetRecoveryFile finds the backup file with the closest date to the target recovery time.
-func GetTargetRecoveryFile(backupFileNames []string, targetRecoveryTime time.Time, logger logr.Logger) (string, error) {
+// GetBackupTargetFile finds the backup file with the closest date to the target recovery time.
+func GetBackupTargetFile(backupFileNames []string, targetRecoveryTime time.Time, logger logr.Logger) (string, error) {
 	var backupDiffs []backupDiff
 	for _, file := range backupFileNames {
-		backupDate, err := parseBackupDate(file)
+		backupDate, err := parseDateInBackupFile(file)
 		if err != nil {
 			logger.Error(err, "error parsing backup date. Skipping", "file", file)
 			continue
@@ -50,7 +50,7 @@ func IsValidBackupFile(fileName string) bool {
 	if !strings.HasPrefix(fileName, "backup.") || !strings.HasSuffix(fileName, ".sql") {
 		return false
 	}
-	_, err := parseBackupDate(fileName)
+	_, err := parseDateInBackupFile(fileName)
 	return err == nil
 }
 
@@ -59,14 +59,19 @@ func FormatBackupDate(t time.Time) string {
 	return t.Format(timeLayout)
 }
 
-func parseBackupDate(backupFileName string) (time.Time, error) {
-	parts := strings.Split(backupFileName, ".")
-	if len(parts) != 3 {
-		return time.Time{}, fmt.Errorf("invalid file name: %s", backupFileName)
-	}
-	t, err := time.Parse(timeLayout, parts[1])
+// ParseBackupDate parses a time string with the layout compatible with this module.
+func ParseBackupDate(timeRaw string) (time.Time, error) {
+	t, err := time.Parse(timeLayout, timeRaw)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("error parsing file date: %v", err)
+		return time.Time{}, fmt.Errorf("error parsing backup date: %v", err)
 	}
 	return t, nil
+}
+
+func parseDateInBackupFile(fileName string) (time.Time, error) {
+	parts := strings.Split(fileName, ".")
+	if len(parts) != 3 {
+		return time.Time{}, fmt.Errorf("invalid backup file name: %s", fileName)
+	}
+	return ParseBackupDate(parts[1])
 }

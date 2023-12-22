@@ -1,4 +1,4 @@
-package pitr
+package backup
 
 import (
 	"testing"
@@ -185,7 +185,7 @@ func TestGetTargerRecoveryFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			file, err := GetTargetRecoveryFile(tt.backupFiles, tt.targetRecovery, logger)
+			file, err := GetBackupTargetFile(tt.backupFiles, tt.targetRecovery, logger)
 			if err != nil && !tt.wantErr {
 				t.Fatalf("unexpected error getting target recovery file: %v", err)
 			}

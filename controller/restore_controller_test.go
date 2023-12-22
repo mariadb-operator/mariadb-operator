@@ -131,10 +131,16 @@ var _ = Describe("Restore controller", func() {
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Expecting Job to have PITR init container")
+			By("Expecting Job to have mariadb-operator init container")
 			Expect(job.Spec.Template.Spec.InitContainers).To(ContainElement(MatchFields(IgnoreExtras,
 				Fields{
-					"Name": Equal("point-in-time-recovery"),
+					"Name": Equal("mariadb-operator"),
+				})))
+
+			By("Expecting Job to have mariadb container")
+			Expect(job.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"Name": Equal("mariadb"),
 				})))
 
 			By("Expecting restore to be complete eventually")

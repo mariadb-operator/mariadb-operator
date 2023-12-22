@@ -24,7 +24,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Provisioning](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers.
 - Multiple [HA modes](./docs/HA.md) supported: [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml) and [Galera](./docs/GALERA.md). Automatic primary failover.
 - [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
-- [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_target_recovery_time.yaml) (PITR)
+- [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_point_in_time_recovery.yaml) (PITR)
 - [PVCs](./examples/manifests/mariadb_v1alpha1_backup.yaml) and all Kubernetes-compatible [volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)) supported as backup storage
 - Bootstrap new instances from [backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes (i.e [NFS](./examples/manifests/mariadb_v1alpha1_mariadb_from_nfs.yaml))
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) as a multi-target Deployment

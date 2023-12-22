@@ -36,3 +36,7 @@ docker-push-ent: ## Push the enterprise image.
 .PHONY: docker-load-ent
 docker-load-ent: ## Load the enterprise image in KIND.
 	$(MAKE) docker-load IMG=$(IMG_ENT)
+
+.PHONY: docker-dev-ent
+docker-dev-ent: docker-build-ent docker-load-ent ## Build and load enterprise image for local development.
+

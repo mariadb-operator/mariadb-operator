@@ -29,7 +29,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	pitrcmd "github.com/mariadb-operator/mariadb-operator/cmd/pitr"
+	backupcmd "github.com/mariadb-operator/mariadb-operator/cmd/backup"
 	"github.com/mariadb-operator/mariadb-operator/controller"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -328,7 +328,7 @@ var rootCmd = &cobra.Command{
 func main() {
 	rootCmd.AddCommand(certControllerCmd)
 	rootCmd.AddCommand(webhookCmd)
-	rootCmd.AddCommand(pitrcmd.PitrCmd)
+	rootCmd.AddCommand(backupcmd.RootCmd)
 
 	cobra.CheckErr(rootCmd.Execute())
 }
