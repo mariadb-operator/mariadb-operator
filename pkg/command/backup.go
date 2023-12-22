@@ -7,24 +7,37 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
+	backuppkg "github.com/mariadb-operator/mariadb-operator/pkg/backup"
 )
 
 type BackupOpts struct {
 	CommandOpts
-	Path           string
-	TargetFilePath string
-	TargetTime     time.Time
-	DumpOpts       []string
+	Path                 string
+	TargetFilePath       string
+	MaxRetentionDuration time.Duration
+	TargetTime           time.Time
+	LogLevel             string
+	DumpOpts             []string
 }
 
 type BackupOpt func(*BackupOpts)
 
-func WithBackup(path string, targetFilePath string, targetTime time.Time) BackupOpt {
+func WithBackup(path string, targetFilePath string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Path = path
 		bo.TargetFilePath = targetFilePath
-		bo.TargetTime = targetTime
+	}
+}
+
+func WithBackupMaxRetentionDuration(d time.Duration) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.MaxRetentionDuration = d
+	}
+}
+
+func WithBackupTargetTime(t time.Time) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.TargetTime = t
 	}
 }
 
@@ -52,6 +65,12 @@ func WithBackupDatabase(d string) BackupOpt {
 	}
 }
 
+func WithBackupLogLevel(l string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.LogLevel = l
+	}
+}
+
 type BackupCommand struct {
 	*BackupOpts
 }
@@ -66,6 +85,9 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 	}
 	if opts.TargetFilePath == "" {
 		return nil, errors.New("target file not provided")
+	}
+	if opts.MaxRetentionDuration == 0 {
+		opts.MaxRetentionDuration = 30 * 24 * time.Hour
 	}
 	if opts.TargetTime == (time.Time{}) {
 		opts.TargetTime = time.Now()
@@ -87,20 +109,46 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	}
 	cmds := []string{
 		"set -euo pipefail",
-		"echo '💾 Taking backup'",
+		"echo 💾 Exporting BACKUP_FILE env",
+		fmt.Sprintf(
+			"export BACKUP_FILE=%s",
+			b.newBackupFilePath(),
+		),
+		fmt.Sprintf(
+			"echo 💾 Writing BACKUP_FILE into target file: %s",
+			b.TargetFilePath,
+		),
+		fmt.Sprintf(
+			"echo \"${BACKUP_FILE}\" > %s",
+			b.TargetFilePath,
+		),
+		fmt.Sprintf(
+			"echo 💾 Taking backup: %s",
+			b.evalTargetFilePath(),
+		),
 		fmt.Sprintf(
 			"mariadb-dump %s %s > %s",
 			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
 			dumpOpts,
-			b.backupPath(),
+			b.evalTargetFilePath(),
 		),
 	}
 	return NewBashCommand(cmds)
 }
 
-// TODO
 func (b *BackupCommand) MariadbOperatorBackup() *Command {
-	return nil
+	args := []string{
+		"backup",
+		"--path",
+		b.Path,
+		"--target-file-path",
+		b.TargetFilePath,
+		"--max-retention-duration",
+		b.MaxRetentionDuration.String(),
+		"--log-level",
+		b.LogLevel,
+	}
+	return NewCommand(nil, args)
 }
 
 func (b *BackupCommand) MariadbOperatorRestore() *Command {
@@ -110,37 +158,39 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 		"--path",
 		b.Path,
 		"--target-time",
-		backup.FormatBackupDate(b.TargetTime),
+		backuppkg.FormatBackupDate(b.TargetTime),
 		"--target-file-path",
 		b.TargetFilePath,
+		"--log-level",
+		b.LogLevel,
 	}
 	return NewCommand(nil, args)
 }
 
 func (b *BackupCommand) MariadbRestore(mariadb *mariadbv1alpha1.MariaDB) *Command {
-	path := b.evalTargetFilePath()
 	cmds := []string{
 		"set -euo pipefail",
 		fmt.Sprintf(
-			"echo '💾 Restoring backup: '%s''",
-			path,
+			"echo 💾 Restoring backup: %s",
+			b.evalTargetFilePath(),
 		),
 		fmt.Sprintf(
 			"mariadb %s < %s",
 			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
-			path,
+			b.evalTargetFilePath(),
 		),
 	}
 	return NewBashCommand(cmds)
 }
 
-func (b *BackupCommand) backupPath() string {
+func (b *BackupCommand) newBackupFilePath() string {
 	return fmt.Sprintf(
 		"%s/backup.$(date -u +'%s').sql",
 		b.Path,
 		"%Y-%m-%dT%H:%M:%SZ",
 	)
 }
+
 func (b *BackupCommand) evalTargetFilePath() string {
 	return fmt.Sprintf("$(cat '%s')", b.TargetFilePath)
 }

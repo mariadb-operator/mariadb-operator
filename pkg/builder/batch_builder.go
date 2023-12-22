@@ -3,7 +3,6 @@ package builder
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -36,10 +35,11 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		command.WithBackup(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
-			time.Now(),
 		),
+		command.WithBackupMaxRetentionDuration(backup.Spec.MaxRetentionDuration.Duration),
 		command.WithBackupUserEnv(batchUserEnv),
 		command.WithBackupPasswordEnv(batchPasswordEnv),
+		command.WithBackupLogLevel(backup.Spec.LogLevel),
 	}
 	if backup.Spec.Args != nil {
 		cmdOpts = append(cmdOpts, command.WithBackupDumpOpts(backup.Spec.Args))
@@ -58,13 +58,22 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	opts := []jobOption{
 		withJobMeta(objMeta),
 		withJobVolumes(volumes...),
-		withJobContainers(
+		withJobInitContainers(
 			jobMariadbContainer(
 				cmd.MariadbDump(backup, mariadb),
 				volumeSources,
 				jobEnv(mariadb),
 				backup.Spec.Resources,
 				mariadb,
+			),
+		),
+		withJobContainers(
+			jobMariadbOperatorContainer(
+				cmd.MariadbOperatorBackup(),
+				volumeSources,
+				backup.Spec.Resources,
+				mariadb,
+				b.env,
 			),
 		),
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
@@ -129,10 +138,11 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		command.WithBackup(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
-			restore.Spec.RestoreSource.TargetRecoveryTimeOrDefault(),
 		),
+		command.WithBackupTargetTime(restore.Spec.RestoreSource.TargetRecoveryTimeOrDefault()),
 		command.WithBackupUserEnv(batchUserEnv),
 		command.WithBackupPasswordEnv(batchPasswordEnv),
+		command.WithBackupLogLevel(restore.Spec.LogLevel),
 	}
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {

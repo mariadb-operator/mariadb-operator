@@ -4,6 +4,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -47,14 +48,26 @@ var _ = Describe("Backup controller", func() {
 			}
 			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
 
+			var job batchv1.Job
 			By("Expecting to create a Job eventually")
 			Eventually(func() bool {
-				var job batchv1.Job
 				if err := k8sClient.Get(testCtx, backupKey, &job); err != nil {
 					return false
 				}
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting Job to have mariadb container")
+			Expect(job.Spec.Template.Spec.InitContainers).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"Name": Equal("mariadb"),
+				})))
+
+			By("Expecting Job to have mariadb-operator init container")
+			Expect(job.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"Name": Equal("mariadb-operator"),
+				})))
 
 			By("Expecting Backup to be complete eventually")
 			Eventually(func() bool {

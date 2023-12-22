@@ -51,6 +51,11 @@ type BackupSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxRetentionDuration metav1.Duration `json:"maxRetentionDuration,omitempty" webhook:"inmutable"`
+	// LogLevel to be used n the Backup Job. It defaults to 'info'.
+	// +optional
+	// +kubebuilder:default=info
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	LogLevel string `json:"logLevel,omitempty"`
 	// BackoffLimit defines the maximum number of attempts to successfully take a Backup.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}

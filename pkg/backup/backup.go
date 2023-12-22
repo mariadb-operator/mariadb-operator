@@ -12,6 +12,9 @@ import (
 
 const timeLayout = time.RFC3339
 
+// time.Now cannot be mocked globablly, this is to allow overriding the now func from tests
+var now = time.Now
+
 type backupDiff struct {
 	fileName string
 	diff     time.Duration
@@ -43,6 +46,23 @@ func GetBackupTargetFile(backupFileNames []string, targetRecoveryTime time.Time,
 		return backupDiffs[i].diff < backupDiffs[j].diff
 	})
 	return backupDiffs[0].fileName, nil
+}
+
+// GetBackupFilesToDelete determines which backup files should be deleted according with the retention policy.
+func GetBackupFilesToDelete(backupFileNames []string, maxRetentionDuration time.Duration, logger logr.Logger) []string {
+	var backupsToDelete []string
+	now := now()
+	for _, file := range backupFileNames {
+		backupDate, err := parseDateInBackupFile(file)
+		if err != nil {
+			logger.Error(err, "error parsing backup date. Skipping", "file", file)
+			continue
+		}
+		if now.Sub(backupDate) > maxRetentionDuration {
+			backupsToDelete = append(backupsToDelete, file)
+		}
+	}
+	return backupsToDelete
 }
 
 // IsValidBackupFile determines whether a backup file name is valid.
