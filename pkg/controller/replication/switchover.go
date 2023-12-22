@@ -44,11 +44,13 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
+	err, close := r.lockPrimaryWithReadLock(ctx, req.mariadb, req.clientSet, logger)
+	if err != nil {
+		return fmt.Errorf("error locking primary: %v", err)
+	}
+	defer close()
+
 	phases := []switchoverPhase{
-		{
-			name:      "Lock primary with read lock",
-			reconcile: r.lockPrimaryWithReadLock,
-		},
 		{
 			name:      "Wait for replica sync",
 			reconcile: r.waitForReplicaSync,
@@ -90,23 +92,31 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 }
 
 func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet, logger logr.Logger) error {
+	clientSet *replicationClientSet, logger logr.Logger) (error, func()) {
+	noop := func() {}
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
-		return fmt.Errorf("error getting current primary readiness: %v", err)
+		return fmt.Errorf("error getting current primary readiness: %v", err), noop
 	}
 	if !ready {
-		return nil
+		return nil, noop
 	}
 	client, err := clientSet.currentPrimaryClient(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting current primary client: %v", err)
+		return fmt.Errorf("error getting current primary client: %v", err), noop
 	}
 
+	close := func() {
+		logger.Info("Unlocking primary")
+		r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock, "Unlocking primary")
+		if err := client.UnlockTables(ctx); err != nil {
+			logger.Error(err, "error unlocking primary")
+		}
+	}
 	logger.Info("Locking primary with read lock")
 	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock,
 		"Locking primary with read lock")
-	return client.LockTablesWithReadLock(ctx)
+	return client.LockTablesWithReadLock(ctx), close
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
