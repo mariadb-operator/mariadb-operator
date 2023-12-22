@@ -20,7 +20,7 @@ var _ = Describe("MariaDB types", func() {
 	Context("When creating a MariaDB object", func() {
 		DescribeTable(
 			"Should default",
-			func(mdb *MariaDB, expected *MariaDB, env *environment.Environment) {
+			func(mdb, expected *MariaDB, env *environment.Environment) {
 				mdb.SetDefaults(env)
 				Expect(mdb).To(BeEquivalentTo(expected))
 			},

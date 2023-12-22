@@ -94,18 +94,6 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 			dumpOpts,
 			b.backupPath(),
 		),
-		"echo '🧹 Cleaning up old backups'",
-		fmt.Sprintf(
-			"find %s -name *.sql -type f -mtime +%d -delete",
-			b.Path,
-			backup.Spec.MaxRetentionDays,
-		),
-		"echo '📜 Backup history'",
-		fmt.Sprintf(
-			"find %s -name *.sql -type f -printf '%s' | sort",
-			b.Path,
-			"%f\n",
-		),
 	}
 	return NewBashCommand(cmds)
 }
