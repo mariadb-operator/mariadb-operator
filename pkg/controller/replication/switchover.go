@@ -44,13 +44,11 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
-	err, close := r.lockPrimaryWithReadLock(ctx, req.mariadb, req.clientSet, logger)
-	if err != nil {
-		return fmt.Errorf("error locking primary: %v", err)
-	}
-	defer close()
-
 	phases := []switchoverPhase{
+		{
+			name:      "Lock primary with read lock",
+			reconcile: r.lockPrimaryWithReadLock,
+		},
 		{
 			name:      "Set read_only in primary",
 			reconcile: r.setPrimaryReadOnly,
@@ -96,31 +94,23 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 }
 
 func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *replicationClientSet, logger logr.Logger) (error, func()) {
-	noop := func() {}
+	clientSet *replicationClientSet, logger logr.Logger) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
 	if err != nil {
-		return fmt.Errorf("error getting current primary readiness: %v", err), noop
+		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
 	if !ready {
-		return nil, noop
+		return nil
 	}
 	client, err := clientSet.currentPrimaryClient(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting current primary client: %v", err), noop
+		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 
-	close := func() {
-		logger.Info("Unlocking primary")
-		r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock, "Unlocking primary")
-		if err := client.UnlockTables(ctx); err != nil {
-			logger.Error(err, "error unlocking primary")
-		}
-	}
 	logger.Info("Locking primary with read lock")
 	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock,
 		"Locking primary with read lock")
-	return client.LockTablesWithReadLock(ctx), close
+	return client.LockTablesWithReadLock(ctx)
 }
 
 func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
