@@ -30,4 +30,4 @@ artifacts/
 *.log
 
 # PITR
-backup/
+/backup/
