@@ -9,6 +9,8 @@ const (
 	ReasonReplicationPrimaryLock = "PrimaryLock"
 	// ReasonReplicationPrimaryUnlock indicates that primary tables have been unlocked.
 	ReasonReplicationPrimaryUnlock = "PrimaryUnlock"
+	// ReasonReplicationPrimaryReadonly indicates that primary is being changed to readonly mode.
+	ReasonReplicationPrimaryReadonly = "PrimaryReadonly"
 	// ReasonReplicationReplicaSync indicates that replicas are being synced with primary.
 	ReasonReplicationReplicaSync = "ReplicaSync"
 	// ReasonReplicationReplicaSyncErr indicates that an error has happened while replicas were being synced with primary.

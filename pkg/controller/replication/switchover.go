@@ -52,6 +52,10 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 
 	phases := []switchoverPhase{
 		{
+			name:      "Set read_only in primary",
+			reconcile: r.setPrimaryReadOnly,
+		},
+		{
 			name:      "Wait for replica sync",
 			reconcile: r.waitForReplicaSync,
 		},
@@ -64,8 +68,8 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 			reconcile: r.connectReplicasToNewPrimary,
 		},
 		{
-			name:      "Change current primary to replica",
-			reconcile: r.changeCurrentPrimaryToReplica,
+			name:      "Change primary to replica",
+			reconcile: r.changePrimaryToReplica,
 		},
 	}
 
@@ -117,6 +121,26 @@ func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mar
 	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock,
 		"Locking primary with read lock")
 	return client.LockTablesWithReadLock(ctx), close
+}
+
+func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	clientSet *replicationClientSet, logger logr.Logger) error {
+	ready, err := r.currentPrimaryReady(ctx, mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting current primary readiness: %v", err)
+	}
+	if !ready {
+		return nil
+	}
+	client, err := clientSet.currentPrimaryClient(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting current primary client: %v", err)
+	}
+
+	logger.Info("Enabling readonly mode in primary")
+	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryReadonly,
+		"Enabling readonly mode in primary")
+	return client.EnableReadOnly(ctx)
 }
 
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -290,7 +314,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 	}
 }
 
-func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *replicationClientSet, logger logr.Logger) error {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
@@ -309,9 +333,9 @@ func (r *ReplicationReconciler) changeCurrentPrimaryToReplica(ctx context.Contex
 
 	currentPrimary := *mariadb.Status.CurrentPrimaryPodIndex
 	newPrimary := *mariadb.Replication().Primary.PodIndex
-	logger.Info("Change current primary to be a replica", "current-primary", currentPrimary, "new-primary", newPrimary)
+	logger.Info("Change primary to be a replica", "primary", currentPrimary, "new-primary", newPrimary)
 	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryToReplica,
-		"Change current primary '%d' to be a replica. New primary at '%d'", currentPrimary, newPrimary)
+		"Change primary '%d' to be a replica. New primary at '%d'", currentPrimary, newPrimary)
 
 	return r.replConfig.ConfigureReplica(
 		ctx,
