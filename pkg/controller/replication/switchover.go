@@ -325,7 +325,13 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, mari
 	newPrimary := *mariadb.Replication().Primary.PodIndex
 	logger.Info("Change primary to be a replica", "primary", currentPrimary, "new-primary", newPrimary)
 	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryToReplica,
-		"Change primary '%d' to be a replica. New primary at '%d'", currentPrimary, newPrimary)
+		"Unlocking primary '%d' and configuring it to be a replica. New primary at '%d'", currentPrimary, newPrimary)
+
+	logger.Info("Unlocking primary")
+	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock, "Unlocking primary")
+	if err := currentPrimaryClient.UnlockTables(ctx); err != nil {
+		return fmt.Errorf("error unlocking primary: %v", err)
+	}
 
 	return r.replConfig.ConfigureReplica(
 		ctx,
