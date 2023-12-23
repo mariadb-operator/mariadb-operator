@@ -48,8 +48,8 @@ func GetBackupTargetFile(backupFileNames []string, targetRecoveryTime time.Time,
 	return backupDiffs[0].fileName, nil
 }
 
-// GetBackupFilesToDelete determines which backup files should be deleted according with the retention policy.
-func GetBackupFilesToDelete(backupFileNames []string, maxRetentionDuration time.Duration, logger logr.Logger) []string {
+// GetOldBackupFiles determines which backup files should be deleted according with the retention policy.
+func GetOldBackupFiles(backupFileNames []string, maxRetention time.Duration, logger logr.Logger) []string {
 	var backupsToDelete []string
 	now := now()
 	for _, file := range backupFileNames {
@@ -58,7 +58,7 @@ func GetBackupFilesToDelete(backupFileNames []string, maxRetentionDuration time.
 			logger.Error(err, "error parsing backup date. Skipping", "file", file)
 			continue
 		}
-		if now.Sub(backupDate) > maxRetentionDuration {
+		if now.Sub(backupDate) > maxRetention {
 			backupsToDelete = append(backupsToDelete, file)
 		}
 	}

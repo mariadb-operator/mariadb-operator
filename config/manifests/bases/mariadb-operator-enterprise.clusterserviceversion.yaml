@@ -291,10 +291,10 @@ spec:
           should wait for MariaDB to be ready.
         displayName: Wait For It
         path: mariaDbRef.waitForIt
-      - description: MaxRetentionDuration defines the retention policy for backups.
-          Old backups will be cleaned up by the Backup Job. It defaults to 30 days.
-        displayName: Max Retention Duration
-        path: maxRetentionDuration
+      - description: MaxRetention defines the retention policy for backups. Old backups
+          will be cleaned up by the Backup Job. It defaults to 30 days.
+        displayName: Max Retention
+        path: maxRetention
       - description: NodeSelector to be used in the Backup Pod.
         displayName: Node Selector
         path: nodeSelector

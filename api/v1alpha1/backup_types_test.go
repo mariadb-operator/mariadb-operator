@@ -28,8 +28,8 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
-						MaxRetentionDuration: metav1.Duration{Duration: 30 * 24 * time.Hour},
-						BackoffLimit:         5,
+						MaxRetention: metav1.Duration{Duration: 30 * 24 * time.Hour},
+						BackoffLimit: 5,
 					},
 				},
 			),
@@ -38,15 +38,15 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
-						MaxRetentionDuration: metav1.Duration{Duration: 10 * 24 * time.Hour},
-						BackoffLimit:         3,
+						MaxRetention: metav1.Duration{Duration: 10 * 24 * time.Hour},
+						BackoffLimit: 3,
 					},
 				},
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
-						MaxRetentionDuration: metav1.Duration{Duration: 10 * 24 * time.Hour},
-						BackoffLimit:         3,
+						MaxRetention: metav1.Duration{Duration: 10 * 24 * time.Hour},
+						BackoffLimit: 3,
 					},
 				},
 			),

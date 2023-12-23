@@ -935,10 +935,10 @@ spec:
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
-              maxRetentionDuration:
-                description: MaxRetentionDuration defines the retention policy for
-                  backups. Old backups will be cleaned up by the Backup Job. It defaults
-                  to 30 days.
+              maxRetention:
+                description: MaxRetention defines the retention policy for backups.
+                  Old backups will be cleaned up by the Backup Job. It defaults to
+                  30 days.
                 type: string
               nodeSelector:
                 additionalProperties:

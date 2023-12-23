@@ -323,7 +323,7 @@ func TestGetBackupFilesToDelete(t *testing.T) {
 				now = previousNowFunc
 			})
 
-			backups := GetBackupFilesToDelete(tt.backupFiles, tt.maxRetention, logger)
+			backups := GetOldBackupFiles(tt.backupFiles, tt.maxRetention, logger)
 			if !reflect.DeepEqual(tt.wantBackups, backups) {
 				t.Fatalf("unexpected backup files, expected: %v got: %v", tt.wantBackups, backups)
 			}
