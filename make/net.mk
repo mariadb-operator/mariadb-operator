@@ -48,5 +48,10 @@ host-mariadb-galera: ## Add mariadb galera hosts to /etc/hosts.
 	@./hack/add_host.sh $(CIDR_PREFIX).0.160 mariadb-galera-primary.default.svc.cluster.local
 	@./hack/add_host.sh $(CIDR_PREFIX).0.161 mariadb-galera-secondary.default.svc.cluster.local
 
+.PHONY: host-minio
+host-minio:
+	@./hack/add_host.sh $(CIDR_PREFIX).0.200 minio
+	@./hack/add_host.sh $(CIDR_PREFIX).0.201 minio-console
+
 .PHONY: net
-net: install-metallb host-mariadb host-mariadb-test host-mariadb-repl host-mariadb-galera ## Configure networking for local development.
+net: install-metallb host-mariadb host-mariadb-test host-mariadb-repl host-mariadb-galera host-minio ## Configure networking for local development.

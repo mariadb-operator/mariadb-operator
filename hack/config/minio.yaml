@@ -1,0 +1,32 @@
+minioAPIPort: "9000"
+minioConsolePort: "9001"
+
+mode: standalone
+
+rootUser: root
+rootPassword: Minio11!
+
+persistence:
+  size: 10Gi
+
+# tls:
+#   enabled: false
+#   ## Create a secret with private.key and public.crt files and pass that here. Ref: https://github.com/minio/minio/tree/master/docs/tls/kubernetes#2-create-kubernetes-secret
+#   certSecret: ""
+#   publicCrt: public.crt
+#   privateKey: private.key
+
+users:
+  - accessKey: console
+    secretKey: Minio11!
+    policy: consoleAdmin
+  - accessKey: mariadb-operator
+    secretKey: Minio11!
+    policy: readwrite
+
+buckets:
+  - name: backups
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false

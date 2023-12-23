@@ -5,7 +5,7 @@ metadata:
   namespace: metallb
 spec:
   addresses:
-    - $CIDR_PREFIX.0.10-$CIDR_PREFIX.0.200
+    - $CIDR_PREFIX.0.10-$CIDR_PREFIX.0.220
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
