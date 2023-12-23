@@ -57,13 +57,13 @@ var _ = Describe("Backup controller", func() {
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Expecting Job to have mariadb container")
+			By("Expecting Job to have mariadb init container")
 			Expect(job.Spec.Template.Spec.InitContainers).To(ContainElement(MatchFields(IgnoreExtras,
 				Fields{
 					"Name": Equal("mariadb"),
 				})))
 
-			By("Expecting Job to have mariadb-operator init container")
+			By("Expecting Job to have mariadb-operator container")
 			Expect(job.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
 				Fields{
 					"Name": Equal("mariadb-operator"),

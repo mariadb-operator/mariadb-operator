@@ -36,7 +36,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithBackupMaxRetentionDuration(backup.Spec.MaxRetention.Duration),
+		command.WithBackupMaxRetention(backup.Spec.MaxRetention.Duration),
 		command.WithBackupUserEnv(batchUserEnv),
 		command.WithBackupPasswordEnv(batchPasswordEnv),
 		command.WithBackupLogLevel(backup.Spec.LogLevel),

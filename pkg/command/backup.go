@@ -29,7 +29,7 @@ func WithBackup(path string, targetFilePath string) BackupOpt {
 	}
 }
 
-func WithBackupMaxRetentionDuration(d time.Duration) BackupOpt {
+func WithBackupMaxRetention(d time.Duration) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.MaxRetentionDuration = d
 	}

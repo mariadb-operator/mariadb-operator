@@ -11,6 +11,11 @@ metadata:
             "name": "backup"
           },
           "spec": {
+            "args": [
+              "--single-transaction",
+              "--all-databases"
+            ],
+            "logLevel": "info",
             "mariaDbRef": {
               "name": "mariadb"
             },
@@ -274,7 +279,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2023-12-23T10:23:12Z"
+    createdAt: "2023-12-23T11:05:08Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
