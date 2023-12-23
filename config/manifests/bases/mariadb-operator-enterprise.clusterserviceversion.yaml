@@ -281,6 +281,9 @@ spec:
         path: backoffLimit
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
+        displayName: Log Level
+        path: logLevel
       - description: MariaDBRef is a reference to a MariaDB object.
         displayName: Maria DBRef
         path: mariaDbRef
@@ -1398,6 +1401,9 @@ spec:
       - description: BackupRef is a reference to a Backup object.
         displayName: Backup Ref
         path: backupRef
+      - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
+        displayName: Log Level
+        path: logLevel
       - description: MariaDBRef is a reference to a MariaDB object.
         displayName: Maria DBRef
         path: mariaDbRef

@@ -109,17 +109,22 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	}
 	cmds := []string{
 		"set -euo pipefail",
-		"echo 💾 Exporting BACKUP_FILE env",
+		"echo 💾 Exporting env",
 		fmt.Sprintf(
 			"export BACKUP_FILE=%s",
 			b.newBackupFilePath(),
 		),
 		fmt.Sprintf(
-			"echo 💾 Writing BACKUP_FILE into target file: %s",
+			"echo 💾 Writing target file: %s",
 			b.TargetFilePath,
 		),
 		fmt.Sprintf(
 			"echo \"${BACKUP_FILE}\" > %s",
+			b.TargetFilePath,
+		),
+		"echo 💾 Setting target file permissions",
+		fmt.Sprintf(
+			"chmod 777 %s",
 			b.TargetFilePath,
 		),
 		fmt.Sprintf(

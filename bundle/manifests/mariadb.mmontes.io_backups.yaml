@@ -887,6 +887,11 @@ spec:
                   successfully take a Backup.
                 format: int32
                 type: integer
+              logLevel:
+                default: info
+                description: LogLevel to be used n the Backup Job. It defaults to
+                  'info'.
+                type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
