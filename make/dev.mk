@@ -69,7 +69,7 @@ CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 cert-controller: lint ## Run a cert-controller from your host.
 	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
-BACKUP_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --path=backup --max-retention-duration=1h --target-file-path=backup/0-backup-target.txt
+BACKUP_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 --path=backup --max-retention=1h --target-file-path=backup/0-backup-target.txt
 .PHONY: backup
 backup: lint ## Run backup from your host.
 	go run cmd/controller/*.go backup $(BACKUP_FLAGS)

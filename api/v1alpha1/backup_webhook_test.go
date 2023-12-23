@@ -210,7 +210,7 @@ var _ = Describe("Backup webhook", func() {
 			Entry(
 				"Updating MaxBackupRetainDays",
 				func(bmdb *Backup) {
-					bmdb.Spec.MaxRetentionDuration = metav1.Duration{Duration: 24 * time.Hour}
+					bmdb.Spec.MaxRetention = metav1.Duration{Duration: 24 * time.Hour}
 				},
 				true,
 			),

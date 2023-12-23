@@ -46,11 +46,11 @@ type BackupSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Schedule *Schedule `json:"schedule,omitempty"`
-	// MaxRetentionDuration defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.
+	// MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.
 	// It defaults to 30 days.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MaxRetentionDuration metav1.Duration `json:"maxRetentionDuration,omitempty" webhook:"inmutable"`
+	MaxRetention metav1.Duration `json:"maxRetention,omitempty" webhook:"inmutable"`
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
@@ -136,8 +136,8 @@ func (b *Backup) Volume() (*corev1.VolumeSource, error) {
 }
 
 func (b *Backup) SetDefaults() {
-	if b.Spec.MaxRetentionDuration == (metav1.Duration{}) {
-		b.Spec.MaxRetentionDuration = metav1.Duration{Duration: 30 * 24 * time.Hour}
+	if b.Spec.MaxRetention == (metav1.Duration{}) {
+		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
 	}
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5

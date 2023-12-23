@@ -13,10 +13,10 @@ import (
 )
 
 var (
-	logger               = ctrl.Log
-	path                 string
-	targetFilePath       string
-	maxRetentionDuration time.Duration
+	logger         = ctrl.Log
+	path           string
+	targetFilePath string
+	maxRetention   time.Duration
 )
 
 func init() {
@@ -24,7 +24,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&targetFilePath, "target-file-path", "/backup/0-backup-target.txt",
 		"Path to a file that contains the name of the backup target file.")
 
-	RootCmd.Flags().DurationVar(&maxRetentionDuration, "max-retention-duration", 30*24*time.Hour,
+	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
 
 	RootCmd.AddCommand(restoreCommand)
@@ -41,7 +41,7 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		logger.Info("starting backup",
-			"path", path, "target-file-path", targetFilePath, "max-retention-duration", maxRetentionDuration)
+			"path", path, "target-file-path", targetFilePath, "max-retention", maxRetention)
 
 		backupNames, err := getBackupFileNames()
 		if err != nil {
@@ -49,7 +49,7 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		backupsToDelete := backup.GetBackupFilesToDelete(backupNames, maxRetentionDuration, logger.WithName("backup-cleanup"))
+		backupsToDelete := backup.GetOldBackupFiles(backupNames, maxRetention, logger.WithName("backup-cleanup"))
 		if len(backupsToDelete) == 0 {
 			logger.Info("no old backups were found")
 			os.Exit(0)

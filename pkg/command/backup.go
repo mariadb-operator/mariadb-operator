@@ -148,7 +148,7 @@ func (b *BackupCommand) MariadbOperatorBackup() *Command {
 		b.Path,
 		"--target-file-path",
 		b.TargetFilePath,
-		"--max-retention-duration",
+		"--max-retention",
 		b.MaxRetentionDuration.String(),
 		"--log-level",
 		b.LogLevel,
