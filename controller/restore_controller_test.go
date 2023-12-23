@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("Restore controller", func() {
+var _ = Describe("Restore controller", Focus, func() {
 	Context("When creating a restore", func() {
 		It("Should reconcile", func() {
 			By("Creating Backup")
@@ -157,7 +157,7 @@ var _ = Describe("Restore controller", func() {
 			By("Deleting MariaDB")
 			Expect(k8sClient.Delete(testCtx, &mariaDB)).To(Succeed())
 
-			By("Deleting restore")
+			By("Deleting Restore")
 			Expect(k8sClient.Delete(testCtx, &restore)).To(Succeed())
 		})
 	})

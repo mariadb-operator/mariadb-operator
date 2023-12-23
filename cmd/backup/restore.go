@@ -49,7 +49,7 @@ var restoreCommand = &cobra.Command{
 		backupTargetFilepath := getBackupPath(backupTargetFile)
 
 		logger.Info("writing target file", "file", backupTargetFilepath)
-		if err := os.WriteFile(targetFilePath, []byte(backupTargetFilepath), 0644); err != nil {
+		if err := os.WriteFile(targetFilePath, []byte(backupTargetFilepath), 0777); err != nil {
 			logger.Error(err, "error writing target file")
 			os.Exit(1)
 		}
