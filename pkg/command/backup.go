@@ -112,14 +112,14 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 		"echo 💾 Exporting env",
 		fmt.Sprintf(
 			"export BACKUP_FILE=%s",
-			b.newBackupFilePath(),
+			b.newBackupFile(),
 		),
 		fmt.Sprintf(
 			"echo 💾 Writing target file: %s",
 			b.TargetFilePath,
 		),
 		fmt.Sprintf(
-			"echo \"${BACKUP_FILE}\" > %s",
+			"printf \"${BACKUP_FILE}\" > %s",
 			b.TargetFilePath,
 		),
 		"echo 💾 Setting target file permissions",
@@ -129,13 +129,13 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 		),
 		fmt.Sprintf(
 			"echo 💾 Taking backup: %s",
-			b.evalTargetFilePath(),
+			b.getTargetFilePath(),
 		),
 		fmt.Sprintf(
 			"mariadb-dump %s %s > %s",
 			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
 			dumpOpts,
-			b.evalTargetFilePath(),
+			b.getTargetFilePath(),
 		),
 	}
 	return NewBashCommand(cmds)
@@ -177,25 +177,24 @@ func (b *BackupCommand) MariadbRestore(mariadb *mariadbv1alpha1.MariaDB) *Comman
 		"set -euo pipefail",
 		fmt.Sprintf(
 			"echo 💾 Restoring backup: %s",
-			b.evalTargetFilePath(),
+			b.getTargetFilePath(),
 		),
 		fmt.Sprintf(
 			"mariadb %s < %s",
 			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
-			b.evalTargetFilePath(),
+			b.getTargetFilePath(),
 		),
 	}
 	return NewBashCommand(cmds)
 }
 
-func (b *BackupCommand) newBackupFilePath() string {
+func (b *BackupCommand) newBackupFile() string {
 	return fmt.Sprintf(
-		"%s/backup.$(date -u +'%s').sql",
-		b.Path,
+		"backup.$(date -u +'%s').sql",
 		"%Y-%m-%dT%H:%M:%SZ",
 	)
 }
 
-func (b *BackupCommand) evalTargetFilePath() string {
-	return fmt.Sprintf("$(cat '%s')", b.TargetFilePath)
+func (b *BackupCommand) getTargetFilePath() string {
+	return fmt.Sprintf("%s/$(cat '%s')", b.Path, b.TargetFilePath)
 }

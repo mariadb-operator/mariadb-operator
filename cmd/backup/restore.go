@@ -19,7 +19,7 @@ func init() {
 var restoreCommand = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore.",
-	Long:  `Finds the backup file to be restored in order to implement point in time recovery.`,
+	Long:  `Finds the target backup file to implement point in time recovery.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := setupLogger(cmd); err != nil {
 			fmt.Printf("error setting up logger: %v\n", err)
@@ -28,29 +28,40 @@ var restoreCommand = &cobra.Command{
 		logger.Info("starting restore",
 			"path", path, "target-file-path", targetFilePath, "target-time", targetTimeRaw)
 
+		ctx, cancel := newContext()
+		defer cancel()
+
+		backupStorage := backup.NewFileSystemBackupStorage(path, logger.WithName("file-system-storage"))
+
 		targetTime, err := getTargetTime()
 		if err != nil {
 			logger.Error(err, "error getting target time")
 			os.Exit(1)
 		}
-		logger.Info("target time", "time", targetTime.String())
+		logger.Info("obtained target time", "time", targetTime.String())
 
-		backupFileNames, err := getBackupFileNames()
+		backupFileNames, err := backupStorage.List(ctx)
 		if err != nil {
-			logger.Error(err, "error reading backup files", "path", path)
+			logger.Error(err, "error listing backup files")
 			os.Exit(1)
 		}
 
 		backupTargetFile, err := backup.GetBackupTargetFile(backupFileNames, targetTime, logger.WithName("point-in-time-recovery"))
 		if err != nil {
-			logger.Error(err, "error reading getting target recovery file")
+			logger.Error(err, "error reading getting target backup")
 			os.Exit(1)
 		}
-		backupTargetFilepath := getBackupPath(backupTargetFile)
+		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		logger.Info("writing target file", "file", backupTargetFilepath)
-		if err := os.WriteFile(targetFilePath, []byte(backupTargetFilepath), 0777); err != nil {
-			logger.Error(err, "error writing target file")
+		logger.Info("pulling target backup", "file", backupTargetFile)
+		if err := backupStorage.Pull(ctx, backupTargetFile); err != nil {
+			logger.Error(err, "error pulling target backup", "file", backupTargetFile)
+			os.Exit(1)
+		}
+
+		logger.Info("writing target file", "path", targetFilePath)
+		if err := writeTargetFile(backupTargetFile); err != nil {
+			logger.Error(err, "error writing target file", "path", targetFilePath)
 			os.Exit(1)
 		}
 	},
@@ -61,4 +72,8 @@ func getTargetTime() (time.Time, error) {
 		return time.Now(), nil
 	}
 	return backup.ParseBackupDate(targetTimeRaw)
+}
+
+func writeTargetFile(backupTargetFilePath string) error {
+	return os.WriteFile(targetFilePath, []byte(backupTargetFilePath), 0777)
 }

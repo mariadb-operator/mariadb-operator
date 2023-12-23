@@ -1,9 +1,11 @@
 package backup
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"path/filepath"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
@@ -33,7 +35,7 @@ func init() {
 var RootCmd = &cobra.Command{
 	Use:   "backup",
 	Short: "Backup.",
-	Long:  `Manages the backed up files in order to be compliant with the retention policy.`,
+	Long:  `Manages the backup files to implement the retention policy.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := setupLogger(cmd); err != nil {
@@ -43,12 +45,32 @@ var RootCmd = &cobra.Command{
 		logger.Info("starting backup",
 			"path", path, "target-file-path", targetFilePath, "max-retention", maxRetention)
 
-		backupNames, err := getBackupFileNames()
+		ctx, cancel := newContext()
+		defer cancel()
+
+		backupStorage := backup.NewFileSystemBackupStorage(path, logger.WithName("file-system-storage"))
+
+		logger.Info("reading target file", "path", targetFilePath)
+		backupTargetFile, err := readTargetFile()
 		if err != nil {
-			logger.Error(err, "error reading backup files", "path", path)
+			logger.Error(err, "error reading target file", "path", targetFilePath)
+			os.Exit(1)
+		}
+		logger.Info("obtained target backup", "file", backupTargetFile)
+
+		logger.Info("pushing target backup", "file", backupTargetFile)
+		if err := backupStorage.Push(ctx, backupTargetFile); err != nil {
+			logger.Error(err, "error pushing target backup", "file", backupTargetFile)
 			os.Exit(1)
 		}
 
+		backupNames, err := backupStorage.List(ctx)
+		if err != nil {
+			logger.Error(err, "error listing backup files")
+			os.Exit(1)
+		}
+
+		logger.Info("cleaning up old backups")
 		backupsToDelete := backup.GetOldBackupFiles(backupNames, maxRetention, logger.WithName("backup-cleanup"))
 		if len(backupsToDelete) == 0 {
 			logger.Info("no old backups were found")
@@ -57,11 +79,9 @@ var RootCmd = &cobra.Command{
 		logger.Info("old backups to delete", "backups", len(backupsToDelete))
 
 		for _, backup := range backupsToDelete {
-			backupPath := getBackupPath(backup)
-			logger.V(1).Info("deleting old backup", "backup", backupPath)
-
-			if err := os.Remove(backupPath); err != nil {
-				logger.Error(err, "error removing old backup", "backup", backupPath)
+			logger.V(1).Info("deleting old backup", "backup", backup)
+			if err := backupStorage.Delete(ctx, backup); err != nil {
+				logger.Error(err, "error removing old backup", "backup", backup)
 			}
 		}
 	},
@@ -84,24 +104,20 @@ func setupLogger(cmd *cobra.Command) error {
 	return nil
 }
 
-func getBackupFileNames() ([]string, error) {
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return nil, err
-	}
-	var fileNames []string
-	for _, e := range entries {
-		name := e.Name()
-		logger.V(1).Info("processing backup file", "file", name)
-		if backup.IsValidBackupFile(name) {
-			fileNames = append(fileNames, name)
-		} else {
-			logger.V(1).Info("ignoring file", "file", name)
-		}
-	}
-	return fileNames, nil
+func newContext() (context.Context, context.CancelFunc) {
+	return signal.NotifyContext(context.Background(), []os.Signal{
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGKILL,
+		syscall.SIGHUP,
+		syscall.SIGQUIT}...,
+	)
 }
 
-func getBackupPath(backupFileName string) string {
-	return filepath.Join(path, backupFileName)
+func readTargetFile() (string, error) {
+	bytes, err := os.ReadFile(targetFilePath)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }
