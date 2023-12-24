@@ -2,6 +2,7 @@ package backup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -15,15 +16,13 @@ import (
 )
 
 var (
-	logger                = ctrl.Log
-	path                  string
-	targetFilePath        string
-	s3                    bool
-	s3Bucket              string
-	s3Endpoint            string
-	s3AccessKeyIdPath     string
-	s3SecretAccessKeyPath string
-	maxRetention          time.Duration
+	logger         = ctrl.Log
+	path           string
+	targetFilePath string
+	s3             bool
+	s3Bucket       string
+	s3Endpoint     string
+	maxRetention   time.Duration
 )
 
 func init() {
@@ -41,11 +40,7 @@ func init() {
 
 	RootCmd.PersistentFlags().BoolVar(&s3, "s3", false, "Enable S3 backup storage.")
 	RootCmd.PersistentFlags().StringVar(&s3Bucket, "s3-bucket", "backups", "Name of the bucket to store backups.")
-	RootCmd.PersistentFlags().StringVar(&s3Endpoint, "s3-endpoint", "s3.amazonaws.com", "S3 endpoint URL.")
-	RootCmd.PersistentFlags().StringVar(&s3AccessKeyIdPath, "s3-access-key-id-path", "/s3/access-key-id",
-		"File path containing the S3 key identifier to authenticate.")
-	RootCmd.PersistentFlags().StringVar(&s3SecretAccessKeyPath, "s3-secret-access-key-path", "/s3/secret-access-key",
-		"File path containing the S3 secret key to authenticate.")
+	RootCmd.PersistentFlags().StringVar(&s3Endpoint, "s3-endpoint", "s3.amazonaws.com", "S3 API endpoint without scheme.")
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
@@ -158,28 +153,16 @@ func getBackupStorage() (backup.BackupStorage, error) {
 	return backup.NewFileSystemBackupStorage(path, logger.WithName("file-system-storage")), nil
 }
 
-func readS3Credentials() (accessKeyId string, secretAccessKey string, err error) {
-	accessKeyId, err = readEnvFallbackToFile("S3_ACCESS_KEY_ID", s3AccessKeyIdPath)
-	if err != nil {
-		return "", "", fmt.Errorf("error reading access key id: %v", err)
+func readS3Credentials() (accessKeyID string, secretAccessKey string, err error) {
+	accessKeyID = os.Getenv("S3_ACCESS_KEY_ID")
+	if accessKeyID == "" {
+		return "", "", errors.New("S3_ACCESS_KEY_ID must be set in order to authenticate with S3")
 	}
-	secretAccessKey, err = readEnvFallbackToFile("S3_SECRET_ACCESS_KEY", s3AccessKeyIdPath)
-	if err != nil {
-		return "", "", fmt.Errorf("error reading secret access key: %v", err)
+	secretAccessKey = os.Getenv("S3_SECRET_ACCESS_KEY")
+	if secretAccessKey == "" {
+		return "", "", errors.New("S3_SECRET_ACCESS_KEY must be set in order to authenticate with S3")
 	}
-	return
-}
-
-func readEnvFallbackToFile(env, filePath string) (string, error) {
-	envVal := os.Getenv(env)
-	if envVal != "" {
-		return envVal, nil
-	}
-	bytes, err := os.ReadFile(filePath)
-	if err != nil {
-		return "", nil
-	}
-	return string(bytes), nil
+	return accessKeyID, secretAccessKey, nil
 }
 
 func readTargetFile() (string, error) {

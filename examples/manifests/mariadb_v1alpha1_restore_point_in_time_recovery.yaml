@@ -5,8 +5,15 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  backupRef:
-    name: backup-scheduled
+  s3:
+    bucket: backups
+    endpoint: minio.minio.svc.cluster.local:9000
+    accessKeyIdSecretKeyRef:
+      name: minio
+      key: access-key-id
+    secretAccessKeySecretKeyRef:
+      name: minio
+      key: secret-access-key
   targetRecoveryTime: 2023-12-19T09:00:00Z
   resources:
     requests:

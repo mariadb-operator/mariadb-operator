@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
@@ -225,12 +226,35 @@ type SQLTemplate struct {
 	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
 }
 
+type S3 struct {
+	// Bucket is the name Name of the bucket to store backups.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Bucket string `json:"bucket" webhook:"inmutable"`
+	// Endpoint is the S3 API endpoint without scheme.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Endpoint string `json:"endpoint" webhook:"inmutable"`
+	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	AccessKeyIdSecretKeyRef corev1.SecretKeySelector `json:"accessKeyIdSecretKeyRef" webhook:"inmutable"`
+	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SecretAccessKeySecretKeyRef corev1.SecretKeySelector `json:"secretAccessKeySecretKeyRef" webhook:"inmutable"`
+}
+
 // RestoreSource defines a source for restoring a MariaDB.
 type RestoreSource struct {
-	// BackupRef is a reference to a Backup object.
+	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	BackupRef *corev1.LocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
+	// S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	S3 *S3 `json:"s3,omitempty" webhook:"inmutableinit"`
 	// Volume is a Kubernetes Volume object that contains a backup.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -246,21 +270,26 @@ func (r *RestoreSource) IsDefaulted() bool {
 	return r.Volume != nil
 }
 
-func (r *RestoreSource) SetDefaults(backup *Backup) {
-	if backup.Spec.Storage.Volume != nil {
-		r.Volume = backup.Spec.Storage.Volume
-	}
-	if backup.Spec.Storage.PersistentVolumeClaim != nil {
+func (r *RestoreSource) SetDefaults() {
+	if r.S3 != nil {
 		r.Volume = &corev1.VolumeSource{
-			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-				ClaimName: backup.Name,
-			},
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		}
 	}
 }
 
+func (r *RestoreSource) SetDefaultsWithBackup(backup *Backup) error {
+	volume, err := backup.Volume()
+	if err != nil {
+		return fmt.Errorf("error getting backup volume: %v", err)
+	}
+	r.Volume = volume
+	r.S3 = backup.Spec.Storage.S3
+	return nil
+}
+
 func (r *RestoreSource) Validate() error {
-	if r.BackupRef == nil && r.Volume == nil {
+	if r.BackupRef == nil && r.Volume == nil && r.S3 == nil {
 		return errors.New("unable to determine restore source")
 	}
 	return nil

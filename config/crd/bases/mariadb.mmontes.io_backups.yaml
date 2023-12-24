@@ -1226,6 +1226,63 @@ spec:
                           backing this claim.
                         type: string
                     type: object
+                  s3:
+                    description: S3 defines the configuration to store backups in
+                      a S3 compatible storage.
+                    properties:
+                      accessKeyIdSecretKeyRef:
+                        description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                          key containing the S3 access key id.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      bucket:
+                        description: Bucket is the name Name of the bucket to store
+                          backups.
+                        type: string
+                      endpoint:
+                        description: Endpoint is the S3 API endpoint without scheme.
+                        type: string
+                      secretAccessKeySecretKeyRef:
+                        description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                          key containing the S3 secret key.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    required:
+                    - accessKeyIdSecretKeyRef
+                    - bucket
+                    - endpoint
+                    - secretAccessKeySecretKeyRef
+                    type: object
                   volume:
                     description: Volume is a Kubernetes volume specification.
                     properties:
