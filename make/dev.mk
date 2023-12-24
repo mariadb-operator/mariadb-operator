@@ -69,14 +69,17 @@ CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 cert-controller: lint ## Run a cert-controller from your host.
 	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
-BACKUP_FLAGS ?= --path=backup --max-retention=1h --target-file-path=backup/0-backup-target.txt \
+BACKUP_ENV ?= S3_ACCESS_KEY_ID=mariadb-operator S3_SECRET_ACCESS_KEY=Minio11!
+BACKUP_COMMON_FLAGS ?= --path=backup --target-file-path=backup/0-backup-target.txt \
+	--s3 --s3-bucket=backups --s3-endpoint=minio:9000 \
 	--log-dev --log-level=debug --log-time-encoder=iso8601 
+
+BACKUP_FLAGS ?= --max-retention=8h $(BACKUP_COMMON_FLAGS)
 .PHONY: backup
 backup: lint ## Run backup from your host.
-	go run cmd/controller/*.go backup $(BACKUP_FLAGS)
+	$(BACKUP_ENV) go run cmd/controller/*.go backup $(BACKUP_FLAGS)
 
-RESTORE_FLAGS ?= --path=backup --target-time=1970-01-01T00:00:00Z --target-file-path=backup/0-backup-target.txt \
-	--log-dev --log-level=debug --log-time-encoder=iso8601 
-.PHONY: backup-restore
-backup-restore: lint ## Run restore from your host.
-	go run cmd/controller/*.go backup restore $(RESTORE_FLAGS)
+RESTORE_FLAGS ?= --target-time=1970-01-01T00:00:00Z $(BACKUP_COMMON_FLAGS)
+.PHONY: restore
+restore: lint ## Run restore from your host.
+	$(BACKUP_ENV) go run cmd/controller/*.go backup restore $(RESTORE_FLAGS)

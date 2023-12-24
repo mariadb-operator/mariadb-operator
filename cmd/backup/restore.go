@@ -25,13 +25,16 @@ var restoreCommand = &cobra.Command{
 			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("starting restore",
-			"path", path, "target-file-path", targetFilePath, "target-time", targetTimeRaw)
+		logger.Info("starting restore")
 
 		ctx, cancel := newContext()
 		defer cancel()
 
-		backupStorage := backup.NewFileSystemBackupStorage(path, logger.WithName("file-system-storage"))
+		backupStorage, err := getBackupStorage()
+		if err != nil {
+			logger.Error(err, "error getting backup storage")
+			os.Exit(1)
+		}
 
 		targetTime, err := getTargetTime()
 		if err != nil {
