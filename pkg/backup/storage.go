@@ -15,7 +15,7 @@ type BackupStorage interface {
 	List(ctx context.Context) ([]string, error)
 	Push(ctx context.Context, fileName string) error
 	Pull(ctx context.Context, fileName string) error
-	Delete(ctx context.Context, filename string) error
+	Delete(ctx context.Context, fileName string) error
 }
 
 type FileSystemBackupStorage struct {
@@ -67,6 +67,22 @@ type S3BackupStorage struct {
 	logger   logr.Logger
 }
 
+func NewS3BackupStorage(basePath, bucket, endpointURL, accessKeyID, secretAccessKey string, logger logr.Logger) (BackupStorage, error) {
+	client, err := minio.New(endpointURL, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: false,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating S3 client: %v", err)
+	}
+	return &S3BackupStorage{
+		basePath: basePath,
+		bucket:   bucket,
+		client:   client,
+		logger:   logger,
+	}, nil
+}
+
 func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
 	var objs []string
 	for o := range s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{}) {
@@ -88,20 +104,4 @@ func (s *S3BackupStorage) Pull(ctx context.Context, fileName string) error {
 
 func (s *S3BackupStorage) Delete(ctx context.Context, fileName string) error {
 	return s.client.RemoveObject(ctx, s.bucket, fileName, minio.RemoveObjectOptions{})
-}
-
-func NewS3BackupStorage(basePath, bucket, endpointURL, accessKeyID, secretAccessKey string, logger logr.Logger) (BackupStorage, error) {
-	client, err := minio.New(endpointURL, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: false,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating S3 client: %v", err)
-	}
-	return &S3BackupStorage{
-		basePath: basePath,
-		bucket:   bucket,
-		client:   client,
-		logger:   logger,
-	}, nil
 }
