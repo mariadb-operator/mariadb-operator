@@ -13,13 +13,15 @@ import (
 )
 
 const (
-	batchStorageVolume    = "backup"
-	batchStorageMountPath = "/backup"
-	batchScriptsVolume    = "scripts"
-	batchScriptsMountPath = "/opt"
-	batchScriptsSqlFile   = "job.sql"
-	batchUserEnv          = "MARIADB_OPERATOR_USER"
-	batchPasswordEnv      = "MARIADB_OPERATOR_PASSWORD"
+	batchStorageVolume     = "backup"
+	batchStorageMountPath  = "/backup"
+	batchScriptsVolume     = "scripts"
+	batchScriptsMountPath  = "/opt"
+	batchScriptsSqlFile    = "job.sql"
+	batchUserEnv           = "MARIADB_OPERATOR_USER"
+	batchPasswordEnv       = "MARIADB_OPERATOR_PASSWORD"
+	batchS3AccessKeyId     = "S3_ACCESS_KEY_ID"
+	batchS3SecretAccessKey = "S3_SECRET_ACCESS_KEY"
 )
 
 var batchBackupTargetFilePath = fmt.Sprintf("%s/0-backup-target.txt", batchStorageMountPath)
@@ -40,6 +42,12 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		command.WithBackupUserEnv(batchUserEnv),
 		command.WithBackupPasswordEnv(batchPasswordEnv),
 		command.WithBackupLogLevel(backup.Spec.LogLevel),
+	}
+	if backup.Spec.Storage.S3 != nil {
+		cmdOpts = append(cmdOpts, command.WithS3(
+			backup.Spec.Storage.S3.Bucket,
+			backup.Spec.Storage.S3.Endpoint,
+		))
 	}
 	if backup.Spec.Args != nil {
 		cmdOpts = append(cmdOpts, command.WithBackupDumpOpts(backup.Spec.Args))
@@ -62,7 +70,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			jobMariadbContainer(
 				cmd.MariadbDump(backup, mariadb),
 				volumeSources,
-				jobEnv(mariadb),
+				mariadbContainerEnv(mariadb),
 				backup.Spec.Resources,
 				mariadb,
 			),
@@ -71,6 +79,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			jobMariadbOperatorContainer(
 				cmd.MariadbOperatorBackup(),
 				volumeSources,
+				mariadbOperatorContainerEnv(backup.Spec.Storage.S3),
 				backup.Spec.Resources,
 				mariadb,
 				b.env,
@@ -144,6 +153,12 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		command.WithBackupPasswordEnv(batchPasswordEnv),
 		command.WithBackupLogLevel(restore.Spec.LogLevel),
 	}
+	if restore.Spec.S3 != nil {
+		cmdOpts = append(cmdOpts, command.WithS3(
+			restore.Spec.S3.Bucket,
+			restore.Spec.S3.Endpoint,
+		))
+	}
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building restore command: %v", err)
@@ -157,6 +172,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 			jobMariadbOperatorContainer(
 				cmd.MariadbOperatorRestore(),
 				volumeSources,
+				mariadbOperatorContainerEnv(restore.Spec.S3),
 				restore.Spec.Resources,
 				mariadb,
 				b.env,
@@ -166,7 +182,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 			jobMariadbContainer(
 				cmd.MariadbRestore(mariadb),
 				volumeSources,
-				jobEnv(mariadb),
+				mariadbContainerEnv(mariadb),
 				restore.Spec.Resources,
 				mariadb,
 			),

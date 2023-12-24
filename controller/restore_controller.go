@@ -57,7 +57,7 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// because we would be creating a deadlock when bootstrapping from backup
 	// TODO: add a IsBootstrapping() method to MariaDB?
 
-	if err := r.initSource(ctx, &restore); err != nil {
+	if err := r.setDefaults(ctx, &restore); err != nil {
 		var sourceErr *multierror.Error
 		sourceErr = multierror.Append(sourceErr, err)
 
@@ -92,7 +92,14 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *RestoreReconciler) initSource(ctx context.Context, restore *mariadbv1alpha1.Restore) error {
+func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1alpha1.Restore) error {
+	if err := r.patch(ctx, restore, func(r *mariadbv1alpha1.Restore) error {
+		r.Spec.RestoreSource.SetDefaults()
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error patching restore: %v", err)
+	}
+
 	if restore.Spec.RestoreSource.IsDefaulted() {
 		return nil
 	}
@@ -127,10 +134,9 @@ func (r *RestoreReconciler) initSource(ctx context.Context, restore *mariadbv1al
 		return errBundle
 	}
 
-	patcher := func(r *mariadbv1alpha1.Restore) {
-		r.Spec.RestoreSource.SetDefaults(backup)
-	}
-	if err := r.patch(ctx, restore, patcher); err != nil {
+	if err := r.patch(ctx, restore, func(r *mariadbv1alpha1.Restore) error {
+		return r.Spec.RestoreSource.SetDefaultsWithBackup(backup)
+	}); err != nil {
 		return fmt.Errorf("error patching restore: %v", err)
 	}
 	return nil
@@ -148,14 +154,12 @@ func (r *RestoreReconciler) patchStatus(ctx context.Context, restore *mariadbv1a
 }
 
 func (r *RestoreReconciler) patch(ctx context.Context, restore *mariadbv1alpha1.Restore,
-	patcher func(*mariadbv1alpha1.Restore)) error {
+	patcher func(*mariadbv1alpha1.Restore) error) error {
 	patch := client.MergeFrom(restore.DeepCopy())
-	patcher(restore)
-
-	if err := r.Client.Patch(ctx, restore, patch); err != nil {
-		return fmt.Errorf("error patching restore: %v", err)
+	if err := patcher(restore); err != nil {
+		return err
 	}
-	return nil
+	return r.Client.Patch(ctx, restore, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.

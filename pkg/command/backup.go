@@ -16,6 +16,9 @@ type BackupOpts struct {
 	TargetFilePath       string
 	MaxRetentionDuration time.Duration
 	TargetTime           time.Time
+	S3                   bool
+	S3Bucket             string
+	S3Endpoint           string
 	LogLevel             string
 	DumpOpts             []string
 }
@@ -38,6 +41,14 @@ func WithBackupMaxRetention(d time.Duration) BackupOpt {
 func WithBackupTargetTime(t time.Time) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.TargetTime = t
+	}
+}
+
+func WithS3(bucket, endpoint string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.S3 = true
+		bo.S3Bucket = bucket
+		bo.S3Endpoint = endpoint
 	}
 }
 
@@ -153,6 +164,9 @@ func (b *BackupCommand) MariadbOperatorBackup() *Command {
 		"--log-level",
 		b.LogLevel,
 	}
+	if b.S3 {
+		args = append(args, b.s3Args()...)
+	}
 	return NewCommand(nil, args)
 }
 
@@ -168,6 +182,9 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 		b.TargetFilePath,
 		"--log-level",
 		b.LogLevel,
+	}
+	if b.S3 {
+		args = append(args, b.s3Args()...)
 	}
 	return NewCommand(nil, args)
 }
@@ -197,4 +214,14 @@ func (b *BackupCommand) newBackupFile() string {
 
 func (b *BackupCommand) getTargetFilePath() string {
 	return fmt.Sprintf("%s/$(cat '%s')", b.Path, b.TargetFilePath)
+}
+
+func (b *BackupCommand) s3Args() []string {
+	return []string{
+		"--s3",
+		"--s3-bucket",
+		b.S3Bucket,
+		"--s3-endpoint",
+		b.S3Endpoint,
+	}
 }

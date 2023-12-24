@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"reflect"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -19,11 +20,23 @@ type BackupStorage struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PersistentVolumeClaim *corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+	// S3 defines the configuration to store backups in a S3 compatible storage.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	S3 *S3 `json:"s3,omitempty"`
 }
 
 func (s *BackupStorage) Validate() error {
-	if s.Volume == nil && s.PersistentVolumeClaim == nil {
-		return errors.New("no storage type provided")
+	storageTypes := 0
+	fields := reflect.ValueOf(s).Elem()
+	for i := 0; i < fields.NumField(); i++ {
+		field := fields.Field(i)
+		if !field.IsNil() {
+			storageTypes++
+		}
+	}
+	if storageTypes != 1 {
+		return errors.New("exactly one storage type configuration should be provided")
 	}
 	return nil
 }
@@ -130,6 +143,11 @@ func (b *Backup) Volume() (*corev1.VolumeSource, error) {
 			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 				ClaimName: b.Name,
 			},
+		}, nil
+	}
+	if b.Spec.Storage.S3 != nil {
+		return &corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		}, nil
 	}
 	return nil, errors.New("unable to get volume from Backup")

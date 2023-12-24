@@ -146,14 +146,14 @@ func jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []co
 	return container
 }
 
-func jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, resources *corev1.ResourceRequirements,
-	mariadb *mariadbv1alpha1.MariaDB, env *environment.Environment) corev1.Container {
-	return jobContainer("mariadb-operator", cmd, env.MariadbOperatorImage, volumeMounts, nil, resources, mariadb)
+func jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
+	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, env *environment.Environment) corev1.Container {
+	return jobContainer("mariadb-operator", cmd, env.MariadbOperatorImage, volumeMounts, envVar, resources, mariadb)
 }
 
-func jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, env []v1.EnvVar,
+func jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
 	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
-	return jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, env, resources, mariadb)
+	return jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb)
 }
 
 func jobBatchStorageVolume(volumeSource *corev1.VolumeSource) ([]corev1.Volume, []corev1.VolumeMount) {
@@ -170,7 +170,7 @@ func jobBatchStorageVolume(volumeSource *corev1.VolumeSource) ([]corev1.Volume, 
 		}
 }
 
-func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
+func mariadbContainerEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name:  batchUserEnv,
@@ -183,6 +183,26 @@ func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 			},
 		},
 	}
+}
+
+func mariadbOperatorContainerEnv(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
+	if s3 != nil {
+		return []v1.EnvVar{
+			{
+				Name: batchS3AccessKeyId,
+				ValueFrom: &v1.EnvVarSource{
+					SecretKeyRef: &s3.AccessKeyIdSecretKeyRef,
+				},
+			},
+			{
+				Name: batchS3SecretAccessKey,
+				ValueFrom: &v1.EnvVarSource{
+					SecretKeyRef: &s3.SecretAccessKeySecretKeyRef,
+				},
+			},
+		}
+	}
+	return nil
 }
 
 func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.VolumeMount) {
