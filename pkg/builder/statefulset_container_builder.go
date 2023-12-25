@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
@@ -108,6 +109,38 @@ func (b *Builder) buildGaleraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) co
 
 func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container {
 	initContainers := []corev1.Container{}
+	if mariadb.Spec.BootstrapFrom != nil && *mariadb.Spec.BootstrapFrom.Type == "mariabackup" && mariadb.Spec.BootstrapFrom.BackupRef != nil {
+
+		cmds := []string{
+			"rm -rf /var/lib/mysql/* /var/lib/mysql/.my-healthcheck.cnf",
+			"mkdir -p /var/lib/mysql/mariabackup",
+			fmt.Sprintf("rsync -rtva /backup/%s/ /var/lib/mysql/mariabackup/", *mariadb.Spec.BootstrapFrom.FileName),
+			"chown -R mysql:mysql /var/lib/mysql",
+			"ls -la /var/lib/mysql/mariabackup",
+			"mariadb-backup --prepare --target-dir=/var/lib/mysql/mariabackup",
+			"mv /var/lib/mysql/mariabackup/* /var/lib/mysql",
+			"rm -rf /var/lib/mysql/mariabackup/",
+			"touch /var/lib/mysql/restore_success",
+			"chown -R mysql:mysql /var/lib/mysql",
+		}
+
+		initContainer := buildContainer(mariadb.Spec.Image, mariadb.Spec.ImagePullPolicy, &mariadbv1alpha1.ContainerTemplate{
+			Command: []string{"bash", "-c"},
+			Args:    []string{strings.Join(cmds, " && ")},
+		})
+		initContainer.Name = "restore-init"
+		initContainer.Env = buildStsEnv(mariadb)
+		VolumeMounts := buildStsVolumeMounts(mariadb)
+		backupVolume := corev1.VolumeMount{
+			Name:      "backup",
+			MountPath: "/backup",
+		}
+		VolumeMounts = append(VolumeMounts, backupVolume)
+		initContainer.VolumeMounts = VolumeMounts
+		initContainers = append(initContainers, initContainer)
+
+	}
+
 	if mariadb.Spec.InitContainers != nil {
 		for index, container := range mariadb.Spec.InitContainers {
 			initContainer := buildContainer(container.Image, container.ImagePullPolicy, &container.ContainerTemplate)

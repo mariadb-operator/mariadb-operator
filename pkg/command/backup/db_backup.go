@@ -68,16 +68,16 @@ func (l *DBBackup) MariaBackupCommand(backup *mariadbv1alpha1.MariaBackup,
 		"echo '💾 Taking physical backup'",
 		"export backupdir=/backup/mariabackup-$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
 		"mkdir -p ${backupdir}",
-		"socat -u TCP-LISTEN:4444,reuseaddr stdio | mbstream —p 4 -x -C ${backupdir}",
-		"sleep 3",
+		fmt.Sprintf("mariadb-backup --host=%s-primary --backup   --target-dir=${backupdir}   --user=${MARIADB_OPERATOR_USER} --password=${MARIADB_OPERATOR_PASSWORD} ", mariadb.Name),
+		"sleep 10",
 		"echo '📜 Backup completed'",
 		"echo '🧹 Cleaning up old backups'",
 		fmt.Sprintf(
-			"find /backup/ -type d -mtime +%d -delete",
+			"find /backup/ -type d -mtime +%d -exec rm -r {} \\; || true",
 			backup.Spec.MaxRetentionDays,
 		),
 		"echo '📜 Backup history'",
-		"ls -ltr /backup/ ",
+		"du -h --max-depth=1 /backup/ | sort -k2 ",
 	}
 	return command.ExecCommand(cmds)
 }

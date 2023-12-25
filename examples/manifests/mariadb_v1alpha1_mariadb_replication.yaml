@@ -3,9 +3,10 @@ kind: MariaDB
 metadata:
   name: mariadb-repl
 spec:
-  username: mariadb
-  database: mariadb
-  username: mariadb
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+
   passwordSecretKeyRef:
     name: mariadb
     key: password
@@ -77,14 +78,15 @@ spec:
     binlog_format=row
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
+    log_slave_updates=ON
 
-  metrics:
-    enabled: true
-    exporter:
-      image: prom/mysqld-exporter:v0.14.0
-      port: 9104
-    serviceMonitor:
-      prometheusRelease: kube-prometheus-stack
+  # metrics:
+  #   enabled: true
+  #   exporter:
+  #     image: prom/mysqld-exporter:v0.14.0
+  #     port: 9104
+  #   serviceMonitor:
+  #     prometheusRelease: kube-prometheus-stack
 
   volumeClaimTemplate:
     resources:

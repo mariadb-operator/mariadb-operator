@@ -5,8 +5,8 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb-repl
-  # schedule:
-  #   cron: "*/1 * * * *"
+  schedule:
+    cron: "0 * * * *"
   storage:
     persistentVolumeClaim:
       resources:
@@ -14,8 +14,6 @@ spec:
           storage: 100Mi
       accessModes:
         - ReadWriteOnce
-  args:
-    - --compress
   resources:
     requests:
       cpu: 100m

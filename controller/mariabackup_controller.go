@@ -20,8 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -30,13 +28,10 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/remotecommand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -103,93 +98,6 @@ func (r *MariaBackupReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if err := batchErr.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
-	}
-
-	podList := &corev1.PodList{}
-
-	// Create a label selector to filter pods with a specific label
-	labelSelector := labels.SelectorFromSet(labels.Set(map[string]string{
-		"backup-ref": backup.Name,
-	}))
-
-	// Create a ListOptions with the label selector
-	listOptions := &client.ListOptions{
-		LabelSelector: labelSelector,
-	}
-
-	max_attempts := 0
-	for len(podList.Items) == 0 && max_attempts < 10 {
-		// List pods in the specified namespace with the label selector
-		err = r.Client.List(ctx, podList, listOptions)
-		if err != nil {
-			// Handle the error
-			return ctrl.Result{}, fmt.Errorf("error getting job: %v", err)
-		}
-		time.Sleep(3 * time.Second)
-		max_attempts++
-	}
-
-	var podIP string = ""
-	// Iterate through the list of pods
-
-	for _, pod := range podList.Items {
-
-		if pod.Status.Phase == "Running" {
-			podIP = pod.Status.PodIP
-			break
-		} else if pod.Status.Phase == "Succeeded" {
-			podIP = ""
-			break
-		}
-	}
-
-	if podIP != "" {
-		// Start mariadb-backup on the primary pod
-		// TODO: make the backup source configurable primary or replicas
-		// TODO: add s3 configuration parameters to get backup to s3 directly
-		cmd := []string{
-			"/bin/sh",
-			"-c",
-			fmt.Sprintf(`mariadb-backup \
-			--backup \
-			--user=root \
-			--password=${MARIADB_ROOT_PASSWORD} \
-			--compress \
-			--stream=mbstream \
-			--parallel 1 \
-			--target-dir=/tmp | socat -u stdio TCP:%s:4444 &`, podIP),
-		}
-
-		execReq := r.RESTClient.
-			Post().
-			Namespace(mariaDb.Namespace).
-			Resource("pods").
-			Name(*mariaDb.Status.CurrentPrimary).
-			SubResource("exec").
-			VersionedParams(&corev1.PodExecOptions{
-				Container: "mariadb",
-				Command:   cmd,
-				Stdin:     true,
-				Stdout:    true,
-				Stderr:    true,
-			}, runtime.NewParameterCodec(r.Scheme))
-
-		exec, err := remotecommand.NewSPDYExecutor(r.RESTConfig, "POST", execReq.URL())
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error while creating remote command executor: %v", err)
-		}
-
-		err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-			Stdin:  os.Stdin,
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
-			Tty:    false,
-		})
-
-		if err != nil {
-			// Handle the error
-			return ctrl.Result{}, fmt.Errorf("error executing script in pod: %v", err)
-		}
 	}
 
 	return ctrl.Result{}, nil

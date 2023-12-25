@@ -53,7 +53,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(volume)
+	volumes, volumeSources := jobBatchStorageVolume(volume, mariadb)
 
 	opts := []jobOption{
 		withJobMeta(objMeta),
@@ -111,7 +111,7 @@ func (b *Builder) BuildMariaBackupJob(key types.NamespacedName, backup *mariadbv
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(volume)
+	volumes, volumeSources := jobBatchStorageVolume(volume, mariadb)
 
 	opts := []jobOption{
 		withJobMeta(objMeta),
@@ -228,7 +228,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	if err != nil {
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.RestoreSource.Volume)
+	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.RestoreSource.Volume, mariadb)
 
 	jobOpts := []jobOption{
 		withJobMeta(objMeta),
@@ -514,16 +514,29 @@ func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	}
 }
 
-func jobBatchStorageVolume(volumeSource *corev1.VolumeSource) ([]corev1.Volume, []corev1.VolumeMount) {
+func jobBatchStorageVolume(volumeSource *corev1.VolumeSource, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
 	return []corev1.Volume{
 			{
 				Name:         batchStorageVolume,
 				VolumeSource: *volumeSource,
 			},
-		}, []corev1.VolumeMount{
+			{
+				Name: batchDataVolume,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: fmt.Sprintf("storage-%s-%d", mariadb.Name, *mariadb.Status.CurrentPrimaryPodIndex),
+						ReadOnly:  true,
+					},
+				},
+			}}, []corev1.VolumeMount{
 			{
 				Name:      batchStorageVolume,
 				MountPath: batchStorageMountPath,
+			},
+			{
+				Name:      batchDataVolume,
+				MountPath: batchDataMountPath,
+				ReadOnly:  true,
 			},
 		}
 }

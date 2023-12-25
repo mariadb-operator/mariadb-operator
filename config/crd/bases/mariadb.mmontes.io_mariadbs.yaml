@@ -898,6 +898,9 @@ spec:
                   fileName:
                     description: FileName is the file within the source to be restored.
                     type: string
+                  type:
+                    description: FileName is the file within the source to be restored.
+                    type: string
                   volume:
                     description: Volume is a Kubernetes Volume object that contains
                       a backup.
