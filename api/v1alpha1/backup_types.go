@@ -135,8 +135,10 @@ func (b *Backup) IsComplete() bool {
 }
 
 func (b *Backup) Volume() (*corev1.VolumeSource, error) {
-	if b.Spec.Storage.Volume != nil {
-		return b.Spec.Storage.Volume, nil
+	if b.Spec.Storage.S3 != nil {
+		return &corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		}, nil
 	}
 	if b.Spec.Storage.PersistentVolumeClaim != nil {
 		return &corev1.VolumeSource{
@@ -145,10 +147,8 @@ func (b *Backup) Volume() (*corev1.VolumeSource, error) {
 			},
 		}, nil
 	}
-	if b.Spec.Storage.S3 != nil {
-		return &corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
-		}, nil
+	if b.Spec.Storage.Volume != nil {
+		return b.Spec.Storage.Volume, nil
 	}
 	return nil, errors.New("unable to get volume from Backup")
 }

@@ -304,7 +304,7 @@ func (r *RestoreSource) SetDefaultsWithBackup(backup *Backup) error {
 }
 
 func (r *RestoreSource) Validate() error {
-	if r.BackupRef == nil && r.Volume == nil && r.S3 == nil {
+	if r.BackupRef == nil && r.S3 == nil && r.Volume == nil {
 		return errors.New("unable to determine restore source")
 	}
 	return nil
