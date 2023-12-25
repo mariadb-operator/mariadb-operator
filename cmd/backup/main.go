@@ -2,7 +2,6 @@ package backup
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -148,10 +147,6 @@ func getBackupStorage() (backup.BackupStorage, error) {
 }
 
 func getS3BackupStorage() (backup.BackupStorage, error) {
-	accessKeyId, secretAccessKey, err := readS3Credentials()
-	if err != nil {
-		return nil, err
-	}
 	var opts []backup.S3BackupStorageOpt
 	if s3TLS {
 		opts = append(opts, backup.WithTLS(s3CACertPath))
@@ -160,23 +155,9 @@ func getS3BackupStorage() (backup.BackupStorage, error) {
 		path,
 		s3Bucket,
 		s3Endpoint,
-		accessKeyId,
-		secretAccessKey,
 		logger.WithName("s3-storage"),
 		opts...,
 	)
-}
-
-func readS3Credentials() (accessKeyID string, secretAccessKey string, err error) {
-	accessKeyID = os.Getenv("S3_ACCESS_KEY_ID")
-	if accessKeyID == "" {
-		return "", "", errors.New("S3_ACCESS_KEY_ID must be set in order to authenticate with S3")
-	}
-	secretAccessKey = os.Getenv("S3_SECRET_ACCESS_KEY")
-	if secretAccessKey == "" {
-		return "", "", errors.New("S3_SECRET_ACCESS_KEY must be set in order to authenticate with S3")
-	}
-	return accessKeyID, secretAccessKey, nil
 }
 
 func readTargetFile() (string, error) {
