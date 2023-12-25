@@ -44,7 +44,8 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&s3Bucket, "s3-bucket", "backups", "Name of the bucket to store backups.")
 	RootCmd.PersistentFlags().StringVar(&s3Endpoint, "s3-endpoint", "s3.amazonaws.com", "S3 API endpoint without scheme.")
 	RootCmd.PersistentFlags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
-	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "s3/ca.crt", "Path to the CA to be trusted when connecting to S3.")
+	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "s3/pki/tls.crt",
+		"Path to the CA to be trusted when connecting to S3.")
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")

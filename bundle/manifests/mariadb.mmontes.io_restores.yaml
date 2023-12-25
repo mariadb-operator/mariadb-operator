@@ -884,7 +884,8 @@ spec:
                 format: int32
                 type: integer
               backupRef:
-                description: BackupRef is a reference to a Backup object.
+                description: BackupRef is a reference to a Backup object. It has priority
+                  over S3 and Volume.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -1000,6 +1001,91 @@ spec:
                 - OnFailure
                 - Never
                 type: string
+              s3:
+                description: S3 defines the configuration to restore backups from
+                  a S3 compatible storage. It has priority over Volume.
+                properties:
+                  accessKeyIdSecretKeyRef:
+                    description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                      key containing the S3 access key id.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  bucket:
+                    description: Bucket is the name Name of the bucket to store backups.
+                    type: string
+                  endpoint:
+                    description: Endpoint is the S3 API endpoint without scheme.
+                    type: string
+                  secretAccessKeySecretKeyRef:
+                    description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                      key containing the S3 secret key.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  tls:
+                    description: TLS provides the configuration required to establish
+                      TLS connections with S3.
+                    properties:
+                      caSecretKeyRef:
+                        description: CASecretKeyRef is a reference to a Secret key
+                          containing a CA bundle in PEM format used to establish TLS
+                          connections with S3.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      enabled:
+                        description: Enabled is a flag to enable TLS.
+                        type: boolean
+                    type: object
+                required:
+                - accessKeyIdSecretKeyRef
+                - bucket
+                - endpoint
+                - secretAccessKeySecretKeyRef
+                type: object
               targetRecoveryTime:
                 description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z)
                   date and time that defines the point in time recovery objective.
