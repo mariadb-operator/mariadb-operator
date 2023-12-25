@@ -25,7 +25,7 @@ var _ = Describe("Backup webhook", func() {
 				}
 			},
 			Entry(
-				"Invalid storage",
+				"No storage",
 				&Backup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "backup-invalid-storage",
@@ -51,6 +51,73 @@ var _ = Describe("Backup webhook", func() {
 				true,
 			),
 			Entry(
+				"Multiple storages",
+				&Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-invalid-storage",
+						Namespace: testNamespace,
+					},
+					Spec: BackupSpec{
+						Storage: BackupStorage{
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+							Volume: &corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "TEST",
+								},
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("100m"),
+							},
+						},
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				true,
+			),
+			Entry(
+				"Single storage",
+				&Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-invalid-storage",
+						Namespace: testNamespace,
+					},
+					Spec: BackupSpec{
+						Storage: BackupStorage{
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("100m"),
+							},
+						},
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				false,
+			),
+			Entry(
 				"Invalid schedule",
 				&Backup{
 					ObjectMeta: metav1.ObjectMeta{
@@ -62,15 +129,9 @@ var _ = Describe("Backup webhook", func() {
 							Cron: "foo",
 						},
 						Storage: BackupStorage{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": resource.MustParse("100Mi"),
-									},
-								},
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									corev1.ReadWriteOnce,
-								},
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
 							},
 						},
 						MariaDBRef: MariaDBRef{
@@ -102,15 +163,9 @@ var _ = Describe("Backup webhook", func() {
 							Cron: "*/1 * * * *",
 						},
 						Storage: BackupStorage{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": resource.MustParse("100Mi"),
-									},
-								},
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									corev1.ReadWriteOnce,
-								},
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
 							},
 						},
 						MariaDBRef: MariaDBRef{
@@ -146,15 +201,9 @@ var _ = Describe("Backup webhook", func() {
 				},
 				Spec: BackupSpec{
 					Storage: BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
+						S3: &S3{
+							Bucket:   "test",
+							Endpoint: "test",
 						},
 					},
 					MariaDBRef: MariaDBRef{
@@ -217,8 +266,7 @@ var _ = Describe("Backup webhook", func() {
 			Entry(
 				"Updating Storage",
 				func(bmdb *Backup) {
-					newStorageClass := "fast-storage"
-					bmdb.Spec.Storage.PersistentVolumeClaim.StorageClassName = &newStorageClass
+					bmdb.Spec.Storage.S3.Bucket = "another-bucket"
 				},
 				true,
 			),
