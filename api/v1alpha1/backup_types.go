@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -12,23 +13,23 @@ import (
 
 // BackupStorage defines the storage for a Backup.
 type BackupStorage struct {
-	// Volume is a Kubernetes volume specification.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Volume *corev1.VolumeSource `json:"volume,omitempty"`
-	// PersistentVolumeClaim is a Kubernetes PVC specification.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PersistentVolumeClaim *corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
 	// S3 defines the configuration to store backups in a S3 compatible storage.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	S3 *S3 `json:"s3,omitempty"`
+	// PersistentVolumeClaim is a Kubernetes PVC specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PersistentVolumeClaim *corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+	// Volume is a Kubernetes volume specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Volume *corev1.VolumeSource `json:"volume,omitempty"`
 }
 
-func (s *BackupStorage) Validate() error {
+func (b *BackupStorage) Validate() error {
 	storageTypes := 0
-	fields := reflect.ValueOf(s).Elem()
+	fields := reflect.ValueOf(b).Elem()
 	for i := 0; i < fields.NumField(); i++ {
 		field := fields.Field(i)
 		if !field.IsNil() {
@@ -134,6 +135,27 @@ func (b *Backup) IsComplete() bool {
 	return meta.IsStatusConditionTrue(b.Status.Conditions, ConditionTypeComplete)
 }
 
+func (b *Backup) SetDefaults() {
+	if b.Spec.MaxRetention == (metav1.Duration{}) {
+		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
+	}
+	if b.Spec.BackoffLimit == 0 {
+		b.Spec.BackoffLimit = 5
+	}
+}
+
+func (b *Backup) Validate() error {
+	if b.Spec.Schedule != nil {
+		if err := b.Spec.Schedule.Validate(); err != nil {
+			return fmt.Errorf("invalid Schedule: %v", err)
+		}
+	}
+	if err := b.Spec.Storage.Validate(); err != nil {
+		return fmt.Errorf("invalid Storage: %v", err)
+	}
+	return nil
+}
+
 func (b *Backup) Volume() (*corev1.VolumeSource, error) {
 	if b.Spec.Storage.S3 != nil {
 		return &corev1.VolumeSource{
@@ -151,15 +173,6 @@ func (b *Backup) Volume() (*corev1.VolumeSource, error) {
 		return b.Spec.Storage.Volume, nil
 	}
 	return nil, errors.New("unable to get volume from Backup")
-}
-
-func (b *Backup) SetDefaults() {
-	if b.Spec.MaxRetention == (metav1.Duration{}) {
-		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
-	}
-	if b.Spec.BackoffLimit == 0 {
-		b.Spec.BackoffLimit = 5
-	}
 }
 
 // +kubebuilder:object:root=true

@@ -40,33 +40,12 @@ func (r *Backup) ValidateDelete() (admission.Warnings, error) {
 }
 
 func (r *Backup) validate() (admission.Warnings, error) {
-	if err := r.validateSchedule(); err != nil {
-		return nil, err
-	}
-	return nil, r.validateStorage()
-}
-
-func (r *Backup) validateSchedule() error {
-	if r.Spec.Schedule == nil {
-		return nil
-	}
-	if err := r.Spec.Schedule.Validate(); err != nil {
-		return field.Invalid(
-			field.NewPath("spec").Child("schedule"),
-			r.Spec.Schedule,
-			fmt.Sprintf("invalid schedule: %v", err),
+	if err := r.Validate(); err != nil {
+		return nil, field.Invalid(
+			field.NewPath("spec"),
+			r.Spec,
+			fmt.Sprintf("invalid Backup: %v", err),
 		)
 	}
-	return nil
-}
-
-func (r *Backup) validateStorage() error {
-	if err := r.Spec.Storage.Validate(); err != nil {
-		return field.Invalid(
-			field.NewPath("spec").Child("storage"),
-			r.Spec.Storage,
-			fmt.Sprintf("invalid storage: %v", err),
-		)
-	}
-	return nil
+	return nil, nil
 }
