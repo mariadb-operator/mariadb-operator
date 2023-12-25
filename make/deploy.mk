@@ -184,7 +184,7 @@ install-metallb: cluster-ctx ## Install metallb helm chart.
 
 MINIO_VERSION ?= "5.0.14"
 .PHONY: install-minio
-install-minio: cluster-ctx ## Install minio helm chart.
+install-minio: cluster-ctx cert-minio ## Install minio helm chart.
 	@./hack/install_minio.sh
 
 ##@ Install

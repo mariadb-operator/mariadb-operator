@@ -2,11 +2,15 @@ package backup
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/go-logr/logr"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -60,18 +64,41 @@ func (f *FileSystemBackupStorage) Delete(ctx context.Context, fileName string) e
 	return os.Remove(filepath.Join(f.basePath, fileName))
 }
 
-type S3BackupStorage struct {
-	basePath string
-	bucket   string
-	client   *minio.Client
-	logger   logr.Logger
+type S3BackupStorageOpts struct {
+	TLS        bool
+	CACertPath string
 }
 
-func NewS3BackupStorage(basePath, bucket, endpointURL, accessKeyID, secretAccessKey string, logger logr.Logger) (BackupStorage, error) {
-	client, err := minio.New(endpointURL, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: false,
-	})
+type S3BackupStorageOpt func(s *S3BackupStorageOpts)
+
+func WithTLS(caCertPath string) S3BackupStorageOpt {
+	return func(s *S3BackupStorageOpts) {
+		s.TLS = true
+		s.CACertPath = caCertPath
+	}
+}
+
+type S3BackupStorage struct {
+	S3BackupStorageOpts
+	basePath string
+	bucket   string
+	logger   logr.Logger
+	client   *minio.Client
+}
+
+func NewS3BackupStorage(basePath, bucket, endpointURL, accessKeyID, secretAccessKey string,
+	logger logr.Logger, s3Opts ...S3BackupStorageOpt) (BackupStorage, error) {
+	opts := S3BackupStorageOpts{}
+	for _, setOpt := range s3Opts {
+		setOpt(&opts)
+	}
+
+	minioOpts, err := getMinioOptions(accessKeyID, secretAccessKey, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error creating S3 client options: %v", err)
+	}
+
+	client, err := minio.New(endpointURL, minioOpts)
 	if err != nil {
 		return nil, fmt.Errorf("error creating S3 client: %v", err)
 	}
@@ -104,4 +131,31 @@ func (s *S3BackupStorage) Pull(ctx context.Context, fileName string) error {
 
 func (s *S3BackupStorage) Delete(ctx context.Context, fileName string) error {
 	return s.client.RemoveObject(ctx, s.bucket, fileName, minio.RemoveObjectOptions{})
+}
+
+func getMinioOptions(accessKeyID, secretAccessKey string, opts S3BackupStorageOpts) (*minio.Options, error) {
+	minioOpts := &minio.Options{
+		Creds: credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+	}
+	if opts.TLS {
+		minioOpts.Secure = true
+
+		bytes, err := os.ReadFile(opts.CACertPath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading CA cert: %v", err)
+		}
+		rootCAs := x509.NewCertPool()
+		cert, err := pki.ParseCert(bytes)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing CA cert: %v", err)
+		}
+		rootCAs.AddCert(cert)
+
+		minioOpts.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: rootCAs,
+			},
+		}
+	}
+	return minioOpts, nil
 }

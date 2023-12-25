@@ -4,24 +4,6 @@ export MARIADB_OPERATOR_NAME ?= mariadb-operator
 export MARIADB_OPERATOR_NAMESPACE ?= default
 export MARIADB_OPERATOR_SA_PATH ?= /tmp/mariadb-operator/token
 
-CA_DIR=/tmp/k8s-webhook-server/certificate-authority
-CERT_DIR=/tmp/k8s-webhook-server/serving-certs
-CA_CONFIG=./hack/config/openssl_ca.conf
-CERT_CONFIG=./hack/config/openssl_cert.conf
-
-.PHONY: ca
-ca: ## Generates CA private key and certificate for local development.
-	@mkdir -p $(CA_DIR)
-	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
-		-config $(CA_CONFIG) -out $(CA_DIR)/tls.crt -keyout $(CA_DIR)/tls.key
-
-.PHONY: cert
-cert: ca ## Generates webhook private key and certificate for local development.
-	@mkdir -p $(CERT_DIR)
-	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
-		-config $(CERT_CONFIG) -out $(CERT_DIR)/tls.crt -keyout $(CERT_DIR)/tls.key \
-		-CA $(CA_DIR)/tls.crt -CAkey $(CA_DIR)/tls.key
-
 .PHONY: lint
 lint: golangci-lint ## Lint.
 	$(GOLANGCI_LINT) run

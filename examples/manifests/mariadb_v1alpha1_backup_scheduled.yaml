@@ -19,6 +19,11 @@ spec:
       secretAccessKeySecretKeyRef:
         name: minio
         key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
   args:
     - --single-transaction
     - --all-databases

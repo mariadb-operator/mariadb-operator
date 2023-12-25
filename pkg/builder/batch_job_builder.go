@@ -156,21 +156,38 @@ func jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, en
 	return jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb)
 }
 
-func jobBatchStorageVolume(volumeSource *corev1.VolumeSource) ([]corev1.Volume, []corev1.VolumeMount) {
-	return []corev1.Volume{
+func jobBatchStorageVolume(volumeSource *corev1.VolumeSource, s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes :=
+		[]corev1.Volume{
 			{
 				Name:         batchStorageVolume,
 				VolumeSource: *volumeSource,
 			},
-		}, []corev1.VolumeMount{
-			{
-				Name:      batchStorageVolume,
-				MountPath: batchStorageMountPath,
-			},
 		}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      batchStorageVolume,
+			MountPath: batchStorageMountPath,
+		},
+	}
+	if s3 != nil && s3.TLS != nil && s3.TLS.Enabled && s3.TLS.CASecretKeyRef != nil {
+		volumes = append(volumes, corev1.Volume{
+			Name: batchS3PKI,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: s3.TLS.CASecretKeyRef.Name,
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      batchS3PKI,
+			MountPath: batchS3PKIMountPath,
+		})
+	}
+	return volumes, volumeMounts
 }
 
-func mariadbContainerEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
+func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name:  batchUserEnv,
@@ -185,7 +202,7 @@ func mariadbContainerEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	}
 }
 
-func mariadbOperatorContainerEnv(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
+func jobS3Env(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
 	if s3 != nil {
 		return []v1.EnvVar{
 			{
