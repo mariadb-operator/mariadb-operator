@@ -1276,6 +1276,36 @@ spec:
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
+                      tls:
+                        description: TLS provides the configuration required to establish
+                          TLS connections with S3.
+                        properties:
+                          caSecretKeyRef:
+                            description: CASecretKeyRef is a reference to a Secret
+                              key containing a CA bundle in PEM format used to establish
+                              TLS connections with S3.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.  Must
+                                  be a valid secret key.
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  TODO: Add other useful fields. apiVersion, kind,
+                                  uid?'
+                                type: string
+                              optional:
+                                description: Specify whether the Secret or its key
+                                  must be defined
+                                type: boolean
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          enabled:
+                            description: Enabled is a flag to enable TLS.
+                            type: boolean
+                        type: object
                     required:
                     - accessKeyIdSecretKeyRef
                     - bucket
@@ -4616,6 +4646,36 @@ spec:
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
+                      tls:
+                        description: TLS provides the configuration required to establish
+                          TLS connections with S3.
+                        properties:
+                          caSecretKeyRef:
+                            description: CASecretKeyRef is a reference to a Secret
+                              key containing a CA bundle in PEM format used to establish
+                              TLS connections with S3.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.  Must
+                                  be a valid secret key.
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  TODO: Add other useful fields. apiVersion, kind,
+                                  uid?'
+                                type: string
+                              optional:
+                                description: Specify whether the Secret or its key
+                                  must be defined
+                                type: boolean
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          enabled:
+                            description: Enabled is a flag to enable TLS.
+                            type: boolean
+                        type: object
                     required:
                     - accessKeyIdSecretKeyRef
                     - bucket
@@ -14764,6 +14824,35 @@ spec:
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
+                  tls:
+                    description: TLS provides the configuration required to establish
+                      TLS connections with S3.
+                    properties:
+                      caSecretKeyRef:
+                        description: CASecretKeyRef is a reference to a Secret key
+                          containing a CA bundle in PEM format used to establish TLS
+                          connections with S3.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      enabled:
+                        description: Enabled is a flag to enable TLS.
+                        type: boolean
+                    type: object
                 required:
                 - accessKeyIdSecretKeyRef
                 - bucket

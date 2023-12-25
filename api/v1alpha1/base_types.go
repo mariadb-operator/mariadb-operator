@@ -226,6 +226,17 @@ type SQLTemplate struct {
 	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
 }
 
+type TLS struct {
+	// Enabled is a flag to enable TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled"`
+	// CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CASecretKeyRef *corev1.SecretKeySelector `json:"caSecretKeyRef,omitempty"`
+}
+
 type S3 struct {
 	// Bucket is the name Name of the bucket to store backups.
 	// +kubebuilder:validation:Required
@@ -237,12 +248,16 @@ type S3 struct {
 	Endpoint string `json:"endpoint" webhook:"inmutable"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
 	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	AccessKeyIdSecretKeyRef corev1.SecretKeySelector `json:"accessKeyIdSecretKeyRef" webhook:"inmutable"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AccessKeyIdSecretKeyRef corev1.SecretKeySelector `json:"accessKeyIdSecretKeyRef"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
 	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SecretAccessKeySecretKeyRef corev1.SecretKeySelector `json:"secretAccessKeySecretKeyRef" webhook:"inmutable"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SecretAccessKeySecretKeyRef corev1.SecretKeySelector `json:"secretAccessKeySecretKeyRef"`
+	// TLS provides the configuration required to establish TLS connections with S3.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *TLS `json:"tls,omitempty"`
 }
 
 // RestoreSource defines a source for restoring a MariaDB.

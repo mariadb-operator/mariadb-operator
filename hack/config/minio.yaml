@@ -9,12 +9,11 @@ rootPassword: Minio11!
 persistence:
   size: 10Gi
 
-# tls:
-#   enabled: false
-#   ## Create a secret with private.key and public.crt files and pass that here. Ref: https://github.com/minio/minio/tree/master/docs/tls/kubernetes#2-create-kubernetes-secret
-#   certSecret: ""
-#   publicCrt: public.crt
-#   privateKey: private.key
+tls:
+  enabled: true
+  certSecret: minio-tls
+  publicCrt: tls.crt
+  privateKey: tls.key
 
 users:
   - accessKey: console

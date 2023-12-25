@@ -19,6 +19,8 @@ type BackupOpts struct {
 	S3                   bool
 	S3Bucket             string
 	S3Endpoint           string
+	S3TLS                bool
+	S3CACertPath         string
 	LogLevel             string
 	DumpOpts             []string
 }
@@ -49,6 +51,13 @@ func WithS3(bucket, endpoint string) BackupOpt {
 		bo.S3 = true
 		bo.S3Bucket = bucket
 		bo.S3Endpoint = endpoint
+	}
+}
+
+func WithS3TLS(caCertPath string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.S3TLS = true
+		bo.S3CACertPath = caCertPath
 	}
 }
 
@@ -164,9 +173,7 @@ func (b *BackupCommand) MariadbOperatorBackup() *Command {
 		"--log-level",
 		b.LogLevel,
 	}
-	if b.S3 {
-		args = append(args, b.s3Args()...)
-	}
+	args = append(args, b.s3Args()...)
 	return NewCommand(nil, args)
 }
 
@@ -183,9 +190,7 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 		"--log-level",
 		b.LogLevel,
 	}
-	if b.S3 {
-		args = append(args, b.s3Args()...)
-	}
+	args = append(args, b.s3Args()...)
 	return NewCommand(nil, args)
 }
 
@@ -217,11 +222,27 @@ func (b *BackupCommand) getTargetFilePath() string {
 }
 
 func (b *BackupCommand) s3Args() []string {
-	return []string{
+	if !b.S3 {
+		return nil
+	}
+	args := []string{
 		"--s3",
 		"--s3-bucket",
 		b.S3Bucket,
 		"--s3-endpoint",
 		b.S3Endpoint,
 	}
+	if b.S3TLS {
+		args = append(args,
+			"--s3-tls",
+		)
+		if b.S3CACertPath != "" {
+			args = append(args,
+				"--s3-tls",
+				"--s3-ca-cert-path",
+				b.S3CACertPath,
+			)
+		}
+	}
+	return args
 }

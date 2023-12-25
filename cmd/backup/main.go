@@ -22,6 +22,8 @@ var (
 	s3             bool
 	s3Bucket       string
 	s3Endpoint     string
+	s3TLS          bool
+	s3CACertPath   string
 	maxRetention   time.Duration
 )
 
@@ -41,6 +43,8 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&s3, "s3", false, "Enable S3 backup storage.")
 	RootCmd.PersistentFlags().StringVar(&s3Bucket, "s3-bucket", "backups", "Name of the bucket to store backups.")
 	RootCmd.PersistentFlags().StringVar(&s3Endpoint, "s3-endpoint", "s3.amazonaws.com", "S3 API endpoint without scheme.")
+	RootCmd.PersistentFlags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
+	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "s3/ca.crt", "Path to the CA to be trusted when connecting to S3.")
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
@@ -136,21 +140,30 @@ func newContext() (context.Context, context.CancelFunc) {
 func getBackupStorage() (backup.BackupStorage, error) {
 	if s3 {
 		logger.Info("configuring S3 backup storage")
-		accessKeyId, secretAccessKey, err := readS3Credentials()
-		if err != nil {
-			return nil, err
-		}
-		return backup.NewS3BackupStorage(
-			path,
-			s3Bucket,
-			s3Endpoint,
-			accessKeyId,
-			secretAccessKey,
-			logger.WithName("s3-storage"),
-		)
+		return getS3BackupStorage()
 	}
 	logger.Info("configuring filesystem backup storage")
 	return backup.NewFileSystemBackupStorage(path, logger.WithName("file-system-storage")), nil
+}
+
+func getS3BackupStorage() (backup.BackupStorage, error) {
+	accessKeyId, secretAccessKey, err := readS3Credentials()
+	if err != nil {
+		return nil, err
+	}
+	var opts []backup.S3BackupStorageOpt
+	if s3TLS {
+		opts = append(opts, backup.WithTLS(s3CACertPath))
+	}
+	return backup.NewS3BackupStorage(
+		path,
+		s3Bucket,
+		s3Endpoint,
+		accessKeyId,
+		secretAccessKey,
+		logger.WithName("s3-storage"),
+		opts...,
+	)
 }
 
 func readS3Credentials() (accessKeyID string, secretAccessKey string, err error) {
