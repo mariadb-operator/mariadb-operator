@@ -1,6 +1,6 @@
 ##@ PKI
 
-CA_DIR ?= /tmp/k8s-webhook-server/certificate-authority
+CA_DIR ?= /tmp/certificate-authority
 CA_CERT ?= $(CA_DIR)/tls.crt
 CA_KEY ?= $(CA_DIR)/tls.key
 .PHONY: ca
