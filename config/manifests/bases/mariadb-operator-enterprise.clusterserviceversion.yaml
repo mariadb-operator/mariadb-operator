@@ -321,6 +321,37 @@ spec:
       - description: PersistentVolumeClaim is a Kubernetes PVC specification.
         displayName: Persistent Volume Claim
         path: storage.persistentVolumeClaim
+      - description: S3 defines the configuration to store backups in a S3 compatible
+          storage.
+        displayName: S3
+        path: storage.s3
+      - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing
+          the S3 access key id.
+        displayName: Access Key Id Secret Key Ref
+        path: storage.s3.accessKeyIdSecretKeyRef
+      - description: Bucket is the name Name of the bucket to store backups.
+        displayName: Bucket
+        path: storage.s3.bucket
+      - description: Endpoint is the S3 API endpoint without scheme.
+        displayName: Endpoint
+        path: storage.s3.endpoint
+      - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing
+          the S3 secret key.
+        displayName: Secret Access Key Secret Key Ref
+        path: storage.s3.secretAccessKeySecretKeyRef
+      - description: TLS provides the configuration required to establish TLS connections
+          with S3.
+        displayName: TLS
+        path: storage.s3.tls
+      - description: CASecretKeyRef is a reference to a Secret key containing a CA
+          bundle in PEM format used to establish TLS connections with S3.
+        displayName: CASecret Key Ref
+        path: storage.s3.tls.caSecretKeyRef
+      - description: Enabled is a flag to enable TLS.
+        displayName: Enabled
+        path: storage.s3.tls.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: Volume is a Kubernetes volume specification.
         displayName: Volume
         path: storage.volume
@@ -563,9 +594,41 @@ spec:
       - description: BootstrapFrom defines a source to bootstrap from.
         displayName: Bootstrap From
         path: bootstrapFrom
-      - description: BackupRef is a reference to a Backup object.
+      - description: BackupRef is a reference to a Backup object. It has priority
+          over S3 and Volume.
         displayName: Backup Ref
         path: bootstrapFrom.backupRef
+      - description: S3 defines the configuration to restore backups from a S3 compatible
+          storage. It has priority over Volume.
+        displayName: S3
+        path: bootstrapFrom.s3
+      - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing
+          the S3 access key id.
+        displayName: Access Key Id Secret Key Ref
+        path: bootstrapFrom.s3.accessKeyIdSecretKeyRef
+      - description: Bucket is the name Name of the bucket to store backups.
+        displayName: Bucket
+        path: bootstrapFrom.s3.bucket
+      - description: Endpoint is the S3 API endpoint without scheme.
+        displayName: Endpoint
+        path: bootstrapFrom.s3.endpoint
+      - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing
+          the S3 secret key.
+        displayName: Secret Access Key Secret Key Ref
+        path: bootstrapFrom.s3.secretAccessKeySecretKeyRef
+      - description: TLS provides the configuration required to establish TLS connections
+          with S3.
+        displayName: TLS
+        path: bootstrapFrom.s3.tls
+      - description: CASecretKeyRef is a reference to a Secret key containing a CA
+          bundle in PEM format used to establish TLS connections with S3.
+        displayName: CASecret Key Ref
+        path: bootstrapFrom.s3.tls.caSecretKeyRef
+      - description: Enabled is a flag to enable TLS.
+        displayName: Enabled
+        path: bootstrapFrom.s3.tls.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
           time that defines the point in time recovery objective. It is used to determine
           the closest restoration source in time.
@@ -1398,7 +1461,8 @@ spec:
         path: backoffLimit
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
-      - description: BackupRef is a reference to a Backup object.
+      - description: BackupRef is a reference to a Backup object. It has priority
+          over S3 and Volume.
         displayName: Backup Ref
         path: backupRef
       - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
@@ -1422,6 +1486,37 @@ spec:
       - description: RestartPolicy to be added to the Backup Job.
         displayName: Restart Policy
         path: restartPolicy
+      - description: S3 defines the configuration to restore backups from a S3 compatible
+          storage. It has priority over Volume.
+        displayName: S3
+        path: s3
+      - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing
+          the S3 access key id.
+        displayName: Access Key Id Secret Key Ref
+        path: s3.accessKeyIdSecretKeyRef
+      - description: Bucket is the name Name of the bucket to store backups.
+        displayName: Bucket
+        path: s3.bucket
+      - description: Endpoint is the S3 API endpoint without scheme.
+        displayName: Endpoint
+        path: s3.endpoint
+      - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing
+          the S3 secret key.
+        displayName: Secret Access Key Secret Key Ref
+        path: s3.secretAccessKeySecretKeyRef
+      - description: TLS provides the configuration required to establish TLS connections
+          with S3.
+        displayName: TLS
+        path: s3.tls
+      - description: CASecretKeyRef is a reference to a Secret key containing a CA
+          bundle in PEM format used to establish TLS connections with S3.
+        displayName: CASecret Key Ref
+        path: s3.tls.caSecretKeyRef
+      - description: Enabled is a flag to enable TLS.
+        displayName: Enabled
+        path: s3.tls.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
           time that defines the point in time recovery objective. It is used to determine
           the closest restoration source in time.
