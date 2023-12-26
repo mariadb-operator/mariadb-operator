@@ -16,10 +16,10 @@ import (
 
 var _ = Describe("Restore controller", func() {
 	Context("When creating a restore", func() {
-		It("Should reconcile", func() {
+		It("Should reconcile a Job with PVC storage", func() {
 			By("Creating Backup")
 			backupKey := types.NamespacedName{
-				Name:      "restore-mariadb-test",
+				Name:      "restore-pvc-test",
 				Namespace: testNamespace,
 			}
 			backup := mariadbv1alpha1.Backup{
