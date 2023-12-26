@@ -103,12 +103,10 @@ data-test   True    Created   utf8      utf8_general_ci   22s
 
 kubectl get users
 NAME              READY   STATUS    MAXCONNS   AGE
-mariadb-metrics   True    Created   3          19m
 user              True    Created   20         29s
 
 kubectl get grants
 NAME              READY   STATUS    DATABASE   TABLE   USERNAME          GRANTOPT   AGE
-mariadb-metrics   True    Created   *          *       mariadb-metrics   false      19m
 user              True    Created   *          *       user              true       36s
 ```
 At this point, we can run our database initialization scripts:
@@ -135,21 +133,16 @@ NAME       SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
 
 Now that the database has been initialized, let's take a backup:
 ```bash
-kubectl apply -f examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml
-```
-After one minute, the backup should have completed:
+kubectl apply -f examples/manifests/mariadb_v1alpha1_backup.yaml
+``` 
 ```bash
 kubectl get backups
 NAME               COMPLETE   STATUS    MARIADB   AGE
-backup-scheduled   True       Success   mariadb   15m
-
-kubectl get cronjobs
-NAME               SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
-backup-scheduled   */1 * * * *   False     0        56s             15m
+backup             True       Success   mariadb   15m
 
 kubectl get jobs
-NAME                                    COMPLETIONS   DURATION   AGE
-backup-scheduled-27782894               1/1           4s         3m2s
+NAME               COMPLETIONS   DURATION   AGE
+backup-27782894    1/1           4s         3m2s
 ```
 Last but not least, let's provision a second `MariaDB` instance bootstrapping from the previous backup:
 ```bash

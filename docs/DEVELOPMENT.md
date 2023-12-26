@@ -67,9 +67,19 @@ To decomission the cluster:
 make cluster-delete
 ```
 
+## Dependencies
+
+You might need the following third party dependencies to test certain features of `mariadb-operator`, to install them run:
+
+```bash
+make install-prometheus
+make install-cert-manager
+make install-minio
+```
+
 ## Network
 
-Once you have your [cluster](#cluster) up and running, you can configure the network connectivity so the operator is able to resolve DNS and address MariaDB as if it was running in-cluster:
+You can configure the network connectivity so the operator is able to resolve DNS and address MariaDB as if it was running in-cluster:
 ```bash
 make net
 ```
@@ -131,6 +141,7 @@ make run
 ```bash
 make cluster
 make install
+make install-minio
 make net
 make test
 ```
