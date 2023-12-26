@@ -29,3 +29,8 @@ buckets:
     purge: false
     versioning: false
     objectlocking: false
+  - name: test-backup
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false

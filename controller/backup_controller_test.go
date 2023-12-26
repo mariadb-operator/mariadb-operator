@@ -14,10 +14,10 @@ import (
 
 var _ = Describe("Backup controller", func() {
 	Context("When creating a Backup", func() {
-		It("Should reconcile a Job", func() {
+		It("Should reconcile a Job with PVC storage", func() {
 			By("Creating Backup")
 			backupKey := types.NamespacedName{
-				Name:      "backup-test",
+				Name:      "backup-test-pvc",
 				Namespace: testNamespace,
 			}
 			backup := mariadbv1alpha1.Backup{
@@ -69,7 +69,7 @@ var _ = Describe("Backup controller", func() {
 					"Name": Equal("mariadb-operator"),
 				})))
 
-			By("Expecting Backup to be complete eventually")
+			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
 					return false
@@ -81,10 +81,10 @@ var _ = Describe("Backup controller", func() {
 			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
 		})
 
-		It("Should reconcile a CronJob", func() {
+		It("Should reconcile a CronJob with PVC storage", func() {
 			By("Creating a scheduled Backup")
 			backupKey := types.NamespacedName{
-				Name:      "backup-test-scheduled",
+				Name:      "backup-test-pvc-scheduled",
 				Namespace: testNamespace,
 			}
 			backup := mariadbv1alpha1.Backup{
@@ -125,6 +125,82 @@ var _ = Describe("Backup controller", func() {
 					return false
 				}
 				return true
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Deleting Backup")
+			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+		})
+
+		It("Should reconcile a Job with S3 storage", func() {
+			By("Creating Backup with S3 storage")
+			backupKey := types.NamespacedName{
+				Name:      "backup-test-s3",
+				Namespace: testNamespace,
+			}
+			backup := mariadbv1alpha1.Backup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      backupKey.Name,
+					Namespace: backupKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.BackupSpec{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: testMariaDbName,
+						},
+						WaitForIt: true,
+					},
+					Storage: mariadbv1alpha1.BackupStorage{
+						S3: testS3WithBucket("test-backup"),
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
+
+			By("Expecting Backup to complete eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
+					return false
+				}
+				return backup.IsComplete()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Deleting Backup")
+			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+		})
+
+		It("Should reconcile a Job with Volume storage", func() {
+			By("Creating Backup with Volume storage")
+			backupKey := types.NamespacedName{
+				Name:      "backup-test-volume",
+				Namespace: testNamespace,
+			}
+			backup := mariadbv1alpha1.Backup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      backupKey.Name,
+					Namespace: backupKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.BackupSpec{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: testMariaDbName,
+						},
+						WaitForIt: true,
+					},
+					Storage: mariadbv1alpha1.BackupStorage{
+						Volume: &corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
+
+			By("Expecting Backup to complete eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
+					return false
+				}
+				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting Backup")
