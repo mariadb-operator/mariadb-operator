@@ -14,6 +14,10 @@ import (
 
 var _ = Describe("Restore webhook", func() {
 	Context("When creating a Restore", func() {
+		objMeta := metav1.ObjectMeta{
+			Name:      "restore-create-webhook",
+			Namespace: testNamespace,
+		}
 		DescribeTable(
 			"Should validate",
 			func(restore *Restore, wantErr bool) {
@@ -26,32 +30,9 @@ var _ = Describe("Restore webhook", func() {
 				}
 			},
 			Entry(
-				"Invalid source 1",
+				"No source",
 				&Restore{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "restore-invalid-source-1",
-						Namespace: testNamespace,
-					},
-					Spec: RestoreSpec{
-						RestoreSource: RestoreSource{},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
-								Name: "mariadb-webhook",
-							},
-							WaitForIt: true,
-						},
-						BackoffLimit: 10,
-					},
-				},
-				true,
-			),
-			Entry(
-				"Invalid source 2",
-				&Restore{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "restore-invalid-source-2",
-						Namespace: testNamespace,
-					},
+					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
 						RestoreSource: RestoreSource{
 							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
@@ -68,12 +49,9 @@ var _ = Describe("Restore webhook", func() {
 				true,
 			),
 			Entry(
-				"Valid source 1",
+				"BackupRef source",
 				&Restore{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "restore-webhook-1",
-						Namespace: testNamespace,
-					},
+					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
 						RestoreSource: RestoreSource{
 							BackupRef: &corev1.LocalObjectReference{
@@ -92,12 +70,31 @@ var _ = Describe("Restore webhook", func() {
 				false,
 			),
 			Entry(
-				"Valid source 2",
+				"S3 source",
 				&Restore{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "restore-webhook-2",
-						Namespace: testNamespace,
+					ObjectMeta: objMeta,
+					Spec: RestoreSpec{
+						RestoreSource: RestoreSource{
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
 					},
+				},
+				false,
+			),
+			Entry(
+				"Volume source",
+				&Restore{
+					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
 						RestoreSource: RestoreSource{
 							Volume: &corev1.VolumeSource{
@@ -118,18 +115,45 @@ var _ = Describe("Restore webhook", func() {
 				false,
 			),
 			Entry(
-				"Valid source 3",
+				"S3 and Volume source",
 				&Restore{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "restore-webhook-3",
-						Namespace: testNamespace,
-					},
+					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
 						RestoreSource: RestoreSource{
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
 							Volume: &corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: "pvc-webhook",
-								},
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				false,
+			),
+			Entry(
+				"BackupRef, S3 and Volume source",
+				&Restore{
+					ObjectMeta: objMeta,
+					Spec: RestoreSpec{
+						RestoreSource: RestoreSource{
+							BackupRef: &corev1.LocalObjectReference{
+								Name: "backup-webhook",
+							},
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+							Volume: &corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 						MariaDBRef: MariaDBRef{
@@ -148,7 +172,7 @@ var _ = Describe("Restore webhook", func() {
 
 	Context("When updating a Restore", Ordered, func() {
 		key := types.NamespacedName{
-			Name:      "restore-mariadb-webhook",
+			Name:      "restore-update-webhook",
 			Namespace: testNamespace,
 		}
 		BeforeAll(func() {
@@ -237,13 +261,20 @@ var _ = Describe("Restore webhook", func() {
 				true,
 			),
 			Entry(
+				"Init S3 source",
+				func(rmdb *Restore) {
+					rmdb.Spec.RestoreSource.S3 = &S3{
+						Bucket:   "test",
+						Endpoint: "test",
+					}
+				},
+				false,
+			),
+			Entry(
 				"Init Volume source",
 				func(rmdb *Restore) {
 					rmdb.Spec.RestoreSource.Volume = &corev1.VolumeSource{
-						NFS: &corev1.NFSVolumeSource{
-							Server: "nas.local",
-							Path:   "/volume/foo",
-						},
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					}
 				},
 				false,

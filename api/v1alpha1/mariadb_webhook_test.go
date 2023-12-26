@@ -32,7 +32,7 @@ var _ = Describe("MariaDB webhook", func() {
 				}
 			},
 			Entry(
-				"No source",
+				"No BootstrapFrom",
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
@@ -42,7 +42,7 @@ var _ = Describe("MariaDB webhook", func() {
 				false,
 			),
 			Entry(
-				"Valid source",
+				"Valid BootstrapFrom",
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
@@ -56,7 +56,7 @@ var _ = Describe("MariaDB webhook", func() {
 				false,
 			),
 			Entry(
-				"Invalid source",
+				"Invalid BootstrapFrom",
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
@@ -613,7 +613,7 @@ var _ = Describe("MariaDB webhook", func() {
 				false,
 			),
 			Entry(
-				"Updating BootstrapFromBackup",
+				"Updating BootstrapFrom",
 				func(mdb *MariaDB) {
 					mdb.Spec.BootstrapFrom = nil
 				},
