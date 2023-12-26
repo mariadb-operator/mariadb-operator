@@ -12,41 +12,63 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+func testBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.BackupStorage) *mariadbv1alpha1.Backup {
+	return &mariadbv1alpha1.Backup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.BackupSpec{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: corev1.ObjectReference{
+					Name: testMariaDbName,
+				},
+				WaitForIt: true,
+			},
+			Storage: storage,
+		},
+	}
+}
+
+func testBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
+	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
+		PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"storage": resource.MustParse("100Mi"),
+				},
+			},
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+		},
+	})
+}
+
+func testBackupWithS3Storage(key types.NamespacedName, bucket string) *mariadbv1alpha1.Backup {
+	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
+		S3: testS3WithBucket(bucket),
+	})
+}
+
+func testBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
+	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
+		Volume: &corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	})
+}
+
 var _ = Describe("Backup controller", func() {
 	Context("When creating a Backup", func() {
 		It("Should reconcile a Job with PVC storage", func() {
 			By("Creating Backup")
 			backupKey := types.NamespacedName{
-				Name:      "backup-test-pvc",
+				Name:      "backup-pvc-test",
 				Namespace: testNamespace,
 			}
-			backup := mariadbv1alpha1.Backup{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      backupKey.Name,
-					Namespace: backupKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.BackupSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbName,
-						},
-						WaitForIt: true,
-					},
-					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
+			backup := testBackupWithPVCStorage(backupKey)
+			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 
 			var job batchv1.Job
 			By("Expecting to create a Job eventually")
@@ -71,52 +93,24 @@ var _ = Describe("Backup controller", func() {
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
+				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
 					return false
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 		})
 
 		It("Should reconcile a CronJob with PVC storage", func() {
 			By("Creating a scheduled Backup")
 			backupKey := types.NamespacedName{
-				Name:      "backup-test-pvc-scheduled",
+				Name:      "backup-pvc-scheduled-test",
 				Namespace: testNamespace,
 			}
-			backup := mariadbv1alpha1.Backup{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      backupKey.Name,
-					Namespace: backupKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.BackupSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbName,
-						},
-						WaitForIt: true,
-					},
-					Schedule: &mariadbv1alpha1.Schedule{
-						Cron: "*/1 * * * *",
-					},
-					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
+			backup := testBackupWithPVCStorage(backupKey)
+			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 
 			By("Expecting to create a CronJob eventually")
 			Eventually(func() bool {
@@ -128,83 +122,49 @@ var _ = Describe("Backup controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 		})
 
 		It("Should reconcile a Job with S3 storage", func() {
 			By("Creating Backup with S3 storage")
 			backupKey := types.NamespacedName{
-				Name:      "backup-test-s3",
+				Name:      "backup-s3-test",
 				Namespace: testNamespace,
 			}
-			backup := mariadbv1alpha1.Backup{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      backupKey.Name,
-					Namespace: backupKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.BackupSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbName,
-						},
-						WaitForIt: true,
-					},
-					Storage: mariadbv1alpha1.BackupStorage{
-						S3: testS3WithBucket("test-backup"),
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
+			backup := testBackupWithS3Storage(backupKey, "test-backup")
+			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
+				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
 					return false
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 		})
 
 		It("Should reconcile a Job with Volume storage", func() {
 			By("Creating Backup with Volume storage")
 			backupKey := types.NamespacedName{
-				Name:      "backup-test-volume",
+				Name:      "backup-volume-test",
 				Namespace: testNamespace,
 			}
-			backup := mariadbv1alpha1.Backup{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      backupKey.Name,
-					Namespace: backupKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.BackupSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbName,
-						},
-						WaitForIt: true,
-					},
-					Storage: mariadbv1alpha1.BackupStorage{
-						Volume: &corev1.VolumeSource{
-							EmptyDir: &corev1.EmptyDirVolumeSource{},
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
+			backup := testBackupWithVolumeStorage(backupKey)
+			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
+				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
 					return false
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 		})
 	})
 })
