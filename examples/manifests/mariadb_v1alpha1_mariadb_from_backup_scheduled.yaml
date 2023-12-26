@@ -1,0 +1,16 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-from-backup
+spec:
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
+  bootstrapFrom:
+    backupRef:
+      name: backup-scheduled
+    targetRecoveryTime: 2023-12-19T09:00:00Z

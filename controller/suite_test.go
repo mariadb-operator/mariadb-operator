@@ -39,11 +39,13 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var k8sClient client.Client
-var testEnv *envtest.Environment
-var testCtx context.Context
-var testCancel context.CancelFunc
-var testCidrPrefix string
+var (
+	k8sClient      client.Client
+	testEnv        *envtest.Environment
+	testCtx        context.Context
+	testCancel     context.CancelFunc
+	testCidrPrefix string
+)
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)

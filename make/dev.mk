@@ -4,24 +4,6 @@ export MARIADB_OPERATOR_NAME ?= mariadb-operator
 export MARIADB_OPERATOR_NAMESPACE ?= default
 export MARIADB_OPERATOR_SA_PATH ?= /tmp/mariadb-operator/token
 
-CA_DIR=/tmp/k8s-webhook-server/certificate-authority
-CERT_DIR=/tmp/k8s-webhook-server/serving-certs
-CA_CONFIG=./hack/config/openssl_ca.conf
-CERT_CONFIG=./hack/config/openssl_cert.conf
-
-.PHONY: ca
-ca: ## Generates CA private key and certificate for local development.
-	@mkdir -p $(CA_DIR)
-	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
-		-config $(CA_CONFIG) -out $(CA_DIR)/tls.crt -keyout $(CA_DIR)/tls.key
-
-.PHONY: cert
-cert: ca ## Generates webhook private key and certificate for local development.
-	@mkdir -p $(CERT_DIR)
-	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
-		-config $(CERT_CONFIG) -out $(CERT_DIR)/tls.crt -keyout $(CERT_DIR)/tls.key \
-		-CA $(CA_DIR)/tls.crt -CAkey $(CA_DIR)/tls.key
-
 .PHONY: lint
 lint: golangci-lint ## Lint.
 	$(GOLANGCI_LINT) run
@@ -69,14 +51,17 @@ CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 
 cert-controller: lint ## Run a cert-controller from your host.
 	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
-BACKUP_FLAGS ?= --path=backup --max-retention=1h --target-file-path=backup/0-backup-target.txt \
+BACKUP_ENV ?= S3_ACCESS_KEY_ID=mariadb-operator S3_SECRET_ACCESS_KEY=Minio11!
+BACKUP_COMMON_FLAGS ?= --path=backup --target-file-path=backup/0-backup-target.txt \
+	--s3 --s3-bucket=backups --s3-endpoint=minio:9000 --s3-tls --s3-ca-cert-path=/tmp/certificate-authority/tls.crt \
 	--log-dev --log-level=debug --log-time-encoder=iso8601 
+
+BACKUP_FLAGS ?= --max-retention=8h $(BACKUP_COMMON_FLAGS)
 .PHONY: backup
 backup: lint ## Run backup from your host.
-	go run cmd/controller/*.go backup $(BACKUP_FLAGS)
+	$(BACKUP_ENV) go run cmd/controller/*.go backup $(BACKUP_FLAGS)
 
-RESTORE_FLAGS ?= --path=backup --target-time=1970-01-01T00:00:00Z --target-file-path=backup/0-backup-target.txt \
-	--log-dev --log-level=debug --log-time-encoder=iso8601 
-.PHONY: backup-restore
-backup-restore: lint ## Run restore from your host.
-	go run cmd/controller/*.go backup restore $(RESTORE_FLAGS)
+RESTORE_FLAGS ?= --target-time=1970-01-01T00:00:00Z $(BACKUP_COMMON_FLAGS)
+.PHONY: restore
+restore: lint ## Run restore from your host.
+	$(BACKUP_ENV) go run cmd/controller/*.go backup restore $(RESTORE_FLAGS)

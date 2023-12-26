@@ -44,7 +44,7 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if err := r.setSpecDefaults(ctx, &backup); err != nil {
+	if err := r.setDefaults(ctx, &backup); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error defaulting Backup: %v", err)
 	}
 
@@ -87,7 +87,7 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *BackupReconciler) setSpecDefaults(ctx context.Context, backup *mariadbv1alpha1.Backup) error {
+func (r *BackupReconciler) setDefaults(ctx context.Context, backup *mariadbv1alpha1.Backup) error {
 	return r.patch(ctx, backup, func(b *mariadbv1alpha1.Backup) {
 		backup.SetDefaults()
 	})

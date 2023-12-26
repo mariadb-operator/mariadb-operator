@@ -165,7 +165,7 @@ var _ = Describe("SqlJob controller", func() {
 				Expect(k8sClient.Create(testCtx, &sqlJob)).To(Succeed())
 			}
 
-			By("Expecting SqlJobs to be complete eventually")
+			By("Expecting SqlJobs to complete eventually")
 			for _, j := range sqlJobs {
 				Eventually(func() bool {
 					var sqlJob mariadbv1alpha1.SqlJob

@@ -42,3 +42,4 @@ include make/deps.mk
 include make/dev.mk
 include make/net.mk
 include make/olm.mk
+include make/pki.mk

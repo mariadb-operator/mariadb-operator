@@ -6,13 +6,5 @@ spec:
   mariaDbRef:
     name: mariadb
   backupRef:
-    name: backup-scheduled
+    name: backup
   targetRecoveryTime: 2023-12-19T09:00:00Z
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 512Mi
-

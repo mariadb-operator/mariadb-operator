@@ -21,22 +21,26 @@
 # 🦭 mariadb-operator
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-- [Provisioning](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers.
-- Multiple [HA modes](./docs/HA.md) supported: [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml) and [Galera](./docs/GALERA.md). Automatic primary failover.
-- [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
-- [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_point_in_time_recovery.yaml) (PITR)
-- [PVCs](./examples/manifests/mariadb_v1alpha1_backup.yaml) and all Kubernetes-compatible [volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)) supported as backup storage
-- Bootstrap new instances from [backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes (i.e [NFS](./examples/manifests/mariadb_v1alpha1_mariadb_from_nfs.yaml))
-- [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) as a multi-target Deployment
-- Manage [users](./examples/manifests/mariadb_v1alpha1_user.yaml), [grants](./examples/manifests/mariadb_v1alpha1_grant.yaml) and logical [databases](./examples/manifests/mariadb_v1alpha1_database.yaml)
-- Configure [connections](./examples/manifests/mariadb_v1alpha1_connection.yaml) for your applications
-- Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs)
-- Validation webhooks to provide CRD inmutability
-- Additional printer columns to report the current CRD status
-- CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
-- [GitOps](#gitops) friendly
-- Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator)
-- Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator) 
+- [Easily provision](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) MariaDB servers in Kubernetes.
+- [Highly configurable](./examples/manifests/mariadb_v1alpha1_mariadb_full.yaml) MariaDB servers.
+- Multiple [HA modes](./docs/HA.md): [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml) and [Galera](./docs/GALERA.md).
+- Automatic [primary failover](./docs/HA.md).
+- [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. 
+- [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. 
+- Multiple backup storage types: [S3](./examples/manifests/mariadb_v1alpha1_backup.yaml) compatible, [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)).
+- [Backup retention policy](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml).
+- [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_point_in_time_recovery.yaml) (PITR).
+- Bootstrap new instances from: [Backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml), [S3](./examples/manifests/mariadb_v1alpha1_mariadb_from_s3.yaml), [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) ...
+- [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) as a multi-target Deployment.
+- Manage [users](./examples/manifests/mariadb_v1alpha1_user.yaml), [grants](./examples/manifests/mariadb_v1alpha1_grant.yaml) and logical [databases](./examples/manifests/mariadb_v1alpha1_database.yaml).
+- Configure [connections](./examples/manifests/mariadb_v1alpha1_connection.yaml) for your applications.
+- Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
+- Validation webhooks to provide CRD inmutability.
+- Additional printer columns to report the current CRD status.
+- CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
+- [GitOps](#gitops) friendly.
+- Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
+- Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator) .
 
 ## Bare minimum installation
 
@@ -99,12 +103,10 @@ data-test   True    Created   utf8      utf8_general_ci   22s
 
 kubectl get users
 NAME              READY   STATUS    MAXCONNS   AGE
-mariadb-metrics   True    Created   3          19m
 user              True    Created   20         29s
 
 kubectl get grants
 NAME              READY   STATUS    DATABASE   TABLE   USERNAME          GRANTOPT   AGE
-mariadb-metrics   True    Created   *          *       mariadb-metrics   false      19m
 user              True    Created   *          *       user              true       36s
 ```
 At this point, we can run our database initialization scripts:
@@ -131,21 +133,16 @@ NAME       SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
 
 Now that the database has been initialized, let's take a backup:
 ```bash
-kubectl apply -f examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml
-```
-After one minute, the backup should have completed:
+kubectl apply -f examples/manifests/mariadb_v1alpha1_backup.yaml
+``` 
 ```bash
 kubectl get backups
 NAME               COMPLETE   STATUS    MARIADB   AGE
-backup-scheduled   True       Success   mariadb   15m
-
-kubectl get cronjobs
-NAME               SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
-backup-scheduled   */1 * * * *   False     0        56s             15m
+backup             True       Success   mariadb   15m
 
 kubectl get jobs
-NAME                                    COMPLETIONS   DURATION   AGE
-backup-scheduled-27782894               1/1           4s         3m2s
+NAME               COMPLETIONS   DURATION   AGE
+backup-27782894    1/1           4s         3m2s
 ```
 Last but not least, let's provision a second `MariaDB` instance bootstrapping from the previous backup:
 ```bash

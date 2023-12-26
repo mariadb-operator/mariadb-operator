@@ -19,25 +19,25 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
-const (
+var (
 	testVeryHighTimeout = 5 * time.Minute
 	testHighTimeout     = 3 * time.Minute
 	testTimeout         = 1 * time.Minute
 	testInterval        = 1 * time.Second
-)
 
-var (
-	testNamespace   = "default"
-	testMariaDbName = "mariadb-test"
-
+	testNamespace      = "default"
+	testMariaDbName    = "mariadb-test"
+	testMariaDbKey     types.NamespacedName
+	testMariaDb        mariadbv1alpha1.MariaDB
+	testPwdKey         types.NamespacedName
+	testPwd            v1.Secret
 	testUser           = "test"
 	testPwdSecretKey   = "passsword"
 	testPwdSecretName  = "password-test"
 	testDatabase       = "test"
 	testConnSecretName = "test-conn"
 	testConnSecretKey  = "dsn"
-
-	testCASecretKey = types.NamespacedName{
+	testCASecretKey    = types.NamespacedName{
 		Name:      "test-ca",
 		Namespace: testNamespace,
 	}
@@ -50,11 +50,6 @@ var (
 		Namespace: testNamespace,
 	}
 )
-
-var testMariaDbKey types.NamespacedName
-var testMariaDb mariadbv1alpha1.MariaDB
-var testPwdKey types.NamespacedName
-var testPwd v1.Secret
 
 func createTestData(ctx context.Context, k8sClient client.Client, env environment.Environment) {
 	var testCidrPrefix, err = docker.GetKindCidrPrefix()
@@ -193,4 +188,79 @@ func deleteTestData(ctx context.Context, k8sClient client.Client) {
 	var pvc corev1.PersistentVolumeClaim
 	Expect(k8sClient.Get(ctx, builder.PVCKey(&testMariaDb), &pvc)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
+}
+
+func testS3WithBucket(bucket string) *mariadbv1alpha1.S3 {
+	return &mariadbv1alpha1.S3{
+		Bucket:   bucket,
+		Endpoint: "minio.minio.svc.cluster.local:9000",
+		AccessKeyIdSecretKeyRef: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: "minio",
+			},
+			Key: "access-key-id",
+		},
+		SecretAccessKeySecretKeyRef: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: "minio",
+			},
+			Key: "secret-access-key",
+		},
+		TLS: &mariadbv1alpha1.TLS{
+			Enabled: true,
+			CASecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "minio-ca",
+				},
+				Key: "ca.crt",
+			},
+		},
+	}
+}
+
+func testBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.BackupStorage) *mariadbv1alpha1.Backup {
+	return &mariadbv1alpha1.Backup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.BackupSpec{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: corev1.ObjectReference{
+					Name: testMariaDbName,
+				},
+				WaitForIt: true,
+			},
+			Storage: storage,
+		},
+	}
+}
+
+func testBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
+	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
+		PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"storage": resource.MustParse("100Mi"),
+				},
+			},
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+		},
+	})
+}
+
+func testBackupWithS3Storage(key types.NamespacedName, bucket string) *mariadbv1alpha1.Backup {
+	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
+		S3: testS3WithBucket(bucket),
+	})
+}
+
+func testBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
+	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
+		Volume: &corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	})
 }

@@ -16,6 +16,11 @@ type BackupOpts struct {
 	TargetFilePath       string
 	MaxRetentionDuration time.Duration
 	TargetTime           time.Time
+	S3                   bool
+	S3Bucket             string
+	S3Endpoint           string
+	S3TLS                bool
+	S3CACertPath         string
 	LogLevel             string
 	DumpOpts             []string
 }
@@ -38,6 +43,21 @@ func WithBackupMaxRetention(d time.Duration) BackupOpt {
 func WithBackupTargetTime(t time.Time) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.TargetTime = t
+	}
+}
+
+func WithS3(bucket, endpoint string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.S3 = true
+		bo.S3Bucket = bucket
+		bo.S3Endpoint = endpoint
+	}
+}
+
+func WithS3TLS(caCertPath string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.S3TLS = true
+		bo.S3CACertPath = caCertPath
 	}
 }
 
@@ -135,14 +155,14 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 		"echo 💾 Exporting env",
 		fmt.Sprintf(
 			"export BACKUP_FILE=%s",
-			b.newBackupFilePath(),
+			b.newBackupFile(),
 		),
 		fmt.Sprintf(
 			"echo 💾 Writing target file: %s",
 			b.TargetFilePath,
 		),
 		fmt.Sprintf(
-			"echo \"${BACKUP_FILE}\" > %s",
+			"printf \"${BACKUP_FILE}\" > %s",
 			b.TargetFilePath,
 		),
 		"echo 💾 Setting target file permissions",
@@ -152,13 +172,13 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 		),
 		fmt.Sprintf(
 			"echo 💾 Taking backup: %s",
-			b.evalTargetFilePath(),
+			b.getTargetFilePath(),
 		),
 		fmt.Sprintf(
 			"mariadb-dump %s %s > %s",
 			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
 			dumpOpts,
-			b.evalTargetFilePath(),
+			b.getTargetFilePath(),
 		),
 	}
 	return NewBashCommand(cmds)
@@ -176,6 +196,7 @@ func (b *BackupCommand) MariadbOperatorBackup() *Command {
 		"--log-level",
 		b.LogLevel,
 	}
+	args = append(args, b.s3Args()...)
 	return NewCommand(nil, args)
 }
 
@@ -192,6 +213,7 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 		"--log-level",
 		b.LogLevel,
 	}
+	args = append(args, b.s3Args()...)
 	return NewCommand(nil, args)
 }
 
@@ -200,25 +222,50 @@ func (b *BackupCommand) MariadbRestore(mariadb *mariadbv1alpha1.MariaDB) *Comman
 		"set -euo pipefail",
 		fmt.Sprintf(
 			"echo 💾 Restoring backup: %s",
-			b.evalTargetFilePath(),
+			b.getTargetFilePath(),
 		),
 		fmt.Sprintf(
 			"mariadb %s < %s",
 			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
-			b.evalTargetFilePath(),
+			b.getTargetFilePath(),
 		),
 	}
 	return NewBashCommand(cmds)
 }
 
-func (b *BackupCommand) newBackupFilePath() string {
+func (b *BackupCommand) newBackupFile() string {
 	return fmt.Sprintf(
-		"%s/backup.$(date -u +'%s').sql",
-		b.Path,
+		"backup.$(date -u +'%s').sql",
 		"%Y-%m-%dT%H:%M:%SZ",
 	)
 }
 
-func (b *BackupCommand) evalTargetFilePath() string {
-	return fmt.Sprintf("$(cat '%s')", b.TargetFilePath)
+func (b *BackupCommand) getTargetFilePath() string {
+	return fmt.Sprintf("%s/$(cat '%s')", b.Path, b.TargetFilePath)
+}
+
+func (b *BackupCommand) s3Args() []string {
+	if !b.S3 {
+		return nil
+	}
+	args := []string{
+		"--s3",
+		"--s3-bucket",
+		b.S3Bucket,
+		"--s3-endpoint",
+		b.S3Endpoint,
+	}
+	if b.S3TLS {
+		args = append(args,
+			"--s3-tls",
+		)
+		if b.S3CACertPath != "" {
+			args = append(args,
+				"--s3-tls",
+				"--s3-ca-cert-path",
+				b.S3CACertPath,
+			)
+		}
+	}
+	return args
 }

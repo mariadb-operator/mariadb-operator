@@ -158,7 +158,7 @@ var _ = Describe("MariaDB controller", func() {
 				return true
 			})
 		})
-		It("Should bootstrap from backup", func() {
+		It("Should bootstrap from Backup", func() {
 			By("Creating Backup")
 			backupKey := types.NamespacedName{
 				Name:      "backup-mariadb-test",
@@ -177,22 +177,13 @@ var _ = Describe("MariaDB controller", func() {
 						WaitForIt: true,
 					},
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
+						S3: testS3WithBucket("test-mariadb"),
 					},
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
 
-			By("Expecting Backup to be complete eventually")
+			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
 					return false
