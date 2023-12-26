@@ -5,6 +5,8 @@ const (
 	ReasonReplicationConfiguring = "ReplicationConfiguring"
 	// ReasonReplicationConfigured indicates that replication has been configured.
 	ReasonReplicationConfigured = "ReplicationConfigured"
+	// ReasonReplicationPrimaryLock indicates that primary tables have a read lock.
+	ReasonReplicationPrimaryLock = "PrimaryLock"
 	// ReasonReplicationPrimaryReadonly indicates that primary is being changed to readonly mode.
 	ReasonReplicationPrimaryReadonly = "PrimaryReadonly"
 	// ReasonReplicationReplicaSync indicates that replicas are being synced with primary.
@@ -15,7 +17,7 @@ const (
 	ReasonReplicationPrimaryNew = "PrimaryNew"
 	// ReasonReplicationReplicaConn indicates that replicas are connecting to the new primary.
 	ReasonReplicationReplicaConn = "ReplicaConn"
-	// ReasonReplicationPrimaryToReplica indicates that current primary is becoming a replica.
+	// ReasonReplicationPrimaryToReplica indicates that current primary is being unlocked to become a replica.
 	ReasonReplicationPrimaryToReplica = "PrimaryToReplica"
 
 	// ReasonGaleraClusterHealthy indicates that the cluster is healthy,

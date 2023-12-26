@@ -33,9 +33,6 @@ const (
 
 	InitContainerName  = "init"
 	AgentContainerName = "agent"
-
-	MetricsContainerName = "metrics"
-	MetricsPortName      = "metrics"
 )
 
 func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
@@ -49,8 +46,7 @@ func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
 	}
 }
 
-func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
-	dsn *corev1.SecretKeySelector) (*appsv1.StatefulSet, error) {
+func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
@@ -60,7 +56,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
-	podTemplate, err := b.buildStsPodTemplate(mariadb, dsn, selectorLabels)
+	podTemplate, err := b.buildStsPodTemplate(mariadb, selectorLabels)
 	if err != nil {
 		return nil, fmt.Errorf("error building pod template: %v", err)
 	}
@@ -68,7 +64,7 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: objMeta,
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName:         buildStsServiceName(mariadb),
+			ServiceName:         mariadb.InternalServiceKey().Name,
 			Replicas:            &mariadb.Spec.Replicas,
 			PodManagementPolicy: buildStsPodManagementPolicy(mariadb),
 			UpdateStrategy:      buildStsUpdateStrategy(mariadb),
@@ -85,9 +81,8 @@ func (b *Builder) BuildStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.N
 	return sts, nil
 }
 
-func (b *Builder) buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector,
-	labels map[string]string) (*corev1.PodTemplateSpec, error) {
-	containers, err := b.buildStsContainers(mariadb, dsn)
+func (b *Builder) buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels map[string]string) (*corev1.PodTemplateSpec, error) {
+	containers, err := b.buildStsContainers(mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
@@ -114,13 +109,6 @@ func (b *Builder) buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, dsn *cor
 			Tolerations:                  mariadb.Spec.Tolerations,
 		},
 	}, nil
-}
-
-func buildStsServiceName(mariadb *mariadbv1alpha1.MariaDB) string {
-	if mariadb.IsHAEnabled() {
-		return mariadb.InternalServiceKey().Name
-	}
-	return mariadb.Name
 }
 
 func buildStsPodManagementPolicy(mariadb *mariadbv1alpha1.MariaDB) appsv1.PodManagementPolicyType {

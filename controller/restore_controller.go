@@ -99,7 +99,7 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *RestoreReconciler) initSource(ctx context.Context, restore *mariadbv1alpha1.Restore) error {
-	if restore.Spec.RestoreSource.IsInit() {
+	if restore.Spec.RestoreSource.IsDefaulted() {
 		return nil
 	}
 	if restore.Spec.RestoreSource.BackupRef == nil {
@@ -134,7 +134,7 @@ func (r *RestoreReconciler) initSource(ctx context.Context, restore *mariadbv1al
 	}
 
 	patcher := func(r *mariadbv1alpha1.Restore) {
-		r.Spec.RestoreSource.Init(backup)
+		r.Spec.RestoreSource.SetDefaults(backup)
 	}
 	if err := r.patch(ctx, restore, patcher); err != nil {
 		return fmt.Errorf("error patching restore: %v", err)

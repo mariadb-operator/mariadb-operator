@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *corev1.SecretKeySelector) ([]corev1.Container, error) {
+func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Container, error) {
 	mariadbContainer := buildContainer(mariadb.Spec.Image, mariadb.Spec.ImagePullPolicy, &mariadb.Spec.ContainerTemplate)
 	mariadbContainer.Name = MariaDbContainerName
 	mariadbContainer.Args = buildStsArgs(mariadb)
@@ -27,12 +27,6 @@ func (b *Builder) buildStsContainers(mariadb *mariadbv1alpha1.MariaDB, dsn *core
 
 	if mariadb.Galera().Enabled {
 		containers = append(containers, b.buildGaleraAgentContainer(mariadb))
-	}
-	if mariadb.AreMetricsEnabled() {
-		if dsn == nil {
-			return nil, fmt.Errorf("DSN secret is mandatory when MariaDB specifies metrics")
-		}
-		containers = append(containers, buildMetricsContainer(mariadb.Spec.Metrics, dsn))
 	}
 	if mariadb.Spec.SidecarContainers != nil {
 		for index, container := range mariadb.Spec.SidecarContainers {
@@ -326,24 +320,6 @@ func buildStsPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 		}...)
 	}
 	return ports
-}
-
-func buildMetricsContainer(metrics *mariadbv1alpha1.Metrics, dsn *corev1.SecretKeySelector) corev1.Container {
-	container := buildContainer(metrics.Exporter.Image, metrics.Exporter.ImagePullPolicy, &metrics.Exporter.ContainerTemplate)
-	container.Name = MetricsContainerName
-	container.Ports = []corev1.ContainerPort{
-		{
-			Name:          MetricsPortName,
-			ContainerPort: metrics.Exporter.Port,
-		},
-	}
-	container.Env = append(container.Env, corev1.EnvVar{
-		Name: "DATA_SOURCE_NAME",
-		ValueFrom: &corev1.EnvVarSource{
-			SecretKeyRef: dsn,
-		},
-	})
-	return container
 }
 
 func buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {

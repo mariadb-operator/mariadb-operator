@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
 	cron "github.com/robfig/cron/v3"
@@ -214,7 +215,11 @@ type ConnectionTemplate struct {
 
 // SQLTemplate defines a template to customize SQL objects.
 type SQLTemplate struct {
-	// RetryInterval is the interval used to perform health check retries.
+	// RequeueInterval is used to perform requeue reconcilizations.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
+	// RetryInterval is the interval used to perform retries.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
@@ -230,6 +235,11 @@ type RestoreSource struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Volume *corev1.VolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
+	// TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.
+	// It is used to determine the closest restoration source in time.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
 	// FileName is the file within the source to be restored.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -240,11 +250,11 @@ type RestoreSource struct {
 	Type *string `json:"type,omitempty" webhook:"inmutableinit"`
 }
 
-func (r *RestoreSource) IsInit() bool {
+func (r *RestoreSource) IsDefaulted() bool {
 	return r.Volume != nil
 }
 
-func (r *RestoreSource) Init(backup *Backup) {
+func (r *RestoreSource) SetDefaults(backup *Backup) {
 	if backup.Spec.Storage.Volume != nil {
 		r.Volume = backup.Spec.Storage.Volume
 	}
@@ -258,13 +268,17 @@ func (r *RestoreSource) Init(backup *Backup) {
 }
 
 func (r *RestoreSource) Validate() error {
-	if r.BackupRef != nil {
-		return nil
-	}
-	if r.Volume == nil {
+	if r.BackupRef == nil && r.Volume == nil {
 		return errors.New("unable to determine restore source")
 	}
 	return nil
+}
+
+func (r *RestoreSource) TargetRecoveryTimeOrDefault() time.Time {
+	if r.TargetRecoveryTime != nil {
+		return r.TargetRecoveryTime.Time
+	}
+	return time.Now()
 }
 
 // Schedule contains parameters to define a schedule

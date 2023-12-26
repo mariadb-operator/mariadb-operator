@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -23,15 +24,18 @@ type SqlReconciler struct {
 
 	WrappedReconciler WrappedReconciler
 	Finalizer         Finalizer
+	RequeueInterval   time.Duration
 }
 
-func NewSqlReconciler(client client.Client, cr *condition.Ready, wr WrappedReconciler, f Finalizer) Reconciler {
+func NewSqlReconciler(client client.Client, cr *condition.Ready, wr WrappedReconciler, f Finalizer,
+	requeueInterval time.Duration) Reconciler {
 	return &SqlReconciler{
 		Client:            client,
 		RefResolver:       refresolver.New(client),
 		ConditionReady:    cr,
 		WrappedReconciler: wr,
 		Finalizer:         f,
+		RequeueInterval:   requeueInterval,
 	}
 }
 
@@ -100,15 +104,27 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 	if err := errBundle.ErrorOrNil(); err != nil {
 		return ctrl.Result{}, err
 	}
-	return ctrl.Result{}, nil
+	return r.requeueResult(ctx, resource)
 }
 
 func (r *SqlReconciler) retryResult(ctx context.Context, resource Resource, err error) (ctrl.Result, error) {
 	if resource.RetryInterval() != nil {
-		log.FromContext(ctx).Error(err, "Error reconciling SQL resource")
+		log.FromContext(ctx).Error(err, "Error reconciling SQL resource", "resource", resource.GetName())
 		return ctrl.Result{RequeueAfter: resource.RetryInterval().Duration}, nil
 	}
 	return ctrl.Result{}, err
+}
+
+func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource) (ctrl.Result, error) {
+	if resource.RequeueInterval() != nil {
+		log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
+		return ctrl.Result{RequeueAfter: resource.RequeueInterval().Duration}, nil
+	}
+	if r.RequeueInterval > 0 {
+		log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+	}
+	return ctrl.Result{}, nil
 }
 
 func waitForMariaDB(ctx context.Context, client client.Client, resource Resource,

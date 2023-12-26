@@ -3,14 +3,29 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
-  replicas: 3
-     
-  galera:
-    enabled: true
-
   volumeClaimTemplate:
     resources:
       requests:
         storage: 1Gi
     accessModes:
       - ReadWriteOnce
+
+  replicas: 3
+     
+  galera:
+    enabled: true
+
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+
+  primaryService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+
+  secondaryService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.161

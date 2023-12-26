@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -45,14 +46,18 @@ type BackupSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Schedule *Schedule `json:"schedule,omitempty"`
-	// MaxRetentionDays defined the maximum age that Backups should have. Old backup will be cleaned up by the Backup Job.
+	// MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.
+	// It defaults to 30 days.
 	// +optional
-	// +kubebuilder:default=30
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	MaxRetentionDays int32 `json:"maxRetentionDays,omitempty" webhook:"inmutable"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MaxRetention metav1.Duration `json:"maxRetention,omitempty" webhook:"inmutable"`
+	// LogLevel to be used n the Backup Job. It defaults to 'info'.
+	// +optional
+	// +kubebuilder:default=info
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	LogLevel string `json:"logLevel,omitempty"`
 	// BackoffLimit defines the maximum number of attempts to successfully take a Backup.
 	// +optional
-	// +kubebuilder:default=5
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// RestartPolicy to be added to the Backup Pod.
@@ -128,6 +133,15 @@ func (b *Backup) Volume() (*corev1.VolumeSource, error) {
 		}, nil
 	}
 	return nil, errors.New("unable to get volume from Backup")
+}
+
+func (b *Backup) SetDefaults() {
+	if b.Spec.MaxRetention == (metav1.Duration{}) {
+		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
+	}
+	if b.Spec.BackoffLimit == 0 {
+		b.Spec.BackoffLimit = 5
+	}
 }
 
 // +kubebuilder:object:root=true

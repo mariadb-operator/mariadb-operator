@@ -11,12 +11,14 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/servicemonitor"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -110,6 +112,8 @@ var _ = BeforeSuite(func() {
 	endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
 	batchReconciler := batch.NewBatchReconciler(client, builder)
 	rbacReconciler := rbac.NewRBACReconiler(client, builder)
+	deployReconciler := deployment.NewDeploymentReconciler(client)
+	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 	replicationReconciler := replication.NewReplicationReconciler(
@@ -167,11 +171,13 @@ var _ = BeforeSuite(func() {
 		ConditionReady:  conditionReady,
 		DiscoveryClient: discoveryClient,
 
-		ConfigMapReconciler: configMapReconciler,
-		SecretReconciler:    secretReconciler,
-		ServiceReconciler:   serviceReconciler,
-		EndpointsReconciler: endpointsReconciler,
-		RBACReconciler:      rbacReconciler,
+		ConfigMapReconciler:      configMapReconciler,
+		SecretReconciler:         secretReconciler,
+		ServiceReconciler:        serviceReconciler,
+		EndpointsReconciler:      endpointsReconciler,
+		RBACReconciler:           rbacReconciler,
+		DeploymentReconciler:     deployReconciler,
+		ServiceMonitorReconciler: svcMonitorReconciler,
 
 		ReplicationReconciler: replicationReconciler,
 		GaleraReconciler:      galeraReconciler,
@@ -198,28 +204,13 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&UserReconciler{
-		Client:         client,
-		Scheme:         scheme,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-	}).SetupWithManager(k8sManager)
+	err = NewUserReconciler(client, refResolver, conditionReady, 5*time.Second).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&GrantReconciler{
-		Client:         client,
-		Scheme:         scheme,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-	}).SetupWithManager(k8sManager)
+	err = NewGrantReconciler(client, refResolver, conditionReady, 5*time.Second).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&DatabaseReconciler{
-		Client:         client,
-		Scheme:         scheme,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-	}).SetupWithManager(k8sManager)
+	err = NewDatabaseReconciler(client, refResolver, conditionReady, 5*time.Second).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ConnectionReconciler{

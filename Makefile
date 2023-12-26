@@ -12,12 +12,14 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-VERSION ?= 0.0.23
+VERSION ?= 0.0.24
 IMG ?= ghcr.io/mariadb-operator/mariadb-operator:v$(VERSION)
 IMG_ENT ?= mariadb/mariadb-operator-enterprise:v$(VERSION)
 RELATED_IMAGE_MARIADB ?= mariadb:11.2.2
 RELATED_IMAGE_MARIADB_ENT ?= us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6
 # RELATED_IMAGE_MARIADB_ENT ?= docker.mariadb.com/enterprise-server:10.6
+# TODO: certify image. UBI based and multi-arch.
+RELATED_IMAGE_EXPORTER ?= prom/mysqld-exporter:v0.15.1
 
 DOCKER_CONFIG ?= $(HOME)/.docker/config.json 
 

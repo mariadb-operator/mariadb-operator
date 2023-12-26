@@ -5,7 +5,14 @@ metadata:
 spec:
   username: mariadb
   database: mariadb
-  
+
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
   replicas: 3
 
   galera:
@@ -94,9 +101,5 @@ spec:
     limits:
       memory: 1Gi
 
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  metrics:
+    enabled: true

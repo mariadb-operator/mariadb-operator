@@ -16,6 +16,9 @@ docker-push: ## Push docker image.
 docker-load: ## Load docker image in KIND.
 	$(KIND) load docker-image --name $(CLUSTER) $(IMG)
 
+.PHONY: docker-dev
+docker-dev: docker-build docker-load ## Build and load docker image for local development.
+
 ##@ Build Enterprise
 
 .PHONY: build-ent
@@ -33,3 +36,7 @@ docker-push-ent: ## Push the enterprise image.
 .PHONY: docker-load-ent
 docker-load-ent: ## Load the enterprise image in KIND.
 	$(MAKE) docker-load IMG=$(IMG_ENT)
+
+.PHONY: docker-dev-ent
+docker-dev-ent: docker-build-ent docker-load-ent ## Build and load enterprise image for local development.
+

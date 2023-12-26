@@ -3,13 +3,13 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,9 +18,19 @@ import (
 // UserReconciler reconciles a User object
 type UserReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	RefResolver    *refresolver.RefResolver
-	ConditionReady *condition.Ready
+	RefResolver     *refresolver.RefResolver
+	ConditionReady  *condition.Ready
+	RequeueInterval time.Duration
+}
+
+func NewUserReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
+	requeueInterval time.Duration) *UserReconciler {
+	return &UserReconciler{
+		Client:          client,
+		RefResolver:     refResolver,
+		ConditionReady:  conditionReady,
+		RequeueInterval: requeueInterval,
+	}
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=users,verbs=get;list;watch;create;update;patch;delete
@@ -38,7 +48,7 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	wr := newWrapperUserReconciler(r.Client, r.RefResolver, &user)
 	wf := newWrappedUserFinalizer(r.Client, &user)
 	tf := sql.NewSqlFinalizer(r.Client, wf)
-	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf)
+	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.RequeueInterval)
 
 	result, err := tr.Reconcile(ctx, &user)
 	if err != nil {

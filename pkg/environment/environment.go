@@ -12,7 +12,9 @@ type Environment struct {
 	MariadbOperatorName      string `env:"MARIADB_OPERATOR_NAME,required"`
 	MariadbOperatorNamespace string `env:"MARIADB_OPERATOR_NAMESPACE,required"`
 	MariadbOperatorSAPath    string `env:"MARIADB_OPERATOR_SA_PATH,required"`
+	MariadbOperatorImage     string `env:"MARIADB_OPERATOR_IMAGE,required"`
 	RelatedMariadbImage      string `env:"RELATED_IMAGE_MARIADB,required"`
+	RelatedExporterImage     string `env:"RELATED_IMAGE_EXPORTER,required"`
 	WatchNamespace           string `env:"WATCH_NAMESPACE"`
 }
 

@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -52,7 +54,7 @@ var _ = Describe("Restore webhook", func() {
 					},
 					Spec: RestoreSpec{
 						RestoreSource: RestoreSource{
-							FileName: func() *string { s := "foo.sql"; return &s }(),
+							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 						},
 						MariaDBRef: MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
@@ -160,6 +162,7 @@ var _ = Describe("Restore webhook", func() {
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "backup-webhook",
 						},
+						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
 					MariaDBRef: MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
@@ -246,14 +249,11 @@ var _ = Describe("Restore webhook", func() {
 				false,
 			),
 			Entry(
-				"Init FileName source",
+				"Init TargetRecoveryTime source",
 				func(rmdb *Restore) {
-					rmdb.Spec.RestoreSource.FileName = func() *string {
-						f := "backup.sql"
-						return &f
-					}()
+					rmdb.Spec.RestoreSource.TargetRecoveryTime = &metav1.Time{Time: time.Now().Add(1 * time.Hour)}
 				},
-				false,
+				true,
 			),
 		)
 	})

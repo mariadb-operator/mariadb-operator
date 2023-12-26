@@ -3,7 +3,6 @@ package v1alpha1
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -11,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -33,7 +31,8 @@ type Exporter struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
-	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// Image name to be used as metrics exporter. The supported format is `<image>:<tag>`.
+	// Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Image string `json:"image,omitempty"`
@@ -52,9 +51,13 @@ type Exporter struct {
 // ServiceMonitor defines a prometheus ServiceMonitor object.
 type ServiceMonitor struct {
 	// PrometheusRelease is the release label to add to the ServiceMonitor object.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PrometheusRelease string `json:"prometheusRelease"`
+	PrometheusRelease string `json:"prometheusRelease,omitempty"`
+	// JobLabel to add to the ServiceMonitor object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	JobLabel string `json:"jobLabel,omitempty"`
 	// Interval for scraping metrics.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -72,13 +75,21 @@ type Metrics struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
 	// Exporter defines the metrics exporter container.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Exporter Exporter `json:"exporter"`
 	// ServiceMonitor defines the ServiceMonior object.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
+	// Username is the username of the monitoring user used by the exporter.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Username string `json:"username,omitempty" webhook:"inmutable"`
+	// PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 }
 
 // PodDisruptionBudget is the Pod availability bundget for a MariaDb
@@ -152,6 +163,7 @@ type MariaDBSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodTemplate `json:",inline"`
 	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// Only MariaDB official images are supported.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Image string `json:"image,omitempty"`
@@ -213,7 +225,7 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
-	// Replicas indicates the number of instances.
+	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	Replicas int32 `json:"replicas,omitempty"`
@@ -266,6 +278,9 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// Replicas indicates the number of current instances.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
+	Replicas int32 `json:"replicas,omitempty"`
 	// CurrentPrimaryPodIndex is the primary Pod index.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -310,11 +325,12 @@ func (s *MariaDBStatus) FillWithDefaults(mariadb *MariaDB) {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mdb
 // +kubebuilder:subresource:status
+// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Primary Pod",type="string",JSONPath=".status.currentPrimary"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +operator-sdk:csv:customresourcedefinitions:resources={{MariaDB,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{MariaDB,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
 
 // MariaDB is the Schema for the mariadbs API
 type MariaDB struct {
@@ -342,6 +358,20 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	if m.IsInitialDataEnabled() && m.Spec.PasswordSecretKeyRef == nil {
 		secretKeyRef := m.PasswordSecretKeyRef()
 		m.Spec.PasswordSecretKeyRef = &secretKeyRef
+	}
+	if m.AreMetricsEnabled() {
+		if m.Spec.Metrics.Exporter.Image == "" {
+			m.Spec.Metrics.Exporter.Image = env.RelatedExporterImage
+		}
+		if m.Spec.Metrics.Exporter.Port == 0 {
+			m.Spec.Metrics.Exporter.Port = 9104
+		}
+		if m.Spec.Metrics.Username == "" {
+			m.Spec.Metrics.Username = m.MetricsKey().Name
+		}
+		if m.Spec.Metrics.PasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+			m.Spec.Metrics.PasswordSecretKeyRef = m.MetricsPasswordSecretKeyRef()
+		}
 	}
 }
 
@@ -391,84 +421,6 @@ func (m *MariaDB) IsRestoringBackup() bool {
 // HasRestoredBackup indicates whether the MariaDB instance has restored a Backup
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
-}
-
-// RootPasswordSecretKeyRef defines the key selector for the root password Secret.
-func (m *MariaDB) RootPasswordSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-root", m.Name),
-		},
-		Key: "password",
-	}
-}
-
-// PasswordSecretKeyRef defines the key selector for the initial user password Secret.
-func (m *MariaDB) PasswordSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-password", m.Name),
-		},
-		Key: "password",
-	}
-}
-
-// MyCnfConfigMapKeyRef defines the key selector for the my.cnf ConfigMap.
-func (m *MariaDB) MyCnfConfigMapKeyRef() corev1.ConfigMapKeySelector {
-	return corev1.ConfigMapKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-config", m.Name),
-		},
-		Key: "my.cnf",
-	}
-}
-
-// RestoreKey defines the key for the Restore resource used to bootstrap.
-func (m *MariaDB) RestoreKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-restore", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// InternalServiceKey defines the key for the internal headless Service
-func (m *MariaDB) InternalServiceKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-internal", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// PrimaryServiceKey defines the key for the primary Service
-func (m *MariaDB) PrimaryServiceKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-primary", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// PrimaryConnectioneKey defines the key for the primary Connection
-func (m *MariaDB) PrimaryConnectioneKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-primary", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// SecondaryServiceKey defines the key for the secondary Service
-func (m *MariaDB) SecondaryServiceKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-secondary", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// SecondaryConnectioneKey defines the key for the secondary Connection
-func (m *MariaDB) SecondaryConnectioneKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-secondary", m.Name),
-		Namespace: m.Namespace,
-	}
 }
 
 // +kubebuilder:object:root=true

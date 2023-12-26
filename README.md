@@ -13,7 +13,7 @@
 <p align="center">
 <a href="https://goreportcard.com/report/github.com/mariadb-operator/mariadb-operator"><img src="https://goreportcard.com/badge/github.com/mariadb-operator/mariadb-operator" alt="Go Report Card"></a>
 <a href="https://pkg.go.dev/github.com/mariadb-operator/mariadb-operator"><img src="https://pkg.go.dev/badge/github.com/mariadb-operator/mariadb-operator.svg" alt="Go Reference"></a>
-<a href="https://join.slack.com/t/mariadb-operator/shared_invite/zt-1xsfguxlf-dhtV6zk0HwlAh_U2iYfUxw"><img alt="Slack" src="https://img.shields.io/badge/slack-join_chat-blue?logo=Slack&label=slack&style=flat"></a>
+<a href="https://r.mariadb.com/join-community-slack"><img alt="Slack" src="https://img.shields.io/badge/slack-join_chat-blue?logo=Slack&label=slack&style=flat"></a>
 <a href="https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mariadb-operator" alt="Artifact Hub"></a>
 <a href="https://operatorhub.io/operator/mariadb-operator"><img src="https://img.shields.io/badge/Operator%20Hub-mariadb--operator-red" alt="Operator Hub"></a>
 </p>
@@ -22,18 +22,19 @@
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 - [Provisioning](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers.
-- Multiple [HA modes](#high-availability) supported: [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml) and [Galera](./docs/GALERA.md). Automatic primary failover.
+- Multiple [HA modes](./docs/HA.md) supported: [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml) and [Galera](./docs/GALERA.md). Automatic primary failover.
 - [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
-- [PVCs](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)) backup storage
+- [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_point_in_time_recovery.yaml) (PITR)
+- [PVCs](./examples/manifests/mariadb_v1alpha1_backup.yaml) and all Kubernetes-compatible [volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)) supported as backup storage
 - Bootstrap new instances from [backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes (i.e [NFS](./examples/manifests/mariadb_v1alpha1_mariadb_from_nfs.yaml))
+- [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) as a multi-target Deployment
 - Manage [users](./examples/manifests/mariadb_v1alpha1_user.yaml), [grants](./examples/manifests/mariadb_v1alpha1_grant.yaml) and logical [databases](./examples/manifests/mariadb_v1alpha1_database.yaml)
 - Configure [connections](./examples/manifests/mariadb_v1alpha1_connection.yaml) for your applications
 - Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs)
-- Prometheus metrics
 - Validation webhooks to provide CRD inmutability
 - Additional printer columns to report the current CRD status
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
-- [GitOps](https://opengitops.dev/) friendly
+- [GitOps](#gitops) friendly
 - Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator)
 - Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator) 
 
@@ -47,8 +48,8 @@ helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 ## Recommended installation
 
-The recommended installation includes the following features to provide a better user experience and reliability:
-- **Metrics**: Leverage [prometheus operator](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) to scrape metrics from both the `mariadb-operator` and the provisioned `MariaDB` instances.
+The recommended installation includes the following features:
+- **Metrics**: Leverage [prometheus operator](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) to scrape the `mariadb-operator` internal metrics.
 - **Webhook certificate renewal**: Automatic webhook certificate issuance and renewal using  [cert-manager](https://cert-manager.io/docs/installation/). By default, a static self-signed certificate is generated.
 
 ```bash
@@ -167,24 +168,9 @@ bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
 You can take a look at the whole suite of example CRDs available in [examples/manifests](./examples/manifests/).
 
-## High availability
-
-This operator supports the following High Availability modes:
-- **Single master HA via [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml)**: The primary node allows both reads and writes, while secondary nodes only allow reads.
-- **Multi master HA via [Galera](./docs/GALERA.md)**: All nodes support reads and writes, but it is recommended to perform writes in a single primary for preventing deadlocks.
-
-In order to address nodes, `mariadb-operator` provides you with the following Kubernetes `Services`:
-- `<mariadb-name>`: To be used for read requests. It will point to all nodes. 
-- `<mariadb-name>-primary`: To be used for write requests. It will point to a single node, the primary.
-- `<mariadb-name>-secondary`: To be used for read requests. It will point to all nodes, except the primary.
-
-Whenever the primary changes, either by the user or by the operator, both the `<mariadb-name>-primary` and `<mariadb-name>-secondary` `Services` will be automatically updated by the operator to address the right nodes.
-
-The primary may be manually changed by the user at any point by updating the `spec.[replication|galera].primary.podIndex` field. Alternatively,  automatic primary failover can be enabled by setting `spec.[replication|galera].primary.automaticFailover`, which will make the operator to switch primary whenever the primary `Pod` goes down.
-
 ## GitOps
 
-You can configure `mariadb-operator`'s CRDs in your git repo and reconcile them using your favorite GitOps tool, see an example with [flux](https://fluxcd.io/):
+You can embrace [GitOps](https://opengitops.dev/) best practises by using this operator, just place your CRDs in a git repo and reconcile them with your favorite tool, see an example with [flux](https://fluxcd.io/):
 - [Run and operate MariaDB in a GitOps fashion using Flux](./examples/flux/)
 
 ## Roadmap
@@ -201,5 +187,5 @@ We welcome and encourage contributions to this project! Please check our [contri
 
 ## Get in touch
 
-- [Slack](https://join.slack.com/t/mariadb-operator/shared_invite/zt-1xsfguxlf-dhtV6zk0HwlAh_U2iYfUxw)
+- [Slack](https://r.mariadb.com/join-community-slack)
 - mariadb-operator@proton.me

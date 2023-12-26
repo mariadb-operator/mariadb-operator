@@ -44,6 +44,10 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	if err := r.setSpecDefaults(ctx, &backup); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error defaulting Backup: %v", err)
+	}
+
 	mariaDb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
@@ -81,6 +85,18 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *BackupReconciler) setSpecDefaults(ctx context.Context, backup *mariadbv1alpha1.Backup) error {
+	return r.patch(ctx, backup, func(b *mariadbv1alpha1.Backup) {
+		backup.SetDefaults()
+	})
+}
+
+func (r *BackupReconciler) patch(ctx context.Context, backup *mariadbv1alpha1.Backup, patcher func(*mariadbv1alpha1.Backup)) error {
+	patch := client.MergeFrom(backup.DeepCopy())
+	patcher(backup)
+	return r.Patch(ctx, backup, patch)
 }
 
 func (r *BackupReconciler) patcher(ctx context.Context, err error,

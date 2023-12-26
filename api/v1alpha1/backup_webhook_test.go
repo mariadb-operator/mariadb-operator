@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -208,7 +210,7 @@ var _ = Describe("Backup webhook", func() {
 			Entry(
 				"Updating MaxBackupRetainDays",
 				func(bmdb *Backup) {
-					bmdb.Spec.MaxRetentionDays = 40
+					bmdb.Spec.MaxRetention = metav1.Duration{Duration: 24 * time.Hour}
 				},
 				true,
 			),

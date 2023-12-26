@@ -29,17 +29,20 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	backupcmd "github.com/mariadb-operator/mariadb-operator/cmd/backup"
 	"github.com/mariadb-operator/mariadb-operator/controller"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/servicemonitor"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
@@ -65,6 +68,7 @@ var (
 	logDev            bool
 	leaderElect       bool
 	requeueConnection time.Duration
+	requeueSql        time.Duration
 	requeueSqlJob     time.Duration
 )
 
@@ -81,8 +85,9 @@ func init() {
 		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
 	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
-	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 10*time.Second, "The interval at which Connections are requeued.")
-	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 10*time.Second, "The interval at which SqlJobs are requeued.")
+	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 30*time.Second, "The interval at which Connections are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
 }
 
 var rootCmd = &cobra.Command{
@@ -165,6 +170,8 @@ var rootCmd = &cobra.Command{
 		endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
 		batchReconciler := batch.NewBatchReconciler(client, builder)
 		rbacReconciler := rbac.NewRBACReconiler(client, builder)
+		deployReconciler := deployment.NewDeploymentReconciler(client)
+		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 		replicationReconciler := replication.NewReplicationReconciler(
@@ -222,11 +229,13 @@ var rootCmd = &cobra.Command{
 			ConditionReady:  conditionReady,
 			DiscoveryClient: discoveryClient,
 
-			ConfigMapReconciler: configMapReconciler,
-			SecretReconciler:    secretReconciler,
-			ServiceReconciler:   serviceReconciler,
-			EndpointsReconciler: endpointsReconciler,
-			RBACReconciler:      rbacReconciler,
+			ConfigMapReconciler:      configMapReconciler,
+			SecretReconciler:         secretReconciler,
+			ServiceReconciler:        serviceReconciler,
+			EndpointsReconciler:      endpointsReconciler,
+			RBACReconciler:           rbacReconciler,
+			DeploymentReconciler:     deployReconciler,
+			ServiceMonitorReconciler: svcMonitorReconciler,
 
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
@@ -269,30 +278,15 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create controller", "controller", "restore")
 			os.Exit(1)
 		}
-		if err = (&controller.UserReconciler{
-			Client:         client,
-			Scheme:         scheme,
-			RefResolver:    refResolver,
-			ConditionReady: conditionReady,
-		}).SetupWithManager(mgr); err != nil {
+		if err = controller.NewUserReconciler(client, refResolver, conditionReady, requeueSql).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
-		if err = (&controller.GrantReconciler{
-			Client:         client,
-			Scheme:         scheme,
-			RefResolver:    refResolver,
-			ConditionReady: conditionReady,
-		}).SetupWithManager(mgr); err != nil {
+		if err = controller.NewGrantReconciler(client, refResolver, conditionReady, requeueSql).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Grant")
 			os.Exit(1)
 		}
-		if err = (&controller.DatabaseReconciler{
-			Client:         client,
-			Scheme:         scheme,
-			RefResolver:    refResolver,
-			ConditionReady: conditionReady,
-		}).SetupWithManager(mgr); err != nil {
+		if err = controller.NewDatabaseReconciler(client, refResolver, conditionReady, requeueSql).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Database")
 			os.Exit(1)
 		}
@@ -345,5 +339,9 @@ var rootCmd = &cobra.Command{
 }
 
 func main() {
+	rootCmd.AddCommand(certControllerCmd)
+	rootCmd.AddCommand(webhookCmd)
+	rootCmd.AddCommand(backupcmd.RootCmd)
+
 	cobra.CheckErr(rootCmd.Execute())
 }

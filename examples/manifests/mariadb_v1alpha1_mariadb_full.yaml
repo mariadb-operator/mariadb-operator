@@ -104,3 +104,6 @@ spec:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.20
     externalTrafficPolicy: Cluster
     sessionAffinity: None
+
+  metrics:
+    enabled: true

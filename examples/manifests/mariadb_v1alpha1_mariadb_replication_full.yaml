@@ -6,6 +6,13 @@ spec:
   username: mariadb
   database: mariadb
   
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
   replicas: 3
 
   replication:
@@ -75,9 +82,5 @@ spec:
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
 
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  metrics:
+    enabled: true

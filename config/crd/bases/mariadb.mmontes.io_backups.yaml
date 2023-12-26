@@ -884,11 +884,15 @@ spec:
                   type: string
                 type: array
               backoffLimit:
-                default: 5
                 description: BackoffLimit defines the maximum number of attempts to
                   successfully take a Backup.
                 format: int32
                 type: integer
+              logLevel:
+                default: info
+                description: LogLevel to be used n the Backup Job. It defaults to
+                  'info'.
+                type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
@@ -931,12 +935,11 @@ spec:
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
-              maxRetentionDays:
-                default: 30
-                description: MaxRetentionDays defined the maximum age that Backups
-                  should have. Old backup will be cleaned up by the Backup Job.
-                format: int32
-                type: integer
+              maxRetention:
+                description: MaxRetention defines the retention policy for backups.
+                  Old backups will be cleaned up by the Backup Job. It defaults to
+                  30 days.
+                type: string
               nodeSelector:
                 additionalProperties:
                   type: string

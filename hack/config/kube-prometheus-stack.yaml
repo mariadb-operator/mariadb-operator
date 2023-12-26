@@ -19,7 +19,19 @@ grafana:
         gnetId: 7362
         revision: 5
         datasource: Prometheus
+      mysql-replication:
+        gnetId: 7371
+        revision: 1
+        datasource: Prometheus
+      mariadb-galera:
+        gnetId: 13106
+        revision: 3
+        datasource: Prometheus
       mysql-quickstart:
         gnetId: 14057
         revision: 1
         datasource: Prometheus
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false

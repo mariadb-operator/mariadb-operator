@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -12,6 +11,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
@@ -19,11 +19,11 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/servicemonitor"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -50,11 +50,13 @@ type MariaDBReconciler struct {
 	Environment     *environment.Environment
 	DiscoveryClient *discovery.DiscoveryClient
 
-	ConfigMapReconciler *configmap.ConfigMapReconciler
-	SecretReconciler    *secret.SecretReconciler
-	ServiceReconciler   *service.ServiceReconciler
-	EndpointsReconciler *endpoints.EndpointsReconciler
-	RBACReconciler      *rbac.RBACReconciler
+	ConfigMapReconciler      *configmap.ConfigMapReconciler
+	SecretReconciler         *secret.SecretReconciler
+	ServiceReconciler        *service.ServiceReconciler
+	EndpointsReconciler      *endpoints.EndpointsReconciler
+	RBACReconciler           *rbac.RBACReconciler
+	DeploymentReconciler     *deployment.DeploymentReconciler
+	ServiceMonitorReconciler *servicemonitor.ServiceMonitorReconciler
 
 	ReplicationReconciler *replication.ReplicationReconciler
 	GaleraReconciler      *galera.GaleraReconciler
@@ -80,6 +82,7 @@ type patcher func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings;clusterrolebindings,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
@@ -147,8 +150,8 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileRestore,
 		},
 		{
-			Name:      "ServiceMonitor",
-			Reconcile: r.reconcileServiceMonitor,
+			Name:      "Metrics",
+			Reconcile: r.reconcileMetrics,
 		},
 	}
 
@@ -234,16 +237,7 @@ func (r *MariaDBReconciler) reconcileRBAC(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(mariadb)
-	var dsn *corev1.SecretKeySelector
-	if mariadb.AreMetricsEnabled() {
-		var err error
-		dsn, err = r.reconcileMetricsCredentials(ctx, mariadb)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating metrics credentials: %v", err)
-		}
-	}
-
-	desiredSts, err := r.Builder.BuildStatefulSet(mariadb, key, dsn)
+	desiredSts, err := r.Builder.BuildStatefulSet(mariadb, key)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
@@ -274,15 +268,15 @@ func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, ma
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if mariadb.IsHAEnabled() {
-		if err := r.reconcileInternalService(ctx, mariadb); err != nil {
-			return ctrl.Result{}, err
-		}
 		if err := r.reconcilePrimaryService(ctx, mariadb); err != nil {
 			return ctrl.Result{}, err
 		}
 		if err := r.reconcileSecondaryService(ctx, mariadb); err != nil {
 			return ctrl.Result{}, err
 		}
+	}
+	if err := r.reconcileInternalService(ctx, mariadb); err != nil {
+		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, r.reconcileDefaultService(ctx, mariadb)
 }
@@ -370,34 +364,6 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 	return ctrl.Result{}, r.Create(ctx, restore)
 }
 
-func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.AreMetricsEnabled() {
-		return ctrl.Result{}, nil
-	}
-	exist, err := r.DiscoveryClient.ServiceMonitorExist()
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if !exist {
-		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound,
-			"Unable to reconcile metrics: ServiceMonitor CRD not installed in the cluster")
-		log.FromContext(ctx).Error(errors.New("ServiceMonitor CRD not installed in the cluster"), "Unable to reconcile metrics")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
-
-	key := client.ObjectKeyFromObject(mariadb)
-	var existingServiceMontor monitoringv1.ServiceMonitor
-	if err := r.Get(ctx, key, &existingServiceMontor); err == nil {
-		return ctrl.Result{}, nil
-	}
-
-	serviceMonitor, err := r.Builder.BuildServiceMonitor(mariadb, key)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error building Service Monitor: %v", err)
-	}
-	return ctrl.Result{}, r.Create(ctx, serviceMonitor)
-}
-
 func (r *MariaDBReconciler) reconcileDefaultPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if mariadb.Spec.PodDisruptionBudget == nil {
 		return nil
@@ -464,18 +430,6 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 	}
 	if mariadb.Spec.Service != nil {
 		opts.ServiceTemplate = *mariadb.Spec.Service
-	}
-	if mariadb.AreMetricsEnabled() {
-		opts.Ports = append(opts.Ports, corev1.ServicePort{
-			Name: builder.MetricsContainerName,
-			Port: mariadb.Spec.Metrics.Exporter.Port,
-		})
-		// To match ServiceMonitor selector
-		opts.Labels =
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mariadb).
-				WithLabels(opts.Labels).
-				Build()
 	}
 	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
 	if err != nil {
@@ -670,15 +624,16 @@ func (r *MariaDBReconciler) setStatusDefaults(ctx context.Context, mariadb *mari
 
 func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcher {
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
+		var sts appsv1.StatefulSet
+		if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
+			return err
+		}
+		mariadb.Status.Replicas = sts.Status.ReadyReplicas
+
 		if mariadb.IsRestoringBackup() ||
 			mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() ||
 			mariadb.HasGaleraNotReadyCondition() {
 			return nil
-		}
-
-		var sts appsv1.StatefulSet
-		if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
-			return err
 		}
 		condition.SetReadyWithStatefulSet(&mariadb.Status, &sts)
 		return nil
@@ -707,12 +662,15 @@ func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&mariadbv1alpha1.MariaDB{}).
 		Owns(&mariadbv1alpha1.Connection{}).
 		Owns(&mariadbv1alpha1.Restore{}).
+		Owns(&mariadbv1alpha1.User{}).
+		Owns(&mariadbv1alpha1.Grant{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.Event{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&appsv1.StatefulSet{}).
+		Owns(&appsv1.Deployment{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).

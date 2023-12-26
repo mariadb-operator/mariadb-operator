@@ -281,6 +281,9 @@ spec:
         path: backoffLimit
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
+        displayName: Log Level
+        path: logLevel
       - description: MariaDBRef is a reference to a MariaDB object.
         displayName: Maria DBRef
         path: mariaDbRef
@@ -288,12 +291,10 @@ spec:
           should wait for MariaDB to be ready.
         displayName: Wait For It
         path: mariaDbRef.waitForIt
-      - description: MaxRetentionDays defined the maximum age that Backups should
-          have. Old backup will be cleaned up by the Backup Job.
-        displayName: Max Retention Days
-        path: maxRetentionDays
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: MaxRetention defines the retention policy for backups. Old backups
+          will be cleaned up by the Backup Job. It defaults to 30 days.
+        displayName: Max Retention
+        path: maxRetention
       - description: NodeSelector to be used in the Backup Pod.
         displayName: Node Selector
         path: nodeSelector
@@ -442,7 +443,10 @@ spec:
       - description: Name overrides the default Database name provided by metadata.name.
         displayName: Name
         path: name
-      - description: RetryInterval is the interval used to perform health check retries.
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+        displayName: Requeue Interval
+        path: requeueInterval
+      - description: RetryInterval is the interval used to perform retries.
         displayName: Retry Interval
         path: retryInterval
       statusDescriptors:
@@ -480,7 +484,10 @@ spec:
       - description: Privileges to use in the Grant.
         displayName: Privileges
         path: privileges
-      - description: RetryInterval is the interval used to perform health check retries.
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+        displayName: Requeue Interval
+        path: requeueInterval
+      - description: RetryInterval is the interval used to perform retries.
         displayName: Retry Interval
         path: retryInterval
       - description: Table to use in the Grant.
@@ -513,6 +520,9 @@ spec:
       - kind: Event
         name: ""
         version: v1
+      - kind: Grant
+        name: ""
+        version: v1alpha1
       - kind: MariaDB
         name: ""
         version: v1alpha1
@@ -540,6 +550,9 @@ spec:
       - kind: StatefulSet
         name: ""
         version: v1
+      - kind: User
+        name: ""
+        version: v1alpha1
       specDescriptors:
       - description: Affinity to be used in the Pod.
         displayName: Affinity
@@ -553,9 +566,11 @@ spec:
       - description: BackupRef is a reference to a Backup object.
         displayName: Backup Ref
         path: bootstrapFrom.backupRef
-      - description: FileName is the file within the source to be restored.
-        displayName: File Name
-        path: bootstrapFrom.fileName
+      - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
+          time that defines the point in time recovery objective. It is used to determine
+          the closest restoration source in time.
+        displayName: Target Recovery Time
+        path: bootstrapFrom.targetRecoveryTime
       - description: Volume is a Kubernetes Volume object that contains a backup.
         displayName: Volume
         path: bootstrapFrom.volume
@@ -808,7 +823,7 @@ spec:
         displayName: Labels
         path: galera.volumeClaimTemplate.labels
       - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
+          format is `<image>:<tag>`. Only MariaDB official images are supported.
         displayName: Image
         path: image
         x-descriptors:
@@ -907,8 +922,8 @@ spec:
           to environment variables to be injected in the container.
         displayName: Env From
         path: metrics.exporter.envFrom
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
+      - description: 'Image name to be used as metrics exporter. The supported format
+          is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
         displayName: Image
         path: metrics.exporter.image
       - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
@@ -940,12 +955,19 @@ spec:
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: metrics.exporter.volumeMounts
+      - description: PasswordSecretKeyRef is a reference to the password of the monitoring
+          user used by the exporter.
+        displayName: Password Secret Key Ref
+        path: metrics.passwordSecretKeyRef
       - description: ServiceMonitor defines the ServiceMonior object.
         displayName: Service Monitor
         path: metrics.serviceMonitor
       - description: Interval for scraping metrics.
         displayName: Interval
         path: metrics.serviceMonitor.interval
+      - description: JobLabel to add to the ServiceMonitor object.
+        displayName: Job Label
+        path: metrics.serviceMonitor.jobLabel
       - description: PrometheusRelease is the release label to add to the ServiceMonitor
           object.
         displayName: Prometheus Release
@@ -953,6 +975,9 @@ spec:
       - description: ScrapeTimeout defines the timeout for scraping metrics.
         displayName: Scrape Timeout
         path: metrics.serviceMonitor.scrapeTimeout
+      - description: Username is the username of the monitoring user used by the exporter.
+        displayName: Username
+        path: metrics.username
       - description: MyCnf allows to specify the my.cnf file mounted by Mariadb.
         displayName: My Cnf
         path: myCnf
@@ -1074,7 +1099,7 @@ spec:
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: readinessProbe
-      - description: Replicas indicates the number of instances.
+      - description: Replicas indicates the number of desired instances.
         displayName: Replicas
         path: replicas
         x-descriptors:
@@ -1376,9 +1401,9 @@ spec:
       - description: BackupRef is a reference to a Backup object.
         displayName: Backup Ref
         path: backupRef
-      - description: FileName is the file within the source to be restored.
-        displayName: File Name
-        path: fileName
+      - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
+        displayName: Log Level
+        path: logLevel
       - description: MariaDBRef is a reference to a MariaDB object.
         displayName: Maria DBRef
         path: mariaDbRef
@@ -1397,6 +1422,11 @@ spec:
       - description: RestartPolicy to be added to the Backup Job.
         displayName: Restart Policy
         path: restartPolicy
+      - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
+          time that defines the point in time recovery objective. It is used to determine
+          the closest restoration source in time.
+        displayName: Target Recovery Time
+        path: targetRecoveryTime
       - description: Tolerations to be used in the Restore Pod.
         displayName: Tolerations
         path: tolerations
@@ -1527,7 +1557,10 @@ spec:
           by the User.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
-      - description: RetryInterval is the interval used to perform health check retries.
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+        displayName: Requeue Interval
+        path: requeueInterval
+      - description: RetryInterval is the interval used to perform retries.
         displayName: Retry Interval
         path: retryInterval
       statusDescriptors:

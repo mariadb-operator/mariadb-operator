@@ -28,3 +28,6 @@ artifacts/
 
 # Log
 *.log
+
+# PITR
+/backup/

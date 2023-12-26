@@ -4,7 +4,7 @@ set -eo pipefail
 
 CONFIG="$( dirname "${BASH_SOURCE[0]}" )"/config
 if [ -z "$PROMETHEUS_VERSION" ]; then 
-  PROMETHEUS_VERSION="51.7.0"
+  PROMETHEUS_VERSION="55.5.0"
 fi
 
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts

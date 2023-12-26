@@ -61,7 +61,7 @@ var _ = Describe("MariaDB webhook", func() {
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
 						BootstrapFrom: &RestoreSource{
-							FileName: func() *string { b := "backup.sql"; return &b }(),
+							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 						},
 					},
 				},
@@ -515,7 +515,7 @@ var _ = Describe("MariaDB webhook", func() {
 					},
 					Metrics: &Metrics{
 						Exporter: Exporter{
-							Image:           "prom/mysqld-exporter:v0.14.0",
+							Image:           "prom/mysqld-exporter:v0.15.1",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 						ServiceMonitor: ServiceMonitor{

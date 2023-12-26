@@ -19,7 +19,14 @@ type CommandOpts struct {
 	Database    *string
 }
 
-func ExecCommand(args []string) *Command {
+func NewCommand(cmd, args []string) *Command {
+	return &Command{
+		Command: cmd,
+		Args:    args,
+	}
+}
+
+func NewBashCommand(args []string) *Command {
 	return &Command{
 		Command: []string{"bash", "-c"},
 		Args:    []string{strings.Join(args, ";")},
