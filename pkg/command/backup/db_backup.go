@@ -82,13 +82,6 @@ func (l *DBBackup) MariaBackupCommand(backup *mariadbv1alpha1.MariaBackup,
 	return command.ExecCommand(cmds)
 }
 
-func (l *DBBackup) MariaRestoreCommand(mariadb *mariadbv1alpha1.MariaDB) *command.Command {
-	cmds := []string{
-		"echo 'not implemented yet'",
-	}
-	return command.ExecCommand(cmds)
-}
-
 func (l *DBBackup) backupPath() string {
 	if l.BackupFile != "" {
 		return fmt.Sprintf("%s/%s", l.BasePath, l.BackupFile)

@@ -111,22 +111,33 @@ func buildStsInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container
 	initContainers := []corev1.Container{}
 	if mariadb.Spec.BootstrapFrom != nil && *mariadb.Spec.BootstrapFrom.Type == "mariabackup" && mariadb.Spec.BootstrapFrom.BackupRef != nil {
 
-		cmds := []string{
+		cmdsCheck := []string{
+			"echo 'Checking if a restore already performed...'",
+			"[ -e /var/lib/mysql/restore_success ] && { echo 'No restore required, exiting...'; exit 0; }",
+		}
+
+		cmdsRestore := []string{
+			"echo 'Cleaning current data folder...'",
 			"rm -rf /var/lib/mysql/* /var/lib/mysql/.my-healthcheck.cnf",
+			"echo 'Creating a temporary data folder...'",
 			"mkdir -p /var/lib/mysql/mariabackup",
+			"echo 'Moving backup to the temporary data folder...'",
 			fmt.Sprintf("rsync -rtva /backup/%s/ /var/lib/mysql/mariabackup/", *mariadb.Spec.BootstrapFrom.FileName),
-			"chown -R mysql:mysql /var/lib/mysql",
-			"ls -la /var/lib/mysql/mariabackup",
+			"echo 'Preparing backup...'",
 			"mariadb-backup --prepare --target-dir=/var/lib/mysql/mariabackup",
+			"echo 'Moving restored backup to the data directory...'",
 			"mv /var/lib/mysql/mariabackup/* /var/lib/mysql",
+			"echo 'Removing temporary folder...'",
 			"rm -rf /var/lib/mysql/mariabackup/",
+			"echo 'Creating a flag file to avoid multiple restoration after restart...'",
 			"touch /var/lib/mysql/restore_success",
+			"echo 'Changing ownership of the files to mysql...'",
 			"chown -R mysql:mysql /var/lib/mysql",
 		}
 
 		initContainer := buildContainer(mariadb.Spec.Image, mariadb.Spec.ImagePullPolicy, &mariadbv1alpha1.ContainerTemplate{
 			Command: []string{"bash", "-c"},
-			Args:    []string{strings.Join(cmds, " && ")},
+			Args:    []string{fmt.Sprintf("%s || %s", strings.Join(cmdsCheck, " && "), strings.Join(cmdsRestore, " && "))},
 		})
 		initContainer.Name = "restore-init"
 		initContainer.Env = buildStsEnv(mariadb)

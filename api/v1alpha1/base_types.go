@@ -234,7 +234,7 @@ type RestoreSource struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	FileName *string `json:"fileName,omitempty" webhook:"inmutableinit"`
-	// FileName is the file within the source to be restored.
+	// Type is the type of backup. (mariabackup or mariadump)
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Type *string `json:"type,omitempty" webhook:"inmutableinit"`

@@ -899,7 +899,7 @@ spec:
                     description: FileName is the file within the source to be restored.
                     type: string
                   type:
-                    description: FileName is the file within the source to be restored.
+                    description: Type is the type of backup. (mariabackup or mariadump)
                     type: string
                   volume:
                     description: Volume is a Kubernetes Volume object that contains
