@@ -27,7 +27,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Automatic [primary failover](./docs/HA.md).
 - [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. 
 - [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. 
-- Multiple backup storages: [S3](./examples/manifests/mariadb_v1alpha1_backup.yaml) compatible, [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)).
+- Multiple backup storage types: [S3](./examples/manifests/mariadb_v1alpha1_backup.yaml) compatible, [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)).
 - [Backup rentention policy](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml).
 - [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_point_in_time_recovery.yaml) (PITR).
 - Bootstrap new instances from: [Backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml), [S3](./examples/manifests/mariadb_v1alpha1_mariadb_from_s3.yaml), [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) ...
