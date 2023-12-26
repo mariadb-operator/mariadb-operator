@@ -14,7 +14,6 @@ CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix.go)
 
 helm upgrade --install \
   --version $MINIO_VERSION \
-  --debug \
   -n minio --create-namespace \
   -f $CONFIG/minio.yaml \
   --set service.type=LoadBalancer \
