@@ -89,6 +89,7 @@ jobs:
         run: |
           make cluster
           make install
+          make install-minio
           make net
 
       - name: Test

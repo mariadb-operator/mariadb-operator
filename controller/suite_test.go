@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,11 +40,41 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var k8sClient client.Client
-var testEnv *envtest.Environment
-var testCtx context.Context
-var testCancel context.CancelFunc
-var testCidrPrefix string
+var (
+	k8sClient      client.Client
+	testEnv        *envtest.Environment
+	testCtx        context.Context
+	testCancel     context.CancelFunc
+	testCidrPrefix string
+)
+
+func testS3WithBucket(bucket string) *mariadbv1alpha1.S3 {
+	return &mariadbv1alpha1.S3{
+		Bucket:   bucket,
+		Endpoint: "minio.minio.svc.cluster.local:9000",
+		AccessKeyIdSecretKeyRef: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: "minio",
+			},
+			Key: "access-key-id",
+		},
+		SecretAccessKeySecretKeyRef: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: "minio",
+			},
+			Key: "secret-access-key",
+		},
+		TLS: &mariadbv1alpha1.TLS{
+			Enabled: true,
+			CASecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "minio-ca",
+				},
+				Key: "ca.crt",
+			},
+		},
+	}
+}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
