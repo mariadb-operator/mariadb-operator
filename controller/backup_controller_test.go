@@ -1,63 +1,12 @@
 package controller
 
 import (
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-func testBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.BackupStorage) *mariadbv1alpha1.Backup {
-	return &mariadbv1alpha1.Backup{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-		},
-		Spec: mariadbv1alpha1.BackupSpec{
-			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
-					Name: testMariaDbName,
-				},
-				WaitForIt: true,
-			},
-			Storage: storage,
-		},
-	}
-}
-
-func testBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
-	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
-		PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					"storage": resource.MustParse("100Mi"),
-				},
-			},
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
-			},
-		},
-	})
-}
-
-func testBackupWithS3Storage(key types.NamespacedName, bucket string) *mariadbv1alpha1.Backup {
-	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
-		S3: testS3WithBucket(bucket),
-	})
-}
-
-func testBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
-	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
-		Volume: &corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
-		},
-	})
-}
 
 var _ = Describe("Backup controller", func() {
 	Context("When creating a Backup", func() {
