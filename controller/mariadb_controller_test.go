@@ -192,7 +192,7 @@ var _ = Describe("MariaDB controller", func() {
 			}
 			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
 
-			By("Expecting Backup to be complete eventually")
+			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
 					return false
