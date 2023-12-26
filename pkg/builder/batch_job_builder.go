@@ -157,7 +157,8 @@ func jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, en
 	return jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb)
 }
 
-func jobBatchStorageVolume(volumeSource *corev1.VolumeSource, mariaDb *mariadbv1alpha1.MariaDB, mountDataDir bool, s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
+func jobBatchStorageVolume(volumeSource *corev1.VolumeSource, mariaDb *mariadbv1alpha1.MariaDB,
+	mountDataDir bool, s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
 
 	volumes := []corev1.Volume{
 		{
