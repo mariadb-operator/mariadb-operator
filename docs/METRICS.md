@@ -18,7 +18,7 @@ It is important to note that, we run this exporter as an standalone `Deployment`
 For being able to do this, we rely on the [multi-target](https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#multi-target-support) feature introduced in the [v0.15.0](https://github.com/prometheus/mysqld_exporter/releases/tag/v0.15.0) of [prometheus/mysqld-exporter](https://github.com/prometheus/mysqld_exporter), so make sure to specify at least v0.15.0 in the exporter image.
 
 
-## ServiceMonitor
+## `ServiceMonitor`
 
 Once the exporter `Deployment` is ready, `mariadb-operator` creates a [ServiceMonitor](https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.ServiceMonitor) object that will be eventually reconciled by the [Prometheus operator ](https://github.com/prometheus-operator/prometheus-operator), resulting in the Prometheus instance being configured to scrape the exporter endpoint.
 
@@ -75,7 +75,6 @@ spec:
 
 ```bash
 kubectl explain mariadb.spec.metrics
-...
 ...
 FIELDS:
   enabled       <boolean>
