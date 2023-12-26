@@ -281,6 +281,13 @@ type RestoreSource struct {
 	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
 }
 
+func (r *RestoreSource) Validate() error {
+	if r.BackupRef == nil && r.S3 == nil && r.Volume == nil {
+		return errors.New("unable to determine restore source")
+	}
+	return nil
+}
+
 func (r *RestoreSource) IsDefaulted() bool {
 	return r.Volume != nil
 }
@@ -300,13 +307,6 @@ func (r *RestoreSource) SetDefaultsWithBackup(backup *Backup) error {
 	}
 	r.Volume = volume
 	r.S3 = backup.Spec.Storage.S3
-	return nil
-}
-
-func (r *RestoreSource) Validate() error {
-	if r.BackupRef == nil && r.S3 == nil && r.Volume == nil {
-		return errors.New("unable to determine restore source")
-	}
 	return nil
 }
 

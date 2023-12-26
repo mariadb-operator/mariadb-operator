@@ -37,7 +37,7 @@ func (b *BackupStorage) Validate() error {
 		}
 	}
 	if storageTypes != 1 {
-		return errors.New("exactly one storage type configuration should be provided")
+		return errors.New("exactly one storage type should be provided")
 	}
 	return nil
 }
@@ -135,15 +135,6 @@ func (b *Backup) IsComplete() bool {
 	return meta.IsStatusConditionTrue(b.Status.Conditions, ConditionTypeComplete)
 }
 
-func (b *Backup) SetDefaults() {
-	if b.Spec.MaxRetention == (metav1.Duration{}) {
-		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
-	}
-	if b.Spec.BackoffLimit == 0 {
-		b.Spec.BackoffLimit = 5
-	}
-}
-
 func (b *Backup) Validate() error {
 	if b.Spec.Schedule != nil {
 		if err := b.Spec.Schedule.Validate(); err != nil {
@@ -154,6 +145,15 @@ func (b *Backup) Validate() error {
 		return fmt.Errorf("invalid Storage: %v", err)
 	}
 	return nil
+}
+
+func (b *Backup) SetDefaults() {
+	if b.Spec.MaxRetention == (metav1.Duration{}) {
+		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
+	}
+	if b.Spec.BackoffLimit == 0 {
+		b.Spec.BackoffLimit = 5
+	}
 }
 
 func (b *Backup) Volume() (*corev1.VolumeSource, error) {
