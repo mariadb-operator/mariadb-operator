@@ -1,10 +1,12 @@
 package controller
 
 import (
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	batchv1 "k8s.io/api/batch/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -59,7 +61,20 @@ var _ = Describe("Backup controller", func() {
 				Namespace: testNamespace,
 			}
 			backup := testBackupWithPVCStorage(backupKey)
-			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			backupWithSchedule := &mariadbv1alpha1.Backup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      backupKey.Name,
+					Namespace: backupKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.BackupSpec{
+					MariaDBRef: backup.Spec.MariaDBRef,
+					Schedule: &mariadbv1alpha1.Schedule{
+						Cron: "*/1 * * * *",
+					},
+					Storage: backup.Spec.Storage,
+				},
+			}
+			Expect(k8sClient.Create(testCtx, backupWithSchedule)).To(Succeed())
 
 			By("Expecting to create a CronJob eventually")
 			Eventually(func() bool {
@@ -71,7 +86,7 @@ var _ = Describe("Backup controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, backupWithSchedule)).To(Succeed())
 		})
 
 		It("Should reconcile a Job with S3 storage", func() {
