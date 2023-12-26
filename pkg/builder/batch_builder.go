@@ -130,7 +130,7 @@ func (b *Builder) BuildMariaBackupJob(key types.NamespacedName, backup *mariadbv
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(volume, mariadb, true, backup.Spec.Storage.S3)
+	volumes, volumeSources := jobBatchStorageVolume(volume, mariadb, true, nil)
 
 	opts := []jobOption{
 		withJobMeta(objMeta),

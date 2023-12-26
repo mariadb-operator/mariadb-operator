@@ -14,7 +14,7 @@ spec:
     backupRef:
       name: mariadb-repl-mariabackup
     type: mariabackup
-    fileName: mariabackup-2023-12-26T19:47:43Z
+    fileName: mariabackup-2023-12-26T20:22:06Z
 
   image: mariadb:11.0.3
 

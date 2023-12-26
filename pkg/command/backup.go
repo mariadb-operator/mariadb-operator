@@ -130,7 +130,6 @@ func (b *BackupCommand) MariadbBackup(backup *mariadbv1alpha1.MariaBackup,
 		"export backupdir=/backup/mariabackup-$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
 		"mkdir -p ${backupdir}",
 		fmt.Sprintf("mariadb-backup --host=%s-primary --backup   --target-dir=${backupdir}   --user=${MARIADB_OPERATOR_USER} --password=${MARIADB_OPERATOR_PASSWORD} ", mariadb.Name),
-		"sleep 10",
 		"echo '📜 Backup completed'",
 		"echo '🧹 Cleaning up old backups'",
 		fmt.Sprintf(

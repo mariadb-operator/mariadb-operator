@@ -896,6 +896,9 @@ spec:
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic
+                  fileName:
+                    description: FileName is the file within the source to be restored.
+                    type: string
                   s3:
                     description: S3 defines the configuration to restore backups from
                       a S3 compatible storage. It has priority over Volume.
@@ -983,9 +986,6 @@ spec:
                     - endpoint
                     - secretAccessKeySecretKeyRef
                     type: object
-                  fileName:
-                    description: FileName is the file within the source to be restored.
-                    type: string
                   targetRecoveryTime:
                     description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z)
                       date and time that defines the point in time recovery objective.
