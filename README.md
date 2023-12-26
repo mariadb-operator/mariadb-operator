@@ -23,11 +23,11 @@
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 - [Easily provision](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) MariaDB servers in Kubernetes.
 - [Highly configurable](./examples/manifests/mariadb_v1alpha1_mariadb_full.yaml) MariaDB servers.
-- Multiple [HA modes](./docs/HA.md): [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml) and [Galera](./docs/GALERA.md).
+- Multiple [HA modes](./docs/HA.md): SemiSync Replication and Galera.
 - Automatic [primary failover](./docs/HA.md).
 - Take and restore [backups](./docs/BACKUP.md). 
 - Scheduled [backups](./docs/BACKUP.md/#scheduling). 
-- Multiple [backup storage types](./docs/BACKUP.md#storage-types): S3compatible, PVCs and Kubernetes volumes.
+- Multiple [backup storage types](./docs/BACKUP.md#storage-types): S3 compatible, PVCs and Kubernetes volumes.
 - [Backup retention policy](./docs/BACKUP.md#retention-policy).
 - [Point in time recovery](./docs/BACKUP.md#point-in-time-recovery) (PITR).
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
