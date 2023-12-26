@@ -27,20 +27,20 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Automatic [primary failover](./docs/HA.md).
 - [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. 
 - [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. 
-- Multiple backup storages: [S3](./examples/manifests/mariadb_v1alpha1_backup.yaml) compatible, [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml))
+- Multiple backup storages: [S3](./examples/manifests/mariadb_v1alpha1_backup.yaml) compatible, [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)).
 - [Backup rentention policy](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml).
-- [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_point_in_time_recovery.yaml) (PITR)
+- [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_point_in_time_recovery.yaml) (PITR).
 - Bootstrap new instances from: [Backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml), [S3](./examples/manifests/mariadb_v1alpha1_mariadb_from_s3.yaml), [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) ...
-- [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) as a multi-target Deployment
-- Manage [users](./examples/manifests/mariadb_v1alpha1_user.yaml), [grants](./examples/manifests/mariadb_v1alpha1_grant.yaml) and logical [databases](./examples/manifests/mariadb_v1alpha1_database.yaml)
-- Configure [connections](./examples/manifests/mariadb_v1alpha1_connection.yaml) for your applications
-- Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs)
-- Validation webhooks to provide CRD inmutability
-- Additional printer columns to report the current CRD status
-- CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
-- [GitOps](#gitops) friendly
-- Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator)
-- Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator) 
+- [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) as a multi-target Deployment.
+- Manage [users](./examples/manifests/mariadb_v1alpha1_user.yaml), [grants](./examples/manifests/mariadb_v1alpha1_grant.yaml) and logical [databases](./examples/manifests/mariadb_v1alpha1_database.yaml).
+- Configure [connections](./examples/manifests/mariadb_v1alpha1_connection.yaml) for your applications.
+- Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
+- Validation webhooks to provide CRD inmutability.
+- Additional printer columns to report the current CRD status.
+- CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
+- [GitOps](#gitops) friendly.
+- Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
+- Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator) .
 
 ## Bare minimum installation
 
