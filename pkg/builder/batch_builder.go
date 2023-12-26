@@ -7,12 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
-	backupcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/backup"
-	sqlcmd "github.com/mariadb-operator/mariadb-operator/pkg/command/sql"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -60,7 +55,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(volume, mariadb)
+	volumes, volumeSources := jobBatchStorageVolume(volume, mariadb, false)
 
 	opts := []jobOption{
 		withJobMeta(objMeta),
@@ -107,17 +102,19 @@ func (b *Builder) BuildMariaBackupJob(key types.NamespacedName, backup *mariadbv
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
-			WithBackupRef(backup).
 			Build()
 
-	cmdOpts := []backupcmd.Option{
-		backupcmd.WithBasePath(batchStorageMountPath),
-		backupcmd.WithUserEnv(batchUserEnv),
-		backupcmd.WithPasswordEnv(batchPasswordEnv),
+	var batchBackupTargetFilePath = fmt.Sprintf("%s/0-mariabackup-target.txt", batchStorageMountPath)
+
+	cmdOpts := []command.BackupOpt{
+		command.WithBackup(
+			batchStorageMountPath,
+			batchBackupTargetFilePath,
+		),
+		command.WithBackupUserEnv(batchUserEnv),
+		command.WithBackupPasswordEnv(batchPasswordEnv),
 	}
-	if backup.Spec.Args != nil {
-		cmdOpts = append(cmdOpts, command.WithBackupDumpOpts(backup.Spec.Args))
-	}
+
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
@@ -127,27 +124,18 @@ func (b *Builder) BuildMariaBackupJob(key types.NamespacedName, backup *mariadbv
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(volume, mariadb)
+	volumes, volumeSources := jobBatchStorageVolume(volume, mariadb, true)
 
 	opts := []jobOption{
 		withJobMeta(objMeta),
 		withJobVolumes(volumes...),
-		withJobInitContainers(
+		withJobContainers(
 			jobMariadbContainer(
-				cmd.MariadbDump(backup, mariadb),
+				cmd.MariadbBackup(backup, mariadb),
 				volumeSources,
 				jobEnv(mariadb),
 				backup.Spec.Resources,
 				mariadb,
-			),
-		),
-		withJobContainers(
-			jobMariadbOperatorContainer(
-				cmd.MariadbOperatorBackup(),
-				volumeSources,
-				backup.Spec.Resources,
-				mariadb,
-				b.env,
 			),
 		),
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
@@ -255,7 +243,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	if err != nil {
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.RestoreSource.Volume, mariadb)
+	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.RestoreSource.Volume, mariadb, false)
 
 	jobOpts := []jobOption{
 		withJobMeta(objMeta),

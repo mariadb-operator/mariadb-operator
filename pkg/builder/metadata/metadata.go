@@ -34,11 +34,6 @@ func (b *MetadataBuilder) WithMariaDB(mariadb *mariadbv1alpha1.MariaDB) *Metadat
 	return b
 }
 
-func (b *MetadataBuilder) WithBackupRef(backup *mariadbv1alpha1.MariaBackup) *MetadataBuilder {
-	b.objMeta.Labels["backup-ref"] = backup.Name
-	return b
-}
-
 func (b *MetadataBuilder) WithLabels(labels map[string]string) *MetadataBuilder {
 	for k, v := range labels {
 		b.objMeta.Labels[k] = v

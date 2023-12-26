@@ -1631,6 +1631,11 @@ func (in *RestoreSource) DeepCopyInto(out *RestoreSource) {
 		in, out := &in.TargetRecoveryTime, &out.TargetRecoveryTime
 		*out = (*in).DeepCopy()
 	}
+	if in.FileName != nil {
+		in, out := &in.FileName, &out.FileName
+		*out = new(string)
+		**out = **in
+	}
 	if in.Type != nil {
 		in, out := &in.Type, &out.Type
 		*out = new(string)
