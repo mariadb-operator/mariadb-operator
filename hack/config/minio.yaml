@@ -7,7 +7,11 @@ rootUser: root
 rootPassword: Minio11!
 
 persistence:
-  size: 10Gi
+  size: 5Gi
+
+resources:
+  requests:
+    memory: 512Mi
 
 tls:
   enabled: true
