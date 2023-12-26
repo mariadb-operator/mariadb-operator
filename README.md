@@ -21,12 +21,16 @@
 # 🦭 mariadb-operator
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-- [Provisioning](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) highly configurable MariaDB servers.
-- Multiple [HA modes](./docs/HA.md) supported: [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml) and [Galera](./docs/GALERA.md). Automatic primary failover.
-- [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. Backup rotation
+- [Easily provision](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) MariaDB servers in Kubernetes.
+- [Highly configurable](./examples/manifests/mariadb_v1alpha1_mariadb_full.yaml) MariaDB servers.
+- Multiple [HA modes](./docs/HA.md): [SemiSync Replication](./examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml) and [Galera](./docs/GALERA.md).
+- Automatic [primary failover](./docs/HA.md).
+- [Take](./examples/manifests/mariadb_v1alpha1_backup.yaml) and [restore](./examples/manifests/mariadb_v1alpha1_restore.yaml) backups. 
+- [Scheduled](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml) backups. 
+- Multiple backup storages: [S3](./examples/manifests/mariadb_v1alpha1_backup.yaml) compatible, [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) and [Kubernetes volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml))
+- [Backup rentention policy](./examples/manifests/mariadb_v1alpha1_backup_scheduled.yaml).
 - [Point in time recovery](./examples/manifests/mariadb_v1alpha1_restore_point_in_time_recovery.yaml) (PITR)
-- [PVCs](./examples/manifests/mariadb_v1alpha1_backup.yaml) and all Kubernetes-compatible [volumes](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) (i.e. [NFS](./examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)) supported as backup storage
-- Bootstrap new instances from [backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml) and volumes (i.e [NFS](./examples/manifests/mariadb_v1alpha1_mariadb_from_nfs.yaml))
+- Bootstrap new instances from: [Backups](./examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml), [S3](./examples/manifests/mariadb_v1alpha1_mariadb_from_s3.yaml), [PVCs](./examples/manifests/mariadb_v1alpha1_backup_pvc.yaml) ...
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) as a multi-target Deployment
 - Manage [users](./examples/manifests/mariadb_v1alpha1_user.yaml), [grants](./examples/manifests/mariadb_v1alpha1_grant.yaml) and logical [databases](./examples/manifests/mariadb_v1alpha1_database.yaml)
 - Configure [connections](./examples/manifests/mariadb_v1alpha1_connection.yaml) for your applications

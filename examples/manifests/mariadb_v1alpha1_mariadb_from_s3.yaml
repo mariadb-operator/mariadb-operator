@@ -1,11 +1,16 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
-kind: Backup
+kind: MariaDB
 metadata:
-  name: backup
+  name: mariadb-from-backup
 spec:
-  mariaDbRef:
-    name: mariadb
-  storage:
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
+  bootstrapFrom:
     s3:
       bucket: backups
       endpoint: minio.minio.svc.cluster.local:9000
@@ -20,10 +25,4 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 512Mi
+    targetRecoveryTime: 2023-12-19T09:00:00Z

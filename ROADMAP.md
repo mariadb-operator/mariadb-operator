@@ -6,6 +6,6 @@
 - ~~COMMUNITY REQUEST - Support for db initialization scripts: https://github.com/mariadb-operator/mariadb-operator/issues/47~~
 - ~~High availability support via [replication](https://mariadb.org/mariadb-k8s-how-to-replicate-mariadb-in-k8s/): https://github.com/mariadb-operator/mariadb-operator/issues/61~~
 - ~~High availability support via [Galera](https://mariadb.com/kb/en/what-is-mariadb-galera-cluster/): https://github.com/mariadb-operator/mariadb-operator/issues/4~~
+- ~~The operator has recently been refactored to easily support new storage types for the backups. The next one to be supported will be S3: https://github.com/mariadb-operator/mariadb-operator/issues/6~~
 - TLS support. Allow the user to provide certificates via Secrets or automatically issue them with `cert-manager`. Certificate rotation: https://github.com/mariadb-operator/mariadb-operator/issues/137
-- The operator has recently been refactored to easily support new storage types for the backups. The next one to be supported will be S3: https://github.com/mariadb-operator/mariadb-operator/issues/6
 - Create a documentation site hosted in GitHub Pages, something like [this](https://gateway-api.sigs.k8s.io/). It would be generated from markdown by the new CI/CD: https://github.com/mariadb-operator/mariadb-operator/issues/21
