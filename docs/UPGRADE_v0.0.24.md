@@ -6,7 +6,7 @@
 This guide illustrates, step by step, how to migrate to `v0.0.24` from previous versions, as some breaking changes have been introduced. See:
 
 `MariaDB`
-- https://github.com/mariadb-operator/mariadb-operator/pull/293
+- https://github.com/mariadb-operator/mariadb-operator/pull/248
 - https://github.com/mariadb-operator/mariadb-operator/pull/312
 
 `Backup`
@@ -23,17 +23,17 @@ helm uninstall mariadb-operator
 ```
 Alternatively, you may only downscale and delete the webhook configurations:
 ```bash
-kubectl scale deployment mariadb-operator -n default --replicas=0
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=0
-kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
-kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
+kubectl scale deployment <mariadb-operator-name> --replicas=0
+kubectl scale deployment <mariadb-operator-webhook-name> --replicas=0
+kubectl delete validatingwebhookconfiguration <mariadb-operator-webhook-name>
+kubectl delete mutatingwebhookconfiguration <mariadb-operator-webhook-name>
 ```
 
 - In case you are manually applying manifests, get a copy of your `MariaDB`, `Backup` and `Restore` resources, as the CRD upgrade will wipe out fields that are no longer supported:
 ```bash
-kubectl get mariadb <name> -n default -o yaml > mariadb.yaml
-kubectl get backup <name> -n default -o yaml > backup.yaml
-kubectl get restore <name> -n default -o yaml > restore.yaml
+kubectl get mariadb <mariadb-name> -o yaml > mariadb.yaml
+kubectl get backup <backup-name> -o yaml > backup.yaml
+kubectl get restore <restore-name> -o yaml > restore.yaml
 ```
 
 - Upgrade CRDs to `v0.0.24`:
@@ -73,6 +73,6 @@ helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --vers
 
 - If you previously decided to downscale the operator, make sure you upscale it back:
 ```bash
-kubectl scale deployment mariadb-operator -n default --replicas=1
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
+kubectl scale deployment mariadb-operator -n default --replicas=<previous-replicas>
+kubectl scale deployment mariadb-operator-webhook -n default --replicas=<previous-replicas>
 ```
