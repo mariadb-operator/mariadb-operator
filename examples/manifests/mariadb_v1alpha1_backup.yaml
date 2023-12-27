@@ -6,20 +6,15 @@ spec:
   mariaDbRef:
     name: mariadb
   storage:
-    s3:
-      bucket: backups
-      endpoint: minio.minio.svc.cluster.local:9000
-      accessKeyIdSecretKeyRef:
-        name: minio
-        key: access-key-id
-      secretAccessKeySecretKeyRef:
-        name: minio
-        key: secret-access-key
-      tls:
-        enabled: true
-        caSecretKeyRef:
-          name: minio-ca
-          key: ca.crt
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
+  args:
+    - --single-transaction
+    - --all-databases
   resources:
     requests:
       cpu: 100m

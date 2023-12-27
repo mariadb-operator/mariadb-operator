@@ -3,9 +3,31 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+
+  image: mariadb:11.0.3
+  imagePullPolicy: IfNotPresent
+
+  port: 3306
   volumeClaimTemplate:
     resources:
       requests:
         storage: 1Gi
     accessModes:
       - ReadWriteOnce
+
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    max_allowed_packet=256M

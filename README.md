@@ -21,7 +21,7 @@
 # 🦭 mariadb-operator
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-- [Easily provision](./examples/manifests/mariadb_v1alpha1_mariadb.yaml) MariaDB servers in Kubernetes.
+- [Easily provision](./examples/manifests/mariadb_v1alpha1_mariadb_minimal.yaml) MariaDB servers in Kubernetes.
 - [Highly configurable](./examples/manifests/mariadb_v1alpha1_mariadb_full.yaml) MariaDB servers.
 - Multiple [HA modes](./docs/HA.md): SemiSync Replication and Galera.
 - Automatic [primary failover](./docs/HA.md).
