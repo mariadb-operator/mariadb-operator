@@ -12,6 +12,7 @@ spec:
   database: mariadb
   params:
     parseTime: "true"
+    timeout: "5s"
   secretName: connection
   secretTemplate:
     labels:
