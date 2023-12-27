@@ -43,7 +43,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 	}
 
 	if !mariadb.IsReady() {
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	if err := r.reconcileMetricsPassword(ctx, mariadb); err != nil {
