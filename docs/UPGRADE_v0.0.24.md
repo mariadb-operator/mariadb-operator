@@ -6,7 +6,7 @@
 This guide illustrates, step by step, how to migrate to `v0.0.24` from previous versions, as some breaking changes have been introduced. See:
 
 `MariaDB`
-- https://github.com/mariadb-operator/mariadb-operator/pull/248
+- https://github.com/mariadb-operator/mariadb-operator/pull/293
 - https://github.com/mariadb-operator/mariadb-operator/pull/312
 
 `Backup`
