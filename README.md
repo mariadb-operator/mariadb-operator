@@ -165,7 +165,7 @@ NAME                                         COMPLETIONS   DURATION   AGE
 backup                                       1/1           9s         12m
 bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
-You can take a look at the whole suite of example CRDs available in [examples/manifests](./examples/manifests/).
+Please, refer to the documentation and to the example suite for further detail.
 
 ## GitOps
 
