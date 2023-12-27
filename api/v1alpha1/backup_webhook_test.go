@@ -200,6 +200,7 @@ var _ = Describe("Backup webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: BackupSpec{
+					MaxRetention: metav1.Duration{Duration: 12 * time.Hour},
 					Storage: BackupStorage{
 						S3: &S3{
 							Bucket:   "test",
@@ -257,7 +258,7 @@ var _ = Describe("Backup webhook", func() {
 				false,
 			),
 			Entry(
-				"Updating MaxBackupRetainDays",
+				"Updating MaxRetention",
 				func(bmdb *Backup) {
 					bmdb.Spec.MaxRetention = metav1.Duration{Duration: 24 * time.Hour}
 				},
