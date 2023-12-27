@@ -73,7 +73,13 @@ spec:
   affinity:
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
-        - topologyKey: "kubernetes.io/hostname"
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/instance
+                operator: In
+                values:
+                  - mariadb-galera
+          topologyKey: "kubernetes.io/hostname"
 
   tolerations:
     - key: "mariadb.mmontes.io/ha"
