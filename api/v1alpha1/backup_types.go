@@ -64,7 +64,7 @@ type BackupSpec struct {
 	// It defaults to 30 days.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MaxRetention metav1.Duration `json:"maxRetention,omitempty" webhook:"inmutable"`
+	MaxRetention metav1.Duration `json:"maxRetention,omitempty" webhook:"inmutableinit"`
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
