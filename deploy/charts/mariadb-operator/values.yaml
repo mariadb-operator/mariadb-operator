@@ -21,7 +21,7 @@ ha:
   replicas: 3
 
 metrics:
-  # -- Enable prometheus metrics. Prometheus must be installed in the cluster
+  # -- Enable operator internal metrics. Prometheus must be installed in the cluster
   enabled: false
   serviceMonitor:
     # -- Enable controller ServiceMonitor

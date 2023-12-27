@@ -69,7 +69,7 @@ helm uninstall mariadb-operator
 | image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | imagePullSecrets | list | `[]` |  |
 | logLevel | string | `"INFO"` | Controller log level |
-| metrics.enabled | bool | `false` | Enable prometheus metrics. Prometheus must be installed in the cluster |
+| metrics.enabled | bool | `false` | Enable operator internal metrics. Prometheus must be installed in the cluster |
 | metrics.serviceMonitor.additionalLabels | object | `{}` | Labels to be added to the controller ServiceMonitor |
 | metrics.serviceMonitor.enabled | bool | `true` | Enable controller ServiceMonitor |
 | metrics.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
