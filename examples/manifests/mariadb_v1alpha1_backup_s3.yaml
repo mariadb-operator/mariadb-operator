@@ -5,6 +5,7 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
+  maxRetention: 720h # 30 days
   storage:
     s3:
       bucket: backups
@@ -20,13 +21,3 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
-  args:
-    - --single-transaction
-    - --all-databases
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 512Mi

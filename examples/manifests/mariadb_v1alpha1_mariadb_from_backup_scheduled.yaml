@@ -1,7 +1,7 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb-from-backup
+  name: mariadb-from-backup-scheduled
 spec:
   volumeClaimTemplate:
     resources:
@@ -13,4 +13,4 @@ spec:
   bootstrapFrom:
     backupRef:
       name: backup-scheduled
-    targetRecoveryTime: 2023-12-19T09:00:00Z
+    targetRecoveryTime: 2023-12-28T09:00:00Z
