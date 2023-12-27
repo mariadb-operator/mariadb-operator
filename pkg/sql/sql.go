@@ -28,6 +28,7 @@ type Opts struct {
 	Port     int32
 	Database string
 	Params   map[string]string
+	Timeout  *time.Duration
 }
 
 type Opt func(*Opts)
@@ -65,6 +66,12 @@ func WithDatabase(database string) Opt {
 func WithParams(params map[string]string) Opt {
 	return func(o *Opts) {
 		o.Params = params
+	}
+}
+
+func WithTimeout(d time.Duration) Opt {
+	return func(o *Opts) {
+		o.Timeout = &d
 	}
 }
 
@@ -137,6 +144,11 @@ func BuildDSN(opts Opts) (string, error) {
 	config.Net = "tcp"
 	config.Addr = fmt.Sprintf("%s:%d", opts.Host, opts.Port)
 
+	if opts.Timeout != nil {
+		config.Timeout = *opts.Timeout
+	} else {
+		config.Timeout = 5 * time.Second
+	}
 	if opts.Username != "" && opts.Password != "" {
 		config.User = opts.Username
 		config.Passwd = opts.Password
