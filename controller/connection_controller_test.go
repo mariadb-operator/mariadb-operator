@@ -81,7 +81,7 @@ var _ = Describe("Connection controller", func() {
 						Database: &testDatabase,
 					},
 				},
-				"test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?parseTime=true",
+				"test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
 			),
 			Entry(
 				"Creating a Connection providing ServiceName",
@@ -124,7 +124,7 @@ var _ = Describe("Connection controller", func() {
 						Database: &testDatabase,
 					},
 				},
-				"test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?parseTime=true",
+				"test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
 			),
 			Entry(
 				"Creating a Connection providing DSN Format",
@@ -151,7 +151,7 @@ var _ = Describe("Connection controller", func() {
 								RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 							},
 							Params: map[string]string{
-								"parseTime": "true",
+								"timeout": (5 * time.Second).String(),
 							},
 						},
 						MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -170,7 +170,7 @@ var _ = Describe("Connection controller", func() {
 						Database: &testDatabase,
 					},
 				},
-				"mysql://test:test@mariadb-test.default.svc.cluster.local:3306/test?parseTime=true",
+				"mysql://test:test@mariadb-test.default.svc.cluster.local:3306/test?timeout=5s",
 			),
 		)
 
