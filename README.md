@@ -165,7 +165,7 @@ NAME                                         COMPLETIONS   DURATION   AGE
 backup                                       1/1           9s         12m
 bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
-Please, refer to the documentation and to the example suite for further detail.
+Please, refer to the [documentation](./docs/) and to the [example suite](./examples/) for further detail.
 
 ## GitOps
 
