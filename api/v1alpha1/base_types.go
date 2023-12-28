@@ -246,6 +246,10 @@ type S3 struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Endpoint string `json:"endpoint" webhook:"inmutable"`
+	// Region is the S3 region name to use.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Region string `json:"region" webhook:"inmutable"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

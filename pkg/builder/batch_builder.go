@@ -294,6 +294,7 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 		command.WithS3(
 			s3.Bucket,
 			s3.Endpoint,
+			s3.Region,
 		),
 	}
 	if s3.TLS != nil && s3.TLS.Enabled {

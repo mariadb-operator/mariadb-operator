@@ -194,6 +194,7 @@ func testS3WithBucket(bucket string) *mariadbv1alpha1.S3 {
 	return &mariadbv1alpha1.S3{
 		Bucket:   bucket,
 		Endpoint: "minio.minio.svc.cluster.local:9000",
+		Region:   "us-east-1",
 		AccessKeyIdSecretKeyRef: corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: "minio",

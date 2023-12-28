@@ -58,11 +58,18 @@ func (f *FileSystemBackupStorage) Delete(ctx context.Context, fileName string) e
 }
 
 type S3BackupStorageOpts struct {
+	Region     string
 	TLS        bool
 	CACertPath string
 }
 
 type S3BackupStorageOpt func(s *S3BackupStorageOpts)
+
+func WithRegion(region string) S3BackupStorageOpt {
+	return func(s *S3BackupStorageOpts) {
+		s.Region = region
+	}
+}
 
 func WithTLS(caCertPath string) S3BackupStorageOpt {
 	return func(s *S3BackupStorageOpts) {
@@ -85,7 +92,9 @@ func NewS3BackupStorage(basePath, bucket, endpoint string, logger logr.Logger, s
 		setOpt(&opts)
 	}
 
-	var clientOpts []mariadbminio.MinioOpt
+	clientOpts := []mariadbminio.MinioOpt{
+		mariadbminio.WithRegion(opts.Region),
+	}
 	if opts.TLS {
 		clientOpts = append(clientOpts, mariadbminio.WithTLS(opts.CACertPath))
 	}

@@ -53,7 +53,7 @@ cert-controller: lint ## Run a cert-controller from your host.
 
 BACKUP_ENV ?= S3_ACCESS_KEY_ID=mariadb-operator S3_SECRET_ACCESS_KEY=Minio11!
 BACKUP_COMMON_FLAGS ?= --path=backup --target-file-path=backup/0-backup-target.txt \
-	--s3 --s3-bucket=backups --s3-endpoint=minio:9000 --s3-tls --s3-ca-cert-path=/tmp/certificate-authority/tls.crt \
+	--s3 --s3-bucket=backups --s3-endpoint=minio:9000 --s3-region=us-east-1 --s3-tls --s3-ca-cert-path=/tmp/certificate-authority/tls.crt \
 	--log-dev --log-level=debug --log-time-encoder=iso8601 
 
 BACKUP_FLAGS ?= --max-retention=8h $(BACKUP_COMMON_FLAGS)
