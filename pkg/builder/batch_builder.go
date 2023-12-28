@@ -23,8 +23,9 @@ const (
 	batchScriptsSqlFile    = "job.sql"
 	batchUserEnv           = "MARIADB_OPERATOR_USER"
 	batchPasswordEnv       = "MARIADB_OPERATOR_PASSWORD"
-	batchS3AccessKeyId     = "S3_ACCESS_KEY_ID"
-	batchS3SecretAccessKey = "S3_SECRET_ACCESS_KEY"
+	batchS3AccessKeyId     = "AWS_ACCESS_KEY_ID"
+	batchS3SecretAccessKey = "AWS_SECRET_ACCESS_KEY"
+	batchS3SessionTokenKey = "AWS_SESSION_TOKEN"
 )
 
 var batchBackupTargetFilePath = fmt.Sprintf("%s/0-backup-target.txt", batchStorageMountPath)

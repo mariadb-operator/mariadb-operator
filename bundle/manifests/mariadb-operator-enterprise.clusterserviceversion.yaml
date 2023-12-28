@@ -288,7 +288,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2023-12-26T15:35:50Z"
+    createdAt: "2023-12-28T11:39:38Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -384,6 +384,9 @@ spec:
           - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
             displayName: Secret Access Key Secret Key Ref
             path: storage.s3.secretAccessKeySecretKeyRef
+          - description: SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
+            displayName: Session Token Secret Key Ref
+            path: storage.s3.sessionTokenSecretKeyRef
           - description: TLS provides the configuration required to establish TLS connections with S3.
             displayName: TLS
             path: storage.s3.tls
@@ -651,6 +654,9 @@ spec:
           - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
             displayName: Secret Access Key Secret Key Ref
             path: bootstrapFrom.s3.secretAccessKeySecretKeyRef
+          - description: SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
+            displayName: Session Token Secret Key Ref
+            path: bootstrapFrom.s3.sessionTokenSecretKeyRef
           - description: TLS provides the configuration required to establish TLS connections with S3.
             displayName: TLS
             path: bootstrapFrom.s3.tls
@@ -1448,6 +1454,9 @@ spec:
           - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
             displayName: Secret Access Key Secret Key Ref
             path: s3.secretAccessKeySecretKeyRef
+          - description: SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
+            displayName: Session Token Secret Key Ref
+            path: s3.sessionTokenSecretKeyRef
           - description: TLS provides the configuration required to establish TLS connections with S3.
             displayName: TLS
             path: s3.tls

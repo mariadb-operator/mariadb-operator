@@ -2,7 +2,6 @@ package minio
 
 import (
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -43,41 +42,17 @@ func NewMinioClient(endpoint string, mOpts ...MinioOpt) (*minio.Client, error) {
 }
 
 func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
-	creds, err := getCredentials()
-	if err != nil {
-		return nil, fmt.Errorf("error getting credentials: %v", err)
-	}
 	transport, err := getTransport(&opts)
 	if err != nil {
 		return nil, fmt.Errorf("error getting transport: %v", err)
 	}
 
 	minioOpts := &minio.Options{
-		Creds:     creds,
+		Creds:     credentials.NewEnvAWS(),
 		Secure:    opts.TLS,
 		Transport: transport,
 	}
 	return minioOpts, nil
-}
-
-func getCredentials() (*credentials.Credentials, error) {
-	accessKeyID, secretAccessKey, err := readS3Credentials()
-	if err != nil {
-		return nil, err
-	}
-	return credentials.NewStaticV4(accessKeyID, secretAccessKey, ""), nil
-}
-
-func readS3Credentials() (accessKeyID string, secretAccessKey string, err error) {
-	accessKeyID = os.Getenv("S3_ACCESS_KEY_ID")
-	if accessKeyID == "" {
-		return "", "", errors.New("S3_ACCESS_KEY_ID must be set in order to authenticate with S3")
-	}
-	secretAccessKey = os.Getenv("S3_SECRET_ACCESS_KEY")
-	if secretAccessKey == "" {
-		return "", "", errors.New("S3_SECRET_ACCESS_KEY must be set in order to authenticate with S3")
-	}
-	return accessKeyID, secretAccessKey, nil
 }
 
 func getTransport(opts *MinioOpts) (*http.Transport, error) {

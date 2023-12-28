@@ -203,23 +203,32 @@ func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 }
 
 func jobS3Env(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
-	if s3 != nil {
-		return []v1.EnvVar{
-			{
-				Name: batchS3AccessKeyId,
-				ValueFrom: &v1.EnvVarSource{
-					SecretKeyRef: &s3.AccessKeyIdSecretKeyRef,
-				},
-			},
-			{
-				Name: batchS3SecretAccessKey,
-				ValueFrom: &v1.EnvVarSource{
-					SecretKeyRef: &s3.SecretAccessKeySecretKeyRef,
-				},
-			},
-		}
+	if s3 == nil {
+		return nil
 	}
-	return nil
+	env := []v1.EnvVar{
+		{
+			Name: batchS3AccessKeyId,
+			ValueFrom: &v1.EnvVarSource{
+				SecretKeyRef: &s3.AccessKeyIdSecretKeyRef,
+			},
+		},
+		{
+			Name: batchS3SecretAccessKey,
+			ValueFrom: &v1.EnvVarSource{
+				SecretKeyRef: &s3.SecretAccessKeySecretKeyRef,
+			},
+		},
+	}
+	if s3.SessionTokenSecretKeyRef != nil {
+		env = append(env, v1.EnvVar{
+			Name: batchS3SessionTokenKey,
+			ValueFrom: &v1.EnvVarSource{
+				SecretKeyRef: s3.SessionTokenSecretKeyRef,
+			},
+		})
+	}
+	return env
 }
 
 func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.VolumeMount) {
