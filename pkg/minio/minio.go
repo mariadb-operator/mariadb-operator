@@ -1,14 +1,12 @@
 package minio
 
 import (
-	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -54,23 +52,11 @@ func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
 	}
 	if opts.TLS {
 		minioOpts.Secure = true
-
-		bytes, err := os.ReadFile(opts.CACertPath)
+		transport, err := getTransport(&opts)
 		if err != nil {
-			return nil, fmt.Errorf("error reading CA cert: %v", err)
+			return nil, fmt.Errorf("error getting http transport: %v", err)
 		}
-		rootCAs := x509.NewCertPool()
-		cert, err := pki.ParseCert(bytes)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing CA cert: %v", err)
-		}
-		rootCAs.AddCert(cert)
-
-		minioOpts.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: rootCAs,
-			},
-		}
+		minioOpts.Transport = transport
 	}
 	return minioOpts, nil
 }
@@ -85,4 +71,32 @@ func readS3Credentials() (accessKeyID string, secretAccessKey string, err error)
 		return "", "", errors.New("S3_SECRET_ACCESS_KEY must be set in order to authenticate with S3")
 	}
 	return accessKeyID, secretAccessKey, nil
+}
+
+func getTransport(opts *MinioOpts) (*http.Transport, error) {
+	transport, err := minio.DefaultTransport(opts.TLS)
+	if err != nil {
+		return nil, err
+	}
+	if !opts.TLS {
+		return transport, nil
+	}
+
+	if transport.TLSClientConfig.RootCAs == nil {
+		pool, err := x509.SystemCertPool()
+		if err != nil {
+			transport.TLSClientConfig.RootCAs = x509.NewCertPool()
+		} else {
+			transport.TLSClientConfig.RootCAs = pool
+		}
+	}
+	caBytes, err := os.ReadFile(opts.CACertPath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading CA cert: %v", err)
+	}
+	if ok := transport.TLSClientConfig.RootCAs.AppendCertsFromPEM(caBytes); !ok {
+		return nil, fmt.Errorf("error parsing CA Certifiate : %s", err)
+	}
+
+	return transport, nil
 }
