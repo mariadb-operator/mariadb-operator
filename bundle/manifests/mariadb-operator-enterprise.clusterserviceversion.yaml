@@ -288,7 +288,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2023-12-28T11:39:38Z"
+    createdAt: "2023-12-28T12:29:36Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -381,6 +381,9 @@ spec:
           - description: Endpoint is the S3 API endpoint without scheme.
             displayName: Endpoint
             path: storage.s3.endpoint
+          - description: Region is the S3 region name to use.
+            displayName: Region
+            path: storage.s3.region
           - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
             displayName: Secret Access Key Secret Key Ref
             path: storage.s3.secretAccessKeySecretKeyRef
@@ -651,6 +654,9 @@ spec:
           - description: Endpoint is the S3 API endpoint without scheme.
             displayName: Endpoint
             path: bootstrapFrom.s3.endpoint
+          - description: Region is the S3 region name to use.
+            displayName: Region
+            path: bootstrapFrom.s3.region
           - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
             displayName: Secret Access Key Secret Key Ref
             path: bootstrapFrom.s3.secretAccessKeySecretKeyRef
@@ -1451,6 +1457,9 @@ spec:
           - description: Endpoint is the S3 API endpoint without scheme.
             displayName: Endpoint
             path: s3.endpoint
+          - description: Region is the S3 region name to use.
+            displayName: Region
+            path: s3.region
           - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
             displayName: Secret Access Key Secret Key Ref
             path: s3.secretAccessKeySecretKeyRef
