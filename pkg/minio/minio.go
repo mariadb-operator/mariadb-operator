@@ -43,22 +43,29 @@ func NewMinioClient(endpoint string, mOpts ...MinioOpt) (*minio.Client, error) {
 }
 
 func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
+	creds, err := getCredentials()
+	if err != nil {
+		return nil, fmt.Errorf("error getting credentials: %v", err)
+	}
+	transport, err := getTransport(&opts)
+	if err != nil {
+		return nil, fmt.Errorf("error getting transport: %v", err)
+	}
+
+	minioOpts := &minio.Options{
+		Creds:     creds,
+		Secure:    opts.TLS,
+		Transport: transport,
+	}
+	return minioOpts, nil
+}
+
+func getCredentials() (*credentials.Credentials, error) {
 	accessKeyID, secretAccessKey, err := readS3Credentials()
 	if err != nil {
 		return nil, err
 	}
-	minioOpts := &minio.Options{
-		Creds: credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-	}
-	if opts.TLS {
-		minioOpts.Secure = true
-		transport, err := getTransport(&opts)
-		if err != nil {
-			return nil, fmt.Errorf("error getting http transport: %v", err)
-		}
-		minioOpts.Transport = transport
-	}
-	return minioOpts, nil
+	return credentials.NewStaticV4(accessKeyID, secretAccessKey, ""), nil
 }
 
 func readS3Credentials() (accessKeyID string, secretAccessKey string, err error) {
