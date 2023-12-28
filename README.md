@@ -29,7 +29,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Scheduled [backups](./docs/BACKUP.md/#scheduling). 
 - Multiple [backup storage types](./docs/BACKUP.md#storage-types): S3 compatible, PVCs and Kubernetes volumes.
 - [Backup retention policy](./docs/BACKUP.md#retention-policy).
-- [Point in time recovery](./docs/BACKUP.md#point-in-time-recovery) (PITR).
+- [Target recovery time](./docs/BACKUP.md#target-recovery-time): infer which backup to restore.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter).
 - Manage [users](./examples/manifests/mariadb_v1alpha1_user.yaml), [grants](./examples/manifests/mariadb_v1alpha1_grant.yaml) and logical [databases](./examples/manifests/mariadb_v1alpha1_database.yaml).

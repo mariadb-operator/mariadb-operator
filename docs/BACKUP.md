@@ -50,6 +50,7 @@ spec:
     s3:
       bucket: backups
       endpoint: minio.minio.svc.cluster.local:9000
+      region:  us-east-1
       accessKeyIdSecretKeyRef:
         name: minio
         key: access-key-id
@@ -84,7 +85,7 @@ spec:
 
 This resource gets reconciled into a `CronJob` that periodically takes the backups.
 
-It is important to note that regularly scheduled `Backups` complement very well the [Point In Time Recovery](#point-in-time-recovery) (PITR) feature detailed below.
+It is important to note that regularly scheduled `Backups` complement very well the [target recovery time](#target-recovery-time) feature detailed below.
 
 #### Retention policy
 
@@ -135,6 +136,7 @@ spec:
   s3:
     bucket: backups
     endpoint: minio.minio.svc.cluster.local:9000
+    region:  us-east-1
     accessKeyIdSecretKeyRef:
       name: minio
       key: access-key-id
@@ -148,9 +150,9 @@ spec:
         key: ca.crt
 ```
 
-#### Point In Time Recovery
+#### Target recovery time
 
-If you have multiple backups available, specially after configuring a [scheduled Backup](#scheduling), you are able to specify which backup to recover from by indicating the target recovery time via the `spec.targetRecoveryTime` field:
+If you have multiple backups available, specially after configuring a [scheduled Backup](#scheduling), the operator is able to infer which backup to restore based on the `spec.targetRecoveryTime` field.
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
