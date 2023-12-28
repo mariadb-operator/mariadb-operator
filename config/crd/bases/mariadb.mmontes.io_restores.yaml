@@ -1032,6 +1032,9 @@ spec:
                   endpoint:
                     description: Endpoint is the S3 API endpoint without scheme.
                     type: string
+                  region:
+                    description: Region is the S3 region name to use.
+                    type: string
                   secretAccessKeySecretKeyRef:
                     description: AccessKeyIdSecretKeyRef is a reference to a Secret
                       key containing the S3 secret key.

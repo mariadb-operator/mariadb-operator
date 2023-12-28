@@ -19,6 +19,7 @@ type BackupOpts struct {
 	S3                   bool
 	S3Bucket             string
 	S3Endpoint           string
+	S3Region             string
 	S3TLS                bool
 	S3CACertPath         string
 	LogLevel             string
@@ -46,11 +47,12 @@ func WithBackupTargetTime(t time.Time) BackupOpt {
 	}
 }
 
-func WithS3(bucket, endpoint string) BackupOpt {
+func WithS3(bucket, endpoint, region string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.S3 = true
 		bo.S3Bucket = bucket
 		bo.S3Endpoint = endpoint
+		bo.S3Region = region
 	}
 }
 
@@ -232,13 +234,18 @@ func (b *BackupCommand) s3Args() []string {
 		"--s3-endpoint",
 		b.S3Endpoint,
 	}
+	if b.S3Region != "" {
+		args = append(args,
+			"--s3-region",
+			b.S3Region,
+		)
+	}
 	if b.S3TLS {
 		args = append(args,
 			"--s3-tls",
 		)
 		if b.S3CACertPath != "" {
 			args = append(args,
-				"--s3-tls",
 				"--s3-ca-cert-path",
 				b.S3CACertPath,
 			)

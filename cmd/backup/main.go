@@ -21,6 +21,7 @@ var (
 	s3             bool
 	s3Bucket       string
 	s3Endpoint     string
+	s3Region       string
 	s3TLS          bool
 	s3CACertPath   string
 	maxRetention   time.Duration
@@ -42,6 +43,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&s3, "s3", false, "Enable S3 backup storage.")
 	RootCmd.PersistentFlags().StringVar(&s3Bucket, "s3-bucket", "backups", "Name of the bucket to store backups.")
 	RootCmd.PersistentFlags().StringVar(&s3Endpoint, "s3-endpoint", "s3.amazonaws.com", "S3 API endpoint without scheme.")
+	RootCmd.PersistentFlags().StringVar(&s3Region, "s3-region", "us-east-1", "S3 region name to use.")
 	RootCmd.PersistentFlags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
 	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "s3/pki/tls.crt",
 		"Path to the CA to be trusted when connecting to S3.")
@@ -147,7 +149,9 @@ func getBackupStorage() (backup.BackupStorage, error) {
 }
 
 func getS3BackupStorage() (backup.BackupStorage, error) {
-	var opts []backup.S3BackupStorageOpt
+	opts := []backup.S3BackupStorageOpt{
+		backup.WithRegion(s3Region),
+	}
 	if s3TLS {
 		opts = append(opts, backup.WithTLS(s3CACertPath))
 	}

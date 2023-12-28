@@ -11,16 +11,23 @@ import (
 )
 
 type MinioOpts struct {
+	Region     string
 	TLS        bool
 	CACertPath string
 }
 
 type MinioOpt func(m *MinioOpts)
 
+func WithRegion(region string) MinioOpt {
+	return func(m *MinioOpts) {
+		m.Region = region
+	}
+}
+
 func WithTLS(caCertPath string) MinioOpt {
-	return func(s *MinioOpts) {
-		s.TLS = true
-		s.CACertPath = caCertPath
+	return func(m *MinioOpts) {
+		m.TLS = true
+		m.CACertPath = caCertPath
 	}
 }
 
@@ -49,6 +56,7 @@ func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
 
 	minioOpts := &minio.Options{
 		Creds:     credentials.NewEnvAWS(),
+		Region:    opts.Region,
 		Secure:    opts.TLS,
 		Transport: transport,
 	}
