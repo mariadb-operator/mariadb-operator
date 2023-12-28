@@ -339,6 +339,10 @@ spec:
           the S3 secret key.
         displayName: Secret Access Key Secret Key Ref
         path: storage.s3.secretAccessKeySecretKeyRef
+      - description: SessionTokenSecretKeyRef is a reference to a Secret key containing
+          the S3 session token.
+        displayName: Session Token Secret Key Ref
+        path: storage.s3.sessionTokenSecretKeyRef
       - description: TLS provides the configuration required to establish TLS connections
           with S3.
         displayName: TLS
@@ -616,6 +620,10 @@ spec:
           the S3 secret key.
         displayName: Secret Access Key Secret Key Ref
         path: bootstrapFrom.s3.secretAccessKeySecretKeyRef
+      - description: SessionTokenSecretKeyRef is a reference to a Secret key containing
+          the S3 session token.
+        displayName: Session Token Secret Key Ref
+        path: bootstrapFrom.s3.sessionTokenSecretKeyRef
       - description: TLS provides the configuration required to establish TLS connections
           with S3.
         displayName: TLS
@@ -1504,6 +1512,10 @@ spec:
           the S3 secret key.
         displayName: Secret Access Key Secret Key Ref
         path: s3.secretAccessKeySecretKeyRef
+      - description: SessionTokenSecretKeyRef is a reference to a Secret key containing
+          the S3 session token.
+        displayName: Session Token Secret Key Ref
+        path: s3.sessionTokenSecretKeyRef
       - description: TLS provides the configuration required to establish TLS connections
           with S3.
         displayName: TLS

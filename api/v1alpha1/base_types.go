@@ -254,6 +254,10 @@ type S3 struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecretAccessKeySecretKeyRef corev1.SecretKeySelector `json:"secretAccessKeySecretKeyRef"`
+	// SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SessionTokenSecretKeyRef *corev1.SecretKeySelector `json:"sessionTokenSecretKeyRef,omitempty"`
 	// TLS provides the configuration required to establish TLS connections with S3.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

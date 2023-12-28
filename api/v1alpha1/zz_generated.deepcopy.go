@@ -1564,6 +1564,11 @@ func (in *S3) DeepCopyInto(out *S3) {
 	*out = *in
 	in.AccessKeyIdSecretKeyRef.DeepCopyInto(&out.AccessKeyIdSecretKeyRef)
 	in.SecretAccessKeySecretKeyRef.DeepCopyInto(&out.SecretAccessKeySecretKeyRef)
+	if in.SessionTokenSecretKeyRef != nil {
+		in, out := &in.SessionTokenSecretKeyRef, &out.SessionTokenSecretKeyRef
+		*out = new(v1.SecretKeySelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.TLS != nil {
 		in, out := &in.TLS, &out.TLS
 		*out = new(TLS)
