@@ -42,8 +42,24 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF/refs\/tags\//}
           fi
+          
+          RELEASE_ARGS=release
+          RELEASE_HEADER_TMPL=docs/releases/RELEASE_${VERSION}_HEADER.md.gotmpl
+          RELEASE_FOOTER_TMPL=docs/releases/RELEASE_${VERSION}_FOOTER.md.gotmpl
+          if [ -f "${RELEASE_HEADER_TMPL}" ]; then
+            RELEASE_ARGS="${RELEASE_ARGS} --release-header-tmpl=${RELEASE_HEADER_TMPL}"
+          else
+            RELEASE_ARGS="${RELEASE_ARGS} --release-header-tmpl=docs/releases/RELEASE_HEADER.md.gotmpl"
+          fi
+          if [ -f "${RELEASE_FOOTER_TMPL}" ]; then
+            RELEASE_ARGS="${RELEASE_ARGS} --release-footer-tmpl=${RELEASE_FOOTER_TMPL}"
+          else
+            RELEASE_ARGS="${RELEASE_ARGS} --release-footer-tmpl=docs/releases/RELEASE_FOOTER.md.gotmpl"
+          fi
+          
           echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "RELEASE_ARGS=${RELEASE_ARGS}" >> $GITHUB_OUTPUT
 
       - name: Publish multi-arch Docker image
         uses: docker/build-push-action@v2
@@ -72,6 +88,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v4
         with:
           version: ${{ env.GORELEASER_VERSION }}
-          args: release
+          args: ${{ steps.prep.outputs.RELEASE_ARGS }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
