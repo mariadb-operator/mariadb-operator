@@ -16,11 +16,12 @@ assignees: mmontes11
 **Describe alternatives you've considered**
 <!--A clear and concise description of any alternative solutions or features you've considered.-->
 
+**Environment details**:
+- Kubernetes version: [Version number]
+- Kubernetes distribution: [Vanilla, EKS, GKE, AKS, Rancher, OpenShift, k3s, KIND...]
+- mariadb-operator version: [Version number]
+- Install method: [helm, OLM, or static manifests]
+- Install flavor: [minimal, recommended, or custom]
+
 **Additional context**
 <!--Add any other context  here.-->
-
-**Environment details**:
-- Kubernetes version:
-- mariadb-operator version: 
-- Install method: helm, OLM or static manifests
-- Install flavour: minimal, recommended or custom
