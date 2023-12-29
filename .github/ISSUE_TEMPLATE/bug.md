@@ -1,10 +1,19 @@
+---
+name: Bug
+about: Create a bug report to help us improve
+title: "[Bug] "
+labels: bug
+assignees: mmontes11
+
+---
+
 <!--
 Bugs should be filed for issues encountered whilst operating mariadb-operator.
 Please provide as much detail as possible. 
 -->
 
 **Documentation**
-- [ ] I acknowledge that I have read the relevant [documentation](https://github.com/mariadb-operator/mariadb-operator/tree/main/docs)
+- [ ] I acknowledge that I have read the relevant [documentation](https://github.com/mariadb-operator/mariadb-operator/tree/main/docs).
 
 **Describe the bug**
 <!--
