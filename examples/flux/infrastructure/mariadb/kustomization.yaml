@@ -4,7 +4,6 @@ namespace: mariadb
 resources:
   - mariadb-backup.yaml
   - mariadb-namespace.yaml
-  - mariadb-secret.yaml
   - mariadb.yaml
   - photoprism-database.yaml
   - photoprism-grant.yaml

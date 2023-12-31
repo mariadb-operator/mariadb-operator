@@ -9,19 +9,15 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: mariadb-operator
-      version: "0.20.0"
+      version: "0.24.0"
   interval: 1h0m0s
   values:
-    image:
-      repository: ghcr.io/mariadb-operator/mariadb-operator
-      pullPolicy: IfNotPresent
-      tag: v0.0.20
     metrics:
       enabled: true
       serviceMonitor:
         enabled: true
     webhook:
-      certificate:
-        certManager: true
+      certManager:
+        enabled: true
       serviceMonitor:
         enabled: true
