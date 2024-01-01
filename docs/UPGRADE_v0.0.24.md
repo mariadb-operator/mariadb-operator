@@ -76,3 +76,10 @@ helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --vers
 kubectl scale deployment mariadb-operator -n default --replicas=1
 kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
 ```
+
+- If you have previously created `MariaDB` instances with metrics enabled and a single replica, we also need to perform the following changes in order to create a new `StatefulSet` with `spec.serviceName` pointing to the internal `Service`(see https://github.com/mariadb-operator/mariadb-operator/issues/319 for context):
+
+```bash
+kubectl delete statefulset mariadb --cascade=orphan
+kubectl rollout restart statefulset mariadb
+```
