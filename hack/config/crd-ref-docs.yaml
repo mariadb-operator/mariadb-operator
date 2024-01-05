@@ -1,0 +1,7 @@
+processor:
+  ignoreFields:
+    - "status$"
+    - "TypeMeta$"
+
+render:
+  kubernetesVersion: 1.28

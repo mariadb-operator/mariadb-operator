@@ -77,90 +77,18 @@ start-all-mariadb: ## Stop all mariadb Nodes
 	@for ((i=0; i<$(shell kubectl get mariadb "$(MARIADB_INSTANCE)" -o jsonpath='{.spec.replicas}'); i++)); do make -s "start-mariadb-$$i"; done
 	@make -s cluster-workers
 
-##@ Controller gen
-
-.PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-
-.PHONY: code
-code: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
-
 ##@ Helm
-
-.PHONY: helm-crds 
-helm-crds: kustomize ## Generate CRDs for Helm chart.
-	$(KUSTOMIZE) build config/crd > deploy/charts/mariadb-operator/crds/crds.yaml
-
-.PHONY: helm-images
-helm-images: ## Update images in Helm chart.
-	$(KUBECTL) create configmap mariadb-operator-images \
-		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
-		--from-literal=RELATED_IMAGE_EXPORTER=$(RELATED_IMAGE_EXPORTER) \
-		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
-		--dry-run=client -o yaml \
-		> deploy/charts/mariadb-operator/templates/configmap.yaml
-
-DOCS_IMG ?= jnorwood/helm-docs:v1.11.0
-.PHONY: helm-docs
-helm-docs: ## Generate Helm chart docs.
-	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) $(DOCS_IMG)
 
 CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0 
 .PHONY: helm-lint
 helm-lint: ## Lint Helm charts.
 	docker run --rm --workdir /repo -v $(shell pwd):/repo $(CT_IMG) ct lint --config .github/config/ct.yml 
 
-.PHONY: helm
-helm: helm-crds helm-images helm-docs ## Generate manifests for Helm chart.
-
 .PHONY: helm-chart-version
 helm-chart-version: yq ## Get helm chart version.
 	@cat $(HELM_DIR)/Chart.yaml | $(YQ) e ".version"
 
-##@ Documentation
-
-.PHONY: licenses
-licenses: go-licenses ## Generate licenses folder.
-	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force
-
-##@ Manifests
-
-MANIFESTS_CRDS_DIR ?= deploy/crds
-.PHONY: manifests-crds
-manifests-crds: manifests kustomize ## Generate manifests CRDs.
-	mkdir -p $(MANIFESTS_CRDS_DIR)
-	$(KUSTOMIZE) build config/crd > $(MANIFESTS_CRDS_DIR)/crds.yaml
-
-MANIFESTS_DIR ?= deploy/manifests
-
-MANIFESTS_BUNDLE_VALUES ?= deploy/manifests/helm-values.yaml 
-.PHONY: manifests-bundle-helm
-manifests-bundle-helm: manifests manifests-crds ## Generate manifests bundle from helm chart.
-	mkdir -p $(MANIFESTS_DIR)
-	cat $(MANIFESTS_CRDS_DIR)/crds.yaml > $(MANIFESTS_DIR)/manifests.yaml
-	helm template -n default mariadb-operator $(HELM_DIR) -f $(MANIFESTS_BUNDLE_VALUES) >> $(MANIFESTS_DIR)/manifests.yaml
-
-MANIFESTS_BUNDLE_MIN_VALUES ?= deploy/manifests/helm-values.min.yaml 
-.PHONY: manifests-bundle-helm-min
-manifests-bundle-helm-min: manifests manifests-crds ## Generate minimal manifests bundle.
-	mkdir -p $(MANIFESTS_DIR)
-	cat $(MANIFESTS_CRDS_DIR)/crds.yaml > $(MANIFESTS_DIR)/manifests.min.yaml
-	helm template -n default mariadb-operator $(HELM_DIR) -f $(MANIFESTS_BUNDLE_MIN_VALUES) >> $(MANIFESTS_DIR)/manifests.min.yaml
-
-.PHONY: manifests-bundle
-manifests-bundle: manifests-crds manifests-bundle-helm manifests-bundle-helm-min ## Generate manifests.
-
-##@ Generate
-
-.PHONY: generate
-generate: manifests code helm manifests-bundle licenses ## Generate artifacts.
-
-.PHONY: gen
-gen: generate ## Generate alias.
-
-##@ Dependencies
+##@ Install
 
 PROMETHEUS_VERSION ?= "55.5.0"
 
@@ -186,8 +114,6 @@ MINIO_VERSION ?= "5.0.14"
 .PHONY: install-minio
 install-minio: cluster-ctx cert-minio ## Install minio helm chart.
 	@./hack/install_minio.sh
-
-##@ Install
 
 .PHONY: install-crds
 install-crds: cluster-ctx manifests kustomize ## Install CRDs.
