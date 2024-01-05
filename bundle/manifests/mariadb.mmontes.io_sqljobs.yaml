@@ -32,7 +32,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: SqlJob is the Schema for the sqljobs API
+        description: SqlJob is the Schema for the sqljobs API. It is used to run sql
+          scripts as jobs.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

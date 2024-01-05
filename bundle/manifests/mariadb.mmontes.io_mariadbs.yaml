@@ -32,7 +32,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MariaDB is the Schema for the mariadbs API
+        description: MariaDB is the Schema for the mariadbs API. It is used to define
+          MariaDB clusters.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

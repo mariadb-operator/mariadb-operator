@@ -35,7 +35,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: User is the Schema for the users API
+        description: User is the Schema for the users API.  It is used to define grants
+          as if you were running a 'CREATE USER' statement.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

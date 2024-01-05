@@ -41,7 +41,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Database is the Schema for the databases API
+        description: Database is the Schema for the databases API. It is used to define
+          a logical database as if you were running a 'CREATE DATABASE' statement.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

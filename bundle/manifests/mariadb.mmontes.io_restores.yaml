@@ -32,7 +32,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Restore is the Schema for the restores API
+        description: Restore is the Schema for the restores API. It is used to define
+          restore jobs and its restoration source.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
