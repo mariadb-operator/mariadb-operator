@@ -160,16 +160,11 @@ func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 	if clusterName == "" {
 		clusterName = "cluster.local"
 	}
+
 	env := []corev1.EnvVar{
 		{
 			Name:  "MYSQL_TCP_PORT",
 			Value: strconv.Itoa(int(mariadb.Spec.Port)),
-		},
-		{
-			Name: "MARIADB_ROOT_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &mariadb.Spec.RootPasswordSecretKeyRef,
-			},
 		},
 		{
 			Name:  "MARIADB_ROOT_HOST",
@@ -191,6 +186,20 @@ func buildStsEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 				},
 			},
 		},
+	}
+
+	if mariadb.IsRootPasswordEmpty() {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
+			Value: "yes",
+		})
+	} else {
+		env = append(env, corev1.EnvVar{
+			Name: "MARIADB_ROOT_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &mariadb.Spec.RootPasswordSecretKeyRef,
+			},
+		})
 	}
 
 	if !mariadb.Replication().Enabled {
@@ -345,7 +354,7 @@ var (
 				Command: []string{
 					"bash",
 					"-c",
-					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON",
+					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON ",
 				},
 			},
 		},

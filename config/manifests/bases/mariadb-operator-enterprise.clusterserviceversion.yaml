@@ -1250,6 +1250,12 @@ spec:
         path: resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: RootEmptyPassword indicates if the root password should be empty.
+        displayName: Root Empty Password
+        path: rootEmptyPassword
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: RootPasswordSecretKeyRef is a reference to a Secret key containing
           the root password.
         displayName: Root Password Secret Key Ref
