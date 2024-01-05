@@ -32,7 +32,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Backup is the Schema for the backups API
+        description: Backup is the Schema for the backups API. It is used to define
+          backup jobs and its storage.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -3074,7 +3075,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Connection is the Schema for the connections API
+        description: Connection is the Schema for the connections API. It is used
+          to configure connection strings for the applications connecting to MariaDB.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -3342,7 +3344,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Database is the Schema for the databases API
+        description: Database is the Schema for the databases API. It is used to define
+          a logical database as if you were running a 'CREATE DATABASE' statement.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -3548,7 +3551,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Grant is the Schema for the grants API
+        description: Grant is the Schema for the grants API. It is used to define
+          grants as if you were running a 'GRANT' statement.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -3755,7 +3759,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MariaDB is the Schema for the mariadbs API
+        description: MariaDB is the Schema for the mariadbs API. It is used to define
+          MariaDB clusters.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -13851,7 +13856,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Restore is the Schema for the restores API
+        description: Restore is the Schema for the restores API. It is used to define
+          restore jobs and its restoration source.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -16615,7 +16621,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: SqlJob is the Schema for the sqljobs API
+        description: SqlJob is the Schema for the sqljobs API. It is used to run sql
+          scripts as jobs.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -17805,7 +17812,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: User is the Schema for the users API
+        description: User is the Schema for the users API.  It is used to define grants
+          as if you were running a 'CREATE USER' statement.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
