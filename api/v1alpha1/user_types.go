@@ -64,7 +64,7 @@ func (u *UserStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{User,v1alpha1}}
 
-// User is the Schema for the users API
+// User is the Schema for the users API.  It is used to define grants as if you were running a 'CREATE USER' statement.
 type User struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

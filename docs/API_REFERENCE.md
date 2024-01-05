@@ -6,7 +6,7 @@
 
 ## mariadb.mmontes.io/v1alpha1
 
-Package v1alpha1 contains API Schema definitions for the database v1alpha1 API group
+Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 
 ### Resource Types
 - [Backup](#backup)
@@ -24,7 +24,7 @@ Package v1alpha1 contains API Schema definitions for the database v1alpha1 API g
 
 
 
-Backup is the Schema for the backups API
+Backup is the Schema for the backups API. It is used to define backup jobs and its storage.
 
 
 
@@ -83,7 +83,7 @@ _Appears in:_
 
 
 
-Connection is the Schema for the connections API
+Connection is the Schema for the connections API. It is used to configure connection strings for the applications connecting to MariaDB.
 
 
 
@@ -194,7 +194,7 @@ _Appears in:_
 
 
 
-Database is the Schema for the databases API
+Database is the Schema for the databases API. It is used to define a logical database as if you were running a 'CREATE DATABASE' statement.
 
 
 
@@ -359,7 +359,7 @@ _Appears in:_
 
 
 
-Grant is the Schema for the grants API
+Grant is the Schema for the grants API. It is used to define grants as if you were running a 'GRANT' statement.
 
 
 
@@ -456,7 +456,7 @@ _Appears in:_
 
 
 
-MariaDB is the Schema for the mariadbs API
+MariaDB is the Schema for the mariadbs API. It is used to define MariaDB clusters.
 
 
 
@@ -574,7 +574,7 @@ _Appears in:_
 
 
 
-PodDisruptionBudget is the Pod availability bundget for a MariaDb
+PodDisruptionBudget is the Pod availability bundget for a MariaDB
 
 _Appears in:_
 - [MariaDBSpec](#mariadbspec)
@@ -694,7 +694,7 @@ _Appears in:_
 
 
 
-Restore is the Schema for the restores API
+Restore is the Schema for the restores API. It is used to define restore jobs and its restoration source.
 
 
 
@@ -883,7 +883,7 @@ _Appears in:_
 
 
 
-SqlJob is the Schema for the sqljobs API
+SqlJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
 
 
 
@@ -943,7 +943,7 @@ _Appears in:_
 
 
 
-User is the Schema for the users API
+User is the Schema for the users API.  It is used to define grants as if you were running a 'CREATE USER' statement.
 
 
 

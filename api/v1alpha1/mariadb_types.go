@@ -91,7 +91,7 @@ type Metrics struct {
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 }
 
-// PodDisruptionBudget is the Pod availability bundget for a MariaDb
+// PodDisruptionBudget is the Pod availability bundget for a MariaDB
 type PodDisruptionBudget struct {
 	// MinAvailable defines the number of minimum available Pods.
 	// +kubebuilder:validation:Required
@@ -331,7 +331,7 @@ func (s *MariaDBStatus) FillWithDefaults(mariadb *MariaDB) {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{MariaDB,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
 
-// MariaDB is the Schema for the mariadbs API
+// MariaDB is the Schema for the mariadbs API. It is used to define MariaDB clusters.
 type MariaDB struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

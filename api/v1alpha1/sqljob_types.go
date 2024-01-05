@@ -94,7 +94,7 @@ func (s *SqlJobStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{SqlJob,v1alpha1},{ConfigMap,v1},{CronJob,v1},{Job,v1}}
 
-// SqlJob is the Schema for the sqljobs API
+// SqlJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
 type SqlJob struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
