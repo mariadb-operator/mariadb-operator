@@ -8,10 +8,6 @@
 
 Package v1alpha1 contains API Schema definitions for the database v1alpha1 API group
 
-nolint:lll
-
-nolint:lll
-
 ### Resource Types
 - [Backup](#backup)
 - [Connection](#connection)

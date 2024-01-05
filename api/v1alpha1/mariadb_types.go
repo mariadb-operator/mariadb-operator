@@ -1,4 +1,3 @@
-// nolint:lll
 package v1alpha1
 
 import (
