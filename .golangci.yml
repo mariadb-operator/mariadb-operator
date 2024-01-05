@@ -28,6 +28,12 @@ linters:
     - bodyclose
     - noctx
 
+issues:
+  exclude-rules:
+    - linters:
+        - lll
+      source: "//"
+
 run:
   timeout: 5m
   go: "1.21"
