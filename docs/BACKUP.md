@@ -5,7 +5,7 @@
 
 `mariadb-operator` allows you to declarativaly take backups by defining `Backup` resources and later on restore them by using their `Restore` counterpart. These resources get reconciled into `Job`/`CronJob` resources that automatically perform the backup/restore operations, so you don't need to manually operate your `MariaDB`.
 
-Refer to the sections below, the [API reference](#api-reference) and the [example suite](../examples/) to see see how to configure the `Backup` and `Restore` resources.
+Refer to the sections below, the [API reference](./API_REFERENCE.md) and the [example suite](../examples/) to see see how to configure the `Backup` and `Restore` resources.
  
 ## Storage types
 
@@ -228,85 +228,6 @@ spec:
 ```
 
 Under the hood, the operator creates a `Restore` object just after the `MariaDB` resource becomes ready.
-
-## API Reference
-
-```bash
-kubectl explain backup.spec
-...
-FIELDS:
-  mariaDbRef    <Object> -required-
-    MariaDBRef is a reference to a MariaDB object.
-
-  maxRetention  <string>
-    MaxRetention defines the retention policy for backups. Old backups will be
-    cleaned up by the Backup Job. It defaults to 30 days.
-
-  schedule      <Object>
-    Schedule defines when the Backup will be taken.
-  
-  storage       <Object> -required-
-    Storage to be used in the Backup.
-...
-
-kubectl explain backup.spec.storage
-...
-FIELDS:
-  persistentVolumeClaim <Object>
-    PersistentVolumeClaim is a Kubernetes PVC specification.
-
-  s3    <Object>
-    S3 defines the configuration to store backups in a S3 compatible storage.
-
-  volume        <Object>
-    Volume is a Kubernetes volume specification.
-...
-```
-
-```bash
-kubectl explain restore.spec
-...
-FIELDS:
-  backupRef     <Object>
-    BackupRef is a reference to a Backup object. It has priority over S3 and
-    Volume.
-
-  mariaDbRef    <Object> -required-
-    MariaDBRef is a reference to a MariaDB object.
-
-  s3    <Object>
-    S3 defines the configuration to restore backups from a S3 compatible
-    storage. It has priority over Volume.
-
-  targetRecoveryTime    <string>
-    TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that
-    defines the point in time recovery objective. It is used to determine the
-    closest restoration source in time.
-
-  volume        <Object>
-    Volume is a Kubernetes Volume object that contains a backup.
-...
-
-kubectl explain mariadb.spec.bootstrapFrom
-...
-FIELDS:
-  backupRef     <Object>
-    BackupRef is a reference to a Backup object. It has priority over S3 and
-    Volume.
-
-  s3    <Object>
-    S3 defines the configuration to restore backups from a S3 compatible
-    storage. It has priority over Volume.
-
-  targetRecoveryTime    <string>
-    TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that
-    defines the point in time recovery objective. It is used to determine the
-    closest restoration source in time.
-
-  volume        <Object>
-    Volume is a Kubernetes Volume object that contains a backup.
-...
-```
 
 ## Minio reference installation
 
