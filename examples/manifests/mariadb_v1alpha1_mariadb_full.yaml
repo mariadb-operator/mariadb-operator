@@ -21,7 +21,7 @@ spec:
   volumeClaimTemplate:
     resources:
       requests:
-        storage: 1Gi
+        storage: 10Gi
     accessModes:
       - ReadWriteOnce
   volumes: 
@@ -55,8 +55,7 @@ spec:
       cpu: 100m
       memory: 128Mi
     limits:
-      cpu: 300m
-      memory: 512Mi
+      memory: 1Gi
 
   env:
     - name: TZ

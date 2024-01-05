@@ -3,13 +3,16 @@ kind: MariaDB
 metadata:
   name: mariadb-repl
 spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
   username: mariadb
   database: mariadb
   
   volumeClaimTemplate:
     resources:
       requests:
-        storage: 1Gi
+        storage: 10Gi
     accessModes:
       - ReadWriteOnce
 
@@ -87,6 +90,13 @@ spec:
     binlog_format=row
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 1Gi
 
   metrics:
     enabled: true

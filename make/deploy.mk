@@ -57,7 +57,7 @@ openshift-registry: ## Setup registries in OpenShift global config.
 	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=https://index.docker.io/v1/
 	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=us-central1-docker.pkg.dev
 
-##@ Disaster recovery
+##@ Failover
 
 MARIADB_INSTANCE ?= mariadb-galera
 
@@ -76,6 +76,11 @@ stop-all-mariadb: ## Stop all mariadb Nodes
 start-all-mariadb: ## Stop all mariadb Nodes
 	@for ((i=0; i<$(shell kubectl get mariadb "$(MARIADB_INSTANCE)" -o jsonpath='{.spec.replicas}'); i++)); do make -s "start-mariadb-$$i"; done
 	@make -s cluster-workers
+
+POD ?= mariadb-repl-0
+.PHONY: delete-pod
+delete-pod: ## Continiously delete a Pod.
+	@while true; do kubectl delete pod $(POD); sleep 1; done;
 
 ##@ Helm
 
@@ -144,6 +149,19 @@ deploy-ent: manifests kustomize cluster-ctx ## Deploy enterprise controller.
 .PHONY: undeploy-ent
 undeploy-ent: cluster-ctx ## Undeploy enterprise controller.
 	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
+
+##@ Sysbench
+
+.PHONY: sysbench-prepare
+sysbench-prepare: ## Prepare sysbench tests.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/sbtest_database.yaml
+	$(KUBECTL) wait --for=condition=ready database sbtest
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/sysbench-prepare_job.yaml
+
+.PHONY: sysbench
+sysbench: ## Run sysbench tests.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/sysbench_cronjob.yaml
+	$(KUBECTL) create job sysbench --from cronjob/sysbench
 
 ##@ Examples
 
