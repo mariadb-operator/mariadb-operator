@@ -141,7 +141,6 @@ make run
 ```bash
 make cluster
 make install
-make install-minio
 make net
 make test
 ```
