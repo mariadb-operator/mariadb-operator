@@ -92,7 +92,7 @@ $(GO_LICENSES): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/google/go-licenses@$(GO_LICENSES_VERSION)
 
 .PHONY: crd-ref-docs
-crd-ref-docs: $(CRD_REF_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.
+crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
 $(CRD_REF_DOCS): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
 
