@@ -14,21 +14,13 @@ nolint:lll
 
 ### Resource Types
 - [Backup](#backup)
-- [BackupList](#backuplist)
 - [Connection](#connection)
-- [ConnectionList](#connectionlist)
 - [Database](#database)
-- [DatabaseList](#databaselist)
 - [Grant](#grant)
-- [GrantList](#grantlist)
 - [MariaDB](#mariadb)
-- [MariaDBList](#mariadblist)
 - [Restore](#restore)
-- [RestoreList](#restorelist)
 - [SqlJob](#sqljob)
-- [SqlJobList](#sqljoblist)
 - [User](#user)
-- [UserList](#userlist)
 
 
 
@@ -38,31 +30,16 @@ nolint:lll
 
 Backup is the Schema for the backups API
 
-_Appears in:_
-- [BackupList](#backuplist)
+
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
 | `kind` _string_ | `Backup`
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[BackupSpec](#backupspec)_ |  |
-
-
-#### BackupList
-
-
-
-BackupList contains a list of Backup
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
-| `kind` _string_ | `BackupList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Backup](#backup) array_ |  |
 
 
 #### BackupSpec
@@ -90,8 +67,6 @@ _Appears in:_
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Backup Pod. |
 
 
-
-
 #### BackupStorage
 
 
@@ -114,31 +89,16 @@ _Appears in:_
 
 Connection is the Schema for the connections API
 
-_Appears in:_
-- [ConnectionList](#connectionlist)
+
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
 | `kind` _string_ | `Connection`
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[ConnectionSpec](#connectionspec)_ |  |
-
-
-#### ConnectionList
-
-
-
-ConnectionList contains a list of Connection
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
-| `kind` _string_ | `ConnectionList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Connection](#connection) array_ |  |
 
 
 #### ConnectionSpec
@@ -161,8 +121,6 @@ _Appears in:_
 | `username` _string_ | Username to use for configuring the Connection. |
 | `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password to use for configuring the Connection. |
 | `database` _string_ | Database to use for configuring the Connection. |
-
-
 
 
 #### ConnectionTemplate
@@ -242,31 +200,16 @@ _Appears in:_
 
 Database is the Schema for the databases API
 
-_Appears in:_
-- [DatabaseList](#databaselist)
+
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
 | `kind` _string_ | `Database`
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[DatabaseSpec](#databasespec)_ |  |
-
-
-#### DatabaseList
-
-
-
-DatabaseList contains a list of Database
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
-| `kind` _string_ | `DatabaseList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Database](#database) array_ |  |
 
 
 #### DatabaseSpec
@@ -286,8 +229,6 @@ _Appears in:_
 | `characterSet` _string_ | CharacterSet to use in the Database. |
 | `collate` _string_ | CharacterSet to use in the Database. |
 | `name` _string_ | Name overrides the default Database name provided by metadata.name. |
-
-
 
 
 #### Exporter
@@ -398,22 +339,6 @@ _Appears in:_
 | `pod` _string_ |  |
 
 
-#### GaleraRecoveryStatus
-
-
-
-GaleraRecoveryStatus is the current state of the Galera recovery process.
-
-_Appears in:_
-- [MariaDBStatus](#mariadbstatus)
-
-| Field | Description |
-| --- | --- |
-| `state` _object (keys:string, values:GaleraState)_ | State is a per Pod representation of the Galera state file (grastate.dat). |
-| `recovered` _object (keys:string, values:Bootstrap)_ | State is a per Pod representation of the sequence recovery process. |
-| `bootstrap` _[GaleraRecoveryBootstrap](#galerarecoverybootstrap)_ | Bootstrap indicates when and in which Pod the cluster bootstrap process has been performed. |
-
-
 #### GaleraSpec
 
 
@@ -440,31 +365,16 @@ _Appears in:_
 
 Grant is the Schema for the grants API
 
-_Appears in:_
-- [GrantList](#grantlist)
+
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
 | `kind` _string_ | `Grant`
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[GrantSpec](#grantspec)_ |  |
-
-
-#### GrantList
-
-
-
-GrantList contains a list of Grant
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
-| `kind` _string_ | `GrantList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Grant](#grant) array_ |  |
 
 
 #### GrantSpec
@@ -487,8 +397,6 @@ _Appears in:_
 | `username` _string_ | Username to use in the Grant. |
 | `host` _string_ | Host to use in the Grant. |
 | `grantOption` _boolean_ | GrantOption to use in the Grant. |
-
-
 
 
 #### Gtid
@@ -554,31 +462,16 @@ _Appears in:_
 
 MariaDB is the Schema for the mariadbs API
 
-_Appears in:_
-- [MariaDBList](#mariadblist)
+
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
 | `kind` _string_ | `MariaDB`
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[MariaDBSpec](#mariadbspec)_ |  |
-
-
-#### MariaDBList
-
-
-
-MariaDBList contains a list of MariaDB
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
-| `kind` _string_ | `MariaDBList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[MariaDB](#mariadb) array_ |  |
 
 
 #### MariaDBRef
@@ -661,8 +554,6 @@ _Appears in:_
 | `primaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | PrimaryConnection defines templates to configure the primary Connection object. |
 | `secondaryService` _[ServiceTemplate](#servicetemplate)_ | SecondaryService defines templates to configure the secondary Service object. |
 | `secondaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | SecondaryConnection defines templates to configure the secondary Connection object. |
-
-
 
 
 #### Metrics
@@ -809,31 +700,16 @@ _Appears in:_
 
 Restore is the Schema for the restores API
 
-_Appears in:_
-- [RestoreList](#restorelist)
+
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
 | `kind` _string_ | `Restore`
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[RestoreSpec](#restorespec)_ |  |
-
-
-#### RestoreList
-
-
-
-RestoreList contains a list of restore
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
-| `kind` _string_ | `RestoreList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Restore](#restore) array_ |  |
 
 
 #### RestoreSource
@@ -877,8 +753,6 @@ _Appears in:_
 | `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Restore Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Restore Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Restore Pod. |
-
-
 
 
 #### S3
@@ -1015,31 +889,16 @@ _Appears in:_
 
 SqlJob is the Schema for the sqljobs API
 
-_Appears in:_
-- [SqlJobList](#sqljoblist)
+
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
 | `kind` _string_ | `SqlJob`
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[SqlJobSpec](#sqljobspec)_ |  |
-
-
-#### SqlJobList
-
-
-
-SqlJobList contains a list of SqlJob
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
-| `kind` _string_ | `SqlJobList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[SqlJob](#sqljob) array_ |  |
 
 
 #### SqlJobSpec
@@ -1069,8 +928,6 @@ _Appears in:_
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the SqlJob Pod. |
 
 
-
-
 #### TLS
 
 
@@ -1092,31 +949,16 @@ _Appears in:_
 
 User is the Schema for the users API
 
-_Appears in:_
-- [UserList](#userlist)
+
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
 | `kind` _string_ | `User`
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[UserSpec](#userspec)_ |  |
-
-
-#### UserList
-
-
-
-UserList contains a list of User
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
-| `kind` _string_ | `UserList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[User](#user) array_ |  |
 
 
 #### UserSpec
@@ -1137,8 +979,6 @@ _Appears in:_
 | `maxUserConnections` _integer_ | MaxUserConnections defines the maximum number of connections that the User can have. |
 | `name` _string_ | Name overrides the default name provided by metadata.name. |
 | `host` _string_ | Host related to the User. |
-
-
 
 
 #### VolumeClaimTemplate
