@@ -93,9 +93,11 @@ type patcher func(*mariadbv1alpha1.MariaDBStatus) error
 // move the current state of the cluster closer to the desired state.
 func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var mariadb mariadbv1alpha1.MariaDB
+
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
 	if err := r.patchStatus(ctx, &mariadb, r.patcher(ctx, &mariadb)); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -187,15 +189,18 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	secretKeyRef := mariadb.Spec.RootPasswordSecretKeyRef
-	key := types.NamespacedName{
-		Name:      secretKeyRef.Name,
-		Namespace: mariadb.Namespace,
+	if !mariadb.IsRootPasswordEmpty() {
+		secretKeyRef := mariadb.Spec.RootPasswordSecretKeyRef
+		key := types.NamespacedName{
+			Name:      secretKeyRef.Name,
+			Namespace: mariadb.Namespace,
+		}
+		_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, key, secretKeyRef.Key, mariadb)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
-	_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, key, secretKeyRef.Key, mariadb)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+
 	if mariadb.IsInitialDataEnabled() && mariadb.Spec.PasswordSecretKeyRef != nil {
 		secretKeyRef := *mariadb.Spec.PasswordSecretKeyRef
 		key := types.NamespacedName{
@@ -207,7 +212,7 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 			return ctrl.Result{}, err
 		}
 	}
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {

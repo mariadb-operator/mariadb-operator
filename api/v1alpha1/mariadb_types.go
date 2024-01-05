@@ -184,6 +184,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	// RootEmptyPassword indicates if the root password should be empty.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	RootEmptyPassword *bool `json:"rootEmptyPassword,omitempty" webhook:"inmutable"`
 	// Database is the database to be created on bootstrap.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -345,9 +349,15 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMariadbImage
 	}
-	if m.Spec.RootPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+
+	if m.Spec.RootEmptyPassword == nil {
+		defaultRootEmptyPassword := false
+		m.Spec.RootEmptyPassword = &defaultRootEmptyPassword
+	}
+	if m.Spec.RootPasswordSecretKeyRef == (corev1.SecretKeySelector{}) && !m.IsRootPasswordEmpty() {
 		m.Spec.RootPasswordSecretKeyRef = m.RootPasswordSecretKeyRef()
 	}
+
 	if m.Spec.Port == 0 {
 		m.Spec.Port = 3306
 	}
@@ -406,6 +416,11 @@ func (m *MariaDB) AreMetricsEnabled() bool {
 // IsInitialDataEnabled indicates whether the MariaDB instance has initial data enabled
 func (m *MariaDB) IsInitialDataEnabled() bool {
 	return m.Spec.Username != nil
+}
+
+// IsRootPasswordEmpty indicates whether the MariaDB instance has an empty root password
+func (m *MariaDB) IsRootPasswordEmpty() bool {
+	return m.Spec.RootEmptyPassword != nil && *m.Spec.RootEmptyPassword
 }
 
 // IsReady indicates whether the MariaDB instance is ready

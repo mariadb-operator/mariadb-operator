@@ -1017,6 +1017,11 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	in.RootPasswordSecretKeyRef.DeepCopyInto(&out.RootPasswordSecretKeyRef)
+	if in.RootEmptyPassword != nil {
+		in, out := &in.RootEmptyPassword, &out.RootEmptyPassword
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Database != nil {
 		in, out := &in.Database, &out.Database
 		*out = new(string)

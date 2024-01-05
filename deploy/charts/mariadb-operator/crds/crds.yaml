@@ -10710,6 +10710,10 @@ spec:
                       More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
                 type: object
+              rootEmptyPassword:
+                description: RootEmptyPassword indicates if the root password should
+                  be empty.
+                type: boolean
               rootPasswordSecretKeyRef:
                 description: RootPasswordSecretKeyRef is a reference to a Secret key
                   containing the root password.
