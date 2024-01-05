@@ -44,7 +44,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Grant is the Schema for the grants API
+        description: Grant is the Schema for the grants API. It is used to define
+          grants as if you were running a 'GRANT' statement.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

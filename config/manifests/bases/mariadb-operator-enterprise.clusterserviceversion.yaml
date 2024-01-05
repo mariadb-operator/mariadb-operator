@@ -254,7 +254,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Pod
       version: v1alpha1
-    - description: Backup is the Schema for the backups API
+    - description: Backup is the Schema for the backups API. It is used to define
+        backup jobs and its storage.
       displayName: Backup
       kind: Backup
       name: backups.mariadb.mmontes.io
@@ -372,7 +373,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
-    - description: Connection is the Schema for the connections API
+    - description: Connection is the Schema for the connections API. It is used to
+        configure connection strings for the applications connecting to MariaDB.
       displayName: Connection
       kind: Connection
       name: connections.mariadb.mmontes.io
@@ -456,7 +458,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
-    - description: Database is the Schema for the databases API
+    - description: Database is the Schema for the databases API. It is used to define
+        a logical database as if you were running a 'CREATE DATABASE' statement.
       displayName: Database
       kind: Database
       name: databases.mariadb.mmontes.io
@@ -494,7 +497,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
-    - description: Grant is the Schema for the grants API
+    - description: Grant is the Schema for the grants API. It is used to define grants
+        as if you were running a 'GRANT' statement.
       displayName: Grant
       kind: Grant
       name: grants.mariadb.mmontes.io
@@ -541,7 +545,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
-    - description: MariaDB is the Schema for the mariadbs API
+    - description: MariaDB is the Schema for the mariadbs API. It is used to define
+        MariaDB clusters.
       displayName: Maria DB
       kind: MariaDB
       name: mariadbs.mariadb.mmontes.io
@@ -1454,7 +1459,8 @@ spec:
         displayName: Galera Recovery
         path: galeraRecovery
       version: v1alpha1
-    - description: Restore is the Schema for the restores API
+    - description: Restore is the Schema for the restores API. It is used to define
+        restore jobs and its restoration source.
       displayName: Restore
       kind: Restore
       name: restores.mariadb.mmontes.io
@@ -1556,7 +1562,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
-    - description: SqlJob is the Schema for the sqljobs API
+    - description: SqlJob is the Schema for the sqljobs API. It is used to run sql
+        scripts as jobs.
       displayName: Sql Job
       kind: SqlJob
       name: sqljobs.mariadb.mmontes.io
@@ -1641,7 +1648,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
-    - description: User is the Schema for the users API
+    - description: User is the Schema for the users API.  It is used to define grants
+        as if you were running a 'CREATE USER' statement.
       displayName: User
       kind: User
       name: users.mariadb.mmontes.io

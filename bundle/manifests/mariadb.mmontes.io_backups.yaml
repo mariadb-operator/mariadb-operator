@@ -32,7 +32,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Backup is the Schema for the backups API
+        description: Backup is the Schema for the backups API. It is used to define
+          backup jobs and its storage.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
