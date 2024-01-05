@@ -60,7 +60,7 @@ func (d *DatabaseStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".spec.name"
 // +operator-sdk:csv:customresourcedefinitions:resources={{Database,v1alpha1}}
 
-// Database is the Schema for the databases API
+// Database is the Schema for the databases API. It is used to define a logical database as if you were running a 'CREATE DATABASE' statement.
 type Database struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
