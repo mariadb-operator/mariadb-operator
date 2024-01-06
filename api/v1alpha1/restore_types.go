@@ -74,7 +74,7 @@ func (r *RestoreStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{Restore,v1alpha1},{Job,v1}}
 
-// Restore is the Schema for the restores API
+// Restore is the Schema for the restores API. It is used to define restore jobs and its restoration source.
 type Restore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

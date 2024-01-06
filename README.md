@@ -42,7 +42,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator).
 
-Please, refer to the [documentation](./docs/) and the [example suite](./examples/) for further detail.
+Please, refer to the [documentation](./docs/), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail.
 
 ## Bare minimum installation
 
@@ -165,7 +165,12 @@ NAME                                         COMPLETIONS   DURATION   AGE
 backup                                       1/1           9s         12m
 bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
-Please, refer to the [documentation](./docs/) and the [example suite](./examples/) for further detail.
+
+## Documentation
+
+- [Index](./docs/)
+- [API reference](./docs/API_REFERENCE.md)
+- [Example suite](./examples/)
 
 ## GitOps
 

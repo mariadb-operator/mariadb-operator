@@ -76,7 +76,7 @@ func (g *GrantStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{Grant,v1alpha1}}
 
-// Grant is the Schema for the grants API
+// Grant is the Schema for the grants API. It is used to define grants as if you were running a 'GRANT' statement.
 type Grant struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

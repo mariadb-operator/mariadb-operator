@@ -39,7 +39,7 @@ spec:
     enabled: true
 ```
 
-The rest of the fields are defaulted by the operator. If you need a more fine grained configuration, refer to the [API Reference](#api-reference) and take a look at this [example](../examples/manifests/mariadb_v1alpha1_mariadb_metrics_full.yaml):
+The rest of the fields are defaulted by the operator. If you need a more fine grained configuration, refer to the [API reference](./API_REFERENCE.md) and take a look at this [example](../examples/manifests/mariadb_v1alpha1_mariadb_metrics_full.yaml):
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -69,29 +69,6 @@ spec:
     passwordSecretKeyRef:
       name: mariadb
       key: password
-```
-
-## API Reference
-
-```bash
-kubectl explain mariadb.spec.metrics
-...
-FIELDS:
-  enabled       <boolean>
-    Enabled is a flag to enable Metrics
-
-  exporter      <Object>
-    Exporter defines the metrics exporter container.
-
-  passwordSecretKeyRef  <Object>
-    PasswordSecretKeyRef is a reference to the password of the monitoring user
-    used by the exporter.
-
-  serviceMonitor        <Object>
-    ServiceMonitor defines the ServiceMonior object.
-
-  username      <string>
-    Username is the username of the monitoring user used by the exporter.
 ```
 
 ## Prometheus reference installation

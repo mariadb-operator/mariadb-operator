@@ -1,0 +1,11 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Database
+metadata:
+  name: sbtest
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  characterSet: utf8
+  collate: utf8_general_ci
+  requeueInterval: 30s
+  retryInterval: 5s

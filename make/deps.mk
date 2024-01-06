@@ -14,6 +14,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 GORELEASER ?= $(LOCALBIN)/goreleaser
 GO_LICENSES = $(LOCALBIN)/go-licenses
+CRD_REF_DOCS = $(LOCALBIN)/crd-ref-docs
 FLUX ?= $(LOCALBIN)/flux
 YQ ?= $(LOCALBIN)/yq
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
@@ -30,6 +31,7 @@ ENVTEST_K8S_VERSION ?= 1.26
 GOLANGCI_LINT_VERSION ?= v1.52.2
 GORELEASER_VERSION ?= v1.18.2
 GO_LICENSES_VERSION ?= v1.6.0
+CRD_REF_DOCS_VERSION ?= v0.0.10
 FLUX_VERSION ?= 0.40.1
 JQ_VERSION ?= jq-1.7
 YQ_VERSION ?= v4.18.1
@@ -88,6 +90,11 @@ $(GORELEASER): $(LOCALBIN)
 go-licenses: $(GO_LICENSES) ## Download go-licenses locally if necessary.
 $(GO_LICENSES): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/google/go-licenses@$(GO_LICENSES_VERSION)
+
+.PHONY: crd-ref-docs
+crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
+$(CRD_REF_DOCS): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
 
 .PHONY: flux
 flux: ## Download flux locally if necessary.

@@ -3,13 +3,16 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
   username: mariadb
   database: mariadb
 
   volumeClaimTemplate:
     resources:
       requests:
-        storage: 1Gi
+        storage: 10Gi
     accessModes:
       - ReadWriteOnce
 
@@ -102,8 +105,8 @@ spec:
 
   resources:
     requests:
-      cpu: 300m
-      memory: 256Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
       memory: 1Gi
 

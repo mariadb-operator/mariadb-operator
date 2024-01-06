@@ -36,7 +36,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Connection is the Schema for the connections API
+        description: Connection is the Schema for the connections API. It is used
+          to configure connection strings for the applications connecting to MariaDB.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

@@ -74,59 +74,7 @@ spec:
 ...
 ```
 
-Refer to the [API Reference](#api-reference) below to better understand the purpose of each field.
-
-## API Reference
-- [Go API pkg](https://pkg.go.dev/github.com/mariadb-operator/mariadb-operator@v0.0.16/api/v1alpha1#Galera)
-- [Code](../api/v1alpha1/mariadb_galera_types.go)
-- **`kubectl explain`**
-```bash
-kubectl explain mariadb.spec.galera
-...
-FIELDS:
-...
-   recovery     <Object>
-     GaleraRecovery is the recovery process performed by the operator whenever
-     the Galera cluster is not healthy. More info:
-     https://galeracluster.com/library/documentation/crash-recovery.html.
-
-   replicaThreads       <integer>
-     ReplicaThreads is the number of replica threads used to apply Galera write
-     sets in parallel. More info:
-     https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
-
-   sst  <string>
-     SST is the Snapshot State Transfer used when new Pods join the cluster.
-     More info: https://galeracluster.com/library/documentation/sst.html.
-
-   volumeClaimTemplate  <Object>
-     VolumeClaimTemplate is a template for the PVC that will contain the Galera
-     configuration files shared between the InitContainer, Agent and MariaDB.
-
-kubectl explain mariadb.spec.galera.recovery
-...
-FIELDS:
-...
-  clusterBootstrapTimeout      <string>
-    ClusterBootstrapTimeout is the time limit for bootstrapping a cluster. Once
-    this timeout is reached, the Galera recovery state is reset and a new
-    cluster bootstrap will be attempted.
-
-  clusterHealthyTimeout        <string>
-    ClusterHealthyTimeout represents the duration at which a Galera cluster,
-    that consistently failed health checks, is considered unhealthy, and
-    consequently the Galera recovery process will be initiated by the operator.
-
-  podRecoveryTimeout   <string>
-    PodRecoveryTimeout is the time limit for executing the recovery sequence
-    within a Pod. This process includes enabling the recovery mode in the
-    Galera configuration file, restarting the Pod and retrieving the sequence
-    from a log file.
-
-  podSyncTimeout       <string>
-    PodSyncTimeout is the time limit we give to a Pod to reach the Sync state.
-    Once this timeout is reached, the Pod is restarted.
-```
+Refer to the [API reference](./API_REFERENCE.md) to better understand the purpose of each field.
 
 ## Quickstart
 
