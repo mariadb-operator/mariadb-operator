@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 )
 
 // InheritMetadata defines the metadata to be inherited by children resources.
@@ -350,8 +351,7 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	}
 
 	if m.Spec.RootEmptyPassword == nil {
-		defaultRootEmptyPassword := false
-		m.Spec.RootEmptyPassword = &defaultRootEmptyPassword
+		m.Spec.RootEmptyPassword = ptr.To(false)
 	}
 	if m.Spec.RootPasswordSecretKeyRef == (corev1.SecretKeySelector{}) && !m.IsRootPasswordEmpty() {
 		m.Spec.RootPasswordSecretKeyRef = m.RootPasswordSecretKeyRef()
