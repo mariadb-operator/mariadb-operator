@@ -529,6 +529,7 @@ _Appears in:_
 | `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
 | `inheritMetadata` _[InheritMetadata](#inheritmetadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
 | `rootPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | RootPasswordSecretKeyRef is a reference to a Secret key containing the root password. |
+| `rootEmptyPassword` _boolean_ | RootEmptyPassword indicates if the root password should be empty. |
 | `database` _string_ | Database is the database to be created on bootstrap. |
 | `username` _string_ | Username is the username of the user to be created on bootstrap. |
 | `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret. |
