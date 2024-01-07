@@ -237,6 +237,14 @@ var rootCmd = &cobra.Command{
 			Client:   client,
 			Scheme:   scheme,
 			Recorder: mgr.GetEventRecorderFor("maxscale"),
+
+			Builder:        builder,
+			ConditionReady: conditionReady,
+			Environment:    env,
+
+			SecretReconciler:     secretReconciler,
+			ServiceReconciler:    serviceReconciler,
+			DeploymentReconciler: deployReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)
