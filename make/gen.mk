@@ -18,6 +18,7 @@ helm-crds: kustomize ## Generate CRDs for Helm chart.
 helm-images: ## Update images in Helm chart.
 	$(KUBECTL) create configmap mariadb-operator-images \
 		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
+		--from-literal=RELATED_IMAGE_MAXSCALE=$(RELATED_IMAGE_MAXSCALE) \
 		--from-literal=RELATED_IMAGE_EXPORTER=$(RELATED_IMAGE_EXPORTER) \
 		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
 		--dry-run=client -o yaml \
