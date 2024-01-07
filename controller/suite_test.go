@@ -186,6 +186,13 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
+	err = (&MaxScaleReconciler{
+		Client:   client,
+		Scheme:   scheme,
+		Recorder: k8sManager.GetEventRecorderFor("maxscale"),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
 	err = (&BackupReconciler{
 		Client:            client,
 		Scheme:            scheme,

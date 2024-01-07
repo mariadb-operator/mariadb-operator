@@ -233,6 +233,14 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
 		}
+		if err = (&controller.MaxScaleReconciler{
+			Client:   client,
+			Scheme:   scheme,
+			Recorder: mgr.GetEventRecorderFor("maxscale"),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
+			os.Exit(1)
+		}
 		if err = (&controller.BackupReconciler{
 			Client:            client,
 			Scheme:            scheme,

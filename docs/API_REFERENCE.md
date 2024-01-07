@@ -587,9 +587,6 @@ MaxScaleSpec defines the desired state of MaxScale
 _Appears in:_
 - [MaxScale](#maxscale)
 
-| Field | Description |
-| --- | --- |
-| `foo` _string_ | Foo is an example field of MaxScale. Edit maxscale_types.go to remove/update |
 
 
 #### Metrics
