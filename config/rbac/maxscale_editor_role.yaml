@@ -1,0 +1,31 @@
+# permissions for end users to edit maxscales.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: maxscale-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: mariadb-operator-enterprise
+    app.kubernetes.io/part-of: mariadb-operator-enterprise
+    app.kubernetes.io/managed-by: kustomize
+  name: maxscale-editor-role
+rules:
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - maxscales
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - maxscales/status
+  verbs:
+  - get

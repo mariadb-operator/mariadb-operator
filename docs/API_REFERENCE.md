@@ -14,6 +14,7 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 - [Database](#database)
 - [Grant](#grant)
 - [MariaDB](#mariadb)
+- [MaxScale](#maxscale)
 - [Restore](#restore)
 - [SqlJob](#sqljob)
 - [User](#user)
@@ -557,6 +558,38 @@ _Appears in:_
 | `secondaryService` _[ServiceTemplate](#servicetemplate)_ | SecondaryService defines templates to configure the secondary Service object. |
 | `secondaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | SecondaryConnection defines templates to configure the secondary Connection object. |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
+
+
+#### MaxScale
+
+
+
+MaxScale is the Schema for the maxscales API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `kind` _string_ | `MaxScale`
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[MaxScaleSpec](#maxscalespec)_ |  |
+
+
+#### MaxScaleSpec
+
+
+
+MaxScaleSpec defines the desired state of MaxScale
+
+_Appears in:_
+- [MaxScale](#maxscale)
+
+| Field | Description |
+| --- | --- |
+| `foo` _string_ | Foo is an example field of MaxScale. Edit maxscale_types.go to remove/update |
 
 
 #### Metrics

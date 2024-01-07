@@ -7,4 +7,5 @@ resources:
 - bases/mariadb.mmontes.io_databases.yaml
 - bases/mariadb.mmontes.io_connections.yaml
 - bases/mariadb.mmontes.io_sqljobs.yaml
+- bases/mariadb.mmontes.io_maxscales.yaml
   #+kubebuilder:scaffold:crdkustomizeresource
