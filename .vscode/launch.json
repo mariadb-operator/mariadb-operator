@@ -21,6 +21,7 @@
         "MARIADB_OPERATOR_SA_PATH": "/tmp/mariadb-operator/token",
         "MARIADB_OPERATOR_IMAGE": "ghcr.io/mariadb-operator/mariadb-operator:v0.0.24",
         "RELATED_IMAGE_MARIADB": "mariadb:11.2.2",
+        "RELATED_IMAGE_MAXSCALE": "mariadb/maxscale:23.08",
         "RELATED_IMAGE_EXPORTER": "prom/mysqld-exporter:v0.15.1",
       }
     },
@@ -41,6 +42,7 @@
         "MARIADB_OPERATOR_SA_PATH": "/tmp/mariadb-operator/token",
         "MARIADB_OPERATOR_IMAGE": "mariadb/mariadb-operator-enterprise:v0.0.24",
         "RELATED_IMAGE_MARIADB": "us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6",
+        "RELATED_IMAGE_MAXSCALE": "mariadb/maxscale:23.08",
         "RELATED_IMAGE_EXPORTER": "prom/mysqld-exporter:v0.15.1",
       }
     },

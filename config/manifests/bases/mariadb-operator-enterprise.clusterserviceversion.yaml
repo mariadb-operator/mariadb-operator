@@ -1468,6 +1468,11 @@ spec:
         displayName: Galera Recovery
         path: galeraRecovery
       version: v1alpha1
+    - description: MaxScale is the Schema for the maxscales API
+      displayName: Max Scale
+      kind: MaxScale
+      name: maxscales.mariadb.mmontes.io
+      version: v1alpha1
     - description: Restore is the Schema for the restores API. It is used to define
         restore jobs and its restoration source.
       displayName: Restore
