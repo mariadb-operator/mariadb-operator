@@ -190,6 +190,14 @@ var _ = BeforeSuite(func() {
 		Client:   client,
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorderFor("maxscale"),
+
+		Builder:        builder,
+		ConditionReady: conditionReady,
+		Environment:    env,
+
+		SecretReconciler:     secretReconciler,
+		ServiceReconciler:    serviceReconciler,
+		DeploymentReconciler: deployReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

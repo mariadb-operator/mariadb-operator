@@ -151,6 +151,7 @@ _Appears in:_
 - [Galera](#galera)
 - [GaleraSpec](#galeraspec)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleSpec](#maxscalespec)
 - [PodTemplate](#podtemplate)
 
 | Field | Description |
@@ -179,6 +180,7 @@ _Appears in:_
 - [Exporter](#exporter)
 - [GaleraAgent](#galeraagent)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |
@@ -587,6 +589,31 @@ MaxScaleSpec defines the desired state of MaxScale
 _Appears in:_
 - [MaxScale](#maxscale)
 
+| Field | Description |
+| --- | --- |
+| `command` _string array_ | Command to be used in the Container. |
+| `args` _string array_ | Args to be used in the Container. |
+| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core) array_ | Env represents the environment variables to be injected in a container. |
+| `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |
+| `volumeMounts` _[VolumeMount](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core) array_ | VolumeMounts to be used in the Container. |
+| `livenessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | LivenessProbe to be used in the Container. |
+| `readinessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | ReadinessProbe to be used in the Container. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
+| `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |
+| `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |
+| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
+| `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
+| `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
+| `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported. |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
+| `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
+| `replicas` _integer_ | Replicas indicates the number of desired instances. |
+| `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
+| `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | PodDisruptionBudget defines the update strategy for the Deployment object. |
+| `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the Kubernetes Service object. |
 
 
 #### Metrics
@@ -615,6 +642,7 @@ PodDisruptionBudget is the Pod availability bundget for a MariaDB
 
 _Appears in:_
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |
@@ -630,6 +658,7 @@ PodTemplate defines a template to configure Container objects.
 
 _Appears in:_
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |
@@ -909,6 +938,7 @@ ServiceTemplate defines a template to customize Service objects.
 
 _Appears in:_
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |

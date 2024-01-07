@@ -62,12 +62,12 @@ type MariaDBReconciler struct {
 	GaleraReconciler      *galera.GaleraReconciler
 }
 
-type reconcilePhase struct {
+type reconcilePhaseMariaDB struct {
 	Name      string
 	Reconcile func(context.Context, *mariadbv1alpha1.MariaDB) (ctrl.Result, error)
 }
 
-type patcher func(*mariadbv1alpha1.MariaDBStatus) error
+type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs/status,verbs=get;update;patch
@@ -102,7 +102,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	phases := []reconcilePhase{
+	phases := []reconcilePhaseMariaDB{
 		{
 			Name:      "Spec",
 			Reconcile: r.setSpecDefaults,
@@ -627,7 +627,7 @@ func (r *MariaDBReconciler) setStatusDefaults(ctx context.Context, mariadb *mari
 	})
 }
 
-func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcher {
+func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcherMariaDB {
 	return func(s *mariadbv1alpha1.MariaDBStatus) error {
 		var sts appsv1.StatefulSet
 		if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
@@ -646,7 +646,7 @@ func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha
 }
 
 func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	patcher patcher) error {
+	patcher patcherMariaDB) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	if err := patcher(&mariadb.Status); err != nil {
 		return err
