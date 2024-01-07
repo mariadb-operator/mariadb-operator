@@ -1,0 +1,12 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  labels:
+    app.kubernetes.io/name: maxscale
+    app.kubernetes.io/instance: maxscale-sample
+    app.kubernetes.io/part-of: mariadb-operator-enterprise
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: mariadb-operator-enterprise
+  name: maxscale-sample
+spec:
+  # TODO(user): Add fields here
