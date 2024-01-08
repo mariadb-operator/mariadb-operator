@@ -14365,8 +14365,8 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].message
       name: Status
       type: string
-    - jsonPath: .status.currentPrimary
-      name: Primary
+    - jsonPath: .status.primaryServer
+      name: Primary Server
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -21255,8 +21255,8 @@ spec:
                   - type
                   type: object
                 type: array
-              currentPrimary:
-                description: CurrentPrimary is the primary Pod.
+              primaryServer:
+                description: PrimaryServer is the primary server.
                 type: string
               replicas:
                 description: Replicas indicates the number of current instances.

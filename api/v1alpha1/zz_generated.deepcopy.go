@@ -1339,8 +1339,8 @@ func (in *MaxScaleStatus) DeepCopyInto(out *MaxScaleStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.CurrentPrimary != nil {
-		in, out := &in.CurrentPrimary, &out.CurrentPrimary
+	if in.PrimaryServer != nil {
+		in, out := &in.PrimaryServer, &out.PrimaryServer
 		*out = new(string)
 		**out = **in
 	}

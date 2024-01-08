@@ -108,10 +108,10 @@ type MaxScaleStatus struct {
 	// Replicas indicates the number of current instances.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	Replicas int32 `json:"replicas,omitempty"`
-	// CurrentPrimary is the primary Pod.
+	// PrimaryServer is the primary server.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes:Pod"}
-	CurrentPrimary *string `json:"currentPrimary,omitempty"`
+	PrimaryServer *string `json:"primaryServer,omitempty"`
 }
 
 // SetCondition sets a status condition to MaxScale
@@ -128,7 +128,7 @@ func (s *MaxScaleStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
-// +kubebuilder:printcolumn:name="Primary",type="string",JSONPath=".status.currentPrimary"
+// +kubebuilder:printcolumn:name="Primary Server",type="string",JSONPath=".status.primaryServer"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{MaxScale,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{Service,v1},{ConfigMap,v1},{Event,v1},{Deployment,v1},{PersistentVolumeClaim,v1},{PodDisruptionBudget,v1}}
 
