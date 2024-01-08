@@ -269,6 +269,9 @@ spec:
       - kind: Job
         name: ""
         version: v1
+      - kind: PersistentVolumeClaim
+        name: ""
+        version: v1
       specDescriptors:
       - description: Affinity to be used in the Backup Pod.
         displayName: Affinity
@@ -560,6 +563,9 @@ spec:
       - kind: Connection
         name: ""
         version: v1alpha1
+      - kind: Deployment
+        name: ""
+        version: v1
       - kind: Event
         name: ""
         version: v1
@@ -1472,6 +1478,250 @@ spec:
       displayName: Max Scale
       kind: MaxScale
       name: maxscales.mariadb.mmontes.io
+      resources:
+      - kind: Deployment
+        name: ""
+        version: v1
+      - kind: Event
+        name: ""
+        version: v1
+      - kind: Grant
+        name: ""
+        version: v1alpha1
+      - kind: MaxScale
+        name: ""
+        version: v1alpha1
+      - kind: PersistentVolumeClaim
+        name: ""
+        version: v1
+      - kind: PodDisruptionBudget
+        name: ""
+        version: v1
+      - kind: Secret
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
+      - kind: User
+        name: ""
+        version: v1alpha1
+      specDescriptors:
+      - description: Affinity to be used in the Pod.
+        displayName: Affinity
+        path: affinity
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: envFrom
+      - description: Image name to be used by the MaxScale instances. The supported
+          format is `<image>:<tag>`. Only MaxScale official images are supported.
+        displayName: Image
+        path: image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
+          the image.
+        displayName: Image Pull Secrets
+        path: imagePullSecrets
+      - description: InitContainers to be used in the Pod.
+        displayName: Init Containers
+        path: initContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: initContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: initContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: initContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: initContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: initContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: initContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: initContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: initContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: initContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: initContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: initContainers[0].volumeMounts
+      - description: Service defines templates to configure the Kubernetes Service
+          object.
+        displayName: Kubernetes Service
+        path: kubernetesService
+      - description: AllocateLoadBalancerNodePorts Service field.
+        displayName: Allocate Load Balancer Node Ports
+        path: kubernetesService.allocateLoadBalancerNodePorts
+      - description: Annotations to add to the Service metadata.
+        displayName: Annotations
+        path: kubernetesService.annotations
+      - description: ExternalTrafficPolicy Service field.
+        displayName: External Traffic Policy
+        path: kubernetesService.externalTrafficPolicy
+      - description: Labels to add to the Service metadata.
+        displayName: Labels
+        path: kubernetesService.labels
+      - description: LoadBalancerIP Service field.
+        displayName: Load Balancer IP
+        path: kubernetesService.loadBalancerIP
+      - description: LoadBalancerSourceRanges Service field.
+        displayName: Load Balancer Source Ranges
+        path: kubernetesService.loadBalancerSourceRanges
+      - description: SessionAffinity Service field.
+        displayName: Session Affinity
+        path: kubernetesService.sessionAffinity
+      - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
+          If not defined, it defaults to `ClusterIP`.
+        displayName: Type
+        path: kubernetesService.type
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: livenessProbe
+      - description: NodeSelector to be used in the Pod.
+        displayName: Node Selector
+        path: nodeSelector
+      - description: PodDisruptionBudget defines the budget for replica availability.
+        displayName: Pod Disruption Budget
+        path: podDisruptionBudget
+      - description: MaxUnavailable defines the number of maximum unavailable Pods.
+        displayName: Max Unavailable
+        path: podDisruptionBudget.maxUnavailable
+      - description: MinAvailable defines the number of minimum available Pods.
+        displayName: Min Available
+        path: podDisruptionBudget.minAvailable
+      - description: SecurityContext holds pod-level security attributes and common
+          container settings.
+        displayName: Pod Security Context
+        path: podSecurityContext
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: readinessProbe
+      - description: Replicas indicates the number of desired instances.
+        displayName: Replicas
+        path: replicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: securityContext
+      - description: SidecarContainers to be used in the Pod.
+        displayName: Sidecar Containers
+        path: sidecarContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: sidecarContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: sidecarContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: sidecarContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: sidecarContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: sidecarContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: sidecarContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: sidecarContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: sidecarContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: sidecarContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: sidecarContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: sidecarContainers[0].volumeMounts
+      - description: Tolerations to be used in the Pod.
+        displayName: Tolerations
+        path: tolerations
+      - description: PodDisruptionBudget defines the update strategy for the Deployment
+          object.
+        displayName: Update Strategy
+        path: updateStrategy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: volumeMounts
+      - description: Volumes to be used in the Pod.
+        displayName: Volumes
+        path: volumes
+      statusDescriptors:
+      - description: Conditions for the Mariadb object.
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      - description: CurrentPrimary is the primary Pod.
+        displayName: Current Primary
+        path: currentPrimary
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Pod
       version: v1alpha1
     - description: Restore is the Schema for the restores API. It is used to define
         restore jobs and its restoration source.
