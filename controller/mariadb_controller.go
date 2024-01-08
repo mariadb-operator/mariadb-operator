@@ -93,11 +93,9 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 // move the current state of the cluster closer to the desired state.
 func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var mariadb mariadbv1alpha1.MariaDB
-
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
 	if err := r.patchStatus(ctx, &mariadb, r.patcher(ctx, &mariadb)); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}

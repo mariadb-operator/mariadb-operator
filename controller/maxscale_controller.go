@@ -52,9 +52,11 @@ type MaxScaleReconciler struct {
 // move the current state of the cluster closer to the desired state.
 func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var maxscale mariadbv1alpha1.MaxScale
-
 	if err := r.Get(ctx, req.NamespacedName, &maxscale); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	if err := r.patchStatus(ctx, &maxscale, r.patcher(ctx, &maxscale)); err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, err
 	}
 
 	phases := []struct {
@@ -172,6 +174,18 @@ func (r *MaxScaleReconciler) reconcileDeployment(ctx context.Context, maxscale *
 		return ctrl.Result{}, fmt.Errorf("error building Deployment: %v", err)
 	}
 	return ctrl.Result{}, r.DeploymentReconciler.Reconcile(ctx, deploy)
+}
+
+func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {
+	return func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+		var deploy appsv1.Deployment
+		if err := r.Get(ctx, client.ObjectKeyFromObject(maxscale), &deploy); err != nil {
+			return err
+		}
+		maxscale.Status.Replicas = deploy.Status.ReadyReplicas
+		condition.SetReadyWithDeployment(&maxscale.Status, &deploy)
+		return nil
+	}
 }
 
 func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
