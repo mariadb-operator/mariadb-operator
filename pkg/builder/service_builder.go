@@ -1,13 +1,14 @@
 package builder
 
 import (
+	"errors"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -23,22 +24,19 @@ func MariaDBPort(svc *corev1.Service) (*v1.ServicePort, error) {
 
 type ServiceOpts struct {
 	mariadbv1alpha1.ServiceTemplate
-	Selectorlabels        map[string]string
+	SelectorLabels        map[string]string
 	ExcludeSelectorLabels bool
 	Ports                 []corev1.ServicePort
 	Headless              bool
+	MariaDB               *mariadbv1alpha1.MariaDB
 }
 
-func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
-	opts ServiceOpts) (*corev1.Service, error) {
-	objMeta :=
-		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
-			WithAnnotations(opts.Annotations).
-			WithLabels(opts.Labels).
-			Build()
+func (b *Builder) BuildService(key types.NamespacedName, owner metav1.Object, opts ServiceOpts) (*corev1.Service, error) {
+	if !opts.ExcludeSelectorLabels && opts.SelectorLabels == nil {
+		return nil, errors.New("SelectorLabels are mandatory when ExcludeSelectorLabels is set to false")
+	}
 	svc := &corev1.Service{
-		ObjectMeta: objMeta,
+		ObjectMeta: serviceObjMeta(key, opts),
 		Spec: corev1.ServiceSpec{
 			Type:  opts.Type,
 			Ports: opts.Ports,
@@ -49,7 +47,7 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		svc.Spec.PublishNotReadyAddresses = true
 	}
 	if !opts.ExcludeSelectorLabels {
-		svc.Spec.Selector = serviceSelectorLabels(opts, mariadb)
+		svc.Spec.Selector = opts.SelectorLabels
 	}
 	if opts.LoadBalancerIP != nil {
 		svc.Spec.LoadBalancerIP = *opts.LoadBalancerIP
@@ -66,18 +64,19 @@ func (b *Builder) BuildService(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	if opts.AllocateLoadBalancerNodePorts != nil {
 		svc.Spec.AllocateLoadBalancerNodePorts = opts.AllocateLoadBalancerNodePorts
 	}
-	if err := controllerutil.SetControllerReference(mariadb, svc, b.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(owner, svc, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Service: %v", err)
 	}
 	return svc, nil
 }
 
-func serviceSelectorLabels(opts ServiceOpts, mariadb *mariadbv1alpha1.MariaDB) map[string]string {
-	if opts.Selectorlabels != nil {
-		return opts.Selectorlabels
+func serviceObjMeta(key types.NamespacedName, opts ServiceOpts) metav1.ObjectMeta {
+	builder := metadata.NewMetadataBuilder(key)
+	if opts.MariaDB != nil {
+		builder = builder.WithMariaDB(opts.MariaDB)
 	}
-	return labels.NewLabelsBuilder().
-		WithMariaDBSelectorLabels(mariadb).
-		WithLabels(opts.Selectorlabels).
+	return builder.
+		WithAnnotations(opts.Annotations).
+		WithLabels(opts.Labels).
 		Build()
 }

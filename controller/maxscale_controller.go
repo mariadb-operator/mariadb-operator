@@ -86,6 +86,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			name:      "PodDisruptionBudget",
 			reconcile: r.reconcilePodDisruptionBudget,
 		},
+		{
+			name:      "Service",
+			reconcile: r.reconcileService,
+		},
 	}
 
 	for _, p := range phases {
@@ -183,6 +187,10 @@ func (r *MaxScaleReconciler) reconcileDeployment(ctx context.Context, maxscale *
 	return ctrl.Result{}, r.DeploymentReconciler.Reconcile(ctx, deploy)
 }
 
+func (r *MaxScaleReconciler) reconcileService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
+}
+
 func (r *MaxScaleReconciler) reconcilePodDisruptionBudget(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
 	if maxscale.Spec.PodDisruptionBudget != nil {
 		return ctrl.Result{}, r.reconcilePDBWithAvailability(
@@ -262,6 +270,7 @@ func (r *MaxScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MaxScale{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Service{}).
 		Owns(&appsv1.Deployment{}).
 		Complete(r)
 }

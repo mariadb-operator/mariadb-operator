@@ -422,6 +422,10 @@ func (r *MariaDBReconciler) reconcileHighAvailabilityPDB(ctx context.Context, ma
 
 func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDBSelectorLabels(mariadb).
+			Build()
 	opts := builder.ServiceOpts{
 		Ports: []corev1.ServicePort{
 			{
@@ -429,11 +433,14 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 				Port: mariadb.Spec.Port,
 			},
 		},
+		SelectorLabels: selectorLabels,
+		MariaDB:        mariadb,
 	}
 	if mariadb.Spec.Service != nil {
 		opts.ServiceTemplate = *mariadb.Spec.Service
 	}
-	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+
+	desiredSvc, err := r.Builder.BuildService(key, mariadb, opts)
 	if err != nil {
 		return fmt.Errorf("error building Service: %v", err)
 	}
@@ -468,12 +475,18 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			},
 		}...)
 	}
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDBSelectorLabels(mariadb).
+			Build()
 
 	opts := builder.ServiceOpts{
-		Ports:    ports,
-		Headless: true,
+		Ports:          ports,
+		Headless:       true,
+		SelectorLabels: selectorLabels,
+		MariaDB:        mariadb,
 	}
-	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+	desiredSvc, err := r.Builder.BuildService(key, mariadb, opts)
 	if err != nil {
 		return fmt.Errorf("error building internal Service: %v", err)
 	}
@@ -491,18 +504,20 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 			WithStatefulSetPod(mariadb, *mariadb.Status.CurrentPrimaryPodIndex).
 			Build()
 	opts := builder.ServiceOpts{
-		Selectorlabels: serviceLabels,
 		Ports: []corev1.ServicePort{
 			{
 				Name: builder.MariaDbPortName,
 				Port: mariadb.Spec.Port,
 			},
 		},
+		SelectorLabels: serviceLabels,
+		MariaDB:        mariadb,
 	}
 	if mariadb.Spec.PrimaryService != nil {
 		opts.ServiceTemplate = *mariadb.Spec.PrimaryService
 	}
-	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+
+	desiredSvc, err := r.Builder.BuildService(key, mariadb, opts)
 	if err != nil {
 		return fmt.Errorf("error building Service: %v", err)
 	}
@@ -511,6 +526,10 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 
 func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := mariadb.SecondaryServiceKey()
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDBSelectorLabels(mariadb).
+			Build()
 	opts := builder.ServiceOpts{
 		ExcludeSelectorLabels: true,
 		Ports: []corev1.ServicePort{
@@ -519,17 +538,21 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 				Port: mariadb.Spec.Port,
 			},
 		},
+		SelectorLabels: selectorLabels,
+		MariaDB:        mariadb,
 	}
 	if mariadb.Spec.SecondaryService != nil {
 		opts.ServiceTemplate = *mariadb.Spec.SecondaryService
 	}
-	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+
+	desiredSvc, err := r.Builder.BuildService(key, mariadb, opts)
 	if err != nil {
 		return fmt.Errorf("error building Service: %v", err)
 	}
 	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
 		return err
 	}
+
 	if err := r.EndpointsReconciler.Reconcile(ctx, mariadb.SecondaryServiceKey(), mariadb); err != nil {
 		if errors.Is(err, endpoints.ErrNoAddressesAvailable) {
 			log.FromContext(ctx).V(1).Info("No addresses available for secondary Endpoints")
