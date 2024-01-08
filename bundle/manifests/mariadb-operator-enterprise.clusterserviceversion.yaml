@@ -305,14 +305,117 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: Backup is the Schema for the backups API. It is used to define
-        backup jobs and its storage.
-      displayName: Backup
-      kind: Backup
-      name: backups.mariadb.mmontes.io
-      resources:
-      - kind: Backup
-        name: ""
+      - description: Backup is the Schema for the backups API. It is used to define backup jobs and its storage.
+        displayName: Backup
+        kind: Backup
+        name: backups.mariadb.mmontes.io
+        resources:
+          - kind: Backup
+            name: ""
+            version: v1alpha1
+          - kind: CronJob
+            name: ""
+            version: v1
+          - kind: Job
+            name: ""
+            version: v1
+          - kind: PersistentVolumeClaim
+            name: ""
+            version: v1
+        specDescriptors:
+          - description: Affinity to be used in the Backup Pod.
+            displayName: Affinity
+            path: affinity
+          - description: Args to be used in the Backup container.
+            displayName: Args
+            path: args
+          - description: BackoffLimit defines the maximum number of attempts to successfully take a Backup.
+            displayName: Backoff Limit
+            path: backoffLimit
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
+            displayName: Log Level
+            path: logLevel
+          - description: MariaDBRef is a reference to a MariaDB object.
+            displayName: Maria DBRef
+            path: mariaDbRef
+          - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
+            displayName: Wait For It
+            path: mariaDbRef.waitForIt
+          - description: MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job. It defaults to 30 days.
+            displayName: Max Retention
+            path: maxRetention
+          - description: NodeSelector to be used in the Backup Pod.
+            displayName: Node Selector
+            path: nodeSelector
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: RestartPolicy to be added to the Backup Pod.
+            displayName: Restart Policy
+            path: restartPolicy
+          - description: Schedule defines when the Backup will be taken.
+            displayName: Schedule
+            path: schedule
+          - description: Cron is a cron expression that defines the schedule.
+            displayName: Cron
+            path: schedule.cron
+          - description: Suspend defines whether the schedule is active or not.
+            displayName: Suspend
+            path: schedule.suspend
+          - description: Storage to be used in the Backup.
+            displayName: Storage
+            path: storage
+          - description: PersistentVolumeClaim is a Kubernetes PVC specification.
+            displayName: Persistent Volume Claim
+            path: storage.persistentVolumeClaim
+          - description: S3 defines the configuration to store backups in a S3 compatible storage.
+            displayName: S3
+            path: storage.s3
+          - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
+            displayName: Access Key Id Secret Key Ref
+            path: storage.s3.accessKeyIdSecretKeyRef
+          - description: Bucket is the name Name of the bucket to store backups.
+            displayName: Bucket
+            path: storage.s3.bucket
+          - description: Endpoint is the S3 API endpoint without scheme.
+            displayName: Endpoint
+            path: storage.s3.endpoint
+          - description: Region is the S3 region name to use.
+            displayName: Region
+            path: storage.s3.region
+          - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
+            displayName: Secret Access Key Secret Key Ref
+            path: storage.s3.secretAccessKeySecretKeyRef
+          - description: SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
+            displayName: Session Token Secret Key Ref
+            path: storage.s3.sessionTokenSecretKeyRef
+          - description: TLS provides the configuration required to establish TLS connections with S3.
+            displayName: TLS
+            path: storage.s3.tls
+          - description: CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+            displayName: CASecret Key Ref
+            path: storage.s3.tls.caSecretKeyRef
+          - description: Enabled is a flag to enable TLS.
+            displayName: Enabled
+            path: storage.s3.tls.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Volume is a Kubernetes volume specification.
+            displayName: Volume
+            path: storage.volume
+          - description: Tolerations to be used in the Backup Pod.
+            displayName: Tolerations
+            path: tolerations
+        statusDescriptors:
+          - description: Conditions for the Backup object.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
         version: v1alpha1
       - kind: CronJob
         name: ""
@@ -1490,1048 +1593,1442 @@ spec:
       - description: Connection defines templates to configure the general Connection
           object.
         displayName: Connection
-        path: connection
-      - description: HealthCheck to be used in the Connection.
-        displayName: Health Check
-        path: connection.healthCheck
-      - description: Interval used to perform health checks.
-        displayName: Interval
-        path: connection.healthCheck.interval
-      - description: RetryInterval is the intervañ used to perform health check retries.
-        displayName: Retry Interval
-        path: connection.healthCheck.retryInterval
-      - description: Params to be used in the Connection.
-        displayName: Params
-        path: connection.params
-      - description: SecretName to be used in the Connection.
-        displayName: Secret Name
-        path: connection.secretName
-      - description: SecretTemplate to be used in the Connection.
-        displayName: Secret Template
-        path: connection.secretTemplate
-      - description: Annotations to be added to the Secret object.
-        displayName: Annotations
-        path: connection.secretTemplate.annotations
-      - description: DatabaseKey to be used in the Secret.
-        displayName: Database Key
-        path: connection.secretTemplate.databaseKey
-      - description: Format to be used in the Secret.
-        displayName: Format
-        path: connection.secretTemplate.format
-      - description: HostKey to be used in the Secret.
-        displayName: Host Key
-        path: connection.secretTemplate.hostKey
-      - description: Key to be used in the Secret.
-        displayName: Key
-        path: connection.secretTemplate.key
-      - description: Labels to be added to the Secret object.
-        displayName: Labels
-        path: connection.secretTemplate.labels
-      - description: PasswordKey to be used in the Secret.
-        displayName: Password Key
-        path: connection.secretTemplate.passwordKey
-      - description: PortKey to be used in the Secret.
-        displayName: Port Key
-        path: connection.secretTemplate.portKey
-      - description: UsernameKey to be used in the Secret.
-        displayName: Username Key
-        path: connection.secretTemplate.usernameKey
-      - description: ServiceName to be used in the Connection.
-        displayName: Service Name
-        path: connection.serviceName
-      - description: Database is the database to be created on bootstrap.
+        kind: Connection
+        name: connections.mariadb.mmontes.io
+        resources:
+          - kind: Connection
+            name: ""
+            version: v1alpha1
+          - kind: Secret
+            name: ""
+            version: v1
+        specDescriptors:
+          - description: Database to use for configuring the Connection.
+            displayName: Database
+            path: database
+          - description: HealthCheck to be used in the Connection.
+            displayName: Health Check
+            path: healthCheck
+          - description: Interval used to perform health checks.
+            displayName: Interval
+            path: healthCheck.interval
+          - description: RetryInterval is the intervañ used to perform health check retries.
+            displayName: Retry Interval
+            path: healthCheck.retryInterval
+          - description: MariaDBRef is a reference to a MariaDB object.
+            displayName: Maria DBRef
+            path: mariaDbRef
+          - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
+            displayName: Wait For It
+            path: mariaDbRef.waitForIt
+          - description: Params to be used in the Connection.
+            displayName: Params
+            path: params
+          - description: PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.
+            displayName: Password Secret Key Ref
+            path: passwordSecretKeyRef
+          - description: SecretName to be used in the Connection.
+            displayName: Secret Name
+            path: secretName
+          - description: SecretTemplate to be used in the Connection.
+            displayName: Secret Template
+            path: secretTemplate
+          - description: Annotations to be added to the Secret object.
+            displayName: Annotations
+            path: secretTemplate.annotations
+          - description: DatabaseKey to be used in the Secret.
+            displayName: Database Key
+            path: secretTemplate.databaseKey
+          - description: Format to be used in the Secret.
+            displayName: Format
+            path: secretTemplate.format
+          - description: HostKey to be used in the Secret.
+            displayName: Host Key
+            path: secretTemplate.hostKey
+          - description: Key to be used in the Secret.
+            displayName: Key
+            path: secretTemplate.key
+          - description: Labels to be added to the Secret object.
+            displayName: Labels
+            path: secretTemplate.labels
+          - description: PasswordKey to be used in the Secret.
+            displayName: Password Key
+            path: secretTemplate.passwordKey
+          - description: PortKey to be used in the Secret.
+            displayName: Port Key
+            path: secretTemplate.portKey
+          - description: UsernameKey to be used in the Secret.
+            displayName: Username Key
+            path: secretTemplate.usernameKey
+          - description: ServiceName to be used in the Connection.
+            displayName: Service Name
+            path: serviceName
+          - description: Username to use for configuring the Connection.
+            displayName: Username
+            path: username
+        statusDescriptors:
+          - description: Conditions for the Connection object.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+        version: v1alpha1
+      - description: Database is the Schema for the databases API. It is used to define a logical database as if you were running a 'CREATE DATABASE' statement.
         displayName: Database
-        path: database
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: env
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: envFrom
-      - description: Replication configures high availability via Galera.
-        displayName: Galera
-        path: galera
-      - description: 'GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
-          More info: https://github.com/mariadb-operator/agent.'
-        displayName: Agent
-        path: galera.agent
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: galera.agent.args
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: galera.agent.command
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: galera.agent.env
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: galera.agent.envFrom
-      - description: GracefulShutdownTimeout is the time we give to the agent container
-          in order to gracefully terminate in-flight requests.
-        displayName: Graceful Shutdown Timeout
-        path: galera.agent.gracefulShutdownTimeout
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: galera.agent.image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: galera.agent.imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-      - description: KubernetesAuth to be used by the agent container
-        displayName: Kubernetes Auth
-        path: galera.agent.kubernetesAuth
-      - description: AuthDelegatorRoleName is the name of the ClusterRoleBinding that
-          is associated with the "system:auth-delegator" ClusterRole. It is necessary
-          for creating TokenReview objects in order for the agent to validate the
-          service account token.
-        displayName: Auth Delegator Role Name
-        path: galera.agent.kubernetesAuth.authDelegatorRoleName
-      - description: Enabled is a flag to enable KubernetesAuth
-        displayName: Enabled
-        path: galera.agent.kubernetesAuth.enabled
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: galera.agent.livenessProbe
-      - description: Port where the agent will be listening for connections.
-        displayName: Port
-        path: galera.agent.port
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: galera.agent.readinessProbe
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: galera.agent.resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: galera.agent.securityContext
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: galera.agent.volumeMounts
-      - description: Enabled is a flag to enable Galera.
-        displayName: Enabled
-        path: galera.enabled
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: 'InitContainer is an init container that co-operates with mariadb-operator.
-          More info: https://github.com/mariadb-operator/init.'
-        displayName: Init Container
-        path: galera.initContainer
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: galera.initContainer.args
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: galera.initContainer.command
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: galera.initContainer.env
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: galera.initContainer.envFrom
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: galera.initContainer.image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: galera.initContainer.imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: galera.initContainer.livenessProbe
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: galera.initContainer.readinessProbe
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: galera.initContainer.resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: galera.initContainer.securityContext
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: galera.initContainer.volumeMounts
-      - description: Primary is the Galera configuration for the primary node.
-        displayName: Primary
-        path: galera.primary
-      - description: AutomaticFailover indicates whether the operator should automatically
-          update PodIndex to perform an automatic primary failover.
-        displayName: Automatic Failover
-        path: galera.primary.automaticFailover
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: PodIndex is the StatefulSet index of the primary node. The user
-          may change this field to perform a manual switchover.
-        displayName: Pod Index
-        path: galera.primary.podIndex
-      - description: 'GaleraRecovery is the recovery process performed by the operator
-          whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html.'
-        displayName: Recovery
-        path: galera.recovery
-      - description: ClusterBootstrapTimeout is the time limit for bootstrapping a
-          cluster. Once this timeout is reached, the Galera recovery state is reset
-          and a new cluster bootstrap will be attempted.
-        displayName: Cluster Bootstrap Timeout
-        path: galera.recovery.clusterBootstrapTimeout
-      - description: ClusterHealthyTimeout represents the duration at which a Galera
-          cluster, that consistently failed health checks, is considered unhealthy,
-          and consequently the Galera recovery process will be initiated by the operator.
-        displayName: Cluster Healthy Timeout
-        path: galera.recovery.clusterHealthyTimeout
-      - description: Enabled is a flag to enable GaleraRecovery.
-        displayName: Enabled
-        path: galera.recovery.enabled
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: PodRecoveryTimeout is the time limit for executing the recovery
-          sequence within a Pod. This process includes enabling the recovery mode
-          in the Galera configuration file, restarting the Pod and retrieving the
-          sequence from a log file.
-        displayName: Pod Recovery Timeout
-        path: galera.recovery.podRecoveryTimeout
-      - description: PodSyncTimeout is the time limit we give to a Pod to reach the
-          Sync state. Once this timeout is reached, the Pod is restarted.
-        displayName: Pod Sync Timeout
-        path: galera.recovery.podSyncTimeout
-      - description: 'ReplicaThreads is the number of replica threads used to apply
-          Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.'
-        displayName: Replica Threads
-        path: galera.replicaThreads
-      - description: 'SST is the Snapshot State Transfer used when new Pods join the
-          cluster. More info: https://galeracluster.com/library/documentation/sst.html.'
-        displayName: SST
-        path: galera.sst
-      - description: VolumeClaimTemplate is a template for the PVC that will contain
-          the Galera configuration files shared between the InitContainer, Agent and
-          MariaDB.
-        displayName: Volume Claim Template
-        path: galera.volumeClaimTemplate
-      - description: Annotations to be used in the PVC.
-        displayName: Annotations
-        path: galera.volumeClaimTemplate.annotations
-      - description: Labels to be used in the PVC.
-        displayName: Labels
-        path: galera.volumeClaimTemplate.labels
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`. Only MariaDB official images are supported.
-        displayName: Image
-        path: image
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
-          the image.
-        displayName: Image Pull Secrets
-        path: imagePullSecrets
-      - description: InheritMetadata defines the metadata to be inherited by children
-          resources.
-        displayName: Inherit Metadata
-        path: inheritMetadata
-      - description: Annotations to be added to children resources.
-        displayName: Annotations
-        path: inheritMetadata.annotations
-      - description: Labels to be added to children resources.
-        displayName: Labels
-        path: inheritMetadata.labels
-      - description: InitContainers to be used in the Pod.
-        displayName: Init Containers
-        path: initContainers
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: initContainers[0].args
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: initContainers[0].command
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: initContainers[0].env
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: initContainers[0].envFrom
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: initContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: initContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: initContainers[0].livenessProbe
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: initContainers[0].readinessProbe
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: initContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: initContainers[0].securityContext
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: initContainers[0].volumeMounts
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: livenessProbe
-      - description: Metrics configures metrics and how to scrape them.
-        displayName: Metrics
-        path: metrics
-      - description: Enabled is a flag to enable Metrics
-        displayName: Enabled
-        path: metrics.enabled
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Exporter defines the metrics exporter container.
-        displayName: Exporter
-        path: metrics.exporter
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: metrics.exporter.args
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: metrics.exporter.command
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: metrics.exporter.env
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: metrics.exporter.envFrom
-      - description: 'Image name to be used as metrics exporter. The supported format
-          is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
-        displayName: Image
-        path: metrics.exporter.image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: metrics.exporter.imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: metrics.exporter.livenessProbe
-      - description: Port where the exporter will be listening for connections.
-        displayName: Port
-        path: metrics.exporter.port
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:number
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: metrics.exporter.readinessProbe
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: metrics.exporter.resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: metrics.exporter.securityContext
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: metrics.exporter.volumeMounts
-      - description: PasswordSecretKeyRef is a reference to the password of the monitoring
-          user used by the exporter.
-        displayName: Password Secret Key Ref
-        path: metrics.passwordSecretKeyRef
-      - description: ServiceMonitor defines the ServiceMonior object.
-        displayName: Service Monitor
-        path: metrics.serviceMonitor
-      - description: Interval for scraping metrics.
-        displayName: Interval
-        path: metrics.serviceMonitor.interval
-      - description: JobLabel to add to the ServiceMonitor object.
-        displayName: Job Label
-        path: metrics.serviceMonitor.jobLabel
-      - description: PrometheusRelease is the release label to add to the ServiceMonitor
-          object.
-        displayName: Prometheus Release
-        path: metrics.serviceMonitor.prometheusRelease
-      - description: ScrapeTimeout defines the timeout for scraping metrics.
-        displayName: Scrape Timeout
-        path: metrics.serviceMonitor.scrapeTimeout
-      - description: Username is the username of the monitoring user used by the exporter.
-        displayName: Username
-        path: metrics.username
-      - description: MyCnf allows to specify the my.cnf file mounted by Mariadb.
-        displayName: My Cnf
-        path: myCnf
-      - description: MyCnfConfigMapKeyRef is a reference to the my.cnf config file
-          provided via a ConfigMap. If not provided, it will be defaulted with reference
-          to a ConfigMap with the contents of the MyCnf field.
-        displayName: My Cnf Config Map Key Ref
-        path: myCnfConfigMapKeyRef
-      - description: NodeSelector to be used in the Pod.
-        displayName: Node Selector
-        path: nodeSelector
-      - description: PasswordSecretKeyRef is a reference to the password of the initial
-          user provided via a Secret.
-        displayName: Password Secret Key Ref
-        path: passwordSecretKeyRef
-      - description: PodAnnotations to add to the Pods metadata.
-        displayName: Pod Annotations
-        path: podAnnotations
-      - description: PodDisruptionBudget defines the budget for replica availability.
-        displayName: Pod Disruption Budget
-        path: podDisruptionBudget
-      - description: MaxUnavailable defines the number of maximum unavailable Pods.
-        displayName: Max Unavailable
-        path: podDisruptionBudget.maxUnavailable
-      - description: MinAvailable defines the number of minimum available Pods.
-        displayName: Min Available
-        path: podDisruptionBudget.minAvailable
-      - description: SecurityContext holds pod-level security attributes and common
-          container settings.
-        displayName: Pod Security Context
-        path: podSecurityContext
-      - description: Port where the instances will be listening for connections.
-        displayName: Port
-        path: port
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:number
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: PrimaryConnection defines templates to configure the primary
-          Connection object.
-        displayName: Primary Connection
-        path: primaryConnection
-      - description: HealthCheck to be used in the Connection.
-        displayName: Health Check
-        path: primaryConnection.healthCheck
-      - description: Interval used to perform health checks.
-        displayName: Interval
-        path: primaryConnection.healthCheck.interval
-      - description: RetryInterval is the intervañ used to perform health check retries.
-        displayName: Retry Interval
-        path: primaryConnection.healthCheck.retryInterval
-      - description: Params to be used in the Connection.
-        displayName: Params
-        path: primaryConnection.params
-      - description: SecretName to be used in the Connection.
-        displayName: Secret Name
-        path: primaryConnection.secretName
-      - description: SecretTemplate to be used in the Connection.
-        displayName: Secret Template
-        path: primaryConnection.secretTemplate
-      - description: Annotations to be added to the Secret object.
-        displayName: Annotations
-        path: primaryConnection.secretTemplate.annotations
-      - description: DatabaseKey to be used in the Secret.
-        displayName: Database Key
-        path: primaryConnection.secretTemplate.databaseKey
-      - description: Format to be used in the Secret.
-        displayName: Format
-        path: primaryConnection.secretTemplate.format
-      - description: HostKey to be used in the Secret.
-        displayName: Host Key
-        path: primaryConnection.secretTemplate.hostKey
-      - description: Key to be used in the Secret.
-        displayName: Key
-        path: primaryConnection.secretTemplate.key
-      - description: Labels to be added to the Secret object.
-        displayName: Labels
-        path: primaryConnection.secretTemplate.labels
-      - description: PasswordKey to be used in the Secret.
-        displayName: Password Key
-        path: primaryConnection.secretTemplate.passwordKey
-      - description: PortKey to be used in the Secret.
-        displayName: Port Key
-        path: primaryConnection.secretTemplate.portKey
-      - description: UsernameKey to be used in the Secret.
-        displayName: Username Key
-        path: primaryConnection.secretTemplate.usernameKey
-      - description: ServiceName to be used in the Connection.
-        displayName: Service Name
-        path: primaryConnection.serviceName
-      - description: PrimaryService defines templates to configure the primary Service
-          object.
-        displayName: Primary Service
-        path: primaryService
-      - description: AllocateLoadBalancerNodePorts Service field.
-        displayName: Allocate Load Balancer Node Ports
-        path: primaryService.allocateLoadBalancerNodePorts
-      - description: Annotations to add to the Service metadata.
-        displayName: Annotations
-        path: primaryService.annotations
-      - description: ExternalTrafficPolicy Service field.
-        displayName: External Traffic Policy
-        path: primaryService.externalTrafficPolicy
-      - description: Labels to add to the Service metadata.
-        displayName: Labels
-        path: primaryService.labels
-      - description: LoadBalancerIP Service field.
-        displayName: Load Balancer IP
-        path: primaryService.loadBalancerIP
-      - description: LoadBalancerSourceRanges Service field.
-        displayName: Load Balancer Source Ranges
-        path: primaryService.loadBalancerSourceRanges
-      - description: SessionAffinity Service field.
-        displayName: Session Affinity
-        path: primaryService.sessionAffinity
-      - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
-          If not defined, it defaults to `ClusterIP`.
-        displayName: Type
-        path: primaryService.type
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: readinessProbe
-      - description: Replicas indicates the number of desired instances.
-        displayName: Replicas
-        path: replicas
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:podCount
-      - description: Replication configures high availability via replication.
-        displayName: Replication
-        path: replication
-      - description: Enabled is a flag to enable Replication.
-        displayName: Enabled
-        path: replication.enabled
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Primary is the replication configuration for the primary node.
-        displayName: Primary
-        path: replication.primary
-      - description: AutomaticFailover indicates whether the operator should automatically
-          update PodIndex to perform an automatic primary failover.
-        displayName: Automatic Failover
-        path: replication.primary.automaticFailover
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: PodIndex is the StatefulSet index of the primary node. The user
-          may change this field to perform a manual switchover.
-        displayName: Pod Index
-        path: replication.primary.podIndex
-      - description: ReplicaReplication is the replication configuration for the replica
-          nodes.
-        displayName: Replica
-        path: replication.replica
-      - description: ConnectionRetries to be used when the replica connects to the
-          primary.
-        displayName: Connection Retries
-        path: replication.replica.connectionRetries
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:number
-      - description: ConnectionTimeout to be used when the replica connects to the
-          primary.
-        displayName: Connection Timeout
-        path: replication.replica.connectionTimeout
-      - description: 'Gtid indicates which Global Transaction ID should be used when
-          connecting a replica to the master. See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.'
-        displayName: Gtid
-        path: replication.replica.gtid
-      - description: ReplPasswordSecretKeyRef provides a reference to the Secret to
-          use as password for the replication user.
-        displayName: Repl Password Secret Key Ref
-        path: replication.replica.replPasswordSecretKeyRef
-      - description: SyncTimeout defines the timeout for a replica to be synced with
-          the primary when performing a primary switchover. If the timeout is reached,
-          the replica GTID will be reset and the switchover will continue.
-        displayName: Sync Timeout
-        path: replication.replica.syncTimeout
-      - description: 'WaitPoint defines whether the transaction should wait for ACK
-          before committing to the storage engine. More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.'
-        displayName: Wait Point
-        path: replication.replica.waitPoint
-      - description: 'SyncBinlog indicates whether the binary log should be synchronized
-          to the disk after every event. It trades off performance for consistency.
-          See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog.'
-        displayName: Sync Binlog
-        path: replication.syncBinlog
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: RootEmptyPassword indicates if the root password should be empty.
-        displayName: Root Empty Password
-        path: rootEmptyPassword
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: RootPasswordSecretKeyRef is a reference to a Secret key containing
-          the root password.
-        displayName: Root Password Secret Key Ref
-        path: rootPasswordSecretKeyRef
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: SecondaryConnection defines templates to configure the secondary
-          Connection object.
-        displayName: Secondary Connection
-        path: secondaryConnection
-      - description: HealthCheck to be used in the Connection.
-        displayName: Health Check
-        path: secondaryConnection.healthCheck
-      - description: Interval used to perform health checks.
-        displayName: Interval
-        path: secondaryConnection.healthCheck.interval
-      - description: RetryInterval is the intervañ used to perform health check retries.
-        displayName: Retry Interval
-        path: secondaryConnection.healthCheck.retryInterval
-      - description: Params to be used in the Connection.
-        displayName: Params
-        path: secondaryConnection.params
-      - description: SecretName to be used in the Connection.
-        displayName: Secret Name
-        path: secondaryConnection.secretName
-      - description: SecretTemplate to be used in the Connection.
-        displayName: Secret Template
-        path: secondaryConnection.secretTemplate
-      - description: Annotations to be added to the Secret object.
-        displayName: Annotations
-        path: secondaryConnection.secretTemplate.annotations
-      - description: DatabaseKey to be used in the Secret.
-        displayName: Database Key
-        path: secondaryConnection.secretTemplate.databaseKey
-      - description: Format to be used in the Secret.
-        displayName: Format
-        path: secondaryConnection.secretTemplate.format
-      - description: HostKey to be used in the Secret.
-        displayName: Host Key
-        path: secondaryConnection.secretTemplate.hostKey
-      - description: Key to be used in the Secret.
-        displayName: Key
-        path: secondaryConnection.secretTemplate.key
-      - description: Labels to be added to the Secret object.
-        displayName: Labels
-        path: secondaryConnection.secretTemplate.labels
-      - description: PasswordKey to be used in the Secret.
-        displayName: Password Key
-        path: secondaryConnection.secretTemplate.passwordKey
-      - description: PortKey to be used in the Secret.
-        displayName: Port Key
-        path: secondaryConnection.secretTemplate.portKey
-      - description: UsernameKey to be used in the Secret.
-        displayName: Username Key
-        path: secondaryConnection.secretTemplate.usernameKey
-      - description: ServiceName to be used in the Connection.
-        displayName: Service Name
-        path: secondaryConnection.serviceName
-      - description: SecondaryService defines templates to configure the secondary
-          Service object.
-        displayName: Secondary Service
-        path: secondaryService
-      - description: AllocateLoadBalancerNodePorts Service field.
-        displayName: Allocate Load Balancer Node Ports
-        path: secondaryService.allocateLoadBalancerNodePorts
-      - description: Annotations to add to the Service metadata.
-        displayName: Annotations
-        path: secondaryService.annotations
-      - description: ExternalTrafficPolicy Service field.
-        displayName: External Traffic Policy
-        path: secondaryService.externalTrafficPolicy
-      - description: Labels to add to the Service metadata.
-        displayName: Labels
-        path: secondaryService.labels
-      - description: LoadBalancerIP Service field.
-        displayName: Load Balancer IP
-        path: secondaryService.loadBalancerIP
-      - description: LoadBalancerSourceRanges Service field.
-        displayName: Load Balancer Source Ranges
-        path: secondaryService.loadBalancerSourceRanges
-      - description: SessionAffinity Service field.
-        displayName: Session Affinity
-        path: secondaryService.sessionAffinity
-      - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
-          If not defined, it defaults to `ClusterIP`.
-        displayName: Type
-        path: secondaryService.type
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: securityContext
-      - description: Service defines templates to configure the general Service object.
-        displayName: Service
-        path: service
-      - description: AllocateLoadBalancerNodePorts Service field.
-        displayName: Allocate Load Balancer Node Ports
-        path: service.allocateLoadBalancerNodePorts
-      - description: Annotations to add to the Service metadata.
-        displayName: Annotations
-        path: service.annotations
-      - description: ExternalTrafficPolicy Service field.
-        displayName: External Traffic Policy
-        path: service.externalTrafficPolicy
-      - description: Labels to add to the Service metadata.
-        displayName: Labels
-        path: service.labels
-      - description: LoadBalancerIP Service field.
-        displayName: Load Balancer IP
-        path: service.loadBalancerIP
-      - description: LoadBalancerSourceRanges Service field.
-        displayName: Load Balancer Source Ranges
-        path: service.loadBalancerSourceRanges
-      - description: SessionAffinity Service field.
-        displayName: Session Affinity
-        path: service.sessionAffinity
-      - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
-          If not defined, it defaults to `ClusterIP`.
-        displayName: Type
-        path: service.type
-      - description: SidecarContainers to be used in the Pod.
-        displayName: Sidecar Containers
-        path: sidecarContainers
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: sidecarContainers[0].args
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: sidecarContainers[0].command
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: sidecarContainers[0].env
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: sidecarContainers[0].envFrom
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: sidecarContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: sidecarContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: sidecarContainers[0].livenessProbe
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: sidecarContainers[0].readinessProbe
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: sidecarContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: sidecarContainers[0].securityContext
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: sidecarContainers[0].volumeMounts
-      - description: Tolerations to be used in the Pod.
-        displayName: Tolerations
-        path: tolerations
-      - description: PodDisruptionBudget defines the update strategy for the StatefulSet
-          object.
-        displayName: Update Strategy
-        path: updateStrategy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
-      - description: Username is the username of the user to be created on bootstrap.
-        displayName: Username
-        path: username
-      - description: VolumeClaimTemplate provides a template to define the Pod PVCs.
-        displayName: Volume Claim Template
-        path: volumeClaimTemplate
-      - description: Annotations to be used in the PVC.
-        displayName: Annotations
-        path: volumeClaimTemplate.annotations
-      - description: Labels to be used in the PVC.
-        displayName: Labels
-        path: volumeClaimTemplate.labels
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: volumeMounts
-      - description: Volumes to be used in the Pod.
-        displayName: Volumes
-        path: volumes
-      statusDescriptors:
-      - description: Conditions for the Mariadb object.
-        displayName: Conditions
-        path: conditions
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.conditions
-      - description: CurrentPrimary is the primary Pod.
-        displayName: Current Primary
-        path: currentPrimary
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes:Pod
-      - description: CurrentPrimaryPodIndex is the primary Pod index.
-        displayName: Current Primary Pod Index
-        path: currentPrimaryPodIndex
-      - description: GaleraRecovery is the Galera recovery current state.
-        displayName: Galera Recovery
-        path: galeraRecovery
-      version: v1alpha1
-    - description: MaxScale is the Schema for the maxscales API
-      displayName: Max Scale
-      kind: MaxScale
-      name: maxscales.mariadb.mmontes.io
-      version: v1alpha1
-    - description: Restore is the Schema for the restores API. It is used to define
-        restore jobs and its restoration source.
-      displayName: Restore
-      kind: Restore
-      name: restores.mariadb.mmontes.io
-      resources:
-      - kind: Job
-        name: ""
-        version: v1
-      - kind: Restore
-        name: ""
+        kind: Database
+        name: databases.mariadb.mmontes.io
+        resources:
+          - kind: Database
+            name: ""
+            version: v1alpha1
+        specDescriptors:
+          - description: CharacterSet to use in the Database.
+            displayName: Character Set
+            path: characterSet
+          - description: CharacterSet to use in the Database.
+            displayName: Collate
+            path: collate
+          - description: MariaDBRef is a reference to a MariaDB object.
+            displayName: Maria DBRef
+            path: mariaDbRef
+          - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
+            displayName: Wait For It
+            path: mariaDbRef.waitForIt
+          - description: Name overrides the default Database name provided by metadata.name.
+            displayName: Name
+            path: name
+          - description: RequeueInterval is used to perform requeue reconcilizations.
+            displayName: Requeue Interval
+            path: requeueInterval
+          - description: RetryInterval is the interval used to perform retries.
+            displayName: Retry Interval
+            path: retryInterval
+        statusDescriptors:
+          - description: Conditions for the Database object.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
         version: v1alpha1
-      specDescriptors:
-      - description: Affinity to be used in the Restore Pod.
-        displayName: Affinity
-        path: affinity
-      - description: BackoffLimit defines the maximum number of attempts to successfully
-          perform a Backup.
-        displayName: Backoff Limit
-        path: backoffLimit
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:number
-      - description: BackupRef is a reference to a Backup object. It has priority
-          over S3 and Volume.
-        displayName: Backup Ref
-        path: backupRef
-      - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
-        displayName: Log Level
-        path: logLevel
-      - description: MariaDBRef is a reference to a MariaDB object.
-        displayName: Maria DBRef
-        path: mariaDbRef
-      - description: WaitForIt indicates whether the controller using this reference
-          should wait for MariaDB to be ready.
-        displayName: Wait For It
-        path: mariaDbRef.waitForIt
-      - description: NodeSelector to be used in the Restore Pod.
-        displayName: Node Selector
-        path: nodeSelector
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: RestartPolicy to be added to the Backup Job.
-        displayName: Restart Policy
-        path: restartPolicy
-      - description: S3 defines the configuration to restore backups from a S3 compatible
-          storage. It has priority over Volume.
-        displayName: S3
-        path: s3
-      - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing
-          the S3 access key id.
-        displayName: Access Key Id Secret Key Ref
-        path: s3.accessKeyIdSecretKeyRef
-      - description: Bucket is the name Name of the bucket to store backups.
-        displayName: Bucket
-        path: s3.bucket
-      - description: Endpoint is the S3 API endpoint without scheme.
-        displayName: Endpoint
-        path: s3.endpoint
-      - description: Region is the S3 region name to use.
-        displayName: Region
-        path: s3.region
-      - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing
-          the S3 secret key.
-        displayName: Secret Access Key Secret Key Ref
-        path: s3.secretAccessKeySecretKeyRef
-      - description: SessionTokenSecretKeyRef is a reference to a Secret key containing
-          the S3 session token.
-        displayName: Session Token Secret Key Ref
-        path: s3.sessionTokenSecretKeyRef
-      - description: TLS provides the configuration required to establish TLS connections
-          with S3.
-        displayName: TLS
-        path: s3.tls
-      - description: CASecretKeyRef is a reference to a Secret key containing a CA
-          bundle in PEM format used to establish TLS connections with S3.
-        displayName: CASecret Key Ref
-        path: s3.tls.caSecretKeyRef
-      - description: Enabled is a flag to enable TLS.
-        displayName: Enabled
-        path: s3.tls.enabled
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
-          time that defines the point in time recovery objective. It is used to determine
-          the closest restoration source in time.
-        displayName: Target Recovery Time
-        path: targetRecoveryTime
-      - description: Tolerations to be used in the Restore Pod.
-        displayName: Tolerations
-        path: tolerations
-      - description: Volume is a Kubernetes Volume object that contains a backup.
-        displayName: Volume
-        path: volume
-      statusDescriptors:
-      - description: Conditions for the Restore object.
-        displayName: Conditions
-        path: conditions
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.conditions
-      version: v1alpha1
-    - description: SqlJob is the Schema for the sqljobs API. It is used to run sql
-        scripts as jobs.
-      displayName: Sql Job
-      kind: SqlJob
-      name: sqljobs.mariadb.mmontes.io
-      resources:
-      - kind: ConfigMap
-        name: ""
-        version: v1
-      - kind: CronJob
-        name: ""
-        version: v1
-      - kind: Job
-        name: ""
-        version: v1
-      - kind: SqlJob
-        name: ""
+      - description: Grant is the Schema for the grants API. It is used to define grants as if you were running a 'GRANT' statement.
+        displayName: Grant
+        kind: Grant
+        name: grants.mariadb.mmontes.io
+        resources:
+          - kind: Grant
+            name: ""
+            version: v1alpha1
+        specDescriptors:
+          - description: Database to use in the Grant.
+            displayName: Database
+            path: database
+          - description: GrantOption to use in the Grant.
+            displayName: Grant Option
+            path: grantOption
+          - description: Host to use in the Grant.
+            displayName: Host
+            path: host
+          - description: MariaDBRef is a reference to a MariaDB object.
+            displayName: Maria DBRef
+            path: mariaDbRef
+          - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
+            displayName: Wait For It
+            path: mariaDbRef.waitForIt
+          - description: Privileges to use in the Grant.
+            displayName: Privileges
+            path: privileges
+          - description: RequeueInterval is used to perform requeue reconcilizations.
+            displayName: Requeue Interval
+            path: requeueInterval
+          - description: RetryInterval is the interval used to perform retries.
+            displayName: Retry Interval
+            path: retryInterval
+          - description: Table to use in the Grant.
+            displayName: Table
+            path: table
+          - description: Username to use in the Grant.
+            displayName: Username
+            path: username
+        statusDescriptors:
+          - description: Conditions for the Grant object.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
         version: v1alpha1
-      specDescriptors:
-      - description: Affinity to be used in the SqlJob Pod.
-        displayName: Affinity
-        path: affinity
-      - description: BackoffLimit defines the maximum number of attempts to successfully
-          execute a SqlJob.
-        displayName: Backoff Limit
-        path: backoffLimit
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:number
-      - description: Username to be used when executing the SqlJob.
-        displayName: Database
-        path: database
-      - description: DependsOn defines dependencies with other SqlJob objectecs.
-        displayName: Depends On
-        path: dependsOn
-      - description: MariaDBRef is a reference to a MariaDB object.
-        displayName: Maria DBRef
-        path: mariaDbRef
-      - description: WaitForIt indicates whether the controller using this reference
-          should wait for MariaDB to be ready.
-        displayName: Wait For It
-        path: mariaDbRef.waitForIt
-      - description: NodeSelector to be used in the SqlJob Pod.
-        displayName: Node Selector
-        path: nodeSelector
-      - description: UserPasswordSecretKeyRef is a reference to the impersonated user's
-          password to be used when executing the SqlJob.
-        displayName: Password Secret Key Ref
-        path: passwordSecretKeyRef
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: RestartPolicy to be added to the SqlJob Pod.
-        displayName: Restart Policy
-        path: restartPolicy
-      - description: Schedule defines when the SqlJob will be executed.
-        displayName: Schedule
-        path: schedule
-      - description: Cron is a cron expression that defines the schedule.
-        displayName: Cron
-        path: schedule.cron
-      - description: Suspend defines whether the schedule is active or not.
-        displayName: Suspend
-        path: schedule.suspend
-      - description: Sql is the script to be executed by the SqlJob.
-        displayName: Sql
-        path: sql
-      - description: SqlConfigMapKeyRef is a reference to a ConfigMap containing the
-          Sql script. It is defaulted to a ConfigMap with the contents of the Sql
-          field.
-        displayName: Sql Config Map Key Ref
-        path: sqlConfigMapKeyRef
-      - description: Tolerations to be used in the SqlJob Pod.
-        displayName: Tolerations
-        path: tolerations
-      - description: Username to be impersonated when executing the SqlJob.
-        displayName: Username
-        path: username
-      statusDescriptors:
-      - description: Conditions for the SqlJob object.
-        displayName: Conditions
-        path: conditions
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.conditions
-      version: v1alpha1
-    - description: User is the Schema for the users API.  It is used to define grants
-        as if you were running a 'CREATE USER' statement.
-      displayName: User
-      kind: User
-      name: users.mariadb.mmontes.io
-      resources:
-      - kind: User
-        name: ""
+      - description: MariaDB is the Schema for the mariadbs API. It is used to define MariaDB clusters.
+        displayName: Maria DB
+        kind: MariaDB
+        name: mariadbs.mariadb.mmontes.io
+        resources:
+          - kind: ClusterRoleBinding
+            name: ""
+            version: v1
+          - kind: ConfigMap
+            name: ""
+            version: v1
+          - kind: Connection
+            name: ""
+            version: v1alpha1
+          - kind: Deployment
+            name: ""
+            version: v1
+          - kind: Event
+            name: ""
+            version: v1
+          - kind: Grant
+            name: ""
+            version: v1alpha1
+          - kind: MariaDB
+            name: ""
+            version: v1alpha1
+          - kind: PodDisruptionBudget
+            name: ""
+            version: v1
+          - kind: Restore
+            name: ""
+            version: v1alpha1
+          - kind: Role
+            name: ""
+            version: v1
+          - kind: RoleBinding
+            name: ""
+            version: v1
+          - kind: Secret
+            name: ""
+            version: v1
+          - kind: Service
+            name: ""
+            version: v1
+          - kind: ServiceAccount
+            name: ""
+            version: v1
+          - kind: StatefulSet
+            name: ""
+            version: v1
+          - kind: User
+            name: ""
+            version: v1alpha1
+        specDescriptors:
+          - description: Affinity to be used in the Pod.
+            displayName: Affinity
+            path: affinity
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: args
+          - description: BootstrapFrom defines a source to bootstrap from.
+            displayName: Bootstrap From
+            path: bootstrapFrom
+          - description: BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
+            displayName: Backup Ref
+            path: bootstrapFrom.backupRef
+          - description: S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume.
+            displayName: S3
+            path: bootstrapFrom.s3
+          - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
+            displayName: Access Key Id Secret Key Ref
+            path: bootstrapFrom.s3.accessKeyIdSecretKeyRef
+          - description: Bucket is the name Name of the bucket to store backups.
+            displayName: Bucket
+            path: bootstrapFrom.s3.bucket
+          - description: Endpoint is the S3 API endpoint without scheme.
+            displayName: Endpoint
+            path: bootstrapFrom.s3.endpoint
+          - description: Region is the S3 region name to use.
+            displayName: Region
+            path: bootstrapFrom.s3.region
+          - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
+            displayName: Secret Access Key Secret Key Ref
+            path: bootstrapFrom.s3.secretAccessKeySecretKeyRef
+          - description: SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
+            displayName: Session Token Secret Key Ref
+            path: bootstrapFrom.s3.sessionTokenSecretKeyRef
+          - description: TLS provides the configuration required to establish TLS connections with S3.
+            displayName: TLS
+            path: bootstrapFrom.s3.tls
+          - description: CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+            displayName: CASecret Key Ref
+            path: bootstrapFrom.s3.tls.caSecretKeyRef
+          - description: Enabled is a flag to enable TLS.
+            displayName: Enabled
+            path: bootstrapFrom.s3.tls.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective. It is used to determine the closest restoration source in time.
+            displayName: Target Recovery Time
+            path: bootstrapFrom.targetRecoveryTime
+          - description: Volume is a Kubernetes Volume object that contains a backup.
+            displayName: Volume
+            path: bootstrapFrom.volume
+          - description: Command to be used in the Container.
+            displayName: Command
+            path: command
+          - description: Connection defines templates to configure the general Connection object.
+            displayName: Connection
+            path: connection
+          - description: HealthCheck to be used in the Connection.
+            displayName: Health Check
+            path: connection.healthCheck
+          - description: Interval used to perform health checks.
+            displayName: Interval
+            path: connection.healthCheck.interval
+          - description: RetryInterval is the intervañ used to perform health check retries.
+            displayName: Retry Interval
+            path: connection.healthCheck.retryInterval
+          - description: Params to be used in the Connection.
+            displayName: Params
+            path: connection.params
+          - description: SecretName to be used in the Connection.
+            displayName: Secret Name
+            path: connection.secretName
+          - description: SecretTemplate to be used in the Connection.
+            displayName: Secret Template
+            path: connection.secretTemplate
+          - description: Annotations to be added to the Secret object.
+            displayName: Annotations
+            path: connection.secretTemplate.annotations
+          - description: DatabaseKey to be used in the Secret.
+            displayName: Database Key
+            path: connection.secretTemplate.databaseKey
+          - description: Format to be used in the Secret.
+            displayName: Format
+            path: connection.secretTemplate.format
+          - description: HostKey to be used in the Secret.
+            displayName: Host Key
+            path: connection.secretTemplate.hostKey
+          - description: Key to be used in the Secret.
+            displayName: Key
+            path: connection.secretTemplate.key
+          - description: Labels to be added to the Secret object.
+            displayName: Labels
+            path: connection.secretTemplate.labels
+          - description: PasswordKey to be used in the Secret.
+            displayName: Password Key
+            path: connection.secretTemplate.passwordKey
+          - description: PortKey to be used in the Secret.
+            displayName: Port Key
+            path: connection.secretTemplate.portKey
+          - description: UsernameKey to be used in the Secret.
+            displayName: Username Key
+            path: connection.secretTemplate.usernameKey
+          - description: ServiceName to be used in the Connection.
+            displayName: Service Name
+            path: connection.serviceName
+          - description: Database is the database to be created on bootstrap.
+            displayName: Database
+            path: database
+          - description: Env represents the environment variables to be injected in a container.
+            displayName: Env
+            path: env
+          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
+            displayName: Env From
+            path: envFrom
+          - description: Replication configures high availability via Galera.
+            displayName: Galera
+            path: galera
+          - description: 'GaleraAgent is a sidecar agent that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/agent.'
+            displayName: Agent
+            path: galera.agent
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: galera.agent.args
+          - description: Command to be used in the Container.
+            displayName: Command
+            path: galera.agent.command
+          - description: Env represents the environment variables to be injected in a container.
+            displayName: Env
+            path: galera.agent.env
+          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
+            displayName: Env From
+            path: galera.agent.envFrom
+          - description: GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests.
+            displayName: Graceful Shutdown Timeout
+            path: galera.agent.gracefulShutdownTimeout
+          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+            displayName: Image
+            path: galera.agent.image
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: galera.agent.imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+          - description: KubernetesAuth to be used by the agent container
+            displayName: Kubernetes Auth
+            path: galera.agent.kubernetesAuth
+          - description: AuthDelegatorRoleName is the name of the ClusterRoleBinding that is associated with the "system:auth-delegator" ClusterRole. It is necessary for creating TokenReview objects in order for the agent to validate the service account token.
+            displayName: Auth Delegator Role Name
+            path: galera.agent.kubernetesAuth.authDelegatorRoleName
+          - description: Enabled is a flag to enable KubernetesAuth
+            displayName: Enabled
+            path: galera.agent.kubernetesAuth.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: LivenessProbe to be used in the Container.
+            displayName: Liveness Probe
+            path: galera.agent.livenessProbe
+          - description: Port where the agent will be listening for connections.
+            displayName: Port
+            path: galera.agent.port
+          - description: ReadinessProbe to be used in the Container.
+            displayName: Readiness Probe
+            path: galera.agent.readinessProbe
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: galera.agent.resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: galera.agent.securityContext
+          - description: VolumeMounts to be used in the Container.
+            displayName: Volume Mounts
+            path: galera.agent.volumeMounts
+          - description: Enabled is a flag to enable Galera.
+            displayName: Enabled
+            path: galera.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: 'InitContainer is an init container that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/init.'
+            displayName: Init Container
+            path: galera.initContainer
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: galera.initContainer.args
+          - description: Command to be used in the Container.
+            displayName: Command
+            path: galera.initContainer.command
+          - description: Env represents the environment variables to be injected in a container.
+            displayName: Env
+            path: galera.initContainer.env
+          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
+            displayName: Env From
+            path: galera.initContainer.envFrom
+          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+            displayName: Image
+            path: galera.initContainer.image
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: galera.initContainer.imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+          - description: LivenessProbe to be used in the Container.
+            displayName: Liveness Probe
+            path: galera.initContainer.livenessProbe
+          - description: ReadinessProbe to be used in the Container.
+            displayName: Readiness Probe
+            path: galera.initContainer.readinessProbe
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: galera.initContainer.resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: galera.initContainer.securityContext
+          - description: VolumeMounts to be used in the Container.
+            displayName: Volume Mounts
+            path: galera.initContainer.volumeMounts
+          - description: Primary is the Galera configuration for the primary node.
+            displayName: Primary
+            path: galera.primary
+          - description: AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+            displayName: Automatic Failover
+            path: galera.primary.automaticFailover
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover.
+            displayName: Pod Index
+            path: galera.primary.podIndex
+          - description: 'GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html.'
+            displayName: Recovery
+            path: galera.recovery
+          - description: ClusterBootstrapTimeout is the time limit for bootstrapping a cluster. Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted.
+            displayName: Cluster Bootstrap Timeout
+            path: galera.recovery.clusterBootstrapTimeout
+          - description: ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks, is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.
+            displayName: Cluster Healthy Timeout
+            path: galera.recovery.clusterHealthyTimeout
+          - description: Enabled is a flag to enable GaleraRecovery.
+            displayName: Enabled
+            path: galera.recovery.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: PodRecoveryTimeout is the time limit for executing the recovery sequence within a Pod. This process includes enabling the recovery mode in the Galera configuration file, restarting the Pod and retrieving the sequence from a log file.
+            displayName: Pod Recovery Timeout
+            path: galera.recovery.podRecoveryTimeout
+          - description: PodSyncTimeout is the time limit we give to a Pod to reach the Sync state. Once this timeout is reached, the Pod is restarted.
+            displayName: Pod Sync Timeout
+            path: galera.recovery.podSyncTimeout
+          - description: 'ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.'
+            displayName: Replica Threads
+            path: galera.replicaThreads
+          - description: 'SST is the Snapshot State Transfer used when new Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html.'
+            displayName: SST
+            path: galera.sst
+          - description: VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB.
+            displayName: Volume Claim Template
+            path: galera.volumeClaimTemplate
+          - description: Annotations to be used in the PVC.
+            displayName: Annotations
+            path: galera.volumeClaimTemplate.annotations
+          - description: Labels to be used in the PVC.
+            displayName: Labels
+            path: galera.volumeClaimTemplate.labels
+          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. Only MariaDB official images are supported.
+            displayName: Image
+            path: image
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+            displayName: Image Pull Secrets
+            path: imagePullSecrets
+          - description: InheritMetadata defines the metadata to be inherited by children resources.
+            displayName: Inherit Metadata
+            path: inheritMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: inheritMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: inheritMetadata.labels
+          - description: InitContainers to be used in the Pod.
+            displayName: Init Containers
+            path: initContainers
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: initContainers[0].args
+          - description: Command to be used in the Container.
+            displayName: Command
+            path: initContainers[0].command
+          - description: Env represents the environment variables to be injected in a container.
+            displayName: Env
+            path: initContainers[0].env
+          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
+            displayName: Env From
+            path: initContainers[0].envFrom
+          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+            displayName: Image
+            path: initContainers[0].image
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: initContainers[0].imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+          - description: LivenessProbe to be used in the Container.
+            displayName: Liveness Probe
+            path: initContainers[0].livenessProbe
+          - description: ReadinessProbe to be used in the Container.
+            displayName: Readiness Probe
+            path: initContainers[0].readinessProbe
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: initContainers[0].resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: initContainers[0].securityContext
+          - description: VolumeMounts to be used in the Container.
+            displayName: Volume Mounts
+            path: initContainers[0].volumeMounts
+          - description: LivenessProbe to be used in the Container.
+            displayName: Liveness Probe
+            path: livenessProbe
+          - description: Metrics configures metrics and how to scrape them.
+            displayName: Metrics
+            path: metrics
+          - description: Enabled is a flag to enable Metrics
+            displayName: Enabled
+            path: metrics.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Exporter defines the metrics exporter container.
+            displayName: Exporter
+            path: metrics.exporter
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: metrics.exporter.args
+          - description: Command to be used in the Container.
+            displayName: Command
+            path: metrics.exporter.command
+          - description: Env represents the environment variables to be injected in a container.
+            displayName: Env
+            path: metrics.exporter.env
+          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
+            displayName: Env From
+            path: metrics.exporter.envFrom
+          - description: 'Image name to be used as metrics exporter. The supported format is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
+            displayName: Image
+            path: metrics.exporter.image
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: metrics.exporter.imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+          - description: LivenessProbe to be used in the Container.
+            displayName: Liveness Probe
+            path: metrics.exporter.livenessProbe
+          - description: Port where the exporter will be listening for connections.
+            displayName: Port
+            path: metrics.exporter.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: ReadinessProbe to be used in the Container.
+            displayName: Readiness Probe
+            path: metrics.exporter.readinessProbe
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: metrics.exporter.resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: metrics.exporter.securityContext
+          - description: VolumeMounts to be used in the Container.
+            displayName: Volume Mounts
+            path: metrics.exporter.volumeMounts
+          - description: PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
+            displayName: Password Secret Key Ref
+            path: metrics.passwordSecretKeyRef
+          - description: ServiceMonitor defines the ServiceMonior object.
+            displayName: Service Monitor
+            path: metrics.serviceMonitor
+          - description: Interval for scraping metrics.
+            displayName: Interval
+            path: metrics.serviceMonitor.interval
+          - description: JobLabel to add to the ServiceMonitor object.
+            displayName: Job Label
+            path: metrics.serviceMonitor.jobLabel
+          - description: PrometheusRelease is the release label to add to the ServiceMonitor object.
+            displayName: Prometheus Release
+            path: metrics.serviceMonitor.prometheusRelease
+          - description: ScrapeTimeout defines the timeout for scraping metrics.
+            displayName: Scrape Timeout
+            path: metrics.serviceMonitor.scrapeTimeout
+          - description: Username is the username of the monitoring user used by the exporter.
+            displayName: Username
+            path: metrics.username
+          - description: MyCnf allows to specify the my.cnf file mounted by Mariadb.
+            displayName: My Cnf
+            path: myCnf
+          - description: MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap. If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field.
+            displayName: My Cnf Config Map Key Ref
+            path: myCnfConfigMapKeyRef
+          - description: NodeSelector to be used in the Pod.
+            displayName: Node Selector
+            path: nodeSelector
+          - description: PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret.
+            displayName: Password Secret Key Ref
+            path: passwordSecretKeyRef
+          - description: PodAnnotations to add to the Pods metadata.
+            displayName: Pod Annotations
+            path: podAnnotations
+          - description: PodDisruptionBudget defines the budget for replica availability.
+            displayName: Pod Disruption Budget
+            path: podDisruptionBudget
+          - description: MaxUnavailable defines the number of maximum unavailable Pods.
+            displayName: Max Unavailable
+            path: podDisruptionBudget.maxUnavailable
+          - description: MinAvailable defines the number of minimum available Pods.
+            displayName: Min Available
+            path: podDisruptionBudget.minAvailable
+          - description: SecurityContext holds pod-level security attributes and common container settings.
+            displayName: Pod Security Context
+            path: podSecurityContext
+          - description: Port where the instances will be listening for connections.
+            displayName: Port
+            path: port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: PrimaryConnection defines templates to configure the primary Connection object.
+            displayName: Primary Connection
+            path: primaryConnection
+          - description: HealthCheck to be used in the Connection.
+            displayName: Health Check
+            path: primaryConnection.healthCheck
+          - description: Interval used to perform health checks.
+            displayName: Interval
+            path: primaryConnection.healthCheck.interval
+          - description: RetryInterval is the intervañ used to perform health check retries.
+            displayName: Retry Interval
+            path: primaryConnection.healthCheck.retryInterval
+          - description: Params to be used in the Connection.
+            displayName: Params
+            path: primaryConnection.params
+          - description: SecretName to be used in the Connection.
+            displayName: Secret Name
+            path: primaryConnection.secretName
+          - description: SecretTemplate to be used in the Connection.
+            displayName: Secret Template
+            path: primaryConnection.secretTemplate
+          - description: Annotations to be added to the Secret object.
+            displayName: Annotations
+            path: primaryConnection.secretTemplate.annotations
+          - description: DatabaseKey to be used in the Secret.
+            displayName: Database Key
+            path: primaryConnection.secretTemplate.databaseKey
+          - description: Format to be used in the Secret.
+            displayName: Format
+            path: primaryConnection.secretTemplate.format
+          - description: HostKey to be used in the Secret.
+            displayName: Host Key
+            path: primaryConnection.secretTemplate.hostKey
+          - description: Key to be used in the Secret.
+            displayName: Key
+            path: primaryConnection.secretTemplate.key
+          - description: Labels to be added to the Secret object.
+            displayName: Labels
+            path: primaryConnection.secretTemplate.labels
+          - description: PasswordKey to be used in the Secret.
+            displayName: Password Key
+            path: primaryConnection.secretTemplate.passwordKey
+          - description: PortKey to be used in the Secret.
+            displayName: Port Key
+            path: primaryConnection.secretTemplate.portKey
+          - description: UsernameKey to be used in the Secret.
+            displayName: Username Key
+            path: primaryConnection.secretTemplate.usernameKey
+          - description: ServiceName to be used in the Connection.
+            displayName: Service Name
+            path: primaryConnection.serviceName
+          - description: PrimaryService defines templates to configure the primary Service object.
+            displayName: Primary Service
+            path: primaryService
+          - description: AllocateLoadBalancerNodePorts Service field.
+            displayName: Allocate Load Balancer Node Ports
+            path: primaryService.allocateLoadBalancerNodePorts
+          - description: Annotations to add to the Service metadata.
+            displayName: Annotations
+            path: primaryService.annotations
+          - description: ExternalTrafficPolicy Service field.
+            displayName: External Traffic Policy
+            path: primaryService.externalTrafficPolicy
+          - description: Labels to add to the Service metadata.
+            displayName: Labels
+            path: primaryService.labels
+          - description: LoadBalancerIP Service field.
+            displayName: Load Balancer IP
+            path: primaryService.loadBalancerIP
+          - description: LoadBalancerSourceRanges Service field.
+            displayName: Load Balancer Source Ranges
+            path: primaryService.loadBalancerSourceRanges
+          - description: SessionAffinity Service field.
+            displayName: Session Affinity
+            path: primaryService.sessionAffinity
+          - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+            displayName: Type
+            path: primaryService.type
+          - description: ReadinessProbe to be used in the Container.
+            displayName: Readiness Probe
+            path: readinessProbe
+          - description: Replicas indicates the number of desired instances.
+            displayName: Replicas
+            path: replicas
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:podCount
+          - description: Replication configures high availability via replication.
+            displayName: Replication
+            path: replication
+          - description: Enabled is a flag to enable Replication.
+            displayName: Enabled
+            path: replication.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Primary is the replication configuration for the primary node.
+            displayName: Primary
+            path: replication.primary
+          - description: AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+            displayName: Automatic Failover
+            path: replication.primary.automaticFailover
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover.
+            displayName: Pod Index
+            path: replication.primary.podIndex
+          - description: ReplicaReplication is the replication configuration for the replica nodes.
+            displayName: Replica
+            path: replication.replica
+          - description: ConnectionRetries to be used when the replica connects to the primary.
+            displayName: Connection Retries
+            path: replication.replica.connectionRetries
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: ConnectionTimeout to be used when the replica connects to the primary.
+            displayName: Connection Timeout
+            path: replication.replica.connectionTimeout
+          - description: 'Gtid indicates which Global Transaction ID should be used when connecting a replica to the master. See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.'
+            displayName: Gtid
+            path: replication.replica.gtid
+          - description: ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+            displayName: Repl Password Secret Key Ref
+            path: replication.replica.replPasswordSecretKeyRef
+          - description: SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover. If the timeout is reached, the replica GTID will be reset and the switchover will continue.
+            displayName: Sync Timeout
+            path: replication.replica.syncTimeout
+          - description: 'WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine. More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.'
+            displayName: Wait Point
+            path: replication.replica.waitPoint
+          - description: 'SyncBinlog indicates whether the binary log should be synchronized to the disk after every event. It trades off performance for consistency. See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog.'
+            displayName: Sync Binlog
+            path: replication.syncBinlog
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: RootEmptyPassword indicates if the root password should be empty.
+            displayName: Root Empty Password
+            path: rootEmptyPassword
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
+            displayName: Root Password Secret Key Ref
+            path: rootPasswordSecretKeyRef
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: SecondaryConnection defines templates to configure the secondary Connection object.
+            displayName: Secondary Connection
+            path: secondaryConnection
+          - description: HealthCheck to be used in the Connection.
+            displayName: Health Check
+            path: secondaryConnection.healthCheck
+          - description: Interval used to perform health checks.
+            displayName: Interval
+            path: secondaryConnection.healthCheck.interval
+          - description: RetryInterval is the intervañ used to perform health check retries.
+            displayName: Retry Interval
+            path: secondaryConnection.healthCheck.retryInterval
+          - description: Params to be used in the Connection.
+            displayName: Params
+            path: secondaryConnection.params
+          - description: SecretName to be used in the Connection.
+            displayName: Secret Name
+            path: secondaryConnection.secretName
+          - description: SecretTemplate to be used in the Connection.
+            displayName: Secret Template
+            path: secondaryConnection.secretTemplate
+          - description: Annotations to be added to the Secret object.
+            displayName: Annotations
+            path: secondaryConnection.secretTemplate.annotations
+          - description: DatabaseKey to be used in the Secret.
+            displayName: Database Key
+            path: secondaryConnection.secretTemplate.databaseKey
+          - description: Format to be used in the Secret.
+            displayName: Format
+            path: secondaryConnection.secretTemplate.format
+          - description: HostKey to be used in the Secret.
+            displayName: Host Key
+            path: secondaryConnection.secretTemplate.hostKey
+          - description: Key to be used in the Secret.
+            displayName: Key
+            path: secondaryConnection.secretTemplate.key
+          - description: Labels to be added to the Secret object.
+            displayName: Labels
+            path: secondaryConnection.secretTemplate.labels
+          - description: PasswordKey to be used in the Secret.
+            displayName: Password Key
+            path: secondaryConnection.secretTemplate.passwordKey
+          - description: PortKey to be used in the Secret.
+            displayName: Port Key
+            path: secondaryConnection.secretTemplate.portKey
+          - description: UsernameKey to be used in the Secret.
+            displayName: Username Key
+            path: secondaryConnection.secretTemplate.usernameKey
+          - description: ServiceName to be used in the Connection.
+            displayName: Service Name
+            path: secondaryConnection.serviceName
+          - description: SecondaryService defines templates to configure the secondary Service object.
+            displayName: Secondary Service
+            path: secondaryService
+          - description: AllocateLoadBalancerNodePorts Service field.
+            displayName: Allocate Load Balancer Node Ports
+            path: secondaryService.allocateLoadBalancerNodePorts
+          - description: Annotations to add to the Service metadata.
+            displayName: Annotations
+            path: secondaryService.annotations
+          - description: ExternalTrafficPolicy Service field.
+            displayName: External Traffic Policy
+            path: secondaryService.externalTrafficPolicy
+          - description: Labels to add to the Service metadata.
+            displayName: Labels
+            path: secondaryService.labels
+          - description: LoadBalancerIP Service field.
+            displayName: Load Balancer IP
+            path: secondaryService.loadBalancerIP
+          - description: LoadBalancerSourceRanges Service field.
+            displayName: Load Balancer Source Ranges
+            path: secondaryService.loadBalancerSourceRanges
+          - description: SessionAffinity Service field.
+            displayName: Session Affinity
+            path: secondaryService.sessionAffinity
+          - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+            displayName: Type
+            path: secondaryService.type
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: securityContext
+          - description: Service defines templates to configure the general Service object.
+            displayName: Service
+            path: service
+          - description: AllocateLoadBalancerNodePorts Service field.
+            displayName: Allocate Load Balancer Node Ports
+            path: service.allocateLoadBalancerNodePorts
+          - description: Annotations to add to the Service metadata.
+            displayName: Annotations
+            path: service.annotations
+          - description: ExternalTrafficPolicy Service field.
+            displayName: External Traffic Policy
+            path: service.externalTrafficPolicy
+          - description: Labels to add to the Service metadata.
+            displayName: Labels
+            path: service.labels
+          - description: LoadBalancerIP Service field.
+            displayName: Load Balancer IP
+            path: service.loadBalancerIP
+          - description: LoadBalancerSourceRanges Service field.
+            displayName: Load Balancer Source Ranges
+            path: service.loadBalancerSourceRanges
+          - description: SessionAffinity Service field.
+            displayName: Session Affinity
+            path: service.sessionAffinity
+          - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+            displayName: Type
+            path: service.type
+          - description: SidecarContainers to be used in the Pod.
+            displayName: Sidecar Containers
+            path: sidecarContainers
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: sidecarContainers[0].args
+          - description: Command to be used in the Container.
+            displayName: Command
+            path: sidecarContainers[0].command
+          - description: Env represents the environment variables to be injected in a container.
+            displayName: Env
+            path: sidecarContainers[0].env
+          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
+            displayName: Env From
+            path: sidecarContainers[0].envFrom
+          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+            displayName: Image
+            path: sidecarContainers[0].image
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: sidecarContainers[0].imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+          - description: LivenessProbe to be used in the Container.
+            displayName: Liveness Probe
+            path: sidecarContainers[0].livenessProbe
+          - description: ReadinessProbe to be used in the Container.
+            displayName: Readiness Probe
+            path: sidecarContainers[0].readinessProbe
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: sidecarContainers[0].resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: sidecarContainers[0].securityContext
+          - description: VolumeMounts to be used in the Container.
+            displayName: Volume Mounts
+            path: sidecarContainers[0].volumeMounts
+          - description: Tolerations to be used in the Pod.
+            displayName: Tolerations
+            path: tolerations
+          - description: PodDisruptionBudget defines the update strategy for the StatefulSet object.
+            displayName: Update Strategy
+            path: updateStrategy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+          - description: Username is the username of the user to be created on bootstrap.
+            displayName: Username
+            path: username
+          - description: VolumeClaimTemplate provides a template to define the Pod PVCs.
+            displayName: Volume Claim Template
+            path: volumeClaimTemplate
+          - description: Annotations to be used in the PVC.
+            displayName: Annotations
+            path: volumeClaimTemplate.annotations
+          - description: Labels to be used in the PVC.
+            displayName: Labels
+            path: volumeClaimTemplate.labels
+          - description: VolumeMounts to be used in the Container.
+            displayName: Volume Mounts
+            path: volumeMounts
+          - description: Volumes to be used in the Pod.
+            displayName: Volumes
+            path: volumes
+        statusDescriptors:
+          - description: Conditions for the Mariadb object.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+          - description: CurrentPrimary is the primary Pod.
+            displayName: Current Primary
+            path: currentPrimary
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:Pod
+          - description: CurrentPrimaryPodIndex is the primary Pod index.
+            displayName: Current Primary Pod Index
+            path: currentPrimaryPodIndex
+          - description: GaleraRecovery is the Galera recovery current state.
+            displayName: Galera Recovery
+            path: galeraRecovery
         version: v1alpha1
-      specDescriptors:
-      - description: Host related to the User.
-        displayName: Host
-        path: host
-      - description: MariaDBRef is a reference to a MariaDB object.
-        displayName: Maria DBRef
-        path: mariaDbRef
-      - description: WaitForIt indicates whether the controller using this reference
-          should wait for MariaDB to be ready.
-        displayName: Wait For It
-        path: mariaDbRef.waitForIt
-      - description: MaxUserConnections defines the maximum number of connections
-          that the User can have.
-        displayName: Max User Connections
-        path: maxUserConnections
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:number
-      - description: Name overrides the default name provided by metadata.name.
-        displayName: Name
-        path: name
-      - description: PasswordSecretKeyRef is a reference to the password to be used
-          by the User.
-        displayName: Password Secret Key Ref
-        path: passwordSecretKeyRef
-      - description: RequeueInterval is used to perform requeue reconcilizations.
-        displayName: Requeue Interval
-        path: requeueInterval
-      - description: RetryInterval is the interval used to perform retries.
-        displayName: Retry Interval
-        path: retryInterval
-      statusDescriptors:
-      - description: Conditions for the User object.
-        displayName: Conditions
-        path: conditions
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.conditions
-      version: v1alpha1
+      - description: MaxScale is the Schema for the maxscales API
+        displayName: Max Scale
+        kind: MaxScale
+        name: maxscales.mariadb.mmontes.io
+        resources:
+          - kind: Deployment
+            name: ""
+            version: v1
+          - kind: Event
+            name: ""
+            version: v1
+          - kind: Grant
+            name: ""
+            version: v1alpha1
+          - kind: MaxScale
+            name: ""
+            version: v1alpha1
+          - kind: PersistentVolumeClaim
+            name: ""
+            version: v1
+          - kind: PodDisruptionBudget
+            name: ""
+            version: v1
+          - kind: Secret
+            name: ""
+            version: v1
+          - kind: Service
+            name: ""
+            version: v1
+          - kind: User
+            name: ""
+            version: v1alpha1
+        specDescriptors:
+          - description: Affinity to be used in the Pod.
+            displayName: Affinity
+            path: affinity
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: args
+          - description: Command to be used in the Container.
+            displayName: Command
+            path: command
+          - description: Env represents the environment variables to be injected in a container.
+            displayName: Env
+            path: env
+          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
+            displayName: Env From
+            path: envFrom
+          - description: Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported.
+            displayName: Image
+            path: image
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+            displayName: Image Pull Secrets
+            path: imagePullSecrets
+          - description: InitContainers to be used in the Pod.
+            displayName: Init Containers
+            path: initContainers
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: initContainers[0].args
+          - description: Command to be used in the Container.
+            displayName: Command
+            path: initContainers[0].command
+          - description: Env represents the environment variables to be injected in a container.
+            displayName: Env
+            path: initContainers[0].env
+          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
+            displayName: Env From
+            path: initContainers[0].envFrom
+          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+            displayName: Image
+            path: initContainers[0].image
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: initContainers[0].imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+          - description: LivenessProbe to be used in the Container.
+            displayName: Liveness Probe
+            path: initContainers[0].livenessProbe
+          - description: ReadinessProbe to be used in the Container.
+            displayName: Readiness Probe
+            path: initContainers[0].readinessProbe
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: initContainers[0].resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: initContainers[0].securityContext
+          - description: VolumeMounts to be used in the Container.
+            displayName: Volume Mounts
+            path: initContainers[0].volumeMounts
+          - description: Service defines templates to configure the Kubernetes Service object.
+            displayName: Kubernetes Service
+            path: kubernetesService
+          - description: AllocateLoadBalancerNodePorts Service field.
+            displayName: Allocate Load Balancer Node Ports
+            path: kubernetesService.allocateLoadBalancerNodePorts
+          - description: Annotations to add to the Service metadata.
+            displayName: Annotations
+            path: kubernetesService.annotations
+          - description: ExternalTrafficPolicy Service field.
+            displayName: External Traffic Policy
+            path: kubernetesService.externalTrafficPolicy
+          - description: Labels to add to the Service metadata.
+            displayName: Labels
+            path: kubernetesService.labels
+          - description: LoadBalancerIP Service field.
+            displayName: Load Balancer IP
+            path: kubernetesService.loadBalancerIP
+          - description: LoadBalancerSourceRanges Service field.
+            displayName: Load Balancer Source Ranges
+            path: kubernetesService.loadBalancerSourceRanges
+          - description: SessionAffinity Service field.
+            displayName: Session Affinity
+            path: kubernetesService.sessionAffinity
+          - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+            displayName: Type
+            path: kubernetesService.type
+          - description: LivenessProbe to be used in the Container.
+            displayName: Liveness Probe
+            path: livenessProbe
+          - description: NodeSelector to be used in the Pod.
+            displayName: Node Selector
+            path: nodeSelector
+          - description: PodDisruptionBudget defines the budget for replica availability.
+            displayName: Pod Disruption Budget
+            path: podDisruptionBudget
+          - description: MaxUnavailable defines the number of maximum unavailable Pods.
+            displayName: Max Unavailable
+            path: podDisruptionBudget.maxUnavailable
+          - description: MinAvailable defines the number of minimum available Pods.
+            displayName: Min Available
+            path: podDisruptionBudget.minAvailable
+          - description: SecurityContext holds pod-level security attributes and common container settings.
+            displayName: Pod Security Context
+            path: podSecurityContext
+          - description: ReadinessProbe to be used in the Container.
+            displayName: Readiness Probe
+            path: readinessProbe
+          - description: Replicas indicates the number of desired instances.
+            displayName: Replicas
+            path: replicas
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:podCount
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: securityContext
+          - description: SidecarContainers to be used in the Pod.
+            displayName: Sidecar Containers
+            path: sidecarContainers
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: sidecarContainers[0].args
+          - description: Command to be used in the Container.
+            displayName: Command
+            path: sidecarContainers[0].command
+          - description: Env represents the environment variables to be injected in a container.
+            displayName: Env
+            path: sidecarContainers[0].env
+          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
+            displayName: Env From
+            path: sidecarContainers[0].envFrom
+          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+            displayName: Image
+            path: sidecarContainers[0].image
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: sidecarContainers[0].imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+          - description: LivenessProbe to be used in the Container.
+            displayName: Liveness Probe
+            path: sidecarContainers[0].livenessProbe
+          - description: ReadinessProbe to be used in the Container.
+            displayName: Readiness Probe
+            path: sidecarContainers[0].readinessProbe
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: sidecarContainers[0].resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: sidecarContainers[0].securityContext
+          - description: VolumeMounts to be used in the Container.
+            displayName: Volume Mounts
+            path: sidecarContainers[0].volumeMounts
+          - description: Tolerations to be used in the Pod.
+            displayName: Tolerations
+            path: tolerations
+          - description: PodDisruptionBudget defines the update strategy for the Deployment object.
+            displayName: Update Strategy
+            path: updateStrategy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+          - description: VolumeMounts to be used in the Container.
+            displayName: Volume Mounts
+            path: volumeMounts
+          - description: Volumes to be used in the Pod.
+            displayName: Volumes
+            path: volumes
+        statusDescriptors:
+          - description: Conditions for the Mariadb object.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+          - description: CurrentPrimary is the primary Pod.
+            displayName: Current Primary
+            path: currentPrimary
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:Pod
+        version: v1alpha1
+      - description: Restore is the Schema for the restores API. It is used to define restore jobs and its restoration source.
+        displayName: Restore
+        kind: Restore
+        name: restores.mariadb.mmontes.io
+        resources:
+          - kind: Job
+            name: ""
+            version: v1
+          - kind: Restore
+            name: ""
+            version: v1alpha1
+        specDescriptors:
+          - description: Affinity to be used in the Restore Pod.
+            displayName: Affinity
+            path: affinity
+          - description: BackoffLimit defines the maximum number of attempts to successfully perform a Backup.
+            displayName: Backoff Limit
+            path: backoffLimit
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
+            displayName: Backup Ref
+            path: backupRef
+          - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
+            displayName: Log Level
+            path: logLevel
+          - description: MariaDBRef is a reference to a MariaDB object.
+            displayName: Maria DBRef
+            path: mariaDbRef
+          - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
+            displayName: Wait For It
+            path: mariaDbRef.waitForIt
+          - description: NodeSelector to be used in the Restore Pod.
+            displayName: Node Selector
+            path: nodeSelector
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: RestartPolicy to be added to the Backup Job.
+            displayName: Restart Policy
+            path: restartPolicy
+          - description: S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume.
+            displayName: S3
+            path: s3
+          - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
+            displayName: Access Key Id Secret Key Ref
+            path: s3.accessKeyIdSecretKeyRef
+          - description: Bucket is the name Name of the bucket to store backups.
+            displayName: Bucket
+            path: s3.bucket
+          - description: Endpoint is the S3 API endpoint without scheme.
+            displayName: Endpoint
+            path: s3.endpoint
+          - description: Region is the S3 region name to use.
+            displayName: Region
+            path: s3.region
+          - description: AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
+            displayName: Secret Access Key Secret Key Ref
+            path: s3.secretAccessKeySecretKeyRef
+          - description: SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
+            displayName: Session Token Secret Key Ref
+            path: s3.sessionTokenSecretKeyRef
+          - description: TLS provides the configuration required to establish TLS connections with S3.
+            displayName: TLS
+            path: s3.tls
+          - description: CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+            displayName: CASecret Key Ref
+            path: s3.tls.caSecretKeyRef
+          - description: Enabled is a flag to enable TLS.
+            displayName: Enabled
+            path: s3.tls.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective. It is used to determine the closest restoration source in time.
+            displayName: Target Recovery Time
+            path: targetRecoveryTime
+          - description: Tolerations to be used in the Restore Pod.
+            displayName: Tolerations
+            path: tolerations
+          - description: Volume is a Kubernetes Volume object that contains a backup.
+            displayName: Volume
+            path: volume
+        statusDescriptors:
+          - description: Conditions for the Restore object.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+        version: v1alpha1
+      - description: SqlJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
+        displayName: Sql Job
+        kind: SqlJob
+        name: sqljobs.mariadb.mmontes.io
+        resources:
+          - kind: ConfigMap
+            name: ""
+            version: v1
+          - kind: CronJob
+            name: ""
+            version: v1
+          - kind: Job
+            name: ""
+            version: v1
+          - kind: SqlJob
+            name: ""
+            version: v1alpha1
+        specDescriptors:
+          - description: Affinity to be used in the SqlJob Pod.
+            displayName: Affinity
+            path: affinity
+          - description: BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob.
+            displayName: Backoff Limit
+            path: backoffLimit
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Username to be used when executing the SqlJob.
+            displayName: Database
+            path: database
+          - description: DependsOn defines dependencies with other SqlJob objectecs.
+            displayName: Depends On
+            path: dependsOn
+          - description: MariaDBRef is a reference to a MariaDB object.
+            displayName: Maria DBRef
+            path: mariaDbRef
+          - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
+            displayName: Wait For It
+            path: mariaDbRef.waitForIt
+          - description: NodeSelector to be used in the SqlJob Pod.
+            displayName: Node Selector
+            path: nodeSelector
+          - description: UserPasswordSecretKeyRef is a reference to the impersonated user's password to be used when executing the SqlJob.
+            displayName: Password Secret Key Ref
+            path: passwordSecretKeyRef
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: RestartPolicy to be added to the SqlJob Pod.
+            displayName: Restart Policy
+            path: restartPolicy
+          - description: Schedule defines when the SqlJob will be executed.
+            displayName: Schedule
+            path: schedule
+          - description: Cron is a cron expression that defines the schedule.
+            displayName: Cron
+            path: schedule.cron
+          - description: Suspend defines whether the schedule is active or not.
+            displayName: Suspend
+            path: schedule.suspend
+          - description: Sql is the script to be executed by the SqlJob.
+            displayName: Sql
+            path: sql
+          - description: SqlConfigMapKeyRef is a reference to a ConfigMap containing the Sql script. It is defaulted to a ConfigMap with the contents of the Sql field.
+            displayName: Sql Config Map Key Ref
+            path: sqlConfigMapKeyRef
+          - description: Tolerations to be used in the SqlJob Pod.
+            displayName: Tolerations
+            path: tolerations
+          - description: Username to be impersonated when executing the SqlJob.
+            displayName: Username
+            path: username
+        statusDescriptors:
+          - description: Conditions for the SqlJob object.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+        version: v1alpha1
+      - description: User is the Schema for the users API.  It is used to define grants as if you were running a 'CREATE USER' statement.
+        displayName: User
+        kind: User
+        name: users.mariadb.mmontes.io
+        resources:
+          - kind: User
+            name: ""
+            version: v1alpha1
+        specDescriptors:
+          - description: Host related to the User.
+            displayName: Host
+            path: host
+          - description: MariaDBRef is a reference to a MariaDB object.
+            displayName: Maria DBRef
+            path: mariaDbRef
+          - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
+            displayName: Wait For It
+            path: mariaDbRef.waitForIt
+          - description: MaxUserConnections defines the maximum number of connections that the User can have.
+            displayName: Max User Connections
+            path: maxUserConnections
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Name overrides the default name provided by metadata.name.
+            displayName: Name
+            path: name
+          - description: PasswordSecretKeyRef is a reference to the password to be used by the User.
+            displayName: Password Secret Key Ref
+            path: passwordSecretKeyRef
+          - description: RequeueInterval is used to perform requeue reconcilizations.
+            displayName: Requeue Interval
+            path: requeueInterval
+          - description: RetryInterval is the interval used to perform retries.
+            displayName: Retry Interval
+            path: retryInterval
+        statusDescriptors:
+          - description: Conditions for the User object.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+        version: v1alpha1
   description: Run and operate MariaDB Enterprise in OpenShift
   displayName: MariaDB Operator Enterprise
   icon:
@@ -2540,755 +3037,757 @@ spec:
   install:
     spec:
       clusterPermissions:
-      - rules:
-        - apiGroups:
-          - ""
-          resources:
-          - configmaps
-          verbs:
-          - create
-          - get
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - endpoints
-          verbs:
-          - create
-          - get
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - endpoints/restricted
-          verbs:
-          - create
-          - get
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - events
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - persistentvolumeclaims
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - pods
-          verbs:
-          - delete
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - secrets
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - serviceaccounts
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - services
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - apps
-          resources:
-          - deployments
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - apps
-          resources:
-          - statefulsets
-          verbs:
-          - create
-          - get
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - authentication.k8s.io
-          resources:
-          - tokenreviews
-          verbs:
-          - create
-        - apiGroups:
-          - authorization.k8s.io
-          resources:
-          - subjectaccessreviews
-          verbs:
-          - create
-        - apiGroups:
-          - batch
-          resources:
-          - cronjobs
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - batch
-          resources:
-          - jobs
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - backups
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - backups/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - backups/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - connections
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - connections
-          - restores
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - connections/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - connections/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - databases
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - databases/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - databases/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - grants
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - grants/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - grants/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - mariadbs
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - mariadbs/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - mariadbs/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - maxscales
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - maxscales/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - maxscales/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - restores
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - restores/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - restores/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - sqljobs
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - sqljobs/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - sqljobs/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - users
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - users/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - mariadb.mmontes.io
-          resources:
-          - users/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - monitoring.coreos.com
-          resources:
-          - servicemonitors
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - policy
-          resources:
-          - poddisruptionbudgets
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        - apiGroups:
-          - rbac.authorization.k8s.io
-          resources:
-          - clusterrolebindings
-          - rolebindings
-          - roles
-          verbs:
-          - create
-          - list
-          - patch
-          - watch
-        serviceAccountName: mariadb-operator-manager
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - endpoints
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - endpoints/restricted
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - delete
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - serviceaccounts
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - services
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+            - apiGroups:
+                - batch
+              resources:
+                - cronjobs
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - backups
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - backups/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - backups/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - connections
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - connections
+                - restores
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - connections/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - connections/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - databases
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - databases/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - databases/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - grants
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - grants/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - grants/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - mariadbs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - mariadbs/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - mariadbs/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - maxscales
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - maxscales/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - maxscales/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - restores
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - restores/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - restores/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - sqljobs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - sqljobs/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - sqljobs/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - users
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - users/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
+                - users/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - policy
+              resources:
+                - poddisruptionbudgets
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterrolebindings
+                - rolebindings
+                - roles
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+          serviceAccountName: mariadb-operator-manager
       deployments:
-      - label:
-          app.kubernetes.io/component: manager
-          app.kubernetes.io/created-by: mariadb-operator
-          app.kubernetes.io/instance: controller-manager
-          app.kubernetes.io/managed-by: kustomize
-          app.kubernetes.io/name: deployment
-          app.kubernetes.io/part-of: mariadb-operator
-          control-plane: controller-manager
-        name: mariadb-operator-controller-manager
-        spec:
-          replicas: 1
-          selector:
-            matchLabels:
-              control-plane: mariadb-operator-controller-manager
-          strategy: {}
-          template:
-            metadata:
-              annotations:
-                kubectl.kubernetes.io/default-container: mariadb-operator-enterprise
-              labels:
+        - label:
+            app.kubernetes.io/component: manager
+            app.kubernetes.io/created-by: mariadb-operator
+            app.kubernetes.io/instance: controller-manager
+            app.kubernetes.io/managed-by: kustomize
+            app.kubernetes.io/name: deployment
+            app.kubernetes.io/part-of: mariadb-operator
+            control-plane: controller-manager
+          name: mariadb-operator-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
                 control-plane: mariadb-operator-controller-manager
-            spec:
-              containers:
-              - args:
-                - --leader-elect
-                - --webhook-cert-dir=/tmp/k8s-webhook-server/serving-certs
-                - --webhook-port=9443
-                env:
-                - name: RELATED_IMAGE_MARIADB
-                  value: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6
-                - name: RELATED_IMAGE_MAXSCALE
-                  value: mariadb/maxscale:23.08
-                - name: RELATED_IMAGE_EXPORTER
-                  value: prom/mysqld-exporter:v0.15.1
-                - name: MARIADB_OPERATOR_IMGE
-                  value: mariadb/mariadb-operator-enterprise:v0.0.24
-                - name: WATCH_NAMESPACE
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['olm.targetNamespaces']
-                - name: MARIADB_OPERATOR_NAME
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: spec.serviceAccountName
-                - name: MARIADB_OPERATOR_NAMESPACE
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.namespace
-                - name: MARIADB_OPERATOR_SA_PATH
-                  value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                image: mariadb/mariadb-operator-enterprise:v0.0.24
-                livenessProbe:
-                  httpGet:
-                    path: /healthz
-                    port: 8081
-                  initialDelaySeconds: 15
-                  periodSeconds: 20
-                name: mariadb-operator-enterprise
-                ports:
-                - containerPort: 9443
-                  name: https
-                  protocol: TCP
-                - containerPort: 8080
-                  name: metrics
-                  protocol: TCP
-                - containerPort: 8081
-                  name: health
-                  protocol: TCP
-                readinessProbe:
-                  httpGet:
-                    path: /readyz
-                    port: 8081
-                  initialDelaySeconds: 5
-                  periodSeconds: 10
-                resources:
-                  limits:
-                    memory: 2Gi
-                  requests:
-                    cpu: 100m
-                    memory: 128Mi
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: mariadb-operator-enterprise
+                labels:
+                  control-plane: mariadb-operator-controller-manager
+              spec:
+                containers:
+                  - args:
+                      - --leader-elect
+                      - --webhook-cert-dir=/tmp/k8s-webhook-server/serving-certs
+                      - --webhook-port=9443
+                    env:
+                      - name: RELATED_IMAGE_MARIADB
+                        value: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
+                      - name: RELATED_IMAGE_MAXSCALE
+                        value: mariadb/maxscale@sha256:5c658141992f1b83580759137bbe1b881ebe73e07c85819e46a8a14f332ff690
+                      - name: RELATED_IMAGE_EXPORTER
+                        value: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
+                      - name: MARIADB_OPERATOR_IMGE
+                        value: mariadb/mariadb-operator-enterprise:v0.0.24
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: MARIADB_OPERATOR_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: spec.serviceAccountName
+                      - name: MARIADB_OPERATOR_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: MARIADB_OPERATOR_SA_PATH
+                        value: /var/run/secrets/kubernetes.io/serviceaccount/token
+                    image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: mariadb-operator-enterprise
+                    ports:
+                      - containerPort: 9443
+                        name: https
+                        protocol: TCP
+                      - containerPort: 8080
+                        name: metrics
+                        protocol: TCP
+                      - containerPort: 8081
+                        name: health
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        memory: 2Gi
+                      requests:
+                        cpu: 100m
+                        memory: 128Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
                 securityContext:
-                  allowPrivilegeEscalation: false
-                  capabilities:
-                    drop:
-                    - ALL
-              securityContext:
-                runAsNonRoot: true
-              serviceAccountName: mariadb-operator-manager
-              terminationGracePeriodSeconds: 10
+                  runAsNonRoot: true
+                serviceAccountName: mariadb-operator-manager
+                terminationGracePeriodSeconds: 10
       permissions:
-      - rules:
-        - apiGroups:
-          - ""
-          resources:
-          - configmaps
-          verbs:
-          - get
-          - list
-          - watch
-          - create
-          - update
-          - patch
-          - delete
-        - apiGroups:
-          - coordination.k8s.io
-          resources:
-          - leases
-          verbs:
-          - get
-          - list
-          - watch
-          - create
-          - update
-          - patch
-          - delete
-        - apiGroups:
-          - ""
-          resources:
-          - events
-          verbs:
-          - create
-          - patch
-        serviceAccountName: mariadb-operator-manager
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: mariadb-operator-manager
     strategy: deployment
   installModes:
-  - supported: true
-    type: OwnNamespace
-  - supported: true
-    type: SingleNamespace
-  - supported: true
-    type: MultiNamespace
-  - supported: true
-    type: AllNamespaces
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
   keywords:
-  - mariadb
-  - mariadb-operator
-  - database
-  - sql
-  - backup
-  - restore
-  - high-availability
-  - storage
+    - mariadb
+    - mariadb-operator
+    - database
+    - sql
+    - backup
+    - restore
+    - high-availability
+    - storage
   links:
-  - name: MariaDB
-    url: https://mariadb.com/
-  - name: Documentation
-    url: https://mariadb.com/kb/en/documentation/
+    - name: MariaDB
+      url: https://mariadb.com/
+    - name: Documentation
+      url: https://mariadb.com/kb/en/documentation/
   maintainers:
-  - email: martin.montes@mariadb.com
-    name: Martin Montes
+    - email: martin.montes@mariadb.com
+      name: Martin Montes
   maturity: alpha
   minKubeVersion: 1.16.0
   provider:
     name: MariaDB Corporation
   relatedImages:
-  - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6
-    name: mariadb
-  - image: mariadb/maxscale:23.08
-    name: maxscale
-  - image: prom/mysqld-exporter:v0.15.1
-    name: exporter
+    - image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
+      name: mariadb-operator-enterprise
+    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
+      name: mariadb
+    - image: mariadb/maxscale@sha256:5c658141992f1b83580759137bbe1b881ebe73e07c85819e46a8a14f332ff690
+      name: maxscale
+    - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
+      name: exporter
   version: 0.0.24
   webhookdefinitions:
-  - admissionReviewVersions:
-    - v1
-    containerPort: 443
-    deploymentName: mariadb-operator-controller-manager
-    failurePolicy: Fail
-    generateName: mmariadb.kb.io
-    rules:
-    - apiGroups:
-      - mariadb.mmontes.io
-      apiVersions:
-      - v1alpha1
-      operations:
-      - CREATE
-      - UPDATE
-      resources:
-      - mariadbs
-    sideEffects: None
-    targetPort: 9443
-    type: MutatingAdmissionWebhook
-    webhookPath: /mutate-mariadb-mmontes-io-v1alpha1-mariadb
-  - admissionReviewVersions:
-    - v1
-    containerPort: 443
-    deploymentName: mariadb-operator-controller-manager
-    failurePolicy: Fail
-    generateName: vbackup.kb.io
-    rules:
-    - apiGroups:
-      - mariadb.mmontes.io
-      apiVersions:
-      - v1alpha1
-      operations:
-      - CREATE
-      - UPDATE
-      resources:
-      - backups
-    sideEffects: None
-    targetPort: 9443
-    type: ValidatingAdmissionWebhook
-    webhookPath: /validate-mariadb-mmontes-io-v1alpha1-backup
-  - admissionReviewVersions:
-    - v1
-    containerPort: 443
-    deploymentName: mariadb-operator-controller-manager
-    failurePolicy: Fail
-    generateName: vconnection.kb.io
-    rules:
-    - apiGroups:
-      - mariadb.mmontes.io
-      apiVersions:
-      - v1alpha1
-      operations:
-      - CREATE
-      - UPDATE
-      resources:
-      - connections
-    sideEffects: None
-    targetPort: 9443
-    type: ValidatingAdmissionWebhook
-    webhookPath: /validate-mariadb-mmontes-io-v1alpha1-connection
-  - admissionReviewVersions:
-    - v1
-    containerPort: 443
-    deploymentName: mariadb-operator-controller-manager
-    failurePolicy: Fail
-    generateName: vdatabase.kb.io
-    rules:
-    - apiGroups:
-      - mariadb.mmontes.io
-      apiVersions:
-      - v1alpha1
-      operations:
-      - CREATE
-      - UPDATE
-      resources:
-      - databases
-    sideEffects: None
-    targetPort: 9443
-    type: ValidatingAdmissionWebhook
-    webhookPath: /validate-mariadb-mmontes-io-v1alpha1-database
-  - admissionReviewVersions:
-    - v1
-    containerPort: 443
-    deploymentName: mariadb-operator-controller-manager
-    failurePolicy: Fail
-    generateName: vgrant.kb.io
-    rules:
-    - apiGroups:
-      - mariadb.mmontes.io
-      apiVersions:
-      - v1alpha1
-      operations:
-      - CREATE
-      - UPDATE
-      resources:
-      - grants
-    sideEffects: None
-    targetPort: 9443
-    type: ValidatingAdmissionWebhook
-    webhookPath: /validate-mariadb-mmontes-io-v1alpha1-grant
-  - admissionReviewVersions:
-    - v1
-    containerPort: 443
-    deploymentName: mariadb-operator-controller-manager
-    failurePolicy: Fail
-    generateName: vmariadb.kb.io
-    rules:
-    - apiGroups:
-      - mariadb.mmontes.io
-      apiVersions:
-      - v1alpha1
-      operations:
-      - CREATE
-      - UPDATE
-      resources:
-      - mariadbs
-    sideEffects: None
-    targetPort: 9443
-    type: ValidatingAdmissionWebhook
-    webhookPath: /validate-mariadb-mmontes-io-v1alpha1-mariadb
-  - admissionReviewVersions:
-    - v1
-    containerPort: 443
-    deploymentName: mariadb-operator-controller-manager
-    failurePolicy: Fail
-    generateName: vrestore.kb.io
-    rules:
-    - apiGroups:
-      - mariadb.mmontes.io
-      apiVersions:
-      - v1alpha1
-      operations:
-      - CREATE
-      - UPDATE
-      resources:
-      - restores
-    sideEffects: None
-    targetPort: 9443
-    type: ValidatingAdmissionWebhook
-    webhookPath: /validate-mariadb-mmontes-io-v1alpha1-restore
-  - admissionReviewVersions:
-    - v1
-    containerPort: 443
-    deploymentName: mariadb-operator-controller-manager
-    failurePolicy: Fail
-    generateName: vsqljob.kb.io
-    rules:
-    - apiGroups:
-      - mariadb.mmontes.io
-      apiVersions:
-      - v1alpha1
-      operations:
-      - CREATE
-      - UPDATE
-      resources:
-      - sqljobs
-    sideEffects: None
-    targetPort: 9443
-    type: ValidatingAdmissionWebhook
-    webhookPath: /validate-mariadb-mmontes-io-v1alpha1-sqljob
-  - admissionReviewVersions:
-    - v1
-    containerPort: 443
-    deploymentName: mariadb-operator-controller-manager
-    failurePolicy: Fail
-    generateName: vuser.kb.io
-    rules:
-    - apiGroups:
-      - mariadb.mmontes.io
-      apiVersions:
-      - v1alpha1
-      operations:
-      - CREATE
-      - UPDATE
-      resources:
-      - users
-    sideEffects: None
-    targetPort: 9443
-    type: ValidatingAdmissionWebhook
-    webhookPath: /validate-mariadb-mmontes-io-v1alpha1-user
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: mariadb-operator-controller-manager
+      failurePolicy: Fail
+      generateName: mmariadb.kb.io
+      rules:
+        - apiGroups:
+            - mariadb.mmontes.io
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - mariadbs
+      sideEffects: None
+      targetPort: 9443
+      type: MutatingAdmissionWebhook
+      webhookPath: /mutate-mariadb-mmontes-io-v1alpha1-mariadb
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: mariadb-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vbackup.kb.io
+      rules:
+        - apiGroups:
+            - mariadb.mmontes.io
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - backups
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-backup
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: mariadb-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vconnection.kb.io
+      rules:
+        - apiGroups:
+            - mariadb.mmontes.io
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - connections
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-connection
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: mariadb-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vdatabase.kb.io
+      rules:
+        - apiGroups:
+            - mariadb.mmontes.io
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - databases
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-database
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: mariadb-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vgrant.kb.io
+      rules:
+        - apiGroups:
+            - mariadb.mmontes.io
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - grants
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-grant
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: mariadb-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vmariadb.kb.io
+      rules:
+        - apiGroups:
+            - mariadb.mmontes.io
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - mariadbs
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-mariadb
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: mariadb-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vrestore.kb.io
+      rules:
+        - apiGroups:
+            - mariadb.mmontes.io
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - restores
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-restore
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: mariadb-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vsqljob.kb.io
+      rules:
+        - apiGroups:
+            - mariadb.mmontes.io
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - sqljobs
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-sqljob
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: mariadb-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vuser.kb.io
+      rules:
+        - apiGroups:
+            - mariadb.mmontes.io
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - users
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-user
