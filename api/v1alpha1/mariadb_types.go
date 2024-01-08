@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"reflect"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -238,8 +239,12 @@ type MariaDBSpec struct {
 	// +kubebuilder:default=3306
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Port int32 `json:"port,omitempty"`
+	// EphemeralStorage indicates whether to use ephemeral storage for the instances.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	EphemeralStorage *bool `json:"ephemeralStorage,omitempty" webhook:"inmutable"`
 	// VolumeClaimTemplate provides a template to define the Pod PVCs.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate" webhook:"inmutable"`
 	// PodDisruptionBudget defines the budget for replica availability.
@@ -350,6 +355,10 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 		m.Spec.Image = env.RelatedMariadbImage
 	}
 
+	if m.Spec.EphemeralStorage == nil {
+		m.Spec.EphemeralStorage = ptr.To(false)
+	}
+
 	if m.Spec.RootEmptyPassword == nil {
 		m.Spec.RootEmptyPassword = ptr.To(false)
 	}
@@ -420,6 +429,15 @@ func (m *MariaDB) IsInitialDataEnabled() bool {
 // IsRootPasswordEmpty indicates whether the MariaDB instance has an empty root password
 func (m *MariaDB) IsRootPasswordEmpty() bool {
 	return m.Spec.RootEmptyPassword != nil && *m.Spec.RootEmptyPassword
+}
+
+// IsEphemeralStorageEnabled indicates whether the MariaDB instance has ephemeral storage enabled
+func (m *MariaDB) IsEphemeralStorageEnabled() bool {
+	return m.Spec.EphemeralStorage != nil && *m.Spec.EphemeralStorage
+}
+
+func (m *MariaDB) IsVolumeClaimTemplateDefined() bool {
+	return !reflect.ValueOf(m.Spec.VolumeClaimTemplate).IsZero()
 }
 
 // IsReady indicates whether the MariaDB instance is ready

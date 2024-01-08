@@ -33,6 +33,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -50,7 +51,8 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						Image: "mariadb:lts",
+						Image:            "mariadb:lts",
+						EphemeralStorage: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: "root",
@@ -64,6 +66,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             "mariadb:lts",
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -82,6 +85,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             "mariadb:lts",
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(true),
 						Port:              3307,
 					},
@@ -90,6 +94,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             "mariadb:lts",
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(true),
 						Port:              3307,
 					},
@@ -115,6 +120,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -166,6 +172,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -205,6 +212,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -244,6 +252,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -278,6 +287,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -348,6 +358,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             "mariadb:lts",
+						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
