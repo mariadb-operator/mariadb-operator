@@ -229,8 +229,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 				configMapKeyRef.Key: *mariadb.Spec.MyCnf,
 			},
 		}
-		err := r.ConfigMapReconciler.Reconcile(ctx, &req)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, r.ConfigMapReconciler.Reconcile(ctx, &req)
 	}
 	return ctrl.Result{}, nil
 }

@@ -59,11 +59,11 @@ func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client
 		return fmt.Errorf("error creating PersistentVolumeClaim: %v", err)
 	}
 
-	pvc := r.builder.BuildPVC(key, &backup.Spec.Storage, mariadb)
-	if err := r.Create(ctx, pvc); err != nil {
-		return fmt.Errorf("error creating PersistentVolumeClain: %v", err)
+	pvc, err := r.builder.BuildBackupPVC(key, &backup.Spec.Storage, mariadb)
+	if err != nil {
+		return fmt.Errorf("error buildinb Backup PVC: %v", err)
 	}
-	return nil
+	return r.Create(ctx, pvc)
 }
 
 func (r *BatchReconciler) reconcileBatch(ctx context.Context, parentObj client.Object,
