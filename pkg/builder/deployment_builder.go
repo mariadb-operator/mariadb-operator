@@ -206,7 +206,7 @@ func buildMaxScaleContainer(maxscale *mariadbv1alpha1.MaxScale) (corev1.Containe
 	}
 	container.Ports = []corev1.ContainerPort{
 		{
-			Name:          "api",
+			Name:          "admin",
 			ContainerPort: 8989,
 		},
 	}
