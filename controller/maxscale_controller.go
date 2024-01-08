@@ -188,7 +188,30 @@ func (r *MaxScaleReconciler) reconcileDeployment(ctx context.Context, maxscale *
 }
 
 func (r *MaxScaleReconciler) reconcileService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
-	return ctrl.Result{}, nil
+	key := client.ObjectKeyFromObject(maxscale)
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMaxScaleSelectorLabels(maxscale).
+			Build()
+	ports := []corev1.ServicePort{
+		{
+			Name: "admin",
+			Port: 8989,
+		},
+	}
+	opts := builder.ServiceOpts{
+		Ports:          ports,
+		SelectorLabels: selectorLabels,
+	}
+	if maxscale.Spec.KubernetesService != nil {
+		opts.ServiceTemplate = *maxscale.Spec.KubernetesService
+	}
+
+	desiredSvc, err := r.Builder.BuildService(key, maxscale, opts)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error building exporter Service: %v", err)
+	}
+	return ctrl.Result{}, r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
 func (r *MaxScaleReconciler) reconcilePodDisruptionBudget(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
