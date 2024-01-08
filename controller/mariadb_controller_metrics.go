@@ -204,15 +204,17 @@ func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariad
 		ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
 			Labels: metricsSelectorLabels,
 		},
-		Selectorlabels: metricsSelectorLabels,
 		Ports: []corev1.ServicePort{
 			{
 				Name: builder.MetricsPortName,
 				Port: mariadb.Spec.Metrics.Exporter.Port,
 			},
 		},
+		SelectorLabels: metricsSelectorLabels,
+		MariaDB:        mariadb,
 	}
-	desiredSvc, err := r.Builder.BuildService(mariadb, key, opts)
+
+	desiredSvc, err := r.Builder.BuildService(key, mariadb, opts)
 	if err != nil {
 		return fmt.Errorf("error building exporter Service: %v", err)
 	}

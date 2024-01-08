@@ -2,4 +2,8 @@ apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale
-spec: {}
+spec:
+  kubernetesService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.210

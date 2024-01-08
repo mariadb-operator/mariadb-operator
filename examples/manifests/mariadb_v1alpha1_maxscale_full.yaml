@@ -17,6 +17,11 @@ spec:
 
   replicas: 3
 
+  kubernetesService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.210
+
   resources:
     requests:
       cpu: 100m
