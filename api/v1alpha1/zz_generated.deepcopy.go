@@ -1309,7 +1309,7 @@ func (in *MaxScaleSpec) DeepCopyInto(out *MaxScaleSpec) {
 	}
 	if in.UpdateStrategy != nil {
 		in, out := &in.UpdateStrategy, &out.UpdateStrategy
-		*out = new(appsv1.StatefulSetUpdateStrategy)
+		*out = new(appsv1.DeploymentStrategy)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.KubernetesService != nil {

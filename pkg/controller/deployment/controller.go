@@ -33,6 +33,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, desiredDeploy *app
 	}
 
 	patch := client.MergeFrom(existingDeploy.DeepCopy())
+	existingDeploy.Spec.Replicas = desiredDeploy.Spec.Replicas
 	existingDeploy.Spec.Template = desiredDeploy.Spec.Template
 
 	return r.Patch(ctx, &existingDeploy, patch)

@@ -92,7 +92,7 @@ type MaxScaleSpec struct {
 	// PodDisruptionBudget defines the update strategy for the Deployment object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
-	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
+	UpdateStrategy *appsv1.DeploymentStrategy `json:"updateStrategy,omitempty"`
 	// Service defines templates to configure the Kubernetes Service object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
