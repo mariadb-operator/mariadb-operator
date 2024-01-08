@@ -36,7 +36,8 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
-						BootstrapFrom: nil,
+						EphemeralStorage: ptr.To(true),
+						BootstrapFrom:    nil,
 					},
 				},
 				false,
@@ -46,6 +47,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						BootstrapFrom: &RestoreSource{
 							BackupRef: &corev1.LocalObjectReference{
 								Name: "backup-webhook",
@@ -60,6 +62,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						BootstrapFrom: &RestoreSource{
 							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 						},
@@ -72,6 +75,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Galera: &Galera{
 							Enabled: true,
 							GaleraSpec: GaleraSpec{
@@ -89,6 +93,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Replication: &Replication{
 							ReplicationSpec: ReplicationSpec{
 								Primary: &PrimaryReplication{
@@ -108,6 +113,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Replication: &Replication{
 							ReplicationSpec: ReplicationSpec{
 								Primary: &PrimaryReplication{
@@ -134,7 +140,8 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
-						Replicas: 4,
+						EphemeralStorage: ptr.To(true),
+						Replicas:         4,
 					},
 				},
 				true,
@@ -144,6 +151,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Galera: &Galera{
 							Enabled: true,
 							GaleraSpec: GaleraSpec{
@@ -160,6 +168,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Galera: &Galera{
 							Enabled: true,
 							GaleraSpec: GaleraSpec{
@@ -180,6 +189,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Galera: &Galera{
 							Enabled: true,
 							GaleraSpec: GaleraSpec{
@@ -200,6 +210,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Replication: &Replication{
 							ReplicationSpec: ReplicationSpec{
 								Primary: &PrimaryReplication{
@@ -223,6 +234,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Primary: &PrimaryGalera{
@@ -241,6 +253,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Replication: &Replication{
 							ReplicationSpec: ReplicationSpec{
 								Replica: &ReplicaReplication{
@@ -259,6 +272,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						Replication: &Replication{
 							ReplicationSpec: ReplicationSpec{
 								Replica: &ReplicaReplication{
@@ -277,6 +291,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						PodDisruptionBudget: &PodDisruptionBudget{
 							MaxUnavailable: func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
 							MinAvailable:   func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
@@ -290,10 +305,74 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
 						PodDisruptionBudget: &PodDisruptionBudget{
 							MaxUnavailable: func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
 						},
 					},
+				},
+				false,
+			),
+			Entry(
+				"Invalid EphemeralStorage",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(false),
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid EphemeralStorage",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						EphemeralStorage:    ptr.To(true),
+						VolumeClaimTemplate: VolumeClaimTemplate{},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Invalid empheperal + PVC storage",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
+						VolumeClaimTemplate: VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("100Mi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						}},
+				},
+				true,
+			),
+			Entry(
+				"Valid empheperal + PVC storage",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(false),
+						VolumeClaimTemplate: VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("100Mi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						}},
 				},
 				false,
 			),

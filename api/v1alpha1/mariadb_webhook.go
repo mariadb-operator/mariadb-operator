@@ -74,6 +74,7 @@ func (r *MariaDB) validate() error {
 		r.validateReplication,
 		r.validateBootstrapFrom,
 		r.validatePodDisruptionBudget,
+		r.validateStorage,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -199,5 +200,26 @@ func (r *MariaDB) validatePodDisruptionBudget() error {
 			err.Error(),
 		)
 	}
+	return nil
+}
+
+func (r *MariaDB) validateStorage() error {
+	// spec.ephemeralStorage or spec.volumeClaimTemplate shall be defined explicitly
+	if !r.IsEphemeralStorageEnabled() && !r.IsVolumeClaimTemplateDefined() {
+		return field.Invalid(
+			field.NewPath("spec").Child("volumeClaimTemplate"),
+			r.Spec.VolumeClaimTemplate,
+			"'spec.ephemeralStorage' or 'spec.volumeClaimTemplate' must be defined",
+		)
+	}
+	// spec.ephemeralStorage and spec.volumeClaimTemplate shall be mutually exclusive
+	if r.IsEphemeralStorageEnabled() && r.IsVolumeClaimTemplateDefined() {
+		return field.Invalid(
+			field.NewPath("spec").Child("ephemeralStorage"),
+			r.Spec.EphemeralStorage,
+			"'spec.ephemeralStorage' must be disabled when 'spec.volumeClaimTemplate' is specified",
+		)
+	}
+
 	return nil
 }

@@ -3,9 +3,5 @@ kind: MariaDB
 metadata:
   name: mariadb-min
 spec:
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  rootEmptyPassword: true
+  ephemeralStorage: true

@@ -6535,6 +6535,10 @@ spec:
                       x-kubernetes-map-type: atomic
                   type: object
                 type: array
+              ephemeralStorage:
+                description: EphemeralStorage indicates whether to use ephemeral storage
+                  for the instances.
+                type: boolean
               galera:
                 description: Replication configures high availability via Galera.
                 properties:
@@ -13681,8 +13685,6 @@ spec:
                   - name
                   type: object
                 type: array
-            required:
-            - volumeClaimTemplate
             type: object
           status:
             description: MariaDBStatus defines the observed state of MariaDB

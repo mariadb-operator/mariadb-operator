@@ -1074,6 +1074,11 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(Galera)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.EphemeralStorage != nil {
+		in, out := &in.EphemeralStorage, &out.EphemeralStorage
+		*out = new(bool)
+		**out = **in
+	}
 	in.VolumeClaimTemplate.DeepCopyInto(&out.VolumeClaimTemplate)
 	if in.PodDisruptionBudget != nil {
 		in, out := &in.PodDisruptionBudget, &out.PodDisruptionBudget

@@ -125,17 +125,22 @@ func buildStsUpdateStrategy(mariadb *mariadbv1alpha1.MariaDB) appsv1.StatefulSet
 }
 
 func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.PersistentVolumeClaim {
-	vctpl := mariadb.Spec.VolumeClaimTemplate
-	pvcs := []corev1.PersistentVolumeClaim{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        StorageVolume,
-				Labels:      vctpl.Labels,
-				Annotations: vctpl.Annotations,
+	var pvcs []corev1.PersistentVolumeClaim
+
+	if !mariadb.IsEphemeralStorageEnabled() {
+		vctpl := mariadb.Spec.VolumeClaimTemplate
+		pvcs = []corev1.PersistentVolumeClaim{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        StorageVolume,
+					Labels:      vctpl.Labels,
+					Annotations: vctpl.Annotations,
+				},
+				Spec: vctpl.PersistentVolumeClaimSpec,
 			},
-			Spec: vctpl.PersistentVolumeClaimSpec,
-		},
+		}
 	}
+
 	if mariadb.Galera().Enabled {
 		vctpl := *mariadb.Galera().VolumeClaimTemplate
 		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
@@ -160,6 +165,7 @@ func buildStsServiceAccountName(mariadb *mariadbv1alpha1.MariaDB) (autoMount *bo
 }
 
 func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
+
 	configVolume := corev1.Volume{
 		Name: ConfigVolume,
 		VolumeSource: corev1.VolumeSource{
@@ -225,6 +231,14 @@ func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 						},
 					},
 				},
+			},
+		})
+	}
+	if mariadb.IsEphemeralStorageEnabled() {
+		volumes = append(volumes, corev1.Volume{
+			Name: "storage",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		})
 	}

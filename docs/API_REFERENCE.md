@@ -542,6 +542,7 @@ _Appears in:_
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. |
 | `port` _integer_ | Port where the instances will be listening for connections. |
+| `ephemeralStorage` _boolean_ | EphemeralStorage indicates whether to use ephemeral storage for the instances. |
 | `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the Pod PVCs. |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
 | `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | PodDisruptionBudget defines the update strategy for the StatefulSet object. |
