@@ -11,6 +11,7 @@ const (
 	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
 	appMariaDb         = "mariadb"
 	appExporter        = "exporter"
+	appMaxScale        = "maxscale"
 )
 
 type LabelsBuilder struct {
@@ -61,6 +62,11 @@ func (b *LabelsBuilder) WithMariaDBSelectorLabels(mdb *mariadbv1alpha1.MariaDB) 
 func (b *LabelsBuilder) WithMetricsSelectorLabels(mdb *mariadbv1alpha1.MariaDB) *LabelsBuilder {
 	return b.WithApp(appExporter).
 		WithInstance(mdb.Name)
+}
+
+func (b *LabelsBuilder) WithMaxScaleSelectorLabels(mxs *mariadbv1alpha1.MaxScale) *LabelsBuilder {
+	return b.WithApp(appMaxScale).
+		WithInstance(mxs.Name)
 }
 
 func (b *LabelsBuilder) Build() map[string]string {

@@ -180,7 +180,7 @@ func (b *Backup) Volume() (*corev1.VolumeSource, error) {
 	if b.Spec.Storage.Volume != nil {
 		return b.Spec.Storage.Volume, nil
 	}
-	return nil, errors.New("unable to get volume from Backup")
+	return nil, errors.New("unable to get volume for Backup")
 }
 
 // +kubebuilder:object:root=true

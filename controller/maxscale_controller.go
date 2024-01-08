@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,10 +17,11 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
-	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
 )
 
 // MaxScaleReconciler reconciles a MaxScale object
@@ -31,7 +34,7 @@ type MaxScaleReconciler struct {
 	ConditionReady *condition.Ready
 	Environment    *environment.Environment
 
-	SecretReconciler     *secret.SecretReconciler
+	ConfigMapReconciler  *configmap.ConfigMapReconciler
 	ServiceReconciler    *service.ServiceReconciler
 	DeploymentReconciler *deployment.DeploymentReconciler
 }
@@ -61,6 +64,18 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "Spec",
 			reconcile: r.setSpecDefaults,
+		},
+		{
+			name:      "ConfigMap",
+			reconcile: r.reconcileConfigMap,
+		},
+		{
+			name:      "PVC",
+			reconcile: r.reconcilePVC,
+		},
+		{
+			name:      "Deployment",
+			reconcile: r.reconcileDeployment,
 		},
 	}
 
@@ -101,6 +116,63 @@ func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, maxscale *mari
 		mxs.SetDefaults(r.Environment)
 	})
 }
+func (r *MaxScaleReconciler) reconcileConfigMap(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	configMapKeyRef := mxs.ConfigMapKeyRef()
+	key := types.NamespacedName{
+		Name:      configMapKeyRef.Name,
+		Namespace: mxs.Namespace,
+	}
+	var existingConfigMap corev1.ConfigMap
+	if err := r.Get(ctx, key, &existingConfigMap); err == nil {
+		return ctrl.Result{}, nil
+	}
+
+	config, err := maxscale.Config(mxs)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting MaxScale config: %v", err)
+	}
+	req := configmap.ReconcileRequest{
+		Owner: mxs,
+		Key: types.NamespacedName{
+			Name:      configMapKeyRef.Name,
+			Namespace: mxs.Namespace,
+		},
+		Data: map[string]string{
+			configMapKeyRef.Key: config,
+		},
+	}
+	return ctrl.Result{}, r.ConfigMapReconciler.Reconcile(ctx, &req)
+}
+
+func (r *MaxScaleReconciler) reconcilePVC(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if maxscale.Spec.Config.Storage.PersistentVolumeClaim == nil {
+		return ctrl.Result{}, nil
+	}
+	key := maxscale.RuntimeConfigPVCKey()
+	var existingPVC corev1.PersistentVolumeClaim
+	err := r.Get(ctx, key, &existingPVC)
+	if err == nil {
+		return ctrl.Result{}, nil
+	}
+	if err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, fmt.Errorf("error creating PVC: %v", err)
+	}
+
+	pvc, err := r.Builder.BuildMaxScaleConfigPVC(key, maxscale)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error buildinb runtime config PVC: %v", err)
+	}
+	return ctrl.Result{}, r.Create(ctx, pvc)
+}
+
+func (r *MaxScaleReconciler) reconcileDeployment(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	key := client.ObjectKeyFromObject(maxscale)
+	deploy, err := r.Builder.BuildMaxScaleDeployment(maxscale, key)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error building Deployment: %v", err)
+	}
+	return ctrl.Result{}, r.DeploymentReconciler.Reconcile(ctx, deploy)
+}
 
 func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
 	patcher func(*mariadbv1alpha1.MaxScaleStatus) error) error {
@@ -122,6 +194,7 @@ func (r *MaxScaleReconciler) patch(ctx context.Context, maxscale *mariadbv1alpha
 func (r *MaxScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MaxScale{}).
+		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
 		Complete(r)
 }

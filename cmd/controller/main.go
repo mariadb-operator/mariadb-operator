@@ -252,7 +252,7 @@ var rootCmd = &cobra.Command{
 			ConditionReady: conditionReady,
 			Environment:    env,
 
-			SecretReconciler:     secretReconciler,
+			ConfigMapReconciler:  configMapReconciler,
 			ServiceReconciler:    serviceReconciler,
 			DeploymentReconciler: deployReconciler,
 		}).SetupWithManager(mgr); err != nil {

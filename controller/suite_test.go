@@ -195,7 +195,7 @@ var _ = BeforeSuite(func() {
 		ConditionReady: conditionReady,
 		Environment:    env,
 
-		SecretReconciler:     secretReconciler,
+		ConfigMapReconciler:  configMapReconciler,
 		ServiceReconciler:    serviceReconciler,
 		DeploymentReconciler: deployReconciler,
 	}).SetupWithManager(k8sManager)
