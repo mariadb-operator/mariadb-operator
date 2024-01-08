@@ -67,3 +67,21 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 		Message: "Running",
 	})
 }
+
+func SetReadyWithDeployment(c Conditioner, deploy *appsv1.Deployment) {
+	if deploy.Status.Replicas == 0 || deploy.Status.ReadyReplicas != deploy.Status.Replicas {
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonDeploymentNotReady,
+			Message: "Not ready",
+		})
+		return
+	}
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionTrue,
+		Reason:  mariadbv1alpha1.ConditionReasonDeploymentReady,
+		Message: "Running",
+	})
+}
