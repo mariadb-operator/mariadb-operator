@@ -643,7 +643,7 @@ _Appears in:_
 | `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
-| `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | PodDisruptionBudget defines the update strategy for the Deployment object. |
+| `updateStrategy` _[DeploymentStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#deploymentstrategy-v1-apps)_ | PodDisruptionBudget defines the update strategy for the Deployment object. |
 | `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the Kubernetes Service object. |
 
 

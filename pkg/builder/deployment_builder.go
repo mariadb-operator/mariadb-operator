@@ -94,6 +94,7 @@ func (b *Builder) BuildMaxScaleDeployment(maxscale *mariadbv1alpha1.MaxScale, ke
 			Namespace: key.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
+			Replicas: &maxscale.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -119,9 +120,17 @@ func (b *Builder) BuildMaxScaleDeployment(maxscale *mariadbv1alpha1.MaxScale, ke
 							VolumeSource: *runtimeConfigVolume,
 						},
 					},
+					ImagePullSecrets: maxscale.Spec.ImagePullSecrets,
+					SecurityContext:  maxscale.Spec.PodSecurityContext,
+					Affinity:         maxscale.Spec.Affinity,
+					NodeSelector:     maxscale.Spec.NodeSelector,
+					Tolerations:      maxscale.Spec.Tolerations,
 				},
 			},
 		},
+	}
+	if maxscale.Spec.UpdateStrategy != nil {
+		deployment.Spec.Strategy = *maxscale.Spec.UpdateStrategy
 	}
 	if err := controllerutil.SetControllerReference(maxscale, deployment, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Deployment: %v", err)
