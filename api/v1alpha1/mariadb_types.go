@@ -436,6 +436,7 @@ func (m *MariaDB) IsEphemeralStorageEnabled() bool {
 	return m.Spec.EphemeralStorage != nil && *m.Spec.EphemeralStorage
 }
 
+// IsVolumeClaimTemplateDefined indicates whether the MariaDB instance has a VolumeClaimTemplate defined
 func (m *MariaDB) IsVolumeClaimTemplateDefined() bool {
 	return !reflect.ValueOf(m.Spec.VolumeClaimTemplate).IsZero()
 }
