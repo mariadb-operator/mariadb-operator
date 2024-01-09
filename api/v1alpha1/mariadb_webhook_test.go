@@ -335,7 +335,7 @@ var _ = Describe("MariaDB webhook", func() {
 				false,
 			),
 			Entry(
-				"Invalid empheperal + PVC storage",
+				"Invalid EphemeralStorage + PVC storage",
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
@@ -356,7 +356,7 @@ var _ = Describe("MariaDB webhook", func() {
 				true,
 			),
 			Entry(
-				"Valid empheperal + PVC storage",
+				"Valid EphemeralStorage + PVC storage",
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
