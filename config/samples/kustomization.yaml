@@ -5,6 +5,7 @@ resources:
 - mariadb_v1alpha1_database.yaml
 - mariadb_v1alpha1_grant.yaml
 - mariadb_v1alpha1_mariadb.yaml
+- mariadb_v1alpha1_maxscale.yaml
 - mariadb_v1alpha1_restore.yaml
 - mariadb_v1alpha1_sqljob.yaml
 - mariadb_v1alpha1_user.yaml

@@ -18,20 +18,16 @@ type ConfigMapOpts struct {
 }
 
 func (b *Builder) BuildConfigMap(opts ConfigMapOpts, owner metav1.Object) (*corev1.ConfigMap, error) {
+	objMeta :=
+		metadata.NewMetadataBuilder(opts.Key).
+			WithMariaDB(opts.MariaDB).
+			Build()
 	cm := &corev1.ConfigMap{
-		ObjectMeta: configMapObjMeta(opts),
+		ObjectMeta: objMeta,
 		Data:       opts.Data,
 	}
 	if err := controllerutil.SetControllerReference(owner, cm, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to ConfigMap: %v", err)
 	}
 	return cm, nil
-}
-
-func configMapObjMeta(opts ConfigMapOpts) metav1.ObjectMeta {
-	builder := metadata.NewMetadataBuilder(opts.Key)
-	if opts.MariaDB != nil {
-		builder = builder.WithMariaDB(opts.MariaDB)
-	}
-	return builder.Build()
 }

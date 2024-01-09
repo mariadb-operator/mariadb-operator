@@ -17,8 +17,8 @@ type tplOpts struct {
 	AdminSecureGui           bool
 }
 
-func Config(maxscale *mariadbv1alpha1.MaxScale) (string, error) {
-	tpl := createTpl(maxscale.ConfigMapKeyRef().Key, `[maxscale]
+func Config(maxscale *mariadbv1alpha1.MaxScale) ([]byte, error) {
+	tpl := createTpl(maxscale.ConfigSecretKeyRef().Key, `[maxscale]
 threads={{ .Threads }}
 {{- with .QueryClassifierCacheSize }}
 query_classifier_cache_size={{ . }}
@@ -36,9 +36,9 @@ admin_secure_gui={{ .AdminSecureGui }}`)
 		AdminSecureGui: false,
 	})
 	if err != nil {
-		return "", fmt.Errorf("error rendering MaxScale config: %v", err)
+		return nil, fmt.Errorf("error rendering MaxScale config: %v", err)
 	}
-	return buf.String(), nil
+	return buf.Bytes(), nil
 }
 
 func createTpl(name, t string) *template.Template {

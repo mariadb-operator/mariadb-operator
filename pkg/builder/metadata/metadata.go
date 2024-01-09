@@ -22,6 +22,9 @@ func NewMetadataBuilder(key types.NamespacedName) *MetadataBuilder {
 }
 
 func (b *MetadataBuilder) WithMariaDB(mariadb *mariadbv1alpha1.MariaDB) *MetadataBuilder {
+	if mariadb == nil {
+		return b
+	}
 	if mariadb.Spec.InheritMetadata == nil {
 		return b
 	}

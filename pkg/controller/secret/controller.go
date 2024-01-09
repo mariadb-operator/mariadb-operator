@@ -8,6 +8,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -51,4 +53,32 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, key type
 	}
 
 	return password, nil
+}
+
+type ReconcileRequest struct {
+	Owner metav1.Object
+	Key   types.NamespacedName
+	Data  map[string][]byte
+}
+
+func (r *SecretReconciler) Reconcile(ctx context.Context, req *ReconcileRequest) error {
+	var existingSecret corev1.Secret
+	err := r.Get(ctx, req.Key, &existingSecret)
+	if err == nil {
+		return nil
+	}
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error getting ConfigMap: %v", err)
+	}
+
+	secretOpts := builder.SecretOpts{
+		Key:  req.Key,
+		Data: req.Data,
+	}
+	secret, err := r.Builder.BuildSecret(secretOpts, req.Owner)
+	if err != nil {
+		return fmt.Errorf("error building Secret: %v", err)
+	}
+
+	return r.Create(ctx, secret)
 }

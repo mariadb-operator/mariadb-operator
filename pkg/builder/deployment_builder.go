@@ -110,8 +110,8 @@ func (b *Builder) BuildMaxScaleDeployment(maxscale *mariadbv1alpha1.MaxScale, ke
 						{
 							Name: deployConfigVolume,
 							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: maxscale.ConfigMapKeyRef().LocalObjectReference,
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: maxscale.ConfigSecretKeyRef().Name,
 								},
 							},
 						},
