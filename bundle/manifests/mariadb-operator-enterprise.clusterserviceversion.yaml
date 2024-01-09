@@ -209,6 +209,14 @@ metadata:
         },
         {
           "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "kind": "MaxScale",
+          "metadata": {
+            "name": "maxscale"
+          },
+          "spec": {}
+        },
+        {
+          "apiVersion": "mariadb.mmontes.io/v1alpha1",
           "kind": "Restore",
           "metadata": {
             "name": "restore"
@@ -2629,6 +2637,21 @@ spec:
           - description: Command to be used in the Container.
             displayName: Command
             path: command
+          - description: Config defines the MaxScale configuration.
+            displayName: Config
+            path: config
+          - description: Params is a key value pair of parameters to be used in the MaxScale configuration file.
+            displayName: Params
+            path: config.params
+          - description: Storage defines the storage for the MaxScale runtime configuration files.
+            displayName: Storage
+            path: config.storage
+          - description: PersistentVolumeClaim is a Kubernetes PVC specification.
+            displayName: Persistent Volume Claim
+            path: config.storage.persistentVolumeClaim
+          - description: Volume is a Kubernetes volume specification.
+            displayName: Volume
+            path: config.storage.volume
           - description: Env represents the environment variables to be injected in a container.
             displayName: Env
             path: env
@@ -2810,9 +2833,9 @@ spec:
             path: conditions
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.conditions
-          - description: CurrentPrimary is the primary Pod.
-            displayName: Current Primary
-            path: currentPrimary
+          - description: PrimaryServer is the primary server.
+            displayName: Primary Server
+            path: primaryServer
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes:Pod
         version: v1alpha1
@@ -3601,14 +3624,14 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-      name: mariadb-operator-enterprise
     - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
       name: mariadb
     - image: mariadb/maxscale@sha256:5c658141992f1b83580759137bbe1b881ebe73e07c85819e46a8a14f332ff690
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
       name: exporter
+    - image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
+      name: mariadb-operator-enterprise
   version: 0.0.24
   webhookdefinitions:
     - admissionReviewVersions:

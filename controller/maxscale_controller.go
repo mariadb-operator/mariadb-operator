@@ -20,8 +20,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
@@ -37,7 +37,7 @@ type MaxScaleReconciler struct {
 	ConditionReady *condition.Ready
 	Environment    *environment.Environment
 
-	ConfigMapReconciler  *configmap.ConfigMapReconciler
+	SecretReconciler     *secret.SecretReconciler
 	ServiceReconciler    *service.ServiceReconciler
 	DeploymentReconciler *deployment.DeploymentReconciler
 }
@@ -71,8 +71,8 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.setSpecDefaults,
 		},
 		{
-			name:      "ConfigMap",
-			reconcile: r.reconcileConfigMap,
+			name:      "Secret",
+			reconcile: r.reconcileSecret,
 		},
 		{
 			name:      "PVC",
@@ -129,32 +129,25 @@ func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, maxscale *mari
 		mxs.SetDefaults(r.Environment)
 	})
 }
-func (r *MaxScaleReconciler) reconcileConfigMap(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
-	configMapKeyRef := mxs.ConfigMapKeyRef()
+func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	secretKeyRef := mxs.ConfigSecretKeyRef()
 	key := types.NamespacedName{
-		Name:      configMapKeyRef.Name,
+		Name:      secretKeyRef.Name,
 		Namespace: mxs.Namespace,
 	}
-	var existingConfigMap corev1.ConfigMap
-	if err := r.Get(ctx, key, &existingConfigMap); err == nil {
-		return ctrl.Result{}, nil
-	}
-
 	config, err := maxscale.Config(mxs)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale config: %v", err)
 	}
-	req := configmap.ReconcileRequest{
+
+	req := secret.ReconcileRequest{
 		Owner: mxs,
-		Key: types.NamespacedName{
-			Name:      configMapKeyRef.Name,
-			Namespace: mxs.Namespace,
-		},
-		Data: map[string]string{
-			configMapKeyRef.Key: config,
+		Key:   key,
+		Data: map[string][]byte{
+			secretKeyRef.Key: config,
 		},
 	}
-	return ctrl.Result{}, r.ConfigMapReconciler.Reconcile(ctx, &req)
+	return ctrl.Result{}, r.SecretReconciler.Reconcile(ctx, &req)
 }
 
 func (r *MaxScaleReconciler) reconcilePVC(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {

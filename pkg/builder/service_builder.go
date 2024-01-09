@@ -35,8 +35,14 @@ func (b *Builder) BuildService(key types.NamespacedName, owner metav1.Object, op
 	if !opts.ExcludeSelectorLabels && opts.SelectorLabels == nil {
 		return nil, errors.New("SelectorLabels are mandatory when ExcludeSelectorLabels is set to false")
 	}
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(opts.MariaDB).
+			WithAnnotations(opts.Annotations).
+			WithLabels(opts.Labels).
+			Build()
 	svc := &corev1.Service{
-		ObjectMeta: serviceObjMeta(key, opts),
+		ObjectMeta: objMeta,
 		Spec: corev1.ServiceSpec{
 			Type:  opts.Type,
 			Ports: opts.Ports,
@@ -68,15 +74,4 @@ func (b *Builder) BuildService(key types.NamespacedName, owner metav1.Object, op
 		return nil, fmt.Errorf("error setting controller reference to Service: %v", err)
 	}
 	return svc, nil
-}
-
-func serviceObjMeta(key types.NamespacedName, opts ServiceOpts) metav1.ObjectMeta {
-	builder := metadata.NewMetadataBuilder(key)
-	if opts.MariaDB != nil {
-		builder = builder.WithMariaDB(opts.MariaDB)
-	}
-	return builder.
-		WithAnnotations(opts.Annotations).
-		WithLabels(opts.Labels).
-		Build()
 }

@@ -1516,6 +1516,23 @@ spec:
       - description: Command to be used in the Container.
         displayName: Command
         path: command
+      - description: Config defines the MaxScale configuration.
+        displayName: Config
+        path: config
+      - description: Params is a key value pair of parameters to be used in the MaxScale
+          configuration file.
+        displayName: Params
+        path: config.params
+      - description: Storage defines the storage for the MaxScale runtime configuration
+          files.
+        displayName: Storage
+        path: config.storage
+      - description: PersistentVolumeClaim is a Kubernetes PVC specification.
+        displayName: Persistent Volume Claim
+        path: config.storage.persistentVolumeClaim
+      - description: Volume is a Kubernetes volume specification.
+        displayName: Volume
+        path: config.storage.volume
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
@@ -1717,9 +1734,9 @@ spec:
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
-      - description: CurrentPrimary is the primary Pod.
-        displayName: Current Primary
-        path: currentPrimary
+      - description: PrimaryServer is the primary server.
+        displayName: Primary Server
+        path: primaryServer
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Pod
       version: v1alpha1

@@ -130,7 +130,7 @@ func (s *MaxScaleStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Primary Server",type="string",JSONPath=".status.primaryServer"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +operator-sdk:csv:customresourcedefinitions:resources={{MaxScale,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{Service,v1},{ConfigMap,v1},{Event,v1},{Deployment,v1},{PersistentVolumeClaim,v1},{PodDisruptionBudget,v1}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{MaxScale,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{Event,v1},{Service,v1},{Secret,v1},{Deployment,v1},{PersistentVolumeClaim,v1},{PodDisruptionBudget,v1}}
 
 // MaxScale is the Schema for the maxscales API
 type MaxScale struct {
@@ -188,8 +188,8 @@ func init() {
 	SchemeBuilder.Register(&MaxScale{}, &MaxScaleList{})
 }
 
-// ConfigMapKeyRef defines the ConfigMap key selector for the configuration
-func (m *MaxScale) ConfigMapKeyRef() corev1.ConfigMapKeySelector {
+// ConfigSecretKeyRef defines the Secret key selector for the configuration
+func (m *MaxScale) ConfigSecretKeyRef() corev1.ConfigMapKeySelector {
 	return corev1.ConfigMapKeySelector{
 		LocalObjectReference: corev1.LocalObjectReference{
 			Name: fmt.Sprintf("%s-config", m.Name),
