@@ -50,6 +50,42 @@ spec:
           spec:
             description: MaxScaleSpec defines the desired state of MaxScale
             properties:
+              admin:
+                description: Admin configures the admin REST API and GUI.
+                properties:
+                  guiEnabled:
+                    description: GuiEnabled indicates whether the admin GUI should
+                      be enabled.
+                    type: boolean
+                  passwordSecretKeyRef:
+                    description: PasswordSecretKeyRef is Secret key reference to the
+                      admin password to call the REST API. It is defaulted by the
+                      operator if not provided.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  port:
+                    description: Port where the admin REST API will be exposed.
+                    type: integer
+                  username:
+                    description: Username is an admin username to call the REST API.
+                      It is defaulted by the operator if not provided.
+                    type: string
+                type: object
               affinity:
                 description: Affinity to be used in the Pod.
                 properties:

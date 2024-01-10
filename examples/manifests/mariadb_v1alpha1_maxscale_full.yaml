@@ -6,6 +6,24 @@ spec:
   image: mariadb/maxscale:23.08
   imagePullPolicy: IfNotPresent
 
+  admin:
+    port: 8989
+    username: mariadb-operator
+    passwordSecretKeyRef:
+      name: maxscale-api
+      key: password
+    guiEnabled: true
+
+  config:
+    params:
+      log_info: "true"
+    volumeClaimTemplate:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
+
   podSecurityContext:
     runAsUser: 0
 

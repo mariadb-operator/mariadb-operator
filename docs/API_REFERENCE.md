@@ -580,6 +580,23 @@ MaxScale is the Schema for the maxscales API
 | `spec` _[MaxScaleSpec](#maxscalespec)_ |  |
 
 
+#### MaxScaleAdmin
+
+
+
+MaxScaleAdmin configures the admin REST API and GUI.
+
+_Appears in:_
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description |
+| --- | --- |
+| `port` _integer_ | Port where the admin REST API will be exposed. |
+| `username` _string_ | Username is an admin username to call the REST API. It is defaulted by the operator if not provided. |
+| `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted by the operator if not provided. |
+| `guiEnabled` _boolean_ | GuiEnabled indicates whether the admin GUI should be enabled. |
+
+
 #### MaxScaleConfig
 
 
@@ -625,6 +642,7 @@ _Appears in:_
 | `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported. |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
 | `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
+| `admin` _[MaxScaleAdmin](#maxscaleadmin)_ | Admin configures the admin REST API and GUI. |
 | `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |

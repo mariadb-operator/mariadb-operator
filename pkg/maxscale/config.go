@@ -9,36 +9,65 @@ import (
 )
 
 type tplOpts struct {
-	Threads                  string
-	QueryClassifierCacheSize string
-	AdminGui                 bool
-	AdminHost                string
-	AdminPort                int
-	AdminSecureGui           bool
+	Threads               string
+	LoadPersistentConfigs bool
+	AdminHost             string
+	AdminPort             int
+	AdminGui              bool
+	AdminSecureGui        bool
+	Params                map[string]string
+}
+
+var existingConfigKeys = map[string]bool{
+	"threads":                true,
+	"load_persisted_configs": true,
+	"admin_host":             true,
+	"admin_gui":              true,
+	"admin_secure_gui":       true,
 }
 
 func Config(maxscale *mariadbv1alpha1.MaxScale) ([]byte, error) {
 	tpl := createTpl(maxscale.ConfigSecretKeyRef().Key, `[maxscale]
 threads={{ .Threads }}
-{{- with .QueryClassifierCacheSize }}
-query_classifier_cache_size={{ . }}
-{{- end }}
-admin_gui={{ .AdminGui }}
+load_persisted_configs={{ .LoadPersistentConfigs }}
 admin_host={{ .AdminHost }}
 admin_port={{ .AdminPort }}
-admin_secure_gui={{ .AdminSecureGui }}`)
+admin_gui={{ .AdminGui }}
+admin_secure_gui={{ .AdminSecureGui }}
+{{ range $key,$value := .Params }}
+{{- $key }}={{ $value }}
+{{- end }}`)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, tplOpts{
-		Threads:        "auto",
-		AdminGui:       true,
-		AdminHost:      "0.0.0.0",
-		AdminPort:      8989,
-		AdminSecureGui: false,
+		Threads:               configValueOrDefault("threads", maxscale.Spec.Config.Params, "auto"),
+		LoadPersistentConfigs: true,
+		AdminHost:             configValueOrDefault("threads", maxscale.Spec.Config.Params, "0.0.0.0"),
+		AdminPort:             maxscale.Spec.Admin.Port,
+		AdminGui:              *maxscale.Spec.Admin.GuiEnabled,
+		AdminSecureGui:        false,
+		Params:                filterExistingConfig(maxscale.Spec.Config.Params),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error rendering MaxScale config: %v", err)
 	}
 	return buf.Bytes(), nil
+}
+
+func configValueOrDefault[T any](key string, params map[string]string, defaultVal T) string {
+	if v, ok := params[key]; v != "" && ok {
+		return v
+	}
+	return fmt.Sprint(defaultVal)
+}
+
+func filterExistingConfig(params map[string]string) map[string]string {
+	config := make(map[string]string, 0)
+	for k, v := range params {
+		if !existingConfigKeys[k] {
+			config[k] = v
+		}
+	}
+	return config
 }
 
 func createTpl(name, t string) *template.Template {
