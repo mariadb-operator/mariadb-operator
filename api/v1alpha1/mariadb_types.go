@@ -431,6 +431,11 @@ func (m *MariaDB) IsRootPasswordEmpty() bool {
 	return m.Spec.RootEmptyPassword != nil && *m.Spec.RootEmptyPassword
 }
 
+// IsRootPasswordDefined indicates whether the MariaDB instance has a root password defined
+func (m *MariaDB) IsRootPasswordDefined() bool {
+	return m.Spec.RootPasswordSecretKeyRef != (corev1.SecretKeySelector{})
+}
+
 // IsEphemeralStorageEnabled indicates whether the MariaDB instance has ephemeral storage enabled
 func (m *MariaDB) IsEphemeralStorageEnabled() bool {
 	return m.Spec.EphemeralStorage != nil && *m.Spec.EphemeralStorage
