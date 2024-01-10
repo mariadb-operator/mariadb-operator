@@ -59,7 +59,7 @@ func GetCidrPrefix(cidr string) string {
 func GetDockerCidrPrefix(network string) (string, error) {
 	cidr, err := GetDockerCidr(network)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	return GetCidrPrefix(cidr), nil
 }
