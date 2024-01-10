@@ -75,6 +75,7 @@ func (r *MariaDB) validate() error {
 		r.validateBootstrapFrom,
 		r.validatePodDisruptionBudget,
 		r.validateStorage,
+		r.validateRootPassword,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -221,5 +222,16 @@ func (r *MariaDB) validateStorage() error {
 		)
 	}
 
+	return nil
+}
+
+func (r *MariaDB) validateRootPassword() error {
+	if r.IsRootPasswordEmpty() && r.IsRootPasswordDefined() {
+		return field.Invalid(
+			field.NewPath("spec").Child("rootEmptyPassword"),
+			r.Spec.RootEmptyPassword,
+			"'spec.rootEmptyPassword' must be disabled when 'spec.rootPasswordSecretKeyRef' is specified",
+		)
+	}
 	return nil
 }
