@@ -2808,6 +2808,10 @@ spec:
                       x-kubernetes-map-type: atomic
                   type: object
                 type: array
+              ephemeralStorage:
+                description: EphemeralStorage indicates whether to use ephemeral storage
+                  for the instances.
+                type: boolean
               galera:
                 description: Replication configures high availability via Galera.
                 properties:
@@ -6988,6 +6992,10 @@ spec:
                       More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
                 type: object
+              rootEmptyPassword:
+                description: RootEmptyPassword indicates if the root password should
+                  be empty.
+                type: boolean
               rootPasswordSecretKeyRef:
                 description: RootPasswordSecretKeyRef is a reference to a Secret key
                   containing the root password.
@@ -9950,8 +9958,6 @@ spec:
                   - name
                   type: object
                 type: array
-            required:
-            - volumeClaimTemplate
             type: object
           status:
             description: MariaDBStatus defines the observed state of MariaDB
