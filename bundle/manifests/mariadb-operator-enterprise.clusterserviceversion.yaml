@@ -1931,6 +1931,9 @@ spec:
           - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
             displayName: Env From
             path: envFrom
+          - description: EphemeralStorage indicates whether to use ephemeral storage for the instances.
+            displayName: Ephemeral Storage
+            path: ephemeralStorage
           - description: Replication configures high availability via Galera.
             displayName: Galera
             path: galera
@@ -2600,9 +2603,6 @@ spec:
         kind: MaxScale
         name: maxscales.mariadb.mmontes.io
         resources:
-          - kind: Deployment
-            name: ""
-            version: v1
           - kind: Event
             name: ""
             version: v1
@@ -2612,9 +2612,6 @@ spec:
           - kind: MaxScale
             name: ""
             version: v1alpha1
-          - kind: PersistentVolumeClaim
-            name: ""
-            version: v1
           - kind: PodDisruptionBudget
             name: ""
             version: v1
@@ -2622,6 +2619,9 @@ spec:
             name: ""
             version: v1
           - kind: Service
+            name: ""
+            version: v1
+          - kind: StatefulSet
             name: ""
             version: v1
           - kind: User
@@ -2640,18 +2640,18 @@ spec:
           - description: Config defines the MaxScale configuration.
             displayName: Config
             path: config
-          - description: Params is a key value pair of parameters to be used in the MaxScale configuration file.
+          - description: Params is a key value pair of parameters to be used in the MaxScale static configuration file.
             displayName: Params
             path: config.params
-          - description: Storage defines the storage for the MaxScale runtime configuration files.
-            displayName: Storage
-            path: config.storage
-          - description: PersistentVolumeClaim is a Kubernetes PVC specification.
-            displayName: Persistent Volume Claim
-            path: config.storage.persistentVolumeClaim
-          - description: Volume is a Kubernetes volume specification.
-            displayName: Volume
-            path: config.storage.volume
+          - description: VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files.
+            displayName: Volume Claim Template
+            path: config.volumeClaimTemplate
+          - description: Annotations to be used in the PVC.
+            displayName: Annotations
+            path: config.volumeClaimTemplate.annotations
+          - description: Labels to be used in the PVC.
+            displayName: Labels
+            path: config.volumeClaimTemplate.labels
           - description: Env represents the environment variables to be injected in a container.
             displayName: Env
             path: env
@@ -2816,7 +2816,7 @@ spec:
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
-          - description: PodDisruptionBudget defines the update strategy for the Deployment object.
+          - description: UpdateStrategy defines the update strategy for the StatefulSet object.
             displayName: Update Strategy
             path: updateStrategy
             x-descriptors:
