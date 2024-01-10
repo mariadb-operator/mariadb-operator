@@ -592,9 +592,28 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `port` _integer_ | Port where the admin REST API will be exposed. |
-| `username` _string_ | Username is an admin username to call the REST API. It is defaulted by the operator if not provided. |
-| `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted by the operator if not provided. |
+| `username` _string_ | Username is an admin username to call the REST API. It is defaulted if not provided. |
+| `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided. |
 | `guiEnabled` _boolean_ | GuiEnabled indicates whether the admin GUI should be enabled. |
+
+
+#### MaxScaleAuth
+
+
+
+MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB
+
+_Appears in:_
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description |
+| --- | --- |
+| `clientUsername` _string_ | ClientUsername is the user to connect to MaxScale. It is defaulted if not provided. |
+| `clientPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided. |
+| `serverUsername` _string_ | ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided. |
+| `serverPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided. |
+| `monitorUsername` _string_ | MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is only required if the monitor is enabled and defaulted if not provided |
+| `monitorPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is only required if the monitor is enabled and defaulted if not provided |
 
 
 #### MaxScaleConfig
@@ -644,6 +663,7 @@ _Appears in:_
 | `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
 | `admin` _[MaxScaleAdmin](#maxscaleadmin)_ | Admin configures the admin REST API and GUI. |
 | `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |
+| `auth` _[MaxScaleAuth](#maxscaleauth)_ | Auth defines the credentials required for MaxScale to connect to MariaDB. |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
 | `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | UpdateStrategy defines the update strategy for the StatefulSet object. |

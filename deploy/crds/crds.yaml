@@ -14400,8 +14400,8 @@ spec:
                     type: boolean
                   passwordSecretKeyRef:
                     description: PasswordSecretKeyRef is Secret key reference to the
-                      admin password to call the REST API. It is defaulted by the
-                      operator if not provided.
+                      admin password to call the REST API. It is defaulted if not
+                      provided.
                     properties:
                       key:
                         description: The key of the secret to select from.  Must be
@@ -14424,7 +14424,7 @@ spec:
                     type: integer
                   username:
                     description: Username is an admin username to call the REST API.
-                      It is defaulted by the operator if not provided.
+                      It is defaulted if not provided.
                     type: string
                 type: object
               affinity:
@@ -15260,6 +15260,88 @@ spec:
                 items:
                   type: string
                 type: array
+              auth:
+                description: Auth defines the credentials required for MaxScale to
+                  connect to MariaDB.
+                properties:
+                  clientPasswordSecretKeyRef:
+                    description: ClientPasswordSecretKeyRef is Secret key reference
+                      to the password to connect to MaxScale. It is defaulted if not
+                      provided.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  clientUsername:
+                    description: ClientUsername is the user to connect to MaxScale.
+                      It is defaulted if not provided.
+                    type: string
+                  monitorPasswordSecretKeyRef:
+                    description: MonitorPasswordSecretKeyRef is Secret key reference
+                      to the password used by MaxScale monitor to connect to MariaDB
+                      server. It is only required if the monitor is enabled and defaulted
+                      if not provided
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  monitorUsername:
+                    description: MonitorUsername is the user used by MaxScale monitor
+                      to connect to MariaDB server. It is only required if the monitor
+                      is enabled and defaulted if not provided
+                    type: string
+                  serverPasswordSecretKeyRef:
+                    description: ServerPasswordSecretKeyRef is Secret key reference
+                      to the password used by MaxScale to connect to MariaDB server.
+                      It is defaulted if not provided.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  serverUsername:
+                    description: ServerUsername is the user used by MaxScale to connect
+                      to MariaDB server. It is defaulted if not provided.
+                    type: string
+                type: object
               command:
                 description: Command to be used in the Container.
                 items:

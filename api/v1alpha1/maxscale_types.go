@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -10,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
 
@@ -20,11 +18,11 @@ type MaxScaleAdmin struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Port int `json:"port"`
-	// Username is an admin username to call the REST API. It is defaulted by the operator if not provided.
+	// Username is an admin username to call the REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Username string `json:"username,omitempty"`
-	// PasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted by the operator if not provided.
+	// PasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
@@ -78,6 +76,55 @@ func (m *MaxScaleConfig) SetDefaults() {
 	}
 }
 
+// MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB
+type MaxScaleAuth struct {
+	// ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ClientUsername string `json:"clientUsername,omitempty"`
+	// ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ClientPasswordSecretKeyRef corev1.SecretKeySelector `json:"clientPasswordSecretKeyRef,omitempty"`
+	// ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServerUsername string `json:"serverUsername,omitempty"`
+	// ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServerPasswordSecretKeyRef corev1.SecretKeySelector `json:"serverPasswordSecretKeyRef,omitempty"`
+	// MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is only required if the monitor is enabled and defaulted if not provided
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MonitorUsername string `json:"monitorUsername,omitempty"`
+	// MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is only required if the monitor is enabled and defaulted if not provided
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MonitorPasswordSecretKeyRef corev1.SecretKeySelector `json:"monitorPasswordSecretKeyRef,omitempty"`
+}
+
+func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
+	if m.ClientUsername == "" {
+		m.ClientUsername = mxs.AuthClientUserKey().Name
+	}
+	if m.ClientPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+		m.ClientPasswordSecretKeyRef = mxs.AuthClientPasswordSecretKeyRef()
+	}
+	if m.ServerUsername == "" {
+		m.ServerUsername = mxs.AuthServerUserKey().Name
+	}
+	if m.ServerPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+		m.ServerPasswordSecretKeyRef = mxs.AuthServerPasswordSecretKeyRef()
+	}
+	if m.MonitorUsername == "" {
+		m.MonitorUsername = mxs.AuthMonitorUserKey().Name
+	}
+	if m.MonitorPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+		m.MonitorPasswordSecretKeyRef = mxs.AuthMonitorPasswordSecretKeyRef()
+	}
+}
+
 // MaxScaleSpec defines the desired state of MaxScale
 type MaxScaleSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -110,6 +157,10 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Config MaxScaleConfig `json:"config,omitempty" webhook:"inmutable"`
+	// Auth defines the credentials required for MaxScale to connect to MariaDB.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Auth MaxScaleAuth `json:"auth,omitempty" webhook:"inmutable"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
@@ -176,6 +227,7 @@ func (m *MaxScale) SetDefaults(env *environment.Environment) {
 	}
 	m.Spec.Admin.SetDefaults(m)
 	m.Spec.Config.SetDefaults()
+	m.Spec.Auth.SetDefaults(m)
 }
 
 //+kubebuilder:object:root=true
@@ -189,32 +241,4 @@ type MaxScaleList struct {
 
 func init() {
 	SchemeBuilder.Register(&MaxScale{}, &MaxScaleList{})
-}
-
-// InternalServiceKey defines the key for the internal headless Service
-func (m *MaxScale) InternalServiceKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-internal", m.Name),
-		Namespace: m.Namespace,
-	}
-}
-
-// ConfigSecretKeyRef defines the Secret key selector for the configuration
-func (m *MaxScale) ConfigSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-config", m.Name),
-		},
-		Key: "maxscale.cnf",
-	}
-}
-
-// AdminPasswordSecretKeyRef defines the Secret key selector for the admin password
-func (m *MaxScale) AdminPasswordSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-admin-password", m.Name),
-		},
-		Key: "password",
-	}
 }
