@@ -160,6 +160,10 @@ type PodTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Volumes []corev1.Volume `json:"volumes,omitempty" webhook:"inmutable"`
+	// PriorityClassName to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PriorityClassName *string `json:"priorityClassName,omitempty" webhook:"inmutable"`
 }
 
 // VolumeClaimTemplate defines a template to customize PVC objects.

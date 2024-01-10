@@ -10443,6 +10443,9 @@ spec:
                     - LoadBalancer
                     type: string
                 type: object
+              priorityClassName:
+                description: PriorityClassName to be used in the Pod.
+                type: string
               readinessProbe:
                 description: ReadinessProbe to be used in the Container.
                 properties:

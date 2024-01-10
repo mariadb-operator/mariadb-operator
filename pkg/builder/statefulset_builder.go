@@ -104,6 +104,7 @@ func (b *Builder) buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels m
 			Affinity:                     mariadb.Spec.Affinity,
 			NodeSelector:                 mariadb.Spec.NodeSelector,
 			Tolerations:                  mariadb.Spec.Tolerations,
+			PriorityClassName:            buildPriorityClass(mariadb),
 		},
 	}, nil
 }
@@ -262,4 +263,11 @@ func buildHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 		}
 	}
 	return annotations
+}
+
+func buildPriorityClass(mariadb *mariadbv1alpha1.MariaDB) string {
+	if mariadb.Spec.PodTemplate.PriorityClassName != nil {
+		return *mariadb.Spec.PodTemplate.PriorityClassName
+	}
+	return ""
 }
