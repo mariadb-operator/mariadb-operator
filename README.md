@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb-operator.png" alt="mariadb" width="250"/>
+<img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb-operator_centered_whitebg.svg" alt="mariadb" width="100%"/>
 </p>
 
 <p align="center">
