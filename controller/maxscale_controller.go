@@ -189,7 +189,7 @@ func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, max
 	ports := []corev1.ServicePort{
 		{
 			Name: "admin",
-			Port: 8989,
+			Port: int32(maxscale.Spec.Admin.Port),
 		},
 	}
 	opts := builder.ServiceOpts{

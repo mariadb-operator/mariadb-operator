@@ -33,6 +33,9 @@ const (
 	MariadbContainerName = "mariadb"
 	MariadbPortName      = "mariadb"
 
+	MaxScaleContainerName = "maxscale"
+	MaxScaleAdminPortName = "admin"
+
 	InitContainerName  = "init"
 	AgentContainerName = "agent"
 )
