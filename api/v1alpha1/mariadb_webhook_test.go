@@ -376,6 +376,52 @@ var _ = Describe("MariaDB webhook", func() {
 				},
 				false,
 			),
+			Entry(
+				"Invalid rootPasswordSecretKeyRef and rootEmptyPassword",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "secret",
+							},
+							Key: "root-password",
+						},
+						RootEmptyPassword: ptr.To(true),
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid rootPasswordSecretKeyRef",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "secret",
+							},
+							Key: "root-password",
+						},
+						RootEmptyPassword: ptr.To(false),
+					},
+				},
+				false,
+			),
+			Entry(
+				"Valid rootEmptyPassword",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						EphemeralStorage:         ptr.To(true),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{},
+						RootEmptyPassword:        ptr.To(true),
+					},
+				},
+				false,
+			),
 		)
 
 		It("Should default replication", func() {
