@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-IP=$1
+CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix.go)
+IP="${CIDR_PREFIX}.0.$1"
 HOSTNAME=$2
 
 if grep -q "^$IP\s*$HOSTNAME" /etc/hosts; then
