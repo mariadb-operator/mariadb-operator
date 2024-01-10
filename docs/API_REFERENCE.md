@@ -778,6 +778,7 @@ _Appears in:_
 | `secretAccessKeySecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key. |
 | `sessionTokenSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token. |
 | `tls` _[TLS](#tls)_ | TLS provides the configuration required to establish TLS connections with S3. |
+| `prefix` _string_ | Prefix allows backups to be placed under a specific prefix in the bucket. |
 
 
 #### SQLTemplate

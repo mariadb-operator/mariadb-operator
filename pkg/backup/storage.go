@@ -59,6 +59,7 @@ func (f *FileSystemBackupStorage) Delete(ctx context.Context, fileName string) e
 
 type S3BackupStorageOpts struct {
 	Region     string
+	Prefix     string
 	TLS        bool
 	CACertPath string
 }
@@ -68,6 +69,12 @@ type S3BackupStorageOpt func(s *S3BackupStorageOpts)
 func WithRegion(region string) S3BackupStorageOpt {
 	return func(s *S3BackupStorageOpts) {
 		s.Region = region
+	}
+}
+
+func WithPrefix(prefix string) S3BackupStorageOpt {
+	return func(s *S3BackupStorageOpts) {
+		s.Prefix = prefix
 	}
 }
 
@@ -104,16 +111,19 @@ func NewS3BackupStorage(basePath, bucket, endpoint string, logger logr.Logger, s
 	}
 
 	return &S3BackupStorage{
-		basePath: basePath,
-		bucket:   bucket,
-		client:   client,
-		logger:   logger,
+		S3BackupStorageOpts: opts,
+		basePath:            basePath,
+		bucket:              bucket,
+		client:              client,
+		logger:              logger,
 	}, nil
 }
 
 func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
 	var fileNames []string
-	for o := range s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{}) {
+	for o := range s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{
+		Prefix: s.Prefix,
+	}) {
 		fileName := o.Key
 		if shouldProcessBackupFile(fileName, s.logger) {
 			fileNames = append(fileNames, fileName)
@@ -124,17 +134,17 @@ func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
 
 func (s *S3BackupStorage) Push(ctx context.Context, fileName string) error {
 	filePath := filepath.Join(s.basePath, fileName)
-	_, err := s.client.FPutObject(ctx, s.bucket, fileName, filePath, minio.PutObjectOptions{})
+	_, err := s.client.FPutObject(ctx, s.bucket, s.Prefix+fileName, filePath, minio.PutObjectOptions{})
 	return err
 }
 
 func (s *S3BackupStorage) Pull(ctx context.Context, fileName string) error {
 	filePath := filepath.Join(s.basePath, fileName)
-	return s.client.FGetObject(ctx, s.bucket, fileName, filePath, minio.GetObjectOptions{})
+	return s.client.FGetObject(ctx, s.bucket, s.Prefix+fileName, filePath, minio.GetObjectOptions{})
 }
 
 func (s *S3BackupStorage) Delete(ctx context.Context, fileName string) error {
-	return s.client.RemoveObject(ctx, s.bucket, fileName, minio.RemoveObjectOptions{})
+	return s.client.RemoveObject(ctx, s.bucket, s.Prefix+fileName, minio.RemoveObjectOptions{})
 }
 
 func shouldProcessBackupFile(fileName string, logger logr.Logger) bool {

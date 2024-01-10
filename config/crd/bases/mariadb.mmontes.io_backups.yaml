@@ -1258,6 +1258,10 @@ spec:
                       endpoint:
                         description: Endpoint is the S3 API endpoint without scheme.
                         type: string
+                      prefix:
+                        description: Prefix allows backups to be placed under a specific
+                          prefix in the bucket.
+                        type: string
                       region:
                         description: Region is the S3 region name to use.
                         type: string
