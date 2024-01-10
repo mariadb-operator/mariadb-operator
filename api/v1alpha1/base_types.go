@@ -266,6 +266,10 @@ type S3 struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TLS *TLS `json:"tls,omitempty"`
+	// Prefix allows backups to be placed under a specific prefix in the bucket.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Prefix string `json:"prefix"`
 }
 
 // RestoreSource defines a source for restoring a MariaDB.

@@ -24,6 +24,7 @@ var (
 	s3Region       string
 	s3TLS          bool
 	s3CACertPath   string
+	s3Prefix       string
 	maxRetention   time.Duration
 )
 
@@ -47,6 +48,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
 	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "s3/pki/tls.crt",
 		"Path to the CA to be trusted when connecting to S3.")
+	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
@@ -151,6 +153,7 @@ func getBackupStorage() (backup.BackupStorage, error) {
 func getS3BackupStorage() (backup.BackupStorage, error) {
 	opts := []backup.S3BackupStorageOpt{
 		backup.WithRegion(s3Region),
+		backup.WithPrefix(s3Prefix),
 	}
 	if s3TLS {
 		opts = append(opts, backup.WithTLS(s3CACertPath))
