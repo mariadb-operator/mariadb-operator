@@ -236,7 +236,7 @@ func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 	}
 	if mariadb.IsEphemeralStorageEnabled() {
 		volumes = append(volumes, corev1.Volume{
-			Name: "storage",
+			Name: StorageVolume,
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
