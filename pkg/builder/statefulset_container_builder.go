@@ -48,7 +48,7 @@ func (b *Builder) maxscaleContainers(maxscale *mariadbv1alpha1.MaxScale) ([]core
 	tpl := maxscale.Spec.ContainerTemplate
 
 	container := buildContainer(maxscale.Spec.Image, maxscale.Spec.ImagePullPolicy, &tpl)
-	container.Name = "maxscale"
+	container.Name = MaxScaleContainerName
 	container.Command = []string{
 		"maxscale",
 	}
@@ -65,8 +65,8 @@ func (b *Builder) maxscaleContainers(maxscale *mariadbv1alpha1.MaxScale) ([]core
 	}
 	container.Ports = []corev1.ContainerPort{
 		{
-			Name:          "admin",
-			ContainerPort: 8989,
+			Name:          MaxScaleAdminPortName,
+			ContainerPort: int32(maxscale.Spec.Admin.Port),
 		},
 	}
 	container.VolumeMounts = maxscaleVolumeMounts(maxscale)
