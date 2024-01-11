@@ -247,7 +247,7 @@ func (m *MaxScale) APIUrl() string {
 
 // PodAPIUrl returns the URL of the admin API pointing to a Pod
 func (m *MaxScale) PodAPIUrl(podIndex int) string {
-	fqdn := statefulset.PodFQDNWithService(m.ObjectMeta, podIndex, m.Name)
+	fqdn := statefulset.PodFQDNWithService(m.ObjectMeta, podIndex, m.InternalServiceKey().Name)
 	return m.apiUrlWithAddress(fqdn)
 }
 
