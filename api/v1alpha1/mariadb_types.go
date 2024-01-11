@@ -279,6 +279,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
+	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutable"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
@@ -444,6 +448,11 @@ func (m *MariaDB) IsEphemeralStorageEnabled() bool {
 // IsVolumeClaimTemplateDefined indicates whether the MariaDB instance has a VolumeClaimTemplate defined
 func (m *MariaDB) IsVolumeClaimTemplateDefined() bool {
 	return !reflect.ValueOf(m.Spec.VolumeClaimTemplate).IsZero()
+}
+
+// IsServiceAccountNameDefined indicates whether the MariaDB instance has a ServiceAccountName defined
+func (m *MariaDB) IsServiceAccountNameDefined() bool {
+	return m.Spec.ServiceAccountName != nil && *m.Spec.ServiceAccountName != ""
 }
 
 // IsReady indicates whether the MariaDB instance is ready

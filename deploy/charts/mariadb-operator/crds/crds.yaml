@@ -11047,6 +11047,10 @@ spec:
                     - LoadBalancer
                     type: string
                 type: object
+              serviceAccountName:
+                description: ServiceAccountName is the name of the ServiceAccount
+                  to be used by the Pods.
+                type: string
               sidecarContainers:
                 description: SidecarContainers to be used in the Pod.
                 items:
