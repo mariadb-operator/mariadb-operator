@@ -197,6 +197,7 @@ var _ = BeforeSuite(func() {
 		Builder:        builder,
 		ConditionReady: conditionReady,
 		Environment:    env,
+		RefResolver:    refResolver,
 
 		SecretReconciler:      secretReconciler,
 		StatefulSetReconciler: statefulSetReconciler,

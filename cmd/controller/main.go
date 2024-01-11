@@ -247,9 +247,10 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controller.MaxScaleReconciler{
-			Client:   client,
-			Scheme:   scheme,
-			Recorder: mgr.GetEventRecorderFor("maxscale"),
+			Client:      client,
+			Scheme:      scheme,
+			Recorder:    mgr.GetEventRecorderFor("maxscale"),
+			RefResolver: refResolver,
 
 			Builder:        builder,
 			ConditionReady: conditionReady,

@@ -244,6 +244,7 @@ var rootCmd = &cobra.Command{
 			Builder:        builder,
 			ConditionReady: conditionReady,
 			Environment:    env,
+			RefResolver:    refResolver,
 
 			SecretReconciler:      secretReconciler,
 			StatefulSetReconciler: statefulSetReconciler,
