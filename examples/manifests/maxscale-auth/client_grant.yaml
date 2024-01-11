@@ -1,0 +1,18 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Grant
+metadata:
+  name: maxscale-client
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  privileges:
+    - "SELECT"
+    - "INSERT"
+    - "UPDATE"
+    - "DELETE"
+  database: "*"
+  table: "*"
+  username: maxscale-client
+  grantOption: false
+  host: "%" 
+  retryInterval: 5s
