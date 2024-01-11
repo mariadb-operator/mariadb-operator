@@ -286,7 +286,7 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
 
-	err = client.User.Get(ctx, mariadbv1alpha1.MariadbOperatorUsername)
+	err = client.User.Get(ctx, maxscale.Spec.Admin.Username)
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
@@ -298,10 +298,10 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting admin password: %v", err)
 	}
-	if err := client.User.CreateAdmin(ctx, mariadbv1alpha1.MariadbOperatorUsername, password); err != nil {
+	if err := client.User.CreateAdmin(ctx, maxscale.Spec.Admin.Username, password); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating admin user: %v", err)
 	}
-	if err := client.User.Delete(ctx, mxsclient.DefaultAdminUser); err != nil {
+	if err := client.User.DeleteDefaultAdmin(ctx); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error deleting default admin: %v", err)
 	}
 	return ctrl.Result{}, nil

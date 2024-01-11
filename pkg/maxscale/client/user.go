@@ -42,7 +42,7 @@ func (u *User) CreateAdmin(ctx context.Context, username, password string) error
 }
 
 func (u *User) Get(ctx context.Context, username string) error {
-	res, err := u.client.Delete(ctx, userPath(username), nil, nil)
+	res, err := u.client.Get(ctx, userPath(username), nil)
 	if err != nil {
 		return fmt.Errorf("error getting user: %v", err)
 	}
@@ -55,6 +55,10 @@ func (u *User) Delete(ctx context.Context, username string) error {
 		return fmt.Errorf("error deleting user: %v", err)
 	}
 	return handleResponse(res, nil)
+}
+
+func (u *User) DeleteDefaultAdmin(ctx context.Context) error {
+	return u.Delete(ctx, defaultAdminUser)
 }
 
 func userPath(username string) string {
