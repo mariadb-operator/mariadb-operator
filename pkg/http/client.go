@@ -64,10 +64,7 @@ func NewClient(baseUrl string, opts ...Option) (*Client, error) {
 	for _, setOpt := range opts {
 		setOpt(client)
 	}
-	client.httpClient.Transport = &HeadersTransport{
-		RoundTripper: client.httpClient.Transport,
-		headers:      client.headers,
-	}
+	client.httpClient.Transport = NewHeadersTransport(client.httpClient.Transport, client.headers)
 	return client, nil
 }
 
@@ -109,8 +106,19 @@ func (c *Client) Delete(ctx context.Context, path string, body interface{}, quer
 }
 
 type HeadersTransport struct {
-	RoundTripper http.RoundTripper
+	roundTripper http.RoundTripper
 	headers      map[string]string
+}
+
+func NewHeadersTransport(rt http.RoundTripper, headers map[string]string) http.RoundTripper {
+	transport := &HeadersTransport{
+		roundTripper: rt,
+		headers:      headers,
+	}
+	if transport.roundTripper == nil {
+		transport.roundTripper = http.DefaultTransport
+	}
+	return transport
 }
 
 func (t *HeadersTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -121,5 +129,5 @@ func (t *HeadersTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", "application/json")
 	}
-	return t.RoundTripper.RoundTrip(req)
+	return t.roundTripper.RoundTrip(req)
 }

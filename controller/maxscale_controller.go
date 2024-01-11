@@ -294,7 +294,6 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 		return ctrl.Result{}, fmt.Errorf("error getting admin user: %v", err)
 	}
 
-	// TODO: init refresolver
 	password, err := r.RefResolver.SecretKeyRef(ctx, maxscale.AdminPasswordSecretKeyRef(), maxscale.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting admin password: %v", err)
