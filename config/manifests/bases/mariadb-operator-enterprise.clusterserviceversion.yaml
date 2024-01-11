@@ -1504,12 +1504,59 @@ spec:
         name: ""
         version: v1alpha1
       specDescriptors:
+      - description: Admin configures the admin REST API and GUI.
+        displayName: Admin
+        path: admin
+      - description: GuiEnabled indicates whether the admin GUI should be enabled.
+        displayName: Gui Enabled
+        path: admin.guiEnabled
+      - description: PasswordSecretKeyRef is Secret key reference to the admin password
+          to call the REST API. It is defaulted if not provided.
+        displayName: Password Secret Key Ref
+        path: admin.passwordSecretKeyRef
+      - description: Port where the admin REST API will be exposed.
+        displayName: Port
+        path: admin.port
+      - description: Username is an admin username to call the REST API. It is defaulted
+          if not provided.
+        displayName: Username
+        path: admin.username
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: affinity
       - description: Args to be used in the Container.
         displayName: Args
         path: args
+      - description: Auth defines the credentials required for MaxScale to connect
+          to MariaDB.
+        displayName: Auth
+        path: auth
+      - description: ClientPasswordSecretKeyRef is Secret key reference to the password
+          to connect to MaxScale. It is defaulted if not provided.
+        displayName: Client Password Secret Key Ref
+        path: auth.clientPasswordSecretKeyRef
+      - description: ClientUsername is the user to connect to MaxScale. It is defaulted
+          if not provided.
+        displayName: Client Username
+        path: auth.clientUsername
+      - description: MonitorPasswordSecretKeyRef is Secret key reference to the password
+          used by MaxScale monitor to connect to MariaDB server. It is only required
+          if the monitor is enabled and defaulted if not provided
+        displayName: Monitor Password Secret Key Ref
+        path: auth.monitorPasswordSecretKeyRef
+      - description: MonitorUsername is the user used by MaxScale monitor to connect
+          to MariaDB server. It is only required if the monitor is enabled and defaulted
+          if not provided
+        displayName: Monitor Username
+        path: auth.monitorUsername
+      - description: ServerPasswordSecretKeyRef is Secret key reference to the password
+          used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+        displayName: Server Password Secret Key Ref
+        path: auth.serverPasswordSecretKeyRef
+      - description: ServerUsername is the user used by MaxScale to connect to MariaDB
+          server. It is defaulted if not provided.
+        displayName: Server Username
+        path: auth.serverUsername
       - description: Command to be used in the Container.
         displayName: Command
         path: command
