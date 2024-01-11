@@ -218,7 +218,16 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		}
 		replPassword = password
 	} else {
-		password, err := r.secretReconciler.ReconcileRandomPassword(ctx, replPasswordRef.NamespacedName, replPasswordRef.secretKey, mariadb)
+		req := &secret.RandomPasswordRequest{
+			Owner:   mariadb,
+			Mariadb: mariadb,
+			Key: types.NamespacedName{
+				Name:      replPasswordRef.Name,
+				Namespace: mariadb.Namespace,
+			},
+			SecretKey: replPasswordRef.secretKey,
+		}
+		password, err := r.secretReconciler.ReconcileRandomPassword(ctx, req)
 		if err != nil {
 			return fmt.Errorf("error reconciling replication passsword: %v", err)
 		}

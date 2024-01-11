@@ -26,11 +26,18 @@ func NewSecretReconciler(client client.Client, builder *builder.Builder) *Secret
 	}
 }
 
-func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, key types.NamespacedName, secretKey string,
-	mariadb *mariadbv1alpha1.MariaDB) (string, error) {
+type RandomPasswordRequest struct {
+	Owner     metav1.Object
+	Mariadb   *mariadbv1alpha1.MariaDB
+	Key       types.NamespacedName
+	SecretKey string
+	Data      map[string][]byte
+}
+
+func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, req *RandomPasswordRequest) (string, error) {
 	var existingSecret corev1.Secret
-	if err := r.Get(ctx, key, &existingSecret); err == nil {
-		return string(existingSecret.Data[secretKey]), nil
+	if err := r.Get(ctx, req.Key, &existingSecret); err == nil {
+		return string(existingSecret.Data[req.SecretKey]), nil
 	}
 	password, err := password.Generate(16, 4, 2, false, false)
 	if err != nil {
@@ -38,13 +45,13 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, key type
 	}
 
 	opts := builder.SecretOpts{
-		MariaDB: mariadb,
-		Key:     key,
+		MariaDB: req.Mariadb,
+		Key:     req.Key,
 		Data: map[string][]byte{
-			secretKey: []byte(password),
+			req.SecretKey: []byte(password),
 		},
 	}
-	secret, err := r.Builder.BuildSecret(opts, mariadb)
+	secret, err := r.Builder.BuildSecret(opts, req.Owner)
 	if err != nil {
 		return "", fmt.Errorf("error building replication password Secret: %v", err)
 	}
@@ -55,13 +62,13 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, key type
 	return password, nil
 }
 
-type ReconcileRequest struct {
+type SecretRequest struct {
 	Owner metav1.Object
 	Key   types.NamespacedName
 	Data  map[string][]byte
 }
 
-func (r *SecretReconciler) Reconcile(ctx context.Context, req *ReconcileRequest) error {
+func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) error {
 	var existingSecret corev1.Secret
 	err := r.Get(ctx, req.Key, &existingSecret)
 	if err == nil {

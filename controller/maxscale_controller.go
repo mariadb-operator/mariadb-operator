@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -86,6 +87,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			name:      "Service",
 			reconcile: r.reconcileService,
 		},
+		{
+			name:      "Admin",
+			reconcile: r.reconcileAdmin,
+		},
 	}
 
 	for _, p := range phases {
@@ -127,23 +132,38 @@ func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, maxscale *mari
 }
 func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
 	secretKeyRef := mxs.ConfigSecretKeyRef()
-	key := types.NamespacedName{
-		Name:      secretKeyRef.Name,
-		Namespace: mxs.Namespace,
-	}
 	config, err := maxscale.Config(mxs)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale config: %v", err)
 	}
 
-	req := secret.ReconcileRequest{
+	secretReq := secret.SecretRequest{
 		Owner: mxs,
-		Key:   key,
+		Key: types.NamespacedName{
+			Name:      secretKeyRef.Name,
+			Namespace: mxs.Namespace,
+		},
 		Data: map[string][]byte{
 			secretKeyRef.Key: config,
 		},
 	}
-	return ctrl.Result{}, r.SecretReconciler.Reconcile(ctx, &req)
+	if err := r.SecretReconciler.Reconcile(ctx, &secretReq); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling config Secret: %v", err)
+	}
+
+	secretKeyRef = mxs.AdminPasswordSecretKeyRef()
+	randomSecretReq := &secret.RandomPasswordRequest{
+		Owner: mxs,
+		Key: types.NamespacedName{
+			Name:      secretKeyRef.Name,
+			Namespace: mxs.Namespace,
+		},
+		SecretKey: secretKeyRef.Key,
+	}
+	if _, err := r.SecretReconciler.ReconcileRandomPassword(ctx, randomSecretReq); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling admin password: %v", err)
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) reconcileStatefulSet(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
@@ -153,6 +173,52 @@ func (r *MaxScaleReconciler) reconcileStatefulSet(ctx context.Context, maxscale 
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
 	return ctrl.Result{}, r.StatefulSetReconciler.Reconcile(ctx, desiredSts)
+}
+
+func (r *MaxScaleReconciler) reconcilePodDisruptionBudget(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if maxscale.Spec.PodDisruptionBudget != nil {
+		return ctrl.Result{}, r.reconcilePDBWithAvailability(
+			ctx,
+			maxscale,
+			maxscale.Spec.PodDisruptionBudget.MinAvailable,
+			maxscale.Spec.PodDisruptionBudget.MaxUnavailable,
+		)
+	}
+	if maxscale.Spec.Replicas > 1 {
+		minAvailable := intstr.FromString("50%")
+		return ctrl.Result{}, r.reconcilePDBWithAvailability(
+			ctx,
+			maxscale,
+			&minAvailable,
+			nil,
+		)
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcilePDBWithAvailability(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
+	minAvailable, maxUnavailable *intstr.IntOrString) error {
+	key := client.ObjectKeyFromObject(maxscale)
+	var existingPDB policyv1.PodDisruptionBudget
+	if err := r.Get(ctx, key, &existingPDB); err == nil {
+		return nil
+	}
+
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMaxScaleSelectorLabels(maxscale).
+			Build()
+	opts := builder.PodDisruptionBudgetOpts{
+		Key:            key,
+		MinAvailable:   minAvailable,
+		MaxUnavailable: maxUnavailable,
+		SelectorLabels: selectorLabels,
+	}
+	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, maxscale)
+	if err != nil {
+		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
+	}
+	return r.Create(ctx, pdb)
 }
 
 func (r *MaxScaleReconciler) reconcileService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
@@ -207,50 +273,12 @@ func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, max
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
-func (r *MaxScaleReconciler) reconcilePodDisruptionBudget(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
-	if maxscale.Spec.PodDisruptionBudget != nil {
-		return ctrl.Result{}, r.reconcilePDBWithAvailability(
-			ctx,
-			maxscale,
-			maxscale.Spec.PodDisruptionBudget.MinAvailable,
-			maxscale.Spec.PodDisruptionBudget.MaxUnavailable,
-		)
+func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if !maxscale.IsReady() {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
-	if maxscale.Spec.Replicas > 1 {
-		minAvailable := intstr.FromString("50%")
-		return ctrl.Result{}, r.reconcilePDBWithAvailability(
-			ctx,
-			maxscale,
-			&minAvailable,
-			nil,
-		)
-	}
+
 	return ctrl.Result{}, nil
-}
-
-func (r *MaxScaleReconciler) reconcilePDBWithAvailability(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
-	minAvailable, maxUnavailable *intstr.IntOrString) error {
-	key := client.ObjectKeyFromObject(maxscale)
-	var existingPDB policyv1.PodDisruptionBudget
-	if err := r.Get(ctx, key, &existingPDB); err == nil {
-		return nil
-	}
-
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMaxScaleSelectorLabels(maxscale).
-			Build()
-	opts := builder.PodDisruptionBudgetOpts{
-		Key:            key,
-		MinAvailable:   minAvailable,
-		MaxUnavailable: maxUnavailable,
-		SelectorLabels: selectorLabels,
-	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, maxscale)
-	if err != nil {
-		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
-	}
-	return r.Create(ctx, pdb)
 }
 
 func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {
