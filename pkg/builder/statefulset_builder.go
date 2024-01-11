@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -157,12 +158,13 @@ func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Per
 }
 
 func buildStsServiceAccountName(mariadb *mariadbv1alpha1.MariaDB) (autoMount *bool, serviceAccount string) {
-	if mariadb.Galera().Enabled {
-		mount := false
-		autoMount = &mount
-		serviceAccount = mariadb.Name
+	if mariadb.Spec.ServiceAccountName != nil {
+		if mariadb.Spec.Galera.Enabled {
+			return ptr.To(false), *mariadb.Spec.ServiceAccountName
+		}
+		return ptr.To(true), *mariadb.Spec.ServiceAccountName
 	}
-	return
+	return ptr.To(true), mariadb.Name
 }
 
 func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {

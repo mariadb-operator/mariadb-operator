@@ -26,15 +26,17 @@ func NewRBACReconiler(client client.Client, builder *builder.Builder) *RBACRecon
 }
 
 func (r *RBACReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !mariadb.Galera().Enabled {
-		return nil
-	}
 	key := client.ObjectKeyFromObject(mariadb)
+	if mariadb.IsServiceAccountNameDefined() {
+		key.Name = *mariadb.Spec.ServiceAccountName
+	}
 	sa, err := r.reconcileServiceAccount(ctx, key, mariadb)
 	if err != nil {
 		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
-
+	if !mariadb.Galera().Enabled {
+		return nil
+	}
 	role, err := r.reconcileRole(ctx, key, mariadb)
 	if err != nil {
 		return fmt.Errorf("error reconciling Role: %v", err)
