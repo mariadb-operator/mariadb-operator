@@ -296,7 +296,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-01-10T16:17:51Z"
+    createdAt: "2024-01-11T09:15:45Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -1454,12 +1454,48 @@ spec:
             name: ""
             version: v1alpha1
         specDescriptors:
+          - description: Admin configures the admin REST API and GUI.
+            displayName: Admin
+            path: admin
+          - description: GuiEnabled indicates whether the admin GUI should be enabled.
+            displayName: Gui Enabled
+            path: admin.guiEnabled
+          - description: PasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided.
+            displayName: Password Secret Key Ref
+            path: admin.passwordSecretKeyRef
+          - description: Port where the admin REST API will be exposed.
+            displayName: Port
+            path: admin.port
+          - description: Username is an admin username to call the REST API. It is defaulted if not provided.
+            displayName: Username
+            path: admin.username
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: affinity
           - description: Args to be used in the Container.
             displayName: Args
             path: args
+          - description: Auth defines the credentials required for MaxScale to connect to MariaDB.
+            displayName: Auth
+            path: auth
+          - description: ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
+            displayName: Client Password Secret Key Ref
+            path: auth.clientPasswordSecretKeyRef
+          - description: ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
+            displayName: Client Username
+            path: auth.clientUsername
+          - description: MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is only required if the monitor is enabled and defaulted if not provided
+            displayName: Monitor Password Secret Key Ref
+            path: auth.monitorPasswordSecretKeyRef
+          - description: MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is only required if the monitor is enabled and defaulted if not provided
+            displayName: Monitor Username
+            path: auth.monitorUsername
+          - description: ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+            displayName: Server Password Secret Key Ref
+            path: auth.serverPasswordSecretKeyRef
+          - description: ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+            displayName: Server Username
+            path: auth.serverUsername
           - description: Command to be used in the Container.
             displayName: Command
             path: command
@@ -2450,14 +2486,14 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
-      name: mariadb
     - image: mariadb/maxscale@sha256:5c658141992f1b83580759137bbe1b881ebe73e07c85819e46a8a14f332ff690
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
       name: exporter
     - image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
       name: mariadb-operator-enterprise
+    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
+      name: mariadb
   version: 0.0.24
   webhookdefinitions:
     - admissionReviewVersions:
