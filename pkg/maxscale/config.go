@@ -41,7 +41,7 @@ admin_secure_gui={{ .AdminSecureGui }}
 	err := tpl.Execute(buf, tplOpts{
 		Threads:               configValueOrDefault("threads", maxscale.Spec.Config.Params, "auto"),
 		LoadPersistentConfigs: true,
-		AdminHost:             configValueOrDefault("threads", maxscale.Spec.Config.Params, "0.0.0.0"),
+		AdminHost:             configValueOrDefault("admin_host", maxscale.Spec.Config.Params, "0.0.0.0"),
 		AdminPort:             maxscale.Spec.Admin.Port,
 		AdminGui:              *maxscale.Spec.Admin.GuiEnabled,
 		AdminSecureGui:        false,
