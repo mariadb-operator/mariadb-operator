@@ -14,8 +14,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var MariadbOperatorUsername = "mariadb-operator"
-
 // MaxScaleAdmin configures the admin REST API and GUI.
 type MaxScaleAdmin struct {
 	// Port where the admin REST API will be exposed.
@@ -41,7 +39,7 @@ func (m *MaxScaleAdmin) SetDefaults(mxs *MaxScale) {
 		m.Port = 8989
 	}
 	if m.Username == "" {
-		m.Username = MariadbOperatorUsername
+		m.Username = "mariadb-operator"
 	}
 	if m.PasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.PasswordSecretKeyRef = mxs.AdminPasswordSecretKeyRef()
