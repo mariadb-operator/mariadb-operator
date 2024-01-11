@@ -1,9 +1,11 @@
 package v1alpha1
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -11,6 +13,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
+
+var MariadbOperatorUsername = "mariadb-operator"
 
 // MaxScaleAdmin configures the admin REST API and GUI.
 type MaxScaleAdmin struct {
@@ -37,7 +41,7 @@ func (m *MaxScaleAdmin) SetDefaults(mxs *MaxScale) {
 		m.Port = 8989
 	}
 	if m.Username == "" {
-		m.Username = "mariadb-operator"
+		m.Username = MariadbOperatorUsername
 	}
 	if m.PasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.PasswordSecretKeyRef = mxs.AdminPasswordSecretKeyRef()
@@ -233,6 +237,22 @@ func (m *MaxScale) SetDefaults(env *environment.Environment) {
 // IsReady indicates whether the Maxscale instance is ready
 func (m *MaxScale) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+}
+
+// APIUrl returns the URL of the admin API pointing to the Kubernetes Service
+func (m *MaxScale) APIUrl() string {
+	fqdn := statefulset.ServiceFQDNWithService(m.ObjectMeta, m.Name)
+	return m.apiUrlWithAddress(fqdn)
+}
+
+// PodAPIUrl returns the URL of the admin API pointing to a Pod
+func (m *MaxScale) PodAPIUrl(podIndex int) string {
+	fqdn := statefulset.PodFQDNWithService(m.ObjectMeta, podIndex, m.Name)
+	return m.apiUrlWithAddress(fqdn)
+}
+
+func (m *MaxScale) apiUrlWithAddress(addr string) string {
+	return fmt.Sprintf("http://%s:%d", addr, m.Spec.Admin.Port)
 }
 
 //+kubebuilder:object:root=true

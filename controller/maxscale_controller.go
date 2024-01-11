@@ -26,6 +26,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
+	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
+	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 )
 
 // MaxScaleReconciler reconciles a MaxScale object
@@ -37,6 +39,7 @@ type MaxScaleReconciler struct {
 	Builder        *builder.Builder
 	ConditionReady *condition.Ready
 	Environment    *environment.Environment
+	RefResolver    *refresolver.RefResolver
 
 	SecretReconciler      *secret.SecretReconciler
 	StatefulSetReconciler *statefulset.StatefulSetReconciler
@@ -278,6 +281,30 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
+	client, err := mxsclient.NewClientWithDefaultCredentials(maxscale.PodAPIUrl(0))
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
+	}
+
+	err = client.User.Get(ctx, mariadbv1alpha1.MariadbOperatorUsername)
+	if err == nil {
+		return ctrl.Result{}, nil
+	}
+	if !mxsclient.IsNotFound(err) {
+		return ctrl.Result{}, fmt.Errorf("error getting admin user: %v", err)
+	}
+
+	// TODO: init refresolver
+	password, err := r.RefResolver.SecretKeyRef(ctx, maxscale.AdminPasswordSecretKeyRef(), maxscale.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting admin password: %v", err)
+	}
+	if err := client.User.CreateAdmin(ctx, mariadbv1alpha1.MariadbOperatorUsername, password); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating admin user: %v", err)
+	}
+	if err := client.User.Delete(ctx, mxsclient.DefaultAdminUser); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error deleting default admin: %v", err)
+	}
 	return ctrl.Result{}, nil
 }
 

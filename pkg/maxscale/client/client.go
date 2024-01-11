@@ -8,6 +8,8 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
+var DefaultAdminUser = "admin"
+
 type Client struct {
 	User *User
 }
@@ -25,7 +27,7 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 }
 
 func NewClientWithDefaultCredentials(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
-	opts = append(opts, mdbhttp.WithAdminCredentials("admin", "mariadb"))
+	opts = append(opts, mdbhttp.WithAdminCredentials(DefaultAdminUser, "mariadb"))
 	return NewClient(baseUrl, opts...)
 }
 
