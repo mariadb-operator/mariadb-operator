@@ -230,6 +230,11 @@ func (m *MaxScale) SetDefaults(env *environment.Environment) {
 	m.Spec.Auth.SetDefaults(m)
 }
 
+// IsReady indicates whether the Maxscale instance is ready
+func (m *MaxScale) IsReady() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+}
+
 //+kubebuilder:object:root=true
 
 // MaxScaleList contains a list of MaxScale

@@ -11,6 +11,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,11 +73,16 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 
 func (r *MariaDBReconciler) reconcileMetricsPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	secretKeyRef := mariadb.Spec.Metrics.PasswordSecretKeyRef
-	key := types.NamespacedName{
-		Name:      secretKeyRef.Name,
-		Namespace: mariadb.Namespace,
+	req := &secret.RandomPasswordRequest{
+		Owner:   mariadb,
+		Mariadb: mariadb,
+		Key: types.NamespacedName{
+			Name:      secretKeyRef.Name,
+			Namespace: mariadb.Namespace,
+		},
+		SecretKey: secretKeyRef.Key,
 	}
-	_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, key, secretKeyRef.Key, mariadb)
+	_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, req)
 	return err
 }
 

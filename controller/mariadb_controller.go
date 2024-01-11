@@ -191,11 +191,16 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if !mariadb.IsRootPasswordEmpty() {
 		secretKeyRef := mariadb.Spec.RootPasswordSecretKeyRef
-		key := types.NamespacedName{
-			Name:      secretKeyRef.Name,
-			Namespace: mariadb.Namespace,
+		req := &secret.RandomPasswordRequest{
+			Owner:   mariadb,
+			Mariadb: mariadb,
+			Key: types.NamespacedName{
+				Name:      secretKeyRef.Name,
+				Namespace: mariadb.Namespace,
+			},
+			SecretKey: secretKeyRef.Key,
 		}
-		_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, key, secretKeyRef.Key, mariadb)
+		_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, req)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -203,11 +208,16 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 
 	if mariadb.IsInitialDataEnabled() && mariadb.Spec.PasswordSecretKeyRef != nil {
 		secretKeyRef := *mariadb.Spec.PasswordSecretKeyRef
-		key := types.NamespacedName{
-			Name:      secretKeyRef.Name,
-			Namespace: mariadb.Namespace,
+		req := &secret.RandomPasswordRequest{
+			Owner:   mariadb,
+			Mariadb: mariadb,
+			Key: types.NamespacedName{
+				Name:      secretKeyRef.Name,
+				Namespace: mariadb.Namespace,
+			},
+			SecretKey: secretKeyRef.Key,
 		}
-		_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, key, secretKeyRef.Key, mariadb)
+		_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, req)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
