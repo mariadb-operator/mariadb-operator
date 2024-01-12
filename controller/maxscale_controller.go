@@ -373,11 +373,14 @@ func (r *MaxScaleReconciler) initServers(ctx context.Context, mxs *mariadbv1alph
 }
 
 func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
+	if _, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Module); err == nil {
+		return nil
+	}
+
 	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.AuthMonitorPasswordSecretKeyRef(), mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting monitor password: %v", err)
 	}
-
 	params := mxsclient.MonitorParameters{
 		User:            mxs.Spec.Auth.MonitorUsername,
 		Password:        password,
