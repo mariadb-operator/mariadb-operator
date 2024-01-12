@@ -10,8 +10,9 @@ spec:
     port: 8989
     username: mariadb-operator
     passwordSecretKeyRef:
-      name: maxscale-api
+      name: maxscale-admin
       key: password
+    deleteDefaultAdmin: true
     guiEnabled: true
 
   config:

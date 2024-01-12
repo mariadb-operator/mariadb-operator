@@ -298,7 +298,7 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	// TODO: all Pods in order to support HA
 	defaultClient, err := mxsclient.NewClientWithDefaultCredentials(
 		maxscale.PodAPIUrl(0),
-		mdbhttp.WithTimeout(5*time.Second),
+		mdbhttp.WithTimeout(10*time.Second),
 	)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
@@ -310,8 +310,10 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	if err := defaultClient.User.CreateAdmin(ctx, maxscale.Spec.Admin.Username, password); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating admin user: %v", err)
 	}
-	if err := defaultClient.User.DeleteDefaultAdmin(ctx); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error deleting default admin: %v", err)
+	if maxscale.Spec.Admin.ShouldDeleteDefaultAdmin() {
+		if err := defaultClient.User.DeleteDefaultAdmin(ctx); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error deleting default admin: %v", err)
+		}
 	}
 
 	return ctrl.Result{}, nil
