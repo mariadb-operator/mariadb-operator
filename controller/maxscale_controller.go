@@ -95,6 +95,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			name:      "Admin",
 			reconcile: r.reconcileAdmin,
 		},
+		{
+			name:      "Init",
+			reconcile: r.reconcileInit,
+		},
 	}
 
 	for _, p := range phases {
@@ -315,8 +319,48 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 			return ctrl.Result{}, fmt.Errorf("error deleting default admin: %v", err)
 		}
 	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if !maxscale.IsReady() {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	// TODO: all Pods in order to support HA
+	client, err := r.clientWithPodIndex(ctx, maxscale, 0)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
+	}
+
+	if err := r.initServers(ctx, maxscale, client); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error initializing servers: %v", err)
+	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) initServers(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
+	servers, err := client.Server.List(ctx)
+	if err != nil {
+		return fmt.Errorf("error listing servers: %v", err)
+	}
+	// TODO: handle upgrade
+	if len(servers) > 0 {
+		return nil
+	}
+
+	for _, srv := range mxs.Spec.Servers {
+		params := mxsclient.ServerParameters{
+			Address:  srv.Address,
+			Port:     srv.Port,
+			Protocol: srv.Protocol,
+		}
+		if err := client.Server.Create(ctx, srv.Name, params); err != nil {
+			return fmt.Errorf("error creating server: %v", err)
+		}
+	}
+	return nil
 }
 
 // func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
