@@ -93,9 +93,17 @@ func NewError(httpCode int, message string) error {
 	}
 }
 
+func IsUnautorized(err error) bool {
+	return HasStatusCode(err, http.StatusUnauthorized)
+}
+
 func IsNotFound(err error) bool {
+	return HasStatusCode(err, http.StatusNotFound)
+}
+
+func HasStatusCode(err error, statusCode int) bool {
 	if clientErr, ok := err.(*Error); ok {
-		return clientErr.HTTPCode == http.StatusNotFound
+		return clientErr.HTTPCode == statusCode
 	}
 	return false
 }
