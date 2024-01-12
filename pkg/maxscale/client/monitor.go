@@ -37,7 +37,8 @@ func (m *MonitorClient) Get(ctx context.Context, module mariadbv1alpha1.MonitorM
 	return &object.Data, nil
 }
 
-func (m *MonitorClient) Create(ctx context.Context, module mariadbv1alpha1.MonitorModule, params MonitorParameters) error {
+func (m *MonitorClient) Create(ctx context.Context, module mariadbv1alpha1.MonitorModule, params MonitorParameters,
+	relationships Relationships) error {
 	object := &Object[MonitorAttributes]{
 		Data: Data[MonitorAttributes]{
 			ID:   string(module),
@@ -46,6 +47,7 @@ func (m *MonitorClient) Create(ctx context.Context, module mariadbv1alpha1.Monit
 				Module:     module,
 				Parameters: params,
 			},
+			Relationships: &relationships,
 		},
 	}
 	res, err := m.client.Post(ctx, "monitors", object, nil)

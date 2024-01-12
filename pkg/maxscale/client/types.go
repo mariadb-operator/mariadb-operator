@@ -19,25 +19,42 @@ const (
 	ObjectTypeListeners ObjectType = "listeners"
 )
 
-type Relationships struct {
-	Data []struct {
-		ID   string     `json:"id"`
-		Type ObjectType `json:"type"`
-	} `json:"data"`
+type RelationshipItem struct {
+	ID   string     `json:"id"`
+	Type ObjectType `json:"type"`
 }
 
-type RelationshipsByType struct {
-	Servers   *Relationships `json:"servers,omitempty"`
-	Monitors  *Relationships `json:"monitors,omitempty"`
-	Services  *Relationships `json:"services,omitempty"`
-	Listeners *Relationships `json:"listeners,omitempty"`
+type RelationshipData struct {
+	Data []RelationshipItem `json:"data"`
+}
+
+type Relationships struct {
+	Servers   RelationshipData `json:"servers,omitempty"`
+	Monitors  RelationshipData `json:"monitors,omitempty"`
+	Services  RelationshipData `json:"services,omitempty"`
+	Listeners RelationshipData `json:"listeners,omitempty"`
+}
+
+func ServerRelationships(servers ...string) Relationships {
+	items := make([]RelationshipItem, len(servers))
+	for i, srv := range servers {
+		items[i] = RelationshipItem{
+			ID:   srv,
+			Type: ObjectTypeServers,
+		}
+	}
+	return Relationships{
+		Servers: RelationshipData{
+			Data: items,
+		},
+	}
 }
 
 type Data[T any] struct {
-	ID            string               `json:"id"`
-	Type          ObjectType           `json:"type"`
-	Attributes    T                    `json:"attributes"`
-	Relationships *RelationshipsByType `json:"relationships,omitempty"`
+	ID            string         `json:"id"`
+	Type          ObjectType     `json:"type"`
+	Attributes    T              `json:"attributes"`
+	Relationships *Relationships `json:"relationships,omitempty"`
 }
 
 type Object[T any] struct {
