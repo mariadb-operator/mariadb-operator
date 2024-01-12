@@ -30,7 +30,7 @@ func WithTimeout(timeout time.Duration) Option {
 	}
 }
 
-func WithAdminCredentials(username, password string) Option {
+func WithBasicAuth(username, password string) Option {
 	return func(c *Client) {
 		raw := fmt.Sprintf("%s:%s", username, password)
 		encoded := b64.StdEncoding.EncodeToString([]byte(raw))
