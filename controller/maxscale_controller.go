@@ -25,6 +25,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -281,30 +282,61 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	client, err := mxsclient.NewClientWithDefaultCredentials(maxscale.PodAPIUrl(0))
+	// TODO: all Pods in order to support HA
+	client, err := r.clientWithPodIndex(ctx, maxscale, 0)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
-
 	err = client.User.Get(ctx, maxscale.Spec.Admin.Username)
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
-	if !mxsclient.IsNotFound(err) {
+	if !mxsclient.IsUnautorized(err) && !mxsclient.IsNotFound(err) {
 		return ctrl.Result{}, fmt.Errorf("error getting admin user: %v", err)
 	}
 
+	// TODO: all Pods in order to support HA
+	defaultClient, err := mxsclient.NewClientWithDefaultCredentials(
+		maxscale.PodAPIUrl(0),
+		mdbhttp.WithTimeout(5*time.Second),
+	)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
+	}
 	password, err := r.RefResolver.SecretKeyRef(ctx, maxscale.AdminPasswordSecretKeyRef(), maxscale.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting admin password: %v", err)
 	}
-	if err := client.User.CreateAdmin(ctx, maxscale.Spec.Admin.Username, password); err != nil {
+	if err := defaultClient.User.CreateAdmin(ctx, maxscale.Spec.Admin.Username, password); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating admin user: %v", err)
 	}
-	if err := client.User.DeleteDefaultAdmin(ctx); err != nil {
+	if err := defaultClient.User.DeleteDefaultAdmin(ctx); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error deleting default admin: %v", err)
 	}
+
 	return ctrl.Result{}, nil
+}
+
+// func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
+// 	return r.clientWithAPIUrl(ctx, mxs, mxs.APIUrl())
+// }
+
+func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	podIndex int) (*mxsclient.Client, error) {
+	return r.clientWithAPIUrl(ctx, mxs, mxs.PodAPIUrl(podIndex))
+}
+
+func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	apiUrl string) (*mxsclient.Client, error) {
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.AdminPasswordSecretKeyRef(), mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting admin password: %v", err)
+	}
+	return mxsclient.NewClient(
+		apiUrl,
+		mdbhttp.WithTimeout(10*time.Second),
+		mdbhttp.WithBasicAuth(mxs.Spec.Admin.Username, password),
+	)
 }
 
 func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {

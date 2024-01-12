@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var defaultTimeout = 10 * time.Second
+
 type Option func(*Client)
 
 func WithHTTPClient(httpClient *http.Client) Option {
@@ -24,7 +26,7 @@ func WithHTTPClient(httpClient *http.Client) Option {
 func WithTimeout(timeout time.Duration) Option {
 	return func(c *Client) {
 		if timeout == 0 {
-			timeout = 10 * time.Second
+			timeout = defaultTimeout
 		}
 		c.httpClient.Timeout = timeout
 	}
@@ -57,9 +59,11 @@ func NewClient(baseUrl string, opts ...Option) (*Client, error) {
 		return nil, fmt.Errorf("error parsing base URL: %v", err)
 	}
 	client := &Client{
-		baseUrl:    url,
-		httpClient: http.DefaultClient,
-		headers:    make(map[string]string, 0),
+		baseUrl: url,
+		httpClient: &http.Client{
+			Timeout: defaultTimeout,
+		},
+		headers: make(map[string]string, 0),
 	}
 	for _, setOpt := range opts {
 		setOpt(client)
