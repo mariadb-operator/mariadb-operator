@@ -11,8 +11,8 @@ import (
 var defaultAdminUser = "admin"
 
 type Client struct {
-	User   *User
-	Server *Server
+	User   *UserClient
+	Server *ServerClient
 }
 
 func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
@@ -21,10 +21,10 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 		return nil, fmt.Errorf("error creating HTTP client: %v", err)
 	}
 	return &Client{
-		User: &User{
+		User: &UserClient{
 			client: httpClient,
 		},
-		Server: &Server{
+		Server: &ServerClient{
 			client: httpClient,
 		},
 	}, nil

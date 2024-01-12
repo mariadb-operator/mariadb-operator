@@ -33,15 +33,19 @@ type RelationshipsByType struct {
 	Listeners *Relationships `json:"listeners,omitempty"`
 }
 
-type PayloadData[T any] struct {
-	ID            string         `json:"id"`
-	Type          ObjectType     `json:"type"`
-	Attributes    T              `json:"attributes"`
-	Relationships *Relationships `json:"relationships,omitempty"`
+type Data[T any] struct {
+	ID            string               `json:"id"`
+	Type          ObjectType           `json:"type"`
+	Attributes    T                    `json:"attributes"`
+	Relationships *RelationshipsByType `json:"relationships,omitempty"`
 }
 
-type Payload[T any] struct {
-	Data PayloadData[T] `json:"data"`
+type Object[T any] struct {
+	Data Data[T] `json:"data"`
+}
+
+type List[T any] struct {
+	Data []Data[T] `json:"data"`
 }
 
 type APIErrorItem struct {

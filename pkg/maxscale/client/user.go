@@ -19,13 +19,13 @@ type UserAttributes struct {
 	Password *string     `json:"password,omitempty"`
 }
 
-type User struct {
+type UserClient struct {
 	client *mdbhttp.Client
 }
 
-func (u *User) CreateAdmin(ctx context.Context, username, password string) error {
-	payload := &Payload[UserAttributes]{
-		Data: PayloadData[UserAttributes]{
+func (u *UserClient) CreateAdmin(ctx context.Context, username, password string) error {
+	payload := &Object[UserAttributes]{
+		Data: Data[UserAttributes]{
 			ID:   username,
 			Type: ObjectTypeUsers,
 			Attributes: UserAttributes{
@@ -36,28 +36,28 @@ func (u *User) CreateAdmin(ctx context.Context, username, password string) error
 	}
 	res, err := u.client.Post(ctx, "users/inet", payload, nil)
 	if err != nil {
-		return fmt.Errorf("error creating admin user: %v", err)
+		return err
 	}
 	return handleResponse(res, nil)
 }
 
-func (u *User) Get(ctx context.Context, username string) error {
+func (u *UserClient) Get(ctx context.Context, username string) error {
 	res, err := u.client.Get(ctx, userPath(username), nil)
 	if err != nil {
-		return fmt.Errorf("error getting user: %v", err)
+		return err
 	}
 	return handleResponse(res, nil)
 }
 
-func (u *User) Delete(ctx context.Context, username string) error {
+func (u *UserClient) Delete(ctx context.Context, username string) error {
 	res, err := u.client.Delete(ctx, userPath(username), nil, nil)
 	if err != nil {
-		return fmt.Errorf("error deleting user: %v", err)
+		return err
 	}
 	return handleResponse(res, nil)
 }
 
-func (u *User) DeleteDefaultAdmin(ctx context.Context) error {
+func (u *UserClient) DeleteDefaultAdmin(ctx context.Context) error {
 	return u.Delete(ctx, defaultAdminUser)
 }
 
