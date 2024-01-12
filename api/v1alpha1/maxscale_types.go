@@ -343,21 +343,30 @@ func (m *MaxScale) SetDefaults(env *environment.Environment) {
 	m.Spec.Auth.SetDefaults(m)
 }
 
-// IsReady indicates whether the Maxscale instance is ready
+// IsReady indicates whether the Maxscale instance is ready.
 func (m *MaxScale) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
 }
 
-// APIUrl returns the URL of the admin API pointing to the Kubernetes Service
+// APIUrl returns the URL of the admin API pointing to the Kubernetes Service.
 func (m *MaxScale) APIUrl() string {
 	fqdn := statefulset.ServiceFQDNWithService(m.ObjectMeta, m.Name)
 	return m.apiUrlWithAddress(fqdn)
 }
 
-// PodAPIUrl returns the URL of the admin API pointing to a Pod
+// PodAPIUrl returns the URL of the admin API pointing to a Pod.
 func (m *MaxScale) PodAPIUrl(podIndex int) string {
 	fqdn := statefulset.PodFQDNWithService(m.ObjectMeta, podIndex, m.InternalServiceKey().Name)
 	return m.apiUrlWithAddress(fqdn)
+}
+
+// ServerIDs returns the IDs of the MariaDB servers.
+func (m *MaxScale) ServerIDs() []string {
+	ids := make([]string, len(m.Spec.Servers))
+	for i, srv := range m.Spec.Servers {
+		ids[i] = srv.Name
+	}
+	return ids
 }
 
 func (m *MaxScale) apiUrlWithAddress(addr string) string {

@@ -387,7 +387,8 @@ func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alph
 		MonitorInterval: mxs.Spec.Monitor.Interval,
 		ExtraParams:     mxs.Spec.Monitor.Params,
 	}
-	if err := client.Monitor.Create(ctx, mxs.Spec.Monitor.Module, params); err != nil {
+	relations := mxsclient.ServerRelationships(mxs.ServerIDs()...)
+	if err := client.Monitor.Create(ctx, mxs.Spec.Monitor.Module, params, relations); err != nil {
 		return fmt.Errorf("error creating monitor: %v", err)
 	}
 	return nil
