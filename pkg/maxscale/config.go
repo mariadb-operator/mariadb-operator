@@ -12,7 +12,7 @@ type tplOpts struct {
 	Threads               string
 	LoadPersistentConfigs bool
 	AdminHost             string
-	AdminPort             int
+	AdminPort             int32
 	AdminGui              bool
 	AdminSecureGui        bool
 	Params                map[string]string

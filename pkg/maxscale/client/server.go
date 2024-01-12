@@ -9,13 +9,13 @@ import (
 
 type ServerParameters struct {
 	Address  string `json:"address"`
-	Port     int    `json:"port"`
+	Port     int32  `json:"port"`
 	Protocol string `json:"protocol"`
 }
 
 type ServerAttributes struct {
-	Parameters ServerParameters `json:"parameters"`
 	State      string           `json:"state,omitempty"`
+	Parameters ServerParameters `json:"parameters"`
 }
 
 type ServerClient struct {

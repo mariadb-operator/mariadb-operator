@@ -159,18 +159,24 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, mxs *mariadbv1
 		return ctrl.Result{}, fmt.Errorf("error reconciling config Secret: %v", err)
 	}
 
-	secretKeyRef = mxs.AdminPasswordSecretKeyRef()
-	randomSecretReq := &secret.RandomPasswordRequest{
-		Owner: mxs,
-		Key: types.NamespacedName{
-			Name:      secretKeyRef.Name,
-			Namespace: mxs.Namespace,
-		},
-		SecretKey: secretKeyRef.Key,
+	randomPasswordKeys := []corev1.SecretKeySelector{
+		mxs.AdminPasswordSecretKeyRef(),
+		mxs.AuthMonitorPasswordSecretKeyRef(),
 	}
-	if _, err := r.SecretReconciler.ReconcileRandomPassword(ctx, randomSecretReq); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error reconciling admin password: %v", err)
+	for _, secretKeyRef := range randomPasswordKeys {
+		randomSecretReq := &secret.RandomPasswordRequest{
+			Owner: mxs,
+			Key: types.NamespacedName{
+				Name:      secretKeyRef.Name,
+				Namespace: mxs.Namespace,
+			},
+			SecretKey: secretKeyRef.Key,
+		}
+		if _, err := r.SecretReconciler.ReconcileRandomPassword(ctx, randomSecretReq); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling password: %v", err)
+		}
 	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -336,6 +342,9 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, maxscale *mariad
 	if err := r.initServers(ctx, maxscale, client); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error initializing servers: %v", err)
 	}
+	if err := r.initMonitor(ctx, maxscale, client); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error initializing monitor: %v", err)
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -359,6 +368,24 @@ func (r *MaxScaleReconciler) initServers(ctx context.Context, mxs *mariadbv1alph
 		if err := client.Server.Create(ctx, srv.Name, params); err != nil {
 			return fmt.Errorf("error creating server: %v", err)
 		}
+	}
+	return nil
+}
+
+func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.AuthMonitorPasswordSecretKeyRef(), mxs.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting monitor password: %v", err)
+	}
+
+	params := mxsclient.MonitorParameters{
+		User:            mxs.Spec.Auth.MonitorUsername,
+		Password:        password,
+		MonitorInterval: mxs.Spec.Monitor.Interval,
+		ExtraParams:     mxs.Spec.Monitor.Params,
+	}
+	if err := client.Monitor.Create(ctx, mxs.Spec.Monitor.Module, params); err != nil {
+		return fmt.Errorf("error creating monitor: %v", err)
 	}
 	return nil
 }

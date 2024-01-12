@@ -7,16 +7,9 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
-type UserAccount string
-
-const (
-	UserAccountAdmin UserAccount = "admin"
-	UserAccountBasic UserAccount = "basic"
-)
-
 type UserAttributes struct {
-	Account  UserAccount `json:"account"`
-	Password *string     `json:"password,omitempty"`
+	Account  string  `json:"account"`
+	Password *string `json:"password,omitempty"`
 }
 
 type UserClient struct {
@@ -29,7 +22,7 @@ func (u *UserClient) CreateAdmin(ctx context.Context, username, password string)
 			ID:   username,
 			Type: ObjectTypeUsers,
 			Attributes: UserAttributes{
-				Account:  UserAccountAdmin,
+				Account:  "admin",
 				Password: &password,
 			},
 		},
