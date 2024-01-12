@@ -1215,6 +1215,11 @@ func (in *MaxScale) DeepCopyObject() runtime.Object {
 func (in *MaxScaleAdmin) DeepCopyInto(out *MaxScaleAdmin) {
 	*out = *in
 	in.PasswordSecretKeyRef.DeepCopyInto(&out.PasswordSecretKeyRef)
+	if in.DeleteDefaultAdmin != nil {
+		in, out := &in.DeleteDefaultAdmin, &out.DeleteDefaultAdmin
+		*out = new(bool)
+		**out = **in
+	}
 	if in.GuiEnabled != nil {
 		in, out := &in.GuiEnabled, &out.GuiEnabled
 		*out = new(bool)

@@ -19,7 +19,7 @@ func (m *MaxScale) InternalServiceKey() types.NamespacedName {
 func (m *MaxScale) AdminPasswordSecretKeyRef() corev1.SecretKeySelector {
 	return corev1.SecretKeySelector{
 		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-admin-password", m.Name),
+			Name: fmt.Sprintf("%s-admin", m.Name),
 		},
 		Key: "password",
 	}

@@ -354,6 +354,7 @@ type MariaDB struct {
 	Status MariaDBStatus `json:"status,omitempty"`
 }
 
+// SetDefaults sets defaults values.
 func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMariadbImage

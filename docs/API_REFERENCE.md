@@ -594,6 +594,7 @@ _Appears in:_
 | `port` _integer_ | Port where the admin REST API will be exposed. |
 | `username` _string_ | Username is an admin username to call the REST API. It is defaulted if not provided. |
 | `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided. |
+| `deleteDefaultAdmin` _boolean_ | DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. It is defaulted to true if not provided. |
 | `guiEnabled` _boolean_ | GuiEnabled indicates whether the admin GUI should be enabled. |
 
 

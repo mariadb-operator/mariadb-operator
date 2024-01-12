@@ -28,12 +28,17 @@ type MaxScaleAdmin struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
+	// DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. It is defaulted to true if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	DeleteDefaultAdmin *bool `json:"deleteDefaultAdmin,omitempty"`
 	// GuiEnabled indicates whether the admin GUI should be enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GuiEnabled *bool `json:"guiEnabled,omitempty"`
 }
 
+// SetDefaults sets defaults values.
 func (m *MaxScaleAdmin) SetDefaults(mxs *MaxScale) {
 	if m.Port == 0 {
 		m.Port = 8989
@@ -44,9 +49,17 @@ func (m *MaxScaleAdmin) SetDefaults(mxs *MaxScale) {
 	if m.PasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.PasswordSecretKeyRef = mxs.AdminPasswordSecretKeyRef()
 	}
+	if m.DeleteDefaultAdmin == nil {
+		m.DeleteDefaultAdmin = ptr.To(true)
+	}
 	if m.GuiEnabled == nil {
 		m.GuiEnabled = ptr.To(true)
 	}
+}
+
+// SetDefaults indicates whether the default admin should be deleted after initial setup.
+func (m *MaxScaleAdmin) ShouldDeleteDefaultAdmin() bool {
+	return m.DeleteDefaultAdmin != nil && *m.DeleteDefaultAdmin
 }
 
 // MaxScaleConfig defines the MaxScale configuration.
@@ -106,6 +119,7 @@ type MaxScaleAuth struct {
 	MonitorPasswordSecretKeyRef corev1.SecretKeySelector `json:"monitorPasswordSecretKeyRef,omitempty"`
 }
 
+// SetDefaults sets defaults values.
 func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	if m.ClientUsername == "" {
 		m.ClientUsername = mxs.AuthClientUserKey().Name
@@ -223,6 +237,7 @@ type MaxScale struct {
 	Status MaxScaleStatus `json:"status,omitempty"`
 }
 
+// SetDefaults sets defaults values.
 func (m *MaxScale) SetDefaults(env *environment.Environment) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMaxscaleImage

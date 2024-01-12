@@ -53,6 +53,11 @@ spec:
               admin:
                 description: Admin configures the admin REST API and GUI.
                 properties:
+                  deleteDefaultAdmin:
+                    description: DeleteDefaultAdmin determines whether the default
+                      admin user should be deleted after the initial configuration.
+                      It is defaulted to true if not provided.
+                    type: boolean
                   guiEnabled:
                     description: GuiEnabled indicates whether the admin GUI should
                       be enabled.
