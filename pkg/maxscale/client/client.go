@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
@@ -41,11 +42,14 @@ func NewClientWithDefaultCredentials(baseUrl string, opts ...mdbhttp.Option) (*C
 
 func handleResponse(res *http.Response, v interface{}) error {
 	defer res.Body.Close()
-	decoder := json.NewDecoder(res.Body)
+	bytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("error reading body: %v", err)
+	}
 
 	if res.StatusCode >= 400 {
 		var apiErr APIError
-		if err := decoder.Decode(&apiErr); err != nil {
+		if err := json.Unmarshal(bytes, &apiErr); err != nil {
 			return fmt.Errorf("error decoding body into error: %v", err)
 		}
 		return NewError(res.StatusCode, apiErr.Error())
@@ -54,7 +58,7 @@ func handleResponse(res *http.Response, v interface{}) error {
 	if v == nil {
 		return nil
 	}
-	if err := decoder.Decode(&v); err != nil {
+	if err := json.Unmarshal(bytes, &v); err != nil {
 		return fmt.Errorf("error decoding body: %v", err)
 	}
 	return nil
