@@ -27,7 +27,7 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 }
 
 func NewClientWithDefaultCredentials(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
-	opts = append(opts, mdbhttp.WithAdminCredentials(defaultAdminUser, "mariadb"))
+	opts = append(opts, mdbhttp.WithBasicAuth(defaultAdminUser, "mariadb"))
 	return NewClient(baseUrl, opts...)
 }
 
