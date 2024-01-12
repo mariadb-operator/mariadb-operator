@@ -11,6 +11,10 @@ spec:
     - name: mariadb-2
       address: mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local
 
+  monitor:
+    module: mariadbmon
+    interval: 2s
+
   kubernetesService:
     type: LoadBalancer
     annotations:

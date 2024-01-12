@@ -14426,6 +14426,7 @@ spec:
                     x-kubernetes-map-type: atomic
                   port:
                     description: Port where the admin REST API will be exposed.
+                    format: int32
                     type: integer
                   username:
                     description: Username is an admin username to call the REST API.
@@ -15297,8 +15298,7 @@ spec:
                   monitorPasswordSecretKeyRef:
                     description: MonitorPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale monitor to connect to MariaDB
-                      server. It is only required if the monitor is enabled and defaulted
-                      if not provided
+                      server. It is defaulted if not provided.
                     properties:
                       key:
                         description: The key of the secret to select from.  Must be
@@ -15318,8 +15318,7 @@ spec:
                     x-kubernetes-map-type: atomic
                   monitorUsername:
                     description: MonitorUsername is the user used by MaxScale monitor
-                      to connect to MariaDB server. It is only required if the monitor
-                      is enabled and defaulted if not provided
+                      to connect to MariaDB server. It is defaulted if not provided.
                     type: string
                   serverPasswordSecretKeyRef:
                     description: ServerPasswordSecretKeyRef is Secret key reference
@@ -16688,6 +16687,35 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              monitor:
+                description: Monitor monitors MariaDB server instances.
+                properties:
+                  cooperativeMonitoring:
+                    description: CooperativeMonitoring enables coordination between
+                      multiple MaxScale instances running monitors. It is defaulted
+                      when multiple replicas are configured.
+                    enum:
+                    - majority_of_all
+                    - majority_of_running
+                    type: string
+                  interval:
+                    description: Interval used to monitor MariaDB servers. If not
+                      provided, it defaults to 2s.
+                    type: string
+                  module:
+                    description: Module is the module to use to monitor MariaDB servers.
+                    enum:
+                    - mariadbmon
+                    - galeramon
+                    type: string
+                  params:
+                    additionalProperties:
+                      type: string
+                    description: Params defines extra parameters to pass to the monitor.
+                    type: object
+                required:
+                - module
+                type: object
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -17249,6 +17277,7 @@ spec:
                     port:
                       description: Port is the network port of the MariaDB server.
                         If not provided, it defaults to 3306.
+                      format: int32
                       type: integer
                     protocol:
                       description: Protocol is the MaxScale protocol to use when communicating
@@ -19685,6 +19714,7 @@ spec:
                   type: object
                 type: array
             required:
+            - monitor
             - servers
             type: object
           status:
