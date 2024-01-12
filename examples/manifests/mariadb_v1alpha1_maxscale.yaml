@@ -3,6 +3,14 @@ kind: MaxScale
 metadata:
   name: maxscale
 spec:
+  servers:
+    - name: mariadb-0
+      address: mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
+    - name: mariadb-1
+      address: mariadb-repl-1.mariadb-repl-internal.default.svc.cluster.local
+    - name: mariadb-2
+      address: mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local
+
   kubernetesService:
     type: LoadBalancer
     annotations:

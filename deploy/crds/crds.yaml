@@ -17234,6 +17234,32 @@ spec:
                         type: string
                     type: object
                 type: object
+              servers:
+                description: Servers are the MariaDB servers to forward traffic to.
+                items:
+                  description: MaxScaleServer defines a MariaDB server to forward
+                    traffic to.
+                  properties:
+                    address:
+                      description: Address is the network address of the MariaDB server.
+                      type: string
+                    name:
+                      description: Name is the identifier of the MariaDB server.
+                      type: string
+                    port:
+                      description: Port is the network port of the MariaDB server.
+                        If not provided, it defaults to 3306.
+                      type: integer
+                    protocol:
+                      description: Protocol is the MaxScale protocol to use when communicating
+                        with this MariaDB server. If not provided, it defaults to
+                        MariaDBBackend.
+                      type: string
+                  required:
+                  - address
+                  - name
+                  type: object
+                type: array
               sidecarContainers:
                 description: SidecarContainers to be used in the Pod.
                 items:
@@ -19658,6 +19684,8 @@ spec:
                   - name
                   type: object
                 type: array
+            required:
+            - servers
             type: object
           status:
             description: MaxScaleStatus defines the observed state of MaxScale

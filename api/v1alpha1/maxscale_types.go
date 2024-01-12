@@ -38,7 +38,7 @@ type MaxScaleAdmin struct {
 	GuiEnabled *bool `json:"guiEnabled,omitempty"`
 }
 
-// SetDefaults sets defaults values.
+// SetDefaults sets default values.
 func (m *MaxScaleAdmin) SetDefaults(mxs *MaxScale) {
 	if m.Port == 0 {
 		m.Port = 8989
@@ -119,7 +119,7 @@ type MaxScaleAuth struct {
 	MonitorPasswordSecretKeyRef corev1.SecretKeySelector `json:"monitorPasswordSecretKeyRef,omitempty"`
 }
 
-// SetDefaults sets defaults values.
+// SetDefaults sets default values.
 func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	if m.ClientUsername == "" {
 		m.ClientUsername = mxs.AuthClientUserKey().Name
@@ -138,6 +138,36 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	}
 	if m.MonitorPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.MonitorPasswordSecretKeyRef = mxs.AuthMonitorPasswordSecretKeyRef()
+	}
+}
+
+// MaxScaleServer defines a MariaDB server to forward traffic to.
+type MaxScaleServer struct {
+	// Name is the identifier of the MariaDB server.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Name string `json:"name"`
+	// Address is the network address of the MariaDB server.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Address string `json:"address"`
+	// Port is the network port of the MariaDB server. If not provided, it defaults to 3306.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Port int `json:"port,omitempty"`
+	// Protocol is the MaxScale protocol to use when communicating with this MariaDB server. If not provided, it defaults to MariaDBBackend.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Protocol string `json:"protocol,omitempty"`
+}
+
+// SetDefaults sets default values.
+func (m *MaxScaleServer) SetDefaults() {
+	if m.Port == 0 {
+		m.Port = 3306
+	}
+	if m.Protocol == "" {
+		m.Protocol = "MariaDBBackend"
 	}
 }
 
@@ -165,6 +195,10 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	// Servers are the MariaDB servers to forward traffic to.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Servers []MaxScaleServer `json:"servers"`
 	// Admin configures the admin REST API and GUI.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -237,10 +271,13 @@ type MaxScale struct {
 	Status MaxScaleStatus `json:"status,omitempty"`
 }
 
-// SetDefaults sets defaults values.
+// SetDefaults sets default values.
 func (m *MaxScale) SetDefaults(env *environment.Environment) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMaxscaleImage
+	}
+	for i := range m.Spec.Servers {
+		m.Spec.Servers[i].SetDefaults()
 	}
 	m.Spec.Admin.SetDefaults(m)
 	m.Spec.Config.SetDefaults()

@@ -6,6 +6,20 @@ spec:
   image: mariadb/maxscale:23.08
   imagePullPolicy: IfNotPresent
 
+  servers:
+    - name: mariadb-0
+      address: mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
+      port: 3306
+      protocol: MariaDBBackend
+    - name: mariadb-1
+      address: mariadb-repl-1.mariadb-repl-internal.default.svc.cluster.local
+      port: 3306
+      protocol: MariaDBBackend
+    - name: mariadb-2
+      address: mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local
+      port: 3306
+      protocol: MariaDBBackend
+
   admin:
     port: 8989
     username: mariadb-operator
