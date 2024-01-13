@@ -1,9 +1,11 @@
 package client
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -25,14 +27,14 @@ type RelationshipItem struct {
 }
 
 type RelationshipData struct {
-	Data []RelationshipItem `json:"data"`
+	Data []RelationshipItem `json:"data,omitempty"`
 }
 
 type Relationships struct {
-	Servers   RelationshipData `json:"servers,omitempty"`
-	Monitors  RelationshipData `json:"monitors,omitempty"`
-	Services  RelationshipData `json:"services,omitempty"`
-	Listeners RelationshipData `json:"listeners,omitempty"`
+	Servers   *RelationshipData `json:"servers,omitempty"`
+	Monitors  *RelationshipData `json:"monitors,omitempty"`
+	Services  *RelationshipData `json:"services,omitempty"`
+	Listeners *RelationshipData `json:"listeners,omitempty"`
 }
 
 func ServerRelationships(servers ...string) Relationships {
@@ -44,10 +46,33 @@ func ServerRelationships(servers ...string) Relationships {
 		}
 	}
 	return Relationships{
-		Servers: RelationshipData{
+		Servers: &RelationshipData{
 			Data: items,
 		},
 	}
+}
+
+type Param string
+
+func (p Param) MarshalJSON() ([]byte, error) {
+	if i, err := strconv.ParseInt(string(p), 10, 32); err == nil {
+		return json.Marshal(i)
+	}
+	if b, err := strconv.ParseBool(string(p)); err == nil {
+		return json.Marshal(b)
+	}
+	type ParamInternal Param
+	return json.Marshal(ParamInternal(p))
+}
+
+type MapParams map[string]Param
+
+func NewMapParams(params map[string]string) map[string]Param {
+	mapParams := make(map[string]Param, len(params))
+	for k, v := range params {
+		mapParams[k] = Param(v)
+	}
+	return mapParams
 }
 
 type Data[T any] struct {

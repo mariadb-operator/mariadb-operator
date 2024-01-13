@@ -25,9 +25,9 @@ spec:
     interval: 2s
     cooperativeMonitoring: majority_of_all
     params:
-      auto_failover: ON
-      auto_rejoin: ON
-      switchover_on_low_disk_space: ON   
+      auto_failover: "true"
+      auto_rejoin: "true"
+      switchover_on_low_disk_space: "true"
 
   admin:
     port: 8989
