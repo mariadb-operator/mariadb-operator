@@ -46,6 +46,8 @@ type MaxScaleReconciler struct {
 	SecretReconciler      *secret.SecretReconciler
 	StatefulSetReconciler *statefulset.StatefulSetReconciler
 	ServiceReconciler     *service.ServiceReconciler
+
+	LogMaxScale bool
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscales,verbs=get;list;watch;create;update;patch;delete
@@ -309,12 +311,7 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	}
 
 	// TODO: all Pods in order to support HA
-	defaultLogger := log.FromContext(ctx).WithName("maxscale-client")
-	defaultClient, err := mxsclient.NewClientWithDefaultCredentials(
-		maxscale.PodAPIUrl(0),
-		mdbhttp.WithTimeout(10*time.Second),
-		mdbhttp.WithLogger(&defaultLogger),
-	)
+	defaultClient, err := r.defaultClientWithPodIndex(ctx, maxscale, 0)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
@@ -399,6 +396,18 @@ func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alph
 	return nil
 }
 
+func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	podIndex int) (*mxsclient.Client, error) {
+	opts := []mdbhttp.Option{
+		mdbhttp.WithTimeout(10 * time.Second),
+	}
+	if r.LogMaxScale {
+		logger := log.FromContext(ctx).WithName("maxscale-client")
+		opts = append(opts, mdbhttp.WithLogger(&logger))
+	}
+	return mxsclient.NewClientWithDefaultCredentials(mxs.PodAPIUrl(podIndex), opts...)
+}
+
 // func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
 // 	return r.clientWithAPIUrl(ctx, mxs, mxs.APIUrl())
 // }
@@ -414,14 +423,16 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 	if err != nil {
 		return nil, fmt.Errorf("error getting admin password: %v", err)
 	}
-	logger := log.FromContext(ctx).WithName("maxscale-client")
 
-	return mxsclient.NewClient(
-		apiUrl,
-		mdbhttp.WithTimeout(10*time.Second),
+	opts := []mdbhttp.Option{
+		mdbhttp.WithTimeout(10 * time.Second),
 		mdbhttp.WithBasicAuth(mxs.Spec.Admin.Username, password),
-		mdbhttp.WithLogger(&logger),
-	)
+	}
+	if r.LogMaxScale {
+		logger := log.FromContext(ctx).WithName("maxscale-client")
+		opts = append(opts, mdbhttp.WithLogger(&logger))
+	}
+	return mxsclient.NewClient(apiUrl, opts...)
 }
 
 func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {

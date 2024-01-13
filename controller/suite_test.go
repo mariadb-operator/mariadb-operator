@@ -202,6 +202,8 @@ var _ = BeforeSuite(func() {
 		SecretReconciler:      secretReconciler,
 		StatefulSetReconciler: statefulSetReconciler,
 		ServiceReconciler:     serviceReconciler,
+
+		LogMaxScale: true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

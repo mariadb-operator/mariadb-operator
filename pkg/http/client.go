@@ -1,9 +1,11 @@
-package client
+package http
 
 import (
+	"bytes"
 	"context"
 	b64 "encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -82,7 +84,17 @@ func NewClient(baseUrl string, opts ...Option) (*Client, error) {
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	return c.httpClient.Do(req)
+	if err := c.logRequest(req); err != nil {
+		return nil, fmt.Errorf("error logging request: %v", err)
+	}
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.logResponse(req, res); err != nil {
+		return nil, fmt.Errorf("error logging response: %v", err)
+	}
+	return res, nil
 }
 
 func (c *Client) Request(ctx context.Context, method string, path string, body interface{},
@@ -118,29 +130,42 @@ func (c *Client) Delete(ctx context.Context, path string, body interface{}, quer
 	return c.Request(ctx, http.MethodDelete, path, body, query)
 }
 
-type HeadersTransport struct {
-	roundTripper http.RoundTripper
-	headers      map[string]string
-}
-
-func NewHeadersTransport(rt http.RoundTripper, headers map[string]string) http.RoundTripper {
-	transport := &HeadersTransport{
-		roundTripper: rt,
-		headers:      headers,
-	}
-	if transport.roundTripper == nil {
-		transport.roundTripper = http.DefaultTransport
-	}
-	return transport
-}
-
-func (t *HeadersTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	for k, v := range t.headers {
-		req.Header.Set(k, v)
-	}
+func (c *Client) logRequest(req *http.Request) error {
+	c.logInfo("Request", "method", req.Method, "url", req.URL.String())
 	if req.Body != nil {
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/json")
+		bodyBytes, err := io.ReadAll(req.Body)
+		if err != nil {
+			return err
+		}
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		c.logDebug("Request body", "body", string(bodyBytes))
 	}
-	return t.roundTripper.RoundTrip(req)
+	return nil
+}
+
+func (c *Client) logResponse(req *http.Request, res *http.Response) error {
+	c.logInfo("Response", "method", req.Method, "url", req.URL.String(), "status-code", res.StatusCode)
+	if res.Body != nil {
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+		res.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		c.logDebug("Response body", "body", string(bodyBytes))
+	}
+	return nil
+}
+
+func (c *Client) logInfo(msg string, kv ...interface{}) {
+	if c.logger == nil {
+		return
+	}
+	c.logger.Info(msg, kv...)
+}
+
+func (c *Client) logDebug(msg string, kv ...interface{}) {
+	if c.logger == nil {
+		return
+	}
+	c.logger.V(1).Info(msg, kv...)
 }

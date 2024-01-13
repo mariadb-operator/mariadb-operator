@@ -48,6 +48,7 @@ var (
 	logLevel          string
 	logTimeEncoder    string
 	logDev            bool
+	logMaxScale       bool
 	leaderElect       bool
 	requeueConnection time.Duration
 	requeueSql        time.Duration
@@ -68,6 +69,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&logTimeEncoder, "log-time-encoder", "epoch", "Log time encoder to use, one of: "+
 		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
+	rootCmd.Flags().BoolVar(&logMaxScale, "log-maxscale", false, "Enable MaxScale API request logs.")
 	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 30*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
@@ -249,6 +251,8 @@ var rootCmd = &cobra.Command{
 			SecretReconciler:      secretReconciler,
 			StatefulSetReconciler: statefulSetReconciler,
 			ServiceReconciler:     serviceReconciler,
+
+			LogMaxScale: logMaxScale,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)
