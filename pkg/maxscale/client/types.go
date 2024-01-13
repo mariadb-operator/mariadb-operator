@@ -54,12 +54,21 @@ func ServerRelationships(servers ...string) Relationships {
 
 type Param string
 
+// See: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#special-parameter-types
 func (p Param) MarshalJSON() ([]byte, error) {
 	if i, err := strconv.ParseInt(string(p), 10, 32); err == nil {
 		return json.Marshal(i)
 	}
 	if b, err := strconv.ParseBool(string(p)); err == nil {
 		return json.Marshal(b)
+	}
+	// Supported by MaxScale and not by strconv.ParseBool
+	if p == "yes" || p == "on" {
+		return json.Marshal(true)
+	}
+	// Supported by MaxScale and not by strconv.ParseBool
+	if p == "no" || p == "off" {
+		return json.Marshal(false)
 	}
 	type ParamInternal Param // prevent recursion
 	return json.Marshal(ParamInternal(p))
