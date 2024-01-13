@@ -48,6 +48,9 @@ func handleResponse(res *http.Response, v interface{}) error {
 	}
 
 	if res.StatusCode >= 400 {
+		if len(bytes) == 0 {
+			return NewError(res.StatusCode, res.Status)
+		}
 		var apiErr APIError
 		if err := json.Unmarshal(bytes, &apiErr); err != nil {
 			return fmt.Errorf("error decoding body into error: %v", err)
