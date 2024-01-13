@@ -377,7 +377,7 @@ func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alph
 		return nil
 	}
 
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.AuthMonitorPasswordSecretKeyRef(), mxs.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.MonitorPasswordSecretKeyRef, mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting monitor password: %v", err)
 	}
