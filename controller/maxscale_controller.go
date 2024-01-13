@@ -160,8 +160,10 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, mxs *mariadbv1
 	}
 
 	randomPasswordKeys := []corev1.SecretKeySelector{
-		mxs.AdminPasswordSecretKeyRef(),
-		mxs.AuthMonitorPasswordSecretKeyRef(),
+		mxs.Spec.Admin.PasswordSecretKeyRef,
+		mxs.Spec.Auth.ClientPasswordSecretKeyRef,
+		mxs.Spec.Auth.ServerPasswordSecretKeyRef,
+		mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
 	}
 	for _, secretKeyRef := range randomPasswordKeys {
 		randomSecretReq := &secret.RandomPasswordRequest{
