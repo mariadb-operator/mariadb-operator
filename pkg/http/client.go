@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/go-logr/logr"
 )
 
 var defaultTimeout = 10 * time.Second
@@ -46,11 +48,18 @@ func WithVersion(version string) Option {
 	}
 }
 
+func WithLogger(logger *logr.Logger) Option {
+	return func(c *Client) {
+		c.logger = logger
+	}
+}
+
 type Client struct {
 	baseUrl    *url.URL
 	httpClient *http.Client
 	headers    map[string]string
 	version    string
+	logger     *logr.Logger
 }
 
 func NewClient(baseUrl string, opts ...Option) (*Client, error) {

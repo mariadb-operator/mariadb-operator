@@ -29,6 +29,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // MaxScaleReconciler reconciles a MaxScale object
@@ -308,9 +309,11 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	}
 
 	// TODO: all Pods in order to support HA
+	defaultLogger := log.FromContext(ctx).WithName("maxscale-client")
 	defaultClient, err := mxsclient.NewClientWithDefaultCredentials(
 		maxscale.PodAPIUrl(0),
 		mdbhttp.WithTimeout(10*time.Second),
+		mdbhttp.WithLogger(&defaultLogger),
 	)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
@@ -387,7 +390,7 @@ func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alph
 		User:            mxs.Spec.Auth.MonitorUsername,
 		Password:        password,
 		MonitorInterval: mxs.Spec.Monitor.Interval,
-		ExtraParams:     mxs.Spec.Monitor.Params,
+		Params:          mxsclient.NewMapParams(mxs.Spec.Monitor.Params),
 	}
 	relations := mxsclient.ServerRelationships(mxs.ServerIDs()...)
 	if err := client.Monitor.Create(ctx, mxs.Spec.Monitor.Module, params, relations); err != nil {
@@ -411,10 +414,13 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 	if err != nil {
 		return nil, fmt.Errorf("error getting admin password: %v", err)
 	}
+	logger := log.FromContext(ctx).WithName("maxscale-client")
+
 	return mxsclient.NewClient(
 		apiUrl,
 		mdbhttp.WithTimeout(10*time.Second),
 		mdbhttp.WithBasicAuth(mxs.Spec.Admin.Username, password),
+		mdbhttp.WithLogger(&logger),
 	)
 }
 

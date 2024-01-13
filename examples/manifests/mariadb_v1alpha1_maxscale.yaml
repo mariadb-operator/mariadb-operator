@@ -14,6 +14,11 @@ spec:
   monitor:
     module: mariadbmon
     interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      auto_failover: "true"
+      auto_rejoin: "true"
+      switchover_on_low_disk_space: "true"   
 
   # TODO: create User and Grants in the operator
   auth:

@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -10,10 +11,36 @@ import (
 )
 
 type MonitorParameters struct {
-	ExtraParams     map[string]string `json:",inline"`
-	User            string            `json:"user"`
-	Password        string            `json:"password"`
-	MonitorInterval metav1.Duration   `json:"monitor_interval,omitempty"`
+	User            string          `json:"user"`
+	Password        string          `json:"password"`
+	MonitorInterval metav1.Duration `json:"monitor_interval,omitempty"`
+	Params          MapParams       `json:"-"`
+}
+
+func (m MonitorParameters) MarshalJSON() ([]byte, error) {
+	type MonitorParametersInternal MonitorParameters // prevent recursion
+	bytes, err := json.Marshal(MonitorParametersInternal(m))
+	if err != nil {
+		return nil, err
+	}
+
+	var rawMap map[string]json.RawMessage
+	if err := json.Unmarshal(bytes, &rawMap); err != nil {
+		return nil, err
+	}
+
+	for k, v := range m.Params {
+		if _, ok := rawMap[k]; ok { // prevent overriding
+			continue
+		}
+		bytes, err := json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		rawMap[k] = bytes
+	}
+
+	return json.Marshal(rawMap)
 }
 
 type MonitorAttributes struct {
