@@ -344,6 +344,9 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, maxscale *mariad
 	if err := r.initServers(ctx, maxscale, client); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error initializing servers: %v", err)
 	}
+	if err := r.initServices(ctx, maxscale, client); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error initializing services: %v", err)
+	}
 	if err := r.initMonitor(ctx, maxscale, client); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error initializing monitor: %v", err)
 	}
@@ -369,6 +372,35 @@ func (r *MaxScaleReconciler) initServers(ctx context.Context, mxs *mariadbv1alph
 		}
 		if err := client.Server.Create(ctx, srv.Name, params); err != nil {
 			return fmt.Errorf("error creating server: %v", err)
+		}
+	}
+	return nil
+}
+
+func (r *MaxScaleReconciler) initServices(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
+	services, err := client.Service.List(ctx)
+	if err != nil {
+		return fmt.Errorf("error listing services: %v", err)
+	}
+	// TODO: handle upgrade
+	if len(services) > 0 {
+		return nil
+	}
+
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.ServerPasswordSecretKeyRef, mxs.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting server password: %v", err)
+	}
+
+	for _, svc := range mxs.Spec.Services {
+		params := mxsclient.ServiceParameters{
+			User:     mxs.Spec.Auth.ServerUsername,
+			Password: password,
+			Params:   mxsclient.NewMapParams(svc.Params),
+		}
+		relations := mxsclient.ServerRelationships(mxs.ServerIDs()...)
+		if err := client.Service.Create(ctx, svc.Name, svc.Router, params, relations); err != nil {
+			return fmt.Errorf("error creating service: %v", err)
 		}
 	}
 	return nil

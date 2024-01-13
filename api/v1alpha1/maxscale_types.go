@@ -15,6 +15,115 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+// MaxScaleServer defines a MariaDB server to forward traffic to.
+type MaxScaleServer struct {
+	// Name is the identifier of the MariaDB server.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Name string `json:"name"`
+	// Address is the network address of the MariaDB server.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Address string `json:"address"`
+	// Port is the network port of the MariaDB server. If not provided, it defaults to 3306.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	Port int32 `json:"port,omitempty"`
+	// Protocol is the MaxScale protocol to use when communicating with this MariaDB server. If not provided, it defaults to MariaDBBackend.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Protocol string `json:"protocol,omitempty"`
+}
+
+// SetDefaults sets default values.
+func (m *MaxScaleServer) SetDefaults() {
+	if m.Port == 0 {
+		m.Port = 3306
+	}
+	if m.Protocol == "" {
+		m.Protocol = "MariaDBBackend"
+	}
+}
+
+// ServiceRouter defines the type of service router.
+type ServiceRouter string
+
+const (
+	// ServiceRouterReadWriteSplit splits the load based on the queries. Write queries are performed on master and read queries on the replicas.
+	ServiceRouterReadWriteSplit ServiceRouter = "readwritesplit"
+	// ServiceRouterReadConnRoute splits the load based on the connections. Each connection is assigned to a server.
+	ServiceRouterReadConnRoute ServiceRouter = "readconnroute"
+)
+
+type MaxScaleService struct {
+	// Name is the identifier of the MaxScale service.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Name string `json:"name"`
+	// Router is the type of router to use.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=readwritesplit;readconnroute
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Router ServiceRouter `json:"router" webhook:"inmutable"`
+	// Params defines extra parameters to pass to the monitor.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Params map[string]string `json:"params,omitempty"`
+}
+
+// MonitorModule defines the type of monitor module
+type MonitorModule string
+
+const (
+	// MonitorModuleMariadb is a monitor to be used with MariaDB servers.
+	MonitorModuleMariadb MonitorModule = "mariadbmon"
+	// MonitorModuleGalera is a monitor to be used with Galera servers.
+	MonitorModuleGalera MonitorModule = "galeramon"
+)
+
+// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors.
+// See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/
+type CooperativeMonitoring string
+
+const (
+	// CooperativeMonitoringMajorityOfAll requires a lock from the majority of the MariaDB servers, even the ones that are down.
+	CooperativeMonitoringMajorityOfAll CooperativeMonitoring = "majority_of_all"
+	// CooperativeMonitoringMajorityOfRunning requires a lock from the majority of the MariaDB servers.
+	CooperativeMonitoringMajorityOfRunning CooperativeMonitoring = "majority_of_running"
+)
+
+// MaxScaleMonitor monitors MariaDB server instances
+type MaxScaleMonitor struct {
+	// Module is the module to use to monitor MariaDB servers.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=mariadbmon;galeramon
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Module MonitorModule `json:"module" webhook:"inmutable"`
+	// Interval used to monitor MariaDB servers. If not provided, it defaults to 2s.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Interval metav1.Duration `json:"interval,omitempty"`
+	// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when multiple replicas are configured.
+	// +optional
+	// +kubebuilder:validation:Enum=majority_of_all;majority_of_running
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CooperativeMonitoring *CooperativeMonitoring `json:"cooperativeMonitoring,omitempty"`
+	// Params defines extra parameters to pass to the monitor.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Params map[string]string `json:"params,omitempty"`
+}
+
+// SetCondition sets a status condition to MaxScale
+func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
+	if m.Interval == (metav1.Duration{}) {
+		m.Interval = metav1.Duration{Duration: 2 * time.Second}
+	}
+	if mxs.Spec.Replicas > 1 && m.CooperativeMonitoring == nil {
+		m.CooperativeMonitoring = ptr.To(CooperativeMonitoringMajorityOfAll)
+	}
+}
+
 // MaxScaleAdmin configures the admin REST API and GUI.
 type MaxScaleAdmin struct {
 	// Port where the admin REST API will be exposed.
@@ -142,89 +251,6 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	}
 }
 
-// MaxScaleServer defines a MariaDB server to forward traffic to.
-type MaxScaleServer struct {
-	// Name is the identifier of the MariaDB server.
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Name string `json:"name"`
-	// Address is the network address of the MariaDB server.
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Address string `json:"address"`
-	// Port is the network port of the MariaDB server. If not provided, it defaults to 3306.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	Port int32 `json:"port,omitempty"`
-	// Protocol is the MaxScale protocol to use when communicating with this MariaDB server. If not provided, it defaults to MariaDBBackend.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Protocol string `json:"protocol,omitempty"`
-}
-
-// SetDefaults sets default values.
-func (m *MaxScaleServer) SetDefaults() {
-	if m.Port == 0 {
-		m.Port = 3306
-	}
-	if m.Protocol == "" {
-		m.Protocol = "MariaDBBackend"
-	}
-}
-
-// MonitorModule defines the type of monitor module
-type MonitorModule string
-
-const (
-	// MonitorModuleMariadb is a monitor to be used with MariaDB servers.
-	MonitorModuleMariadb MonitorModule = "mariadbmon"
-	// MonitorModuleGalera is a monitor to be used with Galera servers.
-	MonitorModuleGalera MonitorModule = "galeramon"
-)
-
-// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors.
-// See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/
-type CooperativeMonitoring string
-
-const (
-	// CooperativeMonitoringMajorityOfAll requires a lock from the majority of the MariaDB servers, even the ones that are down.
-	CooperativeMonitoringMajorityOfAll CooperativeMonitoring = "majority_of_all"
-	// CooperativeMonitoringMajorityOfRunning requires a lock from the majority of the MariaDB servers.
-	CooperativeMonitoringMajorityOfRunning CooperativeMonitoring = "majority_of_running"
-)
-
-// MaxScaleMonitor monitors MariaDB server instances
-type MaxScaleMonitor struct {
-	// Module is the module to use to monitor MariaDB servers.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=mariadbmon;galeramon
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Module MonitorModule `json:"module" webhook:"inmutable"`
-	// Interval used to monitor MariaDB servers. If not provided, it defaults to 2s.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Interval metav1.Duration `json:"interval,omitempty"`
-	// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when multiple replicas are configured.
-	// +optional
-	// +kubebuilder:validation:Enum=majority_of_all;majority_of_running
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	CooperativeMonitoring *CooperativeMonitoring `json:"cooperativeMonitoring,omitempty"`
-	// Params defines extra parameters to pass to the monitor.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Params map[string]string `json:"params,omitempty"`
-}
-
-// SetCondition sets a status condition to MaxScale
-func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
-	if m.Interval == (metav1.Duration{}) {
-		m.Interval = metav1.Duration{Duration: 2 * time.Second}
-	}
-	if mxs.Spec.Replicas > 1 && m.CooperativeMonitoring == nil {
-		m.CooperativeMonitoring = ptr.To(CooperativeMonitoringMajorityOfAll)
-	}
-}
-
 // MaxScaleSpec defines the desired state of MaxScale
 type MaxScaleSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -253,6 +279,10 @@ type MaxScaleSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Servers []MaxScaleServer `json:"servers"`
+	// Services define how the traffic is forwarded to the MariaDB servers.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Services []MaxScaleService `json:"services"`
 	// Monitor monitors MariaDB server instances.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

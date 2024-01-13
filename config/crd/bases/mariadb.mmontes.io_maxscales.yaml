@@ -2948,6 +2948,31 @@ spec:
                   - name
                   type: object
                 type: array
+              services:
+                description: Services define how the traffic is forwarded to the MariaDB
+                  servers.
+                items:
+                  properties:
+                    name:
+                      description: Name is the identifier of the MaxScale service.
+                      type: string
+                    params:
+                      additionalProperties:
+                        type: string
+                      description: Params defines extra parameters to pass to the
+                        monitor.
+                      type: object
+                    router:
+                      description: Router is the type of router to use.
+                      enum:
+                      - readwritesplit
+                      - readconnroute
+                      type: string
+                  required:
+                  - name
+                  - router
+                  type: object
+                type: array
               sidecarContainers:
                 description: SidecarContainers to be used in the Pod.
                 items:
@@ -5375,6 +5400,7 @@ spec:
             required:
             - monitor
             - servers
+            - services
             type: object
           status:
             description: MaxScaleStatus defines the observed state of MaxScale
