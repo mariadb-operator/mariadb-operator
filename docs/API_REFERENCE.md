@@ -677,6 +677,22 @@ _Appears in:_
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with this MariaDB server. If not provided, it defaults to MariaDBBackend. |
 
 
+#### MaxScaleService
+
+
+
+
+
+_Appears in:_
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ | Name is the identifier of the MaxScale service. |
+| `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor. |
+
+
 #### MaxScaleSpec
 
 
@@ -709,6 +725,7 @@ _Appears in:_
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
 | `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
 | `servers` _[MaxScaleServer](#maxscaleserver) array_ | Servers are the MariaDB servers to forward traffic to. |
+| `services` _[MaxScaleService](#maxscaleservice) array_ | Services define how the traffic is forwarded to the MariaDB servers. |
 | `monitor` _[MaxScaleMonitor](#maxscalemonitor)_ | Monitor monitors MariaDB server instances. |
 | `admin` _[MaxScaleAdmin](#maxscaleadmin)_ | Admin configures the admin REST API and GUI. |
 | `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |
@@ -1042,6 +1059,17 @@ _Appears in:_
 | `jobLabel` _string_ | JobLabel to add to the ServiceMonitor object. |
 | `interval` _string_ | Interval for scraping metrics. |
 | `scrapeTimeout` _string_ | ScrapeTimeout defines the timeout for scraping metrics. |
+
+
+#### ServiceRouter
+
+_Underlying type:_ _string_
+
+ServiceRouter defines the type of service router.
+
+_Appears in:_
+- [MaxScaleService](#maxscaleservice)
+
 
 
 #### ServiceTemplate

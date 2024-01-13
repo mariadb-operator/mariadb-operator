@@ -11,6 +11,28 @@ spec:
     - name: mariadb-2
       address: mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local
 
+  services:
+    - name: rw-router
+      router: readwritesplit
+      params:
+        transaction_replay: "true"
+        transaction_replay_attempts: "10"
+        transaction_replay_timeout: "5s"
+        max_slave_connections: "255"
+        max_replication_lag: "3s"
+        master_accept_reads: "true"
+    - name: rconn-master-router
+      router: readconnroute
+      params:
+        router_options: "master"
+        max_replication_lag: "3s"
+        master_accept_reads: "true"
+    - name: rconn-slave-router
+      router: readconnroute
+      params:
+        router_options: "slave"
+        max_replication_lag: "3s"
+
   monitor:
     module: mariadbmon
     interval: 2s
