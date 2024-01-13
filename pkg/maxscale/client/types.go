@@ -61,7 +61,7 @@ func (p Param) MarshalJSON() ([]byte, error) {
 	if b, err := strconv.ParseBool(string(p)); err == nil {
 		return json.Marshal(b)
 	}
-	type ParamInternal Param
+	type ParamInternal Param // prevent recursion
 	return json.Marshal(ParamInternal(p))
 }
 
