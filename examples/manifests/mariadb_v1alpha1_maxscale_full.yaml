@@ -48,6 +48,21 @@ spec:
       accessModes:
         - ReadWriteOnce
 
+  # TODO: create User and Grants in the operator
+  auth:
+    clientUsername: maxscale-client
+    clientPasswordSecretKeyRef:
+      name: mariadb
+      key: password
+    serverUsername: maxscale-server
+    serverPasswordSecretKeyRef:
+      name: mariadb
+      key: password
+    monitorUsername: maxscale-monitor
+    monitorPasswordSecretKeyRef:
+      name: mariadb
+      key: password
+
   podSecurityContext:
     runAsUser: 0
 
