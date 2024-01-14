@@ -45,6 +45,36 @@ func (m *MaxScaleServer) SetDefaults() {
 	}
 }
 
+// MaxScaleListener defines how the MaxScale server will listen for connections.
+type MaxScaleListener struct {
+	// Name is the identifier of the listener. It is defaulted if not provided
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Name string `json:"name"`
+	// Port is the network port where the MaxScale server will listen.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	Port int32 `json:"port,omitempty"`
+	// Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Protocol string `json:"protocol,omitempty"`
+	// Params defines extra parameters to pass to the listener.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Params map[string]string `json:"params,omitempty"`
+}
+
+// SetDefaults sets default values.
+func (m *MaxScaleListener) SetDefaults(svc *MaxScaleService) {
+	if m.Name == "" {
+		m.Name = fmt.Sprintf("%s-listener", svc.Name)
+	}
+	if m.Protocol == "" {
+		m.Protocol = "MariaDBProtocol"
+	}
+}
+
 // ServiceRouter defines the type of service router.
 type ServiceRouter string
 
@@ -55,6 +85,7 @@ const (
 	ServiceRouterReadConnRoute ServiceRouter = "readconnroute"
 )
 
+// Services define how the traffic is forwarded to the MariaDB servers.
 type MaxScaleService struct {
 	// Name is the identifier of the MaxScale service.
 	// +kubebuilder:validation:Required
@@ -65,10 +96,19 @@ type MaxScaleService struct {
 	// +kubebuilder:validation:Enum=readwritesplit;readconnroute
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Router ServiceRouter `json:"router" webhook:"inmutable"`
+	// MaxScaleListener defines how the MaxScale server will listen for connections.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Listener MaxScaleListener `json:"listener" webhook:"inmutable"`
 	// Params defines extra parameters to pass to the monitor.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Params map[string]string `json:"params,omitempty"`
+}
+
+// SetDefaults sets default values.
+func (m *MaxScaleService) SetDefaults() {
+	m.Listener.SetDefaults(m)
 }
 
 // MonitorModule defines the type of monitor module
@@ -94,6 +134,10 @@ const (
 
 // MaxScaleMonitor monitors MariaDB server instances
 type MaxScaleMonitor struct {
+	// Name is the identifier of the monitor. It is defaulted if not provided
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Name string `json:"name"`
 	// Module is the module to use to monitor MariaDB servers.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=mariadbmon;galeramon
@@ -116,6 +160,9 @@ type MaxScaleMonitor struct {
 
 // SetCondition sets a status condition to MaxScale
 func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
+	if m.Name == "" {
+		m.Name = fmt.Sprintf("%s-monitor", string(m.Module))
+	}
 	if m.Interval == (metav1.Duration{}) {
 		m.Interval = metav1.Duration{Duration: 2 * time.Second}
 	}
@@ -366,6 +413,9 @@ func (m *MaxScale) SetDefaults(env *environment.Environment) {
 	}
 	for i := range m.Spec.Servers {
 		m.Spec.Servers[i].SetDefaults()
+	}
+	for i := range m.Spec.Services {
+		m.Spec.Services[i].SetDefaults()
 	}
 	m.Spec.Monitor.SetDefaults(m)
 	m.Spec.Admin.SetDefaults(m)

@@ -2367,6 +2367,10 @@ spec:
                     - mariadbmon
                     - galeramon
                     type: string
+                  name:
+                    description: Name is the identifier of the monitor. It is defaulted
+                      if not provided
+                    type: string
                   params:
                     additionalProperties:
                       type: string
@@ -2952,7 +2956,34 @@ spec:
                 description: Services define how the traffic is forwarded to the MariaDB
                   servers.
                 items:
+                  description: Services define how the traffic is forwarded to the
+                    MariaDB servers.
                   properties:
+                    listener:
+                      description: MaxScaleListener defines how the MaxScale server
+                        will listen for connections.
+                      properties:
+                        name:
+                          description: Name is the identifier of the listener. It
+                            is defaulted if not provided
+                          type: string
+                        params:
+                          additionalProperties:
+                            type: string
+                          description: Params defines extra parameters to pass to
+                            the listener.
+                          type: object
+                        port:
+                          description: Port is the network port where the MaxScale
+                            server will listen.
+                          format: int32
+                          type: integer
+                        protocol:
+                          description: Protocol is the MaxScale protocol to use when
+                            communicating with the client. If not provided, it defaults
+                            to MariaDBProtocol.
+                          type: string
+                      type: object
                     name:
                       description: Name is the identifier of the MaxScale service.
                       type: string
@@ -2969,6 +3000,7 @@ spec:
                       - readconnroute
                       type: string
                   required:
+                  - listener
                   - name
                   - router
                   type: object

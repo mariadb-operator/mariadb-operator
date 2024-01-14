@@ -393,21 +393,31 @@ func (r *MaxScaleReconciler) initServices(ctx context.Context, mxs *mariadbv1alp
 	}
 
 	for _, svc := range mxs.Spec.Services {
-		params := mxsclient.ServiceParameters{
+		svcParams := mxsclient.ServiceParameters{
 			User:     mxs.Spec.Auth.ServerUsername,
 			Password: password,
 			Params:   mxsclient.NewMapParams(svc.Params),
 		}
-		relations := mxsclient.ServerRelationships(mxs.ServerIDs()...)
-		if err := client.Service.Create(ctx, svc.Name, svc.Router, params, relations); err != nil {
+		svcRels := mxsclient.NewServerRelationships(mxs.ServerIDs()...)
+		if err := client.Service.Create(ctx, svc.Name, svc.Router, svcParams, svcRels); err != nil {
 			return fmt.Errorf("error creating service: %v", err)
+		}
+
+		listenerParams := mxsclient.ListenerParameters{
+			Port:     svc.Listener.Port,
+			Protocol: svc.Listener.Protocol,
+			Params:   mxsclient.NewMapParams(svc.Listener.Params),
+		}
+		listenerRels := mxsclient.NewServiceRelationships(svc.Name)
+		if err := client.Listener.Create(ctx, svc.Listener.Name, listenerParams, listenerRels); err != nil {
+			return fmt.Errorf("error creating listener: %v", err)
 		}
 	}
 	return nil
 }
 
 func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
-	if _, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Module); err == nil {
+	if _, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Name); err == nil {
 		return nil
 	}
 
@@ -421,8 +431,8 @@ func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alph
 		MonitorInterval: mxs.Spec.Monitor.Interval,
 		Params:          mxsclient.NewMapParams(mxs.Spec.Monitor.Params),
 	}
-	relations := mxsclient.ServerRelationships(mxs.ServerIDs()...)
-	if err := client.Monitor.Create(ctx, mxs.Spec.Monitor.Module, params, relations); err != nil {
+	relations := mxsclient.NewServerRelationships(mxs.ServerIDs()...)
+	if err := client.Monitor.Create(ctx, mxs.Spec.Monitor.Name, mxs.Spec.Monitor.Module, params, relations); err != nil {
 		return fmt.Errorf("error creating monitor: %v", err)
 	}
 	return nil

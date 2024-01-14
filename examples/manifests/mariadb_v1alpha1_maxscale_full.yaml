@@ -30,19 +30,30 @@ spec:
         max_slave_connections: "255"
         max_replication_lag: "3s"
         master_accept_reads: "true"
+      listener:
+        name: rw-listener
+        port: 3306
+        protocol: MariaDBProtocol
+        params: 
+          connection_metadata: "tx_isolation=auto"
     - name: rconn-master-router
       router: readconnroute
       params:
         router_options: "master"
         max_replication_lag: "3s"
         master_accept_reads: "true"
+      listener:
+        port: 3307
     - name: rconn-slave-router
       router: readconnroute
       params:
         router_options: "slave"
         max_replication_lag: "3s"
+      listener:
+        port: 3308
 
   monitor:
+    name: mariadb-monitor
     module: mariadbmon
     interval: 2s
     cooperativeMonitoring: majority_of_all

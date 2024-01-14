@@ -37,7 +37,7 @@ type Relationships struct {
 	Listeners *RelationshipData `json:"listeners,omitempty"`
 }
 
-func ServerRelationships(servers ...string) Relationships {
+func NewServerRelationships(servers ...string) Relationships {
 	items := make([]RelationshipItem, len(servers))
 	for i, srv := range servers {
 		items[i] = RelationshipItem{
@@ -47,6 +47,21 @@ func ServerRelationships(servers ...string) Relationships {
 	}
 	return Relationships{
 		Servers: &RelationshipData{
+			Data: items,
+		},
+	}
+}
+
+func NewServiceRelationships(services ...string) Relationships {
+	items := make([]RelationshipItem, len(services))
+	for i, srv := range services {
+		items[i] = RelationshipItem{
+			ID:   srv,
+			Type: ObjectTypeListeners,
+		}
+	}
+	return Relationships{
+		Services: &RelationshipData{
 			Data: items,
 		},
 	}

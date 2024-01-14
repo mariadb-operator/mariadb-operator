@@ -6,6 +6,8 @@ spec:
   servers:
     - name: mariadb-0
       address: mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
+      port: 3306
+      protocol: MariaDBBackend
     - name: mariadb-1
       address: mariadb-repl-1.mariadb-repl-internal.default.svc.cluster.local
     - name: mariadb-2
@@ -21,17 +23,26 @@ spec:
         max_slave_connections: "255"
         max_replication_lag: "3s"
         master_accept_reads: "true"
+      listener:
+        port: 3306
+        protocol: MariaDBProtocol
+        params:
+          connection_metadata: "tx_isolation=auto"
     - name: rconn-master-router
       router: readconnroute
       params:
         router_options: "master"
         max_replication_lag: "3s"
         master_accept_reads: "true"
+      listener:
+        port: 3307
     - name: rconn-slave-router
       router: readconnroute
       params:
         router_options: "slave"
         max_replication_lag: "3s"
+      listener:
+        port: 3308
 
   monitor:
     module: mariadbmon
