@@ -52,8 +52,8 @@ type MonitorClient struct {
 	client *mdbhttp.Client
 }
 
-func (m *MonitorClient) Get(ctx context.Context, module mariadbv1alpha1.MonitorModule) (*Data[MonitorAttributes], error) {
-	res, err := m.client.Get(ctx, monitorPath(string(module)), nil)
+func (m *MonitorClient) Get(ctx context.Context, name string) (*Data[MonitorAttributes], error) {
+	res, err := m.client.Get(ctx, monitorPath(name), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -64,11 +64,11 @@ func (m *MonitorClient) Get(ctx context.Context, module mariadbv1alpha1.MonitorM
 	return &object.Data, nil
 }
 
-func (m *MonitorClient) Create(ctx context.Context, module mariadbv1alpha1.MonitorModule, params MonitorParameters,
+func (m *MonitorClient) Create(ctx context.Context, name string, module mariadbv1alpha1.MonitorModule, params MonitorParameters,
 	relationships Relationships) error {
 	object := &Object[MonitorAttributes]{
 		Data: Data[MonitorAttributes]{
-			ID:   string(module),
+			ID:   name,
 			Type: ObjectTypeMonitors,
 			Attributes: MonitorAttributes{
 				Module:     module,

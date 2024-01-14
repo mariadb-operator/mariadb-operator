@@ -12,10 +12,11 @@ import (
 var defaultAdminUser = "admin"
 
 type Client struct {
-	User    *UserClient
-	Server  *ServerClient
-	Service *ServiceClient
-	Monitor *MonitorClient
+	User     *UserClient
+	Server   *ServerClient
+	Service  *ServiceClient
+	Listener *ListenerClient
+	Monitor  *MonitorClient
 }
 
 func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
@@ -31,6 +32,9 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 			client: httpClient,
 		},
 		Service: &ServiceClient{
+			client: httpClient,
+		},
+		Listener: &ListenerClient{
 			client: httpClient,
 		},
 		Monitor: &MonitorClient{

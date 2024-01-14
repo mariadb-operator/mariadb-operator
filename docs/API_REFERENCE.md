@@ -643,6 +643,23 @@ _Appears in:_
 | `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files. |
 
 
+#### MaxScaleListener
+
+
+
+MaxScaleListener defines how the MaxScale server will listen for connections.
+
+_Appears in:_
+- [MaxScaleService](#maxscaleservice)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ | Name is the identifier of the listener. It is defaulted if not provided |
+| `port` _integer_ | Port is the network port where the MaxScale server will listen. |
+| `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol. |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the listener. |
+
+
 #### MaxScaleMonitor
 
 
@@ -654,6 +671,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `name` _string_ | Name is the identifier of the monitor. It is defaulted if not provided |
 | `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. |
 | `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. If not provided, it defaults to 2s. |
 | `cooperativeMonitoring` _[CooperativeMonitoring](#cooperativemonitoring)_ | CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when multiple replicas are configured. |
@@ -681,7 +699,7 @@ _Appears in:_
 
 
 
-
+Services define how the traffic is forwarded to the MariaDB servers.
 
 _Appears in:_
 - [MaxScaleSpec](#maxscalespec)
@@ -690,6 +708,7 @@ _Appears in:_
 | --- | --- |
 | `name` _string_ | Name is the identifier of the MaxScale service. |
 | `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |
+| `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor. |
 
 
