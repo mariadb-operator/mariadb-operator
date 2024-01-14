@@ -91,11 +91,11 @@ func (b *Builder) buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels m
 			WithAnnotations(mariadb.Spec.PodAnnotations).
 			WithAnnotations(buildHAAnnotations(mariadb)).
 			Build()
-	automount, serviceAccount := buildStsServiceAccountName(mariadb)
+	serviceAccount := buildStsServiceAccountName(mariadb)
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
-			AutomountServiceAccountToken: automount,
+			AutomountServiceAccountToken: ptr.To(false),
 			ServiceAccountName:           serviceAccount,
 			InitContainers:               buildStsInitContainers(mariadb),
 			Containers:                   containers,
@@ -157,14 +157,11 @@ func buildStsVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Per
 	return pvcs
 }
 
-func buildStsServiceAccountName(mariadb *mariadbv1alpha1.MariaDB) (autoMount *bool, serviceAccount string) {
+func buildStsServiceAccountName(mariadb *mariadbv1alpha1.MariaDB) (serviceAccount string) {
 	if mariadb.Spec.ServiceAccountName != nil {
-		if mariadb.Spec.Galera.Enabled {
-			return ptr.To(false), *mariadb.Spec.ServiceAccountName
-		}
-		return ptr.To(true), *mariadb.Spec.ServiceAccountName
+		return *mariadb.Spec.ServiceAccountName
 	}
-	return ptr.To(true), mariadb.Name
+	return mariadb.Name
 }
 
 func buildStsVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
