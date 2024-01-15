@@ -58,7 +58,7 @@ type MaxScaleReconciler struct {
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -557,8 +557,9 @@ func (r *MaxScaleReconciler) requeueResult(ctx context.Context, mxs *mariadbv1al
 func (r *MaxScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MaxScale{}).
-		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Secret{}).
 		Owns(&corev1.Service{}).
-		Owns(&appsv1.Deployment{}).
+		Owns(&policyv1.PodDisruptionBudget{}).
+		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }
