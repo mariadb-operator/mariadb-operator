@@ -164,6 +164,10 @@ type PodTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PriorityClassName *string `json:"priorityClassName,omitempty" webhook:"inmutable"`
+	// TopologySpreadConstraints to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
 }
 
 // VolumeClaimTemplate defines a template to customize PVC objects.
