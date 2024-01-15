@@ -44,7 +44,15 @@ type ListenerAttributes struct {
 }
 
 type ListenerClient struct {
+	ReadClient[ListenerAttributes]
 	client *mdbhttp.Client
+}
+
+func NewListenerClient(client *mdbhttp.Client) *ListenerClient {
+	return &ListenerClient{
+		ReadClient: NewListClient[ListenerAttributes](client, "listeners"),
+		client:     client,
+	}
 }
 
 func (s *ListenerClient) Create(ctx context.Context, name string, params ListenerParameters, relationships Relationships) error {

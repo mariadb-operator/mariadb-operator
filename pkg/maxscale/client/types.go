@@ -3,7 +3,6 @@ package client
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -114,6 +113,25 @@ type List[T any] struct {
 	Data []Data[T] `json:"data"`
 }
 
+type Index[T any] map[string]Data[T]
+
+func IndexList[T any](list []Data[T]) Index[T] {
+	index := make(Index[T], len(list))
+	for _, data := range list {
+		index[data.ID] = data
+	}
+	return index
+}
+
+func AnyExists[T any](index Index[T], ids ...string) bool {
+	for _, id := range ids {
+		if _, ok := index[id]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 type APIErrorItem struct {
 	Detail string `json:"detail"`
 }
@@ -131,20 +149,6 @@ func (e *APIError) Error() string {
 		aggErr = multierror.Append(aggErr, errors.New(err.Detail))
 	}
 	return aggErr.Error()
-}
-
-func NewAPIError(message string) error {
-	return &APIError{
-		Errors: []APIErrorItem{
-			{
-				Detail: message,
-			},
-		},
-	}
-}
-
-func NewAPIErrorf(format string, args ...any) error {
-	return NewAPIError(fmt.Sprintf(format, args...))
 }
 
 type Error struct {

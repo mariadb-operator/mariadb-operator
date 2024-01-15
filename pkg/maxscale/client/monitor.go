@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
@@ -49,19 +48,15 @@ type MonitorAttributes struct {
 }
 
 type MonitorClient struct {
+	ReadClient[MonitorAttributes]
 	client *mdbhttp.Client
 }
 
-func (m *MonitorClient) Get(ctx context.Context, name string) (*Data[MonitorAttributes], error) {
-	res, err := m.client.Get(ctx, monitorPath(name), nil)
-	if err != nil {
-		return nil, err
+func NewMonitorClient(client *mdbhttp.Client) *MonitorClient {
+	return &MonitorClient{
+		ReadClient: NewListClient[MonitorAttributes](client, "monitors"),
+		client:     client,
 	}
-	var object Object[MonitorAttributes]
-	if err := handleResponse(res, &object); err != nil {
-		return nil, err
-	}
-	return &object.Data, nil
 }
 
 func (m *MonitorClient) Create(ctx context.Context, name string, module mariadbv1alpha1.MonitorModule, params MonitorParameters,
@@ -82,8 +77,4 @@ func (m *MonitorClient) Create(ctx context.Context, name string, module mariadbv
 		return err
 	}
 	return handleResponse(res, nil)
-}
-
-func monitorPath(name string) string {
-	return fmt.Sprintf("monitors/%s", name)
 }
