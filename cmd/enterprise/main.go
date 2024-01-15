@@ -22,6 +22,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/servicemonitor"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
@@ -156,6 +157,7 @@ var rootCmd = &cobra.Command{
 
 		configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 		secretReconciler := secret.NewSecretReconciler(client, builder)
+		statefulSetReconciler := statefulset.NewStatefulSetReconciler(client)
 		serviceReconciler := service.NewServiceReconciler(client)
 		endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
 		batchReconciler := batch.NewBatchReconciler(client, builder)
@@ -221,6 +223,7 @@ var rootCmd = &cobra.Command{
 
 			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,
+			StatefulSetReconciler:    statefulSetReconciler,
 			ServiceReconciler:        serviceReconciler,
 			EndpointsReconciler:      endpointsReconciler,
 			RBACReconciler:           rbacReconciler,
@@ -242,9 +245,9 @@ var rootCmd = &cobra.Command{
 			ConditionReady: conditionReady,
 			Environment:    env,
 
-			SecretReconciler:     secretReconciler,
-			ServiceReconciler:    serviceReconciler,
-			DeploymentReconciler: deployReconciler,
+			SecretReconciler:      secretReconciler,
+			StatefulSetReconciler: statefulSetReconciler,
+			ServiceReconciler:     serviceReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)

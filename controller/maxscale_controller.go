@@ -20,9 +20,9 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
 )
@@ -37,9 +37,9 @@ type MaxScaleReconciler struct {
 	ConditionReady *condition.Ready
 	Environment    *environment.Environment
 
-	SecretReconciler     *secret.SecretReconciler
-	ServiceReconciler    *service.ServiceReconciler
-	DeploymentReconciler *deployment.DeploymentReconciler
+	SecretReconciler      *secret.SecretReconciler
+	StatefulSetReconciler *statefulset.StatefulSetReconciler
+	ServiceReconciler     *service.ServiceReconciler
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscales,verbs=get;list;watch;create;update;patch;delete
@@ -75,12 +75,8 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileSecret,
 		},
 		{
-			name:      "PVC",
-			reconcile: r.reconcilePVC,
-		},
-		{
-			name:      "Deployment",
-			reconcile: r.reconcileDeployment,
+			name:      "StatefulSet",
+			reconcile: r.reconcileStatefulSet,
 		},
 		{
 			name:      "PodDisruptionBudget",
@@ -150,37 +146,41 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, mxs *mariadbv1
 	return ctrl.Result{}, r.SecretReconciler.Reconcile(ctx, &req)
 }
 
-func (r *MaxScaleReconciler) reconcilePVC(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
-	if maxscale.Spec.Config.Storage.PersistentVolumeClaim == nil {
-		return ctrl.Result{}, nil
-	}
-	key := maxscale.RuntimeConfigPVCKey()
-	var existingPVC corev1.PersistentVolumeClaim
-	err := r.Get(ctx, key, &existingPVC)
-	if err == nil {
-		return ctrl.Result{}, nil
-	}
-	if err != nil && !apierrors.IsNotFound(err) {
-		return ctrl.Result{}, fmt.Errorf("error creating PVC: %v", err)
-	}
-
-	pvc, err := r.Builder.BuildMaxScaleConfigPVC(key, maxscale)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error buildinb runtime config PVC: %v", err)
-	}
-	return ctrl.Result{}, r.Create(ctx, pvc)
-}
-
-func (r *MaxScaleReconciler) reconcileDeployment(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+func (r *MaxScaleReconciler) reconcileStatefulSet(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(maxscale)
-	deploy, err := r.Builder.BuildMaxScaleDeployment(maxscale, key)
+	desiredSts, err := r.Builder.BuildMaxscaleStatefulSet(maxscale, key)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error building Deployment: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
-	return ctrl.Result{}, r.DeploymentReconciler.Reconcile(ctx, deploy)
+	return ctrl.Result{}, r.StatefulSetReconciler.Reconcile(ctx, desiredSts)
 }
 
 func (r *MaxScaleReconciler) reconcileService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if err := r.reconcileInternalService(ctx, maxscale); err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, r.reconcileKubernetesService(ctx, maxscale)
+}
+
+func (r *MaxScaleReconciler) reconcileInternalService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) error {
+	key := maxscale.InternalServiceKey()
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMaxScaleSelectorLabels(maxscale).
+			Build()
+
+	opts := builder.ServiceOpts{
+		Headless:       true,
+		SelectorLabels: selectorLabels,
+	}
+	desiredSvc, err := r.Builder.BuildService(key, maxscale, opts)
+	if err != nil {
+		return fmt.Errorf("error building internal Service: %v", err)
+	}
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
+func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) error {
 	key := client.ObjectKeyFromObject(maxscale)
 	selectorLabels :=
 		labels.NewLabelsBuilder().
@@ -202,9 +202,9 @@ func (r *MaxScaleReconciler) reconcileService(ctx context.Context, maxscale *mar
 
 	desiredSvc, err := r.Builder.BuildService(key, maxscale, opts)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error building exporter Service: %v", err)
+		return fmt.Errorf("error building exporter Service: %v", err)
 	}
-	return ctrl.Result{}, r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
 func (r *MaxScaleReconciler) reconcilePodDisruptionBudget(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
@@ -255,12 +255,13 @@ func (r *MaxScaleReconciler) reconcilePDBWithAvailability(ctx context.Context, m
 
 func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {
 	return func(mss *mariadbv1alpha1.MaxScaleStatus) error {
-		var deploy appsv1.Deployment
-		if err := r.Get(ctx, client.ObjectKeyFromObject(maxscale), &deploy); err != nil {
+		var sts appsv1.StatefulSet
+		if err := r.Get(ctx, client.ObjectKeyFromObject(maxscale), &sts); err != nil {
 			return err
 		}
-		maxscale.Status.Replicas = deploy.Status.ReadyReplicas
-		condition.SetReadyWithDeployment(&maxscale.Status, &deploy)
+		maxscale.Status.Replicas = sts.Status.ReadyReplicas
+
+		condition.SetReadyWithStatefulSet(&maxscale.Status, &sts)
 		return nil
 	}
 }

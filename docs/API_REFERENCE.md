@@ -591,23 +591,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `params` _object (keys:string, values:string)_ | Params is a key value pair of parameters to be used in the MaxScale configuration file. |
-| `storage` _[MaxScaleConfigStorage](#maxscaleconfigstorage)_ | Storage defines the storage for the MaxScale runtime configuration files. |
-
-
-#### MaxScaleConfigStorage
-
-
-
-MaxScaleConfigStorage defines the storage for the MaxScale runtime configuration.
-
-_Appears in:_
-- [MaxScaleConfig](#maxscaleconfig)
-
-| Field | Description |
-| --- | --- |
-| `persistentVolumeClaim` _[PersistentVolumeClaimSpec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#persistentvolumeclaimspec-v1-core)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |
-| `volume` _[VolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumesource-v1-core)_ | Volume is a Kubernetes volume specification. |
+| `params` _object (keys:string, values:string)_ | Params is a key value pair of parameters to be used in the MaxScale static configuration file. |
+| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files. |
 
 
 #### MaxScaleSpec
@@ -643,7 +628,7 @@ _Appears in:_
 | `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
-| `updateStrategy` _[DeploymentStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#deploymentstrategy-v1-apps)_ | PodDisruptionBudget defines the update strategy for the Deployment object. |
+| `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | UpdateStrategy defines the update strategy for the StatefulSet object. |
 | `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the Kubernetes Service object. |
 
 
@@ -1093,6 +1078,7 @@ _Appears in:_
 - [Galera](#galera)
 - [GaleraSpec](#galeraspec)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleConfig](#maxscaleconfig)
 
 | Field | Description |
 | --- | --- |

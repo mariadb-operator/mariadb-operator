@@ -19,6 +19,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/servicemonitor"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -110,6 +111,7 @@ var _ = BeforeSuite(func() {
 
 	configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 	secretReconciler := secret.NewSecretReconciler(client, builder)
+	statefulSetReconciler := statefulset.NewStatefulSetReconciler(client)
 	serviceReconciler := service.NewServiceReconciler(client)
 	endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
 	batchReconciler := batch.NewBatchReconciler(client, builder)
@@ -175,6 +177,7 @@ var _ = BeforeSuite(func() {
 
 		ConfigMapReconciler:      configMapReconciler,
 		SecretReconciler:         secretReconciler,
+		StatefulSetReconciler:    statefulSetReconciler,
 		ServiceReconciler:        serviceReconciler,
 		EndpointsReconciler:      endpointsReconciler,
 		RBACReconciler:           rbacReconciler,
@@ -195,9 +198,9 @@ var _ = BeforeSuite(func() {
 		ConditionReady: conditionReady,
 		Environment:    env,
 
-		SecretReconciler:     secretReconciler,
-		ServiceReconciler:    serviceReconciler,
-		DeploymentReconciler: deployReconciler,
+		SecretReconciler:      secretReconciler,
+		StatefulSetReconciler: statefulSetReconciler,
+		ServiceReconciler:     serviceReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

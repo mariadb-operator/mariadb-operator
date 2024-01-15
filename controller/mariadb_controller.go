@@ -20,6 +20,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/servicemonitor"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
@@ -52,6 +53,7 @@ type MariaDBReconciler struct {
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
+	StatefulSetReconciler    *statefulset.StatefulSetReconciler
 	ServiceReconciler        *service.ServiceReconciler
 	EndpointsReconciler      *endpoints.EndpointsReconciler
 	RBACReconciler           *rbac.RBACReconciler
@@ -239,26 +241,11 @@ func (r *MariaDBReconciler) reconcileRBAC(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(mariadb)
-	desiredSts, err := r.Builder.BuildStatefulSet(mariadb, key)
+	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
-
-	var existingSts appsv1.StatefulSet
-	if err := r.Get(ctx, key, &existingSts); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("error getting StatefulSet: %v", err)
-		}
-		if err := r.Create(ctx, desiredSts); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating StatefulSet: %v", err)
-		}
-		return ctrl.Result{}, nil
-	}
-
-	patch := client.MergeFrom(existingSts.DeepCopy())
-	existingSts.Spec.Template = desiredSts.Spec.Template
-	existingSts.Spec.Replicas = desiredSts.Spec.Replicas
-	return ctrl.Result{}, r.Patch(ctx, &existingSts, patch)
+	return ctrl.Result{}, r.StatefulSetReconciler.Reconcile(ctx, desiredSts)
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -429,7 +416,7 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 	opts := builder.ServiceOpts{
 		Ports: []corev1.ServicePort{
 			{
-				Name: builder.MariaDbPortName,
+				Name: builder.MariadbPortName,
 				Port: mariadb.Spec.Port,
 			},
 		},
@@ -451,7 +438,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 	key := mariadb.InternalServiceKey()
 	ports := []corev1.ServicePort{
 		{
-			Name: builder.MariaDbPortName,
+			Name: builder.MariadbPortName,
 			Port: mariadb.Spec.Port,
 		},
 	}
@@ -506,7 +493,7 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 	opts := builder.ServiceOpts{
 		Ports: []corev1.ServicePort{
 			{
-				Name: builder.MariaDbPortName,
+				Name: builder.MariadbPortName,
 				Port: mariadb.Spec.Port,
 			},
 		},
@@ -534,7 +521,7 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 		ExcludeSelectorLabels: true,
 		Ports: []corev1.ServicePort{
 			{
-				Name: builder.MariaDbPortName,
+				Name: builder.MariadbPortName,
 				Port: mariadb.Spec.Port,
 			},
 		},
