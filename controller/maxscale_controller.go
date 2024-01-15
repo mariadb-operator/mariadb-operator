@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -133,7 +134,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
 func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
@@ -456,9 +457,9 @@ func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs 
 	return mxsclient.NewClientWithDefaultCredentials(mxs.PodAPIUrl(podIndex), opts...)
 }
 
-// func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
-// 	return r.clientWithAPIUrl(ctx, mxs, mxs.APIUrl())
-// }
+func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
+	return r.clientWithAPIUrl(ctx, mxs, mxs.APIUrl())
+}
 
 func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	podIndex int) (*mxsclient.Client, error) {
@@ -490,6 +491,16 @@ func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alp
 			return err
 		}
 		maxscale.Status.Replicas = sts.Status.ReadyReplicas
+
+		client, err := r.client(ctx, maxscale)
+		if err != nil {
+			return fmt.Errorf("error getting MaxScale client: %v", err)
+		}
+		masterServer, err := client.Server.GetMaster(ctx)
+		if err != nil && !errors.Is(err, mxsclient.ErrMasterServerNotFound) {
+			log.FromContext(ctx).V(1).Error(err, "error getting primary server")
+		}
+		maxscale.Status.PrimaryServer = &masterServer
 
 		condition.SetReadyWithStatefulSet(&maxscale.Status, &sts)
 		return nil
