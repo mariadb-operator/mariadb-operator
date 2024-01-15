@@ -17060,6 +17060,10 @@ spec:
                 description: Replicas indicates the number of desired instances.
                 format: int32
                 type: integer
+              requeueInterval:
+                description: RequeueInterval is used to perform requeue reconcilizations.
+                  If not defined, it defaults to 10s.
+                type: string
               resources:
                 description: Resouces describes the compute resource requirements.
                 properties:

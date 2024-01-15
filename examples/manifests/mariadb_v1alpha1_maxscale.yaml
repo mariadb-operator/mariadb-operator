@@ -79,3 +79,5 @@ spec:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+
+  requeueInterval: 10s

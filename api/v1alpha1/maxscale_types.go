@@ -363,6 +363,10 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	KubernetesService *ServiceTemplate `json:"kubernetesService,omitempty"`
+	// RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
 }
 
 // MaxScaleStatus defines the observed state of MaxScale
@@ -411,6 +415,9 @@ type MaxScale struct {
 func (m *MaxScale) SetDefaults(env *environment.Environment) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMaxscaleImage
+	}
+	if m.Spec.RequeueInterval == nil {
+		m.Spec.RequeueInterval = &metav1.Duration{Duration: 5 * time.Second}
 	}
 	for i := range m.Spec.Servers {
 		m.Spec.Servers[i].SetDefaults()

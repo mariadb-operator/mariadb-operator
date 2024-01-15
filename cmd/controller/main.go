@@ -72,6 +72,7 @@ var (
 	requeueConnection time.Duration
 	requeueSql        time.Duration
 	requeueSqlJob     time.Duration
+	requeueMaxScale   time.Duration
 )
 
 func init() {
@@ -91,6 +92,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 30*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
+	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 10*time.Second, "The interval at which MaxScales are requeued.")
 }
 
 var rootCmd = &cobra.Command{
@@ -262,7 +264,8 @@ var rootCmd = &cobra.Command{
 			StatefulSetReconciler: statefulSetReconciler,
 			ServiceReconciler:     serviceReconciler,
 
-			LogMaxScale: logMaxScale,
+			RequeueInterval: requeueMaxScale,
+			LogRequests:     logMaxScale,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)
