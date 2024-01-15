@@ -71,6 +71,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 				jobEnv(mariadb),
 				backup.Spec.Resources,
 				mariadb,
+				backup.Spec.SecurityContext,
 			),
 		),
 		withJobContainers(
@@ -81,6 +82,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 				backup.Spec.Resources,
 				mariadb,
 				b.env,
+				backup.Spec.SecurityContext,
 			),
 		),
 		withJobBackoffLimit(backup.Spec.BackoffLimit),
@@ -88,7 +90,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		withAffinity(backup.Spec.Affinity),
 		withNodeSelector(backup.Spec.NodeSelector),
 		withTolerations(backup.Spec.Tolerations...),
-		withPodSecurityContext(mariadb.Spec.PodSecurityContext),
+		withPodSecurityContext(backup.Spec.PodSecurityContext),
 	}
 
 	builder, err := newJobBuilder(opts...)
@@ -171,6 +173,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 				restore.Spec.Resources,
 				mariadb,
 				b.env,
+				restore.Spec.SecurityContext,
 			),
 		),
 		withJobContainers(
@@ -180,6 +183,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 				jobEnv(mariadb),
 				restore.Spec.Resources,
 				mariadb,
+				restore.Spec.SecurityContext,
 			),
 		),
 		withJobBackoffLimit(restore.Spec.BackoffLimit),
@@ -187,7 +191,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		withAffinity(restore.Spec.Affinity),
 		withNodeSelector(restore.Spec.NodeSelector),
 		withTolerations(restore.Spec.Tolerations...),
-		withPodSecurityContext(mariadb.Spec.PodSecurityContext),
+		withPodSecurityContext(restore.Spec.PodSecurityContext),
 	}
 
 	builder, err := newJobBuilder(jobOpts...)
@@ -234,6 +238,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 				sqlJobEnv(sqlJob),
 				sqlJob.Spec.Resources,
 				mariadb,
+				sqlJob.Spec.SecurityContext,
 			),
 		),
 		withJobBackoffLimit(sqlJob.Spec.BackoffLimit),
@@ -241,7 +246,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		withAffinity(sqlJob.Spec.Affinity),
 		withNodeSelector(sqlJob.Spec.NodeSelector),
 		withTolerations(sqlJob.Spec.Tolerations...),
-		withPodSecurityContext(mariadb.Spec.PodSecurityContext),
+		withPodSecurityContext(sqlJob.Spec.PodSecurityContext),
 	}
 
 	builder, err := newJobBuilder(jobOpts...)
