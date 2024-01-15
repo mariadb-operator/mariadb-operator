@@ -15,7 +15,7 @@ import (
 
 func MariaDBPort(svc *corev1.Service) (*v1.ServicePort, error) {
 	for _, p := range svc.Spec.Ports {
-		if p.Name == MariaDbPortName {
+		if p.Name == MariadbPortName {
 			return &p, nil
 		}
 	}

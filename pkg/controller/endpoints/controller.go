@@ -109,7 +109,7 @@ func (r *EndpointsReconciler) endpoints(ctx context.Context, key types.Namespace
 			NotReadyAddresses: notReadyAddresses,
 			Ports: []corev1.EndpointPort{
 				{
-					Name:     builder.MariaDbPortName,
+					Name:     builder.MariadbPortName,
 					Port:     mariadb.Spec.Port,
 					Protocol: corev1.ProtocolTCP,
 				},
