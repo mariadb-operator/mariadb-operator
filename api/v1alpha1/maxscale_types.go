@@ -448,11 +448,29 @@ func (m *MaxScale) PodAPIUrl(podIndex int) string {
 	return m.apiUrlWithAddress(fqdn)
 }
 
-// ServerIDs returns the IDs of the MariaDB servers.
+// ServerIDs returns the IDs of the servers.
 func (m *MaxScale) ServerIDs() []string {
 	ids := make([]string, len(m.Spec.Servers))
 	for i, srv := range m.Spec.Servers {
 		ids[i] = srv.Name
+	}
+	return ids
+}
+
+// ServiceIDs returns the IDs of the services.
+func (m *MaxScale) ServiceIDs() []string {
+	ids := make([]string, len(m.Spec.Services))
+	for i, svc := range m.Spec.Services {
+		ids[i] = svc.Name
+	}
+	return ids
+}
+
+// ListenerIDs returns the IDs of the listeners.
+func (m *MaxScale) ListenerIDs() []string {
+	ids := make([]string, len(m.Spec.Services))
+	for i, svc := range m.Spec.Services {
+		ids[i] = svc.Listener.Name
 	}
 	return ids
 }
