@@ -106,6 +106,7 @@ func (b *Builder) buildStsPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels m
 			NodeSelector:                 mariadb.Spec.NodeSelector,
 			Tolerations:                  mariadb.Spec.Tolerations,
 			PriorityClassName:            buildPriorityClass(mariadb),
+			TopologySpreadConstraints:    mariadb.Spec.TopologySpreadConstraints,
 		},
 	}, nil
 }
