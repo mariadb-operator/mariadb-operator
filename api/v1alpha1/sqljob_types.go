@@ -68,6 +68,14 @@ type SqlJobSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// SecurityContext holds security configuration that will be applied to a container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+	// SecurityContext holds pod-level security attributes and common container settings.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 }
 
 // SqlJobStatus defines the observed state of SqlJob
