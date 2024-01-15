@@ -501,7 +501,24 @@ func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alp
 		if err != nil && !errors.Is(err, mxsclient.ErrMasterServerNotFound) {
 			log.FromContext(ctx).V(1).Error(err, "error getting primary server")
 		}
-		maxscale.Status.PrimaryServer = &masterServer
+		if err == nil && masterServer != "" {
+			if maxscale.Status.PrimaryServer != nil && *maxscale.Status.PrimaryServer != masterServer {
+				fromServer := *maxscale.Status.PrimaryServer
+				toServer := masterServer
+				log.FromContext(ctx).Info(
+					"MaxScale primary server changed",
+					"from-server", fromServer,
+					"to-server", toServer,
+				)
+				r.Recorder.Event(
+					maxscale,
+					corev1.EventTypeNormal,
+					mariadbv1alpha1.ReasonMaxScalePrimaryServerChanged,
+					fmt.Sprintf("MaxScale primary server changed from '%s' to '%s'", fromServer, toServer),
+				)
+			}
+			maxscale.Status.PrimaryServer = &masterServer
+		}
 
 		condition.SetReadyWithStatefulSet(&maxscale.Status, &sts)
 		return nil

@@ -40,6 +40,9 @@ const (
 	// ReasonPrimarySwitched indicates that primary has been switched.
 	ReasonPrimarySwitched = "PrimarySwitched"
 
+	// ReasonMaxScalePrimaryServerChanged indicates that the primary server managed by MaxScale has changed.
+	ReasonMaxScalePrimaryServerChanged = "MaxScalePrimaryServerChanged"
+
 	// ReasonWebhookUpdateFailed indicates that the webhook configuration update failed.
 	ReasonWebhookUpdateFailed = "WebhookUpdateFailed"
 
