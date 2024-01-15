@@ -53,44 +53,14 @@ spec:
               admin:
                 description: Admin configures the admin REST API and GUI.
                 properties:
-                  deleteDefaultAdmin:
-                    description: DeleteDefaultAdmin determines whether the default
-                      admin user should be deleted after the initial configuration.
-                      It is defaulted to true if not provided.
-                    type: boolean
                   guiEnabled:
                     description: GuiEnabled indicates whether the admin GUI should
                       be enabled.
                     type: boolean
-                  passwordSecretKeyRef:
-                    description: PasswordSecretKeyRef is Secret key reference to the
-                      admin password to call the REST API. It is defaulted if not
-                      provided.
-                    properties:
-                      key:
-                        description: The key of the secret to select from.  Must be
-                          a valid secret key.
-                        type: string
-                      name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?'
-                        type: string
-                      optional:
-                        description: Specify whether the Secret or its key must be
-                          defined
-                        type: boolean
-                    required:
-                    - key
-                    type: object
-                    x-kubernetes-map-type: atomic
                   port:
                     description: Port where the admin REST API will be exposed.
                     format: int32
                     type: integer
-                  username:
-                    description: Username is an admin username to call the REST API.
-                      It is defaulted if not provided.
-                    type: string
                 type: object
               affinity:
                 description: Affinity to be used in the Pod.
@@ -929,6 +899,31 @@ spec:
                 description: Auth defines the credentials required for MaxScale to
                   connect to MariaDB.
                 properties:
+                  adminPasswordSecretKeyRef:
+                    description: AdminPasswordSecretKeyRef is Secret key reference
+                      to the admin password to call the REST API. It is defaulted
+                      if not provided.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  adminUsername:
+                    description: AdminUsername is an admin username to call the REST
+                      API. It is defaulted if not provided.
+                    type: string
                   clientPasswordSecretKeyRef:
                     description: ClientPasswordSecretKeyRef is Secret key reference
                       to the password to connect to MaxScale. It is defaulted if not
@@ -954,6 +949,11 @@ spec:
                     description: ClientUsername is the user to connect to MaxScale.
                       It is defaulted if not provided.
                     type: string
+                  deleteDefaultAdmin:
+                    description: DeleteDefaultAdmin determines whether the default
+                      admin user should be deleted after the initial configuration.
+                      It is defaulted to true if not provided.
+                    type: boolean
                   monitorPasswordSecretKeyRef:
                     description: MonitorPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale monitor to connect to MariaDB

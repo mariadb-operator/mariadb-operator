@@ -163,7 +163,7 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, mxs *mariadbv1
 	}
 
 	randomPasswordKeys := []corev1.SecretKeySelector{
-		mxs.Spec.Admin.PasswordSecretKeyRef,
+		mxs.Spec.Auth.AdminPasswordSecretKeyRef,
 		mxs.Spec.Auth.ClientPasswordSecretKeyRef,
 		mxs.Spec.Auth.ServerPasswordSecretKeyRef,
 		mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
@@ -308,7 +308,7 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
-	err = client.User.Get(ctx, maxscale.Spec.Admin.Username)
+	err = client.User.Get(ctx, maxscale.Spec.Auth.AdminUsername)
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
@@ -321,14 +321,14 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
-	password, err := r.RefResolver.SecretKeyRef(ctx, maxscale.Spec.Admin.PasswordSecretKeyRef, maxscale.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, maxscale.Spec.Auth.AdminPasswordSecretKeyRef, maxscale.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting admin password: %v", err)
 	}
-	if err := defaultClient.User.CreateAdmin(ctx, maxscale.Spec.Admin.Username, password); err != nil {
+	if err := defaultClient.User.CreateAdmin(ctx, maxscale.Spec.Auth.AdminUsername, password); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating admin user: %v", err)
 	}
-	if maxscale.Spec.Admin.ShouldDeleteDefaultAdmin() {
+	if maxscale.Spec.Auth.ShouldDeleteDefaultAdmin() {
 		if err := defaultClient.User.DeleteDefaultAdmin(ctx); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error deleting default admin: %v", err)
 		}
@@ -467,14 +467,14 @@ func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *mariad
 
 func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	apiUrl string) (*mxsclient.Client, error) {
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Admin.PasswordSecretKeyRef, mxs.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef, mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting admin password: %v", err)
 	}
 
 	opts := []mdbhttp.Option{
 		mdbhttp.WithTimeout(10 * time.Second),
-		mdbhttp.WithBasicAuth(mxs.Spec.Admin.Username, password),
+		mdbhttp.WithBasicAuth(mxs.Spec.Auth.AdminUsername, password),
 	}
 	if r.LogMaxScale {
 		logger := log.FromContext(ctx).WithName("maxscale-client")
