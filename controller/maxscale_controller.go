@@ -310,7 +310,7 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
-	err = client.User.Get(ctx, maxscale.Spec.Auth.AdminUsername)
+	_, err = client.User.Get(ctx, maxscale.Spec.Auth.AdminUsername)
 	if err == nil {
 		return ctrl.Result{}, nil
 	}

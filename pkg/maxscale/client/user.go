@@ -13,7 +13,15 @@ type UserAttributes struct {
 }
 
 type UserClient struct {
+	ReadClient[UserAttributes]
 	client *mdbhttp.Client
+}
+
+func NewUserClient(client *mdbhttp.Client) *UserClient {
+	return &UserClient{
+		ReadClient: NewListClient[UserAttributes](client, "users/inet"),
+		client:     client,
+	}
 }
 
 func (u *UserClient) CreateAdmin(ctx context.Context, username, password string) error {
@@ -28,14 +36,6 @@ func (u *UserClient) CreateAdmin(ctx context.Context, username, password string)
 		},
 	}
 	res, err := u.client.Post(ctx, "users/inet", payload, nil)
-	if err != nil {
-		return err
-	}
-	return handleResponse(res, nil)
-}
-
-func (u *UserClient) Get(ctx context.Context, username string) error {
-	res, err := u.client.Get(ctx, userPath(username), nil)
 	if err != nil {
 		return err
 	}

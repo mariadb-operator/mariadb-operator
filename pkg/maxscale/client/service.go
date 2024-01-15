@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
@@ -47,19 +46,15 @@ type ServiceAttributes struct {
 }
 
 type ServiceClient struct {
+	ReadClient[ServiceAttributes]
 	client *mdbhttp.Client
 }
 
-func (s *ServiceClient) List(ctx context.Context) ([]Data[ServiceAttributes], error) {
-	var list List[ServiceAttributes]
-	res, err := s.client.Get(ctx, "services", nil)
-	if err != nil {
-		return nil, fmt.Errorf("error getting services: %v", err)
+func NewServiceClient(client *mdbhttp.Client) *ServiceClient {
+	return &ServiceClient{
+		ReadClient: NewListClient[ServiceAttributes](client, "services"),
+		client:     client,
 	}
-	if err := handleResponse(res, &list); err != nil {
-		return nil, err
-	}
-	return list.Data, nil
 }
 
 func (s *ServiceClient) Create(ctx context.Context, name string, router mariadbv1alpha1.ServiceRouter, params ServiceParameters,

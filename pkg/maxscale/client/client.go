@@ -25,21 +25,11 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 		return nil, fmt.Errorf("error creating HTTP client: %v", err)
 	}
 	return &Client{
-		User: &UserClient{
-			client: httpClient,
-		},
-		Server: &ServerClient{
-			client: httpClient,
-		},
-		Service: &ServiceClient{
-			client: httpClient,
-		},
-		Listener: &ListenerClient{
-			client: httpClient,
-		},
-		Monitor: &MonitorClient{
-			client: httpClient,
-		},
+		User:     NewUserClient(httpClient),
+		Server:   NewServerClient(httpClient),
+		Service:  NewServiceClient(httpClient),
+		Listener: NewListenerClient(httpClient),
+		Monitor:  NewMonitorClient(httpClient),
 	}, nil
 }
 

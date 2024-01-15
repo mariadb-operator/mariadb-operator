@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
@@ -27,25 +26,21 @@ func (s *ServerAttributes) IsMaster() bool {
 }
 
 type ServerClient struct {
+	ReadClient[ServerAttributes]
 	client *mdbhttp.Client
 }
 
-func (s *ServerClient) List(ctx context.Context) ([]Data[ServerAttributes], error) {
-	var list List[ServerAttributes]
-	res, err := s.client.Get(ctx, "servers", nil)
-	if err != nil {
-		return nil, fmt.Errorf("error getting servers: %v", err)
+func NewServerClient(client *mdbhttp.Client) *ServerClient {
+	return &ServerClient{
+		ReadClient: NewListClient[ServerAttributes](client, "servers"),
+		client:     client,
 	}
-	if err := handleResponse(res, &list); err != nil {
-		return nil, err
-	}
-	return list.Data, nil
 }
 
 func (s *ServerClient) GetMaster(ctx context.Context) (string, error) {
 	servers, err := s.List(ctx)
 	if err != nil {
-		return "", fmt.Errorf("error getting servers: %v", err)
+		return "", err
 	}
 	for _, srv := range servers {
 		if srv.Attributes.IsMaster() {
