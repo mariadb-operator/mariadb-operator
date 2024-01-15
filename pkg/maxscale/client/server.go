@@ -2,10 +2,14 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
+
+var ErrMasterServerNotFound = errors.New("master server not found")
 
 type ServerParameters struct {
 	Address  string `json:"address"`
@@ -16,6 +20,10 @@ type ServerParameters struct {
 type ServerAttributes struct {
 	State      string           `json:"state,omitempty"`
 	Parameters ServerParameters `json:"parameters"`
+}
+
+func (s *ServerAttributes) IsMaster() bool {
+	return strings.Contains(s.State, "Master")
 }
 
 type ServerClient struct {
@@ -32,6 +40,19 @@ func (s *ServerClient) List(ctx context.Context) ([]Data[ServerAttributes], erro
 		return nil, err
 	}
 	return list.Data, nil
+}
+
+func (s *ServerClient) GetMaster(ctx context.Context) (string, error) {
+	servers, err := s.List(ctx)
+	if err != nil {
+		return "", fmt.Errorf("error getting servers: %v", err)
+	}
+	for _, srv := range servers {
+		if srv.Attributes.IsMaster() {
+			return srv.ID, nil
+		}
+	}
+	return "", ErrMasterServerNotFound
 }
 
 func (s *ServerClient) Create(ctx context.Context, name string, params ServerParameters) error {
