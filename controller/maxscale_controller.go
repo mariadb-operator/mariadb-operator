@@ -338,40 +338,59 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	return ctrl.Result{}, nil
 }
 
-func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
-	if !maxscale.IsReady() {
+func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if !mxs.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	// TODO: all Pods in order to support HA
-	client, err := r.clientWithPodIndex(ctx, maxscale, 0)
+	client, err := r.clientWithPodIndex(ctx, mxs, 0)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
 
-	if err := r.initServers(ctx, maxscale, client); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error initializing servers: %v", err)
+	anyExist, err := client.Server.AnyExists(ctx, mxs.ServerIDs()...)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking if servers already exist: %v", err)
 	}
-	if err := r.initServices(ctx, maxscale, client); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error initializing services: %v", err)
+	if anyExist {
+		return ctrl.Result{}, nil
 	}
-	if err := r.initMonitor(ctx, maxscale, client); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error initializing monitor: %v", err)
+	anyExist, err = client.Service.AnyExists(ctx, mxs.ServiceIDs()...)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking if services already exist: %v", err)
+	}
+	if anyExist {
+		return ctrl.Result{}, nil
+	}
+	anyExist, err = client.Service.AnyExists(ctx, mxs.ListenerIDs()...)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking if listeners already exist: %v", err)
+	}
+	if anyExist {
+		return ctrl.Result{}, nil
+	}
+	anyExist, err = client.Monitor.AnyExists(ctx, mxs.Spec.Monitor.Name)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking if monitors already exist: %v", err)
+	}
+	if anyExist {
+		return ctrl.Result{}, nil
 	}
 
+	if err := r.initServers(ctx, mxs, client); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error initializing servers: %v", err)
+	}
+	if err := r.initServices(ctx, mxs, client); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error initializing services: %v", err)
+	}
+	if err := r.initMonitor(ctx, mxs, client); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error initializing monitor: %v", err)
+	}
 	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) initServers(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
-	servers, err := client.Server.List(ctx)
-	if err != nil {
-		return fmt.Errorf("error listing servers: %v", err)
-	}
-	// TODO: handle upgrade
-	if len(servers) > 0 {
-		return nil
-	}
-
 	for _, srv := range mxs.Spec.Servers {
 		params := mxsclient.ServerParameters{
 			Address:  srv.Address,
@@ -386,15 +405,6 @@ func (r *MaxScaleReconciler) initServers(ctx context.Context, mxs *mariadbv1alph
 }
 
 func (r *MaxScaleReconciler) initServices(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
-	services, err := client.Service.List(ctx)
-	if err != nil {
-		return fmt.Errorf("error listing services: %v", err)
-	}
-	// TODO: handle upgrade
-	if len(services) > 0 {
-		return nil
-	}
-
 	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.ServerPasswordSecretKeyRef, mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting server password: %v", err)
@@ -425,10 +435,6 @@ func (r *MaxScaleReconciler) initServices(ctx context.Context, mxs *mariadbv1alp
 }
 
 func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
-	if _, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Name); err == nil {
-		return nil
-	}
-
 	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.MonitorPasswordSecretKeyRef, mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting monitor password: %v", err)
