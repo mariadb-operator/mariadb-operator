@@ -203,7 +203,8 @@ var _ = BeforeSuite(func() {
 		StatefulSetReconciler: statefulSetReconciler,
 		ServiceReconciler:     serviceReconciler,
 
-		LogMaxScale: true,
+		RequeueInterval: 5 * time.Second,
+		LogRequests:     true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

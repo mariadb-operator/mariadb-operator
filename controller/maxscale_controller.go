@@ -48,7 +48,8 @@ type MaxScaleReconciler struct {
 	StatefulSetReconciler *statefulset.StatefulSetReconciler
 	ServiceReconciler     *service.ServiceReconciler
 
-	LogMaxScale bool
+	RequeueInterval time.Duration
+	LogRequests     bool
 }
 
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscales,verbs=get;list;watch;create;update;patch;delete
@@ -134,7 +135,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	return r.requeueResult(ctx, &maxscale)
 }
 
 func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
@@ -450,7 +451,7 @@ func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs 
 	opts := []mdbhttp.Option{
 		mdbhttp.WithTimeout(10 * time.Second),
 	}
-	if r.LogMaxScale {
+	if r.LogRequests {
 		logger := log.FromContext(ctx).WithName("maxscale-client")
 		opts = append(opts, mdbhttp.WithLogger(&logger))
 	}
@@ -477,7 +478,7 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 		mdbhttp.WithTimeout(10 * time.Second),
 		mdbhttp.WithBasicAuth(mxs.Spec.Auth.AdminUsername, password),
 	}
-	if r.LogMaxScale {
+	if r.LogRequests {
 		logger := log.FromContext(ctx).WithName("maxscale-client")
 		opts = append(opts, mdbhttp.WithLogger(&logger))
 	}
@@ -521,6 +522,18 @@ func (r *MaxScaleReconciler) patch(ctx context.Context, maxscale *mariadbv1alpha
 	patch := client.MergeFrom(maxscale.DeepCopy())
 	patcher(maxscale)
 	return r.Patch(ctx, maxscale, patch)
+}
+
+func (r *MaxScaleReconciler) requeueResult(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if mxs.Spec.RequeueInterval != nil {
+		log.FromContext(ctx).V(1).Info("Requeuing MaxScale")
+		return ctrl.Result{RequeueAfter: mxs.Spec.RequeueInterval.Duration}, nil
+	}
+	if r.RequeueInterval > 0 {
+		log.FromContext(ctx).V(1).Info("Requeuing MaxScale")
+		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+	}
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
