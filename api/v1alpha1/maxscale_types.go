@@ -177,18 +177,6 @@ type MaxScaleAdmin struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Port int32 `json:"port"`
-	// Username is an admin username to call the REST API. It is defaulted if not provided.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Username string `json:"username,omitempty"`
-	// PasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
-	// DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. It is defaulted to true if not provided.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	DeleteDefaultAdmin *bool `json:"deleteDefaultAdmin,omitempty"`
 	// GuiEnabled indicates whether the admin GUI should be enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -200,23 +188,10 @@ func (m *MaxScaleAdmin) SetDefaults(mxs *MaxScale) {
 	if m.Port == 0 {
 		m.Port = 8989
 	}
-	if m.Username == "" {
-		m.Username = "mariadb-operator"
-	}
-	if m.PasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
-		m.PasswordSecretKeyRef = mxs.AdminPasswordSecretKeyRef()
-	}
-	if m.DeleteDefaultAdmin == nil {
-		m.DeleteDefaultAdmin = ptr.To(true)
-	}
+
 	if m.GuiEnabled == nil {
 		m.GuiEnabled = ptr.To(true)
 	}
-}
-
-// SetDefaults indicates whether the default admin should be deleted after initial setup.
-func (m *MaxScaleAdmin) ShouldDeleteDefaultAdmin() bool {
-	return m.DeleteDefaultAdmin != nil && *m.DeleteDefaultAdmin
 }
 
 // MaxScaleConfig defines the MaxScale configuration.
@@ -250,6 +225,18 @@ func (m *MaxScaleConfig) SetDefaults() {
 
 // MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB
 type MaxScaleAuth struct {
+	// AdminUsername is an admin username to call the REST API. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AdminUsername string `json:"adminUsername,omitempty"`
+	// AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AdminPasswordSecretKeyRef corev1.SecretKeySelector `json:"adminPasswordSecretKeyRef,omitempty"`
+	// DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. It is defaulted to true if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	DeleteDefaultAdmin *bool `json:"deleteDefaultAdmin,omitempty"`
 	// ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -278,6 +265,15 @@ type MaxScaleAuth struct {
 
 // SetDefaults sets default values.
 func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
+	if m.AdminUsername == "" {
+		m.AdminUsername = "mariadb-operator"
+	}
+	if m.AdminPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+		m.AdminPasswordSecretKeyRef = mxs.AdminPasswordSecretKeyRef()
+	}
+	if m.DeleteDefaultAdmin == nil {
+		m.DeleteDefaultAdmin = ptr.To(true)
+	}
 	if m.ClientUsername == "" {
 		m.ClientUsername = mxs.AuthClientUserKey().Name
 	}
@@ -296,6 +292,11 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	if m.MonitorPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.MonitorPasswordSecretKeyRef = mxs.AuthMonitorPasswordSecretKeyRef()
 	}
+}
+
+// SetDefaults indicates whether the default admin should be deleted after initial setup.
+func (m *MaxScaleAuth) ShouldDeleteDefaultAdmin() bool {
+	return m.DeleteDefaultAdmin != nil && *m.DeleteDefaultAdmin
 }
 
 // MaxScaleSpec defines the desired state of MaxScale

@@ -46,10 +46,6 @@ spec:
 
   admin:
     port: 8989
-    username: mariadb-operator
-    passwordSecretKeyRef:
-      name: maxscale
-      key: password
 
   monitor:
     module: mariadbmon
@@ -62,6 +58,10 @@ spec:
 
   # TODO: create User and Grants in the operator
   auth:
+    adminUsername: mariadb-operator
+    adminPasswordSecretKeyRef:
+      name: maxscale
+      key: password
     clientUsername: maxscale-client
     clientPasswordSecretKeyRef:
       name: maxscale
