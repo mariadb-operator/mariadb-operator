@@ -39,11 +39,16 @@ host-mariadb-galera: ## Add mariadb galera hosts to /etc/hosts.
 	@./hack/add_host.sh 160 mariadb-galera-primary.default.svc.cluster.local
 	@./hack/add_host.sh 161 mariadb-galera-secondary.default.svc.cluster.local
 
+.PHONY: host-monitoring
+host-monitoring: ## Add monitoring hosts to /etc/hosts.
+	@./hack/add_host.sh 190 prometheus
+	@./hack/add_host.sh 191 grafana
+
 .PHONY: host-minio
 host-minio: ## Add minio hosts to /etc/hosts.
 	@./hack/add_host.sh 200 minio
 	@./hack/add_host.sh 201 minio-console
 
 .PHONY: net
-net: install-metallb host-mariadb host-mariadb-test host-mariadb-repl host-mariadb-galera host-minio ## Configure networking for local development.
+net: install-metallb host-mariadb host-mariadb-test host-mariadb-repl host-mariadb-galera host-monitoring host-minio ## Configure networking for local development.
 

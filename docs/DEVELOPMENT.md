@@ -67,16 +67,6 @@ To decommission the cluster:
 make cluster-delete
 ```
 
-## Dependencies
-
-You might need the following third party dependencies to test certain features of `mariadb-operator`, to install them run:
-
-```bash
-make install-prometheus
-make install-cert-manager
-make install-minio
-```
-
 ## Network
 
 You can configure the network connectivity so the operator is able to resolve DNS and address MariaDB as if it was running in-cluster:
@@ -95,6 +85,18 @@ When deploying [example manifests](../examples/manifests/), take into account th
 - [examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml](https://github.com/mariadb-operator/mariadb-operator/blob/160b7cc937c031f6faf7c1f50fcae78053faf766/examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml#L87)
 - [examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml](https://github.com/mariadb-operator/mariadb-operator/blob/6f79a8e9e73977c433fb2d5c39a4b7210349b46c/examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml#L102)
 
+
+## Dependencies
+
+You might need the following third party dependencies to test certain features of `mariadb-operator`, to install them run:
+
+```bash
+make install-prometheus
+make install-cert-manager
+make install-minio
+```
+
+Some of this dependencies have ports mapped to the host (i.e. Grafana and Minio to expose the dashboard) so be sure to check the [forwarded ports](../.devcontainer/devcontainer.json) to access. This step requires running `make net` previously.
 
 ## Generate
 

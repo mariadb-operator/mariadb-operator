@@ -31,5 +31,24 @@
                 "redhat.vscode-yaml"
             ]
         }
+    },
+    "forwardPorts": [
+      "prometheus:9090",
+      "grafana:3000",
+      "minio-console:9001"
+    ],
+    "portsAttributes": {
+      "9090": {
+        "label": "prometheus",
+        "onAutoForward": "notify"
+      },
+      "3000": {
+        "label": "grafana",
+        "onAutoForward": "notify"
+      },
+      "9001": {
+        "label": "minio",
+        "onAutoForward": "notify"
+      }
     }
 }
