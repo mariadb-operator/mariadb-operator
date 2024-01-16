@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
@@ -31,12 +32,12 @@ func (c *ReadClient[T]) List(ctx context.Context) ([]Data[T], error) {
 	return list.Data, nil
 }
 
-func (c *ReadClient[T]) ListIndex(ctx context.Context) (Index[T], error) {
+func (c *ReadClient[T]) ListIndex(ctx context.Context) (ds.Index[Data[T]], error) {
 	list, err := c.List(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return IndexList(list), nil
+	return ds.IndexSlice[Data[T]](list, func(d Data[T]) string { return d.ID }), nil
 }
 
 func (c *ReadClient[T]) AnyExists(ctx context.Context, ids ...string) (bool, error) {
@@ -44,7 +45,7 @@ func (c *ReadClient[T]) AnyExists(ctx context.Context, ids ...string) (bool, err
 	if err != nil {
 		return false, nil
 	}
-	return AnyExists(index, ids...), nil
+	return ds.AnyExists[Data[T]](index, ids...), nil
 }
 
 func (c *ReadClient[T]) Get(ctx context.Context, name string) (*Data[T], error) {

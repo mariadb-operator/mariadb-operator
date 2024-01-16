@@ -25,6 +25,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
+	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
@@ -103,6 +104,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "Init",
 			reconcile: r.reconcileInit,
+		},
+		{
+			name:      "Server",
+			reconcile: r.reconcileServers,
 		},
 	}
 
@@ -453,6 +458,32 @@ func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alph
 	return nil
 }
 
+func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	// TODO: shared client pointing to the same instance?
+	client, err := r.client(ctx, mxs)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
+	}
+	previousIdx, err := client.Server.ListIndex(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting server index: %v", err)
+	}
+
+	diff := ds.Diff[
+		mariadbv1alpha1.MaxScaleServer,
+		mxsclient.Data[mxsclient.ServerAttributes],
+	](mxs.ServerIndex(), previousIdx)
+
+	log.FromContext(ctx).V(1).Info(
+		"Diff",
+		"added", diff.Added,
+		"deleted", diff.Deleted,
+		"rest", diff.Rest,
+	)
+
+	return ctrl.Result{}, nil
+}
+
 func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	podIndex int) (*mxsclient.Client, error) {
 	opts := []mdbhttp.Option{
@@ -506,7 +537,7 @@ func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alp
 		}
 		masterServer, err := client.Server.GetMaster(ctx)
 		if err != nil && !errors.Is(err, mxsclient.ErrMasterServerNotFound) {
-			log.FromContext(ctx).V(1).Error(err, "error getting primary server")
+			log.FromContext(ctx).V(1).Info("error getting primary server", "err", err)
 		}
 		if err == nil && masterServer != "" {
 			if maxscale.Status.PrimaryServer != nil && *maxscale.Status.PrimaryServer != masterServer {
