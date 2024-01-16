@@ -113,25 +113,6 @@ type List[T any] struct {
 	Data []Data[T] `json:"data"`
 }
 
-type Index[T any] map[string]Data[T]
-
-func IndexList[T any](list []Data[T]) Index[T] {
-	index := make(Index[T], len(list))
-	for _, data := range list {
-		index[data.ID] = data
-	}
-	return index
-}
-
-func AnyExists[T any](index Index[T], ids ...string) bool {
-	for _, id := range ids {
-		if _, ok := index[id]; ok {
-			return true
-		}
-	}
-	return false
-}
-
 type APIErrorItem struct {
 	Detail string `json:"detail"`
 }

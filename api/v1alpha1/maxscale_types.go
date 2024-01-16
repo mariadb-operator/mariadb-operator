@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
@@ -452,13 +453,14 @@ func (m *MaxScale) PodAPIUrl(podIndex int) string {
 	return m.apiUrlWithAddress(fqdn)
 }
 
+// ServerIDs returns an the servers indexed by ID.
+func (m *MaxScale) ServerIndex() ds.Index[MaxScaleServer] {
+	return ds.IndexSlice[MaxScaleServer](m.Spec.Servers, getServerID)
+}
+
 // ServerIDs returns the IDs of the servers.
 func (m *MaxScale) ServerIDs() []string {
-	ids := make([]string, len(m.Spec.Servers))
-	for i, srv := range m.Spec.Servers {
-		ids[i] = srv.Name
-	}
-	return ids
+	return ds.Keys[MaxScaleServer](m.ServerIndex())
 }
 
 // ServiceIDs returns the IDs of the services.
@@ -477,6 +479,10 @@ func (m *MaxScale) ListenerIDs() []string {
 		ids[i] = svc.Listener.Name
 	}
 	return ids
+}
+
+func getServerID(srv MaxScaleServer) string {
+	return srv.Name
 }
 
 func (m *MaxScale) apiUrlWithAddress(addr string) string {
