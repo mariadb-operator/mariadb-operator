@@ -51,8 +51,12 @@ host-minio: ## Add minio hosts to /etc/hosts.
 
 .PHONY: host-maxscale
 host-maxscale: ## Add maxscale hosts to /etc/hosts.
-	@./hack/add_host.sh $(CIDR_PREFIX).0.210 maxscale.default.svc.cluster.local
+	@./hack/add_host.sh 210 maxscale-0.maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 211 maxscale-1.maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 212 maxscale-2.maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 213 maxscale-3.maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 214 maxscale.default.svc.cluster.local
 
 .PHONY: net
-net: install-metallb host-mariadb host-mariadb-test host-mariadb-repl host-mariadb-galera host-monitoring host-minio ## Configure networking for local development.
+net: install-metallb host-mariadb host-mariadb-test host-mariadb-repl host-mariadb-galera host-monitoring host-minio host-maxscale ## Configure networking for local development.
 
