@@ -56,34 +56,10 @@ spec:
                     description: GuiEnabled indicates whether the admin GUI should
                       be enabled.
                     type: boolean
-                  passwordSecretKeyRef:
-                    description: PasswordSecretKeyRef is Secret key reference to the
-                      admin password to call the REST API. It is defaulted if not
-                      provided.
-                    properties:
-                      key:
-                        description: The key of the secret to select from.  Must be
-                          a valid secret key.
-                        type: string
-                      name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?'
-                        type: string
-                      optional:
-                        description: Specify whether the Secret or its key must be
-                          defined
-                        type: boolean
-                    required:
-                    - key
-                    type: object
-                    x-kubernetes-map-type: atomic
                   port:
                     description: Port where the admin REST API will be exposed.
+                    format: int32
                     type: integer
-                  username:
-                    description: Username is an admin username to call the REST API.
-                      It is defaulted if not provided.
-                    type: string
                 type: object
               affinity:
                 description: Affinity to be used in the Pod.
@@ -922,6 +898,31 @@ spec:
                 description: Auth defines the credentials required for MaxScale to
                   connect to MariaDB.
                 properties:
+                  adminPasswordSecretKeyRef:
+                    description: AdminPasswordSecretKeyRef is Secret key reference
+                      to the admin password to call the REST API. It is defaulted
+                      if not provided.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  adminUsername:
+                    description: AdminUsername is an admin username to call the REST
+                      API. It is defaulted if not provided.
+                    type: string
                   clientPasswordSecretKeyRef:
                     description: ClientPasswordSecretKeyRef is Secret key reference
                       to the password to connect to MaxScale. It is defaulted if not
@@ -947,11 +948,15 @@ spec:
                     description: ClientUsername is the user to connect to MaxScale.
                       It is defaulted if not provided.
                     type: string
+                  deleteDefaultAdmin:
+                    description: DeleteDefaultAdmin determines whether the default
+                      admin user should be deleted after the initial configuration.
+                      It is defaulted to true if not provided.
+                    type: boolean
                   monitorPasswordSecretKeyRef:
                     description: MonitorPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale monitor to connect to MariaDB
-                      server. It is only required if the monitor is enabled and defaulted
-                      if not provided
+                      server. It is defaulted if not provided.
                     properties:
                       key:
                         description: The key of the secret to select from.  Must be
@@ -971,8 +976,7 @@ spec:
                     x-kubernetes-map-type: atomic
                   monitorUsername:
                     description: MonitorUsername is the user used by MaxScale monitor
-                      to connect to MariaDB server. It is only required if the monitor
-                      is enabled and defaulted if not provided
+                      to connect to MariaDB server. It is defaulted if not provided.
                     type: string
                   serverPasswordSecretKeyRef:
                     description: ServerPasswordSecretKeyRef is Secret key reference
@@ -2341,6 +2345,39 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              monitor:
+                description: Monitor monitors MariaDB server instances.
+                properties:
+                  cooperativeMonitoring:
+                    description: CooperativeMonitoring enables coordination between
+                      multiple MaxScale instances running monitors. It is defaulted
+                      when multiple replicas are configured.
+                    enum:
+                    - majority_of_all
+                    - majority_of_running
+                    type: string
+                  interval:
+                    description: Interval used to monitor MariaDB servers. If not
+                      provided, it defaults to 2s.
+                    type: string
+                  module:
+                    description: Module is the module to use to monitor MariaDB servers.
+                    enum:
+                    - mariadbmon
+                    - galeramon
+                    type: string
+                  name:
+                    description: Name is the identifier of the monitor. It is defaulted
+                      if not provided
+                    type: string
+                  params:
+                    additionalProperties:
+                      type: string
+                    description: Params defines extra parameters to pass to the monitor.
+                    type: object
+                required:
+                - module
+                type: object
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -2531,6 +2568,9 @@ spec:
                         type: string
                     type: object
                 type: object
+              priorityClassName:
+                description: PriorityClassName to be used in the Pod.
+                type: string
               readinessProbe:
                 description: ReadinessProbe to be used in the Container.
                 properties:
@@ -2678,6 +2718,10 @@ spec:
                 description: Replicas indicates the number of desired instances.
                 format: int32
                 type: integer
+              requeueInterval:
+                description: RequeueInterval is used to perform requeue reconcilizations.
+                  If not defined, it defaults to 10s.
+                type: string
               resources:
                 description: Resouces describes the compute resource requirements.
                 properties:
@@ -2884,6 +2928,92 @@ spec:
                         type: string
                     type: object
                 type: object
+              servers:
+                description: Servers are the MariaDB servers to forward traffic to.
+                items:
+                  description: MaxScaleServer defines a MariaDB server to forward
+                    traffic to.
+                  properties:
+                    address:
+                      description: Address is the network address of the MariaDB server.
+                      type: string
+                    name:
+                      description: Name is the identifier of the MariaDB server.
+                      type: string
+                    params:
+                      additionalProperties:
+                        type: string
+                      description: Params defines extra parameters to pass to the
+                        server.
+                      type: object
+                    port:
+                      description: Port is the network port of the MariaDB server.
+                        If not provided, it defaults to 3306.
+                      format: int32
+                      type: integer
+                    protocol:
+                      description: Protocol is the MaxScale protocol to use when communicating
+                        with this MariaDB server. If not provided, it defaults to
+                        MariaDBBackend.
+                      type: string
+                  required:
+                  - address
+                  - name
+                  type: object
+                type: array
+              services:
+                description: Services define how the traffic is forwarded to the MariaDB
+                  servers.
+                items:
+                  description: Services define how the traffic is forwarded to the
+                    MariaDB servers.
+                  properties:
+                    listener:
+                      description: MaxScaleListener defines how the MaxScale server
+                        will listen for connections.
+                      properties:
+                        name:
+                          description: Name is the identifier of the listener. It
+                            is defaulted if not provided
+                          type: string
+                        params:
+                          additionalProperties:
+                            type: string
+                          description: Params defines extra parameters to pass to
+                            the listener.
+                          type: object
+                        port:
+                          description: Port is the network port where the MaxScale
+                            server will listen.
+                          format: int32
+                          type: integer
+                        protocol:
+                          description: Protocol is the MaxScale protocol to use when
+                            communicating with the client. If not provided, it defaults
+                            to MariaDBProtocol.
+                          type: string
+                      type: object
+                    name:
+                      description: Name is the identifier of the MaxScale service.
+                      type: string
+                    params:
+                      additionalProperties:
+                        type: string
+                      description: Params defines extra parameters to pass to the
+                        monitor.
+                      type: object
+                    router:
+                      description: Router is the type of router to use.
+                      enum:
+                      - readwritesplit
+                      - readconnroute
+                      type: string
+                  required:
+                  - listener
+                  - name
+                  - router
+                  type: object
+                type: array
               sidecarContainers:
                 description: SidecarContainers to be used in the Pod.
                 items:
@@ -3671,6 +3801,178 @@ spec:
                         to. If the operator is Exists, the value should be empty,
                         otherwise just a regular string.
                       type: string
+                  type: object
+                type: array
+              topologySpreadConstraints:
+                description: TopologySpreadConstraints to be used in the Pod.
+                items:
+                  description: TopologySpreadConstraint specifies how to spread matching
+                    pods among the given topology.
+                  properties:
+                    labelSelector:
+                      description: LabelSelector is used to find matching pods. Pods
+                        that match this label selector are counted to determine the
+                        number of pods in their corresponding topology domain.
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: A label selector requirement is a selector
+                              that contains values, a key, and an operator that relates
+                              the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: operator represents a key's relationship
+                                  to a set of values. Valid operators are In, NotIn,
+                                  Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: values is an array of string values.
+                                  If the operator is In or NotIn, the values array
+                                  must be non-empty. If the operator is Exists or
+                                  DoesNotExist, the values array must be empty. This
+                                  array is replaced during a strategic merge patch.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: matchLabels is a map of {key,value} pairs.
+                            A single {key,value} in the matchLabels map is equivalent
+                            to an element of matchExpressions, whose key field is
+                            "key", the operator is "In", and the values array contains
+                            only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    matchLabelKeys:
+                      description: "MatchLabelKeys is a set of pod label keys to select
+                        the pods over which spreading will be calculated. The keys
+                        are used to lookup values from the incoming pod labels, those
+                        key-value labels are ANDed with labelSelector to select the
+                        group of existing pods over which spreading will be calculated
+                        for the incoming pod. The same key is forbidden to exist in
+                        both MatchLabelKeys and LabelSelector. MatchLabelKeys cannot
+                        be set when LabelSelector isn't set. Keys that don't exist
+                        in the incoming pod labels will be ignored. A null or empty
+                        list means only match against labelSelector. \n This is a
+                        beta field and requires the MatchLabelKeysInPodTopologySpread
+                        feature gate to be enabled (enabled by default)."
+                      items:
+                        type: string
+                      type: array
+                      x-kubernetes-list-type: atomic
+                    maxSkew:
+                      description: 'MaxSkew describes the degree to which pods may
+                        be unevenly distributed. When `whenUnsatisfiable=DoNotSchedule`,
+                        it is the maximum permitted difference between the number
+                        of matching pods in the target topology and the global minimum.
+                        The global minimum is the minimum number of matching pods
+                        in an eligible domain or zero if the number of eligible domains
+                        is less than MinDomains. For example, in a 3-zone cluster,
+                        MaxSkew is set to 1, and pods with the same labelSelector
+                        spread as 2/2/1: In this case, the global minimum is 1. |
+                        zone1 | zone2 | zone3 | |  P P  |  P P  |   P   | - if MaxSkew
+                        is 1, incoming pod can only be scheduled to zone3 to become
+                        2/2/2; scheduling it onto zone1(zone2) would make the ActualSkew(3-1)
+                        on zone1(zone2) violate MaxSkew(1). - if MaxSkew is 2, incoming
+                        pod can be scheduled onto any zone. When `whenUnsatisfiable=ScheduleAnyway`,
+                        it is used to give higher precedence to topologies that satisfy
+                        it. It''s a required field. Default value is 1 and 0 is not
+                        allowed.'
+                      format: int32
+                      type: integer
+                    minDomains:
+                      description: "MinDomains indicates a minimum number of eligible
+                        domains. When the number of eligible domains with matching
+                        topology keys is less than minDomains, Pod Topology Spread
+                        treats \"global minimum\" as 0, and then the calculation of
+                        Skew is performed. And when the number of eligible domains
+                        with matching topology keys equals or greater than minDomains,
+                        this value has no effect on scheduling. As a result, when
+                        the number of eligible domains is less than minDomains, scheduler
+                        won't schedule more than maxSkew Pods to those domains. If
+                        value is nil, the constraint behaves as if MinDomains is equal
+                        to 1. Valid values are integers greater than 0. When value
+                        is not nil, WhenUnsatisfiable must be DoNotSchedule. \n For
+                        example, in a 3-zone cluster, MaxSkew is set to 2, MinDomains
+                        is set to 5 and pods with the same labelSelector spread as
+                        2/2/2: | zone1 | zone2 | zone3 | |  P P  |  P P  |  P P  |
+                        The number of domains is less than 5(MinDomains), so \"global
+                        minimum\" is treated as 0. In this situation, new pod with
+                        the same labelSelector cannot be scheduled, because computed
+                        skew will be 3(3 - 0) if new Pod is scheduled to any of the
+                        three zones, it will violate MaxSkew. \n This is a beta field
+                        and requires the MinDomainsInPodTopologySpread feature gate
+                        to be enabled (enabled by default)."
+                      format: int32
+                      type: integer
+                    nodeAffinityPolicy:
+                      description: "NodeAffinityPolicy indicates how we will treat
+                        Pod's nodeAffinity/nodeSelector when calculating pod topology
+                        spread skew. Options are: - Honor: only nodes matching nodeAffinity/nodeSelector
+                        are included in the calculations. - Ignore: nodeAffinity/nodeSelector
+                        are ignored. All nodes are included in the calculations. \n
+                        If this value is nil, the behavior is equivalent to the Honor
+                        policy. This is a beta-level feature default enabled by the
+                        NodeInclusionPolicyInPodTopologySpread feature flag."
+                      type: string
+                    nodeTaintsPolicy:
+                      description: "NodeTaintsPolicy indicates how we will treat node
+                        taints when calculating pod topology spread skew. Options
+                        are: - Honor: nodes without taints, along with tainted nodes
+                        for which the incoming pod has a toleration, are included.
+                        - Ignore: node taints are ignored. All nodes are included.
+                        \n If this value is nil, the behavior is equivalent to the
+                        Ignore policy. This is a beta-level feature default enabled
+                        by the NodeInclusionPolicyInPodTopologySpread feature flag."
+                      type: string
+                    topologyKey:
+                      description: TopologyKey is the key of node labels. Nodes that
+                        have a label with this key and identical values are considered
+                        to be in the same topology. We consider each <key, value>
+                        as a "bucket", and try to put balanced number of pods into
+                        each bucket. We define a domain as a particular instance of
+                        a topology. Also, we define an eligible domain as a domain
+                        whose nodes meet the requirements of nodeAffinityPolicy and
+                        nodeTaintsPolicy. e.g. If TopologyKey is "kubernetes.io/hostname",
+                        each Node is a domain of that topology. And, if TopologyKey
+                        is "topology.kubernetes.io/zone", each zone is a domain of
+                        that topology. It's a required field.
+                      type: string
+                    whenUnsatisfiable:
+                      description: 'WhenUnsatisfiable indicates how to deal with a
+                        pod if it doesn''t satisfy the spread constraint. - DoNotSchedule
+                        (default) tells the scheduler not to schedule it. - ScheduleAnyway
+                        tells the scheduler to schedule the pod in any location, but
+                        giving higher precedence to topologies that would help reduce
+                        the skew. A constraint is considered "Unsatisfiable" for an
+                        incoming pod if and only if every possible node assignment
+                        for that pod would violate "MaxSkew" on some topology. For
+                        example, in a 3-zone cluster, MaxSkew is set to 1, and pods
+                        with the same labelSelector spread as 3/1/1: | zone1 | zone2
+                        | zone3 | | P P P |   P   |   P   | If WhenUnsatisfiable is
+                        set to DoNotSchedule, incoming pod can only be scheduled to
+                        zone2(zone3) to become 3/2/1(3/1/2) as ActualSkew(2-1) on
+                        zone2(zone3) satisfies MaxSkew(1). In other words, the cluster
+                        can still be imbalanced, but scheduler won''t make it *more*
+                        imbalanced. It''s a required field.'
+                      type: string
+                  required:
+                  - maxSkew
+                  - topologyKey
+                  - whenUnsatisfiable
                   type: object
                 type: array
               updateStrategy:
@@ -5308,6 +5610,10 @@ spec:
                   - name
                   type: object
                 type: array
+            required:
+            - monitor
+            - servers
+            - services
             type: object
           status:
             description: MaxScaleStatus defines the observed state of MaxScale
