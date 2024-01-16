@@ -296,7 +296,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-01-11T09:15:45Z"
+    createdAt: "2024-01-16T10:41:18Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -357,6 +357,9 @@ spec:
           - description: NodeSelector to be used in the Backup Pod.
             displayName: Node Selector
             path: nodeSelector
+          - description: SecurityContext holds pod-level security attributes and common container settings.
+            displayName: Pod Security Context
+            path: podSecurityContext
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: resources
@@ -374,6 +377,9 @@ spec:
           - description: Suspend defines whether the schedule is active or not.
             displayName: Suspend
             path: schedule.suspend
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: securityContext
           - description: Storage to be used in the Backup.
             displayName: Storage
             path: storage
@@ -392,6 +398,9 @@ spec:
           - description: Endpoint is the S3 API endpoint without scheme.
             displayName: Endpoint
             path: storage.s3.endpoint
+          - description: Prefix allows backups to be placed under a specific prefix in the bucket.
+            displayName: Prefix
+            path: storage.s3.prefix
           - description: Region is the S3 region name to use.
             displayName: Region
             path: storage.s3.region
@@ -668,6 +677,9 @@ spec:
           - description: Endpoint is the S3 API endpoint without scheme.
             displayName: Endpoint
             path: bootstrapFrom.s3.endpoint
+          - description: Prefix allows backups to be placed under a specific prefix in the bucket.
+            displayName: Prefix
+            path: bootstrapFrom.s3.prefix
           - description: Region is the S3 region name to use.
             displayName: Region
             path: bootstrapFrom.s3.region
@@ -1162,6 +1174,9 @@ spec:
           - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
             displayName: Type
             path: primaryService.type
+          - description: PriorityClassName to be used in the Pod.
+            displayName: Priority Class Name
+            path: priorityClassName
           - description: ReadinessProbe to be used in the Container.
             displayName: Readiness Probe
             path: readinessProbe
@@ -1340,6 +1355,9 @@ spec:
           - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
             displayName: Type
             path: service.type
+          - description: ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
+            displayName: Service Account Name
+            path: serviceAccountName
           - description: SidecarContainers to be used in the Pod.
             displayName: Sidecar Containers
             path: sidecarContainers
@@ -1383,6 +1401,9 @@ spec:
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
+          - description: TopologySpreadConstraints to be used in the Pod.
+            displayName: Topology Spread Constraints
+            path: topologySpreadConstraints
           - description: PodDisruptionBudget defines the update strategy for the StatefulSet object.
             displayName: Update Strategy
             path: updateStrategy
@@ -1460,15 +1481,11 @@ spec:
           - description: GuiEnabled indicates whether the admin GUI should be enabled.
             displayName: Gui Enabled
             path: admin.guiEnabled
-          - description: PasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided.
-            displayName: Password Secret Key Ref
-            path: admin.passwordSecretKeyRef
           - description: Port where the admin REST API will be exposed.
             displayName: Port
             path: admin.port
-          - description: Username is an admin username to call the REST API. It is defaulted if not provided.
-            displayName: Username
-            path: admin.username
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: affinity
@@ -1478,16 +1495,25 @@ spec:
           - description: Auth defines the credentials required for MaxScale to connect to MariaDB.
             displayName: Auth
             path: auth
+          - description: AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided.
+            displayName: Admin Password Secret Key Ref
+            path: auth.adminPasswordSecretKeyRef
+          - description: AdminUsername is an admin username to call the REST API. It is defaulted if not provided.
+            displayName: Admin Username
+            path: auth.adminUsername
           - description: ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
             displayName: Client Password Secret Key Ref
             path: auth.clientPasswordSecretKeyRef
           - description: ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
             displayName: Client Username
             path: auth.clientUsername
-          - description: MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is only required if the monitor is enabled and defaulted if not provided
+          - description: DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. It is defaulted to true if not provided.
+            displayName: Delete Default Admin
+            path: auth.deleteDefaultAdmin
+          - description: MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
             displayName: Monitor Password Secret Key Ref
             path: auth.monitorPasswordSecretKeyRef
-          - description: MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is only required if the monitor is enabled and defaulted if not provided
+          - description: MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
             displayName: Monitor Username
             path: auth.monitorUsername
           - description: ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
@@ -1604,6 +1630,24 @@ spec:
           - description: LivenessProbe to be used in the Container.
             displayName: Liveness Probe
             path: livenessProbe
+          - description: Monitor monitors MariaDB server instances.
+            displayName: Monitor
+            path: monitor
+          - description: CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when multiple replicas are configured.
+            displayName: Cooperative Monitoring
+            path: monitor.cooperativeMonitoring
+          - description: Interval used to monitor MariaDB servers. If not provided, it defaults to 2s.
+            displayName: Interval
+            path: monitor.interval
+          - description: Module is the module to use to monitor MariaDB servers.
+            displayName: Module
+            path: monitor.module
+          - description: Name is the identifier of the monitor. It is defaulted if not provided
+            displayName: Name
+            path: monitor.name
+          - description: Params defines extra parameters to pass to the monitor.
+            displayName: Params
+            path: monitor.params
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: nodeSelector
@@ -1619,6 +1663,9 @@ spec:
           - description: SecurityContext holds pod-level security attributes and common container settings.
             displayName: Pod Security Context
             path: podSecurityContext
+          - description: PriorityClassName to be used in the Pod.
+            displayName: Priority Class Name
+            path: priorityClassName
           - description: ReadinessProbe to be used in the Container.
             displayName: Readiness Probe
             path: readinessProbe
@@ -1627,6 +1674,9 @@ spec:
             path: replicas
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:podCount
+          - description: RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s.
+            displayName: Requeue Interval
+            path: requeueInterval
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: resources
@@ -1635,6 +1685,55 @@ spec:
           - description: SecurityContext holds security configuration that will be applied to a container.
             displayName: Security Context
             path: securityContext
+          - description: Servers are the MariaDB servers to forward traffic to.
+            displayName: Servers
+            path: servers
+          - description: Address is the network address of the MariaDB server.
+            displayName: Address
+            path: servers[0].address
+          - description: Name is the identifier of the MariaDB server.
+            displayName: Name
+            path: servers[0].name
+          - description: Params defines extra parameters to pass to the server.
+            displayName: Params
+            path: servers[0].params
+          - description: Port is the network port of the MariaDB server. If not provided, it defaults to 3306.
+            displayName: Port
+            path: servers[0].port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Protocol is the MaxScale protocol to use when communicating with this MariaDB server. If not provided, it defaults to MariaDBBackend.
+            displayName: Protocol
+            path: servers[0].protocol
+          - description: Services define how the traffic is forwarded to the MariaDB servers.
+            displayName: Services
+            path: services
+          - description: MaxScaleListener defines how the MaxScale server will listen for connections.
+            displayName: Listener
+            path: services[0].listener
+          - description: Name is the identifier of the listener. It is defaulted if not provided
+            displayName: Name
+            path: services[0].listener.name
+          - description: Params defines extra parameters to pass to the listener.
+            displayName: Params
+            path: services[0].listener.params
+          - description: Port is the network port where the MaxScale server will listen.
+            displayName: Port
+            path: services[0].listener.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol.
+            displayName: Protocol
+            path: services[0].listener.protocol
+          - description: Name is the identifier of the MaxScale service.
+            displayName: Name
+            path: services[0].name
+          - description: Params defines extra parameters to pass to the monitor.
+            displayName: Params
+            path: services[0].params
+          - description: Router is the type of router to use.
+            displayName: Router
+            path: services[0].router
           - description: SidecarContainers to be used in the Pod.
             displayName: Sidecar Containers
             path: sidecarContainers
@@ -1678,6 +1777,9 @@ spec:
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
+          - description: TopologySpreadConstraints to be used in the Pod.
+            displayName: Topology Spread Constraints
+            path: topologySpreadConstraints
           - description: UpdateStrategy defines the update strategy for the StatefulSet object.
             displayName: Update Strategy
             path: updateStrategy
@@ -1736,6 +1838,9 @@ spec:
           - description: NodeSelector to be used in the Restore Pod.
             displayName: Node Selector
             path: nodeSelector
+          - description: SecurityContext holds pod-level security attributes and common container settings.
+            displayName: Pod Security Context
+            path: podSecurityContext
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: resources
@@ -1756,6 +1861,9 @@ spec:
           - description: Endpoint is the S3 API endpoint without scheme.
             displayName: Endpoint
             path: s3.endpoint
+          - description: Prefix allows backups to be placed under a specific prefix in the bucket.
+            displayName: Prefix
+            path: s3.prefix
           - description: Region is the S3 region name to use.
             displayName: Region
             path: s3.region
@@ -1776,6 +1884,9 @@ spec:
             path: s3.tls.enabled
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: securityContext
           - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective. It is used to determine the closest restoration source in time.
             displayName: Target Recovery Time
             path: targetRecoveryTime
@@ -1836,6 +1947,9 @@ spec:
           - description: UserPasswordSecretKeyRef is a reference to the impersonated user's password to be used when executing the SqlJob.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
+          - description: SecurityContext holds pod-level security attributes and common container settings.
+            displayName: Pod Security Context
+            path: podSecurityContext
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: resources
@@ -1853,6 +1967,9 @@ spec:
           - description: Suspend defines whether the schedule is active or not.
             displayName: Suspend
             path: schedule.suspend
+          - description: SecurityContext holds security configuration that will be applied to a container.
+            displayName: Security Context
+            path: securityContext
           - description: Sql is the script to be executed by the SqlJob.
             displayName: Sql
             path: sql
@@ -2486,14 +2603,14 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
+    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
+      name: mariadb
     - image: mariadb/maxscale@sha256:5c658141992f1b83580759137bbe1b881ebe73e07c85819e46a8a14f332ff690
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
       name: exporter
     - image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
       name: mariadb-operator-enterprise
-    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
-      name: mariadb
   version: 0.0.24
   webhookdefinitions:
     - admissionReviewVersions:
