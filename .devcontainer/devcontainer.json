@@ -1,27 +1,34 @@
 {
-	"name": "Go",
-	"image": "mcr.microsoft.com/devcontainers/go:1.21-bullseye",
-	"features": {
-		"ghcr.io/devcontainers/features/docker-in-docker:1": {
-			"moby": true,
-			"installDockerBuildx": true,
-			"version": "latest",
-			"dockerDashComposeVersion": "v2"
-		},
-		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
-			"version": "latest",
-			"helm": "latest",
-			"minikube": "none"
-		}
-	},
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"ms-vscode.makefile-tools",
-				"ms-azuretools.vscode-docker",
-				"ms-kubernetes-tools.vscode-kubernetes-tools",
-				"eamodio.gitlens"
-			]
-		}
-	}
+    "name": "Go",
+    "image": "mcr.microsoft.com/devcontainers/go:1.21-bookworm",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2.7.1": {
+            "moby": true,
+            "installDockerBuildx": true,
+            "version": "latest",
+            "dockerDashComposeVersion": "v2"
+            
+        },
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1.1.5": {
+            "version": "latest",
+            "helm": "latest",
+            "minikube": "none"
+        },
+        "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+          "packages": "mariadb-client"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "golang.go",
+                "ms-azuretools.vscode-docker",
+                "ms-kubernetes-tools.kind-vscode",
+                "ms-kubernetes-tools.vscode-kubernetes-tools",
+                "ms-vscode.makefile-tools",
+                "redhat.vscode-yaml"
+            ]
+        }
+    }
 }
