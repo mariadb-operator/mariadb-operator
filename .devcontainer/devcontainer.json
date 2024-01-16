@@ -16,7 +16,8 @@
         },
         "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
           "packages": "mariadb-client"
-        }
+        },
+        "ghcr.io/dhoeric/features/k9s:1": {}
     },
     "customizations": {
         "vscode": {
