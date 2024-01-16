@@ -33,6 +33,10 @@ type MaxScaleServer struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Protocol string `json:"protocol,omitempty"`
+	// Params defines extra parameters to pass to the server.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Params map[string]string `json:"params,omitempty"`
 }
 
 // SetDefaults sets default values.

@@ -11,14 +11,12 @@ spec:
       address: mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
       port: 3306
       protocol: MariaDBBackend
+      params:
+        max_routing_connections: "2048"
     - name: mariadb-1
       address: mariadb-repl-1.mariadb-repl-internal.default.svc.cluster.local
-      port: 3306
-      protocol: MariaDBBackend
     - name: mariadb-2
       address: mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local
-      port: 3306
-      protocol: MariaDBBackend
 
   services:
     - name: rw-router

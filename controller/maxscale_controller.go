@@ -396,6 +396,7 @@ func (r *MaxScaleReconciler) initServers(ctx context.Context, mxs *mariadbv1alph
 			Address:  srv.Address,
 			Port:     srv.Port,
 			Protocol: srv.Protocol,
+			Params:   mxsclient.NewMapParams(srv.Params),
 		}
 		if err := client.Server.Create(ctx, srv.Name, params); err != nil {
 			return fmt.Errorf("error creating server: %v", err)
