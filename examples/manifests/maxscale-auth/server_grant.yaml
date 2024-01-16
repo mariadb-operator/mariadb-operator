@@ -1,13 +1,29 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: Grant
 metadata:
-  name: maxscale-server
+  name: maxscale-server-mysql
 spec:
   mariaDbRef:
     name: mariadb-repl
   privileges:
     - "SELECT"
   database: "mysql"
+  table: "*"
+  username: maxscale-server
+  grantOption: false
+  host: "%"
+  retryInterval: 5s
+---
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Grant
+metadata:
+  name: maxscale-server-databases
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  privileges:
+    - "SHOW DATABASES"
+  database: "*"
   table: "*"
   username: maxscale-server
   grantOption: false

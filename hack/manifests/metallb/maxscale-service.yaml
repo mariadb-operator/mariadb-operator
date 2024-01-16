@@ -7,18 +7,22 @@ metadata:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.210
 spec:
   ports:
-  - name: write
-    port: 3306
-    protocol: TCP
-    targetPort: 3306
-  - name: read
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: gui
+  - name: admin
     port: 8989
     protocol: TCP
     targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    protocol: TCP
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    protocol: TCP
+    targetPort: 3308
   selector:
     app.kubernetes.io/instance: maxscale
     app.kubernetes.io/name: maxscale
@@ -34,18 +38,22 @@ metadata:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.211
 spec:
   ports:
-  - name: write
-    port: 3306
-    protocol: TCP
-    targetPort: 3306
-  - name: read
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: gui
+  - name: admin
     port: 8989
     protocol: TCP
     targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    protocol: TCP
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    protocol: TCP
+    targetPort: 3308
   selector:
     app.kubernetes.io/instance: maxscale
     app.kubernetes.io/name: maxscale
@@ -61,18 +69,22 @@ metadata:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.212
 spec:
   ports:
-  - name: write
-    port: 3306
-    protocol: TCP
-    targetPort: 3306
-  - name: read
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: gui
+  - name: admin
     port: 8989
     protocol: TCP
     targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    protocol: TCP
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    protocol: TCP
+    targetPort: 3308
   selector:
     app.kubernetes.io/instance: maxscale
     app.kubernetes.io/name: maxscale
@@ -88,18 +100,22 @@ metadata:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.213
 spec:
   ports:
-  - name: write
-    port: 3306
-    protocol: TCP
-    targetPort: 3306
-  - name: read
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: gui
+  - name: admin
     port: 8989
     protocol: TCP
     targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    protocol: TCP
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    protocol: TCP
+    targetPort: 3308
   selector:
     app.kubernetes.io/instance: maxscale
     app.kubernetes.io/name: maxscale

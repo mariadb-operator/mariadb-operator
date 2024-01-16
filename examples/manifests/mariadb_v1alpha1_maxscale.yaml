@@ -44,6 +44,13 @@ spec:
       listener:
         port: 3308
 
+  admin:
+    port: 8989
+    username: mariadb-operator
+    passwordSecretKeyRef:
+      name: maxscale
+      key: password
+
   monitor:
     module: mariadbmon
     interval: 2s
@@ -57,18 +64,18 @@ spec:
   auth:
     clientUsername: maxscale-client
     clientPasswordSecretKeyRef:
-      name: mariadb
+      name: maxscale
       key: password
     serverUsername: maxscale-server
     serverPasswordSecretKeyRef:
-      name: mariadb
+      name: maxscale
       key: password
     monitorUsername: maxscale-monitor
     monitorPasswordSecretKeyRef:
-      name: mariadb
+      name: maxscale
       key: password
 
   kubernetesService:
     type: LoadBalancer
     annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.210
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.214
