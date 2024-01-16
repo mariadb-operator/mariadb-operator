@@ -24,6 +24,11 @@ spec:
     accessModes:
       - ReadWriteOnce
 
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.20
+
   myCnf: |
     [mariadb]
     bind-address=*
@@ -31,3 +36,6 @@ spec:
     binlog_format=row
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
+
+  metrics:
+    enabled: true

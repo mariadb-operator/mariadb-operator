@@ -3,6 +3,10 @@ kind: MariaDB
 metadata:
   name: mariadb-repl
 spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
   volumeClaimTemplate:
     resources:
       requests:
@@ -29,3 +33,6 @@ spec:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+
+  metrics:
+    enabled: true

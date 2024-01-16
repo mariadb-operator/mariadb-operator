@@ -3,6 +3,10 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
   volumeClaimTemplate:
     resources:
       requests:
@@ -11,7 +15,7 @@ spec:
       - ReadWriteOnce
 
   replicas: 3
-     
+
   galera:
     enabled: true
 
@@ -29,3 +33,6 @@ spec:
     type: LoadBalancer
     annotations:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+
+  metrics:
+    enabled: true
