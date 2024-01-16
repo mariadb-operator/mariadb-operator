@@ -17282,6 +17282,12 @@ spec:
                     name:
                       description: Name is the identifier of the MariaDB server.
                       type: string
+                    params:
+                      additionalProperties:
+                        type: string
+                      description: Params defines extra parameters to pass to the
+                        server.
+                      type: object
                     port:
                       description: Port is the network port of the MariaDB server.
                         If not provided, it defaults to 3306.
