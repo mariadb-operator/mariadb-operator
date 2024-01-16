@@ -277,6 +277,12 @@ func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, max
 			Port: int32(maxscale.Spec.Admin.Port),
 		},
 	}
+	for _, svc := range maxscale.Spec.Services {
+		ports = append(ports, corev1.ServicePort{
+			Name: svc.Listener.Name,
+			Port: svc.Listener.Port,
+		})
+	}
 	opts := builder.ServiceOpts{
 		Ports:          ports,
 		SelectorLabels: selectorLabels,
@@ -315,7 +321,7 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
-	password, err := r.RefResolver.SecretKeyRef(ctx, maxscale.AdminPasswordSecretKeyRef(), maxscale.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, maxscale.Spec.Admin.PasswordSecretKeyRef, maxscale.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting admin password: %v", err)
 	}
@@ -461,7 +467,7 @@ func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *mariad
 
 func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	apiUrl string) (*mxsclient.Client, error) {
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.AdminPasswordSecretKeyRef(), mxs.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Admin.PasswordSecretKeyRef, mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting admin password: %v", err)
 	}

@@ -6,7 +6,7 @@ spec:
   mariaDbRef:
     name: mariadb-repl
   passwordSecretKeyRef:
-    name: mariadb
+    name: maxscale
     key: password
   maxUserConnections: 20
   host: "%" 
