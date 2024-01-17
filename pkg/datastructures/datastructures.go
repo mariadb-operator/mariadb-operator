@@ -31,6 +31,19 @@ func AnyExists[T any](idx Index[T], keys ...string) bool {
 	return false
 }
 
+func Filter[T any](idx Index[T], keys ...string) Index[T] {
+	filterIdx := NewIndex[string](keys, func(s string) string {
+		return s
+	})
+	newIdx := make(Index[T], 0)
+	for k, v := range idx {
+		if _, ok := filterIdx[k]; ok {
+			newIdx[k] = v
+		}
+	}
+	return newIdx
+}
+
 type DiffResult struct {
 	Added   []string
 	Deleted []string

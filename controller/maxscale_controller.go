@@ -109,6 +109,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			name:      "Server",
 			reconcile: r.reconcileServers,
 		},
+		{
+			name:      "Monitor",
+			reconcile: r.reconcileMonitor,
+		},
 	}
 
 	for _, p := range phases {
@@ -367,6 +371,9 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 	if result, err := r.reconcileServersWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
 		return ctrl.Result{}, err
 	}
+	if result, err := r.reconcileMonitorWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
+		return ctrl.Result{}, err
+	}
 	srvRels :=
 		mxsclient.NewRelationshipsBuilder().
 			WithServers(mxs.ServerIDs()...).
@@ -383,7 +390,7 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 			return result, err
 		}
 	}
-	return mxsApi.createMonitor(ctx, srvRels)
+	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
@@ -477,6 +484,39 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	// TODO: shared client pointing to the same instance?
+	client, err := r.client(ctx, mxs)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
+	}
+	return r.reconcileMonitorWithClient(ctx, mxs, client)
+}
+
+func (r *MaxScaleReconciler) reconcileMonitorWithClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) (ctrl.Result, error) {
+	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
+
+	_, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Name)
+	if err != nil {
+		if !mxsclient.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("error getting monitor: %v", err)
+		}
+
+		rels, err := mxsApi.serverRelationships(ctx)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
+		}
+		return mxsApi.createMonitor(ctx, rels)
+	}
+
+	rels, err := mxsApi.serverRelationships(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
+	}
+	return mxsApi.patchMonitor(ctx, rels)
 }
 
 func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {
