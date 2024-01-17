@@ -455,7 +455,7 @@ func (m *MaxScale) PodAPIUrl(podIndex int) string {
 
 // ServerIDs returns an the servers indexed by ID.
 func (m *MaxScale) ServerIndex() ds.Index[MaxScaleServer] {
-	return ds.IndexSlice[MaxScaleServer](m.Spec.Servers, getServerID)
+	return ds.NewIndex[MaxScaleServer](m.Spec.Servers, getServerID)
 }
 
 // ServerIDs returns the IDs of the servers.
