@@ -349,28 +349,28 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
 
-	anyExist, err := client.Server.AnyExists(ctx, mxs.ServerIDs()...)
+	anyExist, err := client.Server.AnyExists(ctx, mxs.ServerIDs())
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error checking if servers already exist: %v", err)
 	}
 	if anyExist {
 		return ctrl.Result{}, nil
 	}
-	anyExist, err = client.Service.AnyExists(ctx, mxs.ServiceIDs()...)
+	anyExist, err = client.Service.AnyExists(ctx, mxs.ServiceIDs())
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error checking if services already exist: %v", err)
 	}
 	if anyExist {
 		return ctrl.Result{}, nil
 	}
-	anyExist, err = client.Service.AnyExists(ctx, mxs.ListenerIDs()...)
+	anyExist, err = client.Service.AnyExists(ctx, mxs.ListenerIDs())
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error checking if listeners already exist: %v", err)
 	}
 	if anyExist {
 		return ctrl.Result{}, nil
 	}
-	anyExist, err = client.Monitor.AnyExists(ctx, mxs.Spec.Monitor.Name)
+	anyExist, err = client.Monitor.AnyExists(ctx, []string{mxs.Spec.Monitor.Name})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error checking if monitors already exist: %v", err)
 	}
