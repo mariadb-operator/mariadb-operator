@@ -327,7 +327,9 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, mxs *mariadbv1a
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
-	if result, err := r.createAdminUser(ctx, mxs, defaultClient); !result.IsZero() || err != nil {
+	mxsApi := newMaxScaleAPI(mxs, defaultClient, r.RefResolver)
+
+	if result, err := mxsApi.createAdminUser(ctx); !result.IsZero() || err != nil {
 		return result, err
 	}
 	if mxs.Spec.Auth.ShouldDeleteDefaultAdmin() {
@@ -378,20 +380,32 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 		return ctrl.Result{}, nil
 	}
 
+	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
+
 	for _, srv := range mxs.Spec.Servers {
-		if result, err := r.createServer(ctx, &srv, client); !result.IsZero() || err != nil {
+		if result, err := mxsApi.createServer(ctx, &srv, nil); !result.IsZero() || err != nil {
 			return ctrl.Result{}, fmt.Errorf("error creating server '%s': %v", srv.Name, err)
 		}
 	}
+
+	srvRels :=
+		mxsclient.NewRelationshipsBuilder().
+			WithServers(mxs.ServerIDs()...).
+			Build()
+	svcRels :=
+		mxsclient.NewRelationshipsBuilder().
+			WithServices(mxs.ServiceIDs()...).
+			Build()
 	for _, svc := range mxs.Spec.Services {
-		if result, err := r.createService(ctx, &svc, mxs, client); !result.IsZero() || err != nil {
+		if result, err := mxsApi.createService(ctx, &svc, srvRels); !result.IsZero() || err != nil {
 			return result, err
 		}
-		if result, err := r.createListener(ctx, &svc, mxs, client); !result.IsZero() || err != nil {
+		if result, err := mxsApi.createListener(ctx, &svc, svcRels); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
-	return r.createMonitor(ctx, mxs, client)
+
+	return mxsApi.createMonitor(ctx, srvRels)
 }
 
 func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
@@ -418,13 +432,14 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, mxs *mariadbv
 		"deleted", diff.Deleted,
 		"rest", diff.Rest,
 	)
+	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
 	for _, id := range diff.Added {
 		srv, ok := currentIdx[id]
 		if !ok {
 			logger.V(1).Info("Server to add not found in current index", "server", srv.Name)
 		}
-		if result, err := r.createServer(ctx, &srv, client); !result.IsZero() || err != nil {
+		if result, err := mxsApi.createServer(ctx, &srv, nil); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
@@ -433,7 +448,7 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, mxs *mariadbv
 		if !ok {
 			logger.V(1).Info("Server to delete not found in previous index", "server", srv.ID)
 		}
-		if result, err := r.deleteServer(ctx, srv.ID, client); !result.IsZero() || err != nil {
+		if result, err := mxsApi.deleteServer(ctx, srv.ID); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
