@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"encoding/json"
 
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
@@ -44,31 +43,15 @@ type ListenerAttributes struct {
 }
 
 type ListenerClient struct {
-	ReadClient[ListenerAttributes]
-	client *mdbhttp.Client
+	GenericClient[ListenerAttributes]
 }
 
 func NewListenerClient(client *mdbhttp.Client) *ListenerClient {
 	return &ListenerClient{
-		ReadClient: NewListClient[ListenerAttributes](client, "listeners"),
-		client:     client,
+		GenericClient: NewGenericClient[ListenerAttributes](
+			client,
+			"listeners",
+			ObjectTypeListeners,
+		),
 	}
-}
-
-func (s *ListenerClient) Create(ctx context.Context, name string, params ListenerParameters, relationships Relationships) error {
-	object := &Object[ListenerAttributes]{
-		Data: Data[ListenerAttributes]{
-			ID:   name,
-			Type: ObjectTypeListeners,
-			Attributes: ListenerAttributes{
-				Parameters: params,
-			},
-			Relationships: &relationships,
-		},
-	}
-	res, err := s.client.Post(ctx, "listeners", object, nil)
-	if err != nil {
-		return err
-	}
-	return handleResponse(res, nil)
 }

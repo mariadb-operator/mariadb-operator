@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"encoding/json"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -46,33 +45,15 @@ type ServiceAttributes struct {
 }
 
 type ServiceClient struct {
-	ReadClient[ServiceAttributes]
-	client *mdbhttp.Client
+	GenericClient[ServiceAttributes]
 }
 
 func NewServiceClient(client *mdbhttp.Client) *ServiceClient {
 	return &ServiceClient{
-		ReadClient: NewListClient[ServiceAttributes](client, "services"),
-		client:     client,
+		GenericClient: NewGenericClient[ServiceAttributes](
+			client,
+			"services",
+			ObjectTypeServices,
+		),
 	}
-}
-
-func (s *ServiceClient) Create(ctx context.Context, name string, router mariadbv1alpha1.ServiceRouter, params ServiceParameters,
-	relationships Relationships) error {
-	object := &Object[ServiceAttributes]{
-		Data: Data[ServiceAttributes]{
-			ID:   name,
-			Type: ObjectTypeServices,
-			Attributes: ServiceAttributes{
-				Router:     router,
-				Parameters: params,
-			},
-			Relationships: &relationships,
-		},
-	}
-	res, err := s.client.Post(ctx, "services", object, nil)
-	if err != nil {
-		return err
-	}
-	return handleResponse(res, nil)
 }
