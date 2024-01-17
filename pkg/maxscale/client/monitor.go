@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"encoding/json"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -48,33 +47,15 @@ type MonitorAttributes struct {
 }
 
 type MonitorClient struct {
-	ReadClient[MonitorAttributes]
-	client *mdbhttp.Client
+	GenericClient[MonitorAttributes]
 }
 
 func NewMonitorClient(client *mdbhttp.Client) *MonitorClient {
 	return &MonitorClient{
-		ReadClient: NewListClient[MonitorAttributes](client, "monitors"),
-		client:     client,
+		GenericClient: NewGenericClient[MonitorAttributes](
+			client,
+			"monitors",
+			ObjectTypeMonitors,
+		),
 	}
-}
-
-func (m *MonitorClient) Create(ctx context.Context, name string, module mariadbv1alpha1.MonitorModule, params MonitorParameters,
-	relationships Relationships) error {
-	object := &Object[MonitorAttributes]{
-		Data: Data[MonitorAttributes]{
-			ID:   name,
-			Type: ObjectTypeMonitors,
-			Attributes: MonitorAttributes{
-				Module:     module,
-				Parameters: params,
-			},
-			Relationships: &relationships,
-		},
-	}
-	res, err := m.client.Post(ctx, "monitors", object, nil)
-	if err != nil {
-		return err
-	}
-	return handleResponse(res, nil)
 }

@@ -54,14 +54,16 @@ func (s *ServerAttributes) IsMaster() bool {
 }
 
 type ServerClient struct {
-	ReadClient[ServerAttributes]
-	client *mdbhttp.Client
+	GenericClient[ServerAttributes]
 }
 
 func NewServerClient(client *mdbhttp.Client) *ServerClient {
 	return &ServerClient{
-		ReadClient: NewListClient[ServerAttributes](client, "servers"),
-		client:     client,
+		GenericClient: NewGenericClient[ServerAttributes](
+			client,
+			"servers",
+			ObjectTypeServers,
+		),
 	}
 }
 
@@ -76,21 +78,4 @@ func (s *ServerClient) GetMaster(ctx context.Context) (string, error) {
 		}
 	}
 	return "", ErrMasterServerNotFound
-}
-
-func (s *ServerClient) Create(ctx context.Context, name string, params ServerParameters) error {
-	object := &Object[ServerAttributes]{
-		Data: Data[ServerAttributes]{
-			ID:   name,
-			Type: ObjectTypeServers,
-			Attributes: ServerAttributes{
-				Parameters: params,
-			},
-		},
-	}
-	res, err := s.client.Post(ctx, "servers", object, nil)
-	if err != nil {
-		return err
-	}
-	return handleResponse(res, nil)
 }

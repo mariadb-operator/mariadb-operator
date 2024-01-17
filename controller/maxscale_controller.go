@@ -27,7 +27,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -305,17 +304,17 @@ func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, max
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
-func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
-	if !maxscale.IsReady() {
+func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if !mxs.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	// TODO: all Pods in order to support HA
-	client, err := r.clientWithPodIndex(ctx, maxscale, 0)
+	client, err := r.clientWithPodIndex(ctx, mxs, 0)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
-	_, err = client.User.Get(ctx, maxscale.Spec.Auth.AdminUsername)
+	_, err = client.User.Get(ctx, mxs.Spec.Auth.AdminUsername)
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
@@ -324,18 +323,14 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, maxscale *maria
 	}
 
 	// TODO: all Pods in order to support HA
-	defaultClient, err := r.defaultClientWithPodIndex(ctx, maxscale, 0)
+	defaultClient, err := r.defaultClientWithPodIndex(ctx, mxs, 0)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
 	}
-	password, err := r.RefResolver.SecretKeyRef(ctx, maxscale.Spec.Auth.AdminPasswordSecretKeyRef, maxscale.Namespace)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting admin password: %v", err)
+	if result, err := r.createAdminUser(ctx, mxs, defaultClient); !result.IsZero() || err != nil {
+		return result, err
 	}
-	if err := defaultClient.User.CreateAdmin(ctx, maxscale.Spec.Auth.AdminUsername, password); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating admin user: %v", err)
-	}
-	if maxscale.Spec.Auth.ShouldDeleteDefaultAdmin() {
+	if mxs.Spec.Auth.ShouldDeleteDefaultAdmin() {
 		if err := defaultClient.User.DeleteDefaultAdmin(ctx); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error deleting default admin: %v", err)
 		}
@@ -383,79 +378,20 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.initServers(ctx, mxs, client); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error initializing servers: %v", err)
-	}
-	if err := r.initServices(ctx, mxs, client); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error initializing services: %v", err)
-	}
-	if err := r.initMonitor(ctx, mxs, client); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error initializing monitor: %v", err)
-	}
-	return ctrl.Result{}, nil
-}
-
-func (r *MaxScaleReconciler) initServers(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
 	for _, srv := range mxs.Spec.Servers {
-		params := mxsclient.ServerParameters{
-			Address:  srv.Address,
-			Port:     srv.Port,
-			Protocol: srv.Protocol,
-			Params:   mxsclient.NewMapParams(srv.Params),
-		}
-		if err := client.Server.Create(ctx, srv.Name, params); err != nil {
-			return fmt.Errorf("error creating server: %v", err)
+		if result, err := r.createServer(ctx, &srv, client); !result.IsZero() || err != nil {
+			return ctrl.Result{}, fmt.Errorf("error creating server '%s': %v", srv.Name, err)
 		}
 	}
-	return nil
-}
-
-func (r *MaxScaleReconciler) initServices(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.ServerPasswordSecretKeyRef, mxs.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting server password: %v", err)
-	}
-
 	for _, svc := range mxs.Spec.Services {
-		svcParams := mxsclient.ServiceParameters{
-			User:     mxs.Spec.Auth.ServerUsername,
-			Password: password,
-			Params:   mxsclient.NewMapParams(svc.Params),
+		if result, err := r.createService(ctx, &svc, mxs, client); !result.IsZero() || err != nil {
+			return result, err
 		}
-		svcRels := mxsclient.NewServerRelationships(mxs.ServerIDs()...)
-		if err := client.Service.Create(ctx, svc.Name, svc.Router, svcParams, svcRels); err != nil {
-			return fmt.Errorf("error creating service: %v", err)
-		}
-
-		listenerParams := mxsclient.ListenerParameters{
-			Port:     svc.Listener.Port,
-			Protocol: svc.Listener.Protocol,
-			Params:   mxsclient.NewMapParams(svc.Listener.Params),
-		}
-		listenerRels := mxsclient.NewServiceRelationships(svc.Name)
-		if err := client.Listener.Create(ctx, svc.Listener.Name, listenerParams, listenerRels); err != nil {
-			return fmt.Errorf("error creating listener: %v", err)
+		if result, err := r.createListener(ctx, &svc, mxs, client); !result.IsZero() || err != nil {
+			return result, err
 		}
 	}
-	return nil
-}
-
-func (r *MaxScaleReconciler) initMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client) error {
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.MonitorPasswordSecretKeyRef, mxs.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting monitor password: %v", err)
-	}
-	params := mxsclient.MonitorParameters{
-		User:            mxs.Spec.Auth.MonitorUsername,
-		Password:        password,
-		MonitorInterval: mxs.Spec.Monitor.Interval,
-		Params:          mxsclient.NewMapParams(mxs.Spec.Monitor.Params),
-	}
-	relations := mxsclient.NewServerRelationships(mxs.ServerIDs()...)
-	if err := client.Monitor.Create(ctx, mxs.Spec.Monitor.Name, mxs.Spec.Monitor.Module, params, relations); err != nil {
-		return fmt.Errorf("error creating monitor: %v", err)
-	}
-	return nil
+	return r.createMonitor(ctx, mxs, client)
 }
 
 func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
@@ -464,63 +400,45 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, mxs *mariadbv
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
 	}
+
+	currentIdx := mxs.ServerIndex()
 	previousIdx, err := client.Server.ListIndex(ctx)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting server index: %v", err)
 	}
-
 	diff := ds.Diff[
 		mariadbv1alpha1.MaxScaleServer,
 		mxsclient.Data[mxsclient.ServerAttributes],
-	](mxs.ServerIndex(), previousIdx)
+	](currentIdx, previousIdx)
 
-	log.FromContext(ctx).V(1).Info(
+	logger := log.FromContext(ctx)
+	logger.V(1).Info(
 		"Diff",
 		"added", diff.Added,
 		"deleted", diff.Deleted,
 		"rest", diff.Rest,
 	)
 
+	for _, id := range diff.Added {
+		srv, ok := currentIdx[id]
+		if !ok {
+			logger.V(1).Info("Server to add not found in current index", "server", srv.Name)
+		}
+		if result, err := r.createServer(ctx, &srv, client); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+	for _, id := range diff.Deleted {
+		srv, ok := previousIdx[id]
+		if !ok {
+			logger.V(1).Info("Server to delete not found in previous index", "server", srv.ID)
+		}
+		if result, err := r.deleteServer(ctx, srv.ID, client); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+
 	return ctrl.Result{}, nil
-}
-
-func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	podIndex int) (*mxsclient.Client, error) {
-	opts := []mdbhttp.Option{
-		mdbhttp.WithTimeout(10 * time.Second),
-	}
-	if r.LogRequests {
-		logger := log.FromContext(ctx).WithName("maxscale-client")
-		opts = append(opts, mdbhttp.WithLogger(&logger))
-	}
-	return mxsclient.NewClientWithDefaultCredentials(mxs.PodAPIUrl(podIndex), opts...)
-}
-
-func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
-	return r.clientWithAPIUrl(ctx, mxs, mxs.APIUrl())
-}
-
-func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	podIndex int) (*mxsclient.Client, error) {
-	return r.clientWithAPIUrl(ctx, mxs, mxs.PodAPIUrl(podIndex))
-}
-
-func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	apiUrl string) (*mxsclient.Client, error) {
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef, mxs.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error getting admin password: %v", err)
-	}
-
-	opts := []mdbhttp.Option{
-		mdbhttp.WithTimeout(10 * time.Second),
-		mdbhttp.WithBasicAuth(mxs.Spec.Auth.AdminUsername, password),
-	}
-	if r.LogRequests {
-		logger := log.FromContext(ctx).WithName("maxscale-client")
-		opts = append(opts, mdbhttp.WithLogger(&logger))
-	}
-	return mxsclient.NewClient(apiUrl, opts...)
 }
 
 func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {
