@@ -30,6 +30,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -380,6 +381,8 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 		return ctrl.Result{}, nil
 	}
 
+	logger := log.FromContext(ctx).WithValues("pod", stsobj.PodName(mxs.ObjectMeta, 0))
+	logger.Info("Initializing MaxScale instance")
 	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
 	for _, srv := range mxs.Spec.Servers {
@@ -387,24 +390,24 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 			return ctrl.Result{}, fmt.Errorf("error creating server '%s': %v", srv.Name, err)
 		}
 	}
-
 	srvRels :=
 		mxsclient.NewRelationshipsBuilder().
 			WithServers(mxs.ServerIDs()...).
-			Build()
-	svcRels :=
-		mxsclient.NewRelationshipsBuilder().
-			WithServices(mxs.ServiceIDs()...).
 			Build()
 	for _, svc := range mxs.Spec.Services {
 		if result, err := mxsApi.createService(ctx, &svc, srvRels); !result.IsZero() || err != nil {
 			return result, err
 		}
+	}
+	svcRels :=
+		mxsclient.NewRelationshipsBuilder().
+			WithServices(mxs.ServiceIDs()...).
+			Build()
+	for _, svc := range mxs.Spec.Services {
 		if result, err := mxsApi.createListener(ctx, &svc, svcRels); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
-
 	return mxsApi.createMonitor(ctx, srvRels)
 }
 
