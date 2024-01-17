@@ -153,6 +153,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		command.WithBackupUserEnv(batchUserEnv),
 		command.WithBackupPasswordEnv(batchPasswordEnv),
 		command.WithBackupLogLevel(restore.Spec.LogLevel),
+		command.WithBackupDumpOpts(restore.Spec.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(restore.Spec.S3)...)
 
