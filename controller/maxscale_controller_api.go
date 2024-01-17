@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -41,6 +42,8 @@ func (r *maxScaleAPI) handleAPIResult(ctx context.Context, err error) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
+// MaxScale API - User
+
 func (m *maxScaleAPI) createAdminUser(ctx context.Context) (ctrl.Result, error) {
 	apiLogger(ctx).V(1).Info("Creating admin user", "user", m.mxs.Spec.Auth.AdminUsername)
 
@@ -56,6 +59,8 @@ func (m *maxScaleAPI) createAdminUser(ctx context.Context) (ctrl.Result, error) 
 	err = m.client.User.Create(ctx, m.mxs.Spec.Auth.AdminUsername, attrs)
 	return m.handleAPIResult(ctx, err)
 }
+
+// MaxScale API - Servers
 
 func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) (ctrl.Result, error) {
 	apiLogger(ctx).V(1).Info("Creating server", "server", srv.Name)
@@ -78,6 +83,76 @@ func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxS
 	return m.handleAPIResult(ctx, err)
 }
 
+func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttributes {
+	return mxsclient.ServerAttributes{
+		Parameters: mxsclient.ServerParameters{
+			Address:  srv.Address,
+			Port:     srv.Port,
+			Protocol: srv.Protocol,
+			Params:   mxsclient.NewMapParams(srv.Params),
+		},
+	}
+}
+
+func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relationships, error) {
+	apiLogger(ctx).V(1).Info("Getting server relationships")
+
+	idx, err := m.client.Server.ListIndex(ctx)
+	// TODO: handleAPIResult?
+	if err != nil {
+		return nil, err
+	}
+	keys := ds.Keys(ds.Filter(idx, m.mxs.ServerIDs()...))
+
+	return mxsclient.NewRelationshipsBuilder().
+		WithServers(keys...).
+		Build(), nil
+}
+
+// MaxScale API - Monitors
+
+func (m *maxScaleAPI) createMonitor(ctx context.Context, rels *mxsclient.Relationships) (ctrl.Result, error) {
+	apiLogger(ctx).V(1).Info("Creating monitor", "monitor", m.mxs.Spec.Monitor.Name)
+
+	attrs, err := m.monitorAttributes(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting monitor attributes: %v", err)
+	}
+
+	err = m.client.Monitor.Create(ctx, m.mxs.Spec.Monitor.Name, *attrs, mxsclient.WithRelationships(rels))
+	return m.handleAPIResult(ctx, err)
+}
+
+func (m *maxScaleAPI) patchMonitor(ctx context.Context, rels *mxsclient.Relationships) (ctrl.Result, error) {
+	apiLogger(ctx).V(1).Info("Creating monitor", "monitor", m.mxs.Spec.Monitor.Name)
+
+	attrs, err := m.monitorAttributes(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting monitor attributes: %v", err)
+	}
+	err = m.client.Monitor.Patch(ctx, m.mxs.Spec.Monitor.Name, *attrs, mxsclient.WithRelationships(rels))
+	return m.handleAPIResult(ctx, err)
+}
+
+func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.MonitorAttributes, error) {
+	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.MonitorPasswordSecretKeyRef, m.mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting monitor password: %v", err)
+	}
+
+	return &mxsclient.MonitorAttributes{
+		Module: m.mxs.Spec.Monitor.Module,
+		Parameters: mxsclient.MonitorParameters{
+			User:            m.mxs.Spec.Auth.MonitorUsername,
+			Password:        password,
+			MonitorInterval: m.mxs.Spec.Monitor.Interval,
+			Params:          mxsclient.NewMapParams(m.mxs.Spec.Monitor.Params),
+		},
+	}, nil
+}
+
+// MaxScale API - Services
+
 func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService,
 	rels *mxsclient.Relationships) (ctrl.Result, error) {
 	apiLogger(ctx).V(1).Info("Creating service", "service", svc.Name)
@@ -99,6 +174,8 @@ func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.Ma
 	return m.handleAPIResult(ctx, err)
 }
 
+// MaxScale API - Listeners
+
 func (m *maxScaleAPI) createListener(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService,
 	rels *mxsclient.Relationships) (ctrl.Result, error) {
 	apiLogger(ctx).V(1).Info("Creating listener", "listener", svc.Listener.Name)
@@ -112,27 +189,6 @@ func (m *maxScaleAPI) createListener(ctx context.Context, svc *mariadbv1alpha1.M
 	}
 
 	err := m.client.Listener.Create(ctx, svc.Listener.Name, attrs, mxsclient.WithRelationships(rels))
-	return m.handleAPIResult(ctx, err)
-}
-
-func (m *maxScaleAPI) createMonitor(ctx context.Context, rels *mxsclient.Relationships) (ctrl.Result, error) {
-	apiLogger(ctx).V(1).Info("Creating monitor", "monitor", m.mxs.Spec.Monitor.Name)
-
-	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.MonitorPasswordSecretKeyRef, m.mxs.Namespace)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting monitor password: %v", err)
-	}
-	attrs := mxsclient.MonitorAttributes{
-		Module: m.mxs.Spec.Monitor.Module,
-		Parameters: mxsclient.MonitorParameters{
-			User:            m.mxs.Spec.Auth.MonitorUsername,
-			Password:        password,
-			MonitorInterval: m.mxs.Spec.Monitor.Interval,
-			Params:          mxsclient.NewMapParams(m.mxs.Spec.Monitor.Params),
-		},
-	}
-
-	err = m.client.Monitor.Create(ctx, m.mxs.Spec.Monitor.Name, attrs, mxsclient.WithRelationships(rels))
 	return m.handleAPIResult(ctx, err)
 }
 
@@ -179,15 +235,4 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 
 func apiLogger(ctx context.Context) logr.Logger {
 	return log.FromContext(ctx).WithName("api")
-}
-
-func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttributes {
-	return mxsclient.ServerAttributes{
-		Parameters: mxsclient.ServerParameters{
-			Address:  srv.Address,
-			Port:     srv.Port,
-			Protocol: srv.Protocol,
-			Params:   mxsclient.NewMapParams(srv.Params),
-		},
-	}
 }
