@@ -37,7 +37,7 @@ func (c *ReadClient[T]) ListIndex(ctx context.Context) (ds.Index[Data[T]], error
 	if err != nil {
 		return nil, err
 	}
-	return ds.IndexSlice[Data[T]](list, func(d Data[T]) string { return d.ID }), nil
+	return ds.NewIndex[Data[T]](list, func(d Data[T]) string { return d.ID }), nil
 }
 
 func (c *ReadClient[T]) AnyExists(ctx context.Context, ids ...string) (bool, error) {

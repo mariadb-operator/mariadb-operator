@@ -2,7 +2,7 @@ package datastructures
 
 type Index[T any] map[string]T
 
-func IndexSlice[T any](items []T, getID func(T) string) Index[T] {
+func NewIndex[T any](items []T, getID func(T) string) Index[T] {
 	idx := make(Index[T], len(items))
 	for _, item := range items {
 		idx[getID(item)] = item
