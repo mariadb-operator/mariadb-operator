@@ -36,34 +36,57 @@ type Relationships struct {
 	Listeners *RelationshipData `json:"listeners,omitempty"`
 }
 
-func NewServerRelationships(servers ...string) Relationships {
-	items := make([]RelationshipItem, len(servers))
-	for i, srv := range servers {
-		items[i] = RelationshipItem{
-			ID:   srv,
-			Type: ObjectTypeServers,
-		}
-	}
-	return Relationships{
-		Servers: &RelationshipData{
-			Data: items,
-		},
+type RelationshipsBuilder struct {
+	rels *Relationships
+}
+
+func NewRelationshipsBuilder() *RelationshipsBuilder {
+	return &RelationshipsBuilder{
+		rels: &Relationships{},
 	}
 }
 
-func NewServiceRelationships(services ...string) Relationships {
-	items := make([]RelationshipItem, len(services))
-	for i, srv := range services {
+func (b *RelationshipsBuilder) WithServers(servers ...string) *RelationshipsBuilder {
+	b.rels.Servers = &RelationshipData{
+		Data: b.items(ObjectTypeServers, servers...),
+	}
+	return b
+}
+
+func (b *RelationshipsBuilder) WithMonitors(monitors ...string) *RelationshipsBuilder {
+	b.rels.Monitors = &RelationshipData{
+		Data: b.items(ObjectTypeMonitors, monitors...),
+	}
+	return b
+}
+
+func (b *RelationshipsBuilder) WithServices(services ...string) *RelationshipsBuilder {
+	b.rels.Services = &RelationshipData{
+		Data: b.items(ObjectTypeServices, services...),
+	}
+	return b
+}
+
+func (b *RelationshipsBuilder) WithListeners(listeners ...string) *RelationshipsBuilder {
+	b.rels.Listeners = &RelationshipData{
+		Data: b.items(ObjectTypeListeners, listeners...),
+	}
+	return b
+}
+
+func (b *RelationshipsBuilder) Build() *Relationships {
+	return b.rels
+}
+
+func (b *RelationshipsBuilder) items(objType ObjectType, ids ...string) []RelationshipItem {
+	items := make([]RelationshipItem, len(ids))
+	for i, id := range ids {
 		items[i] = RelationshipItem{
-			ID:   srv,
-			Type: ObjectTypeListeners,
+			ID:   id,
+			Type: objType,
 		}
 	}
-	return Relationships{
-		Services: &RelationshipData{
-			Data: items,
-		},
-	}
+	return items
 }
 
 type Param string
