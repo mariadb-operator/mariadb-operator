@@ -19,6 +19,8 @@ func (r *MaxScaleReconciler) handleAPIResult(ctx context.Context, err error) (ct
 	}
 	logger := r.apiLogger(ctx)
 	logger.Error(err, "error requesting MaxScale API")
+	// TODO: emit an event?
+	// TODO: update status conditions. Take into account that patching the status will trigger a reconciliation.
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
@@ -35,7 +37,7 @@ func (r *MaxScaleReconciler) createAdminUser(ctx context.Context, mxs *mariadbv1
 		Password: &password,
 	}
 
-	err = client.User.Create(ctx, mxs.Spec.Auth.AdminUsername, attrs, nil)
+	err = client.User.Create(ctx, mxs.Spec.Auth.AdminUsername, attrs)
 	return r.handleAPIResult(ctx, err)
 }
 
@@ -59,7 +61,7 @@ func (r *MaxScaleReconciler) createServer(ctx context.Context, srv *mariadbv1alp
 func (r *MaxScaleReconciler) deleteServer(ctx context.Context, name string, client *mxsclient.Client) (ctrl.Result, error) {
 	log.FromContext(ctx).V(1).Info("Deleting server", "server", name)
 
-	err := client.Server.Delete(ctx, name)
+	err := client.Server.Delete(ctx, name, mxsclient.WithForceQuery())
 	return r.handleAPIResult(ctx, err)
 }
 
@@ -81,7 +83,7 @@ func (r *MaxScaleReconciler) createService(ctx context.Context, svc *mariadbv1al
 	}
 	rels := mxsclient.NewServerRelationships(mxs.ServerIDs()...)
 
-	err = client.Service.Create(ctx, svc.Name, attrs, &rels)
+	err = client.Service.Create(ctx, svc.Name, attrs, mxsclient.WithRelationships(&rels))
 	return r.handleAPIResult(ctx, err)
 }
 
@@ -98,7 +100,7 @@ func (r *MaxScaleReconciler) createListener(ctx context.Context, svc *mariadbv1a
 	}
 	rels := mxsclient.NewServiceRelationships(svc.Name)
 
-	err := client.Listener.Create(ctx, svc.Listener.Name, attrs, &rels)
+	err := client.Listener.Create(ctx, svc.Listener.Name, attrs, mxsclient.WithRelationships(&rels))
 	return r.handleAPIResult(ctx, err)
 }
 
@@ -121,7 +123,7 @@ func (r *MaxScaleReconciler) createMonitor(ctx context.Context, mxs *mariadbv1al
 	}
 	rels := mxsclient.NewServerRelationships(mxs.ServerIDs()...)
 
-	err = client.Monitor.Create(ctx, mxs.Spec.Monitor.Name, attrs, &rels)
+	err = client.Monitor.Create(ctx, mxs.Spec.Monitor.Name, attrs, mxsclient.WithRelationships(&rels))
 	return r.handleAPIResult(ctx, err)
 }
 
