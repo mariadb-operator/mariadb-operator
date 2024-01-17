@@ -63,9 +63,6 @@ func (c *GenericClient[T]) List(ctx context.Context, options ...Option) ([]Data[
 }
 
 func (c *GenericClient[T]) ListIndex(ctx context.Context, options ...Option) (ds.Index[Data[T]], error) {
-	if options == nil {
-		options = []Option{}
-	}
 	list, err := c.List(ctx, options...)
 	if err != nil {
 		return nil, err
@@ -76,9 +73,6 @@ func (c *GenericClient[T]) ListIndex(ctx context.Context, options ...Option) (ds
 }
 
 func (c *GenericClient[T]) AnyExists(ctx context.Context, ids []string, options ...Option) (bool, error) {
-	if options == nil {
-		options = []Option{}
-	}
 	index, err := c.ListIndex(ctx, options...)
 	if err != nil {
 		return false, nil
@@ -119,6 +113,23 @@ func (c *GenericClient[T]) Create(ctx context.Context, name string, attributes T
 func (c *GenericClient[T]) Delete(ctx context.Context, name string, options ...Option) error {
 	opts := c.processOptions(options...)
 	res, err := c.client.Delete(ctx, c.resourcePath(name), nil, opts.query)
+	if err != nil {
+		return err
+	}
+	return handleResponse(res, nil)
+}
+
+func (c *GenericClient[T]) Patch(ctx context.Context, name string, attributes T, options ...Option) error {
+	opts := c.processOptions(options...)
+	object := &Object[T]{
+		Data: Data[T]{
+			ID:            name,
+			Type:          c.objectType,
+			Attributes:    attributes,
+			Relationships: opts.relationships,
+		},
+	}
+	res, err := c.client.Patch(ctx, c.resourcePath(name), object, opts.query)
 	if err != nil {
 		return err
 	}
