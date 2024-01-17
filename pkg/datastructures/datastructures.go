@@ -1,5 +1,7 @@
 package datastructures
 
+import "sort"
+
 type Index[T any] map[string]T
 
 func NewIndex[T any](items []T, getID func(T) string) Index[T] {
@@ -57,6 +59,9 @@ func Diff[C, P any](current Index[C], previous Index[P]) DiffResult {
 		rest = append(rest, k)
 	}
 
+	sort.Strings(added)
+	sort.Strings(deleted)
+	sort.Strings(rest)
 	return DiffResult{
 		Added:   added,
 		Deleted: deleted,

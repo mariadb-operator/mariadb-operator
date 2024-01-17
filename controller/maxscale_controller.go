@@ -345,50 +345,27 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 	if !mxs.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
-
 	// TODO: all Pods in order to support HA
+	pod := stsobj.PodName(mxs.ObjectMeta, 0)
 	client, err := r.clientWithPodIndex(ctx, mxs, 0)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client for Pod '%s': %v", pod, err)
 	}
 
-	anyExist, err := client.Server.AnyExists(ctx, mxs.ServerIDs())
+	shouldInitialize, err := r.shouldInitialize(ctx, mxs, client)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking if servers already exist: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error checking initialization status in Pod '%s': %v", pod, err)
 	}
-	if anyExist {
-		return ctrl.Result{}, nil
-	}
-	anyExist, err = client.Service.AnyExists(ctx, mxs.ServiceIDs())
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking if services already exist: %v", err)
-	}
-	if anyExist {
-		return ctrl.Result{}, nil
-	}
-	anyExist, err = client.Service.AnyExists(ctx, mxs.ListenerIDs())
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking if listeners already exist: %v", err)
-	}
-	if anyExist {
-		return ctrl.Result{}, nil
-	}
-	anyExist, err = client.Monitor.AnyExists(ctx, []string{mxs.Spec.Monitor.Name})
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking if monitors already exist: %v", err)
-	}
-	if anyExist {
+	if !shouldInitialize {
 		return ctrl.Result{}, nil
 	}
 
-	logger := log.FromContext(ctx).WithValues("pod", stsobj.PodName(mxs.ObjectMeta, 0))
+	logger := log.FromContext(ctx).WithValues("pod", pod)
 	logger.Info("Initializing MaxScale instance")
 	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
-	for _, srv := range mxs.Spec.Servers {
-		if result, err := mxsApi.createServer(ctx, &srv, nil); !result.IsZero() || err != nil {
-			return ctrl.Result{}, err
-		}
+	if result, err := r.reconcileServersWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
+		return ctrl.Result{}, err
 	}
 	srvRels :=
 		mxsclient.NewRelationshipsBuilder().
@@ -409,13 +386,50 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 	return mxsApi.createMonitor(ctx, srvRels)
 }
 
+func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) (bool, error) {
+	anyExist, err := client.Server.AnyExists(ctx, mxs.ServerIDs())
+	if err != nil {
+		return false, fmt.Errorf("error checking if servers already exist: %v", err)
+	}
+	if anyExist {
+		return false, nil
+	}
+	anyExist, err = client.Service.AnyExists(ctx, mxs.ServiceIDs())
+	if err != nil {
+		return false, fmt.Errorf("error checking if services already exist: %v", err)
+	}
+	if anyExist {
+		return false, nil
+	}
+	anyExist, err = client.Service.AnyExists(ctx, mxs.ListenerIDs())
+	if err != nil {
+		return false, fmt.Errorf("error checking if listeners already exist: %v", err)
+	}
+	if anyExist {
+		return false, nil
+	}
+	anyExist, err = client.Monitor.AnyExists(ctx, []string{mxs.Spec.Monitor.Name})
+	if err != nil {
+		return false, fmt.Errorf("error checking if monitors already exist: %v", err)
+	}
+	if anyExist {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
 	// TODO: shared client pointing to the same instance?
 	client, err := r.client(ctx, mxs)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
 	}
+	return r.reconcileServersWithClient(ctx, mxs, client)
+}
 
+func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) (ctrl.Result, error) {
 	currentIdx := mxs.ServerIndex()
 	previousIdx, err := client.Server.ListIndex(ctx)
 	if err != nil {
