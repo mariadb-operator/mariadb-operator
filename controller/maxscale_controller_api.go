@@ -42,7 +42,7 @@ func (r *maxScaleAPI) handleAPIResult(ctx context.Context, err error) (ctrl.Resu
 }
 
 func (m *maxScaleAPI) createAdminUser(ctx context.Context) (ctrl.Result, error) {
-	log.FromContext(ctx).V(1).Info("Creating admin user", "user", m.mxs.Spec.Auth.AdminUsername)
+	apiLogger(ctx).V(1).Info("Creating admin user", "user", m.mxs.Spec.Auth.AdminUsername)
 
 	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.AdminPasswordSecretKeyRef, m.mxs.Namespace)
 	if err != nil {
@@ -57,33 +57,30 @@ func (m *maxScaleAPI) createAdminUser(ctx context.Context) (ctrl.Result, error) 
 	return m.handleAPIResult(ctx, err)
 }
 
-func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer,
-	rels *mxsclient.Relationships) (ctrl.Result, error) {
-	log.FromContext(ctx).V(1).Info("Creating server", "server", srv.Name)
+func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) (ctrl.Result, error) {
+	apiLogger(ctx).V(1).Info("Creating server", "server", srv.Name)
 
-	attrs := mxsclient.ServerAttributes{
-		Parameters: mxsclient.ServerParameters{
-			Address:  srv.Address,
-			Port:     srv.Port,
-			Protocol: srv.Protocol,
-			Params:   mxsclient.NewMapParams(srv.Params),
-		},
-	}
-
-	err := m.client.Server.Create(ctx, srv.Name, attrs, mxsclient.WithRelationships(rels))
+	err := m.client.Server.Create(ctx, srv.Name, serverAttributes(srv))
 	return m.handleAPIResult(ctx, err)
 }
 
 func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) (ctrl.Result, error) {
-	log.FromContext(ctx).V(1).Info("Deleting server", "server", name)
+	apiLogger(ctx).V(1).Info("Deleting server", "server", name)
 
 	err := m.client.Server.Delete(ctx, name, mxsclient.WithForceQuery())
 	return m.handleAPIResult(ctx, err)
 }
 
+func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) (ctrl.Result, error) {
+	apiLogger(ctx).V(1).Info("Patching server", "server", srv.Name)
+
+	err := m.client.Server.Patch(ctx, srv.Name, serverAttributes(srv))
+	return m.handleAPIResult(ctx, err)
+}
+
 func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService,
 	rels *mxsclient.Relationships) (ctrl.Result, error) {
-	log.FromContext(ctx).V(1).Info("Creating service", "service", svc.Name)
+	apiLogger(ctx).V(1).Info("Creating service", "service", svc.Name)
 
 	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.ServerPasswordSecretKeyRef, m.mxs.Namespace)
 	if err != nil {
@@ -104,7 +101,7 @@ func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.Ma
 
 func (m *maxScaleAPI) createListener(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService,
 	rels *mxsclient.Relationships) (ctrl.Result, error) {
-	log.FromContext(ctx).V(1).Info("Creating listener", "listener", svc.Listener.Name)
+	apiLogger(ctx).V(1).Info("Creating listener", "listener", svc.Listener.Name)
 
 	attrs := mxsclient.ListenerAttributes{
 		Parameters: mxsclient.ListenerParameters{
@@ -119,7 +116,7 @@ func (m *maxScaleAPI) createListener(ctx context.Context, svc *mariadbv1alpha1.M
 }
 
 func (m *maxScaleAPI) createMonitor(ctx context.Context, rels *mxsclient.Relationships) (ctrl.Result, error) {
-	log.FromContext(ctx).V(1).Info("Creating monitor", "monitor", m.mxs.Spec.Monitor.Name)
+	apiLogger(ctx).V(1).Info("Creating monitor", "monitor", m.mxs.Spec.Monitor.Name)
 
 	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.MonitorPasswordSecretKeyRef, m.mxs.Namespace)
 	if err != nil {
@@ -182,4 +179,15 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 
 func apiLogger(ctx context.Context) logr.Logger {
 	return log.FromContext(ctx).WithName("api")
+}
+
+func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttributes {
+	return mxsclient.ServerAttributes{
+		Parameters: mxsclient.ServerParameters{
+			Address:  srv.Address,
+			Port:     srv.Port,
+			Protocol: srv.Protocol,
+			Params:   mxsclient.NewMapParams(srv.Params),
+		},
+	}
 }

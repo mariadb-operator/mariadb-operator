@@ -454,7 +454,7 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 		if !ok {
 			logger.V(1).Info("Server to add not found in current index", "server", srv.Name)
 		}
-		if result, err := mxsApi.createServer(ctx, &srv, nil); !result.IsZero() || err != nil {
+		if result, err := mxsApi.createServer(ctx, &srv); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
@@ -467,7 +467,15 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 			return result, err
 		}
 	}
-
+	for _, id := range diff.Rest {
+		srv, ok := currentIdx[id]
+		if !ok {
+			logger.V(1).Info("Server to patch not found in current index", "server", srv.Name)
+		}
+		if result, err := mxsApi.patchServer(ctx, &srv); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
