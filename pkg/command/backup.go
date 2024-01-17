@@ -199,6 +199,10 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 }
 
 func (b *BackupCommand) MariadbRestore(mariadb *mariadbv1alpha1.MariaDB) *Command {
+	dumpOpts := ""
+	if b.BackupOpts.DumpOpts != nil {
+		dumpOpts = strings.Join(b.BackupOpts.DumpOpts, " ")
+	}
 	cmds := []string{
 		"set -euo pipefail",
 		fmt.Sprintf(
@@ -206,8 +210,9 @@ func (b *BackupCommand) MariadbRestore(mariadb *mariadbv1alpha1.MariaDB) *Comman
 			b.getTargetFilePath(),
 		),
 		fmt.Sprintf(
-			"mariadb %s < %s",
+			"mariadb %s %s < %s",
 			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
+			dumpOpts,
 			b.getTargetFilePath(),
 		),
 	}

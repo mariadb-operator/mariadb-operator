@@ -1538,6 +1538,11 @@ func (in *RestoreSpec) DeepCopyInto(out *RestoreSpec) {
 	*out = *in
 	in.RestoreSource.DeepCopyInto(&out.RestoreSource)
 	out.MariaDBRef = in.MariaDBRef
+	if in.Args != nil {
+		in, out := &in.Args, &out.Args
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
 		*out = new(v1.ResourceRequirements)
