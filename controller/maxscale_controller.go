@@ -387,7 +387,7 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 
 	for _, srv := range mxs.Spec.Servers {
 		if result, err := mxsApi.createServer(ctx, &srv, nil); !result.IsZero() || err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating server '%s': %v", srv.Name, err)
+			return ctrl.Result{}, err
 		}
 	}
 	srvRels :=
@@ -398,12 +398,10 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 		if result, err := mxsApi.createService(ctx, &svc, srvRels); !result.IsZero() || err != nil {
 			return result, err
 		}
-	}
-	svcRels :=
-		mxsclient.NewRelationshipsBuilder().
-			WithServices(mxs.ServiceIDs()...).
-			Build()
-	for _, svc := range mxs.Spec.Services {
+		svcRels :=
+			mxsclient.NewRelationshipsBuilder().
+				WithServices(svc.Name).
+				Build()
 		if result, err := mxsApi.createListener(ctx, &svc, svcRels); !result.IsZero() || err != nil {
 			return result, err
 		}
