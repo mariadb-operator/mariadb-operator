@@ -187,6 +187,9 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, mxs *mariadbv1
 		mxs.Spec.Auth.ServerPasswordSecretKeyRef,
 		mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
 	}
+	if mxs.IsHAEnabled() {
+		randomPasswordKeys = append(randomPasswordKeys, mxs.Spec.Auth.SyncPasswordSecretKeyRef)
+	}
 	for _, secretKeyRef := range randomPasswordKeys {
 		randomSecretReq := &secret.RandomPasswordRequest{
 			Owner: mxs,

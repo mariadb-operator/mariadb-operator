@@ -14,9 +14,10 @@ var defaultAdminUser = "admin"
 type Client struct {
 	User     *UserClient
 	Server   *ServerClient
+	Monitor  *MonitorClient
 	Service  *ServiceClient
 	Listener *ListenerClient
-	Monitor  *MonitorClient
+	MaxScale *MaxScaleClient
 }
 
 func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
@@ -27,9 +28,10 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 	return &Client{
 		User:     NewUserClient(httpClient),
 		Server:   NewServerClient(httpClient),
+		Monitor:  NewMonitorClient(httpClient),
 		Service:  NewServiceClient(httpClient),
 		Listener: NewListenerClient(httpClient),
-		Monitor:  NewMonitorClient(httpClient),
+		MaxScale: NewMaxScaleClient(httpClient),
 	}, nil
 }
 

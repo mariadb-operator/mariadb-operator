@@ -12,12 +12,12 @@ import (
 type ObjectType string
 
 const (
-	ObjectTypeMaxScale  ObjectType = "maxscale"
 	ObjectTypeUsers     ObjectType = "inet"
 	ObjectTypeServers   ObjectType = "servers"
 	ObjectTypeMonitors  ObjectType = "monitors"
 	ObjectTypeServices  ObjectType = "services"
 	ObjectTypeListeners ObjectType = "listeners"
+	ObjectTypeMaxScale  ObjectType = "maxscale"
 )
 
 type RelationshipItem struct {
