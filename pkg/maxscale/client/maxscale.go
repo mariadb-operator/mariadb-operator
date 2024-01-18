@@ -1,19 +1,21 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
-	"time"
 
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type MaxScaleParameters struct {
-	ConfigSyncUser     string        `json:"config_sync_user"`
-	ConfigSyncPassword string        `json:"config_sync_password"`
-	ConfigSyncDB       string        `json:"config_sync_db"`
-	ConfigSyncInterval time.Duration `json:"config_sync_interval"`
-	ConfigSyncTimeout  time.Duration `json:"config_sync_timeout"`
-	Params             MapParams     `json:"-"`
+	ConfigSyncCluster  string          `json:"config_sync_cluster"`
+	ConfigSyncUser     string          `json:"config_sync_user"`
+	ConfigSyncPassword string          `json:"config_sync_password"`
+	ConfigSyncDB       string          `json:"config_sync_db"`
+	ConfigSyncInterval metav1.Duration `json:"config_sync_interval"`
+	ConfigSyncTimeout  metav1.Duration `json:"config_sync_timeout"`
+	Params             MapParams       `json:"-"`
 }
 
 func (m MaxScaleParameters) MarshalJSON() ([]byte, error) {
@@ -42,20 +44,30 @@ func (m MaxScaleParameters) MarshalJSON() ([]byte, error) {
 	return json.Marshal(rawMap)
 }
 
-type MaxscaleAttributes struct {
-	Parameters MonitorParameters `json:"parameters"`
+type MaxScaleAttributes struct {
+	Parameters MaxScaleParameters `json:"parameters"`
 }
 
 type MaxScaleClient struct {
-	GenericClient[MaxscaleAttributes]
+	client *mdbhttp.Client
 }
 
 func NewMaxScaleClient(client *mdbhttp.Client) *MaxScaleClient {
 	return &MaxScaleClient{
-		GenericClient: NewGenericClient[MaxscaleAttributes](
-			client,
-			"maxscale",
-			ObjectTypeMaxScale,
-		),
+		client: client,
 	}
+}
+
+func (m *MaxScaleClient) Patch(ctx context.Context, attributes MaxScaleAttributes) error {
+	object := &Object[MaxScaleAttributes]{
+		Data: Data[MaxScaleAttributes]{
+			Type:       ObjectTypeMaxScale,
+			Attributes: attributes,
+		},
+	}
+	res, err := m.client.Patch(ctx, "maxscale", object, nil)
+	if err != nil {
+		return err
+	}
+	return handleResponse(res, nil)
 }

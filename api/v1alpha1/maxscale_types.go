@@ -222,8 +222,8 @@ type MaxScaleConfig struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Params map[string]string `json:"params,omitempty"`
-	// VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files.
-	// +kubebuilder:validation:Required
+	// VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files. It is defaulted if not provided.
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate"`
 	// Sync defines how to replicate configuration across MaxScale replicas. It is defaulted if not provided.

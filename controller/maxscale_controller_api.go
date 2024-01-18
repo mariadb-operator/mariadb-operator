@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -82,7 +83,6 @@ func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relat
 	apiLogger(ctx).V(1).Info("Getting server relationships")
 
 	idx, err := m.client.Server.ListIndex(ctx)
-	// TODO: handleAPIResult?
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +209,32 @@ func listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.Li
 			Params:   mxsclient.NewMapParams(listener.Params),
 		},
 	}
+}
+
+// MaxScale API - MaxScale
+
+func (m *maxScaleAPI) patchMaxScaleConfigSync(ctx context.Context) error {
+	apiLogger(ctx).V(1).Info("Patching MaxScale")
+
+	if m.mxs.Spec.Config.Sync == nil {
+		return errors.New("'spec.config.sync' must be set")
+	}
+	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.SyncPasswordSecretKeyRef, m.mxs.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting sync password: %v", err)
+	}
+	attrs := mxsclient.MaxScaleAttributes{
+		Parameters: mxsclient.MaxScaleParameters{
+			ConfigSyncCluster:  m.mxs.Spec.Monitor.Name,
+			ConfigSyncUser:     m.mxs.Spec.Auth.SyncUsername,
+			ConfigSyncPassword: password,
+			ConfigSyncDB:       m.mxs.Spec.Config.Sync.Database,
+			ConfigSyncInterval: m.mxs.Spec.Config.Sync.Interval,
+			ConfigSyncTimeout:  m.mxs.Spec.Config.Sync.Timeout,
+		},
+	}
+
+	return m.client.MaxScale.Patch(ctx, attrs)
 }
 
 // MaxScale client
