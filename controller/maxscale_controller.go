@@ -113,6 +113,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			name:      "Monitor",
 			reconcile: r.reconcileMonitor,
 		},
+		{
+			name:      "Services",
+			reconcile: r.reconcileServices,
+		},
 	}
 
 	for _, p := range phases {
@@ -374,14 +378,10 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 	if result, err := r.reconcileMonitorWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
 		return ctrl.Result{}, err
 	}
-	srvRels :=
-		mxsclient.NewRelationshipsBuilder().
-			WithServers(mxs.ServerIDs()...).
-			Build()
+	if result, err := r.reconcileServicesWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
+		return ctrl.Result{}, err
+	}
 	for _, svc := range mxs.Spec.Services {
-		if result, err := mxsApi.createService(ctx, &svc, srvRels); !result.IsZero() || err != nil {
-			return result, err
-		}
 		svcRels :=
 			mxsclient.NewRelationshipsBuilder().
 				WithServices(svc.Name).
@@ -449,7 +449,7 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 
 	logger := log.FromContext(ctx)
 	logger.V(1).Info(
-		"Diff",
+		"Server diff",
 		"added", diff.Added,
 		"deleted", diff.Deleted,
 		"rest", diff.Rest,
@@ -460,6 +460,7 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 		srv, ok := currentIdx[id]
 		if !ok {
 			logger.V(1).Info("Server to add not found in current index", "server", srv.Name)
+			continue
 		}
 		if result, err := mxsApi.createServer(ctx, &srv); !result.IsZero() || err != nil {
 			return result, err
@@ -469,6 +470,7 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 		srv, ok := previousIdx[id]
 		if !ok {
 			logger.V(1).Info("Server to delete not found in previous index", "server", srv.ID)
+			continue
 		}
 		if result, err := mxsApi.deleteServer(ctx, srv.ID); !result.IsZero() || err != nil {
 			return result, err
@@ -478,6 +480,7 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 		srv, ok := currentIdx[id]
 		if !ok {
 			logger.V(1).Info("Server to patch not found in current index", "server", srv.Name)
+			continue
 		}
 		if result, err := mxsApi.patchServer(ctx, &srv); !result.IsZero() || err != nil {
 			return result, err
@@ -517,6 +520,74 @@ func (r *MaxScaleReconciler) reconcileMonitorWithClient(ctx context.Context, mxs
 		return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
 	}
 	return mxsApi.patchMonitor(ctx, rels)
+}
+
+func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	// TODO: shared client pointing to the same instance?
+	client, err := r.client(ctx, mxs)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
+	}
+	return r.reconcileServicesWithClient(ctx, mxs, client)
+}
+
+func (r *MaxScaleReconciler) reconcileServicesWithClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) (ctrl.Result, error) {
+	currentIdx := mxs.ServiceIndex()
+	previousIdx, err := client.Service.ListIndex(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting service index: %v", err)
+	}
+	diff := ds.Diff[
+		mariadbv1alpha1.MaxScaleService,
+		mxsclient.Data[mxsclient.ServiceAttributes],
+	](currentIdx, previousIdx)
+
+	logger := log.FromContext(ctx)
+	logger.V(1).Info(
+		"Service diff",
+		"added", diff.Added,
+		"deleted", diff.Deleted,
+		"rest", diff.Rest,
+	)
+	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
+
+	rels, err := mxsApi.serverRelationships(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
+	}
+
+	for _, id := range diff.Added {
+		svc, ok := currentIdx[id]
+		if !ok {
+			logger.V(1).Info("Service to add not found in current index", "service", svc.Name)
+			continue
+		}
+		if result, err := mxsApi.createService(ctx, &svc, rels); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+	for _, id := range diff.Deleted {
+		svc, ok := previousIdx[id]
+		if !ok {
+			logger.V(1).Info("Service to delete not found in previous index", "service", svc.ID)
+			continue
+		}
+		if result, err := mxsApi.deleteService(ctx, svc.ID); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+	for _, id := range diff.Rest {
+		svc, ok := currentIdx[id]
+		if !ok {
+			logger.V(1).Info("Service to patch not found in current index", "service", svc.Name)
+			continue
+		}
+		if result, err := mxsApi.patchService(ctx, &svc, rels); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {
