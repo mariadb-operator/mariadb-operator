@@ -200,6 +200,22 @@ func (m *MaxScaleAdmin) SetDefaults(mxs *MaxScale) {
 	}
 }
 
+// MaxScaleConfigSync defines how the config changes are replicated across replicas.
+type MaxScaleConfigSync struct {
+	// Database is the MariaDB logical database used to persist and synchronize config changes. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Database string `json:"database,omitempty"`
+	// Interval defines the config synchronization interval. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Interval metav1.Duration `json:"interval,omitempty"`
+	// Interval defines the config synchronization timeout. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Timeout metav1.Duration `json:"timeout,omitempty"`
+}
+
 // MaxScaleConfig defines the MaxScale configuration.
 type MaxScaleConfig struct {
 	// Params is a key value pair of parameters to be used in the MaxScale static configuration file.
@@ -210,9 +226,13 @@ type MaxScaleConfig struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate"`
+	// Sync defines how to replicate configuration across MaxScale replicas. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Sync *MaxScaleConfigSync `json:"sync,omitempty"`
 }
 
-func (m *MaxScaleConfig) SetDefaults() {
+func (m *MaxScaleConfig) SetDefaults(mxs *MaxScale) {
 	if reflect.ValueOf(m.VolumeClaimTemplate).IsZero() {
 		m.VolumeClaimTemplate = VolumeClaimTemplate{
 			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
@@ -225,6 +245,20 @@ func (m *MaxScaleConfig) SetDefaults() {
 					corev1.ReadWriteOnce,
 				},
 			},
+		}
+	}
+	if mxs.IsHAEnabled() {
+		if m.Sync == nil {
+			m.Sync = &MaxScaleConfigSync{}
+		}
+		if m.Sync.Database == "" {
+			m.Sync.Database = "mysql"
+		}
+		if m.Sync.Interval == (metav1.Duration{}) {
+			m.Sync.Interval = metav1.Duration{Duration: 5 * time.Second}
+		}
+		if m.Sync.Timeout == (metav1.Duration{}) {
+			m.Sync.Timeout = metav1.Duration{Duration: 10 * time.Second}
 		}
 	}
 }
@@ -267,6 +301,14 @@ type MaxScaleAuth struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MonitorPasswordSecretKeyRef corev1.SecretKeySelector `json:"monitorPasswordSecretKeyRef,omitempty"`
+	// MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SyncUsername string `json:"syncUsername,omitempty"`
+	// SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SyncPasswordSecretKeyRef corev1.SecretKeySelector `json:"syncPasswordSecretKeyRef,omitempty"`
 }
 
 // SetDefaults sets default values.
@@ -298,9 +340,17 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	if m.MonitorPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.MonitorPasswordSecretKeyRef = mxs.AuthMonitorPasswordSecretKeyRef()
 	}
+	if mxs.IsHAEnabled() {
+		if m.SyncUsername == "" {
+			m.SyncUsername = mxs.AuthSyncUserKey().Name
+		}
+		if m.SyncPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+			m.SyncPasswordSecretKeyRef = mxs.AuthSyncPasswordSecretKeyRef()
+		}
+	}
 }
 
-// SetDefaults indicates whether the default admin should be deleted after initial setup.
+// ShouldDeleteDefaultAdmin indicates whether the default admin should be deleted after initial setup.
 func (m *MaxScaleAuth) ShouldDeleteDefaultAdmin() bool {
 	return m.DeleteDefaultAdmin != nil && *m.DeleteDefaultAdmin
 }
@@ -433,13 +483,18 @@ func (m *MaxScale) SetDefaults(env *environment.Environment) {
 	}
 	m.Spec.Monitor.SetDefaults(m)
 	m.Spec.Admin.SetDefaults(m)
-	m.Spec.Config.SetDefaults()
+	m.Spec.Config.SetDefaults(m)
 	m.Spec.Auth.SetDefaults(m)
 }
 
 // IsReady indicates whether the Maxscale instance is ready.
 func (m *MaxScale) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+}
+
+// IsHAEnabled indicated whether high availability is enabled.
+func (m *MaxScale) IsHAEnabled() bool {
+	return m.Spec.Replicas > 1
 }
 
 // APIUrl returns the URL of the admin API pointing to the Kubernetes Service.

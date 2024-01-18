@@ -85,3 +85,20 @@ func (m *MaxScale) AuthMonitorPasswordSecretKeyRef() corev1.SecretKeySelector {
 		Key: "password",
 	}
 }
+
+// AuthSyncUserKey defines the key for the config sync User
+func (m *MaxScale) AuthSyncUserKey() corev1.LocalObjectReference {
+	return corev1.LocalObjectReference{
+		Name: fmt.Sprintf("%s-sync", m.Name),
+	}
+}
+
+// AuthSyncPasswordSecretKeyRef defines the Secret key selector for the config sync password
+func (m *MaxScale) AuthSyncPasswordSecretKeyRef() corev1.SecretKeySelector {
+	return corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: fmt.Sprintf("%s-sync", m.Name),
+		},
+		Key: "password",
+	}
+}
