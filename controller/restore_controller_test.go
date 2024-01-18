@@ -56,6 +56,7 @@ var _ = Describe("Restore controller", func() {
 						},
 						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
+					Args: []string{"--verbose"},
 				},
 			}
 			Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
