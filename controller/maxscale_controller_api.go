@@ -11,7 +11,6 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -31,56 +30,41 @@ func newMaxScaleAPI(mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client, ref
 	}
 }
 
-func (r *maxScaleAPI) handleAPIResult(ctx context.Context, err error) (ctrl.Result, error) {
-	if err == nil {
-		return ctrl.Result{}, nil
-	}
-	logger := apiLogger(ctx)
-	logger.Error(err, "error requesting MaxScale API")
-	// TODO: emit an event?
-	// TODO: update status conditions. Take into account that patching the status will trigger a reconciliation.
-	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-}
-
 // MaxScale API - User
 
-func (m *maxScaleAPI) createAdminUser(ctx context.Context) (ctrl.Result, error) {
+func (m *maxScaleAPI) createAdminUser(ctx context.Context) error {
 	apiLogger(ctx).V(1).Info("Creating admin user", "user", m.mxs.Spec.Auth.AdminUsername)
 
 	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.AdminPasswordSecretKeyRef, m.mxs.Namespace)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting admin password: %v", err)
+		return fmt.Errorf("error getting admin password: %v", err)
 	}
 	attrs := mxsclient.UserAttributes{
 		Account:  mxsclient.UserAccountAdmin,
 		Password: &password,
 	}
 
-	err = m.client.User.Create(ctx, m.mxs.Spec.Auth.AdminUsername, attrs)
-	return m.handleAPIResult(ctx, err)
+	return m.client.User.Create(ctx, m.mxs.Spec.Auth.AdminUsername, attrs)
 }
 
 // MaxScale API - Servers
 
-func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) (ctrl.Result, error) {
+func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
 	apiLogger(ctx).V(1).Info("Creating server", "server", srv.Name)
 
-	err := m.client.Server.Create(ctx, srv.Name, serverAttributes(srv))
-	return m.handleAPIResult(ctx, err)
+	return m.client.Server.Create(ctx, srv.Name, serverAttributes(srv))
 }
 
-func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) (ctrl.Result, error) {
+func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
 	apiLogger(ctx).V(1).Info("Deleting server", "server", name)
 
-	err := m.client.Server.Delete(ctx, name, mxsclient.WithForceQuery())
-	return m.handleAPIResult(ctx, err)
+	return m.client.Server.Delete(ctx, name, mxsclient.WithForceQuery())
 }
 
-func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) (ctrl.Result, error) {
+func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
 	apiLogger(ctx).V(1).Info("Patching server", "server", srv.Name)
 
-	err := m.client.Server.Patch(ctx, srv.Name, serverAttributes(srv))
-	return m.handleAPIResult(ctx, err)
+	return m.client.Server.Patch(ctx, srv.Name, serverAttributes(srv))
 }
 
 func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttributes {
@@ -111,27 +95,25 @@ func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relat
 
 // MaxScale API - Monitors
 
-func (m *maxScaleAPI) createMonitor(ctx context.Context, rels *mxsclient.Relationships) (ctrl.Result, error) {
+func (m *maxScaleAPI) createMonitor(ctx context.Context, rels *mxsclient.Relationships) error {
 	apiLogger(ctx).V(1).Info("Creating monitor", "monitor", m.mxs.Spec.Monitor.Name)
 
 	attrs, err := m.monitorAttributes(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting monitor attributes: %v", err)
+		return fmt.Errorf("error getting monitor attributes: %v", err)
 	}
 
-	err = m.client.Monitor.Create(ctx, m.mxs.Spec.Monitor.Name, *attrs, mxsclient.WithRelationships(rels))
-	return m.handleAPIResult(ctx, err)
+	return m.client.Monitor.Create(ctx, m.mxs.Spec.Monitor.Name, *attrs, mxsclient.WithRelationships(rels))
 }
 
-func (m *maxScaleAPI) patchMonitor(ctx context.Context, rels *mxsclient.Relationships) (ctrl.Result, error) {
+func (m *maxScaleAPI) patchMonitor(ctx context.Context, rels *mxsclient.Relationships) error {
 	apiLogger(ctx).V(1).Info("Creating monitor", "monitor", m.mxs.Spec.Monitor.Name)
 
 	attrs, err := m.monitorAttributes(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting monitor attributes: %v", err)
+		return fmt.Errorf("error getting monitor attributes: %v", err)
 	}
-	err = m.client.Monitor.Patch(ctx, m.mxs.Spec.Monitor.Name, *attrs, mxsclient.WithRelationships(rels))
-	return m.handleAPIResult(ctx, err)
+	return m.client.Monitor.Patch(ctx, m.mxs.Spec.Monitor.Name, *attrs, mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.MonitorAttributes, error) {
@@ -152,35 +134,30 @@ func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.Monitor
 
 // MaxScale API - Services
 
-func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService,
-	rels *mxsclient.Relationships) (ctrl.Result, error) {
+func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService, rels *mxsclient.Relationships) error {
 	apiLogger(ctx).V(1).Info("Creating service", "service", svc.Name)
 
 	attrs, err := m.serviceAttributes(ctx, svc)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting service attributes: %v", err)
+		return fmt.Errorf("error getting service attributes: %v", err)
 	}
-	err = m.client.Service.Create(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
-	return m.handleAPIResult(ctx, err)
+	return m.client.Service.Create(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
 }
 
-func (m *maxScaleAPI) deleteService(ctx context.Context, name string) (ctrl.Result, error) {
+func (m *maxScaleAPI) deleteService(ctx context.Context, name string) error {
 	apiLogger(ctx).V(1).Info("Deleting service", "service", name)
 
-	err := m.client.Service.Delete(ctx, name, mxsclient.WithForceQuery())
-	return m.handleAPIResult(ctx, err)
+	return m.client.Service.Delete(ctx, name, mxsclient.WithForceQuery())
 }
 
-func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService,
-	rels *mxsclient.Relationships) (ctrl.Result, error) {
+func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService, rels *mxsclient.Relationships) error {
 	apiLogger(ctx).V(1).Info("Patching service", "service", svc.Name)
 
 	attrs, err := m.serviceAttributes(ctx, svc)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting service attributes: %v", err)
+		return fmt.Errorf("error getting service attributes: %v", err)
 	}
-	err = m.client.Service.Patch(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
-	return m.handleAPIResult(ctx, err)
+	return m.client.Service.Patch(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService) (*mxsclient.ServiceAttributes, error) {
@@ -206,27 +183,22 @@ func (m *maxScaleAPI) serviceRelationships(service string) *mxsclient.Relationsh
 
 // MaxScale API - Listeners
 
-func (m *maxScaleAPI) createListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener,
-	rels *mxsclient.Relationships) (ctrl.Result, error) {
+func (m *maxScaleAPI) createListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
 	apiLogger(ctx).V(1).Info("Creating listener", "listener", listener.Name)
 
-	err := m.client.Listener.Create(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
-	return m.handleAPIResult(ctx, err)
+	return m.client.Listener.Create(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
-func (m *maxScaleAPI) deleteListener(ctx context.Context, name string) (ctrl.Result, error) {
+func (m *maxScaleAPI) deleteListener(ctx context.Context, name string) error {
 	apiLogger(ctx).V(1).Info("Deleting listener", "listener", name)
 
-	err := m.client.Listener.Delete(ctx, name, mxsclient.WithForceQuery())
-	return m.handleAPIResult(ctx, err)
+	return m.client.Listener.Delete(ctx, name, mxsclient.WithForceQuery())
 }
 
-func (m *maxScaleAPI) patchListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener,
-	rels *mxsclient.Relationships) (ctrl.Result, error) {
+func (m *maxScaleAPI) patchListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
 	apiLogger(ctx).V(1).Info("Patching listener", "listener", listener.Name)
 
-	err := m.client.Listener.Patch(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
-	return m.handleAPIResult(ctx, err)
+	return m.client.Listener.Patch(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
 func listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.ListenerAttributes {
