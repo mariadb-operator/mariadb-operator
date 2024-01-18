@@ -106,6 +106,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileInit,
 		},
 		{
+			name:      "Sync",
+			reconcile: r.reconcileSync,
+		},
+		{
 			name:      "Server",
 			reconcile: r.reconcileServers,
 		},
@@ -324,73 +328,87 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, mxs *mariadbv1a
 	if !mxs.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	for i := 0; i < int(mxs.Spec.Replicas); i++ {
+		if err := r.reconcileAdminWithPodIndex(ctx, mxs, i); err != nil {
+			pod := stsobj.PodName(mxs.ObjectMeta, i)
+			return ctrl.Result{}, fmt.Errorf("error reconciling admin in Pod '%s': %v", pod, err)
+		}
+	}
+	return ctrl.Result{}, nil
+}
 
-	// TODO: all Pods in order to support HA
-	client, err := r.clientWithPodIndex(ctx, mxs, 0)
+func (r *MaxScaleReconciler) reconcileAdminWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, podIndex int) error {
+	client, err := r.clientWithPodIndex(ctx, mxs, podIndex)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
+		return fmt.Errorf("error getting MaxScale client: %v", err)
 	}
 	_, err = client.User.Get(ctx, mxs.Spec.Auth.AdminUsername)
 	if err == nil {
-		return ctrl.Result{}, nil
+		return nil
 	}
 	if !mxsclient.IsUnautorized(err) && !mxsclient.IsNotFound(err) {
-		return ctrl.Result{}, fmt.Errorf("error getting admin user: %v", err)
+		return fmt.Errorf("error getting admin user: %v", err)
 	}
 
-	// TODO: all Pods in order to support HA
-	defaultClient, err := r.defaultClientWithPodIndex(ctx, mxs, 0)
+	defaultClient, err := r.defaultClientWithPodIndex(ctx, mxs, podIndex)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client: %v", err)
+		return fmt.Errorf("error getting MaxScale client: %v", err)
 	}
 	mxsApi := newMaxScaleAPI(mxs, defaultClient, r.RefResolver)
 
 	if err := mxsApi.createAdminUser(ctx); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating admin: %v", err)
+		return fmt.Errorf("error creating admin: %v", err)
 	}
 	if mxs.Spec.Auth.ShouldDeleteDefaultAdmin() {
 		if err := defaultClient.User.DeleteDefaultAdmin(ctx); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error deleting default admin: %v", err)
+			return fmt.Errorf("error deleting default admin: %v", err)
 		}
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
 	if !mxs.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
-	// TODO: all Pods in order to support HA
-	pod := stsobj.PodName(mxs.ObjectMeta, 0)
-	client, err := r.clientWithPodIndex(ctx, mxs, 0)
+	for i := 0; i < int(mxs.Spec.Replicas); i++ {
+		if err := r.reconcileInitWithPodIndex(ctx, mxs, i); err != nil {
+			pod := stsobj.PodName(mxs.ObjectMeta, i)
+			return ctrl.Result{}, fmt.Errorf("error initializing Pod '%s': %v", pod, err)
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileInitWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	podIndex int) error {
+	client, err := r.clientWithPodIndex(ctx, mxs, podIndex)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MaxScale client for Pod '%s': %v", pod, err)
+		return fmt.Errorf("error getting MaxScale client: %v", err)
 	}
 
 	shouldInitialize, err := r.shouldInitialize(ctx, mxs, client)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking initialization status in Pod '%s': %v", pod, err)
+		return fmt.Errorf("error checking initialization status: %v", err)
 	}
 	if !shouldInitialize {
-		return ctrl.Result{}, nil
+		return nil
 	}
 
+	pod := stsobj.PodName(mxs.ObjectMeta, podIndex)
 	logger := log.FromContext(ctx).WithValues("pod", pod)
 	logger.Info("Initializing MaxScale instance")
 
 	if err := r.reconcileServersWithClient(ctx, mxs, client); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	if err := r.reconcileMonitorWithClient(ctx, mxs, client); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	if err := r.reconcileServicesWithClient(ctx, mxs, client); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
-	if err := r.reconcileListenersWithClient(ctx, mxs, client); err != nil {
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{}, nil
+	return r.reconcileListenersWithClient(ctx, mxs, client)
 }
 
 func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
@@ -424,6 +442,30 @@ func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv
 		return false, nil
 	}
 	return true, nil
+}
+
+func (r *MaxScaleReconciler) reconcileSync(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if !mxs.IsReady() {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	for i := 0; i < int(mxs.Spec.Replicas); i++ {
+		if err := r.reconcileSyncWithPodIndex(ctx, mxs, i); err != nil {
+			pod := stsobj.PodName(mxs.ObjectMeta, i)
+			return ctrl.Result{}, fmt.Errorf("error setting up config sync in Pod '%s': %v", pod, err)
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileSyncWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	podIndex int) error {
+	client, err := r.clientWithPodIndex(ctx, mxs, podIndex)
+	if err != nil {
+		return fmt.Errorf("error getting MaxScale client: %v", err)
+	}
+	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
+
+	return mxsApi.patchMaxScaleConfigSync(ctx)
 }
 
 func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {

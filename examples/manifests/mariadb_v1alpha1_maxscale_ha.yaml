@@ -3,6 +3,8 @@ kind: MaxScale
 metadata:
   name: maxscale
 spec:
+  replicas: 3
+
   servers:
     - name: mariadb-0
       address: mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
@@ -47,6 +49,7 @@ spec:
   monitor:
     module: mariadbmon
     interval: 2s
+    cooperativeMonitoring: majority_of_all
     params:
       auto_failover: "true"
       auto_rejoin: "true"
@@ -54,7 +57,12 @@ spec:
 
   admin:
     port: 8989
-    guiEnabled: true
+
+  config:
+    sync:
+      database: mysql
+      interval: 5s
+      timeout: 10s
 
   # TODO: create User and Grants in the operator
   auth:
@@ -72,6 +80,10 @@ spec:
       key: password
     monitorUsername: maxscale-monitor
     monitorPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    syncUsername: maxscale-sync
+    syncPasswordSecretKeyRef:
       name: maxscale
       key: password
 

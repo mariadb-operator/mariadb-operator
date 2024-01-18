@@ -6,6 +6,8 @@ spec:
   image: mariadb/maxscale:23.08
   imagePullPolicy: IfNotPresent
 
+  replicas: 3
+
   servers:
     - name: mariadb-0
       address: mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
@@ -73,6 +75,10 @@ spec:
           storage: 100Mi
       accessModes:
         - ReadWriteOnce
+    sync:
+      database: mysql
+      interval: 5s
+      timeout: 10s
 
   # TODO: create User and Grants in the operator
   auth:
@@ -93,6 +99,10 @@ spec:
     monitorPasswordSecretKeyRef:
       name: maxscale
       key: password
+    syncUsername: maxscale-sync
+    syncPasswordSecretKeyRef:
+      name: maxscale
+      key: password
 
   podSecurityContext:
     runAsUser: 0
@@ -102,8 +112,6 @@ spec:
 
   updateStrategy:
     type: RollingUpdate
-
-  replicas: 3
 
   kubernetesService:
     type: LoadBalancer

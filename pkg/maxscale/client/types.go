@@ -122,7 +122,7 @@ func NewMapParams(params map[string]string) map[string]Param {
 }
 
 type Data[T any] struct {
-	ID            string         `json:"id"`
+	ID            string         `json:"id,omitempty"`
 	Type          ObjectType     `json:"type"`
 	Attributes    T              `json:"attributes"`
 	Relationships *Relationships `json:"relationships,omitempty"`

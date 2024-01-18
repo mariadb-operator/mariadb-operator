@@ -1004,6 +1004,32 @@ spec:
                     description: ServerUsername is the user used by MaxScale to connect
                       to MariaDB server. It is defaulted if not provided.
                     type: string
+                  syncPasswordSecretKeyRef:
+                    description: SyncPasswordSecretKeyRef is Secret key reference
+                      to the password used by MaxScale config to connect to MariaDB
+                      server. It is defaulted if not provided.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  syncUsername:
+                    description: MonitoSyncUsernamerUsername is the user used by MaxScale
+                      config sync to connect to MariaDB server. It is defaulted if
+                      not provided.
+                    type: string
                 type: object
               command:
                 description: Command to be used in the Container.
@@ -1019,9 +1045,28 @@ spec:
                     description: Params is a key value pair of parameters to be used
                       in the MaxScale static configuration file.
                     type: object
+                  sync:
+                    description: Sync defines how to replicate configuration across
+                      MaxScale replicas. It is defaulted if not provided.
+                    properties:
+                      database:
+                        description: Database is the MariaDB logical database used
+                          to persist and synchronize config changes. It is defaulted
+                          if not provided.
+                        type: string
+                      interval:
+                        description: Interval defines the config synchronization interval.
+                          It is defaulted if not provided.
+                        type: string
+                      timeout:
+                        description: Interval defines the config synchronization timeout.
+                          It is defaulted if not provided.
+                        type: string
+                    type: object
                   volumeClaimTemplate:
                     description: VolumeClaimTemplate provides a template to define
-                      the PVCs for storing MaxScale runtime configuration files.
+                      the PVCs for storing MaxScale runtime configuration files. It
+                      is defaulted if not provided.
                     properties:
                       accessModes:
                         description: 'accessModes contains the desired access modes
@@ -1238,8 +1283,6 @@ spec:
                           backing this claim.
                         type: string
                     type: object
-                required:
-                - volumeClaimTemplate
                 type: object
               env:
                 description: Env represents the environment variables to be injected
