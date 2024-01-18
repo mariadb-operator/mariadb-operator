@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -87,6 +88,7 @@ func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relat
 		return nil, err
 	}
 	keys := ds.Keys(ds.Filter(idx, m.mxs.ServerIDs()...))
+	sort.Strings(keys)
 
 	return mxsclient.NewRelationshipsBuilder().
 		WithServers(keys...).
@@ -213,8 +215,19 @@ func listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.Li
 
 // MaxScale API - MaxScale
 
+func (m *maxScaleAPI) isMaxScaleConfigSynced(ctx context.Context) (bool, error) {
+	apiLogger(ctx).V(1).Info("Checking MaxScale config sync")
+
+	data, err := m.client.MaxScale.Get(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return data.Attributes.Parameters.ConfigSyncCluster == m.mxs.Spec.Monitor.Name, nil
+}
+
 func (m *maxScaleAPI) patchMaxScaleConfigSync(ctx context.Context) error {
-	apiLogger(ctx).V(1).Info("Patching MaxScale")
+	apiLogger(ctx).V(1).Info("Patching MaxScale config sync")
 
 	if m.mxs.Spec.Config.Sync == nil {
 		return errors.New("'spec.config.sync' must be set")
