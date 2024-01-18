@@ -7,6 +7,8 @@ spec:
     name: mariadb
   backupRef:
     name: backup
+  args:
+    - "--verbose"
   resources:
     requests:
       cpu: 100m
