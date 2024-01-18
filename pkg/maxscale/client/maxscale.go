@@ -49,6 +49,7 @@ type MaxScaleAttributes struct {
 }
 
 type MaxScaleClient struct {
+	GenericClient[MaxScaleAttributes]
 	client *mdbhttp.Client
 }
 
@@ -56,6 +57,18 @@ func NewMaxScaleClient(client *mdbhttp.Client) *MaxScaleClient {
 	return &MaxScaleClient{
 		client: client,
 	}
+}
+
+func (m *MaxScaleClient) Get(ctx context.Context) (*Data[MaxScaleAttributes], error) {
+	res, err := m.client.Get(ctx, "maxscale", nil)
+	if err != nil {
+		return nil, err
+	}
+	var object Object[MaxScaleAttributes]
+	if err := handleResponse(res, &object); err != nil {
+		return nil, err
+	}
+	return &object.Data, nil
 }
 
 func (m *MaxScaleClient) Patch(ctx context.Context, attributes MaxScaleAttributes) error {

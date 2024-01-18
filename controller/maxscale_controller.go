@@ -445,6 +445,9 @@ func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv
 }
 
 func (r *MaxScaleReconciler) reconcileSync(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	if !mxs.IsHAEnabled() {
+		return ctrl.Result{}, nil
+	}
 	if !mxs.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
@@ -464,6 +467,16 @@ func (r *MaxScaleReconciler) reconcileSyncWithPodIndex(ctx context.Context, mxs 
 		return fmt.Errorf("error getting MaxScale client: %v", err)
 	}
 	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
+
+	isSynced, err := mxsApi.isMaxScaleConfigSynced(ctx)
+	if err != nil {
+		return fmt.Errorf("error checking MaxScale configu sync: %v", err)
+	}
+	if isSynced {
+		pod := stsobj.PodName(mxs.ObjectMeta, podIndex)
+		log.FromContext(ctx).V(1).Info("MaxScale sync config done", "pod", pod)
+		return nil
+	}
 
 	return mxsApi.patchMaxScaleConfigSync(ctx)
 }
