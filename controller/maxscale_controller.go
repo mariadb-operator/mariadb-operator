@@ -342,8 +342,8 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, mxs *mariadbv1a
 	}
 	mxsApi := newMaxScaleAPI(mxs, defaultClient, r.RefResolver)
 
-	if result, err := mxsApi.createAdminUser(ctx); !result.IsZero() || err != nil {
-		return result, err
+	if err := mxsApi.createAdminUser(ctx); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating admin: %v", err)
 	}
 	if mxs.Spec.Auth.ShouldDeleteDefaultAdmin() {
 		if err := defaultClient.User.DeleteDefaultAdmin(ctx); err != nil {
@@ -375,16 +375,16 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 	logger := log.FromContext(ctx).WithValues("pod", pod)
 	logger.Info("Initializing MaxScale instance")
 
-	if result, err := r.reconcileServersWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
+	if err := r.reconcileServersWithClient(ctx, mxs, client); err != nil {
 		return ctrl.Result{}, err
 	}
-	if result, err := r.reconcileMonitorWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
+	if err := r.reconcileMonitorWithClient(ctx, mxs, client); err != nil {
 		return ctrl.Result{}, err
 	}
-	if result, err := r.reconcileServicesWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
+	if err := r.reconcileServicesWithClient(ctx, mxs, client); err != nil {
 		return ctrl.Result{}, err
 	}
-	if result, err := r.reconcileListenersWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
+	if err := r.reconcileListenersWithClient(ctx, mxs, client); err != nil {
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
@@ -429,15 +429,15 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, mxs *mariadbv
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
 	}
-	return r.reconcileServersWithClient(ctx, mxs, client)
+	return ctrl.Result{}, r.reconcileServersWithClient(ctx, mxs, client)
 }
 
 func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	client *mxsclient.Client) (ctrl.Result, error) {
+	client *mxsclient.Client) error {
 	currentIdx := mxs.ServerIndex()
 	previousIdx, err := client.Server.ListIndex(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting server index: %v", err)
+		return fmt.Errorf("error getting server index: %v", err)
 	}
 	diff := ds.Diff[
 		mariadbv1alpha1.MaxScaleServer,
@@ -459,8 +459,8 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 			logger.Error(err, "error getting server to add", "server", id)
 			continue
 		}
-		if result, err := mxsApi.createServer(ctx, &srv); !result.IsZero() || err != nil {
-			return result, err
+		if err := mxsApi.createServer(ctx, &srv); err != nil {
+			return fmt.Errorf("error creating server: %v", err)
 		}
 	}
 
@@ -470,8 +470,8 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 			logger.Error(err, "error getting server to delete", "server", id)
 			continue
 		}
-		if result, err := mxsApi.deleteServer(ctx, srv.ID); !result.IsZero() || err != nil {
-			return result, err
+		if err := mxsApi.deleteServer(ctx, srv.ID); err != nil {
+			return fmt.Errorf("error deleting server: %v", err)
 		}
 	}
 
@@ -481,11 +481,11 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 			logger.Error(err, "error getting server to patch", "server", id)
 			continue
 		}
-		if result, err := mxsApi.patchServer(ctx, &srv); !result.IsZero() || err != nil {
-			return result, err
+		if err := mxsApi.patchServer(ctx, &srv); err != nil {
+			return fmt.Errorf("error patching server: %v", err)
 		}
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
@@ -494,29 +494,29 @@ func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, mxs *mariadbv
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
 	}
-	return r.reconcileMonitorWithClient(ctx, mxs, client)
+	return ctrl.Result{}, r.reconcileMonitorWithClient(ctx, mxs, client)
 }
 
 func (r *MaxScaleReconciler) reconcileMonitorWithClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	client *mxsclient.Client) (ctrl.Result, error) {
+	client *mxsclient.Client) error {
 	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
 	_, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Name)
 	if err != nil {
 		if !mxsclient.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("error getting monitor: %v", err)
+			return fmt.Errorf("error getting monitor: %v", err)
 		}
 
 		rels, err := mxsApi.serverRelationships(ctx)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
+			return fmt.Errorf("error getting server relationships: %v", err)
 		}
 		return mxsApi.createMonitor(ctx, rels)
 	}
 
 	rels, err := mxsApi.serverRelationships(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
+		return fmt.Errorf("error getting server relationships: %v", err)
 	}
 	return mxsApi.patchMonitor(ctx, rels)
 }
@@ -527,15 +527,15 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, mxs *mariadb
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
 	}
-	return r.reconcileServicesWithClient(ctx, mxs, client)
+	return ctrl.Result{}, r.reconcileServicesWithClient(ctx, mxs, client)
 }
 
 func (r *MaxScaleReconciler) reconcileServicesWithClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	client *mxsclient.Client) (ctrl.Result, error) {
+	client *mxsclient.Client) error {
 	currentIdx := mxs.ServiceIndex()
 	previousIdx, err := client.Service.ListIndex(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting service index: %v", err)
+		return fmt.Errorf("error getting service index: %v", err)
 	}
 	diff := ds.Diff[
 		mariadbv1alpha1.MaxScaleService,
@@ -553,7 +553,7 @@ func (r *MaxScaleReconciler) reconcileServicesWithClient(ctx context.Context, mx
 
 	rels, err := mxsApi.serverRelationships(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
+		return fmt.Errorf("error getting server relationships: %v", err)
 	}
 
 	for _, id := range diff.Added {
@@ -562,8 +562,8 @@ func (r *MaxScaleReconciler) reconcileServicesWithClient(ctx context.Context, mx
 			logger.Error(err, "error getting service to add", "service", id)
 			continue
 		}
-		if result, err := mxsApi.createService(ctx, &svc, rels); !result.IsZero() || err != nil {
-			return result, err
+		if err := mxsApi.createService(ctx, &svc, rels); err != nil {
+			return fmt.Errorf("error creating service: %v", err)
 		}
 	}
 
@@ -573,8 +573,8 @@ func (r *MaxScaleReconciler) reconcileServicesWithClient(ctx context.Context, mx
 			logger.Error(err, "error getting service to delete", "service", id)
 			continue
 		}
-		if result, err := mxsApi.deleteService(ctx, svc.ID); !result.IsZero() || err != nil {
-			return result, err
+		if err := mxsApi.deleteService(ctx, svc.ID); err != nil {
+			return fmt.Errorf("error deleting service: %v", err)
 		}
 	}
 
@@ -584,11 +584,11 @@ func (r *MaxScaleReconciler) reconcileServicesWithClient(ctx context.Context, mx
 			logger.Error(err, "error getting service to patch", "service", id)
 			continue
 		}
-		if result, err := mxsApi.patchService(ctx, &svc, rels); !result.IsZero() || err != nil {
-			return result, err
+		if err := mxsApi.patchService(ctx, &svc, rels); err != nil {
+			return fmt.Errorf("error patching service: %v", err)
 		}
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
@@ -597,15 +597,15 @@ func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, mxs *mariad
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
 	}
-	return r.reconcileListenersWithClient(ctx, mxs, client)
+	return ctrl.Result{}, r.reconcileListenersWithClient(ctx, mxs, client)
 }
 
 func (r *MaxScaleReconciler) reconcileListenersWithClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	client *mxsclient.Client) (ctrl.Result, error) {
+	client *mxsclient.Client) error {
 	currentIdx := mxs.ListenerIndex()
 	previousIdx, err := client.Listener.ListIndex(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting listener index: %v", err)
+		return fmt.Errorf("error getting listener index: %v", err)
 	}
 	diff := ds.Diff[
 		mariadbv1alpha1.MaxScaleListener,
@@ -632,8 +632,8 @@ func (r *MaxScaleReconciler) reconcileListenersWithClient(ctx context.Context, m
 			logger.Error(err, "error getting service for listener", "listener", id)
 			continue
 		}
-		if result, err := mxsApi.createListener(ctx, &listener, mxsApi.serviceRelationships(svc)); !result.IsZero() || err != nil {
-			return result, err
+		if err := mxsApi.createListener(ctx, &listener, mxsApi.serviceRelationships(svc)); err != nil {
+			return fmt.Errorf("error creating listener: %v", err)
 		}
 	}
 
@@ -643,8 +643,8 @@ func (r *MaxScaleReconciler) reconcileListenersWithClient(ctx context.Context, m
 			logger.Error(err, "error getting listener to delete", "listener", id)
 			continue
 		}
-		if result, err := mxsApi.deleteListener(ctx, listener.ID); !result.IsZero() || err != nil {
-			return result, err
+		if err := mxsApi.deleteListener(ctx, listener.ID); err != nil {
+			return fmt.Errorf("error ")
 		}
 	}
 
@@ -659,11 +659,11 @@ func (r *MaxScaleReconciler) reconcileListenersWithClient(ctx context.Context, m
 			logger.Error(err, "error getting service for listener", "listener", id)
 			continue
 		}
-		if result, err := mxsApi.patchListener(ctx, &listener, mxsApi.serviceRelationships(svc)); !result.IsZero() || err != nil {
-			return result, err
+		if err := mxsApi.patchListener(ctx, &listener, mxsApi.serviceRelationships(svc)); err != nil {
+			return fmt.Errorf("error patching listener: %v", err)
 		}
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {
