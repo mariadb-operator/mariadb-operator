@@ -94,7 +94,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcilePodDisruptionBudget,
 		},
 		{
-			name:      "Service",
+			name:      "Kubernetes Service",
 			reconcile: r.reconcileService,
 		},
 		{
@@ -116,6 +116,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "Services",
 			reconcile: r.reconcileServices,
+		},
+		{
+			name:      "Listeners",
+			reconcile: r.reconcileListeners,
 		},
 	}
 
@@ -370,7 +374,6 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 
 	logger := log.FromContext(ctx).WithValues("pod", pod)
 	logger.Info("Initializing MaxScale instance")
-	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
 	if result, err := r.reconcileServersWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
 		return ctrl.Result{}, err
@@ -381,14 +384,8 @@ func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, mxs *mariadbv1al
 	if result, err := r.reconcileServicesWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
 		return ctrl.Result{}, err
 	}
-	for _, svc := range mxs.Spec.Services {
-		svcRels :=
-			mxsclient.NewRelationshipsBuilder().
-				WithServices(svc.Name).
-				Build()
-		if result, err := mxsApi.createListener(ctx, &svc, svcRels); !result.IsZero() || err != nil {
-			return result, err
-		}
+	if result, err := r.reconcileListenersWithClient(ctx, mxs, client); !result.IsZero() || err != nil {
+		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
 }
@@ -457,29 +454,31 @@ func (r *MaxScaleReconciler) reconcileServersWithClient(ctx context.Context, mxs
 	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
 	for _, id := range diff.Added {
-		srv, ok := currentIdx[id]
-		if !ok {
-			logger.V(1).Info("Server to add not found in current index", "server", srv.Name)
+		srv, err := ds.Get(currentIdx, id)
+		if err != nil {
+			logger.Error(err, "error getting server to add", "server", id)
 			continue
 		}
 		if result, err := mxsApi.createServer(ctx, &srv); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
+
 	for _, id := range diff.Deleted {
-		srv, ok := previousIdx[id]
-		if !ok {
-			logger.V(1).Info("Server to delete not found in previous index", "server", srv.ID)
+		srv, err := ds.Get(previousIdx, id)
+		if err != nil {
+			logger.Error(err, "error getting server to delete", "server", id)
 			continue
 		}
 		if result, err := mxsApi.deleteServer(ctx, srv.ID); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
+
 	for _, id := range diff.Rest {
-		srv, ok := currentIdx[id]
-		if !ok {
-			logger.V(1).Info("Server to patch not found in current index", "server", srv.Name)
+		srv, err := ds.Get(currentIdx, id)
+		if err != nil {
+			logger.Error(err, "error getting server to patch", "server", id)
 			continue
 		}
 		if result, err := mxsApi.patchServer(ctx, &srv); !result.IsZero() || err != nil {
@@ -558,32 +557,109 @@ func (r *MaxScaleReconciler) reconcileServicesWithClient(ctx context.Context, mx
 	}
 
 	for _, id := range diff.Added {
-		svc, ok := currentIdx[id]
-		if !ok {
-			logger.V(1).Info("Service to add not found in current index", "service", svc.Name)
+		svc, err := ds.Get(currentIdx, id)
+		if err != nil {
+			logger.Error(err, "error getting service to add", "service", id)
 			continue
 		}
 		if result, err := mxsApi.createService(ctx, &svc, rels); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
+
 	for _, id := range diff.Deleted {
-		svc, ok := previousIdx[id]
-		if !ok {
-			logger.V(1).Info("Service to delete not found in previous index", "service", svc.ID)
+		svc, err := ds.Get(previousIdx, id)
+		if err != nil {
+			logger.Error(err, "error getting service to delete", "service", id)
 			continue
 		}
 		if result, err := mxsApi.deleteService(ctx, svc.ID); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
+
 	for _, id := range diff.Rest {
-		svc, ok := currentIdx[id]
-		if !ok {
-			logger.V(1).Info("Service to patch not found in current index", "service", svc.Name)
+		svc, err := ds.Get(currentIdx, id)
+		if err != nil {
+			logger.Error(err, "error getting service to patch", "service", id)
 			continue
 		}
 		if result, err := mxsApi.patchService(ctx, &svc, rels); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
+	// TODO: shared client pointing to the same instance?
+	client, err := r.client(ctx, mxs)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
+	}
+	return r.reconcileListenersWithClient(ctx, mxs, client)
+}
+
+func (r *MaxScaleReconciler) reconcileListenersWithClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) (ctrl.Result, error) {
+	currentIdx := mxs.ListenerIndex()
+	previousIdx, err := client.Listener.ListIndex(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting listener index: %v", err)
+	}
+	diff := ds.Diff[
+		mariadbv1alpha1.MaxScaleListener,
+		mxsclient.Data[mxsclient.ListenerAttributes],
+	](currentIdx, previousIdx)
+
+	logger := log.FromContext(ctx)
+	logger.V(1).Info(
+		"Listener diff",
+		"added", diff.Added,
+		"deleted", diff.Deleted,
+		"rest", diff.Rest,
+	)
+	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
+
+	for _, id := range diff.Added {
+		listener, err := ds.Get(currentIdx, id)
+		if err != nil {
+			logger.Error(err, "error getting listener to add", "listener", id)
+			continue
+		}
+		svc, err := mxs.ServiceForListener(id)
+		if err != nil {
+			logger.Error(err, "error getting service for listener", "listener", id)
+			continue
+		}
+		if result, err := mxsApi.createListener(ctx, &listener, mxsApi.serviceRelationships(svc)); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+
+	for _, id := range diff.Deleted {
+		listener, err := ds.Get(previousIdx, id)
+		if err != nil {
+			logger.Error(err, "error getting listener to delete", "listener", id)
+			continue
+		}
+		if result, err := mxsApi.deleteListener(ctx, listener.ID); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+
+	for _, id := range diff.Rest {
+		listener, err := ds.Get(currentIdx, id)
+		if err != nil {
+			logger.Error(err, "error getting listener to patch", "listener", id)
+			continue
+		}
+		svc, err := mxs.ServiceForListener(id)
+		if err != nil {
+			logger.Error(err, "error getting service for listener", "listener", id)
+			continue
+		}
+		if result, err := mxsApi.patchListener(ctx, &listener, mxsApi.serviceRelationships(svc)); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
