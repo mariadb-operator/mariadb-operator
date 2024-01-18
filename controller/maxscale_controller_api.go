@@ -157,21 +157,49 @@ func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.Ma
 	rels *mxsclient.Relationships) (ctrl.Result, error) {
 	apiLogger(ctx).V(1).Info("Creating service", "service", svc.Name)
 
+	attrs, err := m.serviceAttributes(ctx, svc)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting service attributes: %v", err)
+	}
+
+	err = m.client.Service.Create(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
+	return m.handleAPIResult(ctx, err)
+}
+
+func (m *maxScaleAPI) deleteService(ctx context.Context, name string) (ctrl.Result, error) {
+	apiLogger(ctx).V(1).Info("Deleting service", "service", name)
+
+	err := m.client.Service.Delete(ctx, name, mxsclient.WithForceQuery())
+	return m.handleAPIResult(ctx, err)
+}
+
+func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService,
+	rels *mxsclient.Relationships) (ctrl.Result, error) {
+	apiLogger(ctx).V(1).Info("Patching service", "service", svc.Name)
+
+	attrs, err := m.serviceAttributes(ctx, svc)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting service attributes: %v", err)
+	}
+
+	err = m.client.Service.Patch(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
+	return m.handleAPIResult(ctx, err)
+}
+
+func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService) (*mxsclient.ServiceAttributes, error) {
 	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.ServerPasswordSecretKeyRef, m.mxs.Namespace)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting server password: %v", err)
+		return nil, fmt.Errorf("error getting server password: %v", err)
 	}
-	attrs := mxsclient.ServiceAttributes{
+
+	return &mxsclient.ServiceAttributes{
 		Router: svc.Router,
 		Parameters: mxsclient.ServiceParameters{
 			User:     m.mxs.Spec.Auth.ServerUsername,
 			Password: password,
 			Params:   mxsclient.NewMapParams(svc.Params),
 		},
-	}
-
-	err = m.client.Service.Create(ctx, svc.Name, attrs, mxsclient.WithRelationships(rels))
-	return m.handleAPIResult(ctx, err)
+	}, nil
 }
 
 // MaxScale API - Listeners

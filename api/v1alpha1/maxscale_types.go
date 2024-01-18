@@ -455,7 +455,9 @@ func (m *MaxScale) PodAPIUrl(podIndex int) string {
 
 // ServerIDs returns an the servers indexed by ID.
 func (m *MaxScale) ServerIndex() ds.Index[MaxScaleServer] {
-	return ds.NewIndex[MaxScaleServer](m.Spec.Servers, getServerID)
+	return ds.NewIndex[MaxScaleServer](m.Spec.Servers, func(mss MaxScaleServer) string {
+		return mss.Name
+	})
 }
 
 // ServerIDs returns the IDs of the servers.
@@ -463,13 +465,16 @@ func (m *MaxScale) ServerIDs() []string {
 	return ds.Keys[MaxScaleServer](m.ServerIndex())
 }
 
+// ServiceIndex returns an the services indexed by ID.
+func (m *MaxScale) ServiceIndex() ds.Index[MaxScaleService] {
+	return ds.NewIndex[MaxScaleService](m.Spec.Services, func(mss MaxScaleService) string {
+		return mss.Name
+	})
+}
+
 // ServiceIDs returns the IDs of the services.
 func (m *MaxScale) ServiceIDs() []string {
-	ids := make([]string, len(m.Spec.Services))
-	for i, svc := range m.Spec.Services {
-		ids[i] = svc.Name
-	}
-	return ids
+	return ds.Keys[MaxScaleService](m.ServiceIndex())
 }
 
 // ListenerIDs returns the IDs of the listeners.
@@ -479,10 +484,6 @@ func (m *MaxScale) ListenerIDs() []string {
 		ids[i] = svc.Listener.Name
 	}
 	return ids
-}
-
-func getServerID(srv MaxScaleServer) string {
-	return srv.Name
 }
 
 func (m *MaxScale) apiUrlWithAddress(addr string) string {
