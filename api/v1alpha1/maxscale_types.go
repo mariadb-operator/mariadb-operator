@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -453,7 +454,7 @@ func (m *MaxScale) PodAPIUrl(podIndex int) string {
 	return m.apiUrlWithAddress(fqdn)
 }
 
-// ServerIDs returns an the servers indexed by ID.
+// ServerIDs returns the servers indexed by ID.
 func (m *MaxScale) ServerIndex() ds.Index[MaxScaleServer] {
 	return ds.NewIndex[MaxScaleServer](m.Spec.Servers, func(mss MaxScaleServer) string {
 		return mss.Name
@@ -465,7 +466,7 @@ func (m *MaxScale) ServerIDs() []string {
 	return ds.Keys[MaxScaleServer](m.ServerIndex())
 }
 
-// ServiceIndex returns an the services indexed by ID.
+// ServiceIndex returns the services indexed by ID.
 func (m *MaxScale) ServiceIndex() ds.Index[MaxScaleService] {
 	return ds.NewIndex[MaxScaleService](m.Spec.Services, func(mss MaxScaleService) string {
 		return mss.Name
@@ -477,13 +478,35 @@ func (m *MaxScale) ServiceIDs() []string {
 	return ds.Keys[MaxScaleService](m.ServiceIndex())
 }
 
+// ServiceForListener finds the service for a given listener
+func (m *MaxScale) ServiceForListener(listener string) (string, error) {
+	for _, svc := range m.Spec.Services {
+		if svc.Listener.Name == listener {
+			return svc.Name, nil
+		}
+	}
+	return "", errors.New("service not found")
+}
+
+// Listeners returns the listeners
+func (m *MaxScale) Listeners() []MaxScaleListener {
+	listeners := make([]MaxScaleListener, len(m.Spec.Services))
+	for i, svc := range m.Spec.Services {
+		listeners[i] = svc.Listener
+	}
+	return listeners
+}
+
+// ListenerIndex returns the listeners indexed by ID.
+func (m *MaxScale) ListenerIndex() ds.Index[MaxScaleListener] {
+	return ds.NewIndex[MaxScaleListener](m.Listeners(), func(mss MaxScaleListener) string {
+		return mss.Name
+	})
+}
+
 // ListenerIDs returns the IDs of the listeners.
 func (m *MaxScale) ListenerIDs() []string {
-	ids := make([]string, len(m.Spec.Services))
-	for i, svc := range m.Spec.Services {
-		ids[i] = svc.Listener.Name
-	}
-	return ids
+	return ds.Keys[MaxScaleListener](m.ListenerIndex())
 }
 
 func (m *MaxScale) apiUrlWithAddress(addr string) string {

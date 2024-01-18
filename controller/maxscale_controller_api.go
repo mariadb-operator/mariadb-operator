@@ -139,7 +139,6 @@ func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.Monitor
 	if err != nil {
 		return nil, fmt.Errorf("error getting monitor password: %v", err)
 	}
-
 	return &mxsclient.MonitorAttributes{
 		Module: m.mxs.Spec.Monitor.Module,
 		Parameters: mxsclient.MonitorParameters{
@@ -161,7 +160,6 @@ func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.Ma
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting service attributes: %v", err)
 	}
-
 	err = m.client.Service.Create(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
 	return m.handleAPIResult(ctx, err)
 }
@@ -181,7 +179,6 @@ func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.Max
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting service attributes: %v", err)
 	}
-
 	err = m.client.Service.Patch(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
 	return m.handleAPIResult(ctx, err)
 }
@@ -191,7 +188,6 @@ func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha
 	if err != nil {
 		return nil, fmt.Errorf("error getting server password: %v", err)
 	}
-
 	return &mxsclient.ServiceAttributes{
 		Router: svc.Router,
 		Parameters: mxsclient.ServiceParameters{
@@ -202,22 +198,45 @@ func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha
 	}, nil
 }
 
+func (m *maxScaleAPI) serviceRelationships(service string) *mxsclient.Relationships {
+	return mxsclient.NewRelationshipsBuilder().
+		WithServices(service).
+		Build()
+}
+
 // MaxScale API - Listeners
 
-func (m *maxScaleAPI) createListener(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService,
+func (m *maxScaleAPI) createListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener,
 	rels *mxsclient.Relationships) (ctrl.Result, error) {
-	apiLogger(ctx).V(1).Info("Creating listener", "listener", svc.Listener.Name)
+	apiLogger(ctx).V(1).Info("Creating listener", "listener", listener.Name)
 
-	attrs := mxsclient.ListenerAttributes{
+	err := m.client.Listener.Create(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
+	return m.handleAPIResult(ctx, err)
+}
+
+func (m *maxScaleAPI) deleteListener(ctx context.Context, name string) (ctrl.Result, error) {
+	apiLogger(ctx).V(1).Info("Deleting listener", "listener", name)
+
+	err := m.client.Listener.Delete(ctx, name, mxsclient.WithForceQuery())
+	return m.handleAPIResult(ctx, err)
+}
+
+func (m *maxScaleAPI) patchListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener,
+	rels *mxsclient.Relationships) (ctrl.Result, error) {
+	apiLogger(ctx).V(1).Info("Patching listener", "listener", listener.Name)
+
+	err := m.client.Listener.Patch(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
+	return m.handleAPIResult(ctx, err)
+}
+
+func listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.ListenerAttributes {
+	return mxsclient.ListenerAttributes{
 		Parameters: mxsclient.ListenerParameters{
-			Port:     svc.Listener.Port,
-			Protocol: svc.Listener.Protocol,
-			Params:   mxsclient.NewMapParams(svc.Listener.Params),
+			Port:     listener.Port,
+			Protocol: listener.Protocol,
+			Params:   mxsclient.NewMapParams(listener.Params),
 		},
 	}
-
-	err := m.client.Listener.Create(ctx, svc.Listener.Name, attrs, mxsclient.WithRelationships(rels))
-	return m.handleAPIResult(ctx, err)
 }
 
 // MaxScale client

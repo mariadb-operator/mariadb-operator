@@ -1,6 +1,11 @@
 package datastructures
 
-import "sort"
+import (
+	"errors"
+	"sort"
+)
+
+var ErrNotFound = errors.New("not found in Index")
 
 type Index[T any] map[string]T
 
@@ -10,6 +15,14 @@ func NewIndex[T any](items []T, getID func(T) string) Index[T] {
 		idx[getID(item)] = item
 	}
 	return idx
+}
+
+func Get[T any](idx Index[T], key string) (T, error) {
+	if found, ok := idx[key]; ok {
+		return found, nil
+	}
+	var zero T
+	return zero, ErrNotFound
 }
 
 func Keys[T any](idx Index[T]) []string {
