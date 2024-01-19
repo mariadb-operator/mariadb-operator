@@ -1,0 +1,14 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: User
+metadata:
+  name: maxscale-monitor-galera
+spec:
+  name: maxscale-monitor
+  mariaDbRef:
+    name: mariadb-galera
+  passwordSecretKeyRef:
+    name: maxscale
+    key: password
+  maxUserConnections: 20
+  host: "%"
+  retryInterval: 5s
