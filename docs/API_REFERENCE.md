@@ -712,6 +712,7 @@ _Appears in:_
 | `address` _string_ | Address is the network address of the MariaDB server. |
 | `port` _integer_ | Port is the network port of the MariaDB server. If not provided, it defaults to 3306. |
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with this MariaDB server. If not provided, it defaults to MariaDBBackend. |
+| `maintenance` _boolean_ | Maintenance indicates whether the server is in maintenance mode. |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the server. |
 
 

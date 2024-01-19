@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
@@ -78,4 +79,18 @@ func (s *ServerClient) GetMaster(ctx context.Context) (string, error) {
 		}
 	}
 	return "", ErrMasterServerNotFound
+}
+
+func (s *ServerClient) SetMaintenance(ctx context.Context, name string) error {
+	query := map[string]string{
+		"state": "maintenance",
+	}
+	return s.GenericClient.Put(ctx, fmt.Sprintf("%s/set", name), WithQuery(query))
+}
+
+func (s *ServerClient) ClearMaintenance(ctx context.Context, name string) error {
+	query := map[string]string{
+		"state": "maintenance",
+	}
+	return s.GenericClient.Put(ctx, fmt.Sprintf("%s/clear", name), WithQuery(query))
 }

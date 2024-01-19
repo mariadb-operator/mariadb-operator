@@ -35,6 +35,10 @@ type MaxScaleServer struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Protocol string `json:"protocol,omitempty"`
+	// Maintenance indicates whether the server is in maintenance mode.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Maintenance bool `json:"maintenance,omitempty"`
 	// Params defines extra parameters to pass to the server.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

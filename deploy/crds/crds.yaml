@@ -17322,6 +17322,10 @@ spec:
                     address:
                       description: Address is the network address of the MariaDB server.
                       type: string
+                    maintenance:
+                      description: Maintenance indicates whether the server is in
+                        maintenance mode.
+                      type: boolean
                     name:
                       description: Name is the identifier of the MariaDB server.
                       type: string
