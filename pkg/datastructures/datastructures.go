@@ -35,13 +35,13 @@ func Keys[T any](idx Index[T]) []string {
 	return keys
 }
 
-func AnyExists[T any](idx Index[T], keys ...string) bool {
+func AllExists[T any](idx Index[T], keys ...string) bool {
 	for _, id := range keys {
-		if _, ok := idx[id]; ok {
-			return true
+		if _, ok := idx[id]; !ok {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func Filter[T any](idx Index[T], keys ...string) Index[T] {

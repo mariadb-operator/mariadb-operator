@@ -72,12 +72,12 @@ func (c *GenericClient[T]) ListIndex(ctx context.Context, options ...Option) (ds
 	}), nil
 }
 
-func (c *GenericClient[T]) AnyExists(ctx context.Context, ids []string, options ...Option) (bool, error) {
+func (c *GenericClient[T]) AllExists(ctx context.Context, ids []string, options ...Option) (bool, error) {
 	index, err := c.ListIndex(ctx, options...)
 	if err != nil {
 		return false, nil
 	}
-	return ds.AnyExists[Data[T]](index, ids...), nil
+	return ds.AllExists[Data[T]](index, ids...), nil
 }
 
 func (c *GenericClient[T]) Get(ctx context.Context, name string, options ...Option) (*Data[T], error) {
