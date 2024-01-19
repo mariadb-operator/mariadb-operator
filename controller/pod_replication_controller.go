@@ -91,7 +91,7 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	}
 
 	fromIndex := mariadb.Status.CurrentPrimaryPodIndex
-	toIndex, err := health.HealthyReplica(ctx, r, mariadb)
+	toIndex, err := health.HealthyMariaDBReplica(ctx, r, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting healthy replica: %v", err)
 	}
