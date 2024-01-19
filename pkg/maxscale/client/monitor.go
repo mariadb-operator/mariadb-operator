@@ -9,10 +9,11 @@ import (
 )
 
 type MonitorParameters struct {
-	User            string          `json:"user"`
-	Password        string          `json:"password"`
-	MonitorInterval metav1.Duration `json:"monitor_interval,omitempty"`
-	Params          MapParams       `json:"-"`
+	User                       string                                `json:"user"`
+	Password                   string                                `json:"password"`
+	MonitorInterval            metav1.Duration                       `json:"monitor_interval,omitempty"`
+	CooperativeMonitoringLocks mariadbv1alpha1.CooperativeMonitoring `json:"cooperative_monitoring_locks,omitempty"`
+	Params                     MapParams                             `json:"-"`
 }
 
 func (m MonitorParameters) MarshalJSON() ([]byte, error) {
