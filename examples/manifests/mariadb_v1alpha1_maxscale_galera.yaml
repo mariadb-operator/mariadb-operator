@@ -1,0 +1,95 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
+  replicas: 3
+
+  servers:
+    - name: mariadb-0
+      address: mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local
+      port: 3306
+      protocol: MariaDBBackend
+      maintenance: false
+    - name: mariadb-1
+      address: mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local
+    - name: mariadb-2
+      address: mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local
+
+  services:
+    - name: rw-router
+      router: readwritesplit
+      params:
+        transaction_replay: "true"
+        transaction_replay_attempts: "10"
+        transaction_replay_timeout: "5s"
+        max_slave_connections: "255"
+        max_replication_lag: "3s"
+        master_accept_reads: "true"
+      listener:
+        port: 3306
+        protocol: MariaDBProtocol
+        params:
+          connection_metadata: "tx_isolation=auto"
+    - name: rconn-master-router
+      router: readconnroute
+      params:
+        router_options: "master"
+        max_replication_lag: "3s"
+        master_accept_reads: "true"
+      listener:
+        port: 3307
+    - name: rconn-slave-router
+      router: readconnroute
+      params:
+        router_options: "slave"
+        max_replication_lag: "3s"
+      listener:
+        port: 3308
+
+  monitor:
+    module: galeramon
+    interval: 2s
+    params:
+      disable_master_failback: "false"
+      available_when_donor: "false"
+      disable_master_role_setting: "false"   
+
+  admin:
+    port: 8989
+
+  config:
+    sync:
+      database: mysql
+      interval: 5s
+      timeout: 10s
+
+  # TODO: create User and Grants in the operator
+  auth:
+    adminUsername: mariadb-operator
+    adminPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    clientUsername: maxscale-client
+    clientPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    serverUsername: maxscale-server
+    serverPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    monitorUsername: maxscale-monitor
+    monitorPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    syncUsername: maxscale-sync
+    syncPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+
+  kubernetesService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+
+  requeueInterval: 10s

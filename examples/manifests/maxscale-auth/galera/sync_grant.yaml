@@ -1,0 +1,18 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Grant
+metadata:
+  name: maxscale-sync-galera
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+  privileges:
+    - "SELECT"
+    - "INSERT"
+    - "UPDATE"
+    - "CREATE"
+  database: "mysql"
+  table: "maxscale_config"
+  username: maxscale-sync
+  grantOption: false
+  host: "%" 
+  retryInterval: 5s

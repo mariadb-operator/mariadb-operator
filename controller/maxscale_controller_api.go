@@ -14,6 +14,7 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -142,11 +143,12 @@ func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.Monitor
 			Params:          mxsclient.NewMapParams(m.mxs.Spec.Monitor.Params),
 		},
 	}
-	if m.mxs.Spec.Monitor.CooperativeMonitoring != nil {
-		attrs.Parameters.CooperativeMonitoringLocks = *m.mxs.Spec.Monitor.CooperativeMonitoring
-	}
-	if m.mxs.IsHAEnabled() && m.mxs.Spec.Monitor.CooperativeMonitoring == nil {
-		attrs.Parameters.CooperativeMonitoringLocks = mariadbv1alpha1.CooperativeMonitoringMajorityOfAll
+	if m.mxs.IsHAEnabled() && m.mxs.Spec.Monitor.Module == mariadbv1alpha1.MonitorModuleMariadb {
+		if m.mxs.Spec.Monitor.CooperativeMonitoring != nil {
+			attrs.Parameters.CooperativeMonitoringLocks = m.mxs.Spec.Monitor.CooperativeMonitoring
+		} else {
+			attrs.Parameters.CooperativeMonitoringLocks = ptr.To(mariadbv1alpha1.CooperativeMonitoringMajorityOfAll)
+		}
 	}
 	return attrs, nil
 }
