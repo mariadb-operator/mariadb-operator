@@ -523,6 +523,9 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 		if err := mxsApi.createServer(ctx, &srv); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error creating server: %v", err)
 		}
+		if err := mxsApi.updateServerState(ctx, &srv); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error updating server state: %v", err)
+		}
 	}
 
 	for _, id := range diff.Deleted {
@@ -544,6 +547,9 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 		}
 		if err := mxsApi.patchServer(ctx, &srv); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching server: %v", err)
+		}
+		if err := mxsApi.updateServerState(ctx, &srv); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error updating server state: %v", err)
 		}
 	}
 	return ctrl.Result{}, nil

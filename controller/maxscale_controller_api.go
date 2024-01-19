@@ -70,6 +70,15 @@ func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxS
 	return m.client.Server.Patch(ctx, srv.Name, serverAttributes(srv))
 }
 
+func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
+	apiLogger(ctx).V(1).Info("Updating server state", "server", srv.Name)
+
+	if srv.Maintenance {
+		return m.client.Server.SetMaintenance(ctx, srv.Name)
+	}
+	return m.client.Server.ClearMaintenance(ctx, srv.Name)
+}
+
 func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttributes {
 	return mxsclient.ServerAttributes{
 		Parameters: mxsclient.ServerParameters{

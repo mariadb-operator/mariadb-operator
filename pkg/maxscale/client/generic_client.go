@@ -136,6 +136,15 @@ func (c *GenericClient[T]) Patch(ctx context.Context, name string, attributes T,
 	return handleResponse(res, nil)
 }
 
+func (c *GenericClient[T]) Put(ctx context.Context, name string, options ...Option) error {
+	opts := c.processOptions(options...)
+	res, err := c.client.Put(ctx, c.resourcePath(name), nil, opts.query)
+	if err != nil {
+		return err
+	}
+	return handleResponse(res, nil)
+}
+
 func (c *GenericClient[T]) resourcePath(name string) string {
 	return fmt.Sprintf("%s/%s", c.path, name)
 }
