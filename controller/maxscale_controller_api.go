@@ -124,7 +124,7 @@ func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.Monitor
 	if err != nil {
 		return nil, fmt.Errorf("error getting monitor password: %v", err)
 	}
-	return &mxsclient.MonitorAttributes{
+	attrs := &mxsclient.MonitorAttributes{
 		Module: m.mxs.Spec.Monitor.Module,
 		Parameters: mxsclient.MonitorParameters{
 			User:            m.mxs.Spec.Auth.MonitorUsername,
@@ -132,7 +132,14 @@ func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.Monitor
 			MonitorInterval: m.mxs.Spec.Monitor.Interval,
 			Params:          mxsclient.NewMapParams(m.mxs.Spec.Monitor.Params),
 		},
-	}, nil
+	}
+	if m.mxs.Spec.Monitor.CooperativeMonitoring != nil {
+		attrs.Parameters.CooperativeMonitoringLocks = *m.mxs.Spec.Monitor.CooperativeMonitoring
+	}
+	if m.mxs.IsHAEnabled() && m.mxs.Spec.Monitor.CooperativeMonitoring == nil {
+		attrs.Parameters.CooperativeMonitoringLocks = mariadbv1alpha1.CooperativeMonitoringMajorityOfAll
+	}
+	return attrs, nil
 }
 
 // MaxScale API - Services
