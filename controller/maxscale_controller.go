@@ -349,7 +349,7 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMax
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
-		if err := r.reconcileAdminInPod(ctx, req.mxs, podIndex, client); err != nil {
+		if err := r.reconcileAdminInPod(ctx, req.mxs, podIndex, podName, client); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling admin in Pod '%s': %v", podName, err)
 		}
 		return ctrl.Result{}, nil
@@ -357,7 +357,7 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMax
 }
 
 func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	podIndex int, client *mxsclient.Client) error {
+	podIndex int, podName string, client *mxsclient.Client) error {
 	_, err := client.User.Get(ctx, mxs.Spec.Auth.AdminUsername)
 	if err == nil {
 		return nil
@@ -365,6 +365,7 @@ func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *maria
 	if !mxsclient.IsUnautorized(err) && !mxsclient.IsNotFound(err) {
 		return fmt.Errorf("error getting admin user: %v", err)
 	}
+	log.FromContext(ctx).Info("Configuring admin in MaxScale Pod", "pod", podName)
 
 	defaultClient, err := r.defaultClientWithPodIndex(ctx, mxs, podIndex)
 	if err != nil {
@@ -405,9 +406,7 @@ func (r *MaxScaleReconciler) reconcileInitInPod(ctx context.Context, mxs *mariad
 	if !shouldInitialize {
 		return ctrl.Result{}, nil
 	}
-
-	logger := log.FromContext(ctx).WithValues("pod", podName)
-	logger.Info("Initializing MaxScale instance")
+	log.FromContext(ctx).Info("Initializing MaxScale Pod", "pod", podName)
 
 	req := &requestMaxScale{
 		mxs:       mxs,
@@ -452,27 +451,31 @@ func (r *MaxScaleReconciler) reconcileSync(ctx context.Context, req *requestMaxS
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
-		if err := r.reconcileSyncInPod(ctx, req.mxs, podName, client); err != nil {
+		isSynced, err := r.reconcileSyncInPod(ctx, req.mxs, podName, client)
+		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling config sync in Pod '%s': %v", podName, err)
+		}
+		if !isSynced {
+			return ctrl.Result{RequeueAfter: req.mxs.Spec.Config.Sync.Interval.Duration}, nil
 		}
 		return ctrl.Result{}, nil
 	})
 }
 
 func (r *MaxScaleReconciler) reconcileSyncInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	podName string, client *mxsclient.Client) error {
+	podName string, client *mxsclient.Client) (bool, error) {
 	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
 	isSynced, err := mxsApi.isMaxScaleConfigSynced(ctx)
 	if err != nil {
-		return fmt.Errorf("error checking MaxScale configu sync: %v", err)
+		return false, fmt.Errorf("error checking MaxScale config sync: %v", err)
 	}
 	if isSynced {
-		log.FromContext(ctx).V(1).Info("MaxScale sync config done", "pod", podName)
-		return nil
+		return true, nil
 	}
+	log.FromContext(ctx).Info("Setting up config sync in MaxScale Pod", "pod", podName)
 
-	return mxsApi.patchMaxScaleConfigSync(ctx)
+	return false, mxsApi.patchMaxScaleConfigSync(ctx)
 }
 
 func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
