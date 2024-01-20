@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sysbench-prepare-galera
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: sysbench-prepare
+        image: severalnines/sysbench
+        command:
+          - sysbench 
+          - oltp_read_write 
+          - --tables=10 
+          - --table_size=1000000
+          - --mysql-host=mariadb-galera-primary.default.svc.cluster.local
+          - --mysql-port=3306
+          - --mysql-user=root
+          - --mysql-password=MariaDB11!
+          - --mysql-db=sbtest
+          - prepare
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: sysbench-prepare
+  name: sysbench-prepare-repl
 spec:
   template:
     spec:
