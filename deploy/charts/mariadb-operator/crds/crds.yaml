@@ -16760,6 +16760,10 @@ spec:
                       type: string
                     description: Params defines extra parameters to pass to the monitor.
                     type: object
+                  suspend:
+                    description: Suspend indicates whether the current resource is
+                      suspended or not.
+                    type: boolean
                 required:
                 - module
                 type: object
@@ -17381,6 +17385,10 @@ spec:
                             communicating with the client. If not provided, it defaults
                             to MariaDBProtocol.
                           type: string
+                        suspend:
+                          description: Suspend indicates whether the current resource
+                            is suspended or not.
+                          type: boolean
                       type: object
                     name:
                       description: Name is the identifier of the MaxScale service.
@@ -17397,6 +17405,10 @@ spec:
                       - readwritesplit
                       - readconnroute
                       type: string
+                    suspend:
+                      description: Suspend indicates whether the current resource
+                        is suspended or not.
+                      type: boolean
                   required:
                   - listener
                   - name

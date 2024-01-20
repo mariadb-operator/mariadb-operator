@@ -673,6 +673,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `suspend` _boolean_ | Suspend indicates whether the current resource is suspended or not. |
 | `name` _string_ | Name is the identifier of the listener. It is defaulted if not provided |
 | `port` _integer_ | Port is the network port where the MaxScale server will listen. |
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol. |
@@ -690,6 +691,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `suspend` _boolean_ | Suspend indicates whether the current resource is suspended or not. |
 | `name` _string_ | Name is the identifier of the monitor. It is defaulted if not provided |
 | `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. |
 | `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. If not provided, it defaults to 2s. |
@@ -727,6 +729,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `suspend` _boolean_ | Suspend indicates whether the current resource is suspended or not. |
 | `name` _string_ | Name is the identifier of the MaxScale service. |
 | `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |
 | `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |
@@ -1181,6 +1184,22 @@ _Appears in:_
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the SqlJob Pod. |
 | `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+
+
+#### SuspendTemplate
+
+
+
+SuspendTemplate indicates whether the current resource should be suspended or not.
+
+_Appears in:_
+- [MaxScaleListener](#maxscalelistener)
+- [MaxScaleMonitor](#maxscalemonitor)
+- [MaxScaleService](#maxscaleservice)
+
+| Field | Description |
+| --- | --- |
+| `suspend` _boolean_ | Suspend indicates whether the current resource is suspended or not. |
 
 
 #### TLS

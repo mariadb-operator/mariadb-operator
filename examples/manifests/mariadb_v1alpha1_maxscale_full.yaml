@@ -37,6 +37,8 @@ spec:
         protocol: MariaDBProtocol
         params: 
           connection_metadata: "tx_isolation=auto"
+        suspend: false
+      suspend: false
     - name: rconn-master-router
       router: readconnroute
       params:
@@ -62,6 +64,7 @@ spec:
       auto_failover: "true"
       auto_rejoin: "true"
       switchover_on_low_disk_space: "true"
+    suspend: false
 
   admin:
     port: 8989

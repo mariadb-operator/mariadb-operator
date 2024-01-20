@@ -55,8 +55,78 @@ func (m *MaxScaleServer) SetDefaults() {
 	}
 }
 
+// SuspendTemplate indicates whether the current resource should be suspended or not.
+type SuspendTemplate struct {
+	// Suspend indicates whether the current resource is suspended or not.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Suspend bool `json:"suspend,omitempty"`
+}
+
+// MonitorModule defines the type of monitor module
+type MonitorModule string
+
+const (
+	// MonitorModuleMariadb is a monitor to be used with MariaDB servers.
+	MonitorModuleMariadb MonitorModule = "mariadbmon"
+	// MonitorModuleGalera is a monitor to be used with Galera servers.
+	MonitorModuleGalera MonitorModule = "galeramon"
+)
+
+// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors.
+// See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/
+type CooperativeMonitoring string
+
+const (
+	// CooperativeMonitoringMajorityOfAll requires a lock from the majority of the MariaDB servers, even the ones that are down.
+	CooperativeMonitoringMajorityOfAll CooperativeMonitoring = "majority_of_all"
+	// CooperativeMonitoringMajorityOfRunning requires a lock from the majority of the MariaDB servers.
+	CooperativeMonitoringMajorityOfRunning CooperativeMonitoring = "majority_of_running"
+)
+
+// MaxScaleMonitor monitors MariaDB server instances
+type MaxScaleMonitor struct {
+	SuspendTemplate `json:",inline"`
+	// Name is the identifier of the monitor. It is defaulted if not provided
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Name string `json:"name"`
+	// Module is the module to use to monitor MariaDB servers.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=mariadbmon;galeramon
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Module MonitorModule `json:"module" webhook:"inmutable"`
+	// Interval used to monitor MariaDB servers. If not provided, it defaults to 2s.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Interval metav1.Duration `json:"interval,omitempty"`
+	// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when multiple replicas are configured.
+	// +optional
+	// +kubebuilder:validation:Enum=majority_of_all;majority_of_running
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CooperativeMonitoring *CooperativeMonitoring `json:"cooperativeMonitoring,omitempty"`
+	// Params defines extra parameters to pass to the monitor.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Params map[string]string `json:"params,omitempty"`
+}
+
+// SetCondition sets a status condition to MaxScale
+func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
+	if m.Name == "" {
+		m.Name = fmt.Sprintf("%s-monitor", string(m.Module))
+	}
+	if m.Interval == (metav1.Duration{}) {
+		m.Interval = metav1.Duration{Duration: 2 * time.Second}
+	}
+	if mxs.Spec.Replicas > 1 && m.CooperativeMonitoring == nil {
+		m.CooperativeMonitoring = ptr.To(CooperativeMonitoringMajorityOfAll)
+	}
+}
+
 // MaxScaleListener defines how the MaxScale server will listen for connections.
 type MaxScaleListener struct {
+	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the listener. It is defaulted if not provided
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -97,6 +167,7 @@ const (
 
 // Services define how the traffic is forwarded to the MariaDB servers.
 type MaxScaleService struct {
+	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the MaxScale service.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -119,66 +190,6 @@ type MaxScaleService struct {
 // SetDefaults sets default values.
 func (m *MaxScaleService) SetDefaults() {
 	m.Listener.SetDefaults(m)
-}
-
-// MonitorModule defines the type of monitor module
-type MonitorModule string
-
-const (
-	// MonitorModuleMariadb is a monitor to be used with MariaDB servers.
-	MonitorModuleMariadb MonitorModule = "mariadbmon"
-	// MonitorModuleGalera is a monitor to be used with Galera servers.
-	MonitorModuleGalera MonitorModule = "galeramon"
-)
-
-// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors.
-// See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/
-type CooperativeMonitoring string
-
-const (
-	// CooperativeMonitoringMajorityOfAll requires a lock from the majority of the MariaDB servers, even the ones that are down.
-	CooperativeMonitoringMajorityOfAll CooperativeMonitoring = "majority_of_all"
-	// CooperativeMonitoringMajorityOfRunning requires a lock from the majority of the MariaDB servers.
-	CooperativeMonitoringMajorityOfRunning CooperativeMonitoring = "majority_of_running"
-)
-
-// MaxScaleMonitor monitors MariaDB server instances
-type MaxScaleMonitor struct {
-	// Name is the identifier of the monitor. It is defaulted if not provided
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Name string `json:"name"`
-	// Module is the module to use to monitor MariaDB servers.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=mariadbmon;galeramon
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Module MonitorModule `json:"module" webhook:"inmutable"`
-	// Interval used to monitor MariaDB servers. If not provided, it defaults to 2s.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Interval metav1.Duration `json:"interval,omitempty"`
-	// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when multiple replicas are configured.
-	// +optional
-	// +kubebuilder:validation:Enum=majority_of_all;majority_of_running
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	CooperativeMonitoring *CooperativeMonitoring `json:"cooperativeMonitoring,omitempty"`
-	// Params defines extra parameters to pass to the monitor.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Params map[string]string `json:"params,omitempty"`
-}
-
-// SetCondition sets a status condition to MaxScale
-func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
-	if m.Name == "" {
-		m.Name = fmt.Sprintf("%s-monitor", string(m.Module))
-	}
-	if m.Interval == (metav1.Duration{}) {
-		m.Interval = metav1.Duration{Duration: 2 * time.Second}
-	}
-	if mxs.Spec.Replicas > 1 && m.CooperativeMonitoring == nil {
-		m.CooperativeMonitoring = ptr.To(CooperativeMonitoringMajorityOfAll)
-	}
 }
 
 // MaxScaleAdmin configures the admin REST API and GUI.
