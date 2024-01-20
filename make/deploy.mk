@@ -152,16 +152,27 @@ undeploy-ent: cluster-ctx ## Undeploy enterprise controller.
 
 ##@ Sysbench
 
-.PHONY: sysbench-prepare
-sysbench-prepare: ## Prepare sysbench tests.
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/sbtest_database.yaml
-	$(KUBECTL) wait --for=condition=ready database sbtest
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/sysbench-prepare_job.yaml
+.PHONY: sysbench-prepare-repl
+sysbench-prepare-repl: ## Prepare sysbench tests for replication.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sbtest-repl_database.yaml
+	$(KUBECTL) wait --for=condition=ready database sbtest-repl
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sysbench-prepare-repl_job.yaml
 
-.PHONY: sysbench
-sysbench: ## Run sysbench tests.
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/sysbench_cronjob.yaml
-	$(KUBECTL) create job sysbench --from cronjob/sysbench
+.PHONY: sysbench-repl
+sysbench-repl: ## Run sysbench tests for replication.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sysbench-repl_cronjob.yaml
+	$(KUBECTL) create job sysbench-repl --from cronjob/sysbench-repl
+
+.PHONY: sysbench-prepare-galera
+sysbench-prepare-galera: ## Prepare sysbench tests for Galera.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sbtest-galera_database.yaml
+	$(KUBECTL) wait --for=condition=ready database sbtest-galera
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sysbench-prepare-galera_job.yaml
+
+.PHONY: sysbench-galera
+sysbench-galera: ## Run sysbench tests for Galera.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sysbench-galera_cronjob.yaml
+	$(KUBECTL) create job sysbench-galera --from cronjob/sysbench-galera
 
 ##@ Examples
 

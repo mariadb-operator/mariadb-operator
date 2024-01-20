@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: sysbench
+  name: sysbench-galera
 spec:
   concurrencyPolicy: Forbid
   schedule: "*/5 * * * *"
@@ -18,7 +18,7 @@ spec:
               - oltp_read_write 
               - --tables=10 
               - --table_size=1000000
-              - --mysql-host=maxscale.default.svc.cluster.local
+              - --mysql-host=maxscale-galera.default.svc.cluster.local
               - --mysql-port=3306
               - --mysql-user=maxscale-client
               - --mysql-password=MaxScale11!
