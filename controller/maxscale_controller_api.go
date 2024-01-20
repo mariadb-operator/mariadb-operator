@@ -129,6 +129,15 @@ func (m *maxScaleAPI) patchMonitor(ctx context.Context, rels *mxsclient.Relation
 	return m.client.Monitor.Patch(ctx, m.mxs.Spec.Monitor.Name, *attrs, mxsclient.WithRelationships(rels))
 }
 
+func (m *maxScaleAPI) updateMonitorState(ctx context.Context) error {
+	apiLogger(ctx).V(1).Info("Updating monitor state", "monitor", m.mxs.Spec.Monitor.Name)
+
+	if m.mxs.Spec.Monitor.Suspend {
+		return m.client.Monitor.Stop(ctx, m.mxs.Spec.Monitor.Name)
+	}
+	return m.client.Monitor.Start(ctx, m.mxs.Spec.Monitor.Name)
+}
+
 func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.MonitorAttributes, error) {
 	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.MonitorPasswordSecretKeyRef, m.mxs.Namespace)
 	if err != nil {
@@ -181,6 +190,15 @@ func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.Max
 	return m.client.Service.Patch(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
 }
 
+func (m *maxScaleAPI) updateServiceState(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService) error {
+	apiLogger(ctx).V(1).Info("Updating service state", "service", svc.Name)
+
+	if svc.Suspend {
+		return m.client.Service.Stop(ctx, svc.Name)
+	}
+	return m.client.Service.Start(ctx, svc.Name)
+}
+
 func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService) (*mxsclient.ServiceAttributes, error) {
 	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.ServerPasswordSecretKeyRef, m.mxs.Namespace)
 	if err != nil {
@@ -220,6 +238,15 @@ func (m *maxScaleAPI) patchListener(ctx context.Context, listener *mariadbv1alph
 	apiLogger(ctx).V(1).Info("Patching listener", "listener", listener.Name)
 
 	return m.client.Listener.Patch(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
+}
+
+func (m *maxScaleAPI) updateListenerState(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener) error {
+	apiLogger(ctx).V(1).Info("Updating listener state", "listener", listener.Name)
+
+	if listener.Suspend {
+		return m.client.Listener.Stop(ctx, listener.Name)
+	}
+	return m.client.Listener.Start(ctx, listener.Name)
 }
 
 func listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.ListenerAttributes {

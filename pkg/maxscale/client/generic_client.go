@@ -145,8 +145,34 @@ func (c *GenericClient[T]) Put(ctx context.Context, name string, options ...Opti
 	return handleResponse(res, nil)
 }
 
+func (c *GenericClient[T]) Stop(ctx context.Context, name string, options ...Option) error {
+	opts := c.processOptions(options...)
+	res, err := c.client.Put(ctx, c.stopPath(name), nil, opts.query)
+	if err != nil {
+		return err
+	}
+	return handleResponse(res, nil)
+}
+
+func (c *GenericClient[T]) Start(ctx context.Context, name string, options ...Option) error {
+	opts := c.processOptions(options...)
+	res, err := c.client.Put(ctx, c.startPath(name), nil, opts.query)
+	if err != nil {
+		return err
+	}
+	return handleResponse(res, nil)
+}
+
 func (c *GenericClient[T]) resourcePath(name string) string {
 	return fmt.Sprintf("%s/%s", c.path, name)
+}
+
+func (c *GenericClient[T]) stopPath(name string) string {
+	return fmt.Sprintf("%s/stop", c.resourcePath(name))
+}
+
+func (c *GenericClient[T]) startPath(name string) string {
+	return fmt.Sprintf("%s/start", c.resourcePath(name))
 }
 
 func (c *GenericClient[T]) processOptions(options ...Option) Options {

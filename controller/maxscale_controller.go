@@ -132,12 +132,24 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileMonitor,
 		},
 		{
+			name:      "Monitor State",
+			reconcile: r.reconcileMonitorState,
+		},
+		{
 			name:      "Services",
 			reconcile: r.reconcileServices,
 		},
 		{
+			name:      "Service State",
+			reconcile: r.reconcileServiceState,
+		},
+		{
 			name:      "Listeners",
 			reconcile: r.reconcileListeners,
+		},
+		{
+			name:      "Listener State",
+			reconcile: r.reconcileListenerState,
 		},
 	}
 
@@ -558,14 +570,32 @@ func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, req *requestM
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
 		}
-		return ctrl.Result{}, mxsApi.createMonitor(ctx, rels)
+		if err := mxsApi.createMonitor(ctx, rels); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error creating monitor: %v", err)
+		}
+	} else {
+		rels, err := mxsApi.serverRelationships(ctx)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
+		}
+		if err := mxsApi.patchMonitor(ctx, rels); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching monitor: %v", err)
+		}
 	}
 
-	rels, err := mxsApi.serverRelationships(ctx)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
-	}
-	return ctrl.Result{}, mxsApi.patchMonitor(ctx, rels)
+	return ctrl.Result{}, mxsApi.updateMonitorState(ctx)
+}
+
+func (r *MaxScaleReconciler) reconcileMonitorState(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	// MaxScale config sync does not handle object state, we need to update all Pods.
+	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)
+
+		if err := mxsApi.updateMonitorState(ctx); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error updating monitor state: %v", err)
+		}
+		return ctrl.Result{}, nil
+	})
 }
 
 func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -629,6 +659,20 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileServiceState(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	// MaxScale config sync does not handle object state, we need to update all Pods.
+	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)
+
+		for _, svc := range req.mxs.Spec.Services {
+			if err := mxsApi.updateServiceState(ctx, &svc); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error updating service state: %v", err)
+			}
+		}
+		return ctrl.Result{}, nil
+	})
 }
 
 func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -697,6 +741,20 @@ func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *reques
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileListenerState(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	// MaxScale config sync does not handle object state, we need to update all Pods.
+	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)
+
+		for _, listener := range req.mxs.Listeners() {
+			if err := mxsApi.updateListenerState(ctx, &listener); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error updating listener state: %v", err)
+			}
+		}
+		return ctrl.Result{}, nil
+	})
 }
 
 func (r *MaxScaleReconciler) forEachPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
