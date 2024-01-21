@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-var logger = log.Log.WithName("mariadb")
+var mariadbLogger = log.Log.WithName("mariadb")
 
 func (r *MariaDB) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -19,7 +19,6 @@ func (r *MariaDB) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//nolint
 //+kubebuilder:webhook:path=/mutate-mariadb-mmontes-io-v1alpha1-mariadb,mutating=true,failurePolicy=fail,sideEffects=None,groups=mariadb.mmontes.io,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=mmariadb.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &MariaDB{}
@@ -27,31 +26,30 @@ var _ webhook.Defaulter = &MariaDB{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *MariaDB) Default() {
 	if r.Spec.Replication != nil && r.Spec.Replication.Enabled {
-		logger.V(1).Info("Defaulting spec.replication", "mariadb", r.Name)
+		mariadbLogger.V(1).Info("Defaulting spec.replication", "mariadb", r.Name)
 		r.Spec.Replication.FillWithDefaults()
 		return
 	}
 	if r.Spec.Galera != nil && r.Spec.Galera.Enabled {
-		logger.V(1).Info("Defaulting spec.galera", "mariadb", r.Name)
+		mariadbLogger.V(1).Info("Defaulting spec.galera", "mariadb", r.Name)
 		r.Spec.Galera.FillWithDefaults()
 		return
 	}
 }
 
-//nolint
 //+kubebuilder:webhook:path=/validate-mariadb-mmontes-io-v1alpha1-mariadb,mutating=false,failurePolicy=fail,sideEffects=None,groups=mariadb.mmontes.io,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=vmariadb.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &MariaDB{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateCreate() (admission.Warnings, error) {
-	logger.V(1).Info("Validate MariaDB creation", "mariadb", r.Name)
+	mariadbLogger.V(1).Info("Validate create", "name", r.Name)
 	return nil, r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	logger.V(1).Info("Validate MariaDB update", "mariadb", r.Name)
+	mariadbLogger.V(1).Info("Validate update", "name", r.Name)
 	oldMariadb := old.(*MariaDB)
 	if err := inmutableWebhook.ValidateUpdate(r, oldMariadb); err != nil {
 		return nil, err
