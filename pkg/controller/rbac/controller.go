@@ -55,7 +55,7 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 	opts := builder.ServiceAccountOpts{
 		MariaDB: mariadb,
 	}
-	sa, err := r.ReconcileServiceAccount(ctx, key, &mariadb.ObjectMeta, opts)
+	sa, err := r.ReconcileServiceAccount(ctx, key, mariadb, opts)
 	if err != nil {
 		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
