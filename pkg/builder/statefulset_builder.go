@@ -135,7 +135,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels ma
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
-			ServiceAccountName:           mariadbServiceAccountName(mariadb),
+			ServiceAccountName:           serviceAccount(mariadb.Spec.ServiceAccountName, mariadb.Name),
 			InitContainers:               mariadbInitContainers(mariadb),
 			Containers:                   containers,
 			ImagePullSecrets:             mariadb.Spec.ImagePullSecrets,
@@ -144,33 +144,35 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels ma
 			Affinity:                     mariadb.Spec.Affinity,
 			NodeSelector:                 mariadb.Spec.NodeSelector,
 			Tolerations:                  mariadb.Spec.Tolerations,
-			PriorityClassName:            buildPriorityClass(mariadb),
+			PriorityClassName:            priorityClass(mariadb.Spec.PriorityClassName),
 			TopologySpreadConstraints:    mariadb.Spec.TopologySpreadConstraints,
 		},
 	}, nil
 }
 
-func (b *Builder) maxscalePodTemplate(maxscale *mariadbv1alpha1.MaxScale, labels map[string]string) (*corev1.PodTemplateSpec, error) {
-	containers, err := b.maxscaleContainers(maxscale)
+func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, labels map[string]string) (*corev1.PodTemplateSpec, error) {
+	containers, err := b.maxscaleContainers(mxs)
 	if err != nil {
 		return nil, fmt.Errorf("error building MaxScale containers: %v", err)
 	}
 	objMeta :=
-		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(maxscale)).
+		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mxs)).
 			WithLabels(labels).
 			Build()
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
-			ServiceAccountName:           "default",
+			ServiceAccountName:           serviceAccount(mxs.Spec.ServiceAccountName, mxs.Name),
 			Containers:                   containers,
-			ImagePullSecrets:             maxscale.Spec.ImagePullSecrets,
-			Volumes:                      maxscaleVolumes(maxscale),
-			SecurityContext:              maxscale.Spec.PodSecurityContext,
-			Affinity:                     maxscale.Spec.Affinity,
-			NodeSelector:                 maxscale.Spec.NodeSelector,
-			Tolerations:                  maxscale.Spec.Tolerations,
+			ImagePullSecrets:             mxs.Spec.ImagePullSecrets,
+			Volumes:                      maxscaleVolumes(mxs),
+			SecurityContext:              mxs.Spec.PodSecurityContext,
+			Affinity:                     mxs.Spec.Affinity,
+			NodeSelector:                 mxs.Spec.NodeSelector,
+			Tolerations:                  mxs.Spec.Tolerations,
+			PriorityClassName:            priorityClass(mxs.Spec.PriorityClassName),
+			TopologySpreadConstraints:    mxs.Spec.TopologySpreadConstraints,
 		},
 	}, nil
 }
@@ -330,13 +332,6 @@ func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
 	return volumes
 }
 
-func mariadbServiceAccountName(mariadb *mariadbv1alpha1.MariaDB) (serviceAccount string) {
-	if mariadb.Spec.ServiceAccountName != nil {
-		return *mariadb.Spec.ServiceAccountName
-	}
-	return mariadb.Name
-}
-
 func mariadbHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 	var annotations map[string]string
 	if mariadb.IsHAEnabled() {
@@ -353,9 +348,16 @@ func mariadbHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 	return annotations
 }
 
-func buildPriorityClass(mariadb *mariadbv1alpha1.MariaDB) string {
-	if mariadb.Spec.PodTemplate.PriorityClassName != nil {
-		return *mariadb.Spec.PodTemplate.PriorityClassName
+func serviceAccount(svcAccount *string, defaultSvcAccount string) (serviceAccount string) {
+	if svcAccount != nil {
+		return *svcAccount
+	}
+	return defaultSvcAccount
+}
+
+func priorityClass(className *string) string {
+	if className != nil {
+		return *className
 	}
 	return ""
 }

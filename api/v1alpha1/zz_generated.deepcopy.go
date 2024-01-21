@@ -1026,6 +1026,13 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(InheritMetadata)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.PodAnnotations != nil {
+		in, out := &in.PodAnnotations, &out.PodAnnotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	in.RootPasswordSecretKeyRef.DeepCopyInto(&out.RootPasswordSecretKeyRef)
 	if in.RootEmptyPassword != nil {
 		in, out := &in.RootEmptyPassword, &out.RootEmptyPassword
@@ -1056,13 +1063,6 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		in, out := &in.MyCnfConfigMapKeyRef, &out.MyCnfConfigMapKeyRef
 		*out = new(v1.ConfigMapKeySelector)
 		(*in).DeepCopyInto(*out)
-	}
-	if in.PodAnnotations != nil {
-		in, out := &in.PodAnnotations, &out.PodAnnotations
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
 	}
 	if in.BootstrapFrom != nil {
 		in, out := &in.BootstrapFrom, &out.BootstrapFrom
@@ -1129,11 +1129,6 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		in, out := &in.SecondaryConnection, &out.SecondaryConnection
 		*out = new(ConnectionTemplate)
 		(*in).DeepCopyInto(*out)
-	}
-	if in.ServiceAccountName != nil {
-		in, out := &in.ServiceAccountName, &out.ServiceAccountName
-		*out = new(string)
-		**out = **in
 	}
 }
 
@@ -1582,6 +1577,11 @@ func (in *PodTemplate) DeepCopyInto(out *PodTemplate) {
 		in, out := &in.PodSecurityContext, &out.PodSecurityContext
 		*out = new(v1.PodSecurityContext)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.ServiceAccountName != nil {
+		in, out := &in.ServiceAccountName, &out.ServiceAccountName
+		*out = new(string)
+		**out = **in
 	}
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity

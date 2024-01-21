@@ -27,7 +27,7 @@ func NewRBACReconiler(client client.Client, builder *builder.Builder) *RBACRecon
 
 func (r *RBACReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
-	if mariadb.IsServiceAccountNameDefined() {
+	if mariadb.Spec.IsServiceAccountNameDefined() {
 		key.Name = *mariadb.Spec.ServiceAccountName
 	}
 	sa, err := r.reconcileServiceAccount(ctx, key, mariadb)

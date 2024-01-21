@@ -3016,6 +3016,10 @@ spec:
                   - name
                   type: object
                 type: array
+              serviceAccountName:
+                description: ServiceAccountName is the name of the ServiceAccount
+                  to be used by the Pods.
+                type: string
               services:
                 description: Services define how the traffic is forwarded to the MariaDB
                   servers.
