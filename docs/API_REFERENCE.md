@@ -577,7 +577,7 @@ _Appears in:_
 
 
 
-MaxScale is the Schema for the maxscales API
+MaxScale is the Schema for the maxscales API. It is used to define MaxScale clusters.
 
 
 
@@ -602,7 +602,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `port` _integer_ | Port where the admin REST API will be exposed. |
+| `port` _integer_ | Port where the admin REST API and GUI will be exposed. |
 | `guiEnabled` _boolean_ | GuiEnabled indicates whether the admin GUI should be enabled. |
 
 
@@ -610,24 +610,24 @@ _Appears in:_
 
 
 
-MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB
+MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB.
 
 _Appears in:_
 - [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |
-| `adminUsername` _string_ | AdminUsername is an admin username to call the REST API. It is defaulted if not provided. |
-| `adminPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided. |
-| `deleteDefaultAdmin` _boolean_ | DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. It is defaulted to true if not provided. |
+| `adminUsername` _string_ | AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided. |
+| `adminPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admib REST API. It is defaulted if not provided. |
+| `deleteDefaultAdmin` _boolean_ | DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true. |
 | `clientUsername` _string_ | ClientUsername is the user to connect to MaxScale. It is defaulted if not provided. |
 | `clientPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided. |
 | `serverUsername` _string_ | ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided. |
 | `serverPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided. |
 | `monitorUsername` _string_ | MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided. |
 | `monitorPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided. |
-| `syncUsername` _string_ | MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted if not provided. |
-| `syncPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted if not provided. |
+| `syncUsername` _string_ | MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled. |
+| `syncPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled. |
 
 
 #### MaxScaleConfig
@@ -643,7 +643,7 @@ _Appears in:_
 | --- | --- |
 | `params` _object (keys:string, values:string)_ | Params is a key value pair of parameters to be used in the MaxScale static configuration file. |
 | `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files. It is defaulted if not provided. |
-| `sync` _[MaxScaleConfigSync](#maxscaleconfigsync)_ | Sync defines how to replicate configuration across MaxScale replicas. It is defaulted if not provided. |
+| `sync` _[MaxScaleConfigSync](#maxscaleconfigsync)_ | Sync defines how to replicate configuration across MaxScale replicas. It is defaulted when HA is enabled. |
 
 
 #### MaxScaleConfigSync
@@ -657,7 +657,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `database` _string_ | Database is the MariaDB logical database used to persist and synchronize config changes. It is defaulted if not provided. |
+| `database` _string_ | Database is the MariaDB logical database where the 'maxscale_config' table will be created in order to persist and synchronize config changes. If not provided, it defaults to 'mysql'. |
 | `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval defines the config synchronization interval. It is defaulted if not provided. |
 | `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval defines the config synchronization timeout. It is defaulted if not provided. |
 
@@ -692,10 +692,10 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |
-| `name` _string_ | Name is the identifier of the monitor. It is defaulted if not provided |
+| `name` _string_ | Name is the identifier of the monitor. It is defaulted if not provided. |
 | `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. |
-| `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. If not provided, it defaults to 2s. |
-| `cooperativeMonitoring` _[CooperativeMonitoring](#cooperativemonitoring)_ | CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when multiple replicas are configured. |
+| `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. It is defaulted if not provided. |
+| `cooperativeMonitoring` _[CooperativeMonitoring](#cooperativemonitoring)_ | CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when HA is enabled. |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor. |
 
 
@@ -740,7 +740,7 @@ _Appears in:_
 
 
 
-MaxScaleSpec defines the desired state of MaxScale
+MaxScaleSpec defines the desired state of MaxScale.
 
 _Appears in:_
 - [MaxScale](#maxscale)

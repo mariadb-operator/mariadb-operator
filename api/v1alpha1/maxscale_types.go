@@ -87,7 +87,7 @@ const (
 // MaxScaleMonitor monitors MariaDB server instances
 type MaxScaleMonitor struct {
 	SuspendTemplate `json:",inline"`
-	// Name is the identifier of the monitor. It is defaulted if not provided
+	// Name is the identifier of the monitor. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Name string `json:"name"`
@@ -96,11 +96,11 @@ type MaxScaleMonitor struct {
 	// +kubebuilder:validation:Enum=mariadbmon;galeramon
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Module MonitorModule `json:"module" webhook:"inmutable"`
-	// Interval used to monitor MariaDB servers. If not provided, it defaults to 2s.
+	// Interval used to monitor MariaDB servers. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Interval metav1.Duration `json:"interval,omitempty"`
-	// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when multiple replicas are configured.
+	// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when HA is enabled.
 	// +optional
 	// +kubebuilder:validation:Enum=majority_of_all;majority_of_running
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -119,7 +119,7 @@ func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
 	if m.Interval == (metav1.Duration{}) {
 		m.Interval = metav1.Duration{Duration: 2 * time.Second}
 	}
-	if mxs.Spec.Replicas > 1 && m.CooperativeMonitoring == nil {
+	if mxs.IsHAEnabled() && m.CooperativeMonitoring == nil {
 		m.CooperativeMonitoring = ptr.To(CooperativeMonitoringMajorityOfAll)
 	}
 }
@@ -194,7 +194,7 @@ func (m *MaxScaleService) SetDefaults() {
 
 // MaxScaleAdmin configures the admin REST API and GUI.
 type MaxScaleAdmin struct {
-	// Port where the admin REST API will be exposed.
+	// Port where the admin REST API and GUI will be exposed.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Port int32 `json:"port"`
@@ -209,7 +209,6 @@ func (m *MaxScaleAdmin) SetDefaults(mxs *MaxScale) {
 	if m.Port == 0 {
 		m.Port = 8989
 	}
-
 	if m.GuiEnabled == nil {
 		m.GuiEnabled = ptr.To(true)
 	}
@@ -217,7 +216,7 @@ func (m *MaxScaleAdmin) SetDefaults(mxs *MaxScale) {
 
 // MaxScaleConfigSync defines how the config changes are replicated across replicas.
 type MaxScaleConfigSync struct {
-	// Database is the MariaDB logical database used to persist and synchronize config changes. It is defaulted if not provided.
+	// Database is the MariaDB logical database where the 'maxscale_config' table will be created in order to persist and synchronize config changes. If not provided, it defaults to 'mysql'.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Database string `json:"database,omitempty"`
@@ -241,7 +240,7 @@ type MaxScaleConfig struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate"`
-	// Sync defines how to replicate configuration across MaxScale replicas. It is defaulted if not provided.
+	// Sync defines how to replicate configuration across MaxScale replicas. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Sync *MaxScaleConfigSync `json:"sync,omitempty"`
@@ -278,17 +277,17 @@ func (m *MaxScaleConfig) SetDefaults(mxs *MaxScale) {
 	}
 }
 
-// MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB
+// MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB.
 type MaxScaleAuth struct {
-	// AdminUsername is an admin username to call the REST API. It is defaulted if not provided.
+	// AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AdminUsername string `json:"adminUsername,omitempty"`
-	// AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the REST API. It is defaulted if not provided.
+	// AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admib REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AdminPasswordSecretKeyRef corev1.SecretKeySelector `json:"adminPasswordSecretKeyRef,omitempty"`
-	// DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. It is defaulted to true if not provided.
+	// DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	DeleteDefaultAdmin *bool `json:"deleteDefaultAdmin,omitempty"`
@@ -316,11 +315,11 @@ type MaxScaleAuth struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MonitorPasswordSecretKeyRef corev1.SecretKeySelector `json:"monitorPasswordSecretKeyRef,omitempty"`
-	// MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted if not provided.
+	// MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncUsername string `json:"syncUsername,omitempty"`
-	// SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted if not provided.
+	// SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncPasswordSecretKeyRef corev1.SecretKeySelector `json:"syncPasswordSecretKeyRef,omitempty"`
@@ -370,7 +369,7 @@ func (m *MaxScaleAuth) ShouldDeleteDefaultAdmin() bool {
 	return m.DeleteDefaultAdmin != nil && *m.DeleteDefaultAdmin
 }
 
-// MaxScaleSpec defines the desired state of MaxScale
+// MaxScaleSpec defines the desired state of MaxScale.
 type MaxScaleSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
 	// +optional
@@ -442,14 +441,14 @@ type MaxScaleSpec struct {
 
 // MaxScaleStatus defines the observed state of MaxScale
 type MaxScaleStatus struct {
-	// Conditions for the Mariadb object.
+	// Conditions for the MaxScale object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// Replicas indicates the number of current instances.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	Replicas int32 `json:"replicas,omitempty"`
-	// PrimaryServer is the primary server.
+	// PrimaryServer is the primary server reported by Maxscale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes:Pod"}
 	PrimaryServer *string `json:"primaryServer,omitempty"`
@@ -473,7 +472,7 @@ func (s *MaxScaleStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{MaxScale,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{Event,v1},{Service,v1},{Secret,v1},{StatefulSet,v1},{PodDisruptionBudget,v1}}
 
-// MaxScale is the Schema for the maxscales API
+// MaxScale is the Schema for the maxscales API. It is used to define MaxScale clusters.
 type MaxScale struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -488,7 +487,7 @@ func (m *MaxScale) SetDefaults(env *environment.Environment) {
 		m.Spec.Image = env.RelatedMaxscaleImage
 	}
 	if m.Spec.RequeueInterval == nil {
-		m.Spec.RequeueInterval = &metav1.Duration{Duration: 5 * time.Second}
+		m.Spec.RequeueInterval = &metav1.Duration{Duration: 10 * time.Second}
 	}
 	for i := range m.Spec.Servers {
 		m.Spec.Servers[i].SetDefaults()
