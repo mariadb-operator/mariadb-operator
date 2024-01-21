@@ -16761,8 +16761,9 @@ spec:
                     description: Params defines extra parameters to pass to the monitor.
                     type: object
                   suspend:
-                    description: Suspend indicates whether the current resource is
-                      suspended or not.
+                    description: Suspend indicates whether the current resource should
+                      be suspended or not. Feature flag --feature-maxscale-suspend
+                      is required in the controller to enable this.
                     type: boolean
                 required:
                 - module
@@ -17387,7 +17388,8 @@ spec:
                           type: string
                         suspend:
                           description: Suspend indicates whether the current resource
-                            is suspended or not.
+                            should be suspended or not. Feature flag --feature-maxscale-suspend
+                            is required in the controller to enable this.
                           type: boolean
                       type: object
                     name:
@@ -17407,7 +17409,8 @@ spec:
                       type: string
                     suspend:
                       description: Suspend indicates whether the current resource
-                        is suspended or not.
+                        should be suspended or not. Feature flag --feature-maxscale-suspend
+                        is required in the controller to enable this.
                       type: boolean
                   required:
                   - listener

@@ -49,6 +49,8 @@ type MaxScaleReconciler struct {
 	StatefulSetReconciler *statefulset.StatefulSetReconciler
 	ServiceReconciler     *service.ServiceReconciler
 
+	SuspendEnabled bool
+
 	RequeueInterval time.Duration
 	LogRequests     bool
 }
@@ -583,10 +585,13 @@ func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, req *requestM
 		}
 	}
 
-	return ctrl.Result{}, mxsApi.updateMonitorState(ctx)
+	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) reconcileMonitorState(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if !r.SuspendEnabled {
+		return ctrl.Result{}, nil
+	}
 	// MaxScale config sync does not handle object state, we need to update all Pods.
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)
@@ -662,6 +667,9 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 }
 
 func (r *MaxScaleReconciler) reconcileServiceState(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if !r.SuspendEnabled {
+		return ctrl.Result{}, nil
+	}
 	// MaxScale config sync does not handle object state, we need to update all Pods.
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)
@@ -744,6 +752,9 @@ func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *reques
 }
 
 func (r *MaxScaleReconciler) reconcileListenerState(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if !r.SuspendEnabled {
+		return ctrl.Result{}, nil
+	}
 	// MaxScale config sync does not handle object state, we need to update all Pods.
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)

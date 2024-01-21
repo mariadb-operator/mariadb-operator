@@ -56,6 +56,8 @@ var (
 	requeueMaxScale   time.Duration
 	webhookPort       int
 	webhookCertDir    string
+
+	featureMaxScaleSuspend bool
 )
 
 func init() {
@@ -79,6 +81,8 @@ func init() {
 	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server.")
 	rootCmd.Flags().StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs",
 		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory.")
+
+	rootCmd.Flags().BoolVar(&featureMaxScaleSuspend, "feature-maxscale-suspend", false, "Feature flag to enable MaxScale resource suspension.")
 }
 
 var rootCmd = &cobra.Command{
@@ -253,6 +257,8 @@ var rootCmd = &cobra.Command{
 			SecretReconciler:      secretReconciler,
 			StatefulSetReconciler: statefulSetReconciler,
 			ServiceReconciler:     serviceReconciler,
+
+			SuspendEnabled: featureMaxScaleSuspend,
 
 			RequeueInterval: requeueMaxScale,
 			LogRequests:     logMaxScale,

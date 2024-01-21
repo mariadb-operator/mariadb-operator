@@ -73,6 +73,8 @@ var (
 	requeueSql        time.Duration
 	requeueSqlJob     time.Duration
 	requeueMaxScale   time.Duration
+
+	featureMaxScaleSuspend bool
 )
 
 func init() {
@@ -93,6 +95,8 @@ func init() {
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 10*time.Second, "The interval at which MaxScales are requeued.")
+
+	rootCmd.Flags().BoolVar(&featureMaxScaleSuspend, "feature-maxscale-suspend", false, "Feature flag to enable MaxScale resource suspension.")
 }
 
 var rootCmd = &cobra.Command{
@@ -263,6 +267,8 @@ var rootCmd = &cobra.Command{
 			SecretReconciler:      secretReconciler,
 			StatefulSetReconciler: statefulSetReconciler,
 			ServiceReconciler:     serviceReconciler,
+
+			SuspendEnabled: featureMaxScaleSuspend,
 
 			RequeueInterval: requeueMaxScale,
 			LogRequests:     logMaxScale,

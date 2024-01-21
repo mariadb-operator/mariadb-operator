@@ -673,7 +673,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `suspend` _boolean_ | Suspend indicates whether the current resource is suspended or not. |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |
 | `name` _string_ | Name is the identifier of the listener. It is defaulted if not provided |
 | `port` _integer_ | Port is the network port where the MaxScale server will listen. |
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol. |
@@ -691,7 +691,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `suspend` _boolean_ | Suspend indicates whether the current resource is suspended or not. |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |
 | `name` _string_ | Name is the identifier of the monitor. It is defaulted if not provided |
 | `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. |
 | `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. If not provided, it defaults to 2s. |
@@ -729,7 +729,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `suspend` _boolean_ | Suspend indicates whether the current resource is suspended or not. |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |
 | `name` _string_ | Name is the identifier of the MaxScale service. |
 | `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |
 | `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |
@@ -1190,7 +1190,7 @@ _Appears in:_
 
 
 
-SuspendTemplate indicates whether the current resource should be suspended or not.
+SuspendTemplate indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 
 _Appears in:_
 - [MaxScaleListener](#maxscalelistener)
@@ -1199,7 +1199,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `suspend` _boolean_ | Suspend indicates whether the current resource is suspended or not. |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |
 
 
 #### TLS

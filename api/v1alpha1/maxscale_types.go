@@ -55,9 +55,9 @@ func (m *MaxScaleServer) SetDefaults() {
 	}
 }
 
-// SuspendTemplate indicates whether the current resource should be suspended or not.
+// SuspendTemplate indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 type SuspendTemplate struct {
-	// Suspend indicates whether the current resource is suspended or not.
+	// Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Suspend bool `json:"suspend,omitempty"`
