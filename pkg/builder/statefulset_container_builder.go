@@ -44,17 +44,17 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.
 	return containers, nil
 }
 
-func (b *Builder) maxscaleContainers(maxscale *mariadbv1alpha1.MaxScale) ([]corev1.Container, error) {
-	tpl := maxscale.Spec.ContainerTemplate
+func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Container, error) {
+	tpl := mxs.Spec.ContainerTemplate
 
-	container := buildContainer(maxscale.Spec.Image, maxscale.Spec.ImagePullPolicy, &tpl)
+	container := buildContainer(mxs.Spec.Image, mxs.Spec.ImagePullPolicy, &tpl)
 	container.Name = MaxScaleContainerName
 	container.Command = []string{
 		"maxscale",
 	}
 	container.Args = []string{
 		"--config",
-		fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, maxscale.ConfigSecretKeyRef().Key),
+		fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
 		"-dU",
 		"maxscale",
 		"-l",
@@ -66,12 +66,12 @@ func (b *Builder) maxscaleContainers(maxscale *mariadbv1alpha1.MaxScale) ([]core
 	container.Ports = []corev1.ContainerPort{
 		{
 			Name:          MaxScaleAdminPortName,
-			ContainerPort: int32(maxscale.Spec.Admin.Port),
+			ContainerPort: int32(mxs.Spec.Admin.Port),
 		},
 	}
-	container.VolumeMounts = maxscaleVolumeMounts(maxscale)
-	container.LivenessProbe = maxscaleProbe(maxscale.Spec.LivenessProbe)
-	container.ReadinessProbe = maxscaleProbe(maxscale.Spec.ReadinessProbe)
+	container.VolumeMounts = maxscaleVolumeMounts(mxs)
+	container.LivenessProbe = maxscaleProbe(mxs, mxs.Spec.LivenessProbe)
+	container.ReadinessProbe = maxscaleProbe(mxs, mxs.Spec.ReadinessProbe)
 
 	return []corev1.Container{container}, nil
 }
@@ -382,7 +382,7 @@ func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe)
 }
 
-func maxscaleProbe(probe *corev1.Probe) *corev1.Probe {
+func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *corev1.Probe) *corev1.Probe {
 	if probe != nil {
 		return probe
 	}
@@ -390,7 +390,7 @@ func maxscaleProbe(probe *corev1.Probe) *corev1.Probe {
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/",
-				Port: intstr.FromInt(8989),
+				Port: intstr.FromInt(int(mxs.Spec.Admin.Port)),
 			},
 		},
 		InitialDelaySeconds: 10,
