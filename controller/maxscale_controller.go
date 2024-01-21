@@ -22,6 +22,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
@@ -46,6 +47,7 @@ type MaxScaleReconciler struct {
 	RefResolver    *refresolver.RefResolver
 
 	SecretReconciler      *secret.SecretReconciler
+	RBACReconciler        *rbac.RBACReconciler
 	StatefulSetReconciler *statefulset.StatefulSetReconciler
 	ServiceReconciler     *service.ServiceReconciler
 
@@ -100,6 +102,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "Secret",
 			reconcile: r.reconcileSecret,
+		},
+		{
+			name:      "ServiceAccount",
+			reconcile: r.reconcileServiceAccount,
 		},
 		{
 			name:      "StatefulSet",
@@ -242,6 +248,11 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileServiceAccount(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, client.ObjectKeyFromObject(req.mxs), req.mxs, builder.ServiceAccountOpts{})
+	return ctrl.Result{}, err
 }
 
 func (r *MaxScaleReconciler) reconcileStatefulSet(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {

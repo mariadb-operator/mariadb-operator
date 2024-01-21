@@ -200,6 +200,7 @@ var _ = BeforeSuite(func() {
 		RefResolver:    refResolver,
 
 		SecretReconciler:      secretReconciler,
+		RBACReconciler:        rbacReconciler,
 		StatefulSetReconciler: statefulSetReconciler,
 		ServiceReconciler:     serviceReconciler,
 

@@ -7,19 +7,25 @@ import (
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (b *Builder) BuildServiceAccount(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*corev1.ServiceAccount, error) {
+type ServiceAccountOpts struct {
+	MariaDB *mariadbv1alpha1.MariaDB
+}
+
+func (b *Builder) BuildServiceAccount(key types.NamespacedName, owner metav1.Object,
+	opts ServiceAccountOpts) (*corev1.ServiceAccount, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMariaDB(opts.MariaDB).
 			Build()
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: objMeta,
 	}
-	if err := controllerutil.SetControllerReference(mariadb, sa, b.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(owner, sa, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to ServiceAccount: %v", err)
 	}
 	return sa, nil
