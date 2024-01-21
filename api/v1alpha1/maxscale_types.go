@@ -134,7 +134,7 @@ type MaxScaleListener struct {
 	// Port is the network port where the MaxScale server will listen.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	Port int32 `json:"port,omitempty"`
+	Port int32 `json:"port,omitempty" webhook:"inmutable"`
 	// Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -180,7 +180,7 @@ type MaxScaleService struct {
 	// MaxScaleListener defines how the MaxScale server will listen for connections.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Listener MaxScaleListener `json:"listener" webhook:"inmutable"`
+	Listener MaxScaleListener `json:"listener"`
 	// Params defines extra parameters to pass to the monitor.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
