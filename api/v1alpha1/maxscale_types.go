@@ -470,7 +470,7 @@ func (s *MaxScaleStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Primary Server",type="string",JSONPath=".status.primaryServer"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +operator-sdk:csv:customresourcedefinitions:resources={{MaxScale,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{Event,v1},{Service,v1},{Secret,v1},{StatefulSet,v1},{PodDisruptionBudget,v1}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{MaxScale,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{Event,v1},{Service,v1},{Secret,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1}}
 
 // MaxScale is the Schema for the maxscales API. It is used to define MaxScale clusters.
 type MaxScale struct {
