@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -25,12 +26,36 @@ func NewRBACReconiler(client client.Client, builder *builder.Builder) *RBACRecon
 	}
 }
 
-func (r *RBACReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *RBACReconciler) ReconcileServiceAccount(ctx context.Context, key types.NamespacedName, owner metav1.Object,
+	opts builder.ServiceAccountOpts) (*corev1.ServiceAccount, error) {
+	var existingSA corev1.ServiceAccount
+	err := r.Get(ctx, key, &existingSA)
+	if err == nil {
+		return &existingSA, nil
+	}
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, fmt.Errorf("error getting ServiceAccount: %v", err)
+	}
+
+	sa, err := r.builder.BuildServiceAccount(key, owner, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error building ServiceAccount: %v", err)
+	}
+	if err := r.Create(ctx, sa); err != nil {
+		return nil, fmt.Errorf("error creating ServiceAccount: %v", err)
+	}
+	return sa, nil
+}
+
+func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
 	if mariadb.Spec.IsServiceAccountNameDefined() {
 		key.Name = *mariadb.Spec.ServiceAccountName
 	}
-	sa, err := r.reconcileServiceAccount(ctx, key, mariadb)
+	opts := builder.ServiceAccountOpts{
+		MariaDB: mariadb,
+	}
+	sa, err := r.ReconcileServiceAccount(ctx, key, &mariadb.ObjectMeta, opts)
 	if err != nil {
 		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
@@ -66,27 +91,6 @@ func (r *RBACReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1
 		}
 	}
 	return nil
-}
-
-func (r *RBACReconciler) reconcileServiceAccount(ctx context.Context, key types.NamespacedName,
-	mariadb *mariadbv1alpha1.MariaDB) (*corev1.ServiceAccount, error) {
-	var existingSA corev1.ServiceAccount
-	err := r.Get(ctx, key, &existingSA)
-	if err == nil {
-		return &existingSA, nil
-	}
-	if err != nil && !apierrors.IsNotFound(err) {
-		return nil, fmt.Errorf("error getting ServiceAccount: %v", err)
-	}
-
-	sa, err := r.builder.BuildServiceAccount(key, mariadb)
-	if err != nil {
-		return nil, fmt.Errorf("error building ServiceAccount: %v", err)
-	}
-	if err := r.Create(ctx, sa); err != nil {
-		return nil, fmt.Errorf("error creating ServiceAccount: %v", err)
-	}
-	return sa, nil
 }
 
 func (r *RBACReconciler) reconcileRole(ctx context.Context, key types.NamespacedName,

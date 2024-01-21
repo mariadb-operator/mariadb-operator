@@ -255,6 +255,7 @@ var rootCmd = &cobra.Command{
 			RefResolver:    refResolver,
 
 			SecretReconciler:      secretReconciler,
+			RBACReconciler:        rbacReconciler,
 			StatefulSetReconciler: statefulSetReconciler,
 			ServiceReconciler:     serviceReconciler,
 

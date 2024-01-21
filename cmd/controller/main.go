@@ -244,6 +244,7 @@ var rootCmd = &cobra.Command{
 			Environment:    env,
 
 			SecretReconciler:      secretReconciler,
+			RBACReconciler:        rbacReconciler,
 			StatefulSetReconciler: statefulSetReconciler,
 			ServiceReconciler:     serviceReconciler,
 

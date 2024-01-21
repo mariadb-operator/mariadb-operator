@@ -245,8 +245,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 }
 
 func (r *MariaDBReconciler) reconcileRBAC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	err := r.RBACReconciler.Reconcile(ctx, mariadb)
-	return ctrl.Result{}, err
+	return ctrl.Result{}, r.RBACReconciler.ReconcileMariadbRBAC(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
