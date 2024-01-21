@@ -203,6 +203,8 @@ var _ = BeforeSuite(func() {
 		StatefulSetReconciler: statefulSetReconciler,
 		ServiceReconciler:     serviceReconciler,
 
+		SuspendEnabled: false,
+
 		RequeueInterval: 5 * time.Second,
 		LogRequests:     true,
 	}).SetupWithManager(k8sManager)
