@@ -9,6 +9,7 @@ import (
 	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var (
@@ -144,6 +145,10 @@ type PodTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutable"`
 	// Affinity to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -170,6 +175,11 @@ type PodTemplate struct {
 	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
 }
 
+// IsServiceAccountNameDefined indicates whether the current object has a ServiceAccountName defined
+func (p *PodTemplate) IsServiceAccountNameDefined() bool {
+	return p.ServiceAccountName != nil && *p.ServiceAccountName != ""
+}
+
 // VolumeClaimTemplate defines a template to customize PVC objects.
 type VolumeClaimTemplate struct {
 	// PersistentVolumeClaimSpec is the specification of a PVC.
@@ -184,6 +194,66 @@ type VolumeClaimTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// ServiceTemplate defines a template to customize Service objects.
+type ServiceTemplate struct {
+	// Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+	// +optional
+	// +kubebuilder:default=ClusterIP
+	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Type corev1.ServiceType `json:"type,omitempty"`
+	// Labels to add to the Service metadata.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Labels map[string]string `json:"labels,omitempty"`
+	// Annotations to add to the Service metadata.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// LoadBalancerIP Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	LoadBalancerIP *string `json:"loadBalancerIP,omitempty"`
+	// LoadBalancerSourceRanges Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	LoadBalancerSourceRanges []string `json:"loadBalancerSourceRanges,omitempty"`
+	// ExternalTrafficPolicy Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ExternalTrafficPolicy *corev1.ServiceExternalTrafficPolicyType `json:"externalTrafficPolicy,omitempty"`
+	// SessionAffinity Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SessionAffinity *corev1.ServiceAffinity `json:"sessionAffinity,omitempty"`
+	// AllocateLoadBalancerNodePorts Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AllocateLoadBalancerNodePorts *bool `json:"allocateLoadBalancerNodePorts,omitempty"`
+}
+
+// PodDisruptionBudget is the Pod availability bundget for a MariaDB
+type PodDisruptionBudget struct {
+	// MinAvailable defines the number of minimum available Pods.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MinAvailable *intstr.IntOrString `json:"minAvailable,omitempty"`
+	// MaxUnavailable defines the number of maximum unavailable Pods.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+}
+
+func (p *PodDisruptionBudget) Validate() error {
+	if p.MinAvailable != nil && p.MaxUnavailable == nil {
+		return nil
+	}
+	if p.MinAvailable == nil && p.MaxUnavailable != nil {
+		return nil
+	}
+	return errors.New("either minAvailable or maxUnavailable must be specified")
 }
 
 // HealthCheck defines intervals for performing health checks.

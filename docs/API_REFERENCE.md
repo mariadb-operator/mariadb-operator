@@ -536,6 +536,7 @@ _Appears in:_
 | `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |
 | `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
 | `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
@@ -546,6 +547,7 @@ _Appears in:_
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
 | `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
 | `inheritMetadata` _[InheritMetadata](#inheritmetadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
+| `podAnnotations` _object (keys:string, values:string)_ | PodAnnotations to add to the Pods metadata. |
 | `rootPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | RootPasswordSecretKeyRef is a reference to a Secret key containing the root password. |
 | `rootEmptyPassword` _boolean_ | RootEmptyPassword indicates if the root password should be empty. |
 | `database` _string_ | Database is the database to be created on bootstrap. |
@@ -553,7 +555,6 @@ _Appears in:_
 | `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret. |
 | `myCnf` _string_ | MyCnf allows to specify the my.cnf file mounted by Mariadb. |
 | `myCnfConfigMapKeyRef` _[ConfigMapKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core)_ | MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap. If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field. |
-| `podAnnotations` _object (keys:string, values:string)_ | PodAnnotations to add to the Pods metadata. |
 | `bootstrapFrom` _[RestoreSource](#restoresource)_ | BootstrapFrom defines a source to bootstrap from. |
 | `metrics` _[Metrics](#metrics)_ | Metrics configures metrics and how to scrape them. |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. |
@@ -570,7 +571,6 @@ _Appears in:_
 | `primaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | PrimaryConnection defines templates to configure the primary Connection object. |
 | `secondaryService` _[ServiceTemplate](#servicetemplate)_ | SecondaryService defines templates to configure the secondary Service object. |
 | `secondaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | SecondaryConnection defines templates to configure the secondary Connection object. |
-| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
 
 
 #### MaxScale
@@ -759,6 +759,7 @@ _Appears in:_
 | `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |
 | `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
 | `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
@@ -841,6 +842,7 @@ _Appears in:_
 | `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |
 | `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
 | `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
