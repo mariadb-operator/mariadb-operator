@@ -153,6 +153,26 @@ webhooks:
           - mariadbs
     sideEffects: None
   - admissionReviewVersions:
+    - v1
+    clientConfig:
+      service:
+        name: {{ $fullName }}-webhook
+        namespace: {{ .Release.Namespace }}
+        path: /validate-mariadb-mmontes-io-v1alpha1-maxscale
+    failurePolicy: Fail
+    name: vmaxscale.kb.io
+    rules:
+    - apiGroups:
+      - mariadb.mmontes.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - maxscales
+    sideEffects: None
+  - admissionReviewVersions:
       - v1
     clientConfig:
       service:
