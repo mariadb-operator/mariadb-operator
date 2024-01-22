@@ -6,10 +6,12 @@ import (
 	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"k8s.io/utils/ptr"
 )
 
 type tplOpts struct {
 	Threads               string
+	PersistRuntimeChanges bool
 	LoadPersistentConfigs bool
 	AdminHost             string
 	AdminPort             int32
@@ -18,17 +20,20 @@ type tplOpts struct {
 	Params                map[string]string
 }
 
-var existingConfigKeys = map[string]bool{
-	"threads":                true,
-	"load_persisted_configs": true,
-	"admin_host":             true,
-	"admin_gui":              true,
-	"admin_secure_gui":       true,
+var existingConfigKeys = map[string]struct{}{
+	"threads":                 {},
+	"persist_runtime_changes": {},
+	"load_persisted_configs":  {},
+	"admin_host":              {},
+	"admin_port":              {},
+	"admin_gui":               {},
+	"admin_secure_gui":        {},
 }
 
-func Config(maxscale *mariadbv1alpha1.MaxScale) ([]byte, error) {
-	tpl := createTpl(maxscale.ConfigSecretKeyRef().Key, `[maxscale]
+func Config(mxs *mariadbv1alpha1.MaxScale) ([]byte, error) {
+	tpl := createTpl(mxs.ConfigSecretKeyRef().Key, `[maxscale]
 threads={{ .Threads }}
+persist_runtime_changes={{ .PersistRuntimeChanges }}
 load_persisted_configs={{ .LoadPersistentConfigs }}
 admin_host={{ .AdminHost }}
 admin_port={{ .AdminPort }}
@@ -36,16 +41,17 @@ admin_gui={{ .AdminGui }}
 admin_secure_gui={{ .AdminSecureGui }}
 {{ range $key,$value := .Params }}
 {{- $key }}={{ $value }}
-{{- end }}`)
+{{ end }}`)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, tplOpts{
-		Threads:               configValueOrDefault("threads", maxscale.Spec.Config.Params, "auto"),
+		Threads:               configValueOrDefault("threads", mxs.Spec.Config.Params, "auto"),
+		PersistRuntimeChanges: true,
 		LoadPersistentConfigs: true,
-		AdminHost:             configValueOrDefault("admin_host", maxscale.Spec.Config.Params, "0.0.0.0"),
-		AdminPort:             maxscale.Spec.Admin.Port,
-		AdminGui:              *maxscale.Spec.Admin.GuiEnabled,
+		AdminHost:             configValueOrDefault("admin_host", mxs.Spec.Config.Params, "0.0.0.0"),
+		AdminPort:             mxs.Spec.Admin.Port,
+		AdminGui:              ptr.Deref(mxs.Spec.Admin.GuiEnabled, true),
 		AdminSecureGui:        false,
-		Params:                filterExistingConfig(maxscale.Spec.Config.Params),
+		Params:                filterExistingConfig(mxs.Spec.Config.Params),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error rendering MaxScale config: %v", err)
@@ -61,9 +67,9 @@ func configValueOrDefault[T any](key string, params map[string]string, defaultVa
 }
 
 func filterExistingConfig(params map[string]string) map[string]string {
-	config := make(map[string]string, 0)
+	config := make(map[string]string)
 	for k, v := range params {
-		if !existingConfigKeys[k] {
+		if _, ok := existingConfigKeys[k]; !ok {
 			config[k] = v
 		}
 	}
