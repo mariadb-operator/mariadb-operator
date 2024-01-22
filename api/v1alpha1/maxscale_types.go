@@ -408,15 +408,15 @@ type MaxScaleSpec struct {
 	// Admin configures the admin REST API and GUI.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Admin MaxScaleAdmin `json:"admin,omitempty" webhook:"inmutable"`
+	Admin MaxScaleAdmin `json:"admin,omitempty"`
 	// Config defines the MaxScale configuration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Config MaxScaleConfig `json:"config,omitempty" webhook:"inmutable"`
+	Config MaxScaleConfig `json:"config,omitempty"`
 	// Auth defines the credentials required for MaxScale to connect to MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Auth MaxScaleAuth `json:"auth,omitempty" webhook:"inmutable"`
+	Auth MaxScaleAuth `json:"auth,omitempty"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}

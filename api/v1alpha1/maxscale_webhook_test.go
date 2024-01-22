@@ -374,7 +374,7 @@ var _ = Describe("MaxScale webhook", func() {
 				func(mxs *MaxScale) {
 					mxs.Spec.Admin.Port = 9090
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating Config",
@@ -383,14 +383,14 @@ var _ = Describe("MaxScale webhook", func() {
 						"foo": "bar",
 					}
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating Auth",
 				func(mxs *MaxScale) {
 					mxs.Spec.Auth.AdminUsername = "foo"
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating Replicas",
