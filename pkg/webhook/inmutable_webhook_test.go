@@ -194,6 +194,36 @@ func TestInmutableWebhook(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "inmutable nested slice adding elements",
+			old: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
+						{
+							Name:   "foo",
+							Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
+						},
+					},
+				},
+			},
+			new: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
+						{
+							Name:   "foo",
+							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+						},
+						{
+							Name:   "bar",
+							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "mutable nested struct in slice",
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,

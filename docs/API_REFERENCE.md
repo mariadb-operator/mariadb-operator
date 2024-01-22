@@ -1016,11 +1016,11 @@ _Appears in:_
 | `bucket` _string_ | Bucket is the name Name of the bucket to store backups. |
 | `endpoint` _string_ | Endpoint is the S3 API endpoint without scheme. |
 | `region` _string_ | Region is the S3 region name to use. |
+| `prefix` _string_ | Prefix allows backups to be placed under a specific prefix in the bucket. |
 | `accessKeyIdSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id. |
 | `secretAccessKeySecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key. |
 | `sessionTokenSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token. |
 | `tls` _[TLS](#tls)_ | TLS provides the configuration required to establish TLS connections with S3. |
-| `prefix` _string_ | Prefix allows backups to be placed under a specific prefix in the bucket. |
 
 
 #### SQLTemplate
