@@ -13,8 +13,6 @@ const (
 
 	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady     string = "StatefulSetReady"
-	ConditionReasonDeploymentNotReady   string = "DeploymentNotReady"
-	ConditionReasonDeploymentReady      string = "DeploymentReady"
 	ConditionReasonRestoreBackup        string = "RestoreBackup"
 	ConditionReasonConfigureReplication string = "ConfigureReplication"
 	ConditionReasonSwitchPrimary        string = "SwitchPrimary"
