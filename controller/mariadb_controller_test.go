@@ -24,7 +24,7 @@ var _ = Describe("MariaDB controller", func() {
 		It("Should default", func() {
 			By("Creating MariaDB")
 			testDefaultKey := types.NamespacedName{
-				Name:      "test-default",
+				Name:      "test-mariadb-default",
 				Namespace: testNamespace,
 			}
 			testDefaultMariaDb := mariadbv1alpha1.MariaDB{
