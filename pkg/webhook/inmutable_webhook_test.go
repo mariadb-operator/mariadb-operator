@@ -1,12 +1,14 @@
 package webhook_test
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -445,6 +447,144 @@ func TestInmutableInitWebhook(t *testing.T) {
 			}
 			if !tt.wantErr && err != nil {
 				t.Errorf("expect error to not have occurred, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestInmutableWebhookError(t *testing.T) {
+	inmutableWebhook := webhook.NewInmutableWebhook(
+		webhook.WithTagName("webhook"),
+	)
+	objectMeta := metav1.ObjectMeta{
+		Name: "test",
+	}
+
+	tests := []struct {
+		name       string
+		old        client.Object
+		new        client.Object
+		wantFields []string
+	}{
+		{
+			name: "root field",
+			old: &mariadbv1alpha1.Restore{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+				},
+			},
+			new: &mariadbv1alpha1.Restore{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.RestoreSpec{
+					RestartPolicy: corev1.RestartPolicyAlways,
+				},
+			},
+			wantFields: []string{
+				"spec.restartPolicy",
+			},
+		},
+		{
+			name: "nested struct",
+			old: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Monitor: mariadbv1alpha1.MaxScaleMonitor{
+						Module: mariadbv1alpha1.MonitorModuleMariadb,
+					},
+				},
+			},
+			new: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Monitor: mariadbv1alpha1.MaxScaleMonitor{
+						Module: mariadbv1alpha1.MonitorModuleGalera,
+					},
+				},
+			},
+			wantFields: []string{
+				"spec.monitor.module",
+			},
+		},
+		{
+			name: "nested slice",
+			old: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
+						{
+							Name:   "foo",
+							Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
+						},
+					},
+				},
+			},
+			new: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
+						{
+							Name:   "foo",
+							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+						},
+					},
+				},
+			},
+			wantFields: []string{
+				"spec.services.router",
+			},
+		},
+		{
+			name: "nested struct in slice",
+			old: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
+						{
+							Name: "foo",
+							Listener: mariadbv1alpha1.MaxScaleListener{
+								Port: 1234,
+							},
+						},
+					},
+				},
+			},
+			new: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objectMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
+						{
+							Name: "foo",
+							Listener: mariadbv1alpha1.MaxScaleListener{
+								Port: 5678,
+							},
+						},
+					},
+				},
+			},
+			wantFields: []string{
+				"spec.services.listener.port",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := inmutableWebhook.ValidateUpdate(tt.new, tt.old)
+			if err == nil {
+				t.Error("expect error to have occurred, got nil")
+			}
+			apiErr, ok := err.(*apierrors.StatusError)
+			if !ok {
+				t.Errorf("unable to cast error to API error: %v", err)
+			}
+			fields := make([]string, len(apiErr.ErrStatus.Details.Causes))
+			for i, c := range apiErr.ErrStatus.Details.Causes {
+				fields[i] = c.Field
+			}
+
+			if !reflect.DeepEqual(tt.wantFields, fields) {
+				t.Errorf("expect error to be: '%s', got: %v", tt.wantFields, fields)
 			}
 		})
 	}

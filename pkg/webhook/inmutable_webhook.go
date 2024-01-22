@@ -171,10 +171,7 @@ func isValidStruct(val reflect.Value) bool {
 	if isNilOrZero(val) {
 		return false
 	}
-	if val.Kind() == reflect.Ptr {
-		return val.Elem().Kind() == reflect.Struct
-	}
-	return val.Kind() == reflect.Struct
+	return reflect.Indirect(val).Kind() == reflect.Struct
 }
 
 func inmutableFieldError(structField reflect.StructField, value interface{}, pathElements ...string) *field.Error {
