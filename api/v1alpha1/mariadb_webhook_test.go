@@ -578,8 +578,8 @@ var _ = Describe("MariaDB webhook", func() {
 		BeforeAll(func() {
 			mariadb := MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mariadb-update-webhook",
-					Namespace: testNamespace,
+					Name:      key.Name,
+					Namespace: key.Namespace,
 				},
 				Spec: MariaDBSpec{
 					Image:           "mariadb:11.3.3",
