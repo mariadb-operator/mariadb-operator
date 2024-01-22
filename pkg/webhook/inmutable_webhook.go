@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"unicode"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -78,7 +79,7 @@ func (w *InmutableWebhook) validateInmutable(structField reflect.StructField, va
 	structVal := reflect.Indirect(val)
 	structOldVal := reflect.Indirect(oldVal)
 
-	for i := 0; i < structVal.NumField(); i++ {
+	for i := 0; i < structVal.NumField() && i < structOldVal.NumField(); i++ {
 		fieldStruct := structVal.Type().Field(i)
 		fieldVal := structVal.Field(i)
 		fieldOldVal := structOldVal.Field(i)
@@ -93,16 +94,17 @@ func (w *InmutableWebhook) validateInmutable(structField reflect.StructField, va
 			if nestedErrors != nil {
 				errBundle = append(errBundle, nestedErrors...)
 			}
-		} else if fieldVal.Kind() == reflect.Slice {
-			for j := 0; j < fieldVal.Len(); j++ {
+		}
+		if fieldVal.Kind() == reflect.Slice {
+			for j := 0; j < fieldVal.Len() && j < fieldOldVal.Len(); j++ {
 				sliceElement := fieldVal.Index(j)
-				sliceOldEelement := fieldOldVal.Index(j)
+				sliceOldElement := fieldOldVal.Index(j)
 
 				if isValidStruct(sliceElement) {
 					nestedErrors := w.validateInmutable(
 						fieldStruct,
 						sliceElement,
-						sliceOldEelement,
+						sliceOldElement,
 						appendField(fieldStruct, pathElements)...,
 					)
 					if nestedErrors != nil {
@@ -121,6 +123,10 @@ func (w *InmutableWebhook) validateInmutable(structField reflect.StructField, va
 
 func (w *InmutableWebhook) validateInmutableValue(structField reflect.StructField, val, oldVal reflect.Value,
 	pathElements ...string) *field.Error {
+	// calling .Interface() on an unexported field results in a panic
+	if isUnexported(structField.Name) {
+		return nil
+	}
 	tag := structField.Tag.Get(w.tagName)
 	fieldIface := val.Interface()
 	oldFieldIface := oldVal.Interface()
@@ -208,4 +214,11 @@ func appendField(structField reflect.StructField, pathElements []string) []strin
 		return pathElements
 	}
 	return append(pathElements, field)
+}
+
+func isUnexported(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	return unicode.IsLower(rune(s[0]))
 }
