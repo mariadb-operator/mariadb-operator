@@ -1500,7 +1500,8 @@ spec:
         displayName: Galera Recovery
         path: galeraRecovery
       version: v1alpha1
-    - description: MaxScale is the Schema for the maxscales API
+    - description: MaxScale is the Schema for the maxscales API. It is used to define
+        MaxScale clusters.
       displayName: Max Scale
       kind: MaxScale
       name: maxscales.mariadb.mmontes.io
@@ -1523,6 +1524,9 @@ spec:
       - kind: Service
         name: ""
         version: v1
+      - kind: ServiceAccount
+        name: ""
+        version: v1
       - kind: StatefulSet
         name: ""
         version: v1
@@ -1536,7 +1540,7 @@ spec:
       - description: GuiEnabled indicates whether the admin GUI should be enabled.
         displayName: Gui Enabled
         path: admin.guiEnabled
-      - description: Port where the admin REST API will be exposed.
+      - description: Port where the admin REST API and GUI will be exposed.
         displayName: Port
         path: admin.port
         x-descriptors:
@@ -1552,11 +1556,11 @@ spec:
         displayName: Auth
         path: auth
       - description: AdminPasswordSecretKeyRef is Secret key reference to the admin
-          password to call the REST API. It is defaulted if not provided.
+          password to call the admib REST API. It is defaulted if not provided.
         displayName: Admin Password Secret Key Ref
         path: auth.adminPasswordSecretKeyRef
-      - description: AdminUsername is an admin username to call the REST API. It is
-          defaulted if not provided.
+      - description: AdminUsername is an admin username to call the admin REST API.
+          It is defaulted if not provided.
         displayName: Admin Username
         path: auth.adminUsername
       - description: ClientPasswordSecretKeyRef is Secret key reference to the password
@@ -1568,8 +1572,8 @@ spec:
         displayName: Client Username
         path: auth.clientUsername
       - description: DeleteDefaultAdmin determines whether the default admin user
-          should be deleted after the initial configuration. It is defaulted to true
-          if not provided.
+          should be deleted after the initial configuration. If not provided, it defaults
+          to true.
         displayName: Delete Default Admin
         path: auth.deleteDefaultAdmin
       - description: MonitorPasswordSecretKeyRef is Secret key reference to the password
@@ -1589,6 +1593,15 @@ spec:
           server. It is defaulted if not provided.
         displayName: Server Username
         path: auth.serverUsername
+      - description: SyncPasswordSecretKeyRef is Secret key reference to the password
+          used by MaxScale config to connect to MariaDB server. It is defaulted when
+          HA is enabled.
+        displayName: Sync Password Secret Key Ref
+        path: auth.syncPasswordSecretKeyRef
+      - description: MonitoSyncUsernamerUsername is the user used by MaxScale config
+          sync to connect to MariaDB server. It is defaulted when HA is enabled.
+        displayName: Sync Username
+        path: auth.syncUsername
       - description: Command to be used in the Container.
         displayName: Command
         path: command
@@ -1599,8 +1612,25 @@ spec:
           static configuration file.
         displayName: Params
         path: config.params
+      - description: Sync defines how to replicate configuration across MaxScale replicas.
+          It is defaulted when HA is enabled.
+        displayName: Sync
+        path: config.sync
+      - description: Database is the MariaDB logical database where the 'maxscale_config'
+          table will be created in order to persist and synchronize config changes.
+          If not provided, it defaults to 'mysql'.
+        displayName: Database
+        path: config.sync.database
+      - description: Interval defines the config synchronization interval. It is defaulted
+          if not provided.
+        displayName: Interval
+        path: config.sync.interval
+      - description: Interval defines the config synchronization timeout. It is defaulted
+          if not provided.
+        displayName: Timeout
+        path: config.sync.timeout
       - description: VolumeClaimTemplate provides a template to define the PVCs for
-          storing MaxScale runtime configuration files.
+          storing MaxScale runtime configuration files. It is defaulted if not provided.
         displayName: Volume Claim Template
         path: config.volumeClaimTemplate
       - description: Annotations to be used in the PVC.
@@ -1715,23 +1745,28 @@ spec:
         displayName: Monitor
         path: monitor
       - description: CooperativeMonitoring enables coordination between multiple MaxScale
-          instances running monitors. It is defaulted when multiple replicas are configured.
+          instances running monitors. It is defaulted when HA is enabled.
         displayName: Cooperative Monitoring
         path: monitor.cooperativeMonitoring
-      - description: Interval used to monitor MariaDB servers. If not provided, it
-          defaults to 2s.
+      - description: Interval used to monitor MariaDB servers. It is defaulted if
+          not provided.
         displayName: Interval
         path: monitor.interval
       - description: Module is the module to use to monitor MariaDB servers.
         displayName: Module
         path: monitor.module
       - description: Name is the identifier of the monitor. It is defaulted if not
-          provided
+          provided.
         displayName: Name
         path: monitor.name
       - description: Params defines extra parameters to pass to the monitor.
         displayName: Params
         path: monitor.params
+      - description: Suspend indicates whether the current resource should be suspended
+          or not. Feature flag --feature-maxscale-suspend is required in the controller
+          to enable this.
+        displayName: Suspend
+        path: monitor.suspend
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: nodeSelector
@@ -1778,6 +1813,9 @@ spec:
       - description: Address is the network address of the MariaDB server.
         displayName: Address
         path: servers[0].address
+      - description: Maintenance indicates whether the server is in maintenance mode.
+        displayName: Maintenance
+        path: servers[0].maintenance
       - description: Name is the identifier of the MariaDB server.
         displayName: Name
         path: servers[0].name
@@ -1794,6 +1832,10 @@ spec:
           this MariaDB server. If not provided, it defaults to MariaDBBackend.
         displayName: Protocol
         path: servers[0].protocol
+      - description: ServiceAccountName is the name of the ServiceAccount to be used
+          by the Pods.
+        displayName: Service Account Name
+        path: serviceAccountName
       - description: Services define how the traffic is forwarded to the MariaDB servers.
         displayName: Services
         path: services
@@ -1817,6 +1859,11 @@ spec:
           the client. If not provided, it defaults to MariaDBProtocol.
         displayName: Protocol
         path: services[0].listener.protocol
+      - description: Suspend indicates whether the current resource should be suspended
+          or not. Feature flag --feature-maxscale-suspend is required in the controller
+          to enable this.
+        displayName: Suspend
+        path: services[0].listener.suspend
       - description: Name is the identifier of the MaxScale service.
         displayName: Name
         path: services[0].name
@@ -1826,6 +1873,11 @@ spec:
       - description: Router is the type of router to use.
         displayName: Router
         path: services[0].router
+      - description: Suspend indicates whether the current resource should be suspended
+          or not. Feature flag --feature-maxscale-suspend is required in the controller
+          to enable this.
+        displayName: Suspend
+        path: services[0].suspend
       - description: SidecarContainers to be used in the Pod.
         displayName: Sidecar Containers
         path: sidecarContainers
@@ -1890,12 +1942,12 @@ spec:
         displayName: Volumes
         path: volumes
       statusDescriptors:
-      - description: Conditions for the Mariadb object.
+      - description: Conditions for the MaxScale object.
         displayName: Conditions
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
-      - description: PrimaryServer is the primary server.
+      - description: PrimaryServer is the primary server reported by Maxscale.
         displayName: Primary Server
         path: primaryServer
         x-descriptors:
@@ -1917,6 +1969,9 @@ spec:
       - description: Affinity to be used in the Restore Pod.
         displayName: Affinity
         path: affinity
+      - description: Args to be used in the Restore container.
+        displayName: Args
+        path: args
       - description: BackoffLimit defines the maximum number of attempts to successfully
           perform a Backup.
         displayName: Backoff Limit

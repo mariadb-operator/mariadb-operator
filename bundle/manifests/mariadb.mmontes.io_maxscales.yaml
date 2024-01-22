@@ -32,7 +32,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MaxScale is the Schema for the maxscales API
+        description: MaxScale is the Schema for the maxscales API. It is used to define
+          MaxScale clusters.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -47,7 +48,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MaxScaleSpec defines the desired state of MaxScale
+            description: MaxScaleSpec defines the desired state of MaxScale.
             properties:
               admin:
                 description: Admin configures the admin REST API and GUI.
@@ -57,7 +58,7 @@ spec:
                       be enabled.
                     type: boolean
                   port:
-                    description: Port where the admin REST API will be exposed.
+                    description: Port where the admin REST API and GUI will be exposed.
                     format: int32
                     type: integer
                 type: object
@@ -900,7 +901,7 @@ spec:
                 properties:
                   adminPasswordSecretKeyRef:
                     description: AdminPasswordSecretKeyRef is Secret key reference
-                      to the admin password to call the REST API. It is defaulted
+                      to the admin password to call the admib REST API. It is defaulted
                       if not provided.
                     properties:
                       key:
@@ -920,8 +921,8 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   adminUsername:
-                    description: AdminUsername is an admin username to call the REST
-                      API. It is defaulted if not provided.
+                    description: AdminUsername is an admin username to call the admin
+                      REST API. It is defaulted if not provided.
                     type: string
                   clientPasswordSecretKeyRef:
                     description: ClientPasswordSecretKeyRef is Secret key reference
@@ -951,7 +952,7 @@ spec:
                   deleteDefaultAdmin:
                     description: DeleteDefaultAdmin determines whether the default
                       admin user should be deleted after the initial configuration.
-                      It is defaulted to true if not provided.
+                      If not provided, it defaults to true.
                     type: boolean
                   monitorPasswordSecretKeyRef:
                     description: MonitorPasswordSecretKeyRef is Secret key reference
@@ -1003,6 +1004,32 @@ spec:
                     description: ServerUsername is the user used by MaxScale to connect
                       to MariaDB server. It is defaulted if not provided.
                     type: string
+                  syncPasswordSecretKeyRef:
+                    description: SyncPasswordSecretKeyRef is Secret key reference
+                      to the password used by MaxScale config to connect to MariaDB
+                      server. It is defaulted when HA is enabled.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  syncUsername:
+                    description: MonitoSyncUsernamerUsername is the user used by MaxScale
+                      config sync to connect to MariaDB server. It is defaulted when
+                      HA is enabled.
+                    type: string
                 type: object
               command:
                 description: Command to be used in the Container.
@@ -1018,9 +1045,29 @@ spec:
                     description: Params is a key value pair of parameters to be used
                       in the MaxScale static configuration file.
                     type: object
+                  sync:
+                    description: Sync defines how to replicate configuration across
+                      MaxScale replicas. It is defaulted when HA is enabled.
+                    properties:
+                      database:
+                        description: Database is the MariaDB logical database where
+                          the 'maxscale_config' table will be created in order to
+                          persist and synchronize config changes. If not provided,
+                          it defaults to 'mysql'.
+                        type: string
+                      interval:
+                        description: Interval defines the config synchronization interval.
+                          It is defaulted if not provided.
+                        type: string
+                      timeout:
+                        description: Interval defines the config synchronization timeout.
+                          It is defaulted if not provided.
+                        type: string
+                    type: object
                   volumeClaimTemplate:
                     description: VolumeClaimTemplate provides a template to define
-                      the PVCs for storing MaxScale runtime configuration files.
+                      the PVCs for storing MaxScale runtime configuration files. It
+                      is defaulted if not provided.
                     properties:
                       accessModes:
                         description: 'accessModes contains the desired access modes
@@ -1237,8 +1284,6 @@ spec:
                           backing this claim.
                         type: string
                     type: object
-                required:
-                - volumeClaimTemplate
                 type: object
               env:
                 description: Env represents the environment variables to be injected
@@ -2351,14 +2396,14 @@ spec:
                   cooperativeMonitoring:
                     description: CooperativeMonitoring enables coordination between
                       multiple MaxScale instances running monitors. It is defaulted
-                      when multiple replicas are configured.
+                      when HA is enabled.
                     enum:
                     - majority_of_all
                     - majority_of_running
                     type: string
                   interval:
-                    description: Interval used to monitor MariaDB servers. If not
-                      provided, it defaults to 2s.
+                    description: Interval used to monitor MariaDB servers. It is defaulted
+                      if not provided.
                     type: string
                   module:
                     description: Module is the module to use to monitor MariaDB servers.
@@ -2368,13 +2413,18 @@ spec:
                     type: string
                   name:
                     description: Name is the identifier of the monitor. It is defaulted
-                      if not provided
+                      if not provided.
                     type: string
                   params:
                     additionalProperties:
                       type: string
                     description: Params defines extra parameters to pass to the monitor.
                     type: object
+                  suspend:
+                    description: Suspend indicates whether the current resource should
+                      be suspended or not. Feature flag --feature-maxscale-suspend
+                      is required in the controller to enable this.
+                    type: boolean
                 required:
                 - module
                 type: object
@@ -2937,6 +2987,10 @@ spec:
                     address:
                       description: Address is the network address of the MariaDB server.
                       type: string
+                    maintenance:
+                      description: Maintenance indicates whether the server is in
+                        maintenance mode.
+                      type: boolean
                     name:
                       description: Name is the identifier of the MariaDB server.
                       type: string
@@ -2961,6 +3015,10 @@ spec:
                   - name
                   type: object
                 type: array
+              serviceAccountName:
+                description: ServiceAccountName is the name of the ServiceAccount
+                  to be used by the Pods.
+                type: string
               services:
                 description: Services define how the traffic is forwarded to the MariaDB
                   servers.
@@ -2992,6 +3050,11 @@ spec:
                             communicating with the client. If not provided, it defaults
                             to MariaDBProtocol.
                           type: string
+                        suspend:
+                          description: Suspend indicates whether the current resource
+                            should be suspended or not. Feature flag --feature-maxscale-suspend
+                            is required in the controller to enable this.
+                          type: boolean
                       type: object
                     name:
                       description: Name is the identifier of the MaxScale service.
@@ -3008,6 +3071,11 @@ spec:
                       - readwritesplit
                       - readconnroute
                       type: string
+                    suspend:
+                      description: Suspend indicates whether the current resource
+                        should be suspended or not. Feature flag --feature-maxscale-suspend
+                        is required in the controller to enable this.
+                      type: boolean
                   required:
                   - listener
                   - name
@@ -5619,7 +5687,7 @@ spec:
             description: MaxScaleStatus defines the observed state of MaxScale
             properties:
               conditions:
-                description: Conditions for the Mariadb object.
+                description: Conditions for the MaxScale object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -5688,7 +5756,7 @@ spec:
                   type: object
                 type: array
               primaryServer:
-                description: PrimaryServer is the primary server.
+                description: PrimaryServer is the primary server reported by Maxscale.
                 type: string
               replicas:
                 description: Replicas indicates the number of current instances.
