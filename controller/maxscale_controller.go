@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -86,9 +85,6 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err := r.Get(ctx, req.NamespacedName, &maxscale); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if err := r.patchStatus(ctx, &maxscale, r.patcher(ctx, &maxscale)); err != nil && !apierrors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
 
 	podClient, err := r.clientWitHealthyPod(ctx, &maxscale)
 	if err != nil {
@@ -99,6 +95,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "Spec",
 			reconcile: r.setSpecDefaults,
+		},
+		{
+			name:      "Status",
+			reconcile: r.updateStatus,
 		},
 		{
 			name:      "Secret",
@@ -201,6 +201,82 @@ func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, req *requestMa
 	return ctrl.Result{}, r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
 		mxs.SetDefaults(r.Environment)
 	})
+}
+
+func (r *MaxScaleReconciler) updateStatus(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
+		return ctrl.Result{}, err
+	}
+	srvStatus, err := r.getServerStatus(ctx, req.podClient)
+	if err != nil {
+		log.FromContext(ctx).V(1).Info("error getting server status", "err", err)
+	}
+
+	if req.mxs.Status.PrimaryServer != nil && *req.mxs.Status.PrimaryServer != "" && srvStatus.primary != "" &&
+		*req.mxs.Status.PrimaryServer != srvStatus.primary {
+		fromServer := *req.mxs.Status.PrimaryServer
+		toServer := srvStatus.primary
+		log.FromContext(ctx).Info(
+			"MaxScale primary server changed",
+			"from-server", fromServer,
+			"to-server", toServer,
+		)
+		r.Recorder.Event(
+			req.mxs,
+			corev1.EventTypeNormal,
+			mariadbv1alpha1.ReasonMaxScalePrimaryServerChanged,
+			fmt.Sprintf("MaxScale primary server changed from '%s' to '%s'", fromServer, toServer),
+		)
+	}
+
+	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+		mss.Replicas = sts.Status.ReadyReplicas
+		condition.SetReadyWithStatefulSet(mss, &sts)
+
+		if srvStatus.primary != "" {
+			mss.PrimaryServer = &srvStatus.primary
+		}
+		if len(srvStatus.servers) > 0 {
+			mss.Servers = srvStatus.servers
+		}
+		condition.SetReadyWithMaxScaleStatus(mss, mss)
+		return nil
+	})
+}
+
+type serverStatus struct {
+	primary string
+	servers []mariadbv1alpha1.MaxScaleServerStatus
+}
+
+func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, client *mxsclient.Client) (serverStatus, error) {
+	if client == nil {
+		return serverStatus{}, nil
+	}
+	servers, err := client.Server.List(ctx)
+	if err != nil {
+		return serverStatus{}, fmt.Errorf("error getting servers: %v", err)
+	}
+	serverStatuses := make([]mariadbv1alpha1.MaxScaleServerStatus, len(servers))
+	for i, srv := range servers {
+		serverStatuses[i] = mariadbv1alpha1.MaxScaleServerStatus{
+			Name:  srv.ID,
+			State: srv.Attributes.State,
+		}
+	}
+	var primary string
+	for _, srv := range servers {
+		if srv.Attributes.IsMaster() {
+			primary = srv.ID
+			break
+		}
+	}
+
+	return serverStatus{
+		primary: primary,
+		servers: serverStatuses,
+	}, nil
 }
 
 func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -795,46 +871,6 @@ func (r *MaxScaleReconciler) forEachPod(ctx context.Context, mxs *mariadbv1alpha
 		}
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *MaxScaleReconciler) patcher(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) func(*mariadbv1alpha1.MaxScaleStatus) error {
-	return func(mss *mariadbv1alpha1.MaxScaleStatus) error {
-		var sts appsv1.StatefulSet
-		if err := r.Get(ctx, client.ObjectKeyFromObject(maxscale), &sts); err != nil {
-			return err
-		}
-		maxscale.Status.Replicas = sts.Status.ReadyReplicas
-
-		client, err := r.client(ctx, maxscale)
-		if err != nil {
-			return fmt.Errorf("error getting MaxScale client: %v", err)
-		}
-		masterServer, err := client.Server.GetMaster(ctx)
-		if err != nil && !errors.Is(err, mxsclient.ErrMasterServerNotFound) {
-			log.FromContext(ctx).V(1).Info("error getting primary server", "err", err)
-		}
-		if err == nil && masterServer != "" {
-			if maxscale.Status.PrimaryServer != nil && *maxscale.Status.PrimaryServer != masterServer {
-				fromServer := *maxscale.Status.PrimaryServer
-				toServer := masterServer
-				log.FromContext(ctx).Info(
-					"MaxScale primary server changed",
-					"from-server", fromServer,
-					"to-server", toServer,
-				)
-				r.Recorder.Event(
-					maxscale,
-					corev1.EventTypeNormal,
-					mariadbv1alpha1.ReasonMaxScalePrimaryServerChanged,
-					fmt.Sprintf("MaxScale primary server changed from '%s' to '%s'", fromServer, toServer),
-				)
-			}
-			maxscale.Status.PrimaryServer = &masterServer
-		}
-
-		condition.SetReadyWithStatefulSet(&maxscale.Status, &sts)
-		return nil
-	}
 }
 
 func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,

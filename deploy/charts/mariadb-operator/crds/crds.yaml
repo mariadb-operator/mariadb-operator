@@ -20098,12 +20098,27 @@ spec:
                   type: object
                 type: array
               primaryServer:
-                description: PrimaryServer is the primary server reported by Maxscale.
+                description: PrimaryServer is the primary server in the MaxScale API.
                 type: string
               replicas:
                 description: Replicas indicates the number of current instances.
                 format: int32
                 type: integer
+              servers:
+                description: Servers is the state of the servers in the MaxScale API.
+                items:
+                  description: MaxScaleAPIStatus is the state of the servers in the
+                    MaxScale API.
+                  properties:
+                    name:
+                      type: string
+                    state:
+                      type: string
+                  required:
+                  - name
+                  - state
+                  type: object
+                type: array
             type: object
         type: object
     served: true

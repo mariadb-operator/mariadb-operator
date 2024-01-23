@@ -413,7 +413,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-01-22T18:45:45Z"
+    createdAt: "2024-01-23T10:49:24Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -1945,6 +1945,11 @@ spec:
             displayName: Volumes
             path: volumes
         statusDescriptors:
+          - description: API is the state of the resources in the MaxScale API.
+            displayName: API
+            path: api
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:Pod
           - description: Conditions for the MaxScale object.
             displayName: Conditions
             path: conditions
@@ -1955,6 +1960,11 @@ spec:
             path: primaryServer
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes:Pod
+          - description: Replicas indicates the number of current instances.
+            displayName: Replicas
+            path: replicas
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:podCount
         version: v1alpha1
       - description: Restore is the Schema for the restores API. It is used to define restore jobs and its restoration source.
         displayName: Restore

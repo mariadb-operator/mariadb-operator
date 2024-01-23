@@ -20,6 +20,9 @@ const (
 	ConditionReasonGaleraNotReady       string = "GaleraNotReady"
 	ConditionReasonGaleraConfigured     string = "GaleraConfigured"
 
+	ConditionReasonMaxScaleNotReady string = "MaxScaleNotReady"
+	ConditionReasonMaxScaleReady    string = "MaxScaleReady"
+
 	ConditionReasonRestoreNotComplete string = "RestoreNotComplete"
 	ConditionReasonRestoreComplete    string = "RestoreComplete"
 

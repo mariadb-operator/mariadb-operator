@@ -1942,6 +1942,11 @@ spec:
         displayName: Volumes
         path: volumes
       statusDescriptors:
+      - description: API is the state of the resources in the MaxScale API.
+        displayName: API
+        path: api
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Pod
       - description: Conditions for the MaxScale object.
         displayName: Conditions
         path: conditions
@@ -1952,6 +1957,11 @@ spec:
         path: primaryServer
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Pod
+      - description: Replicas indicates the number of current instances.
+        displayName: Replicas
+        path: replicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
       version: v1alpha1
     - description: Restore is the Schema for the restores API. It is used to define
         restore jobs and its restoration source.

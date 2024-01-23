@@ -313,10 +313,6 @@ func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs 
 	return mxsclient.NewClientWithDefaultCredentials(mxs.PodAPIUrl(podIndex), opts...)
 }
 
-func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
-	return r.clientWithAPIUrl(ctx, mxs, mxs.APIUrl())
-}
-
 func (r *MaxScaleReconciler) clientWitHealthyPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
 	podIndex, err := health.HealthyMaxScalePod(ctx, r.Client, mxs)
 	if err != nil {

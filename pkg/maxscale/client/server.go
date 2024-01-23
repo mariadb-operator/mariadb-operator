@@ -51,6 +51,7 @@ type ServerAttributes struct {
 }
 
 func (s *ServerAttributes) IsMaster() bool {
+	// See: https://mariadb.com/kb/en/mariadb-maxscale-25-mariadb-maxscale-configuration-guide/#server
 	return strings.Contains(s.State, "Master")
 }
 
@@ -66,19 +67,6 @@ func NewServerClient(client *mdbhttp.Client) *ServerClient {
 			ObjectTypeServers,
 		),
 	}
-}
-
-func (s *ServerClient) GetMaster(ctx context.Context) (string, error) {
-	servers, err := s.List(ctx)
-	if err != nil {
-		return "", err
-	}
-	for _, srv := range servers {
-		if srv.Attributes.IsMaster() {
-			return srv.ID, nil
-		}
-	}
-	return "", ErrMasterServerNotFound
 }
 
 func (s *ServerClient) SetMaintenance(ctx context.Context, name string) error {

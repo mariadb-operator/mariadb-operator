@@ -5686,6 +5686,26 @@ spec:
           status:
             description: MaxScaleStatus defines the observed state of MaxScale
             properties:
+              api:
+                description: API is the state of the resources in the MaxScale API.
+                properties:
+                  servers:
+                    items:
+                      description: MaxScaleAPIStatus is the state of the servers in
+                        the MaxScale API.
+                      properties:
+                        name:
+                          type: string
+                        state:
+                          type: string
+                      required:
+                      - name
+                      - state
+                      type: object
+                    type: array
+                required:
+                - servers
+                type: object
               conditions:
                 description: Conditions for the MaxScale object.
                 items:
