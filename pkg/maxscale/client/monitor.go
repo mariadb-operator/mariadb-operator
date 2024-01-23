@@ -44,6 +44,7 @@ func (m MonitorParameters) MarshalJSON() ([]byte, error) {
 
 type MonitorAttributes struct {
 	Module     mariadbv1alpha1.MonitorModule `json:"module"`
+	State      string                        `json:"state,omitempty"`
 	Parameters MonitorParameters             `json:"parameters"`
 }
 

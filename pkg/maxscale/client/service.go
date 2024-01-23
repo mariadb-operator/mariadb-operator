@@ -41,6 +41,7 @@ func (s ServiceParameters) MarshalJSON() ([]byte, error) {
 
 type ServiceAttributes struct {
 	Router     mariadbv1alpha1.ServiceRouter `json:"router"`
+	State      string                        `json:"state,omitempty"`
 	Parameters ServiceParameters             `json:"parameters"`
 }
 

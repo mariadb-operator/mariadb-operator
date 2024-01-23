@@ -457,9 +457,15 @@ func (s *MaxScaleServerStatus) IsReady() bool {
 	return s.InState("Master") || s.InState("Slave")
 }
 
-// IsReady indicates whether the current server is in maintenance state.
+// InMaintenance indicates whether the current server is in maintenance state.
 func (s *MaxScaleServerStatus) InMaintenance() bool {
 	return s.InState("Maintenance")
+}
+
+// MaxScaleResourceStatus indicates whether the resource is in a given state.
+type MaxScaleResourceStatus struct {
+	Name  string `json:"name"`
+	State string `json:"state"`
 }
 
 // MaxScaleStatus defines the observed state of MaxScale
@@ -474,12 +480,24 @@ type MaxScaleStatus struct {
 	Replicas int32 `json:"replicas,omitempty"`
 	// PrimaryServer is the primary server in the MaxScale API.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes:Pod"}
+	// +operator-sdk:csv:customresourcedefinitions:type=status
 	PrimaryServer *string `json:"primaryServer,omitempty"`
 	// Servers is the state of the servers in the MaxScale API.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes:Pod"}
+	// +operator-sdk:csv:customresourcedefinitions:type=status
 	Servers []MaxScaleServerStatus `json:"servers"`
+	// Monitor is the state of the monitor in the MaxScale API.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Monitor *MaxScaleResourceStatus `json:"monitor"`
+	// Services is the state of the services in the MaxScale API.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Services []MaxScaleResourceStatus `json:"services"`
+	// Listeners is the state of the listeners in the MaxScale API.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Listeners []MaxScaleResourceStatus `json:"listeners"`
 }
 
 // SetCondition sets a status condition to MaxScale
