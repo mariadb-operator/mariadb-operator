@@ -446,10 +446,16 @@ type MaxScaleServerStatus struct {
 	State string `json:"state"`
 }
 
-// IsMaster indicates whether the current service accepts writes.
+// IsMaster indicates whether the current server is in Master state.
 func (s *MaxScaleServerStatus) IsMaster() bool {
 	// See: https://mariadb.com/kb/en/mariadb-maxscale-25-mariadb-maxscale-configuration-guide/#server
 	return strings.Contains(s.State, "Master")
+}
+
+// IsSlave indicates whether the current server is in Slave state.
+func (s *MaxScaleServerStatus) IsSlave() bool {
+	// See: https://mariadb.com/kb/en/mariadb-maxscale-25-mariadb-maxscale-configuration-guide/#server
+	return strings.Contains(s.State, "Slave")
 }
 
 // MaxScaleStatus defines the observed state of MaxScale
@@ -472,14 +478,14 @@ type MaxScaleStatus struct {
 	Servers []MaxScaleServerStatus `json:"servers"`
 }
 
-// HasServerInMasterState indicates whether at least one server is in Master state
-func (s *MaxScaleStatus) HasServerInMasterState() bool {
+// ServersReady indicates that all servers are in ready state
+func (s *MaxScaleStatus) ServersReady() bool {
 	for _, srv := range s.Servers {
-		if srv.IsMaster() {
-			return true
+		if !srv.IsMaster() && !srv.IsSlave() {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // SetCondition sets a status condition to MaxScale
