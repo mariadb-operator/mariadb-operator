@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
@@ -439,6 +440,18 @@ type MaxScaleSpec struct {
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
 }
 
+// MaxScaleAPIStatus is the state of the servers in the MaxScale API.
+type MaxScaleServerStatus struct {
+	Name  string `json:"name"`
+	State string `json:"state"`
+}
+
+// IsMaster indicates whether the current service accepts writes.
+func (s *MaxScaleServerStatus) IsMaster() bool {
+	// See: https://mariadb.com/kb/en/mariadb-maxscale-25-mariadb-maxscale-configuration-guide/#server
+	return strings.Contains(s.State, "Master")
+}
+
 // MaxScaleStatus defines the observed state of MaxScale
 type MaxScaleStatus struct {
 	// Conditions for the MaxScale object.
@@ -446,12 +459,27 @@ type MaxScaleStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// Replicas indicates the number of current instances.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	Replicas int32 `json:"replicas,omitempty"`
-	// PrimaryServer is the primary server reported by Maxscale.
+	// PrimaryServer is the primary server in the MaxScale API.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes:Pod"}
 	PrimaryServer *string `json:"primaryServer,omitempty"`
+	// Servers is the state of the servers in the MaxScale API.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes:Pod"}
+	Servers []MaxScaleServerStatus `json:"servers"`
+}
+
+// HasServerInMasterState indicates whether at least one server is in Master state
+func (s *MaxScaleStatus) HasServerInMasterState() bool {
+	for _, srv := range s.Servers {
+		if srv.IsMaster() {
+			return true
+		}
+	}
+	return false
 }
 
 // SetCondition sets a status condition to MaxScale
