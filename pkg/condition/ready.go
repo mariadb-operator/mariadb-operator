@@ -50,7 +50,7 @@ func SetReadyFailed(c Conditioner) {
 	SetReadyFailedWithMessage(c, "Failed")
 }
 
-func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
+func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) bool {
 	if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
 		c.SetCondition(metav1.Condition{
 			Type:    mariadbv1alpha1.ConditionTypeReady,
@@ -58,7 +58,7 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 			Reason:  mariadbv1alpha1.ConditionReasonStatefulSetNotReady,
 			Message: "Not ready",
 		})
-		return
+		return false
 	}
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReady,
@@ -66,6 +66,7 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 		Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
 		Message: "Running",
 	})
+	return false
 }
 
 func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStatus) {

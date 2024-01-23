@@ -232,15 +232,14 @@ func (r *MaxScaleReconciler) updateStatus(ctx context.Context, req *requestMaxSc
 
 	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
 		mss.Replicas = sts.Status.ReadyReplicas
-		condition.SetReadyWithStatefulSet(mss, &sts)
-
-		if srvStatus.primary != "" {
+		if srvStatus != nil {
 			mss.PrimaryServer = &srvStatus.primary
-		}
-		if len(srvStatus.servers) > 0 {
 			mss.Servers = srvStatus.servers
 		}
-		condition.SetReadyWithMaxScaleStatus(mss, mss)
+		ready := condition.SetReadyWithStatefulSet(mss, &sts)
+		if ready {
+			condition.SetReadyWithMaxScaleStatus(mss, mss)
+		}
 		return nil
 	})
 }
@@ -250,13 +249,13 @@ type serverStatus struct {
 	servers []mariadbv1alpha1.MaxScaleServerStatus
 }
 
-func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, client *mxsclient.Client) (serverStatus, error) {
+func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, client *mxsclient.Client) (*serverStatus, error) {
 	if client == nil {
-		return serverStatus{}, nil
+		return nil, nil
 	}
 	servers, err := client.Server.List(ctx)
 	if err != nil {
-		return serverStatus{}, fmt.Errorf("error getting servers: %v", err)
+		return nil, fmt.Errorf("error getting servers: %v", err)
 	}
 	serverStatuses := make([]mariadbv1alpha1.MaxScaleServerStatus, len(servers))
 	for i, srv := range servers {
@@ -273,7 +272,7 @@ func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, client *mxscli
 		}
 	}
 
-	return serverStatus{
+	return &serverStatus{
 		primary: primary,
 		servers: serverStatuses,
 	}, nil
