@@ -39,6 +39,7 @@ func (l ListenerParameters) MarshalJSON() ([]byte, error) {
 }
 
 type ListenerAttributes struct {
+	State      string             `json:"state,omitempty"`
 	Parameters ListenerParameters `json:"parameters"`
 }
 

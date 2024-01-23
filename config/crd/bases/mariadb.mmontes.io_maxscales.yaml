@@ -5756,6 +5756,33 @@ spec:
                   - type
                   type: object
                 type: array
+              listeners:
+                description: Listeners is the state of the listeners in the MaxScale
+                  API.
+                items:
+                  description: MaxScaleResourceStatus indicates whether the resource
+                    is in a given state.
+                  properties:
+                    name:
+                      type: string
+                    state:
+                      type: string
+                  required:
+                  - name
+                  - state
+                  type: object
+                type: array
+              monitor:
+                description: Monitor is the state of the monitor in the MaxScale API.
+                properties:
+                  name:
+                    type: string
+                  state:
+                    type: string
+                required:
+                - name
+                - state
+                type: object
               primaryServer:
                 description: PrimaryServer is the primary server in the MaxScale API.
                 type: string
@@ -5768,6 +5795,22 @@ spec:
                 items:
                   description: MaxScaleAPIStatus is the state of the servers in the
                     MaxScale API.
+                  properties:
+                    name:
+                      type: string
+                    state:
+                      type: string
+                  required:
+                  - name
+                  - state
+                  type: object
+                type: array
+              services:
+                description: Services is the state of the services in the MaxScale
+                  API.
+                items:
+                  description: MaxScaleResourceStatus indicates whether the resource
+                    is in a given state.
                   properties:
                     name:
                       type: string

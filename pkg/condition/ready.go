@@ -73,25 +73,27 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) bool {
 
 func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStatus) {
 	for _, srv := range mss.Servers {
-		if !srv.IsReady() {
-			if srv.InMaintenance() {
-				c.SetCondition(metav1.Condition{
-					Type:    mariadbv1alpha1.ConditionTypeReady,
-					Status:  metav1.ConditionFalse,
-					Reason:  mariadbv1alpha1.ConditionReasonMaxScaleNotReady,
-					Message: fmt.Sprintf("Server %s in maintenance", srv.Name),
-				})
-			} else {
-				c.SetCondition(metav1.Condition{
-					Type:    mariadbv1alpha1.ConditionTypeReady,
-					Status:  metav1.ConditionFalse,
-					Reason:  mariadbv1alpha1.ConditionReasonMaxScaleNotReady,
-					Message: fmt.Sprintf("Server %s not ready", srv.Name),
-				})
-			}
-			return
+		if srv.IsReady() {
+			continue
 		}
+		if srv.InMaintenance() {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonMaxScaleNotReady,
+				Message: fmt.Sprintf("Server %s in maintenance", srv.Name),
+			})
+		} else {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonMaxScaleNotReady,
+				Message: fmt.Sprintf("Server %s not ready", srv.Name),
+			})
+		}
+		return
 	}
+
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
