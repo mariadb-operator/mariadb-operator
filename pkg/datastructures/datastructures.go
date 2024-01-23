@@ -2,6 +2,7 @@ package datastructures
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 )
 
@@ -61,6 +62,10 @@ type DiffResult struct {
 	Added   []string
 	Deleted []string
 	Rest    []string
+}
+
+func (d DiffResult) String() string {
+	return fmt.Sprintf("{added: %v, deleted: %v, rest: %v}", d.Added, d.Deleted, d.Rest)
 }
 
 func Diff[C, P any](current Index[C], previous Index[P]) DiffResult {
