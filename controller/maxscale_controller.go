@@ -121,6 +121,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileService,
 		},
 		{
+			name:      "StatefulSet Ready",
+			reconcile: r.ensureStatefulSetReady,
+		},
+		{
 			name:      "Admin",
 			reconcile: r.reconcileAdmin,
 		},
@@ -446,9 +450,6 @@ func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, max
 }
 
 func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	if !req.mxs.IsReady() {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		if err := r.reconcileAdminInPod(ctx, req.mxs, podIndex, podName, client); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling admin in Pod '%s': %v", podName, err)
@@ -486,9 +487,6 @@ func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *maria
 }
 
 func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	if !req.mxs.IsReady() {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		result, err := r.reconcileInitInPod(ctx, req.mxs, podName, client)
 		if err != nil {
@@ -545,12 +543,6 @@ func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv
 }
 
 func (r *MaxScaleReconciler) reconcileSync(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	if !req.mxs.IsHAEnabled() {
-		return ctrl.Result{}, nil
-	}
-	if !req.mxs.IsReady() {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		isSynced, err := r.reconcileSyncInPod(ctx, req.mxs, podName, client)
 		if err != nil {
@@ -870,6 +862,17 @@ func (r *MaxScaleReconciler) forEachPod(ctx context.Context, mxs *mariadbv1alpha
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) ensureStatefulSetReady(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
+		return ctrl.Result{}, err
+	}
+	if sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == req.mxs.Spec.Replicas {
+		return ctrl.Result{}, nil
+	}
+	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
 func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
