@@ -446,16 +446,20 @@ type MaxScaleServerStatus struct {
 	State string `json:"state"`
 }
 
-// IsMaster indicates whether the current server is in Master state.
-func (s *MaxScaleServerStatus) IsMaster() bool {
+// InState indicates whether the current server is in a given state.
+func (s *MaxScaleServerStatus) InState(state string) bool {
 	// See: https://mariadb.com/kb/en/mariadb-maxscale-25-mariadb-maxscale-configuration-guide/#server
-	return strings.Contains(s.State, "Master")
+	return strings.Contains(s.State, state)
 }
 
-// IsSlave indicates whether the current server is in Slave state.
-func (s *MaxScaleServerStatus) IsSlave() bool {
-	// See: https://mariadb.com/kb/en/mariadb-maxscale-25-mariadb-maxscale-configuration-guide/#server
-	return strings.Contains(s.State, "Slave")
+// IsReady indicates whether the current server is in ready state.
+func (s *MaxScaleServerStatus) IsReady() bool {
+	return s.InState("Master") || s.InState("Slave")
+}
+
+// IsReady indicates whether the current server is in maintenance state.
+func (s *MaxScaleServerStatus) InMaintenance() bool {
+	return s.InState("Maintenance")
 }
 
 // MaxScaleStatus defines the observed state of MaxScale
@@ -476,16 +480,6 @@ type MaxScaleStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes:Pod"}
 	Servers []MaxScaleServerStatus `json:"servers"`
-}
-
-// ServersReady indicates that all servers are in ready state
-func (s *MaxScaleStatus) ServersReady() bool {
-	for _, srv := range s.Servers {
-		if !srv.IsMaster() && !srv.IsSlave() {
-			return false
-		}
-	}
-	return true
 }
 
 // SetCondition sets a status condition to MaxScale
