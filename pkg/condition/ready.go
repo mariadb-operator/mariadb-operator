@@ -66,7 +66,7 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) bool {
 		Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
 		Message: "Running",
 	})
-	return false
+	return true
 }
 
 func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStatus) {
