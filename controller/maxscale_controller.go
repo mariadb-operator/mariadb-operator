@@ -85,10 +85,13 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err := r.Get(ctx, req.NamespacedName, &maxscale); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
 	podClient, err := r.clientWitHealthyPod(ctx, &maxscale)
 	if err != nil {
 		log.FromContext(ctx).V(1).Info("unable to get healthy Pod client", "err", err)
+	}
+	request := &requestMaxScale{
+		mxs:       &maxscale,
+		podClient: podClient,
 	}
 
 	phases := []reconcilePhaseMaxScale{
@@ -98,7 +101,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		},
 		{
 			name:      "Status",
-			reconcile: r.updateStatus,
+			reconcile: r.reconcileStatus,
 		},
 		{
 			name:      "Secret",
@@ -167,10 +170,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	for _, p := range phases {
-		result, err := p.reconcile(ctx, &requestMaxScale{
-			mxs:       &maxscale,
-			podClient: podClient,
-		})
+		result, err := p.reconcile(ctx, request)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				continue
@@ -205,170 +205,6 @@ func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, req *requestMa
 	return ctrl.Result{}, r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
 		mxs.SetDefaults(r.Environment)
 	})
-}
-
-func (r *MaxScaleReconciler) updateStatus(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	srvStatus, err := r.getServerStatus(ctx, req.mxs, req.podClient)
-	if err != nil {
-		log.FromContext(ctx).V(1).Info("error getting server status", "err", err)
-	}
-	if req.mxs.Status.PrimaryServer != nil && *req.mxs.Status.PrimaryServer != "" && srvStatus.primary != "" &&
-		*req.mxs.Status.PrimaryServer != srvStatus.primary {
-		fromServer := *req.mxs.Status.PrimaryServer
-		toServer := srvStatus.primary
-		log.FromContext(ctx).Info(
-			"MaxScale primary server changed",
-			"from-server", fromServer,
-			"to-server", toServer,
-		)
-		r.Recorder.Event(
-			req.mxs,
-			corev1.EventTypeNormal,
-			mariadbv1alpha1.ReasonMaxScalePrimaryServerChanged,
-			fmt.Sprintf("MaxScale primary server changed from '%s' to '%s'", fromServer, toServer),
-		)
-	}
-
-	monitorStatus, err := r.getMonitorStatus(ctx, req.mxs, req.podClient)
-	if err != nil {
-		log.FromContext(ctx).V(1).Info("error getting monitor status", "err", err)
-	}
-	serviceStatus, err := r.getServiceStatus(ctx, req.mxs, req.podClient)
-	if err != nil {
-		log.FromContext(ctx).V(1).Info("error getting service status", "err", err)
-	}
-	listenerStatus, err := r.getListenerStatus(ctx, req.mxs, req.podClient)
-	if err != nil {
-		log.FromContext(ctx).V(1).Info("error getting listener status", "err", err)
-	}
-
-	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
-		mss.Replicas = sts.Status.ReadyReplicas
-		if srvStatus != nil {
-			mss.PrimaryServer = &srvStatus.primary
-			mss.Servers = srvStatus.servers
-		}
-		if monitorStatus != nil {
-			mss.Monitor = monitorStatus
-		}
-		if serviceStatus != nil {
-			mss.Services = serviceStatus
-		}
-		if listenerStatus != nil {
-			mss.Listeners = listenerStatus
-		}
-
-		ready := condition.SetReadyWithStatefulSet(mss, &sts)
-		if ready {
-			condition.SetReadyWithMaxScaleStatus(mss, mss)
-		}
-		return nil
-	})
-}
-
-type serverStatus struct {
-	primary string
-	servers []mariadbv1alpha1.MaxScaleServerStatus
-}
-
-func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	client *mxsclient.Client) (*serverStatus, error) {
-	if client == nil {
-		return nil, nil
-	}
-	serverIdx, err := client.Server.ListIndex(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error getting servers: %v", err)
-	}
-	serverIdx = ds.Filter(serverIdx, mxs.ServerIDs()...)
-
-	serverStatuses := make([]mariadbv1alpha1.MaxScaleServerStatus, len(serverIdx))
-	i := 0
-	for _, srv := range serverIdx {
-		serverStatuses[i] = mariadbv1alpha1.MaxScaleServerStatus{
-			Name:  srv.ID,
-			State: srv.Attributes.State,
-		}
-		i++
-	}
-	var primary string
-	for _, srv := range serverIdx {
-		if srv.Attributes.IsMaster() {
-			primary = srv.ID
-			break
-		}
-	}
-
-	return &serverStatus{
-		primary: primary,
-		servers: serverStatuses,
-	}, nil
-}
-
-func (r *MaxScaleReconciler) getMonitorStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	client *mxsclient.Client) (*mariadbv1alpha1.MaxScaleResourceStatus, error) {
-	if client == nil {
-		return nil, nil
-	}
-	monitor, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Name)
-	if err != nil {
-		return nil, fmt.Errorf("error getting monitor: %v", err)
-	}
-	return &mariadbv1alpha1.MaxScaleResourceStatus{
-		Name:  monitor.ID,
-		State: monitor.Attributes.State,
-	}, nil
-}
-
-func (r *MaxScaleReconciler) getServiceStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	client *mxsclient.Client) ([]mariadbv1alpha1.MaxScaleResourceStatus, error) {
-	if client == nil {
-		return nil, nil
-	}
-	serviceIdx, err := client.Service.ListIndex(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error getting services: %v", err)
-	}
-	serviceIdx = ds.Filter(serviceIdx, mxs.ServiceIDs()...)
-
-	serviceStatuses := make([]mariadbv1alpha1.MaxScaleResourceStatus, len(serviceIdx))
-	i := 0
-	for _, svc := range serviceIdx {
-		serviceStatuses[i] = mariadbv1alpha1.MaxScaleResourceStatus{
-			Name:  svc.ID,
-			State: svc.Attributes.State,
-		}
-		i++
-	}
-	return serviceStatuses, nil
-}
-
-func (r *MaxScaleReconciler) getListenerStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	client *mxsclient.Client) ([]mariadbv1alpha1.MaxScaleResourceStatus, error) {
-	if client == nil {
-		return nil, nil
-	}
-	listenerIdx, err := client.Listener.ListIndex(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error getting listeners: %v", err)
-	}
-	listenerIdx = ds.Filter(listenerIdx, mxs.ListenerIDs()...)
-
-	listenerStatuses := make([]mariadbv1alpha1.MaxScaleResourceStatus, len(listenerIdx))
-	i := 0
-	for _, listener := range listenerIdx {
-		listenerStatuses[i] = mariadbv1alpha1.MaxScaleResourceStatus{
-			Name:  listener.ID,
-			State: listener.Attributes.State,
-		}
-		i++
-	}
-	return listenerStatuses, nil
 }
 
 func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -958,19 +794,14 @@ func (r *MaxScaleReconciler) ensureStatefulSetReady(ctx context.Context, req *re
 	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
 		return ctrl.Result{}, err
 	}
-	if sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == req.mxs.Spec.Replicas {
+	if r.isStatefulSetReady(&sts, req.mxs) {
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
-func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
-	patcher func(*mariadbv1alpha1.MaxScaleStatus) error) error {
-	patch := client.MergeFrom(maxscale.DeepCopy())
-	if err := patcher(&maxscale.Status); err != nil {
-		return err
-	}
-	return r.Status().Patch(ctx, maxscale, patch)
+func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *mariadbv1alpha1.MaxScale) bool {
+	return sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == mxs.Spec.Replicas
 }
 
 func (r *MaxScaleReconciler) patch(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
