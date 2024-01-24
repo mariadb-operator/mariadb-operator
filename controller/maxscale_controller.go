@@ -179,10 +179,8 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(errBundle, err)
 
-			msg := fmt.Sprintf("Error reconciling %s: %v", p.name, err)
 			patchErr := r.patchStatus(ctx, &maxscale, func(s *mariadbv1alpha1.MaxScaleStatus) error {
-				patcher := r.ConditionReady.PatcherFailed(msg)
-				patcher(s)
+				r.ConditionReady.PatcherFailed(err.Error())(s)
 				return nil
 			})
 			if apierrors.IsNotFound(patchErr) {
