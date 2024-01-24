@@ -497,6 +497,7 @@ _Appears in:_
 - [ConnectionSpec](#connectionspec)
 - [DatabaseSpec](#databasespec)
 - [GrantSpec](#grantspec)
+- [MaxScaleSpec](#maxscalespec)
 - [RestoreSpec](#restorespec)
 - [SqlJobSpec](#sqljobspec)
 - [UserSpec](#userspec)
@@ -693,7 +694,7 @@ _Appears in:_
 | --- | --- |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |
 | `name` _string_ | Name is the identifier of the monitor. It is defaulted if not provided. |
-| `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. |
+| `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. It is mandatory when no MariaDB reference is provided. |
 | `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. It is defaulted if not provided. |
 | `cooperativeMonitoring` _[CooperativeMonitoring](#cooperativemonitoring)_ | CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when HA is enabled. |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor. |
@@ -769,6 +770,7 @@ _Appears in:_
 | `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported. |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
 | `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
+| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field. |
 | `servers` _[MaxScaleServer](#maxscaleserver) array_ | Servers are the MariaDB servers to forward traffic to. |
 | `services` _[MaxScaleService](#maxscaleservice) array_ | Services define how the traffic is forwarded to the MariaDB servers. |
 | `monitor` _[MaxScaleMonitor](#maxscalemonitor)_ | Monitor monitors MariaDB server instances. |

@@ -74,6 +74,15 @@ const (
 	MonitorModuleGalera MonitorModule = "galeramon"
 )
 
+// Validate determines whether a MonitorModule is valid.
+func (m MonitorModule) Validate() error {
+	switch m {
+	case MonitorModuleMariadb, MonitorModuleGalera:
+		return nil
+	}
+	return fmt.Errorf("unsupported value: '%v'", m)
+}
+
 // CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors.
 // See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/
 type CooperativeMonitoring string
@@ -92,11 +101,10 @@ type MaxScaleMonitor struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Name string `json:"name"`
-	// Module is the module to use to monitor MariaDB servers.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=mariadbmon;galeramon
+	// Module is the module to use to monitor MariaDB servers. It is mandatory when no MariaDB reference is provided.
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Module MonitorModule `json:"module" webhook:"inmutable"`
+	Module MonitorModule `json:"module" webhook:"inmutableinit"`
 	// Interval used to monitor MariaDB servers. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -394,8 +402,12 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	// MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
 	// Servers are the MariaDB servers to forward traffic to.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Servers []MaxScaleServer `json:"servers"`
 	// Services define how the traffic is forwarded to the MariaDB servers.

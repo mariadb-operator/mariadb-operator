@@ -24,7 +24,19 @@ var _ webhook.Validator = &MaxScale{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MaxScale) ValidateCreate() (admission.Warnings, error) {
 	maxscaleLogger.V(1).Info("Validate create", "name", r.Name)
-	return nil, r.validate()
+	validateFns := []func() error{
+		r.validateCreateServerSources,
+		r.validateServers,
+		r.validateMonitor,
+		r.validateServices,
+		r.validatePodDisruptionBudget,
+	}
+	for _, fn := range validateFns {
+		if err := fn(); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -34,7 +46,19 @@ func (r *MaxScale) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 	if err := inmutableWebhook.ValidateUpdate(r, oldMaxScale); err != nil {
 		return nil, err
 	}
-	return nil, r.validate()
+	validateFns := []func() error{
+		r.validateServerSources,
+		r.validateServers,
+		r.validateMonitor,
+		r.validateServices,
+		r.validatePodDisruptionBudget,
+	}
+	for _, fn := range validateFns {
+		if err := fn(); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -42,16 +66,27 @@ func (r *MaxScale) ValidateDelete() (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (r *MaxScale) validate() error {
-	validateFns := []func() error{
-		r.validateServers,
-		r.validateServices,
-		r.validatePodDisruptionBudget,
+func (r *MaxScale) validateCreateServerSources() error {
+	if err := r.validateServerSources(); err != nil {
+		return err
 	}
-	for _, fn := range validateFns {
-		if err := fn(); err != nil {
-			return err
-		}
+	if r.Spec.MariaDBRef != nil && r.Spec.Servers != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("mariaDbRef"),
+			r.Spec.MariaDBRef,
+			"'spec.mariaDbRef' and 'spec.servers' cannot be specified simultaneously",
+		)
+	}
+	return nil
+}
+
+func (r *MaxScale) validateServerSources() error {
+	if r.Spec.MariaDBRef == nil && r.Spec.Servers == nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("mariaDbRef"),
+			r.Spec.MariaDBRef,
+			"'spec.mariaDbRef' or 'spec.servers' must be defined",
+		)
 	}
 	return nil
 }
@@ -74,6 +109,27 @@ func (r *MaxScale) validateServers() error {
 			field.NewPath("spec").Child("servers"),
 			r.Spec.Servers,
 			"server addresses must be unique",
+		)
+	}
+	return nil
+}
+
+func (r *MaxScale) validateMonitor() error {
+	if r.Spec.MariaDBRef != nil {
+		return nil
+	}
+	if r.Spec.Monitor.Module == "" {
+		return field.Invalid(
+			field.NewPath("spec").Child("monitor").Child("module"),
+			r.Spec.Monitor.Module,
+			"'spec.monitor.module' must be provided when 'spec.mariaDbRef' is not defined",
+		)
+	}
+	if err := r.Spec.Monitor.Module.Validate(); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("monitor").Child("module"),
+			r.Spec.Monitor.Module,
+			err.Error(),
 		)
 	}
 	return nil

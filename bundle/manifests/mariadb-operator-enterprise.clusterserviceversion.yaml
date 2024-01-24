@@ -413,7 +413,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-01-23T10:49:24Z"
+    createdAt: "2024-01-24T18:01:48Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -1768,6 +1768,12 @@ spec:
           - description: LivenessProbe to be used in the Container.
             displayName: Liveness Probe
             path: livenessProbe
+          - description: MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.
+            displayName: Maria DBRef
+            path: mariaDbRef
+          - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
+            displayName: Wait For It
+            path: mariaDbRef.waitForIt
           - description: Monitor monitors MariaDB server instances.
             displayName: Monitor
             path: monitor
@@ -1777,7 +1783,7 @@ spec:
           - description: Interval used to monitor MariaDB servers. It is defaulted if not provided.
             displayName: Interval
             path: monitor.interval
-          - description: Module is the module to use to monitor MariaDB servers.
+          - description: Module is the module to use to monitor MariaDB servers. It is mandatory when no MariaDB reference is provided.
             displayName: Module
             path: monitor.module
           - description: Name is the identifier of the monitor. It is defaulted if not provided.
@@ -1945,26 +1951,31 @@ spec:
             displayName: Volumes
             path: volumes
         statusDescriptors:
-          - description: API is the state of the resources in the MaxScale API.
-            displayName: API
-            path: api
-            x-descriptors:
-              - urn:alm:descriptor:io.kubernetes:Pod
           - description: Conditions for the MaxScale object.
             displayName: Conditions
             path: conditions
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.conditions
-          - description: PrimaryServer is the primary server reported by Maxscale.
+          - description: Listeners is the state of the listeners in the MaxScale API.
+            displayName: Listeners
+            path: listeners
+          - description: Monitor is the state of the monitor in the MaxScale API.
+            displayName: Monitor
+            path: monitor
+          - description: PrimaryServer is the primary server in the MaxScale API.
             displayName: Primary Server
             path: primaryServer
-            x-descriptors:
-              - urn:alm:descriptor:io.kubernetes:Pod
           - description: Replicas indicates the number of current instances.
             displayName: Replicas
             path: replicas
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:podCount
+          - description: Servers is the state of the servers in the MaxScale API.
+            displayName: Servers
+            path: servers
+          - description: Services is the state of the services in the MaxScale API.
+            displayName: Services
+            path: services
         version: v1alpha1
       - description: Restore is the Schema for the restores API. It is used to define restore jobs and its restoration source.
         displayName: Restore
@@ -2769,14 +2780,14 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
-      name: exporter
     - image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
       name: mariadb-operator-enterprise
     - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
       name: mariadb
     - image: mariadb/maxscale@sha256:5c658141992f1b83580759137bbe1b881ebe73e07c85819e46a8a14f332ff690
       name: maxscale
+    - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
+      name: exporter
   version: 0.0.24
   webhookdefinitions:
     - admissionReviewVersions:

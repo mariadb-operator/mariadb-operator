@@ -2391,6 +2391,49 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              mariaDbRef:
+                description: MariaDBRef is a reference to the MariaDB that MaxScale
+                  points to. It is used to initialize the servers field.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                  waitForIt:
+                    default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
+                    type: boolean
+                type: object
+                x-kubernetes-map-type: atomic
               monitor:
                 description: Monitor monitors MariaDB server instances.
                 properties:
@@ -2408,9 +2451,7 @@ spec:
                     type: string
                   module:
                     description: Module is the module to use to monitor MariaDB servers.
-                    enum:
-                    - mariadbmon
-                    - galeramon
+                      It is mandatory when no MariaDB reference is provided.
                     type: string
                   name:
                     description: Name is the identifier of the monitor. It is defaulted
@@ -2426,8 +2467,6 @@ spec:
                       be suspended or not. Feature flag --feature-maxscale-suspend
                       is required in the controller to enable this.
                     type: boolean
-                required:
-                - module
                 type: object
               nodeSelector:
                 additionalProperties:
@@ -5681,7 +5720,6 @@ spec:
                 type: array
             required:
             - monitor
-            - servers
             - services
             type: object
           status:
