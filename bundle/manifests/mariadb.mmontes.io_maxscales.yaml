@@ -5793,6 +5793,17 @@ spec:
                   - type
                   type: object
                 type: array
+              configSync:
+                description: ConfigSync is the state of config sync.
+                properties:
+                  databaseVersion:
+                    type: integer
+                  maxScaleVersion:
+                    type: integer
+                required:
+                - databaseVersion
+                - maxScaleVersion
+                type: object
               listeners:
                 description: Listeners is the state of the listeners in the MaxScale
                   API.

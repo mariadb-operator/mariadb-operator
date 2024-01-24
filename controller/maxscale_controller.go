@@ -81,16 +81,16 @@ type reconcilePhaseMaxScale struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var maxscale mariadbv1alpha1.MaxScale
-	if err := r.Get(ctx, req.NamespacedName, &maxscale); err != nil {
+	var mxs mariadbv1alpha1.MaxScale
+	if err := r.Get(ctx, req.NamespacedName, &mxs); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	podClient, err := r.clientWitHealthyPod(ctx, &maxscale)
+	podClient, err := r.clientWitHealthyPod(ctx, &mxs)
 	if err != nil {
 		log.FromContext(ctx).V(1).Info("unable to get healthy Pod client", "err", err)
 	}
 	request := &requestMaxScale{
-		mxs:       &maxscale,
+		mxs:       &mxs,
 		podClient: podClient,
 	}
 
@@ -179,20 +179,8 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			if apierrors.IsNotFound(err) {
 				continue
 			}
-
-			var errBundle *multierror.Error
-			errBundle = multierror.Append(errBundle, err)
-
-			patchErr := r.patchStatus(ctx, &maxscale, func(s *mariadbv1alpha1.MaxScaleStatus) error {
-				r.ConditionReady.PatcherFailed(err.Error())(s)
-				return nil
-			})
-			if apierrors.IsNotFound(patchErr) {
-				errBundle = multierror.Append(errBundle, patchErr)
-			}
-
-			if err := errBundle.ErrorOrNil(); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.name, err)
+			if err := r.handleError(ctx, &mxs, err); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error reconciling phase %s: %v", p.name, err)
 			}
 		}
 		if !result.IsZero() {
@@ -200,7 +188,23 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	return r.requeueResult(ctx, &maxscale)
+	return r.requeueResult(ctx, &mxs)
+}
+
+func (r *MaxScaleReconciler) handleError(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	err error) error {
+	var errBundle *multierror.Error
+	errBundle = multierror.Append(errBundle, err)
+
+	patchErr := r.patchStatus(ctx, mxs, func(s *mariadbv1alpha1.MaxScaleStatus) error {
+		r.ConditionReady.PatcherFailed(err.Error())(s)
+		return nil
+	})
+	if apierrors.IsNotFound(patchErr) {
+		errBundle = multierror.Append(errBundle, patchErr)
+	}
+
+	return errBundle.ErrorOrNil()
 }
 
 func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -376,6 +380,21 @@ func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, max
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
+func (r *MaxScaleReconciler) ensureStatefulSetReady(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
+		return ctrl.Result{}, err
+	}
+	if r.isStatefulSetReady(&sts, req.mxs) {
+		return ctrl.Result{}, nil
+	}
+	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+}
+
+func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *mariadbv1alpha1.MaxScale) bool {
+	return sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == mxs.Spec.Replicas
+}
+
 func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		if err := r.reconcileAdminInPod(ctx, req.mxs, podIndex, podName, client); err != nil {
@@ -502,12 +521,9 @@ func (r *MaxScaleReconciler) ensurePrimaryServer(ctx context.Context, req *reque
 	if req.mxs.Status.Servers == nil {
 		return ctrl.Result{}, nil
 	}
-	for _, srv := range req.mxs.Status.Servers {
-		if srv.IsMaster() {
-			return ctrl.Result{}, nil
-		}
+	if req.mxs.Status.GetPrimaryServer() != nil {
+		return ctrl.Result{}, nil
 	}
-
 	log.FromContext(ctx).V(1).Info("No primary servers were found. Requeuing.")
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
@@ -803,21 +819,6 @@ func (r *MaxScaleReconciler) forEachPod(ctx context.Context, mxs *mariadbv1alpha
 		}
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *MaxScaleReconciler) ensureStatefulSetReady(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
-		return ctrl.Result{}, err
-	}
-	if r.isStatefulSetReady(&sts, req.mxs) {
-		return ctrl.Result{}, nil
-	}
-	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-}
-
-func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *mariadbv1alpha1.MaxScale) bool {
-	return sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == mxs.Spec.Replicas
 }
 
 func (r *MaxScaleReconciler) patch(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,

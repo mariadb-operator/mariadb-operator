@@ -485,6 +485,11 @@ type MaxScaleResourceStatus struct {
 	State string `json:"state"`
 }
 
+type MaxScaleConfigSyncStatus struct {
+	MaxScaleVersion int `json:"maxScaleVersion"`
+	DatabaseVersion int `json:"databaseVersion"`
+}
+
 // MaxScaleStatus defines the observed state of MaxScale
 type MaxScaleStatus struct {
 	// Conditions for the MaxScale object.
@@ -502,19 +507,23 @@ type MaxScaleStatus struct {
 	// Servers is the state of the servers in the MaxScale API.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	Servers []MaxScaleServerStatus `json:"servers"`
+	Servers []MaxScaleServerStatus `json:"servers,omitempty"`
 	// Monitor is the state of the monitor in the MaxScale API.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	Monitor *MaxScaleResourceStatus `json:"monitor"`
+	Monitor *MaxScaleResourceStatus `json:"monitor,omitempty"`
 	// Services is the state of the services in the MaxScale API.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	Services []MaxScaleResourceStatus `json:"services"`
+	Services []MaxScaleResourceStatus `json:"services,omitempty"`
 	// Listeners is the state of the listeners in the MaxScale API.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	Listeners []MaxScaleResourceStatus `json:"listeners"`
+	Listeners []MaxScaleResourceStatus `json:"listeners,omitempty"`
+	// ConfigSync is the state of config sync.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ConfigSync *MaxScaleConfigSyncStatus `json:"configSync,omitempty"`
 }
 
 // SetCondition sets a status condition to MaxScale
@@ -523,6 +532,16 @@ func (s *MaxScaleStatus) SetCondition(condition metav1.Condition) {
 		s.Conditions = make([]metav1.Condition, 0)
 	}
 	meta.SetStatusCondition(&s.Conditions, condition)
+}
+
+// GetPrimaryServer obtains the current primary server.
+func (s *MaxScaleStatus) GetPrimaryServer() *string {
+	for _, srv := range s.Servers {
+		if srv.IsMaster() {
+			return &srv.Name
+		}
+	}
+	return nil
 }
 
 // +kubebuilder:object:root=true

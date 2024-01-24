@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
@@ -9,6 +10,7 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
+	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
@@ -64,6 +66,9 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	listenerStatus, err = r.getListenerStatus(ctx, req.mxs, client)
 	errBundle = multierror.Append(errBundle, err)
 
+	configSync, err := r.getConfigSyncStatus(ctx, req.mxs, client)
+	errBundle = multierror.Append(errBundle, err)
+
 	if err := errBundle.ErrorOrNil(); err != nil {
 		log.FromContext(ctx).V(1).Info("error getting status", "err", err)
 	}
@@ -86,6 +91,9 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 		}
 		if listenerStatus != nil {
 			mss.Listeners = listenerStatus
+		}
+		if configSync != nil {
+			mss.ConfigSync = configSync
 		}
 
 		condition.SetReadyWithStatefulSet(mss, &sts)
@@ -182,6 +190,83 @@ func (r *MaxScaleReconciler) getListenerStatus(ctx context.Context, mxs *mariadb
 		i++
 	}
 	return listenerStatuses, nil
+}
+
+func (r *MaxScaleReconciler) getConfigSyncStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) (*mariadbv1alpha1.MaxScaleConfigSyncStatus, error) {
+	if !mxs.IsHAEnabled() {
+		return nil, nil
+	}
+
+	var errBundle *multierror.Error
+	mxsVersion, err := r.getMaxScaleConfigSyncVersion(ctx, mxs, client)
+	errBundle = multierror.Append(errBundle, err)
+
+	dbVersion, err := r.getDatabaseConfigSyncVersion(ctx, mxs)
+	errBundle = multierror.Append(errBundle, err)
+
+	if err := errBundle.ErrorOrNil(); err != nil {
+		return nil, err
+	}
+
+	return &mariadbv1alpha1.MaxScaleConfigSyncStatus{
+		MaxScaleVersion: mxsVersion,
+		DatabaseVersion: dbVersion,
+	}, nil
+}
+
+func (r *MaxScaleReconciler) getMaxScaleConfigSyncVersion(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) (int, error) {
+	mxsStatus, err := client.MaxScale.Get(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("error getting MaxScale status: %v", err)
+	}
+	if mxsStatus.Attributes.ConfigSync == nil {
+		return 0, errors.New("MaxScale config sync not set")
+	}
+	return mxsStatus.Attributes.ConfigSync.Version, nil
+}
+
+func (r *MaxScaleReconciler) getDatabaseConfigSyncVersion(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (int, error) {
+	client, err := r.getPrimarySqlClient(ctx, mxs)
+	defer func() {
+		if err := client.Close(); err != nil {
+			log.FromContext(ctx).Error(err, "error closing SQL connection")
+		}
+	}()
+	if err != nil {
+		return 0, fmt.Errorf("error getting primary SQL client: %v", err)
+	}
+	return client.MaxScaleConfigSyncVersion(ctx)
+}
+
+func (r *MaxScaleReconciler) getPrimarySqlClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*sql.Client, error) {
+	if mxs.Spec.Config.Sync == nil {
+		return nil, errors.New("config sync must be enabled")
+	}
+	primaryName := mxs.Status.GetPrimaryServer()
+	if primaryName == nil {
+		return nil, errors.New("primary server not found in status")
+	}
+	serverIdx := mxs.ServerIndex()
+
+	srv, ok := serverIdx[*primaryName]
+	if !ok {
+		return nil, errors.New("primary server not found in spec")
+	}
+
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.SyncPasswordSecretKeyRef, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting sync password: %v", err)
+	}
+
+	return sql.NewClient(
+		sql.WitHost(srv.Address),
+		sql.WithPort(srv.Port),
+		sql.WithDatabase(mxs.Spec.Config.Sync.Database),
+		sql.WithUsername(mxs.Spec.Auth.SyncUsername),
+		sql.WithPassword(password),
+	)
 }
 
 func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,

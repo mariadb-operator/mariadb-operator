@@ -44,8 +44,13 @@ func (m MaxScaleParameters) MarshalJSON() ([]byte, error) {
 	return json.Marshal(rawMap)
 }
 
+type MaxScaleConfigSync struct {
+	Version int `json:"version"`
+}
+
 type MaxScaleAttributes struct {
-	Parameters MaxScaleParameters `json:"parameters"`
+	ConfigSync *MaxScaleConfigSync `json:"config_sync,omitempty"`
+	Parameters MaxScaleParameters  `json:"parameters"`
 }
 
 type MaxScaleClient struct {
