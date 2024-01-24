@@ -1741,6 +1741,14 @@ spec:
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: livenessProbe
+      - description: MariaDBRef is a reference to the MariaDB that MaxScale points
+          to. It is used to initialize the servers field.
+        displayName: Maria DBRef
+        path: mariaDbRef
+      - description: WaitForIt indicates whether the controller using this reference
+          should wait for MariaDB to be ready.
+        displayName: Wait For It
+        path: mariaDbRef.waitForIt
       - description: Monitor monitors MariaDB server instances.
         displayName: Monitor
         path: monitor
@@ -1752,7 +1760,8 @@ spec:
           not provided.
         displayName: Interval
         path: monitor.interval
-      - description: Module is the module to use to monitor MariaDB servers.
+      - description: Module is the module to use to monitor MariaDB servers. It is
+          mandatory when no MariaDB reference is provided.
         displayName: Module
         path: monitor.module
       - description: Name is the identifier of the monitor. It is defaulted if not
@@ -1942,26 +1951,31 @@ spec:
         displayName: Volumes
         path: volumes
       statusDescriptors:
-      - description: API is the state of the resources in the MaxScale API.
-        displayName: API
-        path: api
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes:Pod
       - description: Conditions for the MaxScale object.
         displayName: Conditions
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
-      - description: PrimaryServer is the primary server reported by Maxscale.
+      - description: Listeners is the state of the listeners in the MaxScale API.
+        displayName: Listeners
+        path: listeners
+      - description: Monitor is the state of the monitor in the MaxScale API.
+        displayName: Monitor
+        path: monitor
+      - description: PrimaryServer is the primary server in the MaxScale API.
         displayName: Primary Server
         path: primaryServer
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes:Pod
       - description: Replicas indicates the number of current instances.
         displayName: Replicas
         path: replicas
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: Servers is the state of the servers in the MaxScale API.
+        displayName: Servers
+        path: servers
+      - description: Services is the state of the services in the MaxScale API.
+        displayName: Services
+        path: services
       version: v1alpha1
     - description: Restore is the Schema for the restores API. It is used to define
         restore jobs and its restoration source.

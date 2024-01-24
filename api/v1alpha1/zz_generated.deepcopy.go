@@ -1466,6 +1466,11 @@ func (in *MaxScaleSpec) DeepCopyInto(out *MaxScaleSpec) {
 		*out = make([]v1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
+	if in.MariaDBRef != nil {
+		in, out := &in.MariaDBRef, &out.MariaDBRef
+		*out = new(MariaDBRef)
+		**out = **in
+	}
 	if in.Servers != nil {
 		in, out := &in.Servers, &out.Servers
 		*out = make([]MaxScaleServer, len(*in))
