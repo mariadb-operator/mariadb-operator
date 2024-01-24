@@ -86,7 +86,7 @@ func NewClient(clientOpts ...Opt) (*Client, error) {
 	}
 	dsn, err := BuildDSN(opts)
 	if err != nil {
-		return nil, fmt.Errorf("error building DNS: %v", err)
+		return nil, fmt.Errorf("error building DSN: %v", err)
 	}
 	db, err := Connect(dsn)
 	if err != nil {
@@ -476,6 +476,15 @@ func (c *Client) GaleraClusterStatus(ctx context.Context) (string, error) {
 
 func (c *Client) GaleraLocalState(ctx context.Context) (string, error) {
 	return c.StatusVariable(ctx, "wsrep_local_state_comment")
+}
+
+func (c *Client) MaxScaleConfigSyncVersion(ctx context.Context) (int, error) {
+	row := c.db.QueryRowContext(ctx, "SELECT version FROM maxscale_config")
+	var version int
+	if err := row.Scan(&version); err != nil {
+		return 0, err
+	}
+	return version, nil
 }
 
 func createTpl(name, t string) *template.Template {

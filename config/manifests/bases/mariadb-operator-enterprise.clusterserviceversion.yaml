@@ -1956,6 +1956,9 @@ spec:
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
+      - description: ConfigSync is the state of config sync.
+        displayName: Config Sync
+        path: configSync
       - description: Listeners is the state of the listeners in the MaxScale API.
         displayName: Listeners
         path: listeners
