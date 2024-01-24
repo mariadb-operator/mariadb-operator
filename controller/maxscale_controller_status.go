@@ -11,6 +11,7 @@ import (
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -37,20 +38,20 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	srvStatus, err = r.getServerStatus(ctx, req.mxs, client)
 	errBundle = multierror.Append(errBundle, err)
 
-	if req.mxs.Status.PrimaryServer != nil && *req.mxs.Status.PrimaryServer != "" && srvStatus.primary != "" &&
-		*req.mxs.Status.PrimaryServer != srvStatus.primary {
-		fromServer := *req.mxs.Status.PrimaryServer
-		toServer := srvStatus.primary
+	currentPrimary := ptr.Deref(req.mxs.Status.PrimaryServer, "")
+	newPrimary := ptr.Deref(srvStatus, serverStatus{}).primary
+
+	if currentPrimary != "" && newPrimary != "" && currentPrimary != newPrimary {
 		log.FromContext(ctx).Info(
 			"MaxScale primary server changed",
-			"from-server", fromServer,
-			"to-server", toServer,
+			"from-server", currentPrimary,
+			"to-server", newPrimary,
 		)
 		r.Recorder.Event(
 			req.mxs,
 			corev1.EventTypeNormal,
 			mariadbv1alpha1.ReasonMaxScalePrimaryServerChanged,
-			fmt.Sprintf("MaxScale primary server changed from '%s' to '%s'", fromServer, toServer),
+			fmt.Sprintf("MaxScale primary server changed from '%s' to '%s'", currentPrimary, newPrimary),
 		)
 	}
 
@@ -70,8 +71,12 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
 		mss.Replicas = sts.Status.ReadyReplicas
 		if srvStatus != nil {
-			mss.PrimaryServer = &srvStatus.primary
-			mss.Servers = srvStatus.servers
+			if srvStatus.primary != "" {
+				mss.PrimaryServer = &srvStatus.primary
+			}
+			if srvStatus.servers != nil {
+				mss.Servers = srvStatus.servers
+			}
 		}
 		if monitorStatus != nil {
 			mss.Monitor = monitorStatus
