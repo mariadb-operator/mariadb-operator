@@ -140,6 +140,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileSync,
 		},
 		{
+			name:      "Primary Server",
+			reconcile: r.ensurePrimaryServer,
+		},
+		{
 			name:      "Servers",
 			reconcile: r.reconcileServers,
 		},
@@ -492,6 +496,20 @@ func (r *MaxScaleReconciler) reconcileSyncInPod(ctx context.Context, mxs *mariad
 	log.FromContext(ctx).Info("Setting up config sync in MaxScale Pod", "pod", podName)
 
 	return false, mxsApi.patchMaxScaleConfigSync(ctx)
+}
+
+func (r *MaxScaleReconciler) ensurePrimaryServer(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if req.mxs.Status.Servers == nil {
+		return ctrl.Result{}, nil
+	}
+	for _, srv := range req.mxs.Status.Servers {
+		if srv.IsMaster() {
+			return ctrl.Result{}, nil
+		}
+	}
+
+	log.FromContext(ctx).V(1).Info("No primary servers were found. Requeuing.")
+	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
 func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {

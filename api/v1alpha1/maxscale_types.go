@@ -464,9 +464,14 @@ func (s *MaxScaleServerStatus) InState(state string) bool {
 	return strings.Contains(s.State, state)
 }
 
+// IsMaster indicates whether the current server is in Master state.
+func (s *MaxScaleServerStatus) IsMaster() bool {
+	return s.InState("Master")
+}
+
 // IsReady indicates whether the current server is in ready state.
 func (s *MaxScaleServerStatus) IsReady() bool {
-	return s.InState("Master") || s.InState("Slave")
+	return s.IsMaster() || s.InState("Slave")
 }
 
 // InMaintenance indicates whether the current server is in maintenance state.
