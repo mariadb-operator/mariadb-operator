@@ -487,6 +487,10 @@ func (c *Client) MaxScaleConfigSyncVersion(ctx context.Context) (int, error) {
 	return version, nil
 }
 
+func (c *Client) TruncateMaxScaleConfig(ctx context.Context) error {
+	return c.Exec(ctx, "TRUNCATE TABLE maxscale_config")
+}
+
 func createTpl(name, t string) *template.Template {
 	return template.Must(template.New(name).Parse(t))
 }

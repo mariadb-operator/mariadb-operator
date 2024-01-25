@@ -179,7 +179,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			if apierrors.IsNotFound(err) {
 				continue
 			}
-			if err := r.handleError(ctx, &mxs, err); err != nil {
+			if err := r.handleError(ctx, &mxs, err, r.handleConfigSyncConflict); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error reconciling phase %s: %v", p.name, err)
 			}
 		}
@@ -191,10 +191,17 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return r.requeueResult(ctx, &mxs)
 }
 
+type errorHandler func(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, err error) error
+
 func (r *MaxScaleReconciler) handleError(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	err error) error {
+	err error, handlers ...errorHandler) error {
 	var errBundle *multierror.Error
 	errBundle = multierror.Append(errBundle, err)
+
+	for _, handler := range handlers {
+		handlerErr := handler(ctx, mxs, err)
+		errBundle = multierror.Append(errBundle, handlerErr)
+	}
 
 	patchErr := r.patchStatus(ctx, mxs, func(s *mariadbv1alpha1.MaxScaleStatus) error {
 		r.ConditionReady.PatcherFailed(err.Error())(s)
