@@ -5,16 +5,8 @@ metadata:
 spec:
   replicas: 3
 
-  servers:
-    - name: mariadb-0
-      address: mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local
-      port: 3306
-      protocol: MariaDBBackend
-      maintenance: false
-    - name: mariadb-1
-      address: mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local
-    - name: mariadb-2
-      address: mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local
+  mariaDbRef:
+    name: mariadb-galera
 
   services:
     - name: rw-router
@@ -48,7 +40,6 @@ spec:
         port: 3308
 
   monitor:
-    module: galeramon
     interval: 2s
     params:
       disable_master_failback: "false"

@@ -3,15 +3,8 @@ kind: MaxScale
 metadata:
   name: maxscale
 spec:
-  servers:
-    - name: mariadb-0
-      address: mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
-      port: 3306
-      protocol: MariaDBBackend
-    - name: mariadb-1
-      address: mariadb-repl-1.mariadb-repl-internal.default.svc.cluster.local
-    - name: mariadb-2
-      address: mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local
+  mariaDbRef:
+    name: mariadb-repl
 
   services:
     - name: rw-router
@@ -45,12 +38,7 @@ spec:
         port: 3308
 
   monitor:
-    module: mariadbmon
     interval: 2s
-    params:
-      auto_failover: "true"
-      auto_rejoin: "true"
-      switchover_on_low_disk_space: "true"   
 
   admin:
     port: 8989

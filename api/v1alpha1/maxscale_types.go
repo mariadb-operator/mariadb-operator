@@ -122,7 +122,7 @@ type MaxScaleMonitor struct {
 
 // SetCondition sets a status condition to MaxScale
 func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
-	if m.Name == "" {
+	if m.Name == "" && m.Module != "" {
 		m.Name = fmt.Sprintf("%s-monitor", string(m.Module))
 	}
 	if m.Interval == (metav1.Duration{}) {
