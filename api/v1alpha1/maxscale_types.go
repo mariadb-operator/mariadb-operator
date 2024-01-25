@@ -286,8 +286,22 @@ func (m *MaxScaleConfig) SetDefaults(mxs *MaxScale) {
 	}
 }
 
+// MaxScaleAuth defines if and how the operator should generate users and grants for MaxScale to work.
+// It only supports in cluster MariaDBs specified via spec.mariaDbRef.
+type MaxScaleAuthGenerate struct {
+	// Enabled is a flag that indicates whether auth generation is enabled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
+}
+
 // MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB.
 type MaxScaleAuth struct {
+	// Generate defines if and how the operator should generate users and grants for MaxScale to work.
+	// It only supports in cluster MariaDBs specified via spec.mariaDbRef.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Generate MaxScaleAuthGenerate `json:"generate,omitempty"`
 	// AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
