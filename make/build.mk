@@ -13,7 +13,7 @@ docker-push: ## Push docker image.
 	docker push $(IMG)
 
 .PHONY: docker-load
-docker-load: ## Load docker image in KIND.
+docker-load: kind ## Load docker image in KIND.
 	$(KIND) load docker-image --name $(CLUSTER) $(IMG)
 
 .PHONY: docker-dev
