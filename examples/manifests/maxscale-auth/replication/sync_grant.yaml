@@ -10,6 +10,7 @@ spec:
     - "INSERT"
     - "UPDATE"
     - "CREATE"
+    - "DROP"
   database: "mysql"
   table: "maxscale_config"
   username: maxscale-sync

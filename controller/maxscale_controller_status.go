@@ -104,6 +104,32 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	})
 }
 
+func (r *MaxScaleReconciler) handleConfigSyncConflict(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	err error) error {
+	if err == nil || !mxs.IsHAEnabled() {
+		return nil
+	}
+
+	configSync := ptr.Deref(mxs.Status.ConfigSync, mariadbv1alpha1.MaxScaleConfigSyncStatus{})
+	if configSync.MaxScaleVersion <= configSync.DatabaseVersion {
+		return nil
+	}
+	log.FromContext(ctx).Info(
+		"Config sync conflict detected",
+		"maxscale-version", configSync.MaxScaleVersion,
+		"database-version", configSync.DatabaseVersion,
+	)
+
+	client, err := r.getPrimarySqlClient(ctx, mxs)
+	if err != nil {
+		return fmt.Errorf("error getting primary SQL client: %v", err)
+	}
+	if err := client.TruncateMaxScaleConfig(ctx); err != nil {
+		return fmt.Errorf("error truncating maxscale_config table: %v", err)
+	}
+	return nil
+}
+
 type serverStatus struct {
 	primary string
 	servers []mariadbv1alpha1.MaxScaleServerStatus
@@ -228,29 +254,47 @@ func (r *MaxScaleReconciler) getMaxScaleConfigSyncVersion(ctx context.Context, m
 }
 
 func (r *MaxScaleReconciler) getDatabaseConfigSyncVersion(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (int, error) {
-	client, err := r.getPrimarySqlClient(ctx, mxs)
+	client, err := r.getReadySqlClient(ctx, mxs)
+	if err != nil {
+		return 0, fmt.Errorf("error getting primary SQL client: %v", err)
+	}
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.FromContext(ctx).Error(err, "error closing SQL connection")
 		}
 	}()
-	if err != nil {
-		return 0, fmt.Errorf("error getting primary SQL client: %v", err)
-	}
 	return client.MaxScaleConfigSyncVersion(ctx)
 }
 
 func (r *MaxScaleReconciler) getPrimarySqlClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*sql.Client, error) {
-	if mxs.Spec.Config.Sync == nil {
-		return nil, errors.New("config sync must be enabled")
-	}
 	primaryName := mxs.Status.GetPrimaryServer()
 	if primaryName == nil {
 		return nil, errors.New("primary server not found in status")
 	}
-	serverIdx := mxs.ServerIndex()
+	return r.getSqlClient(ctx, mxs, *primaryName)
+}
 
-	srv, ok := serverIdx[*primaryName]
+func (r *MaxScaleReconciler) getReadySqlClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*sql.Client, error) {
+	var readyServer string
+	for _, srv := range mxs.Status.Servers {
+		if srv.IsReady() {
+			readyServer = srv.Name
+			break
+		}
+	}
+	if readyServer == "" {
+		return nil, errors.New("ready server not found in status")
+	}
+	return r.getSqlClient(ctx, mxs, readyServer)
+}
+
+func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	serverName string) (*sql.Client, error) {
+	if mxs.Spec.Config.Sync == nil {
+		return nil, errors.New("config sync must be enabled")
+	}
+	serverIdx := mxs.ServerIndex()
+	srv, ok := serverIdx[serverName]
 	if !ok {
 		return nil, errors.New("primary server not found in spec")
 	}
