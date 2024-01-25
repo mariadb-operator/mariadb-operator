@@ -29,5 +29,5 @@ artifacts/
 # Log
 *.log
 
-# PITR
+# Backup
 /backup/
