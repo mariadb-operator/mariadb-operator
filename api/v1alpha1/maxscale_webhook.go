@@ -25,6 +25,7 @@ var _ webhook.Validator = &MaxScale{}
 func (r *MaxScale) ValidateCreate() (admission.Warnings, error) {
 	maxscaleLogger.V(1).Info("Validate create", "name", r.Name)
 	validateFns := []func() error{
+		r.validateAuth,
 		r.validateCreateServerSources,
 		r.validateServers,
 		r.validateMonitor,
@@ -47,6 +48,7 @@ func (r *MaxScale) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 		return nil, err
 	}
 	validateFns := []func() error{
+		r.validateAuth,
 		r.validateServerSources,
 		r.validateServers,
 		r.validateMonitor,
@@ -64,6 +66,10 @@ func (r *MaxScale) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *MaxScale) ValidateDelete() (admission.Warnings, error) {
 	return nil, nil
+}
+
+func (r *MaxScale) validateAuth() error {
+	return nil
 }
 
 func (r *MaxScale) validateCreateServerSources() error {
