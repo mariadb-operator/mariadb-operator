@@ -5,16 +5,8 @@ metadata:
 spec:
   replicas: 3
 
-  servers:
-    - name: mariadb-0
-      address: mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
-      port: 3306
-      protocol: MariaDBBackend
-      maintenance: false
-    - name: mariadb-1
-      address: mariadb-repl-1.mariadb-repl-internal.default.svc.cluster.local
-    - name: mariadb-2
-      address: mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local
+  mariaDbRef:
+    name: mariadb-repl
 
   services:
     - name: rw-router
@@ -48,7 +40,6 @@ spec:
         port: 3308
 
   monitor:
-    module: mariadbmon
     interval: 2s
     cooperativeMonitoring: majority_of_all
     params:

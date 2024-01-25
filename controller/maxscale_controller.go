@@ -215,8 +215,46 @@ func (r *MaxScaleReconciler) handleError(ctx context.Context, mxs *mariadbv1alph
 }
 
 func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	return ctrl.Result{}, r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
+	if err := r.setMariadbDefaults(ctx, req); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error setting MariaDB defaults: %v", err)
+	}
+	if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
 		mxs.SetDefaults(r.Environment)
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error setting defaults: %v", err)
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) setMariadbDefaults(ctx context.Context, req *requestMaxScale) error {
+	if req.mxs.Spec.MariaDBRef == nil {
+		return nil
+	}
+	mdb, err := r.RefResolver.MariaDB(ctx, req.mxs.Spec.MariaDBRef, req.mxs.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting MariaDB reference: %v", err)
+	}
+
+	servers := make([]mariadbv1alpha1.MaxScaleServer, mdb.Spec.Replicas)
+	for i := 0; i < int(mdb.Spec.Replicas); i++ {
+		name := stsobj.PodName(mdb.ObjectMeta, i)
+		address := stsobj.PodFQDNWithService(mdb.ObjectMeta, i, mdb.InternalServiceKey().Name)
+
+		servers[i] = mariadbv1alpha1.MaxScaleServer{
+			Name:    name,
+			Address: address,
+			Port:    mdb.Spec.Port,
+		}
+	}
+
+	monitorModule := mariadbv1alpha1.MonitorModuleMariadb
+	if mdb.Galera().Enabled {
+		monitorModule = mariadbv1alpha1.MonitorModuleGalera
+	}
+
+	return r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
+		mxs.Spec.Servers = servers
+		mxs.Spec.Monitor.Module = monitorModule
 	})
 }
 
@@ -496,6 +534,9 @@ func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv
 }
 
 func (r *MaxScaleReconciler) reconcileSync(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if !req.mxs.IsHAEnabled() {
+		return ctrl.Result{}, nil
+	}
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		isSynced, err := r.reconcileSyncInPod(ctx, req.mxs, podName, client)
 		if err != nil {
