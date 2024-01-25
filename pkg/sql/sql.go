@@ -107,7 +107,7 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 		WithUsername("root"),
 		WithPassword(password),
 		WitHost(func() string {
-			if mariadb.Replication().Enabled {
+			if mariadb.IsHAEnabled() {
 				return statefulset.ServiceFQDNWithService(
 					mariadb.ObjectMeta,
 					mariadb.PrimaryServiceKey().Name,
