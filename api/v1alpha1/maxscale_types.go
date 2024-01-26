@@ -411,14 +411,6 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
-	// MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
-	// Servers are the MariaDB servers to forward traffic to.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Servers []MaxScaleServer `json:"servers"`
 	// Services define how the traffic is forwarded to the MariaDB servers.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -459,6 +451,22 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
+}
+
+// MaxScaleSpec defines the desired state of MaxScale.
+type MaxScaleSpec struct {
+	// MaxScaleBaseSpec defines the base specification for MaxScale.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MaxScaleBaseSpec `json:",inline"`
+	// MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
+	// Servers are the MariaDB servers to forward traffic to.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Servers []MaxScaleServer `json:"servers"`
 }
 
 // MaxScaleAPIStatus is the state of the servers in the MaxScale API.
