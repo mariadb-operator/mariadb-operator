@@ -30,17 +30,24 @@ func NewAuthReconciler(client client.Client, builder *builder.Builder) *AuthReco
 	}
 }
 
+type GrantOpts struct {
+	builder.GrantOpts
+	Key types.NamespacedName
+}
+
 func (r *AuthReconciler) ReconcileUserGrant(ctx context.Context, key types.NamespacedName, owner metav1.Object,
-	userOpts builder.UserOpts, grantOpts builder.GrantOpts) (ctrl.Result, error) {
+	userOpts builder.UserOpts, grantOpts ...GrantOpts) (ctrl.Result, error) {
 	if err := r.ReconcileUser(ctx, key, owner, userOpts); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling User: %v", err)
 	}
-	if len(grantOpts.Privileges) > 0 {
-		if result, err := r.waitForUser(ctx, key); !result.IsZero() || err != nil {
-			return result, err
-		}
-		if err := r.ReconcileGrant(ctx, key, owner, grantOpts); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling Grant: %v", err)
+	if result, err := r.waitForUser(ctx, key); !result.IsZero() || err != nil {
+		return result, err
+	}
+	for _, gops := range grantOpts {
+		if len(gops.Privileges) > 0 {
+			if err := r.ReconcileGrant(ctx, gops.Key, owner, gops.GrantOpts); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error reconciling Grant: %v", err)
+			}
 		}
 	}
 	return ctrl.Result{}, nil
