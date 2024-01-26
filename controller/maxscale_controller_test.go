@@ -24,23 +24,25 @@ var _ = Describe("MaxScale controller", func() {
 					Namespace: testDefaultKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MaxScaleSpec{
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name:   "rw-router",
+								Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+								Listener: mariadbv1alpha1.MaxScaleListener{
+									Port: 3306,
+								},
+							},
+						},
+						Monitor: mariadbv1alpha1.MaxScaleMonitor{
+							Module: mariadbv1alpha1.MonitorModuleMariadb,
+						},
+					},
 					Servers: []mariadbv1alpha1.MaxScaleServer{
 						{
 							Name:    "mariadb-0",
 							Address: "mariadb-0.mariadb-internal.default.svc.cluster.local",
 						},
-					},
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name:   "rw-router",
-							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
-							Listener: mariadbv1alpha1.MaxScaleListener{
-								Port: 3306,
-							},
-						},
-					},
-					Monitor: mariadbv1alpha1.MaxScaleMonitor{
-						Module: mariadbv1alpha1.MonitorModuleMariadb,
 					},
 				},
 			}
@@ -70,23 +72,25 @@ var _ = Describe("MaxScale controller", func() {
 					Namespace: testMaxScaleKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MaxScaleSpec{
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name:   "rw-router",
+								Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+								Listener: mariadbv1alpha1.MaxScaleListener{
+									Port: 3306,
+								},
+							},
+						},
+						Monitor: mariadbv1alpha1.MaxScaleMonitor{
+							Module: mariadbv1alpha1.MonitorModuleMariadb,
+						},
+					},
 					Servers: []mariadbv1alpha1.MaxScaleServer{
 						{
 							Name:    "mariadb-0",
 							Address: "mariadb-0.mariadb-internal.default.svc.cluster.local",
 						},
-					},
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name:   "rw-router",
-							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
-							Listener: mariadbv1alpha1.MaxScaleListener{
-								Port: 3306,
-							},
-						},
-					},
-					Monitor: mariadbv1alpha1.MaxScaleMonitor{
-						Module: mariadbv1alpha1.MonitorModuleMariadb,
 					},
 				},
 			}

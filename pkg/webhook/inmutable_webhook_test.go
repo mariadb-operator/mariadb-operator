@@ -64,16 +64,20 @@ func TestInmutableWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Monitor: mariadbv1alpha1.MaxScaleMonitor{
-						Interval: metav1.Duration{Duration: 2 * time.Second},
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Monitor: mariadbv1alpha1.MaxScaleMonitor{
+							Interval: metav1.Duration{Duration: 2 * time.Second},
+						},
 					},
 				},
 			},
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Monitor: mariadbv1alpha1.MaxScaleMonitor{
-						Interval: metav1.Duration{Duration: 5 * time.Second},
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Monitor: mariadbv1alpha1.MaxScaleMonitor{
+							Interval: metav1.Duration{Duration: 5 * time.Second},
+						},
 					},
 				},
 			},
@@ -84,16 +88,20 @@ func TestInmutableWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Monitor: mariadbv1alpha1.MaxScaleMonitor{
-						Module: mariadbv1alpha1.MonitorModuleMariadb,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Monitor: mariadbv1alpha1.MaxScaleMonitor{
+							Module: mariadbv1alpha1.MonitorModuleMariadb,
+						},
 					},
 				},
 			},
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Monitor: mariadbv1alpha1.MaxScaleMonitor{
-						Module: mariadbv1alpha1.MonitorModuleGalera,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Monitor: mariadbv1alpha1.MaxScaleMonitor{
+							Module: mariadbv1alpha1.MonitorModuleGalera,
+						},
 					},
 				},
 			},
@@ -144,11 +152,13 @@ func TestInmutableWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name: "foo",
-							Params: map[string]string{
-								"test": "foo",
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name: "foo",
+								Params: map[string]string{
+									"test": "foo",
+								},
 							},
 						},
 					},
@@ -157,11 +167,13 @@ func TestInmutableWebhook(t *testing.T) {
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name: "foo",
-							Params: map[string]string{
-								"test": "bar",
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name: "foo",
+								Params: map[string]string{
+									"test": "bar",
+								},
 							},
 						},
 					},
@@ -174,10 +186,12 @@ func TestInmutableWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name:   "foo",
-							Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name:   "foo",
+								Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
+							},
 						},
 					},
 				},
@@ -185,10 +199,12 @@ func TestInmutableWebhook(t *testing.T) {
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name:   "foo",
-							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name:   "foo",
+								Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+							},
 						},
 					},
 				},
@@ -200,10 +216,12 @@ func TestInmutableWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name:   "foo",
-							Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name:   "foo",
+								Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
+							},
 						},
 					},
 				},
@@ -211,14 +229,16 @@ func TestInmutableWebhook(t *testing.T) {
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name:   "foo",
-							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
-						},
-						{
-							Name:   "bar",
-							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name:   "foo",
+								Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+							},
+							{
+								Name:   "bar",
+								Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+							},
 						},
 					},
 				},
@@ -230,11 +250,13 @@ func TestInmutableWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name: "foo",
-							Listener: mariadbv1alpha1.MaxScaleListener{
-								Protocol: "foo",
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name: "foo",
+								Listener: mariadbv1alpha1.MaxScaleListener{
+									Protocol: "foo",
+								},
 							},
 						},
 					},
@@ -243,11 +265,13 @@ func TestInmutableWebhook(t *testing.T) {
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name: "foo",
-							Listener: mariadbv1alpha1.MaxScaleListener{
-								Protocol: "bar",
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name: "foo",
+								Listener: mariadbv1alpha1.MaxScaleListener{
+									Protocol: "bar",
+								},
 							},
 						},
 					},
@@ -260,11 +284,13 @@ func TestInmutableWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name: "foo",
-							Listener: mariadbv1alpha1.MaxScaleListener{
-								Port: 1234,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name: "foo",
+								Listener: mariadbv1alpha1.MaxScaleListener{
+									Port: 1234,
+								},
 							},
 						},
 					},
@@ -273,11 +299,13 @@ func TestInmutableWebhook(t *testing.T) {
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name: "foo",
-							Listener: mariadbv1alpha1.MaxScaleListener{
-								Port: 5678,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name: "foo",
+								Listener: mariadbv1alpha1.MaxScaleListener{
+									Port: 5678,
+								},
 							},
 						},
 					},
@@ -489,16 +517,20 @@ func TestInmutableWebhookError(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Monitor: mariadbv1alpha1.MaxScaleMonitor{
-						Module: mariadbv1alpha1.MonitorModuleMariadb,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Monitor: mariadbv1alpha1.MaxScaleMonitor{
+							Module: mariadbv1alpha1.MonitorModuleMariadb,
+						},
 					},
 				},
 			},
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Monitor: mariadbv1alpha1.MaxScaleMonitor{
-						Module: mariadbv1alpha1.MonitorModuleGalera,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Monitor: mariadbv1alpha1.MaxScaleMonitor{
+							Module: mariadbv1alpha1.MonitorModuleGalera,
+						},
 					},
 				},
 			},
@@ -511,10 +543,12 @@ func TestInmutableWebhookError(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name:   "foo",
-							Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name:   "foo",
+								Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
+							},
 						},
 					},
 				},
@@ -522,10 +556,12 @@ func TestInmutableWebhookError(t *testing.T) {
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name:   "foo",
-							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name:   "foo",
+								Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+							},
 						},
 					},
 				},
@@ -539,11 +575,13 @@ func TestInmutableWebhookError(t *testing.T) {
 			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name: "foo",
-							Listener: mariadbv1alpha1.MaxScaleListener{
-								Port: 1234,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name: "foo",
+								Listener: mariadbv1alpha1.MaxScaleListener{
+									Port: 1234,
+								},
 							},
 						},
 					},
@@ -552,11 +590,13 @@ func TestInmutableWebhookError(t *testing.T) {
 			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Services: []mariadbv1alpha1.MaxScaleService{
-						{
-							Name: "foo",
-							Listener: mariadbv1alpha1.MaxScaleListener{
-								Port: 5678,
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						Services: []mariadbv1alpha1.MaxScaleService{
+							{
+								Name: "foo",
+								Listener: mariadbv1alpha1.MaxScaleListener{
+									Port: 5678,
+								},
 							},
 						},
 					},
