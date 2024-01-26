@@ -46,6 +46,7 @@ type GrantOpts struct {
 	Database    string
 	Table       string
 	Username    string
+	Host        string
 	GrantOption bool
 	MariaDB     *mariadbv1alpha1.MariaDB
 	MariaDBRef  mariadbv1alpha1.MariaDBRef
@@ -66,6 +67,9 @@ func (b *Builder) BuildGrant(key types.NamespacedName, owner metav1.Object, opts
 			Username:    opts.Username,
 			GrantOption: opts.GrantOption,
 		},
+	}
+	if opts.Host != "" {
+		grant.Spec.Host = &opts.Host
 	}
 	if err := controllerutil.SetControllerReference(owner, grant, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Grant: %v", err)

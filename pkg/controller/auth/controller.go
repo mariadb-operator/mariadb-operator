@@ -45,7 +45,7 @@ func (r *AuthReconciler) ReconcileUserGrant(ctx context.Context, key types.Names
 	}
 	for _, gops := range grantOpts {
 		if len(gops.Privileges) > 0 {
-			if err := r.ReconcileGrant(ctx, gops.Key, owner, gops.GrantOpts); err != nil {
+			if err := r.ReconcileGrant(ctx, gops.Key, key, owner, gops.GrantOpts); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error reconciling Grant: %v", err)
 			}
 		}
@@ -66,10 +66,10 @@ func (r *AuthReconciler) ReconcileUser(ctx context.Context, key types.Namespaced
 	return nil
 }
 
-func (r *AuthReconciler) ReconcileGrant(ctx context.Context, key types.NamespacedName, owner metav1.Object,
+func (r *AuthReconciler) ReconcileGrant(ctx context.Context, key, userKey types.NamespacedName, owner metav1.Object,
 	grantOpts builder.GrantOpts) error {
 	var user mariadbv1alpha1.User
-	if err := r.Get(ctx, key, &user); err != nil {
+	if err := r.Get(ctx, userKey, &user); err != nil {
 		return err
 	}
 

@@ -56,6 +56,15 @@ rules:
   - ""
   resources:
   - endpoints
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - endpoints/restricted
   verbs:
   - create
@@ -137,6 +146,18 @@ rules:
   - patch
   - watch
 - apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
   - batch
   resources:
   - cronjobs
@@ -196,7 +217,9 @@ rules:
   - mariadb.mmontes.io
   resources:
   - connections
+  - grants
   - restores
+  - users
   verbs:
   - create
   - list
@@ -257,6 +280,16 @@ rules:
 - apiGroups:
   - mariadb.mmontes.io
   resources:
+  - grants
+  - users
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
   - grants/finalizers
   verbs:
   - update
@@ -290,6 +323,32 @@ rules:
   - mariadb.mmontes.io
   resources:
   - mariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - maxscales
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - maxscales/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - maxscales/status
   verbs:
   - get
   - patch
@@ -373,6 +432,15 @@ rules:
   - patch
   - update
 - apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
   - policy
   resources:
   - poddisruptionbudgets
@@ -387,15 +455,6 @@ rules:
   - clusterrolebindings
   - rolebindings
   - roles
-  verbs:
-  - create
-  - list
-  - patch
-  - watch
-- apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - servicemonitors
   verbs:
   - create
   - list

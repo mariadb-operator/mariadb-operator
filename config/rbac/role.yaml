@@ -180,7 +180,9 @@ rules:
   - mariadb.mmontes.io
   resources:
   - connections
+  - grants
   - restores
+  - users
   verbs:
   - create
   - list
@@ -237,6 +239,16 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - grants
+  - users
+  verbs:
+  - create
+  - list
+  - patch
   - watch
 - apiGroups:
   - mariadb.mmontes.io

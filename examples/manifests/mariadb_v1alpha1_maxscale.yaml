@@ -44,24 +44,9 @@ spec:
     port: 8989
     guiEnabled: true
 
-  # TODO: create User and Grants in the operator
   auth:
-    adminUsername: mariadb-operator
-    adminPasswordSecretKeyRef:
-      name: maxscale
-      key: password
-    clientUsername: maxscale-client
-    clientPasswordSecretKeyRef:
-      name: maxscale
-      key: password
-    serverUsername: maxscale-server
-    serverPasswordSecretKeyRef:
-      name: maxscale
-      key: password
-    monitorUsername: maxscale-monitor
-    monitorPasswordSecretKeyRef:
-      name: maxscale
-      key: password
+    generate:
+      enabled: true
 
   kubernetesService:
     type: LoadBalancer
