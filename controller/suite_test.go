@@ -9,6 +9,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
@@ -115,6 +116,7 @@ var _ = BeforeSuite(func() {
 	serviceReconciler := service.NewServiceReconciler(client)
 	endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
 	batchReconciler := batch.NewBatchReconciler(client, builder)
+	authReconciler := auth.NewAuthReconciler(client, builder)
 	rbacReconciler := rbac.NewRBACReconiler(client, builder)
 	deployReconciler := deployment.NewDeploymentReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
@@ -181,6 +183,7 @@ var _ = BeforeSuite(func() {
 		ServiceReconciler:        serviceReconciler,
 		EndpointsReconciler:      endpointsReconciler,
 		RBACReconciler:           rbacReconciler,
+		AuthReconciler:           authReconciler,
 		DeploymentReconciler:     deployReconciler,
 		ServiceMonitorReconciler: svcMonitorReconciler,
 

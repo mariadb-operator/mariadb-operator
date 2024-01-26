@@ -5,68 +5,61 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type UserOpts struct {
-	Key                  types.NamespacedName
+	Name                 string
 	PasswordSecretKeyRef v1.SecretKeySelector
 	MaxUserConnections   int32
-	Name                 string
+	MariaDB              *mariadbv1alpha1.MariaDB
+	MariaDBRef           mariadbv1alpha1.MariaDBRef
 }
 
-func (b *Builder) BuildUser(mariadb *mariadbv1alpha1.MariaDB, opts UserOpts) (*mariadbv1alpha1.User, error) {
+func (b *Builder) BuildUser(key types.NamespacedName, owner metav1.Object, opts UserOpts) (*mariadbv1alpha1.User, error) {
 	objMeta :=
-		metadata.NewMetadataBuilder(opts.Key).
-			WithMariaDB(mariadb).
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(opts.MariaDB).
 			Build()
 	user := &mariadbv1alpha1.User{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.UserSpec{
-			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
-					Name: mariadb.Name,
-				},
-				WaitForIt: true,
-			},
-			PasswordSecretKeyRef: opts.PasswordSecretKeyRef,
-			MaxUserConnections:   opts.MaxUserConnections,
+			MariaDBRef:           opts.MariaDBRef,
 			Name:                 opts.Name,
+			PasswordSecretKeyRef: opts.PasswordSecretKeyRef,
 		},
 	}
-	if err := controllerutil.SetControllerReference(mariadb, user, b.scheme); err != nil {
+	if opts.MaxUserConnections > 0 {
+		user.Spec.MaxUserConnections = opts.MaxUserConnections
+	}
+	if err := controllerutil.SetControllerReference(owner, user, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to User: %v", err)
 	}
-
 	return user, nil
 }
 
 type GrantOpts struct {
-	Key         types.NamespacedName
 	Privileges  []string
 	Database    string
 	Table       string
 	Username    string
 	GrantOption bool
+	MariaDB     *mariadbv1alpha1.MariaDB
+	MariaDBRef  mariadbv1alpha1.MariaDBRef
 }
 
-func (b *Builder) BuildGrant(mariadb *mariadbv1alpha1.MariaDB, opts GrantOpts) (*mariadbv1alpha1.Grant, error) {
+func (b *Builder) BuildGrant(key types.NamespacedName, owner metav1.Object, opts GrantOpts) (*mariadbv1alpha1.Grant, error) {
 	objMeta :=
-		metadata.NewMetadataBuilder(opts.Key).
-			WithMariaDB(mariadb).
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(opts.MariaDB).
 			Build()
 	grant := &mariadbv1alpha1.Grant{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.GrantSpec{
-			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
-					Name: mariadb.Name,
-				},
-				WaitForIt: true,
-			},
+			MariaDBRef:  opts.MariaDBRef,
 			Privileges:  opts.Privileges,
 			Database:    opts.Database,
 			Table:       opts.Table,
@@ -74,9 +67,8 @@ func (b *Builder) BuildGrant(mariadb *mariadbv1alpha1.MariaDB, opts GrantOpts) (
 			GrantOption: opts.GrantOption,
 		},
 	}
-	if err := controllerutil.SetControllerReference(mariadb, grant, b.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(owner, grant, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Grant: %v", err)
 	}
-
 	return grant, nil
 }

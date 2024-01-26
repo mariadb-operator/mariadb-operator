@@ -13,7 +13,6 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -50,10 +49,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 	if err := r.reconcileMetricsPassword(ctx, mariadb); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.reconcileMetricsUser(ctx, mariadb); err != nil {
-		return ctrl.Result{}, err
-	}
-	if result, err := r.reconcileMetricsGrant(ctx, mariadb); !result.IsZero() || err != nil {
+	if result, err := r.reconcileAuth(ctx, mariadb); !result.IsZero() || err != nil {
 		return result, err
 	}
 	if err := r.reconcileExporterConfig(ctx, mariadb); err != nil {
@@ -86,58 +82,31 @@ func (r *MariaDBReconciler) reconcileMetricsPassword(ctx context.Context, mariad
 	return err
 }
 
-func (r *MariaDBReconciler) reconcileMetricsUser(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := mariadb.MetricsKey()
-	var existingUser mariadbv1alpha1.User
-	if err := r.Get(ctx, key, &existingUser); err == nil {
-		return nil
+	ref := mariadbv1alpha1.MariaDBRef{
+		ObjectReference: corev1.ObjectReference{
+			Name:      mariadb.Name,
+			Namespace: mariadb.Namespace,
+		},
 	}
-
-	opts := builder.UserOpts{
-		Key:                  key,
+	userOpts := builder.UserOpts{
+		Name:                 mariadb.Spec.Metrics.Username,
 		PasswordSecretKeyRef: mariadb.Spec.Metrics.PasswordSecretKeyRef,
 		MaxUserConnections:   3,
-		Name:                 mariadb.Spec.Metrics.Username,
+		MariaDB:              mariadb,
+		MariaDBRef:           ref,
 	}
-	user, err := r.Builder.BuildUser(mariadb, opts)
-	if err != nil {
-		return fmt.Errorf("error building User: %v", err)
-	}
-	return r.Create(ctx, user)
-}
-
-func (r *MariaDBReconciler) reconcileMetricsGrant(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	key := mariadb.MetricsKey()
-
-	var user mariadbv1alpha1.User
-	if err := r.Get(ctx, key, &user); err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-		}
-		return ctrl.Result{}, fmt.Errorf("error getting metrics User: %v", err)
-	}
-	if !user.IsReady() {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-
-	var existingGrant mariadbv1alpha1.Grant
-	if err := r.Get(ctx, key, &existingGrant); err == nil {
-		return ctrl.Result{}, nil
-	}
-
-	opts := builder.GrantOpts{
-		Key:         key,
+	grantOpts := builder.GrantOpts{
 		Privileges:  exporterPrivileges,
 		Database:    "*",
 		Table:       "*",
 		Username:    mariadb.Spec.Metrics.Username,
 		GrantOption: false,
+		MariaDB:     mariadb,
+		MariaDBRef:  ref,
 	}
-	grant, err := r.Builder.BuildGrant(mariadb, opts)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error building metrics Grant: %v", err)
-	}
-	return ctrl.Result{}, r.Create(ctx, grant)
+	return r.AuthReconciler.ReconcileUserGrant(ctx, key, mariadb, userOpts, grantOpts)
 }
 
 func (r *MariaDBReconciler) reconcileExporterConfig(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

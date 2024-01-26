@@ -12,6 +12,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/controller"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
@@ -159,6 +160,7 @@ var rootCmd = &cobra.Command{
 		endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
 		batchReconciler := batch.NewBatchReconciler(client, builder)
 		rbacReconciler := rbac.NewRBACReconiler(client, builder)
+		authReconciler := auth.NewAuthReconciler(client, builder)
 		deployReconciler := deployment.NewDeploymentReconciler(client)
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 
@@ -224,6 +226,7 @@ var rootCmd = &cobra.Command{
 			ServiceReconciler:        serviceReconciler,
 			EndpointsReconciler:      endpointsReconciler,
 			RBACReconciler:           rbacReconciler,
+			AuthReconciler:           authReconciler,
 			DeploymentReconciler:     deployReconciler,
 			ServiceMonitorReconciler: svcMonitorReconciler,
 
