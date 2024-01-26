@@ -11,6 +11,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -97,14 +98,17 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 		MariaDB:              mariadb,
 		MariaDBRef:           ref,
 	}
-	grantOpts := builder.GrantOpts{
-		Privileges:  exporterPrivileges,
-		Database:    "*",
-		Table:       "*",
-		Username:    mariadb.Spec.Metrics.Username,
-		GrantOption: false,
-		MariaDB:     mariadb,
-		MariaDBRef:  ref,
+	grantOpts := auth.GrantOpts{
+		GrantOpts: builder.GrantOpts{
+			Privileges:  exporterPrivileges,
+			Database:    "*",
+			Table:       "*",
+			Username:    mariadb.Spec.Metrics.Username,
+			GrantOption: false,
+			MariaDB:     mariadb,
+			MariaDBRef:  ref,
+		},
+		Key: key,
 	}
 	return r.AuthReconciler.ReconcileUserGrant(ctx, key, mariadb, userOpts, grantOpts)
 }
