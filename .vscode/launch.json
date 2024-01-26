@@ -12,7 +12,7 @@
       "program": "cmd/controller",
       "args": [
         "--log-dev",
-        "--log-level=debug",
+        "--log-level=info",
         "--log-time-encoder=iso8601",
       ],
       "env": {
@@ -33,7 +33,7 @@
       "program": "cmd/enterprise",
       "args": [
         "--log-dev",
-        "--log-level=debug",
+        "--log-level=info",
         "--log-time-encoder=iso8601",
       ],
       "env": {
@@ -55,7 +55,7 @@
       "args": [
         "webhook",
         "--log-dev",
-        "--log-level=debug",
+        "--log-level=info",
         "--log-time-encoder=iso8601",
       ],
     },
@@ -68,7 +68,7 @@
       "args": [
         "cert-controller",
         "--log-dev",
-        "--log-level=debug",
+        "--log-level=info",
         "--log-time-encoder=iso8601",
       ],
     },
@@ -90,7 +90,7 @@
         "--s3-tls",
         "--s3-ca-cert-path=/tmp/certificate-authority/tls.crt",
         "--log-dev",
-        "--log-level=debug",
+        "--log-level=info",
         "--log-time-encoder=iso8601",
       ],
       "env": {
@@ -118,7 +118,7 @@
         "--s3-tls",
         "--s3-ca-cert-path=/tmp/certificate-authority/tls.crt",
         "--log-dev",
-        "--log-level=debug",
+        "--log-level=info",
         "--log-time-encoder=iso8601",
       ],
       "env": {

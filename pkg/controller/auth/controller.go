@@ -36,7 +36,7 @@ func (r *AuthReconciler) ReconcileUserGrant(ctx context.Context, key types.Names
 		return ctrl.Result{}, fmt.Errorf("error reconciling User: %v", err)
 	}
 	if len(grantOpts.Privileges) > 0 {
-		if result, err := r.waitForUser(ctx, key); !result.IsZero() || err == nil {
+		if result, err := r.waitForUser(ctx, key); !result.IsZero() || err != nil {
 			return result, err
 		}
 		if err := r.ReconcileGrant(ctx, key, owner, grantOpts); err != nil {
@@ -91,7 +91,8 @@ func (r *AuthReconciler) waitForUser(ctx context.Context, key types.NamespacedNa
 	var user mariadbv1alpha1.User
 	if err := r.Get(ctx, key, &user); err != nil {
 		if apierrors.IsNotFound(err) {
-			logger.V(1).Info("User not ready. Requeuing", "user", key.Name)
+			logger.V(1).Info("User not found. Requeuing", "user", key.Name)
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 		return ctrl.Result{}, err
 	}
