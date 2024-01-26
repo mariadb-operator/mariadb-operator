@@ -255,6 +255,38 @@ var _ = Describe("MaxScale webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid auth generate",
+				&MaxScale{
+					ObjectMeta: meta,
+					Spec: MaxScaleSpec{
+						Servers: []MaxScaleServer{
+							{
+								Name:    "mariadb-0",
+								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
+							},
+						},
+						Services: []MaxScaleService{
+							{
+								Name:   "rw-router",
+								Router: ServiceRouterReadWriteSplit,
+								Listener: MaxScaleListener{
+									Port: 3306,
+								},
+							},
+						},
+						Monitor: MaxScaleMonitor{
+							Module: MonitorModuleMariadb,
+						},
+						Auth: MaxScaleAuth{
+							Generate: MaxScaleAuthGenerate{
+								Enabled: true,
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid PodDisruptionBudget",
 				&MaxScale{
 					ObjectMeta: meta,
@@ -392,6 +424,11 @@ var _ = Describe("MaxScale webhook", func() {
 					},
 					Admin: MaxScaleAdmin{
 						Port: 8989,
+					},
+					Auth: MaxScaleAuth{
+						Generate: MaxScaleAuthGenerate{
+							Enabled: false,
+						},
 					},
 					KubernetesService: &ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,

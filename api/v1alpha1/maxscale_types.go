@@ -286,7 +286,7 @@ func (m *MaxScaleConfig) SetDefaults(mxs *MaxScale) {
 	}
 }
 
-// MaxScaleAuth defines if and how the operator should generate users and grants for MaxScale to work.
+// MaxScaleAuth defies whether the operator should generate users and grants for MaxScale to work.
 // It only supports in cluster MariaDBs specified via spec.mariaDbRef.
 type MaxScaleAuthGenerate struct {
 	// Enabled is a flag that indicates whether auth generation is enabled.
@@ -297,7 +297,7 @@ type MaxScaleAuthGenerate struct {
 
 // MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB.
 type MaxScaleAuth struct {
-	// Generate defines if and how the operator should generate users and grants for MaxScale to work.
+	// Generate  defies whether the operator should generate users and grants for MaxScale to work.
 	// It only supports in cluster MariaDBs specified via spec.mariaDbRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

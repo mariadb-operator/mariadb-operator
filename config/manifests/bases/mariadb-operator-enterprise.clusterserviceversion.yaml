@@ -1576,6 +1576,16 @@ spec:
           to true.
         displayName: Delete Default Admin
         path: auth.deleteDefaultAdmin
+      - description: Generate  defies whether the operator should generate users and
+          grants for MaxScale to work. It only supports in cluster MariaDBs specified
+          via spec.mariaDbRef.
+        displayName: Generate
+        path: auth.generate
+      - description: Enabled is a flag that indicates whether auth generation is enabled.
+        displayName: Enabled
+        path: auth.generate.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: MonitorPasswordSecretKeyRef is Secret key reference to the password
           used by MaxScale monitor to connect to MariaDB server. It is defaulted if
           not provided.
