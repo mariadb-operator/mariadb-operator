@@ -10,6 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
@@ -57,6 +58,7 @@ type MariaDBReconciler struct {
 	ServiceReconciler        *service.ServiceReconciler
 	EndpointsReconciler      *endpoints.EndpointsReconciler
 	RBACReconciler           *rbac.RBACReconciler
+	AuthReconciler           *auth.AuthReconciler
 	DeploymentReconciler     *deployment.DeploymentReconciler
 	ServiceMonitorReconciler *servicemonitor.ServiceMonitorReconciler
 
