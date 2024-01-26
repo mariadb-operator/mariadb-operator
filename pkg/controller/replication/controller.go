@@ -51,7 +51,7 @@ type ReplicationReconciler struct {
 }
 
 func NewReplicationReconciler(client client.Client, recorder record.EventRecorder, builder *builder.Builder, replConfig *ReplicationConfig,
-	opts ...Option) *ReplicationReconciler {
+	opts ...Option) (*ReplicationReconciler, error) {
 	r := &ReplicationReconciler{
 		Client:     client,
 		recorder:   recorder,
@@ -65,12 +65,16 @@ func NewReplicationReconciler(client client.Client, recorder record.EventRecorde
 		r.refResolver = refresolver.New(client)
 	}
 	if r.secretReconciler == nil {
-		r.secretReconciler = secret.NewSecretReconciler(client, builder)
+		reconciler, err := secret.NewSecretReconciler(client, builder)
+		if err != nil {
+			return nil, err
+		}
+		r.secretReconciler = reconciler
 	}
 	if r.serviceReconciler == nil {
 		r.serviceReconciler = service.NewServiceReconciler(client)
 	}
-	return r
+	return r, nil
 }
 
 type reconcileRequest struct {

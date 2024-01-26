@@ -164,8 +164,12 @@ var rootCmd = &cobra.Command{
 		conditionReady := condition.NewReady()
 		conditionComplete := condition.NewComplete(client)
 
+		secretReconciler, err := secret.NewSecretReconciler(client, builder)
+		if err != nil {
+			setupLog.Error(err, "Error creating Secret reconciler")
+			os.Exit(1)
+		}
 		configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
-		secretReconciler := secret.NewSecretReconciler(client, builder)
 		statefulSetReconciler := statefulset.NewStatefulSetReconciler(client)
 		serviceReconciler := service.NewServiceReconciler(client)
 		endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
@@ -176,7 +180,7 @@ var rootCmd = &cobra.Command{
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
-		replicationReconciler := replication.NewReplicationReconciler(
+		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
 			replRecorder,
 			builder,
@@ -185,6 +189,10 @@ var rootCmd = &cobra.Command{
 			replication.WithSecretReconciler(secretReconciler),
 			replication.WithServiceReconciler(serviceReconciler),
 		)
+		if err != nil {
+			setupLog.Error(err, "Error creating Replication reconciler")
+			os.Exit(1)
+		}
 		galeraReconciler := galera.NewGaleraReconciler(
 			client,
 			galeraRecorder,

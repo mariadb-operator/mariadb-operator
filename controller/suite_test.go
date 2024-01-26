@@ -110,8 +110,9 @@ var _ = BeforeSuite(func() {
 	conditionReady := condition.NewReady()
 	conditionComplete := condition.NewComplete(client)
 
+	secretReconciler, err := secret.NewSecretReconciler(client, builder)
+	Expect(err).ToNot(HaveOccurred())
 	configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
-	secretReconciler := secret.NewSecretReconciler(client, builder)
 	statefulSetReconciler := statefulset.NewStatefulSetReconciler(client)
 	serviceReconciler := service.NewServiceReconciler(client)
 	endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
@@ -122,7 +123,7 @@ var _ = BeforeSuite(func() {
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
-	replicationReconciler := replication.NewReplicationReconciler(
+	replicationReconciler, err := replication.NewReplicationReconciler(
 		client,
 		replRecorder,
 		builder,
@@ -131,6 +132,7 @@ var _ = BeforeSuite(func() {
 		replication.WithSecretReconciler(secretReconciler),
 		replication.WithServiceReconciler(serviceReconciler),
 	)
+	Expect(err).ToNot(HaveOccurred())
 	galeraReconciler := galera.NewGaleraReconciler(
 		client,
 		galeraRecorder,
