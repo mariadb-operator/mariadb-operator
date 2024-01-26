@@ -955,6 +955,16 @@ spec:
                       admin user should be deleted after the initial configuration.
                       If not provided, it defaults to true.
                     type: boolean
+                  generate:
+                    description: Generate  defies whether the operator should generate
+                      users and grants for MaxScale to work. It only supports in cluster
+                      MariaDBs specified via spec.mariaDbRef.
+                    properties:
+                      enabled:
+                        description: Enabled is a flag that indicates whether auth
+                          generation is enabled.
+                        type: boolean
+                    type: object
                   monitorPasswordSecretKeyRef:
                     description: MonitorPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale monitor to connect to MariaDB

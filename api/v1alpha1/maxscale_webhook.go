@@ -69,6 +69,13 @@ func (r *MaxScale) ValidateDelete() (admission.Warnings, error) {
 }
 
 func (r *MaxScale) validateAuth() error {
+	if r.Spec.Auth.Generate.Enabled && r.Spec.MariaDBRef == nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("auth").Child("generate").Child("enabled"),
+			r.Spec.MariaDBRef,
+			"'spec.auth.generate.enabled' can only be enabled when 'spec.mariaDbRef' is set",
+		)
+	}
 	return nil
 }
 

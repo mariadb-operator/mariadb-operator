@@ -618,6 +618,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `generate` _[MaxScaleAuthGenerate](#maxscaleauthgenerate)_ | Generate  defies whether the operator should generate users and grants for MaxScale to work. It only supports in cluster MariaDBs specified via spec.mariaDbRef. |
 | `adminUsername` _string_ | AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided. |
 | `adminPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admib REST API. It is defaulted if not provided. |
 | `deleteDefaultAdmin` _boolean_ | DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true. |
@@ -629,6 +630,20 @@ _Appears in:_
 | `monitorPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided. |
 | `syncUsername` _string_ | MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled. |
 | `syncPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled. |
+
+
+#### MaxScaleAuthGenerate
+
+
+
+MaxScaleAuth defies whether the operator should generate users and grants for MaxScale to work. It only supports in cluster MariaDBs specified via spec.mariaDbRef.
+
+_Appears in:_
+- [MaxScaleAuth](#maxscaleauth)
+
+| Field | Description |
+| --- | --- |
+| `enabled` _boolean_ | Enabled is a flag that indicates whether auth generation is enabled. |
 
 
 #### MaxScaleConfig
