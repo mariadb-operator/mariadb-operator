@@ -427,8 +427,9 @@ var _ = Describe("MaxScale webhook", func() {
 					},
 					Auth: MaxScaleAuth{
 						Generate: MaxScaleAuthGenerate{
-							Enabled: false,
+							Enabled: true,
 						},
+						AdminUsername: "foo",
 					},
 					KubernetesService: &ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
@@ -535,11 +536,18 @@ var _ = Describe("MaxScale webhook", func() {
 				false,
 			),
 			Entry(
+				"Updating Auth generate",
+				func(mxs *MaxScale) {
+					mxs.Spec.Auth.Generate.Enabled = false
+				},
+				true,
+			),
+			Entry(
 				"Updating Auth",
 				func(mxs *MaxScale) {
-					mxs.Spec.Auth.AdminUsername = "foo"
+					mxs.Spec.Auth.AdminUsername = "bar"
 				},
-				false,
+				true,
 			),
 			Entry(
 				"Updating Replicas",

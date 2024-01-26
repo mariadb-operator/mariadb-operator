@@ -292,7 +292,7 @@ type MaxScaleAuthGenerate struct {
 	// Enabled is a flag that indicates whether auth generation is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled,omitempty" webhook:"inmutable"`
 }
 
 // MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB.
@@ -301,51 +301,51 @@ type MaxScaleAuth struct {
 	// It only supports in cluster MariaDBs specified via spec.mariaDbRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Generate MaxScaleAuthGenerate `json:"generate,omitempty"`
+	Generate MaxScaleAuthGenerate `json:"generate,omitempty" webhook:"inmutable"`
 	// AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AdminUsername string `json:"adminUsername,omitempty"`
+	AdminUsername string `json:"adminUsername,omitempty" webhook:"inmutableinit"`
 	// AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admib REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AdminPasswordSecretKeyRef corev1.SecretKeySelector `json:"adminPasswordSecretKeyRef,omitempty"`
+	AdminPasswordSecretKeyRef corev1.SecretKeySelector `json:"adminPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	DeleteDefaultAdmin *bool `json:"deleteDefaultAdmin,omitempty"`
+	DeleteDefaultAdmin *bool `json:"deleteDefaultAdmin,omitempty" webhook:"inmutableinit"`
 	// ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ClientUsername string `json:"clientUsername,omitempty"`
+	ClientUsername string `json:"clientUsername,omitempty" webhook:"inmutableinit"`
 	// ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ClientPasswordSecretKeyRef corev1.SecretKeySelector `json:"clientPasswordSecretKeyRef,omitempty"`
+	ClientPasswordSecretKeyRef corev1.SecretKeySelector `json:"clientPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ServerUsername string `json:"serverUsername,omitempty"`
+	ServerUsername string `json:"serverUsername,omitempty" webhook:"inmutableinit"`
 	// ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ServerPasswordSecretKeyRef corev1.SecretKeySelector `json:"serverPasswordSecretKeyRef,omitempty"`
+	ServerPasswordSecretKeyRef corev1.SecretKeySelector `json:"serverPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MonitorUsername string `json:"monitorUsername,omitempty"`
+	MonitorUsername string `json:"monitorUsername,omitempty" webhook:"inmutableinit"`
 	// MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MonitorPasswordSecretKeyRef corev1.SecretKeySelector `json:"monitorPasswordSecretKeyRef,omitempty"`
+	MonitorPasswordSecretKeyRef corev1.SecretKeySelector `json:"monitorPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SyncUsername string `json:"syncUsername,omitempty"`
+	SyncUsername string `json:"syncUsername,omitempty" webhook:"inmutableinit"`
 	// SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SyncPasswordSecretKeyRef corev1.SecretKeySelector `json:"syncPasswordSecretKeyRef,omitempty"`
+	SyncPasswordSecretKeyRef corev1.SecretKeySelector `json:"syncPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 }
 
 // SetDefaults sets default values.
