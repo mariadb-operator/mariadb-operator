@@ -16,14 +16,23 @@ import (
 
 type SecretReconciler struct {
 	client.Client
-	Builder *builder.Builder
+	Builder   *builder.Builder
+	generator *password.Generator
 }
 
-func NewSecretReconciler(client client.Client, builder *builder.Builder) *SecretReconciler {
-	return &SecretReconciler{
-		Client:  client,
-		Builder: builder,
+func NewSecretReconciler(client client.Client, builder *builder.Builder) (*SecretReconciler, error) {
+	generator, err := password.NewGenerator(&password.GeneratorInput{
+		Symbols: "~!@#$%^&*()_+-={}|[]:<>/",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating password generator: %v", err)
 	}
+
+	return &SecretReconciler{
+		Client:    client,
+		Builder:   builder,
+		generator: generator,
+	}, nil
 }
 
 type RandomPasswordRequest struct {
@@ -39,7 +48,7 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, req *Ran
 	if err := r.Get(ctx, req.Key, &existingSecret); err == nil {
 		return string(existingSecret.Data[req.SecretKey]), nil
 	}
-	password, err := password.Generate(16, 4, 2, false, false)
+	password, err := r.generator.Generate(16, 4, 2, false, false)
 	if err != nil {
 		return "", fmt.Errorf("error generating replication password: %v", err)
 	}
