@@ -562,6 +562,7 @@ _Appears in:_
 | `metrics` _[Metrics](#metrics)_ | Metrics configures metrics and how to scrape them. |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |
+| `maxScaleRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectreference-v1-core)_ | MaxScaleRef is a reference to a MaxScale instance that is forwarding the traffic to the current MariaDB instance. Providing this field implies delegating high availability tasks such as primary failover to MaxScale. |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. |
 | `port` _integer_ | Port where the instances will be listening for connections. |
 | `ephemeralStorage` _boolean_ | EphemeralStorage indicates whether to use ephemeral storage for the instances. |

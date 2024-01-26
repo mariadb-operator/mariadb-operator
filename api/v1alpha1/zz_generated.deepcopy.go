@@ -1084,6 +1084,11 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(Galera)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.MaxScaleRef != nil {
+		in, out := &in.MaxScaleRef, &out.MaxScaleRef
+		*out = new(v1.ObjectReference)
+		**out = **in
+	}
 	if in.EphemeralStorage != nil {
 		in, out := &in.EphemeralStorage, &out.EphemeralStorage
 		*out = new(bool)
