@@ -21,6 +21,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
@@ -47,6 +48,7 @@ type MaxScaleReconciler struct {
 
 	SecretReconciler      *secret.SecretReconciler
 	RBACReconciler        *rbac.RBACReconciler
+	AuthReconciler        *auth.AuthReconciler
 	StatefulSetReconciler *statefulset.StatefulSetReconciler
 	ServiceReconciler     *service.ServiceReconciler
 
@@ -71,6 +73,7 @@ type reconcilePhaseMaxScale struct {
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscales,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscales/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscales/finalizers,verbs=update
+//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=users;grants,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
@@ -126,6 +129,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "StatefulSet Ready",
 			reconcile: r.ensureStatefulSetReady,
+		},
+		{
+			name:      "Auth",
+			reconcile: r.reconcileAuth,
 		},
 		{
 			name:      "Admin",
@@ -438,6 +445,202 @@ func (r *MaxScaleReconciler) ensureStatefulSetReady(ctx context.Context, req *re
 
 func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *mariadbv1alpha1.MaxScale) bool {
 	return sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == mxs.Spec.Replicas
+}
+
+type authReconcileItem struct {
+	key    types.NamespacedName
+	user   builder.UserOpts
+	grants []auth.GrantOpts
+}
+
+func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	mxs := req.mxs
+	// TODO: support for external databases by extending MariaDBRef
+	if !mxs.Spec.Auth.Generate.Enabled || mxs.Spec.MariaDBRef == nil {
+		return ctrl.Result{}, nil
+	}
+
+	clientKey := types.NamespacedName{
+		Name:      mxs.Spec.Auth.ClientUsername,
+		Namespace: mxs.Namespace,
+	}
+	serverKey := types.NamespacedName{
+		Name:      mxs.Spec.Auth.ServerUsername,
+		Namespace: mxs.Namespace,
+	}
+	monitorKey := types.NamespacedName{
+		Name:      mxs.Spec.Auth.MonitorUsername,
+		Namespace: mxs.Namespace,
+	}
+	maxConns := int32(30)
+
+	items := []authReconcileItem{
+		{
+			key: clientKey,
+			user: builder.UserOpts{
+				Name:                 mxs.Spec.Auth.ClientUsername,
+				PasswordSecretKeyRef: mxs.Spec.Auth.ClientPasswordSecretKeyRef,
+				MaxUserConnections:   maxConns,
+				MariaDBRef:           *mxs.Spec.MariaDBRef,
+			},
+			grants: []auth.GrantOpts{
+				{
+					Key: clientKey,
+					GrantOpts: builder.GrantOpts{
+						Privileges: []string{
+							"SELECT",
+							"INSERT",
+							"UPDATE",
+							"DELETE",
+						},
+						Database:    "*",
+						Table:       "*",
+						Username:    mxs.Spec.Auth.ClientUsername,
+						Host:        "%",
+						GrantOption: false,
+						MariaDBRef:  *mxs.Spec.MariaDBRef,
+					},
+				},
+			},
+		},
+		{
+			key: serverKey,
+			user: builder.UserOpts{
+				Name:                 mxs.Spec.Auth.ServerUsername,
+				PasswordSecretKeyRef: mxs.Spec.Auth.ServerPasswordSecretKeyRef,
+				MaxUserConnections:   maxConns,
+				MariaDBRef:           *mxs.Spec.MariaDBRef,
+			},
+			grants: []auth.GrantOpts{
+				{
+					Key: types.NamespacedName{
+						Name:      fmt.Sprintf("%s-mysql", serverKey.Name),
+						Namespace: serverKey.Namespace,
+					},
+					GrantOpts: builder.GrantOpts{
+						Privileges: []string{
+							"SELECT",
+						},
+						Database:    "mysql",
+						Table:       "*",
+						Username:    mxs.Spec.Auth.ServerUsername,
+						Host:        "%",
+						GrantOption: false,
+						MariaDBRef:  *mxs.Spec.MariaDBRef,
+					},
+				},
+				{
+					Key: types.NamespacedName{
+						Name:      fmt.Sprintf("%s-databases", serverKey.Name),
+						Namespace: serverKey.Namespace,
+					},
+					GrantOpts: builder.GrantOpts{
+						Privileges: []string{
+							"SHOW DATABASES",
+						},
+						Database:    "*",
+						Table:       "*",
+						Username:    mxs.Spec.Auth.ServerUsername,
+						Host:        "%",
+						GrantOption: false,
+						MariaDBRef:  *mxs.Spec.MariaDBRef,
+					},
+				},
+			},
+		},
+		{
+			key: monitorKey,
+			user: builder.UserOpts{
+				Name:                 mxs.Spec.Auth.MonitorUsername,
+				PasswordSecretKeyRef: mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
+				MaxUserConnections:   maxConns,
+				MariaDBRef:           *mxs.Spec.MariaDBRef,
+			},
+			grants: monitorGrantOpts(monitorKey, mxs),
+		},
+	}
+	if mxs.Spec.Config.Sync != nil {
+		syncKey := types.NamespacedName{
+			Name:      mxs.Spec.Auth.SyncUsername,
+			Namespace: mxs.Namespace,
+		}
+		items = append(items, authReconcileItem{
+			key: syncKey,
+			user: builder.UserOpts{
+				Name:                 mxs.Spec.Auth.SyncUsername,
+				PasswordSecretKeyRef: mxs.Spec.Auth.SyncPasswordSecretKeyRef,
+				MaxUserConnections:   maxConns,
+				MariaDBRef:           *mxs.Spec.MariaDBRef,
+			},
+			grants: []auth.GrantOpts{
+				{
+					Key: syncKey,
+					GrantOpts: builder.GrantOpts{
+						Privileges: []string{
+							"SELECT",
+							"INSERT",
+							"UPDATE",
+							"CREATE",
+							"DROP",
+						},
+						Database:    mxs.Spec.Config.Sync.Database,
+						Table:       "maxscale_config",
+						Username:    mxs.Spec.Auth.SyncUsername,
+						Host:        "%",
+						GrantOption: false,
+						MariaDBRef:  *mxs.Spec.MariaDBRef,
+					},
+				},
+			},
+		})
+	}
+
+	for _, item := range items {
+		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, item.key, mxs, item.user, item.grants...); !result.IsZero() || err != nil {
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", item.key.Name, err)
+			}
+			return result, err
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func monitorGrantOpts(key types.NamespacedName, mxs *mariadbv1alpha1.MaxScale) []auth.GrantOpts {
+	if mxs.Spec.Monitor.Module == mariadbv1alpha1.MonitorModuleMariadb {
+		return []auth.GrantOpts{
+			{
+				Key: key,
+				GrantOpts: builder.GrantOpts{
+					Privileges: []string{
+						"BINLOG ADMIN",
+						"CONNECTION ADMIN",
+						"EVENT",
+						"PROCESS",
+						"PROCESS",
+						"READ_ONLY ADMIN",
+						"RELOAD",
+						"REPLICA MONITOR",
+						"REPLICATION CLIENT",
+						"REPLICATION SLAVE ADMIN",
+						"REPLICATION SLAVE",
+						"SELECT",
+						"SET USER",
+						"SHOW DATABASES",
+						"SLAVE MONITOR",
+						"SUPER",
+					},
+					Database:    "*",
+					Table:       "*",
+					Username:    mxs.Spec.Auth.MonitorUsername,
+					Host:        "%",
+					GrantOption: false,
+					MariaDBRef:  *mxs.Spec.MariaDBRef,
+				},
+			},
+		}
+	}
+	return nil
 }
 
 func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -892,6 +1095,8 @@ func (r *MaxScaleReconciler) requeueResult(ctx context.Context, mxs *mariadbv1al
 func (r *MaxScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MaxScale{}).
+		Owns(&mariadbv1alpha1.User{}).
+		Owns(&mariadbv1alpha1.Grant{}).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.Service{}).
 		Owns(&policyv1.PodDisruptionBudget{}).

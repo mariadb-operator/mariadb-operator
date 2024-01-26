@@ -84,8 +84,9 @@ spec:
       interval: 5s
       timeout: 10s
 
-  # TODO: create User and Grants in the operator
   auth:
+    generate:
+      enabled: true
     adminUsername: mariadb-operator
     adminPasswordSecretKeyRef:
       name: maxscale
