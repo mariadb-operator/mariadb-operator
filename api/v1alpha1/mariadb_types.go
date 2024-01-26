@@ -168,6 +168,11 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
+	// MaxScaleRef is a reference to a MaxScale instance that is forwarding the traffic to the current MariaDB instance.
+	// Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MaxScaleRef *corev1.ObjectReference `json:"maxScaleRef,omitempty"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
@@ -353,6 +358,11 @@ func (m *MariaDB) Galera() Galera {
 // IsHAEnabled indicates whether the MariaDB instance has HA enabled
 func (m *MariaDB) IsHAEnabled() bool {
 	return m.Replication().Enabled || m.Galera().Enabled
+}
+
+// IsMaxScaleEnabled indicates that a MaxScale instance is forwarding traffic to this MariaDB instance
+func (m *MariaDB) IsMaxScaleEnabled() bool {
+	return m.Spec.MaxScaleRef != nil
 }
 
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
