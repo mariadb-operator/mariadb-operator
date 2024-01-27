@@ -24,13 +24,11 @@ type switchoverPhase struct {
 }
 
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest, switchoverLogger logr.Logger) error {
-	if !req.mariadb.HasConfiguredReplication() && !req.mariadb.IsSwitchingPrimary() {
-		return nil
+	shouldReconcile, err := shouldReconcileSwitchover(req.mariadb)
+	if err != nil {
+		return err
 	}
-	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return errors.New("'status.currentPrimaryPodIndex' must be set")
-	}
-	if *req.mariadb.Replication().Primary.PodIndex == *req.mariadb.Status.CurrentPrimaryPodIndex {
+	if !shouldReconcile {
 		return nil
 	}
 
@@ -91,6 +89,22 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
 		"Primary switched from index '%d' to index '%d'", *fromIndex, toIndex)
 	return nil
+}
+
+func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) (bool, error) {
+	if mdb.IsMaxScaleEnabled() {
+		return false, nil
+	}
+	if !mdb.HasConfiguredReplication() && !mdb.IsSwitchingPrimary() {
+		return false, nil
+	}
+	if mdb.Status.CurrentPrimaryPodIndex == nil {
+		return false, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	if *mdb.Replication().Primary.PodIndex == *mdb.Status.CurrentPrimaryPodIndex {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

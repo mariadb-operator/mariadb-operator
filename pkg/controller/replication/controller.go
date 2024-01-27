@@ -89,22 +89,22 @@ type replicationPhase struct {
 	reconcile func(context.Context, *reconcileRequest, logr.Logger) error
 }
 
-func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !mariadb.Replication().Enabled || mariadb.IsRestoringBackup() {
+func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+	if !mdb.Replication().Enabled || mdb.IsRestoringBackup() {
 		return nil
 	}
 	logger := log.FromContext(ctx).WithName("replication")
 
-	if mariadb.IsSwitchingPrimary() {
-		clientSet, err := newReplicationClientSet(mariadb, r.refResolver)
+	if !mdb.IsMaxScaleEnabled() && mdb.IsSwitchingPrimary() {
+		clientSet, err := newReplicationClientSet(mdb, r.refResolver)
 		if err != nil {
 			return fmt.Errorf("error creating mariadb clientset: %v", err)
 		}
 		defer clientSet.close()
 
 		req := reconcileRequest{
-			mariadb:   mariadb,
-			key:       client.ObjectKeyFromObject(mariadb),
+			mariadb:   mdb,
+			key:       client.ObjectKeyFromObject(mdb),
 			clientSet: clientSet,
 		}
 		if err := r.reconcileSwitchover(ctx, &req, logger.WithName("switchover")); err != nil {
@@ -112,7 +112,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		}
 		return nil
 	}
-	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mariadb, health.EndpointPolicyAll)
+	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mdb, health.EndpointPolicyAll)
 	if err != nil {
 		return fmt.Errorf("error checking MariaDB health: %v", err)
 	}
@@ -120,13 +120,13 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		return nil
 	}
 
-	clientSet, err := newReplicationClientSet(mariadb, r.refResolver)
+	clientSet, err := newReplicationClientSet(mdb, r.refResolver)
 	if err != nil {
 		return fmt.Errorf("error creating mariadb clientset: %v", err)
 	}
 	defer clientSet.close()
 
-	mariaDbKey := client.ObjectKeyFromObject(mariadb)
+	mariaDbKey := client.ObjectKeyFromObject(mdb)
 	phases := []replicationPhase{
 		{
 			name:      "set configuring replication status",
@@ -157,7 +157,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 
 	for _, p := range phases {
 		req := reconcileRequest{
-			mariadb:   mariadb,
+			mariadb:   mdb,
 			key:       p.key,
 			clientSet: clientSet,
 		}

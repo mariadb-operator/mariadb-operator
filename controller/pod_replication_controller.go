@@ -41,11 +41,12 @@ func NewPodReplicationController(client client.Client, recorder record.EventReco
 }
 
 func (r *PodReplicationController) ReconcilePodReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !r.shouldReconcile(mariadb) {
-		return nil
+	shouldReconcile, err := shouldReconcile(mariadb)
+	if err != nil {
+		return err
 	}
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return errors.New("'status.currentPrimaryPodIndex' must be set")
+	if !shouldReconcile {
+		return nil
 	}
 	log.FromContext(ctx).V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
 
@@ -73,11 +74,12 @@ func (r *PodReplicationController) ReconcilePodReady(ctx context.Context, pod co
 }
 
 func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !r.shouldReconcile(mariadb) || !*mariadb.Replication().Primary.AutomaticFailover {
-		return nil
+	shouldReconcile, err := shouldReconcilePodNotReady(mariadb)
+	if err != nil {
+		return err
 	}
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return errors.New("'status.currentPrimaryPodIndex' must be set")
+	if !shouldReconcile {
+		return nil
 	}
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
@@ -118,8 +120,21 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	return nil
 }
 
-func (r *PodReplicationController) shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
-	return mariadb.Replication().Enabled && mariadb.HasConfiguredReplication() && !mariadb.IsRestoringBackup()
+func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return false, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	return mariadb.Replication().Enabled && mariadb.HasConfiguredReplication() && !mariadb.IsRestoringBackup(), nil
+}
+
+func shouldReconcilePodNotReady(mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+	if mariadb.IsMaxScaleEnabled() {
+		return false, nil
+	}
+	if !*mariadb.Replication().Primary.AutomaticFailover {
+		return false, nil
+	}
+	return shouldReconcile(mariadb)
 }
 
 func (r *PodReplicationController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
