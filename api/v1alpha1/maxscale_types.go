@@ -387,8 +387,8 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	}
 }
 
-// MaxScaleSpec defines the desired state of MaxScale.
-type MaxScaleSpec struct {
+// MaxScaleBaseSpec defines the base specification for MaxScale.
+type MaxScaleBaseSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
