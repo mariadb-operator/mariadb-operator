@@ -387,11 +387,6 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	}
 }
 
-// ShouldDeleteDefaultAdmin indicates whether the default admin should be deleted after initial setup.
-func (m *MaxScaleAuth) ShouldDeleteDefaultAdmin() bool {
-	return m.DeleteDefaultAdmin != nil && *m.DeleteDefaultAdmin
-}
-
 // MaxScaleSpec defines the desired state of MaxScale.
 type MaxScaleSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.

@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -672,7 +673,7 @@ func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *maria
 	if err := mxsApi.createAdminUser(ctx); err != nil {
 		return fmt.Errorf("error creating admin: %v", err)
 	}
-	if mxs.Spec.Auth.ShouldDeleteDefaultAdmin() {
+	if ptr.Deref(mxs.Spec.Auth.DeleteDefaultAdmin, false) {
 		if err := defaultClient.User.DeleteDefaultAdmin(ctx); err != nil {
 			return fmt.Errorf("error deleting default admin: %v", err)
 		}
