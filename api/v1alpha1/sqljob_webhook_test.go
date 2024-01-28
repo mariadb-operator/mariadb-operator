@@ -165,7 +165,7 @@ var _ = Describe("SqlJob webhook", func() {
 					}(),
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &sqlJob))
+			Expect(k8sClient.Create(testCtx, &sqlJob)).To(Succeed())
 		})
 		DescribeTable(
 			"Should validate",

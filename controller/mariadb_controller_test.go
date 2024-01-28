@@ -130,33 +130,33 @@ var _ = Describe("MariaDB controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to create a exporter Deployment eventually")
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				var deploy appsv1.Deployment
 				if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &deploy); err != nil {
 					return false
 				}
-				expectedImage := os.Getenv("RELATED_IMAGE_EXPOTER")
-				Expect(expectedImage).ToNot((BeEmpty()))
+				expectedImage := os.Getenv("RELATED_IMAGE_EXPORTER")
+				g.Expect(expectedImage).ToNot(BeEmpty())
 				By("Expecting Deployment to have exporter image")
-				Expect(deploy.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
+				g.Expect(deploy.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
 					Fields{
 						"Image": Equal(expectedImage),
 					})))
 				return deploymentReady(&deploy)
-			})
+			}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
 
 			By("Expecting to create a ServiceMonitor eventually")
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				var svcMonitor monitoringv1.ServiceMonitor
 				if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &svcMonitor); err != nil {
 					return false
 				}
-				Expect(svcMonitor.Spec.Selector).NotTo(BeNil())
-				Expect(svcMonitor.Spec.Selector).To(HaveKeyWithValue("app.kubernetes.io/name", "mariadb"))
-				Expect(svcMonitor.Spec.Selector).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDbName))
-				Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
+				g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
+				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
+				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDbName))
+				g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
 				return true
-			})
+			}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
 		})
 		It("Should bootstrap from Backup", func() {
 			By("Creating Backup")
@@ -503,8 +503,8 @@ var _ = Describe("MariaDB replication", func() {
 				Namespace: testRplMariaDb.Namespace,
 			}
 			var primaryPod corev1.Pod
-			Expect(k8sClient.Get(testCtx, primaryPodKey, &primaryPod))
-			Expect(k8sClient.Delete(testCtx, &primaryPod))
+			Expect(k8sClient.Get(testCtx, primaryPodKey, &primaryPod)).To(Succeed())
+			Expect(k8sClient.Delete(testCtx, &primaryPod)).To(Succeed())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
