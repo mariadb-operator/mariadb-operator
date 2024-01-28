@@ -70,31 +70,31 @@ var _ = Describe("WebhookConfig", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			var caSecret corev1.Secret
-			Expect("Expecting to create a CA Secret")
+			By("Expecting to create a CA Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCASecretKey, &caSecret) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			var certSecret corev1.Secret
-			Expect("Expecting to create a certificate Secret")
+			By("Expecting to create a certificate Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCertSecretKey, &certSecret) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to get CA KeyPair")
 			caKeyPair, err := pki.KeyPairFromTLSSecret(&caSecret)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(caKeyPair).NotTo(BeNil())
 
 			By("Expecting to get certificate KeyPair")
 			certKeyPair, err := pki.KeyPairFromTLSSecret(&certSecret)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(certKeyPair).NotTo(BeNil())
 
 			By("Expecting certificate to be valid")
 			dnsNames := serviceDNSNames(testWebhookServiceKey)
 			valid, err := pki.ValidCert(caKeyPair.Cert, certKeyPair, dnsNames.CommonName, time.Now())
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(valid).To(BeTrue())
 
 			By("Deleting resources")
@@ -196,31 +196,31 @@ var _ = Describe("WebhookConfig", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			var caSecret corev1.Secret
-			Expect("Expecting to create a CA Secret")
+			By("Expecting to create a CA Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCASecretKey, &caSecret) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			var certSecret corev1.Secret
-			Expect("Expecting to create a certificate Secret")
+			By("Expecting to create a certificate Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCertSecretKey, &certSecret) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to get CA KeyPair")
 			caKeyPair, err := pki.KeyPairFromTLSSecret(&caSecret)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(caKeyPair).NotTo(BeNil())
 
 			By("Expecting to get certificate KeyPair")
 			certKeyPair, err := pki.KeyPairFromTLSSecret(&certSecret)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(certKeyPair).NotTo(BeNil())
 
 			By("Expecting certificate to be valid")
 			dnsNames := serviceDNSNames(testWebhookServiceKey)
 			valid, err := pki.ValidCert(caKeyPair.Cert, certKeyPair, dnsNames.CommonName, time.Now())
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(valid).To(BeTrue())
 
 			By("Deleting Secret")
