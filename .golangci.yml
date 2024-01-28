@@ -13,6 +13,7 @@ linters:
   enable:
     - unused
     - errcheck
+    - ginkgolinter
     - gocyclo
     - gofmt
     - goimports
