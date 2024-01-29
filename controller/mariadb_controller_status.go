@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
@@ -26,10 +27,15 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	if err != nil {
 		log.FromContext(ctx).V(1).Info("error getting replication status", "err", err)
 	}
+	mxsPrimaryPodIndex, err := r.getMaxScalePrimaryPod(ctx, mdb)
+	if err != nil {
+		log.FromContext(ctx).V(1).Info("error getting MaxScale primary Pod", "err", err)
+	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		status.Replicas = sts.Status.ReadyReplicas
 		defaultPrimary(mdb)
+		setMaxScalePrimary(mdb, mxsPrimaryPodIndex)
 
 		if replicationStatus != nil {
 			status.ReplicationStatus = replicationStatus
@@ -89,6 +95,46 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 	return replicationStatus, nil
 }
 
+func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
+	if !mdb.IsMaxScaleEnabled() {
+		return nil, nil
+	}
+	mxs, err := r.RefResolver.MaxScale(ctx, mdb.Spec.MaxScaleRef, mdb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting MaxScale: %v", err)
+	}
+	primarySrv := mxs.Status.GetPrimaryServer()
+	if primarySrv == nil {
+		return nil, errors.New("MaxScale primary server not found")
+	}
+	podIndex, err := podIndexForServer(*primarySrv, mxs, mdb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Pod for MaxScale server '%s': %v", *primarySrv, err)
+	}
+	return podIndex, nil
+}
+
+func podIndexForServer(serverName string, mxs *mariadbv1alpha1.MaxScale, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
+	var server *mariadbv1alpha1.MaxScaleServer
+	for _, srv := range mxs.Spec.Servers {
+		if serverName == srv.Name {
+			server = &srv
+			break
+		}
+	}
+	if server == nil {
+		return nil, fmt.Errorf("MaxScale server '%s' not found", serverName)
+	}
+
+	for i := 0; i < int(mdb.Spec.Replicas); i++ {
+		address := stsobj.PodFQDNWithService(mdb.ObjectMeta, i, mdb.InternalServiceKey().Name)
+		if server.Address == address {
+			return &i, nil
+		}
+	}
+	return nil, fmt.Errorf("MariaDB Pod with address '%s' not found", server.Address)
+}
+
 func defaultPrimary(mdb *mariadbv1alpha1.MariaDB) {
 	if mdb.Status.CurrentPrimaryPodIndex != nil || mdb.Status.CurrentPrimary != nil {
 		return
@@ -104,4 +150,12 @@ func defaultPrimary(mdb *mariadbv1alpha1.MariaDB) {
 	}
 	mdb.Status.CurrentPrimaryPodIndex = &podIndex
 	mdb.Status.CurrentPrimary = ptr.To(stsobj.PodName(mdb.ObjectMeta, podIndex))
+}
+
+func setMaxScalePrimary(mdb *mariadbv1alpha1.MariaDB, podIndex *int) {
+	if !mdb.IsMaxScaleEnabled() || podIndex == nil {
+		return
+	}
+	mdb.Status.CurrentPrimaryPodIndex = podIndex
+	mdb.Status.CurrentPrimary = ptr.To(stsobj.PodName(mdb.ObjectMeta, *podIndex))
 }
