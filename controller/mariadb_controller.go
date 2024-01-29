@@ -100,9 +100,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if err := r.patchStatus(ctx, &mariadb, r.patcher(ctx, &mariadb)); err != nil && !apierrors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
 
 	phases := []reconcilePhaseMariaDB{
 		{
@@ -111,7 +108,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		},
 		{
 			Name:      "Status",
-			Reconcile: r.setStatusDefaults,
+			Reconcile: r.reconcileStatus,
 		},
 		{
 			Name:      "Secret",
@@ -633,34 +630,6 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 	return ctrl.Result{}, r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
 		mdb.SetDefaults(r.Environment)
 	})
-}
-
-func (r *MariaDBReconciler) setStatusDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex != nil && mariadb.Status.CurrentPrimary != nil {
-		return ctrl.Result{}, nil
-	}
-	return ctrl.Result{}, r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		status.FillWithDefaults(mariadb)
-		return nil
-	})
-}
-
-func (r *MariaDBReconciler) patcher(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) patcherMariaDB {
-	return func(s *mariadbv1alpha1.MariaDBStatus) error {
-		var sts appsv1.StatefulSet
-		if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
-			return err
-		}
-		mariadb.Status.Replicas = sts.Status.ReadyReplicas
-
-		if mariadb.IsRestoringBackup() ||
-			mariadb.IsConfiguringReplication() || mariadb.IsSwitchingPrimary() ||
-			mariadb.HasGaleraNotReadyCondition() {
-			return nil
-		}
-		condition.SetReadyWithStatefulSet(&mariadb.Status, &sts)
-		return nil
-	}
 }
 
 func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

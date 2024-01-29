@@ -80,7 +80,7 @@ func NewReplicationReconciler(client client.Client, recorder record.EventRecorde
 type reconcileRequest struct {
 	mariadb   *mariadbv1alpha1.MariaDB
 	key       types.NamespacedName
-	clientSet *replicationClientSet
+	clientSet *ReplicationClientSet
 }
 
 type replicationPhase struct {
@@ -93,10 +93,10 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	if !mdb.Replication().Enabled || mdb.IsRestoringBackup() {
 		return nil
 	}
-	logger := log.FromContext(ctx).WithName("replication")
+	logger := replLogger(ctx)
 
 	if !mdb.IsMaxScaleEnabled() && mdb.IsSwitchingPrimary() {
-		clientSet, err := newReplicationClientSet(mdb, r.refResolver)
+		clientSet, err := NewReplicationClientSet(mdb, r.refResolver)
 		if err != nil {
 			return fmt.Errorf("error creating mariadb clientset: %v", err)
 		}
@@ -120,7 +120,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 		return nil
 	}
 
-	clientSet, err := newReplicationClientSet(mdb, r.refResolver)
+	clientSet, err := NewReplicationClientSet(mdb, r.refResolver)
 	if err != nil {
 		return fmt.Errorf("error creating mariadb clientset: %v", err)
 	}
@@ -237,4 +237,8 @@ func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariad
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
+}
+
+func replLogger(ctx context.Context) logr.Logger {
+	return log.FromContext(ctx).WithName("replication")
 }

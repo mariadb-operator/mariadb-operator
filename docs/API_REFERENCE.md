@@ -1008,6 +1008,32 @@ _Appears in:_
 | `syncBinlog` _boolean_ | SyncBinlog indicates whether the binary log should be synchronized to the disk after every event. It trades off performance for consistency. See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog. |
 
 
+#### ReplicationState
+
+_Underlying type:_ _string_
+
+
+
+_Appears in:_
+- [ReplicationStateItem](#replicationstateitem)
+
+
+
+#### ReplicationStateItem
+
+
+
+
+
+_Appears in:_
+- [ReplicationStatus](#replicationstatus)
+
+| Field | Description |
+| --- | --- |
+| `pod` _string_ |  |
+| `state` _[ReplicationState](#replicationstate)_ |  |
+
+
 #### Restore
 
 
