@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -33,10 +32,11 @@ func (r *PodGaleraController) ReconcilePodReady(ctx context.Context, pod corev1.
 	if !r.shouldReconcile(mariadb) || !*mariadb.Galera().Primary.AutomaticFailover {
 		return nil
 	}
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return errors.New("'status.currentPrimaryPodIndex' must be set")
-	}
 	logger := log.FromContext(ctx)
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		logger.V(1).Info("'status.currentPrimaryPodIndex' must be set. Skipping")
+		return nil
+	}
 	logger.V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
 
 	currentPrimaryPodKey := types.NamespacedName{
@@ -78,10 +78,11 @@ func (r *PodGaleraController) ReconcilePodNotReady(ctx context.Context, pod core
 	if !r.shouldReconcile(mariadb) || !*mariadb.Galera().Primary.AutomaticFailover {
 		return nil
 	}
+	logger := log.FromContext(ctx).WithName("pod-galera")
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return errors.New("'status.currentPrimaryPodIndex' must be set")
+		logger.V(1).Info("'status.currentPrimaryPodIndex' must be set. Skipping")
+		return nil
 	}
-	logger := log.FromContext(ctx)
 	logger.V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
 
 	index, err := statefulset.PodIndex(pod.Name)

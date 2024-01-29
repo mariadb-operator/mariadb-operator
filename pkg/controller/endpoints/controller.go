@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
@@ -15,10 +16,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var ErrNoAddressesAvailable = errors.New("no addresses available")
+var errNoAddressesAvailable = errors.New("no addresses available")
 
 type EndpointsReconciler struct {
 	client.Client
@@ -32,36 +35,39 @@ func NewEndpointsReconciler(client client.Client, builder *builder.Builder) *End
 	}
 }
 
-func (r *EndpointsReconciler) Reconcile(ctx context.Context, key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *EndpointsReconciler) Reconcile(ctx context.Context, key types.NamespacedName,
+	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		log.FromContext(ctx).V(1).Info("'status.currentPrimaryPodIndex' must be set")
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
 	desiredEndpoints, err := r.endpoints(ctx, key, mariadb)
 	if err != nil {
-		if errors.Is(err, ErrNoAddressesAvailable) {
-			return err
+		if errors.Is(err, errNoAddressesAvailable) {
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
-		return fmt.Errorf("error building desired Endpoints: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error building desired Endpoints: %v", err)
 	}
 
 	var existingEndpoints corev1.Endpoints
 	if err := r.Get(ctx, key, &existingEndpoints); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("error getting Endpoints: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error getting Endpoints: %v", err)
 		}
 		if err := r.Create(ctx, desiredEndpoints); err != nil {
-			return fmt.Errorf("error creating Endpoints: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error creating Endpoints: %v", err)
 		}
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	patch := client.MergeFrom(existingEndpoints.DeepCopy())
 	existingEndpoints.Subsets = desiredEndpoints.Subsets
-	return r.Patch(ctx, &existingEndpoints, patch)
+	return ctrl.Result{}, r.Patch(ctx, &existingEndpoints, patch)
 }
 
 func (r *EndpointsReconciler) endpoints(ctx context.Context, key types.NamespacedName,
 	mariadb *mariadbv1alpha1.MariaDB) (*corev1.Endpoints, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return nil, fmt.Errorf("'status.currentPrimaryPodIndex' must be set")
-	}
+
 	podList := corev1.PodList{}
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
@@ -100,7 +106,7 @@ func (r *EndpointsReconciler) endpoints(ctx context.Context, key types.Namespace
 		}
 	}
 	if len(addresses) == 0 && len(notReadyAddresses) == 0 {
-		return nil, ErrNoAddressesAvailable
+		return nil, errNoAddressesAvailable
 	}
 
 	subsets := []corev1.EndpointSubset{

@@ -247,14 +247,9 @@ var (
 	}
 )
 
-// IsConfiguringReplication indicates whether replication is being configured.
-func (m *MariaDB) IsConfiguringReplication() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicationConfigured)
-}
-
-// HasConfiguredReplication indicates whether replication has been configured.
-func (m *MariaDB) HasConfiguredReplication() bool {
-	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReplicationConfigured)
+// IsReplicationConfigured indicates whether replication has been configured.
+func (m *MariaDB) IsReplicationConfigured() bool {
+	return m.Status.ReplicationStatus.IsReplicationConfigured()
 }
 
 // IsSwitchingPrimary indicates whether the primary is being switched.
@@ -270,18 +265,16 @@ const (
 	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
 )
 
-type ReplicationStateItem struct {
-	Pod              string           `json:"pod"`
-	ReplicationState ReplicationState `json:"state"`
+type PodReplicationState struct {
+	Pod   string           `json:"pod"`
+	State ReplicationState `json:"state"`
 }
 
-type ReplicationStatus struct {
-	State []ReplicationStateItem `json:"state"`
-}
+type ReplicationStatus []PodReplicationState
 
-func (r *ReplicationStatus) IsReplicationConfigured() bool {
-	for _, item := range r.State {
-		if item.ReplicationState == ReplicationStateNotConfigured {
+func (r ReplicationStatus) IsReplicationConfigured() bool {
+	for _, item := range r {
+		if item.State == ReplicationStateNotConfigured {
 			return false
 		}
 	}

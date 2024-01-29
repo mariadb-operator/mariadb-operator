@@ -7,12 +7,10 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -129,11 +127,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	mariaDbKey := client.ObjectKeyFromObject(mdb)
 	phases := []replicationPhase{
 		{
-			name:      "set configuring replication status",
-			key:       mariaDbKey,
-			reconcile: r.setConfiguringReplication,
-		},
-		{
 			name:      "reconcile Primary",
 			key:       mariaDbKey,
 			reconcile: r.reconcilePrimary,
@@ -142,11 +135,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 			name:      "reconcile Replicas",
 			key:       mariaDbKey,
 			reconcile: r.reconcileReplicas,
-		},
-		{
-			name:      "set configured replication status",
-			key:       mariaDbKey,
-			reconcile: r.setConfiguredReplication,
 		},
 		{
 			name:      "reconcile switchover",
@@ -171,20 +159,8 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	return nil
 }
 
-func (r *ReplicationReconciler) setConfiguringReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.HasConfiguredReplication() || req.mariadb.IsSwitchingPrimary() {
-		return nil
-	}
-	logger.Info("Configuring replication")
-	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationConfiguring, "Configuring replication")
-
-	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		condition.SetConfiguringReplication(&req.mariadb.Status, req.mariadb)
-	})
-}
-
 func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.HasConfiguredReplication() || req.mariadb.IsSwitchingPrimary() {
+	if req.mariadb.IsReplicationConfigured() || req.mariadb.IsSwitchingPrimary() {
 		return nil
 	}
 	client, err := req.clientSet.newPrimaryClient(ctx)
@@ -198,7 +174,7 @@ func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *recon
 }
 
 func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.HasConfiguredReplication() || req.mariadb.IsSwitchingPrimary() {
+	if req.mariadb.IsReplicationConfigured() || req.mariadb.IsSwitchingPrimary() {
 		return nil
 	}
 	logger.V(1).Info("Configuring replicas")
@@ -217,19 +193,6 @@ func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reco
 		}
 	}
 	return nil
-}
-
-func (r *ReplicationReconciler) setConfiguredReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.HasConfiguredReplication() || req.mariadb.IsSwitchingPrimary() {
-		return nil
-	}
-	logger.Info("Replication configured")
-	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationConfigured, "Replication configured")
-
-	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		status.UpdateCurrentPrimary(req.mariadb, *req.mariadb.Replication().Primary.PodIndex)
-		condition.SetConfiguredReplication(&req.mariadb.Status, req.mariadb)
-	})
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

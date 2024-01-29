@@ -95,7 +95,7 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) (bool, error) {
 	if mdb.IsMaxScaleEnabled() {
 		return false, nil
 	}
-	if !mdb.HasConfiguredReplication() && !mdb.IsSwitchingPrimary() {
+	if !mdb.IsReplicationConfigured() && !mdb.IsSwitchingPrimary() {
 		return false, nil
 	}
 	if mdb.Status.CurrentPrimaryPodIndex == nil {
