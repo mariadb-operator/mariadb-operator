@@ -70,6 +70,27 @@ func (r *RefResolver) MariaDBFromAnnotation(ctx context.Context, objMeta metav1.
 	return &mariadb, nil
 }
 
+func (r *RefResolver) MaxScale(ctx context.Context, ref *corev1.ObjectReference,
+	namespace string) (*mariadbv1alpha1.MaxScale, error) {
+	if ref.Kind != "" && ref.Kind != "MaxScale" {
+		return nil, fmt.Errorf("Unsupported reference kind: '%s'", ref.Kind)
+	}
+
+	key := types.NamespacedName{
+		Name:      ref.Name,
+		Namespace: namespace,
+	}
+	if ref.Namespace != "" {
+		key.Namespace = ref.Namespace
+	}
+
+	var mxs mariadbv1alpha1.MaxScale
+	if err := r.client.Get(ctx, key, &mxs); err != nil {
+		return nil, err
+	}
+	return &mxs, nil
+}
+
 func (r *RefResolver) Backup(ctx context.Context, ref *corev1.LocalObjectReference,
 	namespace string) (*mariadbv1alpha1.Backup, error) {
 	nn := types.NamespacedName{
