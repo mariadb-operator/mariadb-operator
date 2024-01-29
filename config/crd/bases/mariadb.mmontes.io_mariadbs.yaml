@@ -10313,6 +10313,25 @@ spec:
                 description: Replicas indicates the number of current instances.
                 format: int32
                 type: integer
+              replicationStatus:
+                description: ReplicationStatus is the replication current state for
+                  each Pod.
+                properties:
+                  state:
+                    items:
+                      properties:
+                        pod:
+                          type: string
+                        state:
+                          type: string
+                      required:
+                      - pod
+                      - state
+                      type: object
+                    type: array
+                required:
+                - state
+                type: object
             type: object
         required:
         - spec

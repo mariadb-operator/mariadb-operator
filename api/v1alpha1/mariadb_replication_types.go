@@ -261,3 +261,29 @@ func (m *MariaDB) HasConfiguredReplication() bool {
 func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
 }
+
+type ReplicationState string
+
+const (
+	ReplicationStateMaster        ReplicationState = "Master"
+	ReplicationStateSlave         ReplicationState = "Slave"
+	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
+)
+
+type ReplicationStateItem struct {
+	Pod              string           `json:"pod"`
+	ReplicationState ReplicationState `json:"state"`
+}
+
+type ReplicationStatus struct {
+	State []ReplicationStateItem `json:"state"`
+}
+
+func (r *ReplicationStatus) IsReplicationConfigured() bool {
+	for _, item := range r.State {
+		if item.ReplicationState == ReplicationStateNotConfigured {
+			return false
+		}
+	}
+	return true
+}

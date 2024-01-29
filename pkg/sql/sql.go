@@ -350,6 +350,14 @@ func (c *Client) SystemVariable(ctx context.Context, variable string) (string, e
 	return val, nil
 }
 
+func (c *Client) IsSystemVariableEnabled(ctx context.Context, variable string) (bool, error) {
+	val, err := c.SystemVariable(ctx, variable)
+	if err != nil {
+		return false, err
+	}
+	return val == "1" || val == "ON", nil
+}
+
 func (c *Client) SetSystemVariable(ctx context.Context, variable string, value string) error {
 	sql := fmt.Sprintf("SET @@global.%s=%s;", variable, value)
 	return c.Exec(ctx, sql)
