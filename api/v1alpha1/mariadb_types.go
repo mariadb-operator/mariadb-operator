@@ -248,7 +248,7 @@ type MariaDBStatus struct {
 	// ReplicationStatus is the replication current state for each Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	ReplicationStatus *ReplicationStatus `json:"replicationStatus,omitempty"`
+	ReplicationStatus ReplicationStatus `json:"replicationStatus,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB

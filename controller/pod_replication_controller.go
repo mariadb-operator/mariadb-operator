@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
@@ -12,7 +11,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -41,47 +39,18 @@ func NewPodReplicationController(client client.Client, recorder record.EventReco
 }
 
 func (r *PodReplicationController) ReconcilePodReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	shouldReconcile, err := shouldReconcile(mariadb)
-	if err != nil {
-		return err
-	}
-	if !shouldReconcile {
-		return nil
-	}
-	log.FromContext(ctx).V(1).Info("Reconciling Pod in Ready state", "pod", pod.Name)
-
-	index, err := statefulset.PodIndex(pod.Name)
-	if err != nil {
-		return fmt.Errorf("error getting Pod index: %v", err)
-	}
-
-	client, err := sqlClient.NewInternalClientWithPodIndex(ctx, mariadb, r.refResolver, *index)
-	if err != nil {
-		return fmt.Errorf("error connecting to replica '%d': %v", *index, err)
-	}
-	defer client.Close()
-
-	if *index == *mariadb.Status.CurrentPrimaryPodIndex {
-		if err := r.replConfig.ConfigurePrimary(ctx, mariadb, client, *index); err != nil {
-			return fmt.Errorf("error configuring primary in replica '%d': %v", *index, err)
-		}
-		return nil
-	}
-	if err := r.replConfig.ConfigureReplica(ctx, mariadb, client, *index, *mariadb.Status.CurrentPrimaryPodIndex, false); err != nil {
-		return fmt.Errorf("error configuring replication in replica '%d': %v", *index, err)
-	}
 	return nil
 }
 
 func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	shouldReconcile, err := shouldReconcilePodNotReady(mariadb)
-	if err != nil {
-		return err
-	}
-	if !shouldReconcile {
+	if !shouldReconcileSwitchover(mariadb) {
 		return nil
 	}
-	logger := log.FromContext(ctx)
+	logger := log.FromContext(ctx).WithName("pod-replication")
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		logger.V(1).Info("'status.currentPrimaryPodIndex' must be set. Skipping")
+		return nil
+	}
 	logger.V(1).Info("Reconciling Pod in non Ready state", "pod", pod.Name)
 
 	index, err := statefulset.PodIndex(pod.Name)
@@ -120,21 +89,14 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	return nil
 }
 
-func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return false, errors.New("'status.currentPrimaryPodIndex' must be set")
-	}
-	return mariadb.Replication().Enabled && mariadb.HasConfiguredReplication() && !mariadb.IsRestoringBackup(), nil
-}
-
-func shouldReconcilePodNotReady(mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+func shouldReconcileSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
 	if mariadb.IsMaxScaleEnabled() {
-		return false, nil
+		return false
 	}
 	if !*mariadb.Replication().Primary.AutomaticFailover {
-		return false, nil
+		return false
 	}
-	return shouldReconcile(mariadb)
+	return mariadb.Replication().Enabled && mariadb.IsReplicationConfigured() && !mariadb.IsRestoringBackup()
 }
 
 func (r *PodReplicationController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

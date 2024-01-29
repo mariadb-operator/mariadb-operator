@@ -898,6 +898,21 @@ _Appears in:_
 | `maxUnavailable` _[IntOrString](#intorstring)_ | MaxUnavailable defines the number of maximum unavailable Pods. |
 
 
+#### PodReplicationState
+
+
+
+
+
+_Appears in:_
+- [ReplicationStatus](#replicationstatus)
+
+| Field | Description |
+| --- | --- |
+| `pod` _string_ |  |
+| `state` _[ReplicationState](#replicationstate)_ |  |
+
+
 #### PodTemplate
 
 
@@ -1015,23 +1030,8 @@ _Underlying type:_ _string_
 
 
 _Appears in:_
-- [ReplicationStateItem](#replicationstateitem)
+- [PodReplicationState](#podreplicationstate)
 
-
-
-#### ReplicationStateItem
-
-
-
-
-
-_Appears in:_
-- [ReplicationStatus](#replicationstatus)
-
-| Field | Description |
-| --- | --- |
-| `pod` _string_ |  |
-| `state` _[ReplicationState](#replicationstate)_ |  |
 
 
 #### Restore

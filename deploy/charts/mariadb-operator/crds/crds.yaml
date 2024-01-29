@@ -14371,22 +14371,17 @@ spec:
               replicationStatus:
                 description: ReplicationStatus is the replication current state for
                   each Pod.
-                properties:
-                  state:
-                    items:
-                      properties:
-                        pod:
-                          type: string
-                        state:
-                          type: string
-                      required:
-                      - pod
-                      - state
-                      type: object
-                    type: array
-                required:
-                - state
-                type: object
+                items:
+                  properties:
+                    pod:
+                      type: string
+                    state:
+                      type: string
+                  required:
+                  - pod
+                  - state
+                  type: object
+                type: array
             type: object
         required:
         - spec

@@ -1,24 +1,22 @@
 package v1alpha1
 
 const (
-	ConditionTypeReady                 string = "Ready"
-	ConditionTypeBackupRestored        string = "BackupRestored"
-	ConditionTypeReplicationConfigured string = "ReplicationConfigured"
-	ConditionTypePrimarySwitched       string = "PrimarySwitched"
+	ConditionTypeReady           string = "Ready"
+	ConditionTypeBackupRestored  string = "BackupRestored"
+	ConditionTypePrimarySwitched string = "PrimarySwitched"
 	// ConditionTypeGaleraReady indicates that the cluster is healthy.
 	ConditionTypeGaleraReady string = "GaleraReady"
 	// ConditionTypeGaleraConfigured indicates that the cluster has been successfully configured.
 	ConditionTypeGaleraConfigured string = "GaleraConfigured"
 	ConditionTypeComplete         string = "Complete"
 
-	ConditionReasonStatefulSetNotReady  string = "StatefulSetNotReady"
-	ConditionReasonStatefulSetReady     string = "StatefulSetReady"
-	ConditionReasonRestoreBackup        string = "RestoreBackup"
-	ConditionReasonConfigureReplication string = "ConfigureReplication"
-	ConditionReasonSwitchPrimary        string = "SwitchPrimary"
-	ConditionReasonGaleraReady          string = "GaleraReady"
-	ConditionReasonGaleraNotReady       string = "GaleraNotReady"
-	ConditionReasonGaleraConfigured     string = "GaleraConfigured"
+	ConditionReasonStatefulSetNotReady string = "StatefulSetNotReady"
+	ConditionReasonStatefulSetReady    string = "StatefulSetReady"
+	ConditionReasonRestoreBackup       string = "RestoreBackup"
+	ConditionReasonSwitchPrimary       string = "SwitchPrimary"
+	ConditionReasonGaleraReady         string = "GaleraReady"
+	ConditionReasonGaleraNotReady      string = "GaleraNotReady"
+	ConditionReasonGaleraConfigured    string = "GaleraConfigured"
 
 	ConditionReasonMaxScaleNotReady string = "MaxScaleNotReady"
 	ConditionReasonMaxScaleReady    string = "MaxScaleReady"
