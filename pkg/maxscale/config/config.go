@@ -1,4 +1,4 @@
-package maxscale
+package config
 
 import (
 	"bytes"

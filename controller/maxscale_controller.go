@@ -29,8 +29,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/pkg/maxscale"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
+	mxsconfig "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -269,7 +269,7 @@ func (r *MaxScaleReconciler) setMariadbDefaults(ctx context.Context, req *reques
 func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	mxs := req.mxs
 	secretKeyRef := mxs.ConfigSecretKeyRef()
-	config, err := maxscale.Config(mxs)
+	config, err := mxsconfig.Config(mxs)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting MaxScale config: %v", err)
 	}

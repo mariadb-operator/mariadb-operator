@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	mxsstate "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/state"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -475,25 +475,19 @@ type MaxScaleServerStatus struct {
 	State string `json:"state"`
 }
 
-// InState indicates whether the current server is in a given state.
-func (s *MaxScaleServerStatus) InState(state string) bool {
-	// See: https://mariadb.com/kb/en/mariadb-maxscale-25-mariadb-maxscale-configuration-guide/#server
-	return strings.Contains(s.State, state)
-}
-
 // IsMaster indicates whether the current server is in Master state.
 func (s *MaxScaleServerStatus) IsMaster() bool {
-	return s.InState("Master")
+	return mxsstate.IsMaster(s.State)
 }
 
 // IsReady indicates whether the current server is in ready state.
 func (s *MaxScaleServerStatus) IsReady() bool {
-	return s.IsMaster() || s.InState("Slave")
+	return mxsstate.IsReady(s.State)
 }
 
 // InMaintenance indicates whether the current server is in maintenance state.
 func (s *MaxScaleServerStatus) InMaintenance() bool {
-	return s.InState("Maintenance")
+	return mxsstate.InMaintenance(s.State)
 }
 
 // MaxScaleResourceStatus indicates whether the resource is in a given state.
