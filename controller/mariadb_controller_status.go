@@ -55,7 +55,7 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 	}
 	defer clientSet.Close()
 
-	var replicationStatus mariadbv1alpha1.ReplicationStatus
+	replicationStatus := make(mariadbv1alpha1.ReplicationStatus)
 	logger := log.FromContext(ctx)
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
 		pod := stsobj.PodName(mdb.ObjectMeta, i)
@@ -84,10 +84,7 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 		} else if slaveEnabled {
 			state = mariadbv1alpha1.ReplicationStateSlave
 		}
-		replicationStatus = append(replicationStatus, mariadbv1alpha1.PodReplicationState{
-			Pod:   pod,
-			State: state,
-		})
+		replicationStatus[pod] = state
 	}
 	return replicationStatus, nil
 }

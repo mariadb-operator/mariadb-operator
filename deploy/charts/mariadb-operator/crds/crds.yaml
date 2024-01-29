@@ -14369,19 +14369,11 @@ spec:
                 format: int32
                 type: integer
               replicationStatus:
+                additionalProperties:
+                  type: string
                 description: ReplicationStatus is the replication current state for
                   each Pod.
-                items:
-                  properties:
-                    pod:
-                      type: string
-                    state:
-                      type: string
-                  required:
-                  - pod
-                  - state
-                  type: object
-                type: array
+                type: object
             type: object
         required:
         - spec

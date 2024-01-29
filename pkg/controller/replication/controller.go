@@ -3,6 +3,7 @@ package replication
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -11,9 +12,10 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -81,22 +83,17 @@ type reconcileRequest struct {
 	clientSet *ReplicationClientSet
 }
 
-type replicationPhase struct {
-	name      string
-	key       types.NamespacedName
-	reconcile func(context.Context, *reconcileRequest, logr.Logger) error
-}
-
-func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if !mdb.Replication().Enabled || mdb.IsRestoringBackup() {
-		return nil
+		return ctrl.Result{}, nil
 	}
-	logger := replLogger(ctx)
+	logger := log.FromContext(ctx).WithName("replication")
+	switchoverLogger := log.FromContext(ctx).WithName("switchover")
 
 	if !mdb.IsMaxScaleEnabled() && mdb.IsSwitchingPrimary() {
 		clientSet, err := NewReplicationClientSet(mdb, r.refResolver)
 		if err != nil {
-			return fmt.Errorf("error creating mariadb clientset: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error creating mariadb clientset: %v", err)
 		}
 		defer clientSet.close()
 
@@ -105,94 +102,79 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 			key:       client.ObjectKeyFromObject(mdb),
 			clientSet: clientSet,
 		}
-		if err := r.reconcileSwitchover(ctx, &req, logger.WithName("switchover")); err != nil {
-			return fmt.Errorf("error recovering primary switchover: %v", err)
-		}
-		return nil
+		return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
 	}
 	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mdb, health.EndpointPolicyAll)
 	if err != nil {
-		return fmt.Errorf("error checking MariaDB health: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
 	}
 	if !healthy {
-		return nil
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	clientSet, err := NewReplicationClientSet(mdb, r.refResolver)
 	if err != nil {
-		return fmt.Errorf("error creating mariadb clientset: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating mariadb clientset: %v", err)
 	}
 	defer clientSet.close()
 
-	mariaDbKey := client.ObjectKeyFromObject(mdb)
-	phases := []replicationPhase{
-		{
-			name:      "reconcile Primary",
-			key:       mariaDbKey,
-			reconcile: r.reconcilePrimary,
-		},
-		{
-			name:      "reconcile Replicas",
-			key:       mariaDbKey,
-			reconcile: r.reconcileReplicas,
-		},
-		{
-			name:      "reconcile switchover",
-			key:       mariaDbKey,
-			reconcile: r.reconcileSwitchover,
-		},
+	req := reconcileRequest{
+		mariadb:   mdb,
+		key:       client.ObjectKeyFromObject(mdb),
+		clientSet: clientSet,
 	}
-
-	for _, p := range phases {
-		req := reconcileRequest{
-			mariadb:   mdb,
-			key:       p.key,
-			clientSet: clientSet,
-		}
-		if err := p.reconcile(ctx, &req, logger); err != nil {
-			if apierrors.IsNotFound(err) {
-				return err
-			}
-			return fmt.Errorf("error reconciling '%s' phase: %v", p.name, err)
-		}
+	if result, err := r.reconcileReplication(ctx, &req, logger); !result.IsZero() || err != nil {
+		return result, err
 	}
-	return nil
+	return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
 }
 
-func (r *ReplicationReconciler) reconcilePrimary(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.IsReplicationConfigured() || req.mariadb.IsSwitchingPrimary() {
-		return nil
+func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) (ctrl.Result, error) {
+	if req.mariadb.IsSwitchingPrimary() {
+		return ctrl.Result{}, nil
 	}
-	client, err := req.clientSet.newPrimaryClient(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting new primary client: %v", err)
+	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	podIndex := *req.mariadb.Replication().Primary.PodIndex
-	logger.V(1).Info("Configuring primary", "pod-index", podIndex)
-	return r.replConfig.ConfigurePrimary(ctx, req.mariadb, client, podIndex)
-}
-
-func (r *ReplicationReconciler) reconcileReplicas(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	if req.mariadb.IsReplicationConfigured() || req.mariadb.IsSwitchingPrimary() {
-		return nil
-	}
-	logger.V(1).Info("Configuring replicas")
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
-		if i == *req.mariadb.Replication().Primary.PodIndex {
-			continue
-		}
-		client, err := req.clientSet.clientForIndex(ctx, i)
-		if err != nil {
-			return fmt.Errorf("error getting client for replica '%d': %v", i, err)
+		pod := statefulset.PodName(req.mariadb.ObjectMeta, i)
+
+		if req.mariadb.Status.ReplicationStatus == nil {
+			if err := r.reconcileReplicationInPod(ctx, req, logger, i); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err)
+			}
 		}
 
-		logger.V(1).Info("Configuring replica", "pod-index", i)
-		if err := r.replConfig.ConfigureReplica(ctx, req.mariadb, client, i, *req.mariadb.Replication().Primary.PodIndex, false); err != nil {
-			return fmt.Errorf("error configuring replica '%d': %v", i, err)
+		state, ok := req.mariadb.Status.ReplicationStatus[pod]
+		if !ok || state == mariadbv1alpha1.ReplicationStateNotConfigured {
+			if err := r.reconcileReplicationInPod(ctx, req, logger, i); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err)
+			}
 		}
 	}
-	return nil
+	return ctrl.Result{}, nil
+}
+
+func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, req *reconcileRequest, logger logr.Logger, index int) error {
+	pod := statefulset.PodName(req.mariadb.ObjectMeta, index)
+	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
+
+	if primaryPodIndex == index {
+		logger.Info("Configuring primary", "pod", pod)
+		client, err := req.clientSet.currentPrimaryClient(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting current primary client: %v", err)
+		}
+		return r.replConfig.ConfigurePrimary(ctx, req.mariadb, client, index)
+	}
+
+	logger.Info("Configuring replica", "pod", pod)
+	client, err := req.clientSet.clientForIndex(ctx, index)
+	if err != nil {
+		return fmt.Errorf("error getting replica client: %v", err)
+	}
+	return r.replConfig.ConfigureReplica(ctx, req.mariadb, client, index, primaryPodIndex, false)
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -200,8 +182,4 @@ func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariad
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
-}
-
-func replLogger(ctx context.Context) logr.Logger {
-	return log.FromContext(ctx).WithName("replication")
 }

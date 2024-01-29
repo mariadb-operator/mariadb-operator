@@ -265,16 +265,11 @@ const (
 	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
 )
 
-type PodReplicationState struct {
-	Pod   string           `json:"pod"`
-	State ReplicationState `json:"state"`
-}
-
-type ReplicationStatus []PodReplicationState
+type ReplicationStatus map[string]ReplicationState
 
 func (r ReplicationStatus) IsReplicationConfigured() bool {
-	for _, item := range r {
-		if item.State == ReplicationStateNotConfigured {
+	for _, state := range r {
+		if state == ReplicationStateNotConfigured {
 			return false
 		}
 	}
