@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -29,7 +29,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 
 	return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		status.Replicas = sts.Status.ReadyReplicas
-		status.FillWithDefaults(mdb)
+		defaultPrimary(mdb)
 
 		if replicationStatus != nil {
 			status.ReplicationStatus = replicationStatus
@@ -56,7 +56,7 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 	defer clientSet.Close()
 
 	var replicationStatus mariadbv1alpha1.ReplicationStatus
-	logger := replLogger(ctx)
+	logger := log.FromContext(ctx)
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
 		pod := stsobj.PodName(mdb.ObjectMeta, i)
 
@@ -92,6 +92,19 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 	return replicationStatus, nil
 }
 
-func replLogger(ctx context.Context) logr.Logger {
-	return log.FromContext(ctx).WithName("replication")
+func defaultPrimary(mdb *mariadbv1alpha1.MariaDB) {
+	if mdb.Status.CurrentPrimaryPodIndex != nil || mdb.Status.CurrentPrimary != nil {
+		return
+	}
+	podIndex := 0
+	if mdb.Galera().Enabled {
+		primaryGalera := ptr.Deref(mdb.Galera().Primary, mariadbv1alpha1.PrimaryGalera{})
+		podIndex = ptr.Deref(primaryGalera.PodIndex, 0)
+	}
+	if mdb.Replication().Enabled {
+		primaryReplication := ptr.Deref(mdb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
+		podIndex = ptr.Deref(primaryReplication.PodIndex, 0)
+	}
+	mdb.Status.CurrentPrimaryPodIndex = &podIndex
+	mdb.Status.CurrentPrimary = ptr.To(stsobj.PodName(mdb.ObjectMeta, podIndex))
 }
