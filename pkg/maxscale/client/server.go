@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	mxsstate "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/state"
 )
 
 var ErrMasterServerNotFound = errors.New("master server not found")
@@ -51,8 +51,7 @@ type ServerAttributes struct {
 }
 
 func (s *ServerAttributes) IsMaster() bool {
-	// See: https://mariadb.com/kb/en/mariadb-maxscale-25-mariadb-maxscale-configuration-guide/#server
-	return strings.Contains(s.State, "Master")
+	return mxsstate.IsMaster(s.State)
 }
 
 type ServerClient struct {
