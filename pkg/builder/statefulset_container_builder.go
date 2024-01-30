@@ -399,7 +399,7 @@ func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *co
 				},
 			},
 		},
-		InitialDelaySeconds: 30,
+		InitialDelaySeconds: 40,
 		TimeoutSeconds:      5,
 		PeriodSeconds:       10,
 	}
