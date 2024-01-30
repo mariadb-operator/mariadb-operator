@@ -17,6 +17,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/maxscale"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -32,15 +33,12 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -65,6 +63,7 @@ type MariaDBReconciler struct {
 	AuthReconciler           *auth.AuthReconciler
 	DeploymentReconciler     *deployment.DeploymentReconciler
 	ServiceMonitorReconciler *servicemonitor.ServiceMonitorReconciler
+	MaxScaleReconciler       *maxscale.MaxScaleReconciler
 
 	ReplicationReconciler *replication.ReplicationReconciler
 	GaleraReconciler      *galera.GaleraReconciler
@@ -144,7 +143,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		},
 		{
 			Name:      "MaxScale",
-			Reconcile: r.reconcileMaxScale,
+			Reconcile: r.MaxScaleReconciler.Reconcile,
 		},
 		{
 			Name:      "Replication",
@@ -318,49 +317,6 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 		}
 	}
 	return ctrl.Result{}, r.reconcileDefaultConnection(ctx, mariadb)
-}
-
-func (r *MariaDBReconciler) reconcileMaxScale(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !ptr.Deref(mdb.Spec.MaxScale, mariadbv1alpha1.MariaDBMaxScaleSpec{}).Enabled {
-		return ctrl.Result{}, nil
-	}
-	if !mdb.IsReady() {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-
-	key := mdb.MaxScaleKey()
-	desiredMxs := mariadbv1alpha1.MaxScale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-		},
-		Spec: mariadbv1alpha1.MaxScaleSpec{
-			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
-					Name:      mdb.Name,
-					Namespace: mdb.Namespace,
-				},
-			},
-			MaxScaleBaseSpec: mdb.Spec.MaxScale.MaxScaleBaseSpec,
-		},
-	}
-	if err := controllerutil.SetControllerReference(mdb, &desiredMxs, r.Scheme); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error setting controller to MaxScale %v", err)
-	}
-	desiredMxs.SetDefaults(r.Environment)
-	desiredMxs.Spec.Auth.Generate.Enabled = true
-
-	var existingMxs mariadbv1alpha1.MaxScale
-	if err := r.Get(ctx, key, &existingMxs); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, r.Create(ctx, &desiredMxs)
-	}
-
-	patch := client.MergeFrom(existingMxs.DeepCopy())
-	existingMxs.Spec.MaxScaleBaseSpec = desiredMxs.Spec.MaxScaleBaseSpec
-	return ctrl.Result{}, r.Patch(ctx, &existingMxs, patch)
 }
 
 func (r *MariaDBReconciler) reconcileGalera(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
