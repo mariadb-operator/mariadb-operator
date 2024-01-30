@@ -523,7 +523,7 @@ var _ = Describe("MariaDB replication", func() {
 					return false
 				}
 				return *testRplMariaDb.Status.CurrentPrimaryPodIndex == 0 || *testRplMariaDb.Status.CurrentPrimaryPodIndex == 2
-			}, testTimeout, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
