@@ -15,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/maxscale"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -122,6 +123,7 @@ var _ = BeforeSuite(func() {
 	deployReconciler := deployment.NewDeploymentReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 
+	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
 	replicationReconciler, err := replication.NewReplicationReconciler(
 		client,
@@ -189,6 +191,7 @@ var _ = BeforeSuite(func() {
 		DeploymentReconciler:     deployReconciler,
 		ServiceMonitorReconciler: svcMonitorReconciler,
 
+		MaxScaleReconciler:    mxsReconciler,
 		ReplicationReconciler: replicationReconciler,
 		GaleraReconciler:      galeraReconciler,
 	}).SetupWithManager(k8sManager)
