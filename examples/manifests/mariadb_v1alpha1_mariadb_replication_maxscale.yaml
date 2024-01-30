@@ -55,7 +55,12 @@ spec:
       params:
         auto_failover: "true"
         auto_rejoin: "true"
-        switchover_on_low_disk_space: "true"   
+        switchover_on_low_disk_space: "true"
+
+    kubernetesService:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.216
 
   replication:
     enabled: true

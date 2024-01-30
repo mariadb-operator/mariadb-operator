@@ -56,6 +56,8 @@ host-maxscale: ## Add maxscale hosts to /etc/hosts.
 	@./hack/add_host.sh 212 maxscale-2.maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 213 maxscale-3.maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 214 maxscale.default.svc.cluster.local
+	@./hack/add_host.sh 215 mariadb-repl-maxscale-0.mariadb-repl-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 216 mariadb-repl-maxscale.default.svc.cluster.local
 
 .PHONY: host-maxscale-galera
 host-maxscale-galera: ## Add maxscale-galera hosts to /etc/hosts.
@@ -64,6 +66,8 @@ host-maxscale-galera: ## Add maxscale-galera hosts to /etc/hosts.
 	@./hack/add_host.sh 222 maxscale-galera-2.maxscale-galera-internal.default.svc.cluster.local
 	@./hack/add_host.sh 223 maxscale-galera-3.maxscale-galera-internal.default.svc.cluster.local
 	@./hack/add_host.sh 224 maxscale-galera.default.svc.cluster.local
+	@./hack/add_host.sh 225 mariadb-galera-maxscale-0.mariadb-galera-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 226 mariadb-galera-maxscale.default.svc.cluster.local
 
 .PHONY: net
 net: install-metallb host-mariadb host-mariadb-test host-mariadb-repl host-mariadb-galera host-monitoring host-minio host-maxscale host-maxscale-galera ## Configure networking for local development.
