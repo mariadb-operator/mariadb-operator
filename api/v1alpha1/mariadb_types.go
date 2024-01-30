@@ -344,6 +344,12 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 			m.Spec.Metrics.PasswordSecretKeyRef = m.MetricsPasswordSecretKeyRef()
 		}
 	}
+	if ptr.Deref(m.Spec.MaxScale, MariaDBMaxScaleSpec{}).Enabled && m.Spec.MaxScaleRef == nil {
+		m.Spec.MaxScaleRef = &corev1.ObjectReference{
+			Name:      m.MaxScaleKey().Name,
+			Namespace: m.Namespace,
+		}
+	}
 }
 
 // Replication with defaulting accessor

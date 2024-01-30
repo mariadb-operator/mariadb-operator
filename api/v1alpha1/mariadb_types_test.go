@@ -4,6 +4,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -18,6 +19,7 @@ var _ = Describe("MariaDB types", func() {
 		RelatedMariadbImage: "mariadb:11.0.3",
 	}
 	Context("When creating a MariaDB object", func() {
+		format.MaxLength = 8000
 		DescribeTable(
 			"Should default",
 			func(mdb, expected *MariaDB, env *environment.Environment) {
@@ -308,6 +310,68 @@ var _ = Describe("MariaDB types", func() {
 									Name: "mariadb-obj-metrics-password",
 								},
 								Key: "password",
+							},
+						},
+					},
+				},
+				env,
+			),
+			Entry(
+				"MaxScale",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						MaxScale: &MariaDBMaxScaleSpec{
+							Enabled: true,
+							MaxScaleBaseSpec: MaxScaleBaseSpec{
+								Services: []MaxScaleService{
+									{
+										Name:   "rw-router",
+										Router: ServiceRouterReadWriteSplit,
+										Listener: MaxScaleListener{
+											Port: 3306,
+										},
+									},
+								},
+								Monitor: MaxScaleMonitor{
+									Module: MonitorModuleMariadb,
+								},
+							},
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Image:             env.RelatedMariadbImage,
+						EphemeralStorage:  ptr.To(false),
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-obj-root",
+							},
+							Key: "password",
+						},
+						Port: 3306,
+						MaxScaleRef: &corev1.ObjectReference{
+							Name:      "mariadb-obj-maxscale",
+							Namespace: "mariadb-obj",
+						},
+						MaxScale: &MariaDBMaxScaleSpec{
+							Enabled: true,
+							MaxScaleBaseSpec: MaxScaleBaseSpec{
+								Services: []MaxScaleService{
+									{
+										Name:   "rw-router",
+										Router: ServiceRouterReadWriteSplit,
+										Listener: MaxScaleListener{
+											Port: 3306,
+										},
+									},
+								},
+								Monitor: MaxScaleMonitor{
+									Module: MonitorModuleMariadb,
+								},
 							},
 						},
 					},
