@@ -150,6 +150,7 @@ Container object definition.
 _Appears in:_
 - [Galera](#galera)
 - [GaleraSpec](#galeraspec)
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)
@@ -180,6 +181,7 @@ _Appears in:_
 - [Container](#container)
 - [Exporter](#exporter)
 - [GaleraAgent](#galeraagent)
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)
@@ -488,6 +490,52 @@ MariaDB is the Schema for the mariadbs API. It is used to define MariaDB cluster
 | `spec` _[MariaDBSpec](#mariadbspec)_ |  |
 
 
+#### MariaDBMaxScaleSpec
+
+
+
+MariaDBMaxScaleSpec defines a MaxScale resources to be used with the current MariaDB.
+
+_Appears in:_
+- [MariaDBSpec](#mariadbspec)
+
+| Field | Description |
+| --- | --- |
+| `command` _string array_ | Command to be used in the Container. |
+| `args` _string array_ | Args to be used in the Container. |
+| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core) array_ | Env represents the environment variables to be injected in a container. |
+| `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |
+| `volumeMounts` _[VolumeMount](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core) array_ | VolumeMounts to be used in the Container. |
+| `livenessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | LivenessProbe to be used in the Container. |
+| `readinessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | ReadinessProbe to be used in the Container. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
+| `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |
+| `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |
+| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
+| `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
+| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
+| `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
+| `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |
+| `topologySpreadConstraints` _[TopologySpreadConstraint](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core) array_ | TopologySpreadConstraints to be used in the Pod. |
+| `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported. |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
+| `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
+| `services` _[MaxScaleService](#maxscaleservice) array_ | Services define how the traffic is forwarded to the MariaDB servers. |
+| `monitor` _[MaxScaleMonitor](#maxscalemonitor)_ | Monitor monitors MariaDB server instances. |
+| `admin` _[MaxScaleAdmin](#maxscaleadmin)_ | Admin configures the admin REST API and GUI. |
+| `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |
+| `auth` _[MaxScaleAuth](#maxscaleauth)_ | Auth defines the credentials required for MaxScale to connect to MariaDB. |
+| `replicas` _integer_ | Replicas indicates the number of desired instances. |
+| `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
+| `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | UpdateStrategy defines the update strategy for the StatefulSet object. |
+| `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the Kubernetes Service object. |
+| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s. |
+| `enabled` _boolean_ | Enabled is a flag to enable Metrics |
+
+
 #### MariaDBRef
 
 
@@ -563,6 +611,7 @@ _Appears in:_
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |
 | `maxScaleRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectreference-v1-core)_ | MaxScaleRef is a reference to a MaxScale instance that is forwarding the traffic to the current MariaDB instance. Providing this field implies delegating high availability tasks such as primary failover to MaxScale. |
+| `maxScale` _[MariaDBMaxScaleSpec](#mariadbmaxscalespec)_ | MaxScale is the MaxScale specification that defines the MaxScale instance that will be used with MariaDB. When enabling this field, MaxScaleRef is automatically set. |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. |
 | `port` _integer_ | Port where the instances will be listening for connections. |
 | `ephemeralStorage` _boolean_ | EphemeralStorage indicates whether to use ephemeral storage for the instances. |
@@ -602,6 +651,7 @@ MaxScale is the Schema for the maxscales API. It is used to define MaxScale clus
 MaxScaleAdmin configures the admin REST API and GUI.
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -618,6 +668,7 @@ _Appears in:_
 MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB.
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -658,6 +709,7 @@ _Appears in:_
 MaxScaleBaseSpec defines the base specification for MaxScale.
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
@@ -703,6 +755,7 @@ _Appears in:_
 MaxScaleConfig defines the MaxScale configuration.
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -754,6 +807,7 @@ _Appears in:_
 MaxScaleMonitor monitors MariaDB server instances
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -793,6 +847,7 @@ _Appears in:_
 Services define how the traffic is forwarded to the MariaDB servers.
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -888,6 +943,7 @@ _Appears in:_
 PodDisruptionBudget is the Pod availability bundget for a MariaDB
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)
@@ -905,6 +961,7 @@ _Appears in:_
 PodTemplate defines a template to configure Container objects.
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)
@@ -1209,6 +1266,7 @@ _Appears in:_
 ServiceTemplate defines a template to customize Service objects.
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleBaseSpec](#maxscalebasespec)
 - [MaxScaleSpec](#maxscalespec)

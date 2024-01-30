@@ -91,6 +91,18 @@ type Metrics struct {
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 }
 
+// MariaDBMaxScaleSpec defines a MaxScale resources to be used with the current MariaDB.
+type MariaDBMaxScaleSpec struct {
+	// MaxScaleBaseSpec is the MaxScale desired state specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MaxScaleBaseSpec `json:",inline"`
+	// Enabled is a flag to enable Metrics
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -173,6 +185,11 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxScaleRef *corev1.ObjectReference `json:"maxScaleRef,omitempty"`
+	// MaxScale is the MaxScale specification that defines the MaxScale instance that will be used with MariaDB.
+	// When enabling this field, MaxScaleRef is automatically set.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MaxScale *MariaDBMaxScaleSpec `json:"maxScale,omitempty"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}

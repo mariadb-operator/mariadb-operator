@@ -44,7 +44,10 @@ var _ webhook.Validator = &MariaDB{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateCreate() (admission.Warnings, error) {
 	mariadbLogger.V(1).Info("Validate create", "name", r.Name)
-	return nil, r.validate()
+	if err := r.validate(); err != nil {
+		return nil, err
+	}
+	return nil, r.validateMaxScale()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -99,6 +102,17 @@ func (r *MariaDB) validateHA() error {
 			field.NewPath("spec").Child("replicas"),
 			r.Spec.Replicas,
 			"Multiple replicas must be specified when 'spec.replication' or 'spec.galera' are configured",
+		)
+	}
+	return nil
+}
+
+func (r *MariaDB) validateMaxScale() error {
+	if r.Spec.MaxScaleRef != nil && r.Spec.MaxScale != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("maxScaleRef"),
+			r.Spec.MaxScaleRef,
+			"'spec.maxScaleRef' and 'spec.maxScale' cannot be specified simultaneously",
 		)
 	}
 	return nil

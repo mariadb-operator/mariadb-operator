@@ -287,6 +287,21 @@ var _ = Describe("MariaDB webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid MaxScale",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						MaxScaleRef: &corev1.ObjectReference{
+							Name: "maxscale",
+						},
+						MaxScale: &MariaDBMaxScaleSpec{
+							Enabled: true,
+						},
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid PodDisruptionBudget",
 				&MariaDB{
 					ObjectMeta: meta,
