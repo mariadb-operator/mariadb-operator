@@ -248,11 +248,17 @@ func (r *MaxScaleReconciler) setMariadbDefaults(ctx context.Context, req *reques
 		name := stsobj.PodName(mdb.ObjectMeta, i)
 		address := stsobj.PodFQDNWithService(mdb.ObjectMeta, i, mdb.InternalServiceKey().Name)
 
-		servers[i] = mariadbv1alpha1.MaxScaleServer{
-			Name:    name,
-			Address: address,
-			Port:    mdb.Spec.Port,
+		var server mariadbv1alpha1.MaxScaleServer
+		if i < len(req.mxs.Spec.Servers) {
+			server = req.mxs.Spec.Servers[i]
+		} else {
+			server = mariadbv1alpha1.MaxScaleServer{
+				Name:    name,
+				Address: address,
+				Port:    mdb.Spec.Port,
+			}
 		}
+		servers[i] = server
 	}
 
 	monitorModule := mariadbv1alpha1.MonitorModuleMariadb
