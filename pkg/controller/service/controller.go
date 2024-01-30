@@ -37,8 +37,15 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, desiredSvc *corev1.Se
 	existingSvc.Spec.AllocateLoadBalancerNodePorts = desiredSvc.Spec.AllocateLoadBalancerNodePorts
 	existingSvc.Spec.Selector = desiredSvc.Spec.Selector
 	existingSvc.Spec.Type = desiredSvc.Spec.Type
+
+	if existingSvc.Annotations == nil {
+		existingSvc.Annotations = make(map[string]string)
+	}
 	for k, v := range desiredSvc.Annotations {
 		existingSvc.Annotations[k] = v
+	}
+	if existingSvc.Labels == nil {
+		existingSvc.Labels = make(map[string]string)
 	}
 	for k, v := range desiredSvc.Labels {
 		existingSvc.Labels[k] = v

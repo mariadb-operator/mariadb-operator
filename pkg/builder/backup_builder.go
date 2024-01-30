@@ -33,7 +33,7 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		},
 	}
 	if err := controllerutil.SetControllerReference(mariadb, restore, b.scheme); err != nil {
-		return nil, fmt.Errorf("error setting controller reference to bootstrapping restore Job: %v", err)
+		return nil, fmt.Errorf("error setting controller reference to restore Job: %v", err)
 	}
 	return restore, nil
 }

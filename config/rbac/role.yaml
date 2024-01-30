@@ -181,6 +181,7 @@ rules:
   resources:
   - connections
   - grants
+  - maxscale
   - restores
   - users
   verbs:
