@@ -27,6 +27,9 @@ const (
 	MariadbConfigMountPath  = "/etc/mysql/conf.d"
 	MaxscaleConfigMountPath = "/etc/config"
 
+	ProbesVolume    = "probes"
+	ProbesMountPath = "/etc/probes"
+
 	ServiceAccountVolume    = "serviceaccount"
 	ServiceAccountMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
 
@@ -259,6 +262,19 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 	}
 	volumes := []corev1.Volume{
 		configVolume,
+	}
+	if mariadb.Replication().Enabled {
+		volumes = append(volumes, corev1.Volume{
+			Name: ProbesVolume,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: mariadb.ReplConfigMapKeyRef().Name,
+					},
+					DefaultMode: ptr.To(int32(0777)),
+				},
+			},
+		})
 	}
 	if mariadb.Galera().Enabled {
 		volumes = append(volumes, corev1.Volume{

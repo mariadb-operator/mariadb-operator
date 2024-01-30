@@ -275,6 +275,14 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount 
 			MountPath: MariadbConfigMountPath,
 		},
 	}
+	if mariadb.Replication().Enabled {
+		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
+			{
+				Name:      ProbesVolume,
+				MountPath: ProbesMountPath,
+			},
+		}...)
+	}
 	if mariadb.Galera().Enabled {
 		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 			{
@@ -355,17 +363,23 @@ func buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1al
 	return container
 }
 
+func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe)
+}
+
+func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe)
+}
+
 func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
+	if mariadb.Replication().Enabled {
+		replProbe := mariadbReplProbe(mariadb, probe)
+		setProbeThresholds(replProbe, probe)
+		return replProbe
+	}
 	if mariadb.Galera().Enabled {
 		galerProbe := *galeraStsProbe
-		if probe != nil {
-			p := *probe
-			galerProbe.InitialDelaySeconds = p.InitialDelaySeconds
-			galerProbe.TimeoutSeconds = p.TimeoutSeconds
-			galerProbe.PeriodSeconds = p.PeriodSeconds
-			galerProbe.SuccessThreshold = p.SuccessThreshold
-			galerProbe.FailureThreshold = p.FailureThreshold
-		}
+		setProbeThresholds(&galerProbe, probe)
 		return &galerProbe
 	}
 	if probe != nil {
@@ -374,12 +388,23 @@ func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1
 	return &defaultStsProbe
 }
 
-func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe)
-}
-
-func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe)
+func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
+	mxsProbe := &corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			Exec: &corev1.ExecAction{
+				Command: []string{
+					"bash",
+					"-c",
+					fmt.Sprintf("%s/%s", ProbesMountPath, mariadb.ReplConfigMapKeyRef().Key),
+				},
+			},
+		},
+		InitialDelaySeconds: 30,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+	}
+	setProbeThresholds(mxsProbe, probe)
+	return mxsProbe
 }
 
 func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *corev1.Probe) *corev1.Probe {
@@ -393,10 +418,21 @@ func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *corev1.Probe) *corev1.P
 				Port: intstr.FromInt(int(mxs.Spec.Admin.Port)),
 			},
 		},
-		InitialDelaySeconds: 10,
-		PeriodSeconds:       10,
+		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
 	}
+}
+
+func setProbeThresholds(source, target *corev1.Probe) {
+	if target == nil {
+		return
+	}
+	source.InitialDelaySeconds = target.InitialDelaySeconds
+	source.TimeoutSeconds = target.TimeoutSeconds
+	source.PeriodSeconds = target.PeriodSeconds
+	source.SuccessThreshold = target.SuccessThreshold
+	source.FailureThreshold = target.FailureThreshold
 }
 
 var (
