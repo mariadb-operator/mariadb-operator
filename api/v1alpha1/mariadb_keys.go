@@ -93,6 +93,14 @@ func (m *MariaDB) MetricsKey() types.NamespacedName {
 	}
 }
 
+// MaxScaleKey defines the key for the MaxScale resource.
+func (m *MariaDB) MaxScaleKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-maxscale", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // MetricsPasswordSecretKeyRef defines the key selector for for the password to be used by the metrics user
 func (m *MariaDB) MetricsPasswordSecretKeyRef() corev1.SecretKeySelector {
 	return corev1.SecretKeySelector{
