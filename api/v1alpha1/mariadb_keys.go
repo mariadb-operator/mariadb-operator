@@ -112,3 +112,13 @@ func (m *MariaDB) MetricsConfigSecretKeyRef() corev1.SecretKeySelector {
 		Key: "exporter.cnf",
 	}
 }
+
+// ConfigMapKeySelector defines the key selector for the ConfigMap used for replication healthchecks.
+func (m *MariaDB) ReplConfigMapKeyRef() corev1.ConfigMapKeySelector {
+	return corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: fmt.Sprintf("%s-probes", m.Name),
+		},
+		Key: "replication.sh",
+	}
+}

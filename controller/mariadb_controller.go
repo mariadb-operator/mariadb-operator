@@ -239,7 +239,15 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 				configMapKeyRef.Key: *mariadb.Spec.MyCnf,
 			},
 		}
-		return ctrl.Result{}, r.ConfigMapReconciler.Reconcile(ctx, &req)
+		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+	if mariadb.Replication().Enabled {
+		configMapKeyRef := mariadb.ReplConfigMapKeyRef()
+		if err := r.ReplicationReconciler.ReconcileProbeConfigMap(ctx, configMapKeyRef, mariadb); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 	return ctrl.Result{}, nil
 }

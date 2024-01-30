@@ -8,11 +8,13 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,12 +44,13 @@ func WithServiceReconciler(sr *service.ServiceReconciler) Option {
 
 type ReplicationReconciler struct {
 	client.Client
-	recorder          record.EventRecorder
-	builder           *builder.Builder
-	replConfig        *ReplicationConfig
-	refResolver       *refresolver.RefResolver
-	secretReconciler  *secret.SecretReconciler
-	serviceReconciler *service.ServiceReconciler
+	recorder            record.EventRecorder
+	builder             *builder.Builder
+	replConfig          *ReplicationConfig
+	refResolver         *refresolver.RefResolver
+	secretReconciler    *secret.SecretReconciler
+	configMapreconciler *configmap.ConfigMapReconciler
+	serviceReconciler   *service.ServiceReconciler
 }
 
 func NewReplicationReconciler(client client.Client, recorder record.EventRecorder, builder *builder.Builder, replConfig *ReplicationConfig,
@@ -70,6 +73,9 @@ func NewReplicationReconciler(client client.Client, recorder record.EventRecorde
 			return nil, err
 		}
 		r.secretReconciler = reconciler
+	}
+	if r.configMapreconciler == nil {
+		r.configMapreconciler = configmap.NewConfigMapReconciler(client, builder)
 	}
 	if r.serviceReconciler == nil {
 		r.serviceReconciler = service.NewServiceReconciler(client)
@@ -127,6 +133,33 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 		return result, err
 	}
 	return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
+}
+
+// nolint:lll
+func (r *ReplicationReconciler) ReconcileProbeConfigMap(ctx context.Context, configMapKeyRef corev1.ConfigMapKeySelector,
+	mdb *mariadbv1alpha1.MariaDB) error {
+	if !mdb.Replication().Enabled {
+		return nil
+	}
+	req := configmap.ReconcileRequest{
+		Mariadb: mdb,
+		Owner:   mdb,
+		Key: types.NamespacedName{
+			Name:      configMapKeyRef.Name,
+			Namespace: mdb.Namespace,
+		},
+		Data: map[string]string{
+			configMapKeyRef.Key: `#!/bin/bash
+
+if [[ $(mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW VARIABLES LIKE 'rpl_semi_sync_slave_enabled';" --skip-column-names | grep -c "ON") -eq 1 ]]; then
+	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW SLAVE 'mariadb-operator' STATUS\G" | grep -c "Slave_IO_Running: Yes" 
+else
+	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
+fi
+`,
+		},
+	}
+	return r.configMapreconciler.Reconcile(ctx, &req)
 }
 
 func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) (ctrl.Result, error) {
