@@ -364,14 +364,8 @@ func buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1al
 }
 
 func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe)
-}
+	probe := mariadb.Spec.LivenessProbe
 
-func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe)
-}
-
-func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
 	if mariadb.Replication().Enabled {
 		replProbe := mariadbReplProbe(mariadb, probe)
 		setProbeThresholds(replProbe, probe)
@@ -385,6 +379,22 @@ func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1
 	if probe != nil {
 		return probe
 	}
+
+	return &defaultStsProbe
+}
+
+func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	probe := mariadb.Spec.ReadinessProbe
+
+	if mariadb.Galera().Enabled {
+		galerProbe := *galeraStsProbe
+		setProbeThresholds(&galerProbe, probe)
+		return &galerProbe
+	}
+	if probe != nil {
+		return probe
+	}
+
 	return &defaultStsProbe
 }
 
