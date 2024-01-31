@@ -263,7 +263,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 	volumes := []corev1.Volume{
 		configVolume,
 	}
-	if mariadb.Replication().Enabled {
+	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		volumes = append(volumes, corev1.Volume{
 			Name: ProbesVolume,
 			VolumeSource: corev1.VolumeSource{

@@ -16785,6 +16785,12 @@ spec:
                           switchover.
                         type: integer
                     type: object
+                  probesEnabled:
+                    description: ProbesEnabled indicates to use replication specific
+                      liveness and readiness probes. This probes check that the primary
+                      can receive queries and that the replica has the replication
+                      thread running.
+                    type: boolean
                   replica:
                     description: ReplicaReplication is the replication configuration
                       for the replica nodes.
