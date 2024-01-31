@@ -295,13 +295,13 @@ var _ = Describe("MaxScale types", func() {
 									},
 									Key: "password",
 								},
-								SyncUsername: "maxscale-obj-sync",
-								SyncPasswordSecretKeyRef: corev1.SecretKeySelector{
+								SyncUsername: ptr.To("maxscale-obj-sync"),
+								SyncPasswordSecretKeyRef: ptr.To(corev1.SecretKeySelector{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "maxscale-obj-sync",
 									},
 									Key: "password",
-								},
+								}),
 							},
 						},
 						Servers: []MaxScaleServer{

@@ -3,6 +3,7 @@ package maxscale
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -41,13 +42,6 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building MaxScale: %v", err)
 	}
-	monitorModule := mariadbv1alpha1.MonitorModuleMariadb
-	if mdb.Galera().Enabled {
-		monitorModule = mariadbv1alpha1.MonitorModuleGalera
-	}
-	desiredMxs.Spec.Monitor.Module = monitorModule
-	desiredMxs.Spec.Auth.Generate.Enabled = true
-	desiredMxs.SetDefaults(r.environment)
 
 	var existingMxs mariadbv1alpha1.MaxScale
 	if err := r.Get(ctx, key, &existingMxs); err != nil {
@@ -58,6 +52,8 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1
 	}
 
 	patch := client.MergeFrom(existingMxs.DeepCopy())
-	existingMxs.Spec.MaxScaleBaseSpec = desiredMxs.Spec.MaxScaleBaseSpec
+	if reflect.ValueOf(existingMxs.Spec.MaxScaleBaseSpec).IsZero() {
+		existingMxs.Spec.MaxScaleBaseSpec = desiredMxs.Spec.MaxScaleBaseSpec
+	}
 	return ctrl.Result{}, r.Patch(ctx, &existingMxs, patch)
 }

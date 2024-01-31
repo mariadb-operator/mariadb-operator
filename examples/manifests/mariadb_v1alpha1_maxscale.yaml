@@ -45,8 +45,7 @@ spec:
     guiEnabled: true
 
   auth:
-    generate:
-      enabled: true
+    generate: true
 
   kubernetesService:
     type: LoadBalancer

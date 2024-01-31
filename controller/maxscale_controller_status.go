@@ -293,13 +293,17 @@ func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alp
 	if mxs.Spec.Config.Sync == nil {
 		return nil, errors.New("config sync must be enabled")
 	}
+	if mxs.Spec.Auth.SyncUsername == nil || mxs.Spec.Auth.SyncPasswordSecretKeyRef == nil {
+		return nil, errors.New("Config sync credentials must be set")
+	}
+
 	serverIdx := mxs.ServerIndex()
 	srv, ok := serverIdx[serverName]
 	if !ok {
 		return nil, errors.New("primary server not found in spec")
 	}
 
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.SyncPasswordSecretKeyRef, mxs.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, *mxs.Spec.Auth.SyncPasswordSecretKeyRef, mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting sync password: %v", err)
 	}
@@ -308,7 +312,7 @@ func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alp
 		sql.WitHost(srv.Address),
 		sql.WithPort(srv.Port),
 		sql.WithDatabase(mxs.Spec.Config.Sync.Database),
-		sql.WithUsername(mxs.Spec.Auth.SyncUsername),
+		sql.WithUsername(*mxs.Spec.Auth.SyncUsername),
 		sql.WithPassword(password),
 	)
 }
