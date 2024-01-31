@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -29,7 +30,7 @@ func NewPodGaleraController(client client.Client, recorder record.EventRecorder)
 }
 
 func (r *PodGaleraController) ReconcilePodReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !r.shouldReconcile(mariadb) || !*mariadb.Galera().Primary.AutomaticFailover {
+	if !r.shouldReconcile(mariadb) {
 		return nil
 	}
 	logger := log.FromContext(ctx)
@@ -75,7 +76,7 @@ func (r *PodGaleraController) ReconcilePodReady(ctx context.Context, pod corev1.
 }
 
 func (r *PodGaleraController) ReconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !r.shouldReconcile(mariadb) || !*mariadb.Galera().Primary.AutomaticFailover {
+	if !r.shouldReconcile(mariadb) {
 		return nil
 	}
 	logger := log.FromContext(ctx).WithName("pod-galera")
@@ -113,7 +114,11 @@ func (r *PodGaleraController) ReconcilePodNotReady(ctx context.Context, pod core
 }
 
 func (r *PodGaleraController) shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
-	return mariadb.Galera().Enabled && mariadb.HasGaleraConfiguredCondition() && !mariadb.IsRestoringBackup()
+	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
+		return false
+	}
+	primaryGalera := ptr.Deref(mariadb.Galera().Primary, mariadbv1alpha1.PrimaryGalera{})
+	return mariadb.Galera().Enabled && *primaryGalera.AutomaticFailover && mariadb.HasGaleraConfiguredCondition()
 }
 
 func (r *PodGaleraController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

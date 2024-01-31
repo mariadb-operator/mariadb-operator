@@ -14,6 +14,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -43,7 +44,7 @@ func (r *PodReplicationController) ReconcilePodReady(ctx context.Context, pod co
 }
 
 func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod corev1.Pod, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !shouldReconcileSwitchover(mariadb) {
+	if !shouldReconcile(mariadb) {
 		return nil
 	}
 	logger := log.FromContext(ctx).WithName("pod-replication")
@@ -89,14 +90,12 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	return nil
 }
 
-func shouldReconcileSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() {
+func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
+	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
 		return false
 	}
-	if !*mariadb.Replication().Primary.AutomaticFailover {
-		return false
-	}
-	return mariadb.Replication().Enabled && mariadb.IsReplicationConfigured() && !mariadb.IsRestoringBackup()
+	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
+	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.IsReplicationConfigured()
 }
 
 func (r *PodReplicationController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

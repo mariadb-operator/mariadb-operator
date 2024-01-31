@@ -66,7 +66,7 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if healthy {
 		return ctrl.Result{}, nil
 	}
-	logger.Info("Galera cluster is not is not healthy")
+	logger.Info("Galera cluster is not healthy")
 	r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraClusterNotHealthy, "Galera cluster is not healthy")
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
