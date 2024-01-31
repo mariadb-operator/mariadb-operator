@@ -9,6 +9,7 @@ import (
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 )
 
 func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Container, error) {
@@ -275,7 +276,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount 
 			MountPath: MariadbConfigMountPath,
 		},
 	}
-	if mariadb.Replication().Enabled {
+	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 			{
 				Name:      ProbesVolume,
@@ -372,7 +373,7 @@ func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 }
 
 func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
-	if mariadb.Replication().Enabled && !mariadb.IsMaxScaleEnabled() {
+	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		replProbe := mariadbReplProbe(mariadb, probe)
 		setProbeThresholds(replProbe, probe)
 		return replProbe
