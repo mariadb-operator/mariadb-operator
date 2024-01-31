@@ -10,7 +10,7 @@ Refer to the sections below, the [API reference](./API_REFERENCE.md) and the [ex
 ## Storage types
 
 Currently, the following storage types are supported:
-- **[S3](../examples/manifests/mariadb_v1alpha1_backup.yaml) compatible storage**: Store backupss in a S3 compatible storage, such as [AWS S3](https://aws.amazon.com/s3/) or [Minio](https://github.com/minio/minio). 
+- **[S3](../examples/manifests/mariadb_v1alpha1_backup.yaml) compatible storage**: Store backups in a S3 compatible storage, such as [AWS S3](https://aws.amazon.com/s3/) or [Minio](https://github.com/minio/minio). 
 - **[PVCs](../examples/manifests/mariadb_v1alpha1_backup_pvc.yaml)**: Use the available [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) in your Kubernetes cluster to provision a PVC dedicated to store the backup files.
 - **[Kubernetes volumes](../examples/manifests/mariadb_v1alpha1_backup_nfs.yaml)**: Use any of the [volume types](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) supported natively by Kubernetes.
 
