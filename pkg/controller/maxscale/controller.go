@@ -52,8 +52,20 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1
 	}
 
 	patch := client.MergeFrom(existingMxs.DeepCopy())
-	if reflect.ValueOf(existingMxs.Spec.MaxScaleBaseSpec).IsZero() {
-		existingMxs.Spec.MaxScaleBaseSpec = desiredMxs.Spec.MaxScaleBaseSpec
+
+	existingSpec := &existingMxs.Spec.MaxScaleBaseSpec
+	desiredSpec := &desiredMxs.Spec.MaxScaleBaseSpec
+	specType := reflect.TypeOf(*existingSpec)
+	specValue := reflect.ValueOf(existingSpec).Elem()
+
+	for i := 0; i < specType.NumField(); i++ {
+		existingFieldValue := specValue.Field(i)
+		desiredFieldValue := reflect.ValueOf(desiredSpec).Elem().Field(i)
+
+		if !desiredFieldValue.IsZero() {
+			existingFieldValue.Set(desiredFieldValue)
+		}
 	}
+
 	return ctrl.Result{}, r.Patch(ctx, &existingMxs, patch)
 }
