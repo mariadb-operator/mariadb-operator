@@ -44,10 +44,22 @@ var _ webhook.Validator = &MariaDB{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *MariaDB) ValidateCreate() (admission.Warnings, error) {
 	mariadbLogger.V(1).Info("Validate create", "name", r.Name)
-	if err := r.validate(); err != nil {
-		return nil, err
+	validateFns := []func() error{
+		r.validateHA,
+		r.validateGalera,
+		r.validateReplication,
+		r.validateBootstrapFrom,
+		r.validatePodDisruptionBudget,
+		r.validateStorage,
+		r.validateRootPassword,
+		r.validateMaxScale,
 	}
-	return nil, r.validateMaxScale()
+	for _, fn := range validateFns {
+		if err := fn(); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -57,18 +69,6 @@ func (r *MariaDB) ValidateUpdate(old runtime.Object) (admission.Warnings, error)
 	if err := inmutableWebhook.ValidateUpdate(r, oldMariadb); err != nil {
 		return nil, err
 	}
-	if err := r.validate(); err != nil {
-		return nil, err
-	}
-	return nil, r.validatePrimarySwitchover(oldMariadb)
-}
-
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *MariaDB) ValidateDelete() (admission.Warnings, error) {
-	return nil, nil
-}
-
-func (r *MariaDB) validate() error {
 	validateFns := []func() error{
 		r.validateHA,
 		r.validateGalera,
@@ -80,10 +80,15 @@ func (r *MariaDB) validate() error {
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return nil, r.validatePrimarySwitchover(oldMariadb)
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *MariaDB) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 func (r *MariaDB) validateHA() error {
