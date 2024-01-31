@@ -1,0 +1,7 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
+  mariaDbRef:
+    name: mariadb-repl

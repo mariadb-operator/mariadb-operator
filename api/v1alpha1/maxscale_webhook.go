@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -69,11 +70,11 @@ func (r *MaxScale) ValidateDelete() (admission.Warnings, error) {
 }
 
 func (r *MaxScale) validateAuth() error {
-	if r.Spec.Auth.Generate.Enabled && r.Spec.MariaDBRef == nil {
+	if ptr.Deref(r.Spec.Auth.Generate, false) && r.Spec.MariaDBRef == nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("auth").Child("generate").Child("enabled"),
 			r.Spec.MariaDBRef,
-			"'spec.auth.generate.enabled' can only be enabled when 'spec.mariaDbRef' is set",
+			"'spec.auth.generate' can only be enabled when 'spec.mariaDbRef' is set",
 		)
 	}
 	return nil
@@ -128,22 +129,21 @@ func (r *MaxScale) validateServers() error {
 }
 
 func (r *MaxScale) validateMonitor() error {
-	if r.Spec.MariaDBRef != nil {
-		return nil
-	}
-	if r.Spec.Monitor.Module == "" {
+	if r.Spec.MariaDBRef == nil && r.Spec.Monitor.Module == "" {
 		return field.Invalid(
 			field.NewPath("spec").Child("monitor").Child("module"),
 			r.Spec.Monitor.Module,
 			"'spec.monitor.module' must be provided when 'spec.mariaDbRef' is not defined",
 		)
 	}
-	if err := r.Spec.Monitor.Module.Validate(); err != nil {
-		return field.Invalid(
-			field.NewPath("spec").Child("monitor").Child("module"),
-			r.Spec.Monitor.Module,
-			err.Error(),
-		)
+	if r.Spec.Monitor.Module != "" {
+		if err := r.Spec.Monitor.Module.Validate(); err != nil {
+			return field.Invalid(
+				field.NewPath("spec").Child("monitor").Child("module"),
+				r.Spec.Monitor.Module,
+				err.Error(),
+			)
+		}
 	}
 	return nil
 }

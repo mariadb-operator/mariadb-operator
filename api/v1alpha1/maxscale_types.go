@@ -286,22 +286,13 @@ func (m *MaxScaleConfig) SetDefaults(mxs *MaxScale) {
 	}
 }
 
-// MaxScaleAuth defies whether the operator should generate users and grants for MaxScale to work.
-// It only supports in cluster MariaDBs specified via spec.mariaDbRef.
-type MaxScaleAuthGenerate struct {
-	// Enabled is a flag that indicates whether auth generation is enabled.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	Enabled bool `json:"enabled,omitempty" webhook:"inmutable"`
-}
-
 // MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB.
 type MaxScaleAuth struct {
 	// Generate  defies whether the operator should generate users and grants for MaxScale to work.
-	// It only supports in cluster MariaDBs specified via spec.mariaDbRef.
+	// It only supports MariaDBs specified via spec.mariaDbRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Generate MaxScaleAuthGenerate `json:"generate,omitempty" webhook:"inmutable"`
+	Generate *bool `json:"generate,omitempty" webhook:"inmutableinit"`
 	// AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -341,15 +332,18 @@ type MaxScaleAuth struct {
 	// MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SyncUsername string `json:"syncUsername,omitempty" webhook:"inmutableinit"`
+	SyncUsername *string `json:"syncUsername,omitempty" webhook:"inmutableinit"`
 	// SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SyncPasswordSecretKeyRef corev1.SecretKeySelector `json:"syncPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	SyncPasswordSecretKeyRef *corev1.SecretKeySelector `json:"syncPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 }
 
 // SetDefaults sets default values.
 func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
+	if mxs.Spec.MariaDBRef != nil && m.Generate == nil {
+		m.Generate = ptr.To(true)
+	}
 	if m.AdminUsername == "" {
 		m.AdminUsername = "mariadb-operator"
 	}
@@ -378,11 +372,11 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 		m.MonitorPasswordSecretKeyRef = mxs.AuthMonitorPasswordSecretKeyRef()
 	}
 	if mxs.IsHAEnabled() {
-		if m.SyncUsername == "" {
-			m.SyncUsername = mxs.AuthSyncUserKey().Name
+		if m.SyncUsername == nil {
+			m.SyncUsername = ptr.To(mxs.AuthSyncUserKey().Name)
 		}
-		if m.SyncPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
-			m.SyncPasswordSecretKeyRef = mxs.AuthSyncPasswordSecretKeyRef()
+		if m.SyncPasswordSecretKeyRef == nil {
+			m.SyncPasswordSecretKeyRef = ptr.To(mxs.AuthSyncPasswordSecretKeyRef())
 		}
 	}
 }
@@ -411,12 +405,12 @@ type MaxScaleBaseSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
-	// Services define how the traffic is forwarded to the MariaDB servers.
-	// +kubebuilder:validation:Required
+	// Services define how the traffic is forwarded to the MariaDB servers. It is defaulted if not provided.
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Services []MaxScaleService `json:"services"`
-	// Monitor monitors MariaDB server instances.
-	// +kubebuilder:validation:Required
+	// Monitor monitors MariaDB server instances. It is required if 'spec.mariaDbRef' is not provided.
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Monitor MaxScaleMonitor `json:"monitor"`
 	// Admin configures the admin REST API and GUI.
@@ -430,7 +424,7 @@ type MaxScaleBaseSpec struct {
 	// Auth defines the credentials required for MaxScale to connect to MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Auth MaxScaleAuth `json:"auth,omitempty"`
+	Auth MaxScaleAuth `json:"auth,omitempty" webhook:"inmutableinit"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
@@ -463,7 +457,7 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
-	// Servers are the MariaDB servers to forward traffic to.
+	// Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Servers []MaxScaleServer `json:"servers"`
@@ -584,6 +578,42 @@ func (m *MaxScale) SetDefaults(env *environment.Environment) {
 	}
 	for i := range m.Spec.Servers {
 		m.Spec.Servers[i].SetDefaults()
+	}
+	if len(m.Spec.Services) == 0 {
+		m.Spec.Services = []MaxScaleService{
+			{
+				Name:   "rw-router",
+				Router: ServiceRouterReadWriteSplit,
+				Listener: MaxScaleListener{
+					Port: 3306,
+				},
+				Params: map[string]string{
+					"transaction_replay":  "true",
+					"master_accept_reads": "true",
+				},
+			},
+			{
+				Name:   "rconn-master-router",
+				Router: ServiceRouterReadConnRoute,
+				Listener: MaxScaleListener{
+					Port: 3307,
+				},
+				Params: map[string]string{
+					"router_options":      "master",
+					"master_accept_reads": "true",
+				},
+			},
+			{
+				Name:   "rconn-slave-router",
+				Router: ServiceRouterReadConnRoute,
+				Listener: MaxScaleListener{
+					Port: 3308,
+				},
+				Params: map[string]string{
+					"router_options": "slave",
+				},
+			},
+		}
 	}
 	for i := range m.Spec.Services {
 		m.Spec.Services[i].SetDefaults()

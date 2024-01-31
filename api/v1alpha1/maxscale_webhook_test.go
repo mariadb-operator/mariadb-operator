@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -289,9 +290,7 @@ var _ = Describe("MaxScale webhook", func() {
 								Module: MonitorModuleMariadb,
 							},
 							Auth: MaxScaleAuth{
-								Generate: MaxScaleAuthGenerate{
-									Enabled: true,
-								},
+								Generate: ptr.To(true),
 							},
 						},
 						Servers: []MaxScaleServer{
@@ -446,9 +445,7 @@ var _ = Describe("MaxScale webhook", func() {
 							Port: 8989,
 						},
 						Auth: MaxScaleAuth{
-							Generate: MaxScaleAuthGenerate{
-								Enabled: true,
-							},
+							Generate:      ptr.To(true),
 							AdminUsername: "foo",
 						},
 						KubernetesService: &ServiceTemplate{
@@ -564,7 +561,7 @@ var _ = Describe("MaxScale webhook", func() {
 			Entry(
 				"Updating Auth generate",
 				func(mxs *MaxScale) {
-					mxs.Spec.Auth.Generate.Enabled = false
+					mxs.Spec.Auth.Generate = ptr.To(false)
 				},
 				true,
 			),

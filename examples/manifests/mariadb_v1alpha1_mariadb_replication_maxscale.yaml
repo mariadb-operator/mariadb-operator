@@ -18,44 +18,6 @@ spec:
 
   maxScale:
     enabled: true
-    services:
-      - name: rw-router
-        router: readwritesplit
-        params:
-          transaction_replay: "true"
-          transaction_replay_attempts: "10"
-          transaction_replay_timeout: "5s"
-          max_slave_connections: "255"
-          max_replication_lag: "3s"
-          master_accept_reads: "true"
-        listener:
-          port: 3306
-          protocol: MariaDBProtocol
-          params:
-            connection_metadata: "tx_isolation=auto"
-      - name: rconn-master-router
-        router: readconnroute
-        params:
-          router_options: "master"
-          max_replication_lag: "3s"
-          master_accept_reads: "true"
-        listener:
-          port: 3307
-      - name: rconn-slave-router
-        router: readconnroute
-        params:
-          router_options: "slave"
-          max_replication_lag: "3s"
-        listener:
-          port: 3308
-
-    monitor:
-      interval: 2s
-      cooperativeMonitoring: majority_of_all
-      params:
-        auto_failover: "true"
-        auto_rejoin: "true"
-        switchover_on_low_disk_space: "true"
 
     kubernetesService:
       type: LoadBalancer

@@ -271,7 +271,7 @@ func (m *maxScaleAPI) isMaxScaleConfigSynced(ctx context.Context) (bool, error) 
 	params := data.Attributes.Parameters
 
 	return params.ConfigSyncCluster == m.mxs.Spec.Monitor.Name &&
-		params.ConfigSyncUser == m.mxs.Spec.Auth.SyncUsername &&
+		params.ConfigSyncUser == ptr.Deref(m.mxs.Spec.Auth.SyncUsername, "") &&
 		params.ConfigSyncDB == m.mxs.Spec.Config.Sync.Database, nil
 }
 
@@ -281,14 +281,17 @@ func (m *maxScaleAPI) patchMaxScaleConfigSync(ctx context.Context) error {
 	if m.mxs.Spec.Config.Sync == nil {
 		return errors.New("'spec.config.sync' must be set")
 	}
-	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.SyncPasswordSecretKeyRef, m.mxs.Namespace)
+	if m.mxs.Spec.Auth.SyncUsername == nil || m.mxs.Spec.Auth.SyncPasswordSecretKeyRef == nil {
+		return errors.New("'Config sync credentials must be set")
+	}
+	password, err := m.refResolver.SecretKeyRef(ctx, *m.mxs.Spec.Auth.SyncPasswordSecretKeyRef, m.mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting sync password: %v", err)
 	}
 	attrs := mxsclient.MaxScaleAttributes{
 		Parameters: mxsclient.MaxScaleParameters{
 			ConfigSyncCluster:  m.mxs.Spec.Monitor.Name,
-			ConfigSyncUser:     m.mxs.Spec.Auth.SyncUsername,
+			ConfigSyncUser:     *m.mxs.Spec.Auth.SyncUsername,
 			ConfigSyncPassword: password,
 			ConfigSyncDB:       m.mxs.Spec.Config.Sync.Database,
 			ConfigSyncInterval: m.mxs.Spec.Config.Sync.Interval,

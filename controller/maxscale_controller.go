@@ -223,8 +223,10 @@ func (r *MaxScaleReconciler) handleError(ctx context.Context, mxs *mariadbv1alph
 }
 
 func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	if err := r.setMariadbDefaults(ctx, req); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error setting MariaDB defaults: %v", err)
+	if req.mxs.Spec.MariaDBRef != nil {
+		if err := r.setMariadbDefaults(ctx, req); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error setting MariaDB defaults: %v", err)
+		}
 	}
 	if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
 		mxs.SetDefaults(r.Environment)
@@ -262,13 +264,23 @@ func (r *MaxScaleReconciler) setMariadbDefaults(ctx context.Context, req *reques
 	}
 
 	monitorModule := mariadbv1alpha1.MonitorModuleMariadb
+	monitorParams := map[string]string{
+		"auto_failover":                "true",
+		"auto_rejoin":                  "true",
+		"switchover_on_low_disk_space": "true",
+	}
 	if mdb.Galera().Enabled {
 		monitorModule = mariadbv1alpha1.MonitorModuleGalera
+		monitorParams = nil
 	}
 
 	return r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
 		mxs.Spec.Servers = servers
 		mxs.Spec.Monitor.Module = monitorModule
+		if mxs.Spec.Monitor.Params == nil {
+			mxs.Spec.Monitor.Params = monitorParams
+		}
+		mxs.SetDefaults(r.Environment)
 	})
 }
 
@@ -300,8 +312,8 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 		mxs.Spec.Auth.ServerPasswordSecretKeyRef,
 		mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
 	}
-	if mxs.IsHAEnabled() {
-		randomPasswordKeys = append(randomPasswordKeys, mxs.Spec.Auth.SyncPasswordSecretKeyRef)
+	if mxs.Spec.Auth.SyncPasswordSecretKeyRef != nil {
+		randomPasswordKeys = append(randomPasswordKeys, *mxs.Spec.Auth.SyncPasswordSecretKeyRef)
 	}
 	for _, secretKeyRef := range randomPasswordKeys {
 		randomSecretReq := &secret.RandomPasswordRequest{
@@ -463,7 +475,7 @@ type authReconcileItem struct {
 func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	mxs := req.mxs
 	// TODO: support for external databases by extending MariaDBRef
-	if !mxs.Spec.Auth.Generate.Enabled || mxs.Spec.MariaDBRef == nil {
+	if !ptr.Deref(mxs.Spec.Auth.Generate, false) || mxs.Spec.MariaDBRef == nil {
 		return ctrl.Result{}, nil
 	}
 
@@ -566,16 +578,16 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			grants: monitorGrantOpts(monitorKey, mxs),
 		},
 	}
-	if mxs.Spec.Config.Sync != nil {
+	if mxs.Spec.Config.Sync != nil && mxs.Spec.Auth.SyncUsername != nil && mxs.Spec.Auth.SyncPasswordSecretKeyRef != nil {
 		syncKey := types.NamespacedName{
-			Name:      mxs.Spec.Auth.SyncUsername,
+			Name:      *mxs.Spec.Auth.SyncUsername,
 			Namespace: mxs.Namespace,
 		}
 		items = append(items, authReconcileItem{
 			key: syncKey,
 			user: builder.UserOpts{
-				Name:                 mxs.Spec.Auth.SyncUsername,
-				PasswordSecretKeyRef: mxs.Spec.Auth.SyncPasswordSecretKeyRef,
+				Name:                 *mxs.Spec.Auth.SyncUsername,
+				PasswordSecretKeyRef: *mxs.Spec.Auth.SyncPasswordSecretKeyRef,
 				MaxUserConnections:   maxConns,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
@@ -592,7 +604,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 						},
 						Database:    mxs.Spec.Config.Sync.Database,
 						Table:       "maxscale_config",
-						Username:    mxs.Spec.Auth.SyncUsername,
+						Username:    *mxs.Spec.Auth.SyncUsername,
 						Host:        "%",
 						GrantOption: false,
 						MariaDBRef:  *mxs.Spec.MariaDBRef,
