@@ -104,7 +104,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		}
 	}
 
-	if mariadb.Status.CurrentPrimaryPodIndex != nil && *mariadb.Status.CurrentPrimaryPodIndex != *mariadb.Galera().Primary.PodIndex {
+	if shouldReconcileSwitchover(mariadb) {
 		fromIndex := *mariadb.Status.CurrentPrimaryPodIndex
 		toIndex := *mariadb.Galera().Primary.PodIndex
 
@@ -119,6 +119,13 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			"Primary switched from index '%d' to index '%d'", fromIndex, toIndex)
 	}
 	return nil
+}
+
+func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
+	if mdb.IsMaxScaleEnabled() {
+		return false
+	}
+	return mdb.Status.CurrentPrimaryPodIndex != nil && *mdb.Status.CurrentPrimaryPodIndex != *mdb.Galera().Primary.PodIndex
 }
 
 func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSet, error) {

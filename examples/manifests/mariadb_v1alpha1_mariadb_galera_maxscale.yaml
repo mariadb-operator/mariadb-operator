@@ -1,0 +1,83 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
+  replicas: 3
+
+  maxScale:
+    enabled: true
+    services:
+      - name: rw-router
+        router: readwritesplit
+        params:
+          transaction_replay: "true"
+          transaction_replay_attempts: "10"
+          transaction_replay_timeout: "5s"
+          max_slave_connections: "255"
+          max_replication_lag: "3s"
+          master_accept_reads: "true"
+        listener:
+          port: 3306
+          protocol: MariaDBProtocol
+          params:
+            connection_metadata: "tx_isolation=auto"
+      - name: rconn-master-router
+        router: readconnroute
+        params:
+          router_options: "master"
+          max_replication_lag: "3s"
+          master_accept_reads: "true"
+        listener:
+          port: 3307
+      - name: rconn-slave-router
+        router: readconnroute
+        params:
+          router_options: "slave"
+          max_replication_lag: "3s"
+        listener:
+          port: 3308
+
+    monitor:
+      interval: 2s
+      params:
+        disable_master_failback: "false"
+        available_when_donor: "false"
+        disable_master_role_setting: "false"
+
+    kubernetesService:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.226
+
+  galera:
+    enabled: true
+
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+
+  primaryService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+
+  secondaryService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+
+  metrics:
+    enabled: true
