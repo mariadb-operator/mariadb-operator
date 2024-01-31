@@ -142,10 +142,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileConnection,
 		},
 		{
-			Name:      "MaxScale",
-			Reconcile: r.MaxScaleReconciler.Reconcile,
-		},
-		{
 			Name:      "Replication",
 			Reconcile: r.ReplicationReconciler.Reconcile,
 		},
@@ -160,6 +156,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Metrics",
 			Reconcile: r.reconcileMetrics,
+		},
+		{
+			Name:      "MaxScale",
+			Reconcile: r.MaxScaleReconciler.Reconcile,
 		},
 	}
 
