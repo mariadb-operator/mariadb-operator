@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("MaxScale controller", func() {
@@ -24,24 +25,10 @@ var _ = Describe("MaxScale controller", func() {
 					Namespace: testDefaultKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
-						Services: []mariadbv1alpha1.MaxScaleService{
-							{
-								Name:   "rw-router",
-								Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
-								Listener: mariadbv1alpha1.MaxScaleListener{
-									Port: 3306,
-								},
-							},
-						},
-						Monitor: mariadbv1alpha1.MaxScaleMonitor{
-							Module: mariadbv1alpha1.MonitorModuleMariadb,
-						},
-					},
-					Servers: []mariadbv1alpha1.MaxScaleServer{
-						{
-							Name:    "mariadb-0",
-							Address: "mariadb-0.mariadb-internal.default.svc.cluster.local",
+					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name:      testMariaDbKey.Name,
+							Namespace: testMariaDbKey.Namespace,
 						},
 					},
 				},
@@ -53,7 +40,8 @@ var _ = Describe("MaxScale controller", func() {
 				if err := k8sClient.Get(testCtx, testDefaultKey, &testDefaultMaxScale); err != nil {
 					return false
 				}
-				return testDefaultMaxScale.Spec.Image != ""
+				return testDefaultMaxScale.Spec.Image != "" && len(testDefaultMaxScale.Spec.Servers) > 0 &&
+					len(testDefaultMaxScale.Spec.Services) > 0 && testDefaultMaxScale.Spec.Monitor.Module != ""
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting MaxScale")
@@ -63,7 +51,7 @@ var _ = Describe("MaxScale controller", func() {
 		It("Should reconcile", func() {
 			By("Creating MaxScale")
 			testMaxScaleKey := types.NamespacedName{
-				Name:      "test-maxscale",
+				Name:      "maxscale",
 				Namespace: testNamespace,
 			}
 			testMaxScale := mariadbv1alpha1.MaxScale{
@@ -72,62 +60,93 @@ var _ = Describe("MaxScale controller", func() {
 					Namespace: testMaxScaleKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
-						Services: []mariadbv1alpha1.MaxScaleService{
-							{
-								Name:   "rw-router",
-								Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
-								Listener: mariadbv1alpha1.MaxScaleListener{
-									Port: 3306,
-								},
-							},
-						},
-						Monitor: mariadbv1alpha1.MaxScaleMonitor{
-							Module: mariadbv1alpha1.MonitorModuleMariadb,
+					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name:      testMariaDbKey.Name,
+							Namespace: testMariaDbKey.Namespace,
 						},
 					},
-					Servers: []mariadbv1alpha1.MaxScaleServer{
-						{
-							Name:    "mariadb-0",
-							Address: "mariadb-0.mariadb-internal.default.svc.cluster.local",
+					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
+						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
+							Type: corev1.ServiceTypeLoadBalancer,
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.214",
+							},
 						},
 					},
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &testMaxScale)).To(Succeed())
 
-			By("Expecting to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, testMaxScaleKey, &testMaxScale); err != nil {
-					return false
-				}
-				return testMaxScale.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting to create a Secret eventually")
-			Eventually(func() bool {
-				var secret corev1.Secret
-				key := types.NamespacedName{
-					Name:      testMaxScale.ConfigSecretKeyRef().Name,
-					Namespace: testMaxScale.Namespace,
-				}
-				return k8sClient.Get(testCtx, key, &secret) == nil
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting to create a StatefulSet eventually")
-			Eventually(func() bool {
-				var sts appsv1.StatefulSet
-				return k8sClient.Get(testCtx, testMaxScaleKey, &sts) == nil
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting to create a Service eventually")
-			Eventually(func() bool {
-				var svc corev1.Service
-				return k8sClient.Get(testCtx, testMaxScaleKey, &svc) == nil
-			}, testTimeout, testInterval).Should(BeTrue())
+			expectMaxScaleReady(testMaxScaleKey)
 
 			By("Deleting MaxScale")
 			Expect(k8sClient.Delete(testCtx, &testMaxScale)).To(Succeed())
 		})
 	})
 })
+
+func expectMaxScaleReady(key types.NamespacedName) {
+	var mxs mariadbv1alpha1.MaxScale
+
+	By("Expecting MaxScale to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, &mxs); err != nil {
+			return false
+		}
+		return mxs.IsReady()
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting servers to be ready eventually")
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, key, &mxs); err != nil {
+			return false
+		}
+		for _, srv := range mxs.Status.Servers {
+			g.Expect(srv.IsReady()).To(BeTrue())
+		}
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting monitor to be running eventually")
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, key, &mxs); err != nil {
+			return false
+		}
+		g.Expect(ptr.Deref(
+			mxs.Status.Monitor,
+			mariadbv1alpha1.MaxScaleResourceStatus{},
+		).State).To(Equal("Running"))
+		return true
+	}).Should(BeTrue())
+
+	By("Expecting services to be started eventually")
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, key, &mxs); err != nil {
+			return false
+		}
+		for _, svc := range mxs.Status.Services {
+			g.Expect(svc.State).To(Equal("Started"))
+		}
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting listeners to be running")
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, key, &mxs); err != nil {
+			return false
+		}
+		for _, listener := range mxs.Status.Listeners {
+			g.Expect(listener.State).To(Equal("Running"))
+		}
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting to create a StatefulSet")
+	var sts appsv1.StatefulSet
+	Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
+
+	By("Expecting to create a Service")
+	var svc corev1.Service
+	Expect(k8sClient.Get(testCtx, key, &svc)).To(Succeed())
+}
