@@ -11,6 +11,7 @@ KUBECTL ?= $(LOCALBIN)/kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+GINKGO ?= $(LOCALBIN)/ginkgo
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 GORELEASER ?= $(LOCALBIN)/goreleaser
 GO_LICENSES = $(LOCALBIN)/go-licenses
@@ -28,6 +29,7 @@ KUBECTL_VERSION ?= v1.28.0
 KUSTOMIZE_VERSION ?= v4.5.7
 CONTROLLER_GEN_VERSION ?= v0.11.1
 ENVTEST_K8S_VERSION ?= 1.26
+GINKGO_VERSION ?= v2.15.0
 GOLANGCI_LINT_VERSION ?= v1.55.2
 GORELEASER_VERSION ?= v1.18.2
 GO_LICENSES_VERSION ?= v1.6.0
@@ -75,6 +77,11 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: ginkgo
+ginkgo: $(GINKGO) ## Download ginkgo locally if necessary.
+$(GINKGO): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
