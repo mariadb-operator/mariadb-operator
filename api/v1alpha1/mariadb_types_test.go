@@ -4,7 +4,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/format"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -19,7 +18,6 @@ var _ = Describe("MariaDB types", func() {
 		RelatedMariadbImage: "mariadb:11.0.3",
 	}
 	Context("When creating a MariaDB object", func() {
-		format.MaxLength = 8000
 		DescribeTable(
 			"Should default",
 			func(mdb, expected *MariaDB, env *environment.Environment) {
