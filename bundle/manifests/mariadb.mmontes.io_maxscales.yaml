@@ -956,14 +956,9 @@ spec:
                     type: boolean
                   generate:
                     description: Generate  defies whether the operator should generate
-                      users and grants for MaxScale to work. It only supports in cluster
-                      MariaDBs specified via spec.mariaDbRef.
-                    properties:
-                      enabled:
-                        description: Enabled is a flag that indicates whether auth
-                          generation is enabled.
-                        type: boolean
-                    type: object
+                      users and grants for MaxScale to work. It only supports MariaDBs
+                      specified via spec.mariaDbRef.
+                    type: boolean
                   monitorPasswordSecretKeyRef:
                     description: MonitorPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale monitor to connect to MariaDB
@@ -2444,7 +2439,8 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               monitor:
-                description: Monitor monitors MariaDB server instances.
+                description: Monitor monitors MariaDB server instances. It is required
+                  if 'spec.mariaDbRef' is not provided.
                 properties:
                   cooperativeMonitoring:
                     description: CooperativeMonitoring enables coordination between
@@ -3029,6 +3025,7 @@ spec:
                 type: object
               servers:
                 description: Servers are the MariaDB servers to forward traffic to.
+                  It is required if 'spec.mariaDbRef' is not provided.
                 items:
                   description: MaxScaleServer defines a MariaDB server to forward
                     traffic to.
@@ -3070,7 +3067,7 @@ spec:
                 type: string
               services:
                 description: Services define how the traffic is forwarded to the MariaDB
-                  servers.
+                  servers. It is defaulted if not provided.
                 items:
                   description: Services define how the traffic is forwarded to the
                     MariaDB servers.
@@ -5727,9 +5724,6 @@ spec:
                   - name
                   type: object
                 type: array
-            required:
-            - monitor
-            - services
             type: object
           status:
             description: MaxScaleStatus defines the observed state of MaxScale
