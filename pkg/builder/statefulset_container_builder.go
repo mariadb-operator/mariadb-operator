@@ -277,12 +277,10 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount 
 		},
 	}
 	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
-		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
-			{
-				Name:      ProbesVolume,
-				MountPath: ProbesMountPath,
-			},
-		}...)
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      ProbesVolume,
+			MountPath: ProbesMountPath,
+		})
 	}
 	if mariadb.Galera().Enabled {
 		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
