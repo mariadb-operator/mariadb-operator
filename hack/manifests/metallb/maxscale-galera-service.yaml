@@ -152,3 +152,97 @@ spec:
     app.kubernetes.io/name: maxscale
     statefulset.kubernetes.io/pod-name: mariadb-galera-maxscale-0  
   type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-galera-maxscale-1-lb
+  namespace: default
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.226
+spec:
+  ports:
+  - name: admin
+    port: 8989
+    protocol: TCP
+    targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    protocol: TCP
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    protocol: TCP
+    targetPort: 3308
+  selector:
+    app.kubernetes.io/instance: mariadb-galera-maxscale
+    app.kubernetes.io/name: maxscale
+    statefulset.kubernetes.io/pod-name: mariadb-galera-maxscale-1  
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-galera-maxscale-2-lb
+  namespace: default
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.227
+spec:
+  ports:
+  - name: admin
+    port: 8989
+    protocol: TCP
+    targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    protocol: TCP
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    protocol: TCP
+    targetPort: 3308
+  selector:
+    app.kubernetes.io/instance: mariadb-galera-maxscale
+    app.kubernetes.io/name: maxscale
+    statefulset.kubernetes.io/pod-name: mariadb-galera-maxscale-2  
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-galera-maxscale-3-lb
+  namespace: default
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.228
+spec:
+  ports:
+  - name: admin
+    port: 8989
+    protocol: TCP
+    targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    protocol: TCP
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    protocol: TCP
+    targetPort: 3308
+  selector:
+    app.kubernetes.io/instance: mariadb-galera-maxscale
+    app.kubernetes.io/name: maxscale
+    statefulset.kubernetes.io/pod-name: mariadb-galera-maxscale-3  
+  type: LoadBalancer
+---

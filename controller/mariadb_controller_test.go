@@ -5,6 +5,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,6 +16,7 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -58,7 +60,7 @@ var _ = Describe("MariaDB controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &testDefaultMariaDb)).To(Succeed())
+			deleteMariaDB(&testDefaultMariaDb)
 		})
 		It("Should reconcile", func() {
 			By("Expecting to create a ConfigMap eventually")
@@ -236,7 +238,7 @@ var _ = Describe("MariaDB controller", func() {
 			Expect(bootstrapMariaDB.HasRestoredBackup()).To(BeTrue())
 
 			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &bootstrapMariaDB)).To(Succeed())
+			deleteMariaDB(&bootstrapMariaDB)
 
 			By("Deleting Backup")
 			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
@@ -307,7 +309,7 @@ var _ = Describe("MariaDB controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &updateMariaDB)).To(Succeed())
+			deleteMariaDB(&updateMariaDB)
 		})
 	})
 })
@@ -544,7 +546,7 @@ var _ = Describe("MariaDB replication", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &testRplMariaDb)).To(Succeed())
+			deleteMariaDB(&testRplMariaDb)
 		})
 	})
 })
@@ -826,7 +828,7 @@ var _ = Describe("MariaDB Galera", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting MariaDB")
-			Expect(k8sClient.Delete(testCtx, &testMariaDbGalera)).To(Succeed())
+			deleteMariaDB(&testMariaDbGalera)
 		})
 	})
 })
@@ -838,4 +840,26 @@ func deploymentReady(deploy *appsv1.Deployment) bool {
 		}
 	}
 	return false
+}
+
+func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
+	Expect(k8sClient.Delete(testCtx, mdb)).To(Succeed())
+
+	Eventually(func(g Gomega) bool {
+		listOpts := &client.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				labels.NewLabelsBuilder().
+					WithMariaDB(mdb).
+					Build(),
+			),
+			Namespace: mdb.GetNamespace(),
+		}
+		pvcList := &corev1.PersistentVolumeClaimList{}
+		g.Expect(k8sClient.List(testCtx, pvcList, listOpts)).To(Succeed())
+
+		for _, pvc := range pvcList.Items {
+			g.Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
+		}
+		return true
+	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 }

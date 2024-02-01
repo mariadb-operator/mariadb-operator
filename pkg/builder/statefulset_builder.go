@@ -8,7 +8,6 @@ import (
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	annotation "github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,17 +41,6 @@ const (
 	InitContainerName  = "init"
 	AgentContainerName = "agent"
 )
-
-func PVCKey(mariadb *mariadbv1alpha1.MariaDB) types.NamespacedName {
-	podName := statefulset.PodName(mariadb.ObjectMeta, 0)
-	if mariadb.Replication().Enabled {
-		podName = statefulset.PodName(mariadb.ObjectMeta, *mariadb.Replication().Primary.PodIndex)
-	}
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-%s", StorageVolume, podName),
-		Namespace: mariadb.Namespace,
-	}
-}
 
 func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {
 	objMeta :=
