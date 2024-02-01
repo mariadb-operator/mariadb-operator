@@ -5,7 +5,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
@@ -14,6 +14,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	//+kubebuilder:scaffold:imports
@@ -182,12 +183,26 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 }
 
 func deleteTestData(ctx context.Context, k8sClient client.Client) {
-	Expect(k8sClient.Delete(ctx, &testMariaDb)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &testPwd)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &testMariaDb)).To(Succeed())
 
-	var pvc corev1.PersistentVolumeClaim
-	Expect(k8sClient.Get(ctx, builder.PVCKey(&testMariaDb), &pvc)).To(Succeed())
-	Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
+	Eventually(func(g Gomega) bool {
+		listOpts := &client.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				labels.NewLabelsBuilder().
+					WithMariaDB(&testMariaDb).
+					Build(),
+			),
+			Namespace: testMariaDb.GetNamespace(),
+		}
+		pvcList := &corev1.PersistentVolumeClaimList{}
+		g.Expect(k8sClient.List(ctx, pvcList, listOpts)).To(Succeed())
+
+		for _, pvc := range pvcList.Items {
+			g.Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
+		}
+		return true
+	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 }
 
 func testS3WithBucket(bucket string) *mariadbv1alpha1.S3 {
