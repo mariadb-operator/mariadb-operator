@@ -587,6 +587,9 @@ spec:
       - kind: MariaDB
         name: ""
         version: v1alpha1
+      - kind: MaxScale
+        name: ""
+        version: v1alpha1
       - kind: PodDisruptionBudget
         name: ""
         version: v1
@@ -1005,6 +1008,410 @@ spec:
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: livenessProbe
+      - description: MaxScale is the MaxScale specification that defines the MaxScale
+          instance that will be used with MariaDB. When enabling this field, MaxScaleRef
+          is automatically set.
+        displayName: Max Scale
+        path: maxScale
+      - description: Admin configures the admin REST API and GUI.
+        displayName: Admin
+        path: maxScale.admin
+      - description: GuiEnabled indicates whether the admin GUI should be enabled.
+        displayName: Gui Enabled
+        path: maxScale.admin.guiEnabled
+      - description: Port where the admin REST API and GUI will be exposed.
+        displayName: Port
+        path: maxScale.admin.port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Affinity to be used in the Pod.
+        displayName: Affinity
+        path: maxScale.affinity
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: maxScale.args
+      - description: Auth defines the credentials required for MaxScale to connect
+          to MariaDB.
+        displayName: Auth
+        path: maxScale.auth
+      - description: AdminPasswordSecretKeyRef is Secret key reference to the admin
+          password to call the admib REST API. It is defaulted if not provided.
+        displayName: Admin Password Secret Key Ref
+        path: maxScale.auth.adminPasswordSecretKeyRef
+      - description: AdminUsername is an admin username to call the admin REST API.
+          It is defaulted if not provided.
+        displayName: Admin Username
+        path: maxScale.auth.adminUsername
+      - description: ClientPasswordSecretKeyRef is Secret key reference to the password
+          to connect to MaxScale. It is defaulted if not provided.
+        displayName: Client Password Secret Key Ref
+        path: maxScale.auth.clientPasswordSecretKeyRef
+      - description: ClientUsername is the user to connect to MaxScale. It is defaulted
+          if not provided.
+        displayName: Client Username
+        path: maxScale.auth.clientUsername
+      - description: DeleteDefaultAdmin determines whether the default admin user
+          should be deleted after the initial configuration. If not provided, it defaults
+          to true.
+        displayName: Delete Default Admin
+        path: maxScale.auth.deleteDefaultAdmin
+      - description: Generate  defies whether the operator should generate users and
+          grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
+        displayName: Generate
+        path: maxScale.auth.generate
+      - description: MonitorPasswordSecretKeyRef is Secret key reference to the password
+          used by MaxScale monitor to connect to MariaDB server. It is defaulted if
+          not provided.
+        displayName: Monitor Password Secret Key Ref
+        path: maxScale.auth.monitorPasswordSecretKeyRef
+      - description: MonitorUsername is the user used by MaxScale monitor to connect
+          to MariaDB server. It is defaulted if not provided.
+        displayName: Monitor Username
+        path: maxScale.auth.monitorUsername
+      - description: ServerPasswordSecretKeyRef is Secret key reference to the password
+          used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+        displayName: Server Password Secret Key Ref
+        path: maxScale.auth.serverPasswordSecretKeyRef
+      - description: ServerUsername is the user used by MaxScale to connect to MariaDB
+          server. It is defaulted if not provided.
+        displayName: Server Username
+        path: maxScale.auth.serverUsername
+      - description: SyncPasswordSecretKeyRef is Secret key reference to the password
+          used by MaxScale config to connect to MariaDB server. It is defaulted when
+          HA is enabled.
+        displayName: Sync Password Secret Key Ref
+        path: maxScale.auth.syncPasswordSecretKeyRef
+      - description: MonitoSyncUsernamerUsername is the user used by MaxScale config
+          sync to connect to MariaDB server. It is defaulted when HA is enabled.
+        displayName: Sync Username
+        path: maxScale.auth.syncUsername
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: maxScale.command
+      - description: Config defines the MaxScale configuration.
+        displayName: Config
+        path: maxScale.config
+      - description: Params is a key value pair of parameters to be used in the MaxScale
+          static configuration file.
+        displayName: Params
+        path: maxScale.config.params
+      - description: Sync defines how to replicate configuration across MaxScale replicas.
+          It is defaulted when HA is enabled.
+        displayName: Sync
+        path: maxScale.config.sync
+      - description: Database is the MariaDB logical database where the 'maxscale_config'
+          table will be created in order to persist and synchronize config changes.
+          If not provided, it defaults to 'mysql'.
+        displayName: Database
+        path: maxScale.config.sync.database
+      - description: Interval defines the config synchronization interval. It is defaulted
+          if not provided.
+        displayName: Interval
+        path: maxScale.config.sync.interval
+      - description: Interval defines the config synchronization timeout. It is defaulted
+          if not provided.
+        displayName: Timeout
+        path: maxScale.config.sync.timeout
+      - description: VolumeClaimTemplate provides a template to define the PVCs for
+          storing MaxScale runtime configuration files. It is defaulted if not provided.
+        displayName: Volume Claim Template
+        path: maxScale.config.volumeClaimTemplate
+      - description: Annotations to be used in the PVC.
+        displayName: Annotations
+        path: maxScale.config.volumeClaimTemplate.annotations
+      - description: Labels to be used in the PVC.
+        displayName: Labels
+        path: maxScale.config.volumeClaimTemplate.labels
+      - description: Enabled is a flag to enable Metrics
+        displayName: Enabled
+        path: maxScale.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: maxScale.env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: maxScale.envFrom
+      - description: Image name to be used by the MaxScale instances. The supported
+          format is `<image>:<tag>`. Only MaxScale official images are supported.
+        displayName: Image
+        path: maxScale.image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: maxScale.imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
+          the image.
+        displayName: Image Pull Secrets
+        path: maxScale.imagePullSecrets
+      - description: InitContainers to be used in the Pod.
+        displayName: Init Containers
+        path: maxScale.initContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: maxScale.initContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: maxScale.initContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: maxScale.initContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: maxScale.initContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: maxScale.initContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: maxScale.initContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: maxScale.initContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: maxScale.initContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: maxScale.initContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: maxScale.initContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: maxScale.initContainers[0].volumeMounts
+      - description: Service defines templates to configure the Kubernetes Service
+          object.
+        displayName: Kubernetes Service
+        path: maxScale.kubernetesService
+      - description: AllocateLoadBalancerNodePorts Service field.
+        displayName: Allocate Load Balancer Node Ports
+        path: maxScale.kubernetesService.allocateLoadBalancerNodePorts
+      - description: Annotations to add to the Service metadata.
+        displayName: Annotations
+        path: maxScale.kubernetesService.annotations
+      - description: ExternalTrafficPolicy Service field.
+        displayName: External Traffic Policy
+        path: maxScale.kubernetesService.externalTrafficPolicy
+      - description: Labels to add to the Service metadata.
+        displayName: Labels
+        path: maxScale.kubernetesService.labels
+      - description: LoadBalancerIP Service field.
+        displayName: Load Balancer IP
+        path: maxScale.kubernetesService.loadBalancerIP
+      - description: LoadBalancerSourceRanges Service field.
+        displayName: Load Balancer Source Ranges
+        path: maxScale.kubernetesService.loadBalancerSourceRanges
+      - description: SessionAffinity Service field.
+        displayName: Session Affinity
+        path: maxScale.kubernetesService.sessionAffinity
+      - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
+          If not defined, it defaults to `ClusterIP`.
+        displayName: Type
+        path: maxScale.kubernetesService.type
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: maxScale.livenessProbe
+      - description: Monitor monitors MariaDB server instances. It is required if
+          'spec.mariaDbRef' is not provided.
+        displayName: Monitor
+        path: maxScale.monitor
+      - description: CooperativeMonitoring enables coordination between multiple MaxScale
+          instances running monitors. It is defaulted when HA is enabled.
+        displayName: Cooperative Monitoring
+        path: maxScale.monitor.cooperativeMonitoring
+      - description: Interval used to monitor MariaDB servers. It is defaulted if
+          not provided.
+        displayName: Interval
+        path: maxScale.monitor.interval
+      - description: Module is the module to use to monitor MariaDB servers. It is
+          mandatory when no MariaDB reference is provided.
+        displayName: Module
+        path: maxScale.monitor.module
+      - description: Name is the identifier of the monitor. It is defaulted if not
+          provided.
+        displayName: Name
+        path: maxScale.monitor.name
+      - description: Params defines extra parameters to pass to the monitor.
+        displayName: Params
+        path: maxScale.monitor.params
+      - description: Suspend indicates whether the current resource should be suspended
+          or not. Feature flag --feature-maxscale-suspend is required in the controller
+          to enable this.
+        displayName: Suspend
+        path: maxScale.monitor.suspend
+      - description: NodeSelector to be used in the Pod.
+        displayName: Node Selector
+        path: maxScale.nodeSelector
+      - description: PodDisruptionBudget defines the budget for replica availability.
+        displayName: Pod Disruption Budget
+        path: maxScale.podDisruptionBudget
+      - description: MaxUnavailable defines the number of maximum unavailable Pods.
+        displayName: Max Unavailable
+        path: maxScale.podDisruptionBudget.maxUnavailable
+      - description: MinAvailable defines the number of minimum available Pods.
+        displayName: Min Available
+        path: maxScale.podDisruptionBudget.minAvailable
+      - description: SecurityContext holds pod-level security attributes and common
+          container settings.
+        displayName: Pod Security Context
+        path: maxScale.podSecurityContext
+      - description: PriorityClassName to be used in the Pod.
+        displayName: Priority Class Name
+        path: maxScale.priorityClassName
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: maxScale.readinessProbe
+      - description: Replicas indicates the number of desired instances.
+        displayName: Replicas
+        path: maxScale.replicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: RequeueInterval is used to perform requeue reconcilizations.
+          If not defined, it defaults to 10s.
+        displayName: Requeue Interval
+        path: maxScale.requeueInterval
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: maxScale.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: maxScale.securityContext
+      - description: ServiceAccountName is the name of the ServiceAccount to be used
+          by the Pods.
+        displayName: Service Account Name
+        path: maxScale.serviceAccountName
+      - description: Services define how the traffic is forwarded to the MariaDB servers.
+          It is defaulted if not provided.
+        displayName: Services
+        path: maxScale.services
+      - description: MaxScaleListener defines how the MaxScale server will listen
+          for connections.
+        displayName: Listener
+        path: maxScale.services[0].listener
+      - description: Name is the identifier of the listener. It is defaulted if not
+          provided
+        displayName: Name
+        path: maxScale.services[0].listener.name
+      - description: Params defines extra parameters to pass to the listener.
+        displayName: Params
+        path: maxScale.services[0].listener.params
+      - description: Port is the network port where the MaxScale server will listen.
+        displayName: Port
+        path: maxScale.services[0].listener.port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Protocol is the MaxScale protocol to use when communicating with
+          the client. If not provided, it defaults to MariaDBProtocol.
+        displayName: Protocol
+        path: maxScale.services[0].listener.protocol
+      - description: Suspend indicates whether the current resource should be suspended
+          or not. Feature flag --feature-maxscale-suspend is required in the controller
+          to enable this.
+        displayName: Suspend
+        path: maxScale.services[0].listener.suspend
+      - description: Name is the identifier of the MaxScale service.
+        displayName: Name
+        path: maxScale.services[0].name
+      - description: Params defines extra parameters to pass to the monitor.
+        displayName: Params
+        path: maxScale.services[0].params
+      - description: Router is the type of router to use.
+        displayName: Router
+        path: maxScale.services[0].router
+      - description: Suspend indicates whether the current resource should be suspended
+          or not. Feature flag --feature-maxscale-suspend is required in the controller
+          to enable this.
+        displayName: Suspend
+        path: maxScale.services[0].suspend
+      - description: SidecarContainers to be used in the Pod.
+        displayName: Sidecar Containers
+        path: maxScale.sidecarContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: maxScale.sidecarContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: maxScale.sidecarContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: maxScale.sidecarContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: maxScale.sidecarContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: maxScale.sidecarContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: maxScale.sidecarContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: maxScale.sidecarContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: maxScale.sidecarContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: maxScale.sidecarContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: maxScale.sidecarContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: maxScale.sidecarContainers[0].volumeMounts
+      - description: Tolerations to be used in the Pod.
+        displayName: Tolerations
+        path: maxScale.tolerations
+      - description: TopologySpreadConstraints to be used in the Pod.
+        displayName: Topology Spread Constraints
+        path: maxScale.topologySpreadConstraints
+      - description: UpdateStrategy defines the update strategy for the StatefulSet
+          object.
+        displayName: Update Strategy
+        path: maxScale.updateStrategy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: maxScale.volumeMounts
+      - description: Volumes to be used in the Pod.
+        displayName: Volumes
+        path: maxScale.volumes
+      - description: MaxScaleRef is a reference to a MaxScale instance that is forwarding
+          the traffic to the current MariaDB instance. Providing this field implies
+          delegating high availability tasks such as primary failover to MaxScale.
+        displayName: Max Scale Ref
+        path: maxScaleRef
       - description: Metrics configures metrics and how to scrape them.
         displayName: Metrics
         path: metrics
@@ -1236,6 +1643,13 @@ spec:
           may change this field to perform a manual switchover.
         displayName: Pod Index
         path: replication.primary.podIndex
+      - description: ProbesEnabled indicates to use replication specific liveness
+          and readiness probes. This probes check that the primary can receive queries
+          and that the replica has the replication thread running.
+        displayName: Probes Enabled
+        path: replication.probesEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: ReplicaReplication is the replication configuration for the replica
           nodes.
         displayName: Replica
@@ -1499,6 +1913,9 @@ spec:
       - description: GaleraRecovery is the Galera recovery current state.
         displayName: Galera Recovery
         path: galeraRecovery
+      - description: ReplicationStatus is the replication current state for each Pod.
+        displayName: Replication Status
+        path: replicationStatus
       version: v1alpha1
     - description: MaxScale is the Schema for the maxscales API. It is used to define
         MaxScale clusters.
@@ -1577,15 +1994,9 @@ spec:
         displayName: Delete Default Admin
         path: auth.deleteDefaultAdmin
       - description: Generate  defies whether the operator should generate users and
-          grants for MaxScale to work. It only supports in cluster MariaDBs specified
-          via spec.mariaDbRef.
+          grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
         displayName: Generate
         path: auth.generate
-      - description: Enabled is a flag that indicates whether auth generation is enabled.
-        displayName: Enabled
-        path: auth.generate.enabled
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: MonitorPasswordSecretKeyRef is Secret key reference to the password
           used by MaxScale monitor to connect to MariaDB server. It is defaulted if
           not provided.
@@ -1759,7 +2170,8 @@ spec:
           should wait for MariaDB to be ready.
         displayName: Wait For It
         path: mariaDbRef.waitForIt
-      - description: Monitor monitors MariaDB server instances.
+      - description: Monitor monitors MariaDB server instances. It is required if
+          'spec.mariaDbRef' is not provided.
         displayName: Monitor
         path: monitor
       - description: CooperativeMonitoring enables coordination between multiple MaxScale
@@ -1826,7 +2238,8 @@ spec:
           to a container.
         displayName: Security Context
         path: securityContext
-      - description: Servers are the MariaDB servers to forward traffic to.
+      - description: Servers are the MariaDB servers to forward traffic to. It is
+          required if 'spec.mariaDbRef' is not provided.
         displayName: Servers
         path: servers
       - description: Address is the network address of the MariaDB server.
@@ -1856,6 +2269,7 @@ spec:
         displayName: Service Account Name
         path: serviceAccountName
       - description: Services define how the traffic is forwarded to the MariaDB servers.
+          It is defaulted if not provided.
         displayName: Services
         path: services
       - description: MaxScaleListener defines how the MaxScale server will listen
