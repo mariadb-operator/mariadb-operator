@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	//+kubebuilder:scaffold:imports
 )
@@ -26,19 +27,24 @@ var (
 	testTimeout         = 1 * time.Minute
 	testInterval        = 1 * time.Second
 
-	testNamespace      = "default"
-	testMariaDbName    = "mariadb-test"
-	testMariaDbKey     types.NamespacedName
-	testMariaDb        mariadbv1alpha1.MariaDB
-	testPwdKey         types.NamespacedName
-	testPwd            v1.Secret
-	testUser           = "test"
-	testPwdSecretKey   = "passsword"
-	testPwdSecretName  = "password-test"
-	testDatabase       = "test"
-	testConnSecretName = "test-conn"
-	testConnSecretKey  = "dsn"
-	testCASecretKey    = types.NamespacedName{
+	testNamespace  = "default"
+	testMariaDbKey = types.NamespacedName{
+		Name:      "mariadb-test",
+		Namespace: testNamespace,
+	}
+	testPwdKey = types.NamespacedName{
+		Name:      "passsword",
+		Namespace: testNamespace,
+	}
+	testPwdSecretKey = "passsword"
+	testUser         = "test"
+	testDatabase     = "test"
+	testConnKey      = types.NamespacedName{
+		Name:      "conn",
+		Namespace: testNamespace,
+	}
+	testConnSecretKey = "dsn"
+	testCASecretKey   = types.NamespacedName{
 		Name:      "test-ca",
 		Namespace: testNamespace,
 	}
@@ -52,15 +58,23 @@ var (
 	}
 )
 
+func waitForMariaDB(ctx context.Context, k8sClient client.Client) {
+	var mdb mariadbv1alpha1.MariaDB
+	By("Expecting MariaDB to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(ctx, testMariaDbKey, &mdb); err != nil {
+			return false
+		}
+		return mdb.IsReady()
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
 func createTestData(ctx context.Context, k8sClient client.Client, env environment.Environment) {
 	var testCidrPrefix, err = docker.GetKindCidrPrefix()
-	Expect(testCidrPrefix, err).ShouldNot(Equal(""))
+	Expect(testCidrPrefix).ShouldNot(Equal(""))
+	Expect(err).ToNot(HaveOccurred())
 
-	testPwdKey = types.NamespacedName{
-		Name:      testPwdSecretName,
-		Namespace: testNamespace,
-	}
-	testPwd = v1.Secret{
+	password := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testPwdKey.Name,
 			Namespace: testPwdKey.Namespace,
@@ -69,13 +83,13 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			testPwdSecretKey: []byte("test"),
 		},
 	}
-	Expect(k8sClient.Create(ctx, &testPwd)).To(Succeed())
+	Expect(k8sClient.Create(ctx, &password)).To(Succeed())
 
 	testMariaDbKey = types.NamespacedName{
-		Name:      testMariaDbName,
-		Namespace: testNamespace,
+		Name:      testMariaDbKey.Name,
+		Namespace: testMariaDbKey.Namespace,
 	}
-	testMariaDb = mariadbv1alpha1.MariaDB{
+	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testMariaDbKey.Name,
 			Namespace: testMariaDbKey.Namespace,
@@ -83,12 +97,12 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 				SecurityContext: &corev1.SecurityContext{
-					AllowPrivilegeEscalation: func() *bool { b := false; return &b }(),
+					AllowPrivilegeEscalation: ptr.To(false),
 				},
 			},
 			PodTemplate: mariadbv1alpha1.PodTemplate{
 				PodSecurityContext: &corev1.PodSecurityContext{
-					RunAsUser: func() *int64 { u := int64(0); return &u }(),
+					RunAsUser: ptr.To(int64(0)),
 				},
 			},
 			Image:           env.RelatedMariadbImage,
@@ -116,7 +130,7 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			},
 			Database: &testDatabase,
 			Connection: &mariadbv1alpha1.ConnectionTemplate{
-				SecretName: &testConnSecretName,
+				SecretName: &testConnKey.Name,
 				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 					Key: &testConnSecretKey,
 				},
@@ -171,29 +185,27 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			},
 		},
 	}
-	Expect(k8sClient.Create(ctx, &testMariaDb)).To(Succeed())
-
-	By("Expecting MariaDB to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(ctx, testMariaDbKey, &testMariaDb); err != nil {
-			return false
-		}
-		return testMariaDb.IsReady()
-	}, testTimeout, testInterval).Should(BeTrue())
+	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
+	waitForMariaDB(ctx, k8sClient)
 }
 
 func deleteTestData(ctx context.Context, k8sClient client.Client) {
-	Expect(k8sClient.Delete(ctx, &testPwd)).To(Succeed())
-	Expect(k8sClient.Delete(ctx, &testMariaDb)).To(Succeed())
+	var password corev1.Secret
+	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
+
+	var mdb mariadbv1alpha1.MariaDB
+	Expect(k8sClient.Get(ctx, testPwdKey, &mdb)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &mdb)).To(Succeed())
 
 	Eventually(func(g Gomega) bool {
 		listOpts := &client.ListOptions{
 			LabelSelector: klabels.SelectorFromSet(
 				labels.NewLabelsBuilder().
-					WithMariaDB(&testMariaDb).
+					WithMariaDB(&mdb).
 					Build(),
 			),
-			Namespace: testMariaDb.GetNamespace(),
+			Namespace: mdb.GetNamespace(),
 		}
 		pvcList := &corev1.PersistentVolumeClaimList{}
 		g.Expect(k8sClient.List(ctx, pvcList, listOpts)).To(Succeed())
@@ -243,7 +255,7 @@ func testBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.Bac
 		Spec: mariadbv1alpha1.BackupSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				ObjectReference: corev1.ObjectReference{
-					Name: testMariaDbName,
+					Name: testMariaDbKey.Name,
 				},
 				WaitForIt: true,
 			},

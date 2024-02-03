@@ -67,14 +67,14 @@ var _ = Describe("Connection controller", func() {
 						},
 						MariaDBRef: mariadbv1alpha1.MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
-								Name: testMariaDbName,
+								Name: testMariaDbKey.Name,
 							},
 							WaitForIt: true,
 						},
 						Username: testUser,
 						PasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testPwdSecretName,
+								Name: testPwdKey.Name,
 							},
 							Key: testPwdSecretKey,
 						},
@@ -106,18 +106,18 @@ var _ = Describe("Connection controller", func() {
 							Params: map[string]string{
 								"parseTime": "true",
 							},
-							ServiceName: &testMariaDbName,
+							ServiceName: &testMariaDbKey.Name,
 						},
 						MariaDBRef: mariadbv1alpha1.MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
-								Name: testMariaDbName,
+								Name: testMariaDbKey.Name,
 							},
 							WaitForIt: true,
 						},
 						Username: testUser,
 						PasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testPwdSecretName,
+								Name: testPwdKey.Name,
 							},
 							Key: testPwdSecretKey,
 						},
@@ -156,14 +156,14 @@ var _ = Describe("Connection controller", func() {
 						},
 						MariaDBRef: mariadbv1alpha1.MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
-								Name: testMariaDbName,
+								Name: testMariaDbKey.Name,
 							},
 							WaitForIt: true,
 						},
 						Username: testUser,
 						PasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testPwdSecretName,
+								Name: testPwdKey.Name,
 							},
 							Key: testPwdSecretKey,
 						},
@@ -187,14 +187,14 @@ var _ = Describe("Connection controller", func() {
 				Spec: mariadbv1alpha1.ConnectionSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbName,
+							Name: testMariaDbKey.Name,
 						},
 						WaitForIt: true,
 					},
 					Username: testUser,
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdSecretName,
+							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
 					},
@@ -242,14 +242,14 @@ var _ = Describe("Connection controller", func() {
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbName,
+							Name: testMariaDbKey.Name,
 						},
 						WaitForIt: true,
 					},
 					Username: testUser,
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdSecretName,
+							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
 					},
