@@ -31,10 +31,11 @@ import (
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	log "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	//+kubebuilder:scaffold:imports
 )
@@ -43,11 +44,14 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	k8sClient      client.Client
-	testEnv        *envtest.Environment
-	testCtx        context.Context
-	testCancel     context.CancelFunc
-	testCidrPrefix string
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing: true,
+		UseExistingCluster:    ptr.To(true),
+	}
+	testCtx, testCancel = context.WithCancel(context.Background())
+	k8sClient           client.Client
+	testCidrPrefix      string
 )
 
 func TestAPIs(t *testing.T) {
@@ -57,10 +61,7 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-
-	testCtx, testCancel = context.WithCancel(context.Background())
-	useCluster := true
+	log.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	var err error
 	testCidrPrefix, err = docker.GetKindCidrPrefix()
@@ -68,12 +69,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: true,
-		UseExistingCluster:    &useCluster,
-	}
-
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
@@ -89,6 +84,11 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
+
+	if GinkgoParallelProcess() != 1 {
+		waitForMariaDB(testCtx, k8sClient)
+		return
+	}
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
@@ -310,8 +310,10 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	By("Deleting initial test data")
-	deleteTestData(testCtx, k8sClient)
+	if GinkgoParallelProcess() == 1 {
+		By("Deleting initial test data")
+		deleteTestData(testCtx, k8sClient)
+	}
 
 	testCancel()
 	By("Tearing down the test environment")

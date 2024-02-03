@@ -63,6 +63,10 @@ var _ = Describe("MariaDB controller", func() {
 			deleteMariaDB(&testDefaultMariaDb)
 		})
 		It("Should reconcile", func() {
+			var testMariaDb mariadbv1alpha1.MariaDB
+			By("Getting MariaDB")
+			Expect(k8sClient.Get(testCtx, testMariaDbKey, &testMariaDb)).To(Succeed())
+
 			By("Expecting to create a ConfigMap eventually")
 			Eventually(func() bool {
 				var cm corev1.ConfigMap
@@ -155,7 +159,7 @@ var _ = Describe("MariaDB controller", func() {
 				}
 				g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
 				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
-				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDbName))
+				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDbKey.Name))
 				g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
 				return true
 			}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
@@ -174,7 +178,7 @@ var _ = Describe("MariaDB controller", func() {
 				Spec: mariadbv1alpha1.BackupSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbName,
+							Name: testMariaDbKey.Name,
 						},
 						WaitForIt: true,
 					},
