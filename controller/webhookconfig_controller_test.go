@@ -14,7 +14,7 @@ import (
 )
 
 var _ = Describe("WebhookConfig", func() {
-	Context("When creating a MutatingWebhookConfiguration", func() {
+	Context("When creating webhook configurations", func() {
 		It("Should reconcile", func() {
 			key := types.NamespacedName{
 				Name:      "test-mutating",
@@ -49,7 +49,7 @@ var _ = Describe("WebhookConfig", func() {
 					},
 				},
 			}
-			By("Expecting to create a MutatingWebhookConfiguration")
+			By("Creating MutatingWebhookConfiguration")
 			Expect(k8sClient.Create(testCtx, &mutatingConfig)).To(Succeed())
 
 			By("Expecting to eventually inject CA bundle")
@@ -101,12 +101,8 @@ var _ = Describe("WebhookConfig", func() {
 			Expect(k8sClient.Delete(testCtx, &mutatingConfig)).To(Succeed())
 			Expect(k8sClient.Delete(testCtx, &caSecret)).To(Succeed())
 			Expect(k8sClient.Delete(testCtx, &certSecret)).To(Succeed())
-		})
-	})
 
-	Context("When creating a ValidatingWebhookConfiguration", func() {
-		It("Should reconcile", func() {
-			key := types.NamespacedName{
+			key = types.NamespacedName{
 				Name:      "test-validating",
 				Namespace: testNamespace,
 			}
@@ -175,7 +171,7 @@ var _ = Describe("WebhookConfig", func() {
 					},
 				},
 			}
-			By("Expecting to create a ValidatingWebhookConfiguration")
+			By("Creating ValidatingWebhookConfiguration")
 			Expect(k8sClient.Create(testCtx, &validatingConfig)).To(Succeed())
 
 			By("Expecting to eventually inject CA bundle")
@@ -195,31 +191,29 @@ var _ = Describe("WebhookConfig", func() {
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			var caSecret corev1.Secret
 			By("Expecting to create a CA Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCASecretKey, &caSecret) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			var certSecret corev1.Secret
 			By("Expecting to create a certificate Secret")
 			Eventually(func() bool {
 				return k8sClient.Get(testCtx, testCertSecretKey, &certSecret) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to get CA KeyPair")
-			caKeyPair, err := pki.KeyPairFromTLSSecret(&caSecret)
+			caKeyPair, err = pki.KeyPairFromTLSSecret(&caSecret)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(caKeyPair).NotTo(BeNil())
 
 			By("Expecting to get certificate KeyPair")
-			certKeyPair, err := pki.KeyPairFromTLSSecret(&certSecret)
+			certKeyPair, err = pki.KeyPairFromTLSSecret(&certSecret)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(certKeyPair).NotTo(BeNil())
 
 			By("Expecting certificate to be valid")
-			dnsNames := serviceDNSNames(testWebhookServiceKey)
-			valid, err := pki.ValidCert(caKeyPair.Cert, certKeyPair, dnsNames.CommonName, time.Now())
+			dnsNames = serviceDNSNames(testWebhookServiceKey)
+			valid, err = pki.ValidCert(caKeyPair.Cert, certKeyPair, dnsNames.CommonName, time.Now())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(valid).To(BeTrue())
 
@@ -227,6 +221,12 @@ var _ = Describe("WebhookConfig", func() {
 			Expect(k8sClient.Delete(testCtx, &validatingConfig)).To(Succeed())
 			Expect(k8sClient.Delete(testCtx, &caSecret)).To(Succeed())
 			Expect(k8sClient.Delete(testCtx, &certSecret)).To(Succeed())
+		})
+	})
+
+	Context("When creating a ValidatingWebhookConfiguration", func() {
+		It("Should reconcile", func() {
+
 		})
 	})
 })
