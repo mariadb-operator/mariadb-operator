@@ -65,7 +65,7 @@ var _ = Describe("MariaDB controller", func() {
 		It("Should reconcile", func() {
 			var testMariaDb mariadbv1alpha1.MariaDB
 			By("Getting MariaDB")
-			Expect(k8sClient.Get(testCtx, testMariaDbKey, &testMariaDb)).To(Succeed())
+			Expect(k8sClient.Get(testCtx, testMdbkey, &testMariaDb)).To(Succeed())
 
 			By("Expecting to create a ConfigMap eventually")
 			Eventually(func() bool {
@@ -85,7 +85,7 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting to create a StatefulSet eventually")
 			Eventually(func() bool {
 				var sts appsv1.StatefulSet
-				if err := k8sClient.Get(testCtx, testMariaDbKey, &sts); err != nil {
+				if err := k8sClient.Get(testCtx, testMdbkey, &sts); err != nil {
 					return false
 				}
 				Expect(sts.ObjectMeta.Labels).NotTo(BeNil())
@@ -96,7 +96,7 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting to create a Service eventually")
 			Eventually(func() bool {
 				var svc corev1.Service
-				if err := k8sClient.Get(testCtx, testMariaDbKey, &svc); err != nil {
+				if err := k8sClient.Get(testCtx, testMdbkey, &svc); err != nil {
 					return false
 				}
 				Expect(svc.ObjectMeta.Labels).NotTo(BeNil())
@@ -159,7 +159,7 @@ var _ = Describe("MariaDB controller", func() {
 				}
 				g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
 				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
-				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDbKey.Name))
+				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMdbkey.Name))
 				g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
 				return true
 			}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
@@ -167,7 +167,7 @@ var _ = Describe("MariaDB controller", func() {
 		It("Should bootstrap from Backup", func() {
 			By("Creating Backup")
 			backupKey := types.NamespacedName{
-				Name:      "backup-mariadb-test",
+				Name:      "backup-mdb-test",
 				Namespace: testNamespace,
 			}
 			backup := mariadbv1alpha1.Backup{
@@ -178,7 +178,7 @@ var _ = Describe("MariaDB controller", func() {
 				Spec: mariadbv1alpha1.BackupSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbKey.Name,
+							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},

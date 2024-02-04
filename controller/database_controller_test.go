@@ -26,7 +26,7 @@ var _ = Describe("Database controller", func() {
 				Spec: mariadbv1alpha1.DatabaseSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbKey.Name,
+							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},
