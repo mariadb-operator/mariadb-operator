@@ -315,10 +315,10 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	if GinkgoParallelProcess() == 1 {
-		By("Deleting initial test data")
-		deleteTestData(testCtx, k8sClient)
-	}
+	// if GinkgoParallelProcess() == 1 {
+	// 	By("Deleting initial test data")
+	// 	deleteTestData(testCtx, k8sClient)
+	// }
 
 	testCancel()
 	By("Tearing down the test environment")
