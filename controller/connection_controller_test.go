@@ -130,12 +130,12 @@ var _ = Describe("Connection controller", func() {
 				"Creating a Connection providing DSN Format",
 				&mariadbv1alpha1.Connection{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "conn-test",
+						Name:      "conn-test-custom-dsn",
 						Namespace: testNamespace,
 					},
 					Spec: mariadbv1alpha1.ConnectionSpec{
 						ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
-							SecretName: func() *string { t := "conn-test"; return &t }(),
+							SecretName: func() *string { t := "conn-test-custom-dsn"; return &t }(),
 							SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 								Labels: map[string]string{
 									"foo": "bar",
