@@ -12,16 +12,10 @@ TEST_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) RELATED_IMAGE_MAXSCAL
 	MARIADB_OPERATOR_NAME=$(MARIADB_OPERATOR_NAME) MARIADB_OPERATOR_NAMESPACE=$(MARIADB_OPERATOR_NAMESPACE) MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
 
-.PHONY: go-test
-go-test: ## Run go tests.
-	 go test -v ./pkg/... -coverprofile cover.out
-
-.PHONY: ginkgo-test
-ginkgo-test: envtest ginkgo ## Run ginkgo tests.
-	 $(TEST_ENV) $(GINKGO) -v -p --timeout 20m ./...
-
 .PHONY: test
-test: go-test ginkgo-test ## Run tests.
+test: envtest ginkgo ## Run tests.
+	 $(TEST_ENV) $(GINKGO) -v -p --timeout 20m ./api ./controller ./pkg/...
+
 
 .PHONY: cover
 cover: test ## Run tests and generate coverage.

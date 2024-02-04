@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -37,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	log "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -85,13 +87,11 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	if GinkgoParallelProcess() != 1 {
-		waitForMariaDB(testCtx, k8sClient)
-		return
-	}
-
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: fmt.Sprintf(":80%02d", GinkgoParallelProcess()),
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -305,8 +305,10 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
-	By("Creating initial test data")
-	createTestData(testCtx, k8sClient, *env)
+	if GinkgoParallelProcess() == 1 {
+		By("Creating initial test data")
+		createTestData(testCtx, k8sClient, *env)
+	}
 })
 
 var _ = AfterSuite(func() {
