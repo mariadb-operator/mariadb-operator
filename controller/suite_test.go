@@ -216,7 +216,7 @@ var _ = BeforeSuite(func() {
 		SuspendEnabled: false,
 
 		RequeueInterval: 5 * time.Second,
-		LogRequests:     true,
+		LogRequests:     false,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
