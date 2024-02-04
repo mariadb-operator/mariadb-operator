@@ -15,9 +15,37 @@ host-mariadb: ## Add mariadb hosts to /etc/hosts.
 	@./hack/add_host.sh 31 mariadb-secondary.default.svc.cluster.local
 	@./hack/add_host.sh 40 mariadb.mariadb.svc.cluster.local
 
-.PHONY: host-mariadb-test
-host-mariadb-test: ## Add mariadb test hosts to /etc/hosts.
-	@./hack/add_host.sh 100 mariadb-test.default.svc.cluster.local
+.PHONY: host-mdb-test
+host-mdb-test: ## Add MariaDB test hosts to /etc/hosts.
+	@./hack/add_host.sh 45 mdb-test.default.svc.cluster.local
+
+.PHONY: host-mxs-repl-test
+host-mxs-repl-test: ## Add MaxScale replication test hosts to /etc/hosts.
+	@./hack/add_host.sh 50 mxs-repl-0.mxs-repl-internal.default.svc.cluster.local
+	@./hack/add_host.sh 51 mxs-repl-1.mxs-repl-internal.default.svc.cluster.local
+	@./hack/add_host.sh 52 mxs-repl-2.mxs-repl-internal.default.svc.cluster.local
+	@./hack/add_host.sh 53 mxs-repl-3.mxs-repl-internal.default.svc.cluster.local
+	@./hack/add_host.sh 54 mxs-repl.default.svc.cluster.local
+	@./hack/add_host.sh 55 mxs-repl-primary.default.svc.cluster.local
+	@./hack/add_host.sh 60 mxs-repl-maxscale-0.mxs-repl-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 61 mxs-repl-maxscale-1.mxs-repl-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 62 mxs-repl-maxscale-2.mxs-repl-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 63 mxs-repl-maxscale-3.mxs-repl-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 64 mxs-repl-maxscale.default.svc.cluster.local
+
+.PHONY: host-mxs-galera-test
+host-mxs-galera-test: ## Add MaxScale Galera test hosts to /etc/hosts.
+	@./hack/add_host.sh 70 mxs-galera-0.mxs-galera-internal.default.svc.cluster.local
+	@./hack/add_host.sh 71 mxs-galera-1.mxs-galera-internal.default.svc.cluster.local
+	@./hack/add_host.sh 72 mxs-galera-2.mxs-galera-internal.default.svc.cluster.local
+	@./hack/add_host.sh 73 mxs-galera-3.mxs-galera-internal.default.svc.cluster.local
+	@./hack/add_host.sh 74 mxs-galera.default.svc.cluster.local
+	@./hack/add_host.sh 75 mxs-galera-primary.default.svc.cluster.local
+	@./hack/add_host.sh 80 mxs-galera-maxscale-0.mxs-galera-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 81 mxs-galera-maxscale-1.mxs-galera-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 82 mxs-galera-maxscale-2.mxs-galera-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 83 mxs-galera-maxscale-3.mxs-galera-maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 84 mxs-galera-maxscale.default.svc.cluster.local
 
 .PHONY: host-mariadb-repl
 host-mariadb-repl: ## Add mariadb repl hosts to /etc/hosts.
@@ -75,6 +103,12 @@ host-maxscale-galera: ## Add maxscale-galera hosts to /etc/hosts.
 	@./hack/add_host.sh 228 mariadb-galera-maxscale-3.mariadb-galera-maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 229 mariadb-galera-maxscale.default.svc.cluster.local
 
-.PHONY: net
-net: install-metallb host-mariadb host-mariadb-test host-mariadb-repl host-mariadb-galera host-monitoring host-minio host-maxscale host-maxscale-galera ## Configure networking for local development.
 
+.PHONY: host
+host: host-mariadb host-mariadb-repl host-mariadb-galera host-monitoring host-minio host-maxscale host-maxscale-galera ## Configure hosts for local development.
+
+.PHONY: host-test
+host-test: host host-mdb-test host-mxs-repl-test host-mxs-galera-test ## Configure hosts for local tests.
+
+.PHONY: net
+net: install-metallb host host-test ## Configure networking for local development.

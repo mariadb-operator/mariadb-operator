@@ -67,7 +67,7 @@ var _ = Describe("Connection controller", func() {
 						},
 						MariaDBRef: mariadbv1alpha1.MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
-								Name: testMariaDbKey.Name,
+								Name: testMdbkey.Name,
 							},
 							WaitForIt: true,
 						},
@@ -81,7 +81,7 @@ var _ = Describe("Connection controller", func() {
 						Database: &testDatabase,
 					},
 				},
-				"test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
+				"test:test@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
 			),
 			Entry(
 				"Creating a Connection providing ServiceName",
@@ -106,11 +106,11 @@ var _ = Describe("Connection controller", func() {
 							Params: map[string]string{
 								"parseTime": "true",
 							},
-							ServiceName: &testMariaDbKey.Name,
+							ServiceName: &testMdbkey.Name,
 						},
 						MariaDBRef: mariadbv1alpha1.MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
-								Name: testMariaDbKey.Name,
+								Name: testMdbkey.Name,
 							},
 							WaitForIt: true,
 						},
@@ -124,7 +124,7 @@ var _ = Describe("Connection controller", func() {
 						Database: &testDatabase,
 					},
 				},
-				"test:test@tcp(mariadb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
+				"test:test@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
 			),
 			Entry(
 				"Creating a Connection providing DSN Format",
@@ -156,7 +156,7 @@ var _ = Describe("Connection controller", func() {
 						},
 						MariaDBRef: mariadbv1alpha1.MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
-								Name: testMariaDbKey.Name,
+								Name: testMdbkey.Name,
 							},
 							WaitForIt: true,
 						},
@@ -170,7 +170,7 @@ var _ = Describe("Connection controller", func() {
 						Database: &testDatabase,
 					},
 				},
-				"mysql://test:test@mariadb-test.default.svc.cluster.local:3306/test?timeout=5s",
+				"mysql://test:test@mdb-test.default.svc.cluster.local:3306/test?timeout=5s",
 			),
 		)
 
@@ -187,7 +187,7 @@ var _ = Describe("Connection controller", func() {
 				Spec: mariadbv1alpha1.ConnectionSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbKey.Name,
+							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},
@@ -242,7 +242,7 @@ var _ = Describe("Connection controller", func() {
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbKey.Name,
+							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},
@@ -280,7 +280,7 @@ var _ = Describe("Connection controller", func() {
 			Expect(string(pass)).To(Equal("test"))
 			host, ok := secret.Data["host"]
 			Expect(ok).To(BeTrue())
-			Expect(string(host)).To(Equal("mariadb-test.default.svc.cluster.local"))
+			Expect(string(host)).To(Equal("mdb-test.default.svc.cluster.local"))
 			port, ok := secret.Data["port"]
 			Expect(ok).To(BeTrue())
 			Expect(string(port)).To(Equal("3306"))

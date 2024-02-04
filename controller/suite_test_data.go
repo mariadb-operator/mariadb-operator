@@ -25,9 +25,9 @@ var (
 	testTimeout         = 1 * time.Minute
 	testInterval        = 1 * time.Second
 
-	testNamespace  = "default"
-	testMariaDbKey = types.NamespacedName{
-		Name:      "mariadb-test",
+	testNamespace = "default"
+	testMdbkey    = types.NamespacedName{
+		Name:      "mdb-test",
 		Namespace: testNamespace,
 	}
 	testPwdKey = types.NamespacedName{
@@ -60,7 +60,7 @@ func waitForMariaDB(ctx context.Context, k8sClient client.Client) {
 	var mdb mariadbv1alpha1.MariaDB
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
-		if err := k8sClient.Get(ctx, testMariaDbKey, &mdb); err != nil {
+		if err := k8sClient.Get(ctx, testMdbkey, &mdb); err != nil {
 			return false
 		}
 		return mdb.IsReady()
@@ -85,8 +85,8 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      testMariaDbKey.Name,
-			Namespace: testMariaDbKey.Namespace,
+			Name:      testMdbkey.Name,
+			Namespace: testMdbkey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -154,7 +154,7 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			Service: &mariadbv1alpha1.ServiceTemplate{
 				Type: corev1.ServiceTypeLoadBalancer,
 				Annotations: map[string]string{
-					"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.100",
+					"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.45",
 				},
 			},
 			Metrics: &mariadbv1alpha1.Metrics{
@@ -249,7 +249,7 @@ func testBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.Bac
 		Spec: mariadbv1alpha1.BackupSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				ObjectReference: corev1.ObjectReference{
-					Name: testMariaDbKey.Name,
+					Name: testMdbkey.Name,
 				},
 				WaitForIt: true,
 			},

@@ -46,7 +46,7 @@ var _ = Describe("Restore controller", func() {
 				Spec: mariadbv1alpha1.RestoreSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbKey.Name,
+							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},
@@ -128,7 +128,7 @@ var _ = Describe("Restore controller", func() {
 				Spec: mariadbv1alpha1.RestoreSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbKey.Name,
+							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},
@@ -184,7 +184,7 @@ var _ = Describe("Restore controller", func() {
 				Spec: mariadbv1alpha1.RestoreSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: testMariaDbKey.Name,
+							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},
