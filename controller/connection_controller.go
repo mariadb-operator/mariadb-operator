@@ -70,7 +70,7 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherFailed("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
 		}
-		return ctrl.Result{}, errors.New("MariaDB not ready")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	if err := r.init(ctx, &conn); err != nil {
