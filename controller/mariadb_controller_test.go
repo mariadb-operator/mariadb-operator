@@ -478,10 +478,14 @@ var _ = Describe("MariaDB replication", func() {
 			var pdb policyv1.PodDisruptionBudget
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &pdb)).To(Succeed())
 
-			By("Updating MariaDB primary")
+			By("Expecting MariaDB to eventually update primary")
 			podIndex := 1
-			testRplMariaDb.Replication().Primary.PodIndex = &podIndex
-			Expect(k8sClient.Update(testCtx, &testRplMariaDb)).To(Succeed())
+			Eventually(func(g Gomega) bool {
+				g.Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testRplMariaDb), &testRplMariaDb)).To(Succeed())
+				testRplMariaDb.Replication().Primary.PodIndex = &podIndex
+				g.Expect(k8sClient.Update(testCtx, &testRplMariaDb)).To(Succeed())
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting MariaDB to eventually change primary")
 			Eventually(func() bool {
