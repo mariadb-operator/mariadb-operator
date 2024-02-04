@@ -5,7 +5,6 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
@@ -14,7 +13,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -189,33 +187,33 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 	waitForMariaDB(ctx, k8sClient)
 }
 
-func deleteTestData(ctx context.Context, k8sClient client.Client) {
-	var password corev1.Secret
-	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
-	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
+// func deleteTestData(ctx context.Context, k8sClient client.Client) {
+// 	var password corev1.Secret
+// 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
+// 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
 
-	var mdb mariadbv1alpha1.MariaDB
-	Expect(k8sClient.Get(ctx, testPwdKey, &mdb)).To(Succeed())
-	Expect(k8sClient.Delete(ctx, &mdb)).To(Succeed())
+// 	var mdb mariadbv1alpha1.MariaDB
+// 	Expect(k8sClient.Get(ctx, testPwdKey, &mdb)).To(Succeed())
+// 	Expect(k8sClient.Delete(ctx, &mdb)).To(Succeed())
 
-	Eventually(func(g Gomega) bool {
-		listOpts := &client.ListOptions{
-			LabelSelector: klabels.SelectorFromSet(
-				labels.NewLabelsBuilder().
-					WithMariaDB(&mdb).
-					Build(),
-			),
-			Namespace: mdb.GetNamespace(),
-		}
-		pvcList := &corev1.PersistentVolumeClaimList{}
-		g.Expect(k8sClient.List(ctx, pvcList, listOpts)).To(Succeed())
+// 	Eventually(func(g Gomega) bool {
+// 		listOpts := &client.ListOptions{
+// 			LabelSelector: klabels.SelectorFromSet(
+// 				labels.NewLabelsBuilder().
+// 					WithMariaDB(&mdb).
+// 					Build(),
+// 			),
+// 			Namespace: mdb.GetNamespace(),
+// 		}
+// 		pvcList := &corev1.PersistentVolumeClaimList{}
+// 		g.Expect(k8sClient.List(ctx, pvcList, listOpts)).To(Succeed())
 
-		for _, pvc := range pvcList.Items {
-			g.Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
-		}
-		return true
-	}, 30*time.Second, 1*time.Second).Should(BeTrue())
-}
+// 		for _, pvc := range pvcList.Items {
+// 			g.Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
+// 		}
+// 		return true
+// 	}, 30*time.Second, 1*time.Second).Should(BeTrue())
+// }
 
 func testS3WithBucket(bucket string) *mariadbv1alpha1.S3 {
 	return &mariadbv1alpha1.S3{
