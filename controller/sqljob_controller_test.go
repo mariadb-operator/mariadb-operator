@@ -215,11 +215,9 @@ var _ = Describe("SqlJob controller", func() {
 					},
 					Database: &testDatabase,
 					Sql: func() *string {
-						sql := `CREATE TABLE IF NOT EXISTS users (
+						sql := `CREATE TABLE IF NOT EXISTS orders (
 							id bigint PRIMARY KEY AUTO_INCREMENT,
-							username varchar(255) NOT NULL,
 							email varchar(255) NOT NULL,
-							UNIQUE KEY name__unique_idx (username),
 							UNIQUE KEY email__unique_idx (email)
 						);`
 						return &sql
