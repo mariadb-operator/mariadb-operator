@@ -310,7 +310,7 @@ var _ = BeforeSuite(func() {
 		By("Creating initial test data")
 		createTestData(testCtx, k8sClient, *env)
 	} else {
-		By("Creating initial MariaDB")
+		By("Waiting for MariaDB")
 		waitForMariaDB(testCtx, k8sClient)
 	}
 })
