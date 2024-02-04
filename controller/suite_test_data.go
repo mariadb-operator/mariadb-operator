@@ -83,10 +83,6 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 	}
 	Expect(k8sClient.Create(ctx, &password)).To(Succeed())
 
-	testMariaDbKey = types.NamespacedName{
-		Name:      testMariaDbKey.Name,
-		Namespace: testMariaDbKey.Namespace,
-	}
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testMariaDbKey.Name,
