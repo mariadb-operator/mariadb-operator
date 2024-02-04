@@ -428,7 +428,7 @@ var _ = Describe("MariaDB replication", func() {
 					return false
 				}
 				return testRplMariaDb.IsReady()
-			}, testHighTimeout, testInterval).Should(BeTrue())
+			}, testVeryHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to create a Service")
 			var svc corev1.Service
