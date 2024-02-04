@@ -17,7 +17,7 @@ var _ = Describe("Grant controller", func() {
 		It("Should reconcile", func() {
 			By("Creating a User")
 			userKey := types.NamespacedName{
-				Name:      "grant-user-test",
+				Name:      "grant-user-all-test",
 				Namespace: testNamespace,
 			}
 			user := mariadbv1alpha1.User{
@@ -143,7 +143,7 @@ var _ = Describe("Grant controller", func() {
 
 			By("Creating a User")
 			userKey := types.NamespacedName{
-				Name:      "grant-user-test",
+				Name:      "grant-user-database-test",
 				Namespace: testNamespace,
 			}
 			user := mariadbv1alpha1.User{
