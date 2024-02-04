@@ -308,6 +308,9 @@ var _ = BeforeSuite(func() {
 	if GinkgoParallelProcess() == 1 {
 		By("Creating initial test data")
 		createTestData(testCtx, k8sClient, *env)
+	} else {
+		By("Creating initial MariaDB")
+		waitForMariaDB(testCtx, k8sClient)
 	}
 })
 
