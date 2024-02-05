@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -40,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	log "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -48,14 +46,9 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: true,
-		UseExistingCluster:    ptr.To(true),
-	}
-	testCtx, testCancel = context.WithCancel(context.Background())
-	k8sClient           client.Client
-	testCidrPrefix      string
+	testCtx        = context.Background()
+	k8sClient      client.Client
+	testCidrPrefix string
 )
 
 func TestAPIs(t *testing.T) {
@@ -77,11 +70,6 @@ var _ = BeforeSuite(func() {
 	Expect(testCidrPrefix).NotTo(BeEmpty())
 	Expect(err).NotTo(HaveOccurred())
 
-	By("Bootstrapping test environment")
-	cfg, err := testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
-
 	err = mariadbv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -90,15 +78,37 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
+	if GinkgoParallelProcess() != 1 {
+		cfg, err := ctrl.GetConfig()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cfg).NotTo(BeNil())
+
+		k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(k8sClient).NotTo(BeNil())
+
+		By("Waiting for MariaDB")
+		waitForMariaDB(testCtx, k8sClient)
+		return
+	}
+
+	By("Bootstrapping test environment")
+	testEnv := &envtest.Environment{
+		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing: true,
+		UseExistingCluster:    ptr.To(true),
+	}
+	cfg, err := testEnv.Start()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(cfg).NotTo(BeNil())
+	DeferCleanup(testEnv.Stop)
+
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: fmt.Sprintf(":80%02d", GinkgoParallelProcess()),
-		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -312,22 +322,6 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
-	if GinkgoParallelProcess() == 1 {
-		By("Creating initial test data")
-		createTestData(testCtx, k8sClient, *env)
-	} else {
-		By("Waiting for MariaDB")
-		waitForMariaDB(testCtx, k8sClient)
-	}
-})
-
-var _ = AfterSuite(func() {
-	// if GinkgoParallelProcess() == 1 {
-	// 	By("Deleting initial test data")
-	// 	deleteTestData(testCtx, k8sClient)
-	// }
-
-	testCancel()
-	By("Tearing down the test environment")
-	Expect(testEnv.Stop()).To(Succeed())
+	By("Creating initial test data")
+	createTestData(testCtx, k8sClient, *env)
 })
