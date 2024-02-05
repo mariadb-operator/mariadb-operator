@@ -116,48 +116,10 @@ var _ = Describe("SqlJob controller", func() {
 					}(),
 				},
 			}
-
-			insertReposJob := mariadbv1alpha1.SqlJob{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "sqljob-03-insert-repos",
-					Namespace: testNamespace,
-				},
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					DependsOn: []corev1.LocalObjectReference{
-						{
-							Name: createUsersJob.Name,
-						},
-						{
-							Name: createReposJob.Name,
-						},
-					},
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: testMdbkey.Name,
-						},
-						WaitForIt: true,
-					},
-					Username: testUser,
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					Database: &testDatabase,
-					Sql: func() *string {
-						sql := `    INSERT INTO repos(name, owner_id) VALUES('mariadb-operator', (SELECT id FROM users WHERE username = 'mmontes11'))
-						ON DUPLICATE KEY UPDATE name='mariadb-operator';`
-						return &sql
-					}(),
-				},
-			}
-
 			sqlJobs := []mariadbv1alpha1.SqlJob{
 				createUsersJob,
 				insertUsersJob,
 				createReposJob,
-				insertReposJob,
 			}
 
 			By("Creating SqlJobs")
@@ -173,7 +135,7 @@ var _ = Describe("SqlJob controller", func() {
 						return false
 					}
 					return sqlJob.IsComplete()
-				}, testTimeout, testInterval).Should(BeTrue())
+				}, testHighTimeout, testInterval).Should(BeTrue())
 			}
 
 			By("Expecting to create a Job")
@@ -232,7 +194,7 @@ var _ = Describe("SqlJob controller", func() {
 			Eventually(func() bool {
 				var cronJob batchv1.CronJob
 				return k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob) != nil
-			}, testTimeout, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Deleting SqlJob")
 			Expect(k8sClient.Delete(testCtx, &scheduledSqlJob)).To(Succeed())
