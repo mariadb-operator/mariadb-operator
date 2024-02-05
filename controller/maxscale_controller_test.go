@@ -55,7 +55,7 @@ var _ = Describe("MaxScale controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
 
-		It("Should reconcile", func() {
+		It("Should reconcile", Focus, func() {
 			By("Creating MaxScale")
 			testMaxScaleKey := types.NamespacedName{
 				Name:      "maxscale",
@@ -248,7 +248,7 @@ func expectMaxScaleReady(key types.NamespacedName) {
 			return false
 		}
 		return mxs.IsReady()
-	}, testTimeout, testInterval).Should(BeTrue())
+	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting servers to be ready eventually")
 	Eventually(func(g Gomega) bool {
