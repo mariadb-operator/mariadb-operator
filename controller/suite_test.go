@@ -31,6 +31,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	zappkg "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
@@ -64,7 +65,12 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	log.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true), zap.Level(zapcore.InfoLevel)))
+	log.SetLogger(zap.New(
+		zap.WriteTo(GinkgoWriter),
+		zap.UseDevMode(true),
+		zap.Level(zapcore.InfoLevel),
+		zap.RawZapOpts(zappkg.Fields(zappkg.Int("ginkgo-process", GinkgoParallelProcess()))),
+	))
 
 	var err error
 	testCidrPrefix, err = docker.GetKindCidrPrefix()
