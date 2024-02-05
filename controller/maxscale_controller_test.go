@@ -162,6 +162,7 @@ var _ = Describe("MaxScale controller", func() {
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
+			expecFailoverSuccess(&testMdbMxs, 30*time.Second)
 		})
 	})
 
@@ -235,6 +236,7 @@ var _ = Describe("MaxScale controller", func() {
 			}, testVeryHighTimeout, testInterval).Should(BeTrue())
 
 			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
+			expecFailoverSuccess(&testMdbMxs, 10*time.Second)
 		})
 	})
 })
@@ -302,6 +304,47 @@ func expectMaxScaleReady(key types.NamespacedName) {
 	By("Expecting to create a Service")
 	var svc corev1.Service
 	Expect(k8sClient.Get(testCtx, key, &svc)).To(Succeed())
+}
+
+func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB, primaryTearDownPeriod time.Duration) {
+	Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), mdb)).Should(Succeed())
+	Expect(mdb.Status.CurrentPrimary).ToNot(BeNil())
+	Expect(mdb.Status.CurrentPrimaryPodIndex).ToNot(BeNil())
+	prevPrimaryPodIndex := *mdb.Status.CurrentPrimaryPodIndex
+
+	var mxs mariadbv1alpha1.MaxScale
+	Expect(k8sClient.Get(testCtx, mdb.MaxScaleKey(), &mxs)).Should(Succeed())
+	Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
+
+	By("Tearing down primary consistently")
+	Consistently(func() bool {
+		key := types.NamespacedName{
+			Name:      *mdb.Status.CurrentPrimary,
+			Namespace: testNamespace,
+		}
+		var pod corev1.Pod
+		if err := k8sClient.Get(testCtx, key, &pod); err != nil {
+			return apierrors.IsNotFound(err)
+		}
+		return k8sClient.Delete(testCtx, &pod) == nil
+	}, primaryTearDownPeriod, testInterval).Should(BeTrue())
+
+	By("Expecting primary to have changed eventually")
+	Eventually(func(g Gomega) bool {
+		g.Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), mdb)).Should(Succeed())
+		g.Expect(k8sClient.Get(testCtx, mdb.MaxScaleKey(), &mxs)).Should(Succeed())
+
+		g.Expect(mdb.Status.CurrentPrimary).NotTo(BeNil())
+		g.Expect(mdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
+		g.Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
+
+		podIndex, err := podIndexForServer(*mxs.Status.PrimaryServer, &mxs, mdb)
+		g.Expect(podIndex).NotTo(BeNil())
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(*podIndex).NotTo(Equal(prevPrimaryPodIndex))
+		g.Expect(*podIndex).To(Equal(*mdb.Status.CurrentPrimaryPodIndex))
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func deleteMaxScale(key types.NamespacedName) {
