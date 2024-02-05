@@ -307,14 +307,21 @@ func expectMaxScaleReady(key types.NamespacedName) {
 }
 
 func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB, primaryTearDownPeriod time.Duration) {
-	Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), mdb)).Should(Succeed())
-	Expect(mdb.Status.CurrentPrimary).ToNot(BeNil())
-	Expect(mdb.Status.CurrentPrimaryPodIndex).ToNot(BeNil())
-	prevPrimaryPodIndex := *mdb.Status.CurrentPrimaryPodIndex
+	var (
+		mxs                 mariadbv1alpha1.MaxScale
+		prevPrimaryPodIndex int
+	)
+	By("Expecting primary to be set eventually")
+	Eventually(func(g Gomega) bool {
+		Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), mdb)).Should(Succeed())
+		Expect(mdb.Status.CurrentPrimary).ToNot(BeNil())
+		Expect(mdb.Status.CurrentPrimaryPodIndex).ToNot(BeNil())
+		prevPrimaryPodIndex = *mdb.Status.CurrentPrimaryPodIndex
 
-	var mxs mariadbv1alpha1.MaxScale
-	Expect(k8sClient.Get(testCtx, mdb.MaxScaleKey(), &mxs)).Should(Succeed())
-	Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
+		Expect(k8sClient.Get(testCtx, mdb.MaxScaleKey(), &mxs)).Should(Succeed())
+		Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
 
 	By("Tearing down primary consistently")
 	Consistently(func() bool {
