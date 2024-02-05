@@ -55,7 +55,7 @@ var _ = Describe("MaxScale controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
 
-		It("Should reconcile", Focus, func() {
+		It("Should reconcile", func() {
 			By("Creating MaxScale")
 			testMaxScaleKey := types.NamespacedName{
 				Name:      "maxscale",
