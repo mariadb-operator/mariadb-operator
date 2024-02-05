@@ -16,7 +16,7 @@ We have a [development guide](./docs/DEVELOPMENT.md) at your disposal so you can
 
 Creating a new issue it's generally a good way to share your ideas and get feedback. We consider creating good issues and documentation its part of the creative process, and we don't want to interfere on it. However, it's encouraged to provide as much context as possible. Feel free to talk about a specific use case, show the maintainers what we are trying to solve.
 
-Explore the available labels in order to proper categorize it and get the fastest feedback.
+Explore the available labels in order to proper categorize it and get the fastest feedback.  Labels for customer-originated featured and bugs are for tracking purposes only, and not a guarantee that a specific feature or bug will be in a given release.
 
 If the contribution it's a bugfix, a little feature or documentation improvement that could be implemented in, lets say, a couple of days at maximum, one could go directly for a PR. It's fine.
 
