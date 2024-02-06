@@ -408,11 +408,11 @@ type MaxScaleBaseSpec struct {
 	// Services define how the traffic is forwarded to the MariaDB servers. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Services []MaxScaleService `json:"services"`
+	Services []MaxScaleService `json:"services,omitempty"`
 	// Monitor monitors MariaDB server instances. It is required if 'spec.mariaDbRef' is not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Monitor MaxScaleMonitor `json:"monitor"`
+	Monitor MaxScaleMonitor `json:"monitor,omitempty"`
 	// Admin configures the admin REST API and GUI.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
