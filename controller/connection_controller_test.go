@@ -19,6 +19,9 @@ var _ = Describe("Connection controller", func() {
 			func(conn *mariadbv1alpha1.Connection, wantDsn string) {
 				key := client.ObjectKeyFromObject(conn)
 				Expect(k8sClient.Create(testCtx, conn)).To(Succeed())
+				DeferCleanup(func() {
+					Expect(k8sClient.Delete(testCtx, conn)).To(Succeed())
+				})
 
 				By("Expecting Connection to be ready eventually")
 				Eventually(func() bool {
@@ -37,9 +40,6 @@ var _ = Describe("Connection controller", func() {
 				By("Expecting Secret key to be valid")
 				Expect(ok).To(BeTrue())
 				Expect(string(dsn)).To(Equal(wantDsn))
-
-				By("Deleting Connection")
-				Expect(k8sClient.Delete(testCtx, conn)).To(Succeed())
 			},
 			Entry(
 				"Creating a Connection",
@@ -203,6 +203,9 @@ var _ = Describe("Connection controller", func() {
 			}
 			By("Creating Connection")
 			Expect(k8sClient.Create(testCtx, &conn)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
+			})
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
@@ -215,9 +218,6 @@ var _ = Describe("Connection controller", func() {
 			By("Expecting fields to have default values eventually")
 			Expect(*conn.Spec.SecretName).To(Equal(key.Name))
 			Expect(*conn.Spec.SecretTemplate.Key).To(Equal("dsn"))
-
-			By("Deleting Connection")
-			Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
 		})
 
 		It("Should add extended information to secret", func() {
@@ -258,6 +258,9 @@ var _ = Describe("Connection controller", func() {
 			}
 			By("Creating Connection")
 			Expect(k8sClient.Create(testCtx, &conn)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
+			})
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
@@ -287,9 +290,6 @@ var _ = Describe("Connection controller", func() {
 			database, ok := secret.Data["name"]
 			Expect(ok).To(BeTrue())
 			Expect(string(database)).To(Equal(testDatabase))
-
-			By("Deleting Connection")
-			Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
 		})
 	})
 })

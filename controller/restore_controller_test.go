@@ -28,6 +28,9 @@ var _ = Describe("Restore controller", func() {
 			}
 			backup := testBackupWithPVCStorage(backupKey)
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
@@ -60,6 +63,9 @@ var _ = Describe("Restore controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
+			})
 
 			var job batchv1.Job
 			By("Expecting to create a Job eventually")
@@ -89,12 +95,6 @@ var _ = Describe("Restore controller", func() {
 				}
 				return restore.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-
-			By("Deleting Restore")
-			Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
 		})
 
 		It("Should reconcile a Job with S3 storage", func() {
@@ -118,6 +118,9 @@ var _ = Describe("Restore controller", func() {
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
 			By("Creating Restore")
 			restore := &mariadbv1alpha1.Restore{
@@ -138,6 +141,9 @@ var _ = Describe("Restore controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
+			})
 
 			By("Expecting Restore to complete eventually")
 			Eventually(func() bool {
@@ -146,12 +152,6 @@ var _ = Describe("Restore controller", func() {
 				}
 				return restore.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-
-			By("Deleting Restore")
-			Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
 		})
 
 		It("Should reconcile a Job with Volume storage", func() {
@@ -166,6 +166,9 @@ var _ = Describe("Restore controller", func() {
 			}
 			backup := testBackupWithPVCStorage(backupKey)
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
@@ -198,6 +201,9 @@ var _ = Describe("Restore controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
+			})
 
 			By("Expecting Restore to complete eventually")
 			Eventually(func() bool {
@@ -206,12 +212,6 @@ var _ = Describe("Restore controller", func() {
 				}
 				return restore.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-
-			By("Deleting Restore")
-			Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
 		})
 	})
 })

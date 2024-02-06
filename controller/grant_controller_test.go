@@ -42,6 +42,9 @@ var _ = Describe("Grant controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+			})
 
 			By("Expecting User to be ready eventually")
 			Eventually(func() bool {
@@ -83,6 +86,9 @@ var _ = Describe("Grant controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &grant)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
+			})
 
 			By("Expecting Grant to be ready eventually")
 			Eventually(func() bool {
@@ -99,12 +105,6 @@ var _ = Describe("Grant controller", func() {
 				}
 				return controllerutil.ContainsFinalizer(&grant, grantFinalizerName)
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting User")
-			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
-
-			By("Deleting Grant")
-			Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
 		})
 	})
 
@@ -132,6 +132,9 @@ var _ = Describe("Grant controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
+			})
 
 			By("Expecting Database to be ready eventually")
 			Eventually(func() bool {
@@ -168,6 +171,9 @@ var _ = Describe("Grant controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+			})
 
 			By("Expecting User to be ready eventually")
 			Eventually(func() bool {
@@ -207,6 +213,9 @@ var _ = Describe("Grant controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &grant)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
+			})
 
 			By("Expecting Grant to be ready eventually")
 			Eventually(func() bool {
@@ -223,15 +232,6 @@ var _ = Describe("Grant controller", func() {
 				}
 				return controllerutil.ContainsFinalizer(&grant, grantFinalizerName)
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting Grant")
-			Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
-
-			By("Deleting User")
-			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
-
-			By("Deleting Database")
-			Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
 		})
 	})
 })

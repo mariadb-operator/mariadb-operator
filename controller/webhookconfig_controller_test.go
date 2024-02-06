@@ -51,6 +51,9 @@ var _ = Describe("WebhookConfig", func() {
 			}
 			By("Creating MutatingWebhookConfiguration")
 			Expect(k8sClient.Create(testCtx, &mutatingConfig)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &mutatingConfig)).To(Succeed())
+			})
 
 			By("Expecting to eventually inject CA bundle")
 			Eventually(func() bool {
@@ -85,22 +88,23 @@ var _ = Describe("WebhookConfig", func() {
 			caKeyPair, err := pki.KeyPairFromTLSSecret(&caSecret)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(caKeyPair).NotTo(BeNil())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &caSecret)).To(Succeed())
+			})
 
 			By("Expecting to get certificate KeyPair")
 			certKeyPair, err := pki.KeyPairFromTLSSecret(&certSecret)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(certKeyPair).NotTo(BeNil())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &certSecret)).To(Succeed())
+			})
 
 			By("Expecting certificate to be valid")
 			dnsNames := serviceDNSNames(testWebhookServiceKey)
 			valid, err := pki.ValidCert(caKeyPair.Cert, certKeyPair, dnsNames.CommonName, time.Now())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(valid).To(BeTrue())
-
-			By("Deleting resources")
-			Expect(k8sClient.Delete(testCtx, &mutatingConfig)).To(Succeed())
-			Expect(k8sClient.Delete(testCtx, &caSecret)).To(Succeed())
-			Expect(k8sClient.Delete(testCtx, &certSecret)).To(Succeed())
 
 			key = types.NamespacedName{
 				Name:      "test-validating",
@@ -173,6 +177,9 @@ var _ = Describe("WebhookConfig", func() {
 			}
 			By("Creating ValidatingWebhookConfiguration")
 			Expect(k8sClient.Create(testCtx, &validatingConfig)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &validatingConfig)).To(Succeed())
+			})
 
 			By("Expecting to eventually inject CA bundle")
 			Eventually(func() bool {
@@ -216,17 +223,6 @@ var _ = Describe("WebhookConfig", func() {
 			valid, err = pki.ValidCert(caKeyPair.Cert, certKeyPair, dnsNames.CommonName, time.Now())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(valid).To(BeTrue())
-
-			By("Deleting Secret")
-			Expect(k8sClient.Delete(testCtx, &validatingConfig)).To(Succeed())
-			Expect(k8sClient.Delete(testCtx, &caSecret)).To(Succeed())
-			Expect(k8sClient.Delete(testCtx, &certSecret)).To(Succeed())
-		})
-	})
-
-	Context("When creating a ValidatingWebhookConfiguration", func() {
-		It("Should reconcile", func() {
-
 		})
 	})
 })
