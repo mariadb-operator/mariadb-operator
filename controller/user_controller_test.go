@@ -39,6 +39,9 @@ var _ = Describe("User controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+			})
 
 			By("Expecting User to be ready eventually")
 			Eventually(func() bool {
@@ -55,9 +58,6 @@ var _ = Describe("User controller", func() {
 				}
 				return controllerutil.ContainsFinalizer(&user, userFinalizerName)
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting User")
-			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
 		})
 	})
 })

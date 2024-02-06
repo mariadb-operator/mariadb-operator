@@ -14,6 +14,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -50,6 +51,9 @@ var _ = Describe("MariaDB controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &testDefaultMariaDb)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&testDefaultMariaDb)
+			})
 
 			By("Expecting to eventually default")
 			Eventually(func() bool {
@@ -58,9 +62,6 @@ var _ = Describe("MariaDB controller", func() {
 				}
 				return testDefaultMariaDb.Spec.Image != ""
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting MariaDB")
-			deleteMariaDB(&testDefaultMariaDb)
 		})
 		It("Should reconcile", func() {
 			var testMariaDb mariadbv1alpha1.MariaDB
@@ -188,6 +189,9 @@ var _ = Describe("MariaDB controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+			})
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
@@ -229,6 +233,9 @@ var _ = Describe("MariaDB controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &bootstrapMariaDB)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&bootstrapMariaDB)
+			})
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -236,16 +243,10 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				return bootstrapMariaDB.IsReady()
-			}, 60*time.Second, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting MariaDB to have restored backup")
 			Expect(bootstrapMariaDB.HasRestoredBackup()).To(BeTrue())
-
-			By("Deleting MariaDB")
-			deleteMariaDB(&bootstrapMariaDB)
-
-			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
 		})
 	})
 
@@ -277,6 +278,9 @@ var _ = Describe("MariaDB controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &updateMariaDB)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&updateMariaDB)
+			})
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -311,9 +315,6 @@ var _ = Describe("MariaDB controller", func() {
 				}
 				return updateMariaDB.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting MariaDB")
-			deleteMariaDB(&updateMariaDB)
 		})
 	})
 })
@@ -421,6 +422,9 @@ var _ = Describe("MariaDB replication", func() {
 
 			By("Creating MariaDB with replication")
 			Expect(k8sClient.Create(testCtx, &testRplMariaDb)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&testRplMariaDb)
+			})
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -507,14 +511,18 @@ var _ = Describe("MariaDB replication", func() {
 				return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(testRplMariaDb.ObjectMeta, podIndex)
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Tearing down primary Pod")
-			primaryPodKey := types.NamespacedName{
-				Name:      statefulset.PodName(testRplMariaDb.ObjectMeta, 1),
-				Namespace: testRplMariaDb.Namespace,
-			}
-			var primaryPod corev1.Pod
-			Expect(k8sClient.Get(testCtx, primaryPodKey, &primaryPod)).To(Succeed())
-			Expect(k8sClient.Delete(testCtx, &primaryPod)).To(Succeed())
+			By("Tearing down primary Pod consistently")
+			Consistently(func() bool {
+				primaryPodKey := types.NamespacedName{
+					Name:      statefulset.PodName(testRplMariaDb.ObjectMeta, 1),
+					Namespace: testRplMariaDb.Namespace,
+				}
+				var primaryPod corev1.Pod
+				if err := k8sClient.Get(testCtx, primaryPodKey, &primaryPod); err != nil {
+					return apierrors.IsNotFound(err)
+				}
+				return k8sClient.Delete(testCtx, &primaryPod) == nil
+			}, 10*time.Second, testInterval).Should(BeTrue())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -552,9 +560,6 @@ var _ = Describe("MariaDB replication", func() {
 				}
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting MariaDB")
-			deleteMariaDB(&testRplMariaDb)
 		})
 	})
 })
@@ -678,6 +683,9 @@ var _ = Describe("MariaDB Galera", func() {
 
 			By("Creating MariaDB Galera")
 			Expect(k8sClient.Create(testCtx, &testMariaDbGalera)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&testMariaDbGalera)
+			})
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -776,7 +784,7 @@ var _ = Describe("MariaDB Galera", func() {
 				return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(testMariaDbGalera.ObjectMeta, podIndex)
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Tearing down Pods")
+			By("Tearing down all Pods consistently")
 			opts := []client.DeleteAllOfOption{
 				client.MatchingLabels{
 					"app.kubernetes.io/instance": testMariaDbGalera.Name,
@@ -834,9 +842,6 @@ var _ = Describe("MariaDB Galera", func() {
 				}
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting MariaDB")
-			deleteMariaDB(&testMariaDbGalera)
 		})
 	})
 })

@@ -20,6 +20,9 @@ var _ = Describe("Backup controller", func() {
 			}
 			backup := testBackupWithPVCStorage(backupKey)
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
 			var job batchv1.Job
 			By("Expecting to create a Job eventually")
@@ -49,9 +52,6 @@ var _ = Describe("Backup controller", func() {
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 		})
 
 		It("Should reconcile a CronJob with PVC storage", func() {
@@ -75,6 +75,9 @@ var _ = Describe("Backup controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, backupWithSchedule)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backupWithSchedule)).To(Succeed())
+			})
 
 			By("Expecting to create a CronJob eventually")
 			Eventually(func() bool {
@@ -84,9 +87,6 @@ var _ = Describe("Backup controller", func() {
 				}
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, backupWithSchedule)).To(Succeed())
 		})
 
 		It("Should reconcile a Job with S3 storage", func() {
@@ -97,6 +97,9 @@ var _ = Describe("Backup controller", func() {
 			}
 			backup := testBackupWithS3Storage(backupKey, "test-backup")
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
@@ -105,9 +108,6 @@ var _ = Describe("Backup controller", func() {
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 		})
 
 		It("Should reconcile a Job with Volume storage", func() {
@@ -118,6 +118,9 @@ var _ = Describe("Backup controller", func() {
 			}
 			backup := testBackupWithVolumeStorage(backupKey)
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
@@ -126,9 +129,6 @@ var _ = Describe("Backup controller", func() {
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting Backup")
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 		})
 	})
 })

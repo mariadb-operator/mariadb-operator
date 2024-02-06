@@ -35,6 +35,9 @@ var _ = Describe("Database controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
+			})
 
 			By("Expecting Database to be ready eventually")
 			Eventually(func() bool {
@@ -51,9 +54,6 @@ var _ = Describe("Database controller", func() {
 				}
 				return controllerutil.ContainsFinalizer(&database, databaseFinalizerName)
 			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting Database")
-			Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
 		})
 	})
 })

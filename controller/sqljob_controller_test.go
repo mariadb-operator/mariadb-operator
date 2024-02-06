@@ -125,6 +125,10 @@ var _ = Describe("SqlJob controller", func() {
 			By("Creating SqlJobs")
 			for _, sqlJob := range sqlJobs {
 				Expect(k8sClient.Create(testCtx, &sqlJob)).To(Succeed())
+				sqlJob := sqlJob
+				DeferCleanup(func() {
+					Expect(k8sClient.Delete(testCtx, &sqlJob)).To(Succeed())
+				})
 			}
 
 			By("Expecting SqlJobs to complete eventually")
@@ -142,11 +146,6 @@ var _ = Describe("SqlJob controller", func() {
 			for _, j := range sqlJobs {
 				var job batchv1.Job
 				Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&j), &job)).To(Succeed())
-			}
-
-			By("Deleting SqlJobs")
-			for _, sqlJob := range sqlJobs {
-				Expect(k8sClient.Delete(testCtx, &sqlJob)).To(Succeed())
 			}
 		})
 	})
@@ -189,15 +188,15 @@ var _ = Describe("SqlJob controller", func() {
 
 			By("Creating SqlJob")
 			Expect(k8sClient.Create(testCtx, &scheduledSqlJob)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, &scheduledSqlJob)).To(Succeed())
+			})
 
 			By("Expecting to create a CronJob eventually")
 			Eventually(func() bool {
 				var cronJob batchv1.CronJob
 				return k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob) != nil
 			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Deleting SqlJob")
-			Expect(k8sClient.Delete(testCtx, &scheduledSqlJob)).To(Succeed())
 		})
 	})
 })
