@@ -14,7 +14,7 @@ TEST_ENV ?= RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) RELATED_IMAGE_MAXSCAL
 
 .PHONY: test
 test: envtest ginkgo ## Run tests.
-	 $(TEST_ENV) $(GINKGO) -v -p --timeout 20m ./api/... ./controller/... ./pkg/...
+	 $(TEST_ENV) $(GINKGO) -v -p --timeout 20m ./pkg/... ./api/... ./controller/... 
 
 .PHONY: cover
 cover: test ## Run tests and generate coverage.

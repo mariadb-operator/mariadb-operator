@@ -84,7 +84,7 @@ type Metrics struct {
 	// Username is the username of the monitoring user used by the exporter.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Username string `json:"username,omitempty" webhook:"inmutable"`
+	Username string `json:"username,omitempty" webhook:"inmutableinit"`
 	// PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -142,7 +142,7 @@ type MariaDBSpec struct {
 	// RootEmptyPassword indicates if the root password should be empty.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	RootEmptyPassword *bool `json:"rootEmptyPassword,omitempty" webhook:"inmutable"`
+	RootEmptyPassword *bool `json:"rootEmptyPassword,omitempty" webhook:"inmutableinit"`
 	// Database is the database to be created on bootstrap.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -202,7 +202,7 @@ type MariaDBSpec struct {
 	// EphemeralStorage indicates whether to use ephemeral storage for the instances.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	EphemeralStorage *bool `json:"ephemeralStorage,omitempty" webhook:"inmutable"`
+	EphemeralStorage *bool `json:"ephemeralStorage,omitempty" webhook:"inmutableinit"`
 	// VolumeClaimTemplate provides a template to define the Pod PVCs.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

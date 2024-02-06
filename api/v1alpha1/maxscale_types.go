@@ -424,7 +424,7 @@ type MaxScaleBaseSpec struct {
 	// Auth defines the credentials required for MaxScale to connect to MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Auth MaxScaleAuth `json:"auth,omitempty" webhook:"inmutableinit"`
+	Auth MaxScaleAuth `json:"auth,omitempty"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
