@@ -41,6 +41,7 @@ spec:
 
   monitor:
     interval: 2s
+    cooperativeMonitoring: majority_of_all
     params:
       disable_master_failback: "false"
       available_when_donor: "false"
@@ -48,6 +49,7 @@ spec:
 
   admin:
     port: 8989
+    guiEnabled: true
 
   config:
     sync:

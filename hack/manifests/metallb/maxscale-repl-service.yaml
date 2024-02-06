@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: maxscale-0-lb
+  name: maxscale-repl-0-lb
   namespace: default
   annotations:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.210
@@ -24,15 +24,15 @@ spec:
     protocol: TCP
     targetPort: 3308
   selector:
-    app.kubernetes.io/instance: maxscale
+    app.kubernetes.io/instance: maxscale-repl
     app.kubernetes.io/name: maxscale
-    statefulset.kubernetes.io/pod-name: maxscale-0  
+    statefulset.kubernetes.io/pod-name: maxscale-repl-0  
   type: LoadBalancer
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: maxscale-1-lb
+  name: maxscale-repl-1-lb
   namespace: default
   annotations:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.211
@@ -55,15 +55,15 @@ spec:
     protocol: TCP
     targetPort: 3308
   selector:
-    app.kubernetes.io/instance: maxscale
+    app.kubernetes.io/instance: maxscale-repl
     app.kubernetes.io/name: maxscale
-    statefulset.kubernetes.io/pod-name: maxscale-1 
+    statefulset.kubernetes.io/pod-name: maxscale-repl-1 
   type: LoadBalancer
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: maxscale-2-lb
+  name: maxscale-repl-2-lb
   namespace: default
   annotations:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.212
@@ -86,15 +86,15 @@ spec:
     protocol: TCP
     targetPort: 3308
   selector:
-    app.kubernetes.io/instance: maxscale
+    app.kubernetes.io/instance: maxscale-repl
     app.kubernetes.io/name: maxscale
-    statefulset.kubernetes.io/pod-name: maxscale-2
+    statefulset.kubernetes.io/pod-name: maxscale-repl-2
   type: LoadBalancer
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: maxscale-3-lb
+  name: maxscale-repl-3-lb
   namespace: default
   annotations:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.213
@@ -117,9 +117,9 @@ spec:
     protocol: TCP
     targetPort: 3308
   selector:
-    app.kubernetes.io/instance: maxscale
+    app.kubernetes.io/instance: maxscale-repl
     app.kubernetes.io/name: maxscale
-    statefulset.kubernetes.io/pod-name: maxscale-3
+    statefulset.kubernetes.io/pod-name: maxscale-repl-3
   type: LoadBalancer
 ---
 apiVersion: v1

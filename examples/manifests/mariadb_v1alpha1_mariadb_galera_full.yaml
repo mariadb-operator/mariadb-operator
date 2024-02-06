@@ -18,6 +18,19 @@ spec:
 
   replicas: 3
 
+  # point to an existing MaxScale instance. Doing this will delegate tasks such as primary failover to MaxScale.
+  # maxScaleRef:
+  #   name: maxscale
+
+  # provision a MaxScale instance and set 'spec.maxScaleRef' automatically.
+  maxScale:
+    enabled: true
+    
+    kubernetesService:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.229
+
   galera:
     enabled: true
     primary:

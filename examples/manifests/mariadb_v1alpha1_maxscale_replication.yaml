@@ -1,7 +1,7 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MaxScale
 metadata:
-  name: maxscale
+  name: maxscale-repl
 spec:
   replicas: 3
 
@@ -49,6 +49,7 @@ spec:
 
   admin:
     port: 8989
+    guiEnabled: true
 
   config:
     sync:

@@ -77,13 +77,13 @@ host-minio: ## Add minio hosts to /etc/hosts.
 	@./hack/add_host.sh 200 minio
 	@./hack/add_host.sh 201 minio-console
 
-.PHONY: host-maxscale
-host-maxscale: ## Add maxscale hosts to /etc/hosts.
-	@./hack/add_host.sh 210 maxscale-0.maxscale-internal.default.svc.cluster.local
-	@./hack/add_host.sh 211 maxscale-1.maxscale-internal.default.svc.cluster.local
-	@./hack/add_host.sh 212 maxscale-2.maxscale-internal.default.svc.cluster.local
-	@./hack/add_host.sh 213 maxscale-3.maxscale-internal.default.svc.cluster.local
-	@./hack/add_host.sh 214 maxscale.default.svc.cluster.local
+.PHONY: host-maxscale-repl
+host-maxscale-repl: ## Add maxscale-repl hosts to /etc/hosts.
+	@./hack/add_host.sh 210 maxscale-repl-0.maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 211 maxscale-repl-1.maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 212 maxscale-repl-2.maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 213 maxscale-repl-3.maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 214 maxscale-repl.default.svc.cluster.local
 	@./hack/add_host.sh 215 mariadb-repl-maxscale-0.mariadb-repl-maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 216 mariadb-repl-maxscale-1.mariadb-repl-maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 217 mariadb-repl-maxscale-2.mariadb-repl-maxscale-internal.default.svc.cluster.local
@@ -105,7 +105,7 @@ host-maxscale-galera: ## Add maxscale-galera hosts to /etc/hosts.
 
 
 .PHONY: host
-host: host-mariadb host-mariadb-repl host-mariadb-galera host-monitoring host-minio host-maxscale host-maxscale-galera ## Configure hosts for local development.
+host: host-mariadb host-mariadb-repl host-mariadb-galera host-monitoring host-minio host-maxscale-repl host-maxscale-galera ## Configure hosts for local development.
 
 .PHONY: host-test
 host-test: host host-mdb-test host-mxs-repl-test host-mxs-galera-test ## Configure hosts for local tests.

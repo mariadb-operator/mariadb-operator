@@ -1,20 +1,20 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MaxScale
 metadata:
-  name: maxscale
+  name: maxscale-galera
 spec:
   replicas: 3
 
   servers:
     - name: mariadb-0
-      address: 172.18.0.110
+      address: 172.18.0.140
       port: 3306
       protocol: MariaDBBackend
       maintenance: false
     - name: mariadb-1
-      address: 172.18.0.111
+      address: 172.18.0.141
     - name: mariadb-2
-      address: 172.18.0.112
+      address: 172.18.0.142
 
   services:
     - name: rw-router
@@ -48,13 +48,15 @@ spec:
         port: 3308
 
   monitor:
-    module: mariadbmon
+    name: mariadb-monitor
+    module: galeramon
     interval: 2s
     cooperativeMonitoring: majority_of_all
     params:
-      auto_failover: "true"
-      auto_rejoin: "true"
-      switchover_on_low_disk_space: "true"   
+      disable_master_failback: "false"
+      available_when_donor: "false"
+      disable_master_role_setting: "false"   
+    suspend: false
 
   admin:
     port: 8989
@@ -90,6 +92,6 @@ spec:
   kubernetesService:
     type: LoadBalancer
     annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.224
 
   requeueInterval: 10s
