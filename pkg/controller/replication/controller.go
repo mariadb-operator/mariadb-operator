@@ -110,7 +110,14 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 		}
 		return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
 	}
-	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mdb, health.EndpointPolicyAll)
+	healthy, err := health.IsStatefulSetHealthy(
+		ctx,
+		r.Client,
+		client.ObjectKeyFromObject(mdb),
+		health.WithDesiredReplicas(mdb.Spec.Replicas),
+		health.WithPort(mdb.Spec.Port),
+		health.WithEndpointPolicy(health.EndpointPolicyAll),
+	)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
 	}

@@ -324,19 +324,19 @@ func (r *MariaDBReconciler) reconcileGalera(ctx context.Context, mariadb *mariad
 	return ctrl.Result{}, r.GaleraReconciler.Reconcile(ctx, mariadb)
 }
 
-func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.Spec.BootstrapFrom == nil {
+func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mdb.Spec.BootstrapFrom == nil {
 		return ctrl.Result{}, nil
 	}
-	if mariadb.HasRestoredBackup() {
+	if mdb.HasRestoredBackup() {
 		return ctrl.Result{}, nil
 	}
-	if mariadb.IsRestoringBackup() {
+	if mdb.IsRestoringBackup() {
 		var existingRestore mariadbv1alpha1.Restore
-		if err := r.Get(ctx, mariadb.RestoreKey(), &existingRestore); err != nil {
+		if err := r.Get(ctx, mdb.RestoreKey(), &existingRestore); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			if existingRestore.IsComplete() {
 				condition.SetRestoredBackup(status)
 			} else {
@@ -346,7 +346,14 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 		})
 	}
 
-	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mariadb, health.EndpointPolicyAll)
+	healthy, err := health.IsStatefulSetHealthy(
+		ctx,
+		r.Client,
+		client.ObjectKeyFromObject(mdb),
+		health.WithDesiredReplicas(mdb.Spec.Replicas),
+		health.WithPort(mdb.Spec.Port),
+		health.WithEndpointPolicy(health.EndpointPolicyAll),
+	)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
 	}
@@ -355,18 +362,18 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mariadb *maria
 	}
 
 	var existingRestore mariadbv1alpha1.Restore
-	if err := r.Get(ctx, mariadb.RestoreKey(), &existingRestore); err == nil {
+	if err := r.Get(ctx, mdb.RestoreKey(), &existingRestore); err == nil {
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+	if err := r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetRestoringBackup(status)
 		return nil
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
 	}
 
-	restore, err := r.Builder.BuildRestore(mariadb, mariadb.RestoreKey())
+	restore, err := r.Builder.BuildRestore(mdb, mdb.RestoreKey())
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building restore: %v", err)
 	}

@@ -37,7 +37,7 @@ var _ = Describe("Connection webhook", func() {
 							RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 						},
 					},
-					MariaDBRef: MariaDBRef{
+					MariaDBRef: &MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
 							Name: "mariadb-webhook",
 						},

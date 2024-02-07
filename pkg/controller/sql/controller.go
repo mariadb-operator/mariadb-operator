@@ -14,6 +14,7 @@ import (
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	clientpkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -128,12 +129,19 @@ func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource) (c
 }
 
 func waitForMariaDB(ctx context.Context, client client.Client, resource Resource,
-	mariadb *mariadbv1alpha1.MariaDB) error {
+	mdb *mariadbv1alpha1.MariaDB) error {
 	if !resource.MariaDBRef().WaitForIt {
 		return nil
 	}
 	var mariadbErr *multierror.Error
-	healthy, err := health.IsMariaDBHealthy(ctx, client, mariadb, health.EndpointPolicyAll)
+	healthy, err := health.IsStatefulSetHealthy(
+		ctx,
+		client,
+		clientpkg.ObjectKeyFromObject(mdb),
+		health.WithDesiredReplicas(mdb.Spec.Replicas),
+		health.WithPort(mdb.Spec.Port),
+		health.WithEndpointPolicy(health.EndpointPolicyAll),
+	)
 	if err != nil {
 		mariadbErr = multierror.Append(mariadbErr, err)
 	}
