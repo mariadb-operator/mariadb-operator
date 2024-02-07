@@ -6,6 +6,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +14,7 @@ import (
 )
 
 var _ = Describe("MaxScale types", func() {
+	format.MaxLength = 8000
 	objMeta := metav1.ObjectMeta{
 		Name:      "maxscale-obj",
 		Namespace: "maxscale-obj",
@@ -20,7 +22,7 @@ var _ = Describe("MaxScale types", func() {
 	env := &environment.Environment{
 		RelatedMariadbImage: "mariadb/maxscale:23.08",
 	}
-	Context("When creating a MariaDB object", func() {
+	Context("When creating a MaxScale object", func() {
 		DescribeTable(
 			"Should default",
 			func(mxs, expected *MaxScale, env *environment.Environment) {
@@ -110,20 +112,23 @@ var _ = Describe("MaxScale types", func() {
 									},
 									Key: "password",
 								},
-								ServerUsername: "maxscale-obj-server",
+								ClientMaxConnections: 30,
+								ServerUsername:       "maxscale-obj-server",
 								ServerPasswordSecretKeyRef: corev1.SecretKeySelector{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "maxscale-obj-server",
 									},
 									Key: "password",
 								},
-								MonitorUsername: "maxscale-obj-monitor",
+								ServerMaxConnections: 30,
+								MonitorUsername:      "maxscale-obj-monitor",
 								MonitorPasswordSecretKeyRef: corev1.SecretKeySelector{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "maxscale-obj-monitor",
 									},
 									Key: "password",
 								},
+								MonitorMaxConnections: 30,
 							},
 						},
 						Servers: []MaxScaleServer{
@@ -281,27 +286,31 @@ var _ = Describe("MaxScale types", func() {
 									},
 									Key: "password",
 								},
-								ServerUsername: "maxscale-obj-server",
+								ClientMaxConnections: 90,
+								ServerUsername:       "maxscale-obj-server",
 								ServerPasswordSecretKeyRef: corev1.SecretKeySelector{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "maxscale-obj-server",
 									},
 									Key: "password",
 								},
-								MonitorUsername: "maxscale-obj-monitor",
+								ServerMaxConnections: 90,
+								MonitorUsername:      "maxscale-obj-monitor",
 								MonitorPasswordSecretKeyRef: corev1.SecretKeySelector{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "maxscale-obj-monitor",
 									},
 									Key: "password",
 								},
-								SyncUsername: ptr.To("maxscale-obj-sync"),
+								MonitorMaxConnections: 90,
+								SyncUsername:          ptr.To("maxscale-obj-sync"),
 								SyncPasswordSecretKeyRef: ptr.To(corev1.SecretKeySelector{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "maxscale-obj-sync",
 									},
 									Key: "password",
 								}),
+								SyncMaxConnections: ptr.To(int32(90)),
 							},
 						},
 						Servers: []MaxScaleServer{
