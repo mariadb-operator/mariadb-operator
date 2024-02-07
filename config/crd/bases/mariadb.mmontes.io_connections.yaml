@@ -27,9 +27,6 @@ spec:
     - jsonPath: .spec.secretName
       name: Secret
       type: string
-    - jsonPath: .spec.mariaDbRef.name
-      name: MariaDB
-      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
