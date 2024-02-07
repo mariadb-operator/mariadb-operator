@@ -465,6 +465,10 @@ type MaxScaleBaseSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Auth MaxScaleAuth `json:"auth,omitempty"`
+	// Connection provides a template to define the Connection for MaxScale.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Connection *ConnectionTemplate `json:"connection,omitempty"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
@@ -597,7 +601,7 @@ func (s *MaxScaleStatus) GetPrimaryServer() *string {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Primary Server",type="string",JSONPath=".status.primaryServer"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +operator-sdk:csv:customresourcedefinitions:resources={{MaxScale,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{Event,v1},{Service,v1},{Secret,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{MaxScale,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{Connection,v1alpha1},{Event,v1},{Service,v1},{Secret,v1},{ServiceAccount,v1},{StatefulSet,v1},{PodDisruptionBudget,v1}}
 
 // MaxScale is the Schema for the maxscales API. It is used to define MaxScale clusters.
 type MaxScale struct {

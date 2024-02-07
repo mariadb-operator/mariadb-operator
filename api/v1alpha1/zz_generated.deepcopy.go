@@ -1358,6 +1358,11 @@ func (in *MaxScaleBaseSpec) DeepCopyInto(out *MaxScaleBaseSpec) {
 	in.Admin.DeepCopyInto(&out.Admin)
 	in.Config.DeepCopyInto(&out.Config)
 	in.Auth.DeepCopyInto(&out.Auth)
+	if in.Connection != nil {
+		in, out := &in.Connection, &out.Connection
+		*out = new(ConnectionTemplate)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.PodDisruptionBudget != nil {
 		in, out := &in.PodDisruptionBudget, &out.PodDisruptionBudget
 		*out = new(PodDisruptionBudget)

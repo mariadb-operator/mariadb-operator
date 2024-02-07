@@ -13,6 +13,7 @@ import (
 
 type ConnectionOpts struct {
 	MariaDB              *mariadbv1alpha1.MariaDB
+	MaxScale             *mariadbv1alpha1.MaxScale
 	Key                  types.NamespacedName
 	Username             string
 	PasswordSecretKeyRef corev1.SecretKeySelector
@@ -28,16 +29,23 @@ func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*ma
 	conn := &mariadbv1alpha1.Connection{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.ConnectionSpec{
-			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
-					Name: opts.MariaDB.Name,
-				},
-				WaitForIt: true,
-			},
+
 			Username:             opts.Username,
 			PasswordSecretKeyRef: opts.PasswordSecretKeyRef,
 			Database:             opts.Database,
 		},
+	}
+	if opts.MariaDB != nil {
+		conn.Spec.MariaDBRef = &mariadbv1alpha1.MariaDBRef{
+			ObjectReference: corev1.ObjectReference{
+				Name: opts.MariaDB.Name,
+			},
+			WaitForIt: true,
+		}
+	} else if opts.MaxScale != nil {
+		conn.Spec.MaxScaleRef = &corev1.ObjectReference{
+			Name: opts.MaxScale.Name,
+		}
 	}
 	if opts.Template != nil {
 		conn.Spec.ConnectionTemplate = *opts.Template

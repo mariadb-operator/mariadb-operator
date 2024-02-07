@@ -118,12 +118,12 @@ _Appears in:_
 | `healthCheck` _[HealthCheck](#healthcheck)_ | HealthCheck to be used in the Connection. |
 | `params` _object (keys:string, values:string)_ | Params to be used in the Connection. |
 | `serviceName` _string_ | ServiceName to be used in the Connection. |
+| `port` _integer_ | Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener. |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to the MariaDB to connect to. Either MariaDBRef or MaxScaleRef must be provided. |
 | `maxScaleRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectreference-v1-core)_ | MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided. |
 | `username` _string_ | Username to use for configuring the Connection. |
 | `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password to use for configuring the Connection. |
 | `host` _string_ | Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host. |
-| `port` _integer_ | Database to use when configuring the Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener. |
 | `database` _string_ | Database to use when configuring the Connection. |
 
 
@@ -144,6 +144,7 @@ _Appears in:_
 | `healthCheck` _[HealthCheck](#healthcheck)_ | HealthCheck to be used in the Connection. |
 | `params` _object (keys:string, values:string)_ | Params to be used in the Connection. |
 | `serviceName` _string_ | ServiceName to be used in the Connection. |
+| `port` _integer_ | Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener. |
 
 
 #### Container
@@ -530,7 +531,7 @@ _Appears in:_
 
 #### MaxScaleBaseSpec
 
-_Underlying type:_ _[struct{ContainerTemplate "json:\",inline\""; PodTemplate "json:\",inline\""; Image string "json:\"image,omitempty\""; ImagePullPolicy k8s.io/api/core/v1.PullPolicy "json:\"imagePullPolicy,omitempty\""; ImagePullSecrets []k8s.io/api/core/v1.LocalObjectReference "json:\"imagePullSecrets,omitempty\" webhook:\"inmutable\""; Services []MaxScaleService "json:\"services,omitempty\""; Monitor MaxScaleMonitor "json:\"monitor,omitempty\""; Admin MaxScaleAdmin "json:\"admin,omitempty\""; Config MaxScaleConfig "json:\"config,omitempty\""; Auth MaxScaleAuth "json:\"auth,omitempty\""; Replicas int32 "json:\"replicas,omitempty\""; PodDisruptionBudget *PodDisruptionBudget "json:\"podDisruptionBudget,omitempty\""; UpdateStrategy *k8s.io/api/apps/v1.StatefulSetUpdateStrategy "json:\"updateStrategy,omitempty\""; KubernetesService *ServiceTemplate "json:\"kubernetesService,omitempty\""; RequeueInterval *k8s.io/apimachinery/pkg/apis/meta/v1.Duration "json:\"requeueInterval,omitempty\""}](#struct{containertemplate-"json:\",inline\"";-podtemplate-"json:\",inline\"";-image-string-"json:\"image,omitempty\"";-imagepullpolicy-k8sioapicorev1pullpolicy-"json:\"imagepullpolicy,omitempty\"";-imagepullsecrets-[]k8sioapicorev1localobjectreference-"json:\"imagepullsecrets,omitempty\"-webhook:\"inmutable\"";-services-[]maxscaleservice-"json:\"services,omitempty\"";-monitor-maxscalemonitor-"json:\"monitor,omitempty\"";-admin-maxscaleadmin-"json:\"admin,omitempty\"";-config-maxscaleconfig-"json:\"config,omitempty\"";-auth-maxscaleauth-"json:\"auth,omitempty\"";-replicas-int32-"json:\"replicas,omitempty\"";-poddisruptionbudget-*poddisruptionbudget-"json:\"poddisruptionbudget,omitempty\"";-updatestrategy-*k8sioapiappsv1statefulsetupdatestrategy-"json:\"updatestrategy,omitempty\"";-kubernetesservice-*servicetemplate-"json:\"kubernetesservice,omitempty\"";-requeueinterval-*k8sioapimachinerypkgapismetav1duration-"json:\"requeueinterval,omitempty\""})_
+_Underlying type:_ _[struct{ContainerTemplate "json:\",inline\""; PodTemplate "json:\",inline\""; Image string "json:\"image,omitempty\""; ImagePullPolicy k8s.io/api/core/v1.PullPolicy "json:\"imagePullPolicy,omitempty\""; ImagePullSecrets []k8s.io/api/core/v1.LocalObjectReference "json:\"imagePullSecrets,omitempty\" webhook:\"inmutable\""; Services []MaxScaleService "json:\"services,omitempty\""; Monitor MaxScaleMonitor "json:\"monitor,omitempty\""; Admin MaxScaleAdmin "json:\"admin,omitempty\""; Config MaxScaleConfig "json:\"config,omitempty\""; Auth MaxScaleAuth "json:\"auth,omitempty\""; Connection *ConnectionTemplate "json:\"connection,omitempty\""; Replicas int32 "json:\"replicas,omitempty\""; PodDisruptionBudget *PodDisruptionBudget "json:\"podDisruptionBudget,omitempty\""; UpdateStrategy *k8s.io/api/apps/v1.StatefulSetUpdateStrategy "json:\"updateStrategy,omitempty\""; KubernetesService *ServiceTemplate "json:\"kubernetesService,omitempty\""; RequeueInterval *k8s.io/apimachinery/pkg/apis/meta/v1.Duration "json:\"requeueInterval,omitempty\""}](#struct{containertemplate-"json:\",inline\"";-podtemplate-"json:\",inline\"";-image-string-"json:\"image,omitempty\"";-imagepullpolicy-k8sioapicorev1pullpolicy-"json:\"imagepullpolicy,omitempty\"";-imagepullsecrets-[]k8sioapicorev1localobjectreference-"json:\"imagepullsecrets,omitempty\"-webhook:\"inmutable\"";-services-[]maxscaleservice-"json:\"services,omitempty\"";-monitor-maxscalemonitor-"json:\"monitor,omitempty\"";-admin-maxscaleadmin-"json:\"admin,omitempty\"";-config-maxscaleconfig-"json:\"config,omitempty\"";-auth-maxscaleauth-"json:\"auth,omitempty\"";-connection-*connectiontemplate-"json:\"connection,omitempty\"";-replicas-int32-"json:\"replicas,omitempty\"";-poddisruptionbudget-*poddisruptionbudget-"json:\"poddisruptionbudget,omitempty\"";-updatestrategy-*k8sioapiappsv1statefulsetupdatestrategy-"json:\"updatestrategy,omitempty\"";-kubernetesservice-*servicetemplate-"json:\"kubernetesservice,omitempty\"";-requeueinterval-*k8sioapimachinerypkgapismetav1duration-"json:\"requeueinterval,omitempty\""})_
 
 MaxScaleBaseSpec defines the base specification for MaxScale.
 
