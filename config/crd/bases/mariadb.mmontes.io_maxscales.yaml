@@ -1080,8 +1080,9 @@ spec:
                   params:
                     additionalProperties:
                       type: string
-                    description: Params is a key value pair of parameters to be used
-                      in the MaxScale static configuration file.
+                    description: 'Params is a key value pair of parameters to be used
+                      in the MaxScale static configuration file. Any parameter supported
+                      by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#global-settings.'
                     type: object
                   sync:
                     description: Sync defines how to replicate configuration across
@@ -2565,7 +2566,11 @@ spec:
                   params:
                     additionalProperties:
                       type: string
-                    description: Params defines extra parameters to pass to the monitor.
+                    description: 'Params defines extra parameters to pass to the monitor.
+                      Any parameter supported by MaxScale may be specified here. See
+                      reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/.
+                      Monitor specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters.
+                      https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.'
                     type: object
                   suspend:
                     description: Suspend indicates whether the current resource should
@@ -3143,8 +3148,9 @@ spec:
                     params:
                       additionalProperties:
                         type: string
-                      description: Params defines extra parameters to pass to the
-                        server.
+                      description: 'Params defines extra parameters to pass to the
+                        server. Any parameter supported by MaxScale may be specified
+                        here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#server_1.'
                       type: object
                     port:
                       description: Port is the network port of the MariaDB server.
@@ -3183,8 +3189,9 @@ spec:
                         params:
                           additionalProperties:
                             type: string
-                          description: Params defines extra parameters to pass to
-                            the listener.
+                          description: 'Params defines extra parameters to pass to
+                            the listener. Any parameter supported by MaxScale may
+                            be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1.'
                           type: object
                         port:
                           description: Port is the network port where the MaxScale
@@ -3208,8 +3215,11 @@ spec:
                     params:
                       additionalProperties:
                         type: string
-                      description: Params defines extra parameters to pass to the
-                        monitor.
+                      description: 'Params defines extra parameters to pass to the
+                        monitor. Any parameter supported by MaxScale may be specified
+                        here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
+                        Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.
+                        https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
                       type: object
                     router:
                       description: Router is the type of router to use.
