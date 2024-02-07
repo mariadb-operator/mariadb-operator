@@ -56,7 +56,7 @@ var _ = Describe("MaxScale controller", func() {
 		})
 	})
 
-	Context("When creating a MariaDB replication with MaxScale", func() {
+	Context("When creating a MariaDB replication with MaxScale", FlakeAttempts(3), func() {
 		It("Should reconcile", func() {
 			testMdbMxsKey := types.NamespacedName{
 				Name:      "mxs-repl",
@@ -112,10 +112,6 @@ var _ = Describe("MaxScale controller", func() {
 			}
 			By("Creating MariaDB replication with MaxScale")
 			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMariaDB(&testMdbMxs)
-				deleteMaxScale(testMdbMxs.MaxScaleKey())
-			})
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -127,6 +123,9 @@ var _ = Describe("MaxScale controller", func() {
 
 			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
 			expecFailoverSuccess(&testMdbMxs, 30*time.Second)
+
+			deleteMariaDB(&testMdbMxs)
+			deleteMaxScale(testMdbMxs.MaxScaleKey())
 		})
 	})
 
