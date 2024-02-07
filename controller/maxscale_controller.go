@@ -56,7 +56,7 @@ type MaxScaleReconciler struct {
 	SuspendEnabled bool
 
 	RequeueInterval time.Duration
-	LogRequests     bool
+	LogMaxScale     bool
 }
 
 type requestMaxScale struct {
@@ -811,19 +811,20 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 		mxsclient.Data[mxsclient.ServerAttributes],
 	](currentIdx, previousIdx)
 
-	logger := log.FromContext(ctx)
-	logger.V(1).Info(
-		"Server diff",
-		"added", diff.Added,
-		"deleted", diff.Deleted,
-		"rest", diff.Rest,
-	)
+	if r.LogMaxScale {
+		log.FromContext(ctx).V(1).Info(
+			"Server diff",
+			"added", diff.Added,
+			"deleted", diff.Deleted,
+			"rest", diff.Rest,
+		)
+	}
 	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
 
 	for _, id := range diff.Added {
 		srv, err := ds.Get(currentIdx, id)
 		if err != nil {
-			logger.Error(err, "error getting server to add", "server", id)
+			log.FromContext(ctx).Error(err, "error getting server to add", "server", id)
 			continue
 		}
 		if err := mxsApi.createServer(ctx, &srv); err != nil {
@@ -837,7 +838,7 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 	for _, id := range diff.Deleted {
 		srv, err := ds.Get(previousIdx, id)
 		if err != nil {
-			logger.Error(err, "error getting server to delete", "server", id)
+			log.FromContext(ctx).Error(err, "error getting server to delete", "server", id)
 			continue
 		}
 		if err := mxsApi.deleteServer(ctx, srv.ID); err != nil {
@@ -848,7 +849,7 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 	for _, id := range diff.Rest {
 		srv, err := ds.Get(currentIdx, id)
 		if err != nil {
-			logger.Error(err, "error getting server to patch", "server", id)
+			log.FromContext(ctx).Error(err, "error getting server to patch", "server", id)
 			continue
 		}
 		if err := mxsApi.patchServer(ctx, &srv); err != nil {
@@ -922,13 +923,14 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 		mxsclient.Data[mxsclient.ServiceAttributes],
 	](currentIdx, previousIdx)
 
-	logger := log.FromContext(ctx)
-	logger.V(1).Info(
-		"Service diff",
-		"added", diff.Added,
-		"deleted", diff.Deleted,
-		"rest", diff.Rest,
-	)
+	if r.LogMaxScale {
+		log.FromContext(ctx).V(1).Info(
+			"Service diff",
+			"added", diff.Added,
+			"deleted", diff.Deleted,
+			"rest", diff.Rest,
+		)
+	}
 	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
 
 	rels, err := mxsApi.serverRelationships(ctx)
@@ -939,7 +941,7 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 	for _, id := range diff.Added {
 		svc, err := ds.Get(currentIdx, id)
 		if err != nil {
-			logger.Error(err, "error getting service to add", "service", id)
+			log.FromContext(ctx).Error(err, "error getting service to add", "service", id)
 			continue
 		}
 		if err := mxsApi.createService(ctx, &svc, rels); err != nil {
@@ -950,7 +952,7 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 	for _, id := range diff.Deleted {
 		svc, err := ds.Get(previousIdx, id)
 		if err != nil {
-			logger.Error(err, "error getting service to delete", "service", id)
+			log.FromContext(ctx).Error(err, "error getting service to delete", "service", id)
 			continue
 		}
 		if err := mxsApi.deleteService(ctx, svc.ID); err != nil {
@@ -961,7 +963,7 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 	for _, id := range diff.Rest {
 		svc, err := ds.Get(currentIdx, id)
 		if err != nil {
-			logger.Error(err, "error getting service to patch", "service", id)
+			log.FromContext(ctx).Error(err, "error getting service to patch", "service", id)
 			continue
 		}
 		if err := mxsApi.patchService(ctx, &svc, rels); err != nil {
@@ -1002,24 +1004,25 @@ func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *reques
 		mxsclient.Data[mxsclient.ListenerAttributes],
 	](currentIdx, previousIdx)
 
-	logger := log.FromContext(ctx)
-	logger.V(1).Info(
-		"Listener diff",
-		"added", diff.Added,
-		"deleted", diff.Deleted,
-		"rest", diff.Rest,
-	)
+	if r.LogMaxScale {
+		log.FromContext(ctx).V(1).Info(
+			"Listener diff",
+			"added", diff.Added,
+			"deleted", diff.Deleted,
+			"rest", diff.Rest,
+		)
+	}
 	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
 
 	for _, id := range diff.Added {
 		listener, err := ds.Get(currentIdx, id)
 		if err != nil {
-			logger.Error(err, "error getting listener to add", "listener", id)
+			log.FromContext(ctx).Error(err, "error getting listener to add", "listener", id)
 			continue
 		}
 		svc, err := req.mxs.ServiceForListener(id)
 		if err != nil {
-			logger.Error(err, "error getting service for listener", "listener", id)
+			log.FromContext(ctx).Error(err, "error getting service for listener", "listener", id)
 			continue
 		}
 		if err := mxsApi.createListener(ctx, &listener, mxsApi.serviceRelationships(svc)); err != nil {
@@ -1030,7 +1033,7 @@ func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *reques
 	for _, id := range diff.Deleted {
 		listener, err := ds.Get(previousIdx, id)
 		if err != nil {
-			logger.Error(err, "error getting listener to delete", "listener", id)
+			log.FromContext(ctx).Error(err, "error getting listener to delete", "listener", id)
 			continue
 		}
 		if err := mxsApi.deleteListener(ctx, listener.ID); err != nil {
@@ -1041,12 +1044,12 @@ func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *reques
 	for _, id := range diff.Rest {
 		listener, err := ds.Get(currentIdx, id)
 		if err != nil {
-			logger.Error(err, "error getting listener to patch", "listener", id)
+			log.FromContext(ctx).Error(err, "error getting listener to patch", "listener", id)
 			continue
 		}
 		svc, err := req.mxs.ServiceForListener(id)
 		if err != nil {
-			logger.Error(err, "error getting service for listener", "listener", id)
+			log.FromContext(ctx).Error(err, "error getting service for listener", "listener", id)
 			continue
 		}
 		if err := mxsApi.patchListener(ctx, &listener, mxsApi.serviceRelationships(svc)); err != nil {

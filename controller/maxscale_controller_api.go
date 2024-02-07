@@ -37,8 +37,6 @@ func newMaxScaleAPI(mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client, ref
 // MaxScale API - User
 
 func (m *maxScaleAPI) createAdminUser(ctx context.Context) error {
-	apiLogger(ctx).V(1).Info("Creating admin user", "user", m.mxs.Spec.Auth.AdminUsername)
-
 	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.AdminPasswordSecretKeyRef, m.mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting admin password: %v", err)
@@ -54,26 +52,18 @@ func (m *maxScaleAPI) createAdminUser(ctx context.Context) error {
 // MaxScale API - Servers
 
 func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	apiLogger(ctx).V(1).Info("Creating server", "server", srv.Name)
-
 	return m.client.Server.Create(ctx, srv.Name, serverAttributes(srv))
 }
 
 func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
-	apiLogger(ctx).V(1).Info("Deleting server", "server", name)
-
 	return m.client.Server.Delete(ctx, name, mxsclient.WithForceQuery())
 }
 
 func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	apiLogger(ctx).V(1).Info("Patching server", "server", srv.Name)
-
 	return m.client.Server.Patch(ctx, srv.Name, serverAttributes(srv))
 }
 
 func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	apiLogger(ctx).V(1).Info("Updating server state", "server", srv.Name)
-
 	if srv.Maintenance {
 		return m.client.Server.SetMaintenance(ctx, srv.Name)
 	}
@@ -92,8 +82,6 @@ func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttri
 }
 
 func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relationships, error) {
-	apiLogger(ctx).V(1).Info("Getting server relationships")
-
 	idx, err := m.client.Server.ListIndex(ctx)
 	if err != nil {
 		return nil, err
@@ -109,8 +97,6 @@ func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relat
 // MaxScale API - Monitors
 
 func (m *maxScaleAPI) createMonitor(ctx context.Context, rels *mxsclient.Relationships) error {
-	apiLogger(ctx).V(1).Info("Creating monitor", "monitor", m.mxs.Spec.Monitor.Name)
-
 	attrs, err := m.monitorAttributes(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting monitor attributes: %v", err)
@@ -120,8 +106,6 @@ func (m *maxScaleAPI) createMonitor(ctx context.Context, rels *mxsclient.Relatio
 }
 
 func (m *maxScaleAPI) patchMonitor(ctx context.Context, rels *mxsclient.Relationships) error {
-	apiLogger(ctx).V(1).Info("Creating monitor", "monitor", m.mxs.Spec.Monitor.Name)
-
 	attrs, err := m.monitorAttributes(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting monitor attributes: %v", err)
@@ -130,8 +114,6 @@ func (m *maxScaleAPI) patchMonitor(ctx context.Context, rels *mxsclient.Relation
 }
 
 func (m *maxScaleAPI) updateMonitorState(ctx context.Context) error {
-	apiLogger(ctx).V(1).Info("Updating monitor state", "monitor", m.mxs.Spec.Monitor.Name)
-
 	if m.mxs.Spec.Monitor.Suspend {
 		return m.client.Monitor.Stop(ctx, m.mxs.Spec.Monitor.Name)
 	}
@@ -165,8 +147,6 @@ func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.Monitor
 // MaxScale API - Services
 
 func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService, rels *mxsclient.Relationships) error {
-	apiLogger(ctx).V(1).Info("Creating service", "service", svc.Name)
-
 	attrs, err := m.serviceAttributes(ctx, svc)
 	if err != nil {
 		return fmt.Errorf("error getting service attributes: %v", err)
@@ -175,14 +155,10 @@ func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.Ma
 }
 
 func (m *maxScaleAPI) deleteService(ctx context.Context, name string) error {
-	apiLogger(ctx).V(1).Info("Deleting service", "service", name)
-
 	return m.client.Service.Delete(ctx, name, mxsclient.WithForceQuery())
 }
 
 func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService, rels *mxsclient.Relationships) error {
-	apiLogger(ctx).V(1).Info("Patching service", "service", svc.Name)
-
 	attrs, err := m.serviceAttributes(ctx, svc)
 	if err != nil {
 		return fmt.Errorf("error getting service attributes: %v", err)
@@ -191,8 +167,6 @@ func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.Max
 }
 
 func (m *maxScaleAPI) updateServiceState(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService) error {
-	apiLogger(ctx).V(1).Info("Updating service state", "service", svc.Name)
-
 	if svc.Suspend {
 		return m.client.Service.Stop(ctx, svc.Name)
 	}
@@ -223,26 +197,18 @@ func (m *maxScaleAPI) serviceRelationships(service string) *mxsclient.Relationsh
 // MaxScale API - Listeners
 
 func (m *maxScaleAPI) createListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
-	apiLogger(ctx).V(1).Info("Creating listener", "listener", listener.Name)
-
 	return m.client.Listener.Create(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) deleteListener(ctx context.Context, name string) error {
-	apiLogger(ctx).V(1).Info("Deleting listener", "listener", name)
-
 	return m.client.Listener.Delete(ctx, name, mxsclient.WithForceQuery())
 }
 
 func (m *maxScaleAPI) patchListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
-	apiLogger(ctx).V(1).Info("Patching listener", "listener", listener.Name)
-
 	return m.client.Listener.Patch(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) updateListenerState(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener) error {
-	apiLogger(ctx).V(1).Info("Updating listener state", "listener", listener.Name)
-
 	if listener.Suspend {
 		return m.client.Listener.Stop(ctx, listener.Name)
 	}
@@ -262,8 +228,6 @@ func listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.Li
 // MaxScale API - MaxScale
 
 func (m *maxScaleAPI) isMaxScaleConfigSynced(ctx context.Context) (bool, error) {
-	apiLogger(ctx).V(1).Info("Checking MaxScale config sync")
-
 	data, err := m.client.MaxScale.Get(ctx)
 	if err != nil {
 		return false, err
@@ -276,8 +240,6 @@ func (m *maxScaleAPI) isMaxScaleConfigSynced(ctx context.Context) (bool, error) 
 }
 
 func (m *maxScaleAPI) patchMaxScaleConfigSync(ctx context.Context) error {
-	apiLogger(ctx).V(1).Info("Patching MaxScale config sync")
-
 	if m.mxs.Spec.Config.Sync == nil {
 		return errors.New("'spec.config.sync' must be set")
 	}
@@ -309,7 +271,7 @@ func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs 
 	opts := []mdbhttp.Option{
 		mdbhttp.WithTimeout(10 * time.Second),
 	}
-	if r.LogRequests {
+	if r.LogMaxScale {
 		logger := apiLogger(ctx)
 		opts = append(opts, mdbhttp.WithLogger(&logger))
 	}
@@ -344,7 +306,7 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 		mdbhttp.WithTimeout(10 * time.Second),
 		mdbhttp.WithBasicAuth(mxs.Spec.Auth.AdminUsername, password),
 	}
-	if r.LogRequests {
+	if r.LogMaxScale {
 		logger := apiLogger(ctx)
 		opts = append(opts, mdbhttp.WithLogger(&logger))
 	}
