@@ -1,14 +1,61 @@
 package v1alpha1
 
 import (
+	"errors"
+
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 var (
 	defaultConnSecretKey = "dsn"
 )
+
+// ConnectionRefs contains the resolved references of a Connection.
+type ConnectionRefs struct {
+	MariaDB  *MariaDB
+	MaxScale *MaxScale
+}
+
+// Host returns the host address to connect to.
+func (r *ConnectionRefs) Host(c *Connection) (*string, error) {
+	objMeta, err := r.objectMeta()
+	if err != nil {
+		return nil, err
+	}
+	if c.Spec.ServiceName != nil {
+		svcMeta := metav1.ObjectMeta{
+			Name:      *c.Spec.ServiceName,
+			Namespace: objMeta.Namespace,
+		}
+		return ptr.To(statefulset.ServiceFQDN(svcMeta)), nil
+	}
+	return ptr.To(statefulset.ServiceFQDN(*objMeta)), nil
+}
+
+// Port returns the port to connect to.
+func (r *ConnectionRefs) Port() (*int32, error) {
+	if r.MariaDB != nil {
+		return &r.MariaDB.Spec.Port, nil
+	}
+	if r.MaxScale != nil {
+		return r.MaxScale.DefaultPort()
+	}
+	return nil, errors.New("port not found")
+}
+
+func (r *ConnectionRefs) objectMeta() (*metav1.ObjectMeta, error) {
+	if r.MariaDB != nil {
+		return &r.MariaDB.ObjectMeta, nil
+	}
+	if r.MaxScale != nil {
+		return &r.MaxScale.ObjectMeta, nil
+	}
+	return nil, errors.New("references not found")
+}
 
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
@@ -16,10 +63,14 @@ type ConnectionSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ConnectionTemplate `json:",inline"`
-	// MariaDBRef is a reference to a MariaDB object.
-	// +kubebuilder:validation:Required
+	// MariaDBRef is a reference to the MariaDB to connect to. Either MariaDBRef or MaxScaleRef must be provided.
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
+	// MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MaxScaleRef *corev1.ObjectReference `json:"maxScaleRef,omitempty"`
 	// Username to use for configuring the Connection.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -28,7 +79,16 @@ type ConnectionSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
-	// Database to use for configuring the Connection.
+	// Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Host string `json:"host,omitempty"`
+	// Database to use when configuring the
+	// Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Port int32 `json:"port,omitempty"`
+	// Database to use when configuring the Connection.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Database *string `json:"database,omitempty" webhook:"inmutable"`
@@ -72,11 +132,21 @@ func (c *Connection) IsReady() bool {
 	return meta.IsStatusConditionTrue(c.Status.Conditions, ConditionTypeReady)
 }
 
-func (c *Connection) IsInit() bool {
-	return c.Spec.SecretName != nil && c.Spec.SecretTemplate != nil
-}
-
-func (c *Connection) Init() {
+func (c *Connection) SetDefaults(refs *ConnectionRefs) error {
+	if c.Spec.Host == "" {
+		host, err := refs.Host(c)
+		if err != nil {
+			return err
+		}
+		c.Spec.Host = *host
+	}
+	if c.Spec.Port == 0 {
+		port, err := refs.Port()
+		if err != nil {
+			return err
+		}
+		c.Spec.Port = *port
+	}
 	if c.Spec.SecretName == nil {
 		c.Spec.SecretName = &c.Name
 	}
@@ -85,6 +155,7 @@ func (c *Connection) Init() {
 			Key: &defaultConnSecretKey,
 		}
 	}
+	return nil
 }
 
 func (c *Connection) SecretName() string {

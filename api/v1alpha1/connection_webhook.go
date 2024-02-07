@@ -42,10 +42,31 @@ func (r *Connection) ValidateDelete() (admission.Warnings, error) {
 }
 
 func (r *Connection) validate() (admission.Warnings, error) {
+	if err := r.validateRefs(); err != nil {
+		return nil, err
+	}
 	if err := r.validateHealthCheck(); err != nil {
 		return nil, err
 	}
 	return nil, r.validateCustomDSNFormat()
+}
+
+func (r *Connection) validateRefs() error {
+	if r.Spec.MariaDBRef == nil && r.Spec.MaxScaleRef == nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("mariaDbRef"),
+			r.Spec.MariaDBRef,
+			"'spec.mariaDbRef' or 'spec.maxScaleRef' must be defined",
+		)
+	}
+	if r.Spec.MariaDBRef != nil && r.Spec.MaxScaleRef != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("mariaDbRef"),
+			r.Spec.MariaDBRef,
+			"'spec.mariaDbRef' and 'spec.maxScaleRef' cannot be specified simultaneously",
+		)
+	}
+	return nil
 }
 
 func (r *Connection) validateHealthCheck() error {

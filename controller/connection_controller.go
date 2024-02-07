@@ -18,9 +18,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	clientsql "github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -55,51 +53,25 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariadb, refErr := r.RefResolver.MariaDB(ctx, &conn.Spec.MariaDBRef, conn.Namespace)
-	if refErr != nil {
-		var mariaDbErr *multierror.Error
-		mariaDbErr = multierror.Append(mariaDbErr, refErr)
-
-		patchErr := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherRefResolver(refErr, mariadb))
-		mariaDbErr = multierror.Append(mariaDbErr, patchErr)
-
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
-	}
-
-	if conn.Spec.MariaDBRef.WaitForIt && !mariadb.IsReady() {
-		if err := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherFailed("MariaDB not ready")); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
-		}
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
-	if err := r.init(ctx, &conn); err != nil {
-		var initErr *multierror.Error
-		initErr = multierror.Append(initErr, err)
-
-		patchErr := r.patchStatus(
-			ctx,
-			&conn,
-			r.ConditionReady.PatcherFailed(fmt.Sprintf("error initializing connection: %v", err)),
-		)
-		initErr = multierror.Append(initErr, patchErr)
-
-		return ctrl.Result{}, fmt.Errorf("error initializing connection: %v", initErr)
-	}
-
-	healthy, err := health.IsMariaDBHealthy(ctx, r.Client, mariadb, health.EndpointPolicyAtLeastOne)
+	connRefs, err := r.getRefs(ctx, &conn)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting references: %v", err)
 	}
-	if !healthy {
-		if err := r.patchStatus(ctx, &conn, r.ConditionReady.PatcherFailed("MariaDB not healthy")); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
-		}
-		return r.retryResult(&conn)
+
+	if result, err := r.waitForRefs(ctx, &conn, connRefs); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	if err := r.setDefaults(ctx, &conn, connRefs); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error setting defaults: %v", err)
+	}
+
+	if result, err := r.checkHealth(ctx, &conn, connRefs); !result.IsZero() || err != nil {
+		return result, err
 	}
 
 	var secretErr *multierror.Error
-	err = r.reconcileSecret(ctx, &conn, mariadb)
+	err = r.reconcileSecret(ctx, &conn, connRefs)
 	if errors.Is(err, errConnHealthCheck) {
 		return r.retryResult(&conn)
 	}
@@ -114,21 +86,113 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return r.healthResult(&conn)
 }
 
-func (r *ConnectionReconciler) init(ctx context.Context, conn *mariadbv1alpha1.Connection) error {
-	if conn.IsInit() {
-		return nil
+func (r *ConnectionReconciler) getRefs(ctx context.Context, conn *mariadbv1alpha1.Connection) (*mariadbv1alpha1.ConnectionRefs, error) {
+	if conn.Spec.MariaDBRef != nil {
+		mdb, refErr := r.RefResolver.MariaDB(ctx, conn.Spec.MariaDBRef, conn.Namespace)
+		if refErr != nil {
+			var mariaDbErr *multierror.Error
+			mariaDbErr = multierror.Append(mariaDbErr, refErr)
+
+			patchErr := r.patchStatus(ctx, conn, r.ConditionReady.PatcherRefResolver(refErr, mdb))
+			mariaDbErr = multierror.Append(mariaDbErr, patchErr)
+
+			return nil, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+		}
+		return &mariadbv1alpha1.ConnectionRefs{
+			MariaDB: mdb,
+		}, nil
 	}
-	patcher := func(c *mariadbv1alpha1.Connection) {
-		c.Init()
+	if conn.Spec.MaxScaleRef != nil {
+		mxs, refErr := r.RefResolver.MaxScale(ctx, conn.Spec.MaxScaleRef, conn.Namespace)
+		if refErr != nil {
+			var mariaDbErr *multierror.Error
+			mariaDbErr = multierror.Append(mariaDbErr, refErr)
+
+			patchErr := r.patchStatus(ctx, conn, r.ConditionReady.PatcherRefResolver(refErr, mxs))
+			mariaDbErr = multierror.Append(mariaDbErr, patchErr)
+
+			return nil, fmt.Errorf("error getting MaxScale: %v", mariaDbErr)
+		}
+		return &mariadbv1alpha1.ConnectionRefs{
+			MaxScale: mxs,
+		}, nil
 	}
-	if err := r.patch(ctx, conn, patcher); err != nil {
-		return fmt.Errorf("error patching restore: %v", err)
+	return nil, errors.New("no references found")
+}
+
+func (r *ConnectionReconciler) waitForRefs(ctx context.Context, conn *mariadbv1alpha1.Connection,
+	refs *mariadbv1alpha1.ConnectionRefs) (ctrl.Result, error) {
+	if conn.Spec.MariaDBRef != nil && refs.MariaDB != nil {
+		if conn.Spec.MariaDBRef.WaitForIt && !refs.MariaDB.IsReady() {
+			if err := r.patchStatus(ctx, conn, r.ConditionReady.PatcherFailed("MariaDB not ready")); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
+			}
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
 	}
-	return nil
+	if conn.Spec.MaxScaleRef != nil && refs.MaxScale != nil {
+		if !refs.MariaDB.IsReady() {
+			if err := r.patchStatus(ctx, conn, r.ConditionReady.PatcherFailed("MaxScale not ready")); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
+			}
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *ConnectionReconciler) setDefaults(ctx context.Context, conn *mariadbv1alpha1.Connection,
+	refs *mariadbv1alpha1.ConnectionRefs) error {
+	return r.patch(ctx, conn, func(conn *mariadbv1alpha1.Connection) error {
+		return conn.SetDefaults(refs)
+	})
+}
+
+func (r *ConnectionReconciler) checkHealth(ctx context.Context, conn *mariadbv1alpha1.Connection,
+	refs *mariadbv1alpha1.ConnectionRefs) (ctrl.Result, error) {
+	if refs.MariaDB != nil {
+		healthy, err := health.IsStatefulSetHealthy(
+			ctx,
+			r.Client,
+			client.ObjectKeyFromObject(refs.MariaDB),
+			health.WithDesiredReplicas(refs.MariaDB.Spec.Replicas),
+			health.WithPort(conn.Spec.Port),
+			health.WithEndpointPolicy(health.EndpointPolicyAtLeastOne),
+		)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
+		}
+		if !healthy {
+			if err := r.patchStatus(ctx, conn, r.ConditionReady.PatcherFailed("MariaDB not healthy")); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
+			}
+			return r.retryResult(conn)
+		}
+	}
+	if refs.MaxScale != nil {
+		healthy, err := health.IsStatefulSetHealthy(
+			ctx,
+			r.Client,
+			client.ObjectKeyFromObject(refs.MaxScale),
+			health.WithDesiredReplicas(refs.MaxScale.Spec.Replicas),
+			health.WithPort(conn.Spec.Port),
+			health.WithEndpointPolicy(health.EndpointPolicyAtLeastOne),
+		)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error checking MaxScale health: %v", err)
+		}
+		if !healthy {
+			if err := r.patchStatus(ctx, conn, r.ConditionReady.PatcherFailed("MaxScale not healthy")); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
+			}
+			return r.retryResult(conn)
+		}
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariadbv1alpha1.Connection,
-	mdb *mariadbv1alpha1.MariaDB) error {
+	refs *mariadbv1alpha1.ConnectionRefs) error {
 	key := types.NamespacedName{
 		Name:      conn.SecretName(),
 		Namespace: conn.Namespace,
@@ -138,21 +202,11 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		return fmt.Errorf("error getting password for connection DSN: %v", err)
 	}
 
-	var host string
-	if conn.Spec.ServiceName != nil {
-		objMeta := metav1.ObjectMeta{
-			Name:      *conn.Spec.ServiceName,
-			Namespace: mdb.ObjectMeta.Namespace,
-		}
-		host = statefulset.ServiceFQDN(objMeta)
-	} else {
-		host = statefulset.ServiceFQDN(mdb.ObjectMeta)
-	}
 	mdbOpts := clientsql.Opts{
 		Username: conn.Spec.Username,
 		Password: password,
-		Host:     host,
-		Port:     mdb.Spec.Port,
+		Host:     conn.Spec.Host,
+		Port:     conn.Spec.Port,
 		Params:   conn.Spec.Params,
 	}
 	if conn.Spec.Database != nil {
@@ -174,13 +228,15 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	}
 
 	secretOpts := builder.SecretOpts{
-		MariaDB: mdb,
-		Key:     key,
+		Key: key,
 		Data: map[string][]byte{
 			conn.SecretKey(): []byte(dsn),
 		},
 		Labels:      conn.Spec.SecretTemplate.Labels,
 		Annotations: conn.Spec.SecretTemplate.Annotations,
+	}
+	if refs.MariaDB != nil {
+		secretOpts.MariaDB = refs.MariaDB
 	}
 
 	if formatString := conn.Spec.SecretTemplate.Format; formatString != nil {
@@ -286,10 +342,11 @@ func (r *ConnectionReconciler) patchStatus(ctx context.Context, conn *mariadbv1a
 }
 
 func (r *ConnectionReconciler) patch(ctx context.Context, conn *mariadbv1alpha1.Connection,
-	patcher func(*mariadbv1alpha1.Connection)) error {
+	patcher func(*mariadbv1alpha1.Connection) error) error {
 	patch := client.MergeFrom(conn.DeepCopy())
-	patcher(conn)
-
+	if err := patcher(conn); err != nil {
+		return err
+	}
 	if err := r.Client.Patch(ctx, conn, patch); err != nil {
 		return fmt.Errorf("error patching connection: %v", err)
 	}

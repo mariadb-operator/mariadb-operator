@@ -741,6 +741,14 @@ func (m *MaxScale) ListenerIDs() []string {
 	return ds.Keys[MaxScaleListener](m.ListenerIndex())
 }
 
+// DefaultPort returns the default port.
+func (m *MaxScale) DefaultPort() (*int32, error) {
+	if len(m.Spec.Services) == 0 {
+		return nil, errors.New("port not found")
+	}
+	return &m.Spec.Services[0].Listener.Port, nil
+}
+
 func (m *MaxScale) apiUrlWithAddress(addr string) string {
 	return fmt.Sprintf("http://%s:%d", addr, m.Spec.Admin.Port)
 }

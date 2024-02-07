@@ -65,7 +65,7 @@ var _ = Describe("Connection controller", func() {
 								"parseTime": "true",
 							},
 						},
-						MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
 								Name: testMdbkey.Name,
 							},
@@ -108,7 +108,7 @@ var _ = Describe("Connection controller", func() {
 							},
 							ServiceName: &testMdbkey.Name,
 						},
-						MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
 								Name: testMdbkey.Name,
 							},
@@ -154,7 +154,7 @@ var _ = Describe("Connection controller", func() {
 								"timeout": (5 * time.Second).String(),
 							},
 						},
-						MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
 								Name: testMdbkey.Name,
 							},
@@ -185,7 +185,7 @@ var _ = Describe("Connection controller", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: mariadbv1alpha1.ConnectionSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
 							Name: testMdbkey.Name,
 						},
@@ -240,7 +240,7 @@ var _ = Describe("Connection controller", func() {
 							DatabaseKey: func() *string { k := "name"; return &k }(),
 						},
 					},
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
 							Name: testMdbkey.Name,
 						},
