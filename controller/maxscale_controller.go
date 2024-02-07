@@ -491,7 +491,6 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 		Name:      mxs.Spec.Auth.MonitorUsername,
 		Namespace: mxs.Namespace,
 	}
-	maxConns := int32(30)
 
 	items := []authReconcileItem{
 		{
@@ -499,7 +498,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ClientUsername,
 				PasswordSecretKeyRef: mxs.Spec.Auth.ClientPasswordSecretKeyRef,
-				MaxUserConnections:   maxConns,
+				MaxUserConnections:   mxs.Spec.Auth.ClientMaxConnections,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
 			grants: []auth.GrantOpts{
@@ -527,7 +526,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ServerUsername,
 				PasswordSecretKeyRef: mxs.Spec.Auth.ServerPasswordSecretKeyRef,
-				MaxUserConnections:   maxConns,
+				MaxUserConnections:   mxs.Spec.Auth.ServerMaxConnections,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
 			grants: []auth.GrantOpts{
@@ -572,7 +571,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.MonitorUsername,
 				PasswordSecretKeyRef: mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
-				MaxUserConnections:   maxConns,
+				MaxUserConnections:   mxs.Spec.Auth.MonitorMaxConnections,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
 			grants: monitorGrantOpts(monitorKey, mxs),
@@ -588,7 +587,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			user: builder.UserOpts{
 				Name:                 *mxs.Spec.Auth.SyncUsername,
 				PasswordSecretKeyRef: *mxs.Spec.Auth.SyncPasswordSecretKeyRef,
-				MaxUserConnections:   maxConns,
+				MaxUserConnections:   *mxs.Spec.Auth.SyncMaxConnections,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
 			grants: []auth.GrantOpts{

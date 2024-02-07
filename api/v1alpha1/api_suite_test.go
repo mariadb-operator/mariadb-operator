@@ -35,7 +35,7 @@ var (
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "Webhook Suite")
+	RunSpecs(t, "API Suite")
 }
 
 var _ = BeforeSuite(func() {

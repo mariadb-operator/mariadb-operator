@@ -10543,6 +10543,14 @@ spec:
                         description: AdminUsername is an admin username to call the
                           admin REST API. It is defaulted if not provided.
                         type: string
+                      clientMaxConnections:
+                        description: ClientMaxConnections defines the maximum number
+                          of connections that the client can establish. If HA is enabled,
+                          make sure to increase this value, as more MaxScale replicas
+                          implies more connections. It defaults to 30 times the number
+                          of MaxScale replicas.
+                        format: int32
+                        type: integer
                       clientPasswordSecretKeyRef:
                         description: ClientPasswordSecretKeyRef is Secret key reference
                           to the password to connect to MaxScale. It is defaulted
@@ -10578,6 +10586,14 @@ spec:
                           generate users and grants for MaxScale to work. It only
                           supports MariaDBs specified via spec.mariaDbRef.
                         type: boolean
+                      monitorMaxConnections:
+                        description: MonitorMaxConnections defines the maximum number
+                          of connections that the monitor can establish. If HA is
+                          enabled, make sure to increase this value, as more MaxScale
+                          replicas implies more connections. It defaults to 30 times
+                          the number of MaxScale replicas.
+                        format: int32
+                        type: integer
                       monitorPasswordSecretKeyRef:
                         description: MonitorPasswordSecretKeyRef is Secret key reference
                           to the password used by MaxScale monitor to connect to MariaDB
@@ -10604,6 +10620,14 @@ spec:
                           monitor to connect to MariaDB server. It is defaulted if
                           not provided.
                         type: string
+                      serverMaxConnections:
+                        description: ServerMaxConnections defines the maximum number
+                          of connections that the server can establish. If HA is enabled,
+                          make sure to increase this value, as more MaxScale replicas
+                          implies more connections. It defaults to 30 times the number
+                          of MaxScale replicas.
+                        format: int32
+                        type: integer
                       serverPasswordSecretKeyRef:
                         description: ServerPasswordSecretKeyRef is Secret key reference
                           to the password used by MaxScale to connect to MariaDB server.
@@ -10629,6 +10653,14 @@ spec:
                         description: ServerUsername is the user used by MaxScale to
                           connect to MariaDB server. It is defaulted if not provided.
                         type: string
+                      syncMaxConnections:
+                        description: SyncMaxConnections defines the maximum number
+                          of connections that the sync can establish. If HA is enabled,
+                          make sure to increase this value, as more MaxScale replicas
+                          implies more connections. It defaults to 30 times the number
+                          of MaxScale replicas.
+                        format: int32
+                        type: integer
                       syncPasswordSecretKeyRef:
                         description: SyncPasswordSecretKeyRef is Secret key reference
                           to the password used by MaxScale config to connect to MariaDB
@@ -21109,6 +21141,14 @@ spec:
                     description: AdminUsername is an admin username to call the admin
                       REST API. It is defaulted if not provided.
                     type: string
+                  clientMaxConnections:
+                    description: ClientMaxConnections defines the maximum number of
+                      connections that the client can establish. If HA is enabled,
+                      make sure to increase this value, as more MaxScale replicas
+                      implies more connections. It defaults to 30 times the number
+                      of MaxScale replicas.
+                    format: int32
+                    type: integer
                   clientPasswordSecretKeyRef:
                     description: ClientPasswordSecretKeyRef is Secret key reference
                       to the password to connect to MaxScale. It is defaulted if not
@@ -21144,6 +21184,14 @@ spec:
                       users and grants for MaxScale to work. It only supports MariaDBs
                       specified via spec.mariaDbRef.
                     type: boolean
+                  monitorMaxConnections:
+                    description: MonitorMaxConnections defines the maximum number
+                      of connections that the monitor can establish. If HA is enabled,
+                      make sure to increase this value, as more MaxScale replicas
+                      implies more connections. It defaults to 30 times the number
+                      of MaxScale replicas.
+                    format: int32
+                    type: integer
                   monitorPasswordSecretKeyRef:
                     description: MonitorPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale monitor to connect to MariaDB
@@ -21169,6 +21217,14 @@ spec:
                     description: MonitorUsername is the user used by MaxScale monitor
                       to connect to MariaDB server. It is defaulted if not provided.
                     type: string
+                  serverMaxConnections:
+                    description: ServerMaxConnections defines the maximum number of
+                      connections that the server can establish. If HA is enabled,
+                      make sure to increase this value, as more MaxScale replicas
+                      implies more connections. It defaults to 30 times the number
+                      of MaxScale replicas.
+                    format: int32
+                    type: integer
                   serverPasswordSecretKeyRef:
                     description: ServerPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale to connect to MariaDB server.
@@ -21194,6 +21250,14 @@ spec:
                     description: ServerUsername is the user used by MaxScale to connect
                       to MariaDB server. It is defaulted if not provided.
                     type: string
+                  syncMaxConnections:
+                    description: SyncMaxConnections defines the maximum number of
+                      connections that the sync can establish. If HA is enabled, make
+                      sure to increase this value, as more MaxScale replicas implies
+                      more connections. It defaults to 30 times the number of MaxScale
+                      replicas.
+                    format: int32
+                    type: integer
                   syncPasswordSecretKeyRef:
                     description: SyncPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale config to connect to MariaDB
@@ -30784,7 +30848,7 @@ spec:
               maxUserConnections:
                 default: 10
                 description: MaxUserConnections defines the maximum number of connections
-                  that the User can have.
+                  that the User can establish.
                 format: int32
                 type: integer
               name:

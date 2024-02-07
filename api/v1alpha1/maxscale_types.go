@@ -313,6 +313,12 @@ type MaxScaleAuth struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ClientPasswordSecretKeyRef corev1.SecretKeySelector `json:"clientPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	// ClientMaxConnections defines the maximum number of connections that the client can establish.
+	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
+	// It defaults to 30 times the number of MaxScale replicas.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	ClientMaxConnections int32 `json:"clientMaxConnections,omitempty" webhook:"inmutableinit"`
 	// ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -321,6 +327,12 @@ type MaxScaleAuth struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ServerPasswordSecretKeyRef corev1.SecretKeySelector `json:"serverPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	// ServerMaxConnections defines the maximum number of connections that the server can establish.
+	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
+	// It defaults to 30 times the number of MaxScale replicas.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	ServerMaxConnections int32 `json:"serverMaxConnections,omitempty" webhook:"inmutableinit"`
 	// MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -329,6 +341,12 @@ type MaxScaleAuth struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MonitorPasswordSecretKeyRef corev1.SecretKeySelector `json:"monitorPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	// MonitorMaxConnections defines the maximum number of connections that the monitor can establish.
+	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
+	// It defaults to 30 times the number of MaxScale replicas.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	MonitorMaxConnections int32 `json:"monitorMaxConnections,omitempty" webhook:"inmutableinit"`
 	// MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -337,6 +355,12 @@ type MaxScaleAuth struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncPasswordSecretKeyRef *corev1.SecretKeySelector `json:"syncPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	// SyncMaxConnections defines the maximum number of connections that the sync can establish.
+	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
+	// It defaults to 30 times the number of MaxScale replicas.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	SyncMaxConnections *int32 `json:"syncMaxConnections,omitempty" webhook:"inmutableinit"`
 }
 
 // SetDefaults sets default values.
@@ -353,30 +377,46 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	if m.DeleteDefaultAdmin == nil {
 		m.DeleteDefaultAdmin = ptr.To(true)
 	}
+
 	if m.ClientUsername == "" {
 		m.ClientUsername = mxs.AuthClientUserKey().Name
 	}
 	if m.ClientPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.ClientPasswordSecretKeyRef = mxs.AuthClientPasswordSecretKeyRef()
 	}
+	if m.ClientMaxConnections == 0 {
+		m.ClientMaxConnections = mxs.defaultConnections()
+	}
+
 	if m.ServerUsername == "" {
 		m.ServerUsername = mxs.AuthServerUserKey().Name
 	}
 	if m.ServerPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.ServerPasswordSecretKeyRef = mxs.AuthServerPasswordSecretKeyRef()
 	}
+	if m.ServerMaxConnections == 0 {
+		m.ServerMaxConnections = mxs.defaultConnections()
+	}
+
 	if m.MonitorUsername == "" {
 		m.MonitorUsername = mxs.AuthMonitorUserKey().Name
 	}
 	if m.MonitorPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
 		m.MonitorPasswordSecretKeyRef = mxs.AuthMonitorPasswordSecretKeyRef()
 	}
+	if m.MonitorMaxConnections == 0 {
+		m.MonitorMaxConnections = mxs.defaultConnections()
+	}
+
 	if mxs.IsHAEnabled() {
 		if m.SyncUsername == nil {
 			m.SyncUsername = ptr.To(mxs.AuthSyncUserKey().Name)
 		}
 		if m.SyncPasswordSecretKeyRef == nil {
 			m.SyncPasswordSecretKeyRef = ptr.To(mxs.AuthSyncPasswordSecretKeyRef())
+		}
+		if m.SyncMaxConnections == nil {
+			m.SyncMaxConnections = ptr.To(mxs.defaultConnections())
 		}
 	}
 }
@@ -703,6 +743,13 @@ func (m *MaxScale) ListenerIDs() []string {
 
 func (m *MaxScale) apiUrlWithAddress(addr string) string {
 	return fmt.Sprintf("http://%s:%d", addr, m.Spec.Admin.Port)
+}
+
+func (m *MaxScale) defaultConnections() int32 {
+	if m.Spec.Replicas > 0 {
+		return m.Spec.Replicas * 30
+	}
+	return 30
 }
 
 //+kubebuilder:object:root=true

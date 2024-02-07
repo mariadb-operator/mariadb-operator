@@ -22,7 +22,7 @@ type UserSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
-	// MaxUserConnections defines the maximum number of connections that the User can have.
+	// MaxUserConnections defines the maximum number of connections that the User can establish.
 	// +optional
 	// +kubebuilder:default=10
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
