@@ -13,6 +13,100 @@ import (
 )
 
 var _ = Describe("Connection webhook", func() {
+	Context("When creating a Connection", func() {
+		meta := metav1.ObjectMeta{
+			Name:      "connection-create-webhook",
+			Namespace: testNamespace,
+		}
+		DescribeTable(
+			"Should validate",
+			func(conn *Connection, wantErr bool) {
+				_ = k8sClient.Delete(testCtx, conn)
+				err := k8sClient.Create(testCtx, conn)
+				if wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			},
+			Entry(
+				"No refs",
+				&Connection{
+					ObjectMeta: meta,
+					Spec: ConnectionSpec{
+						Username: "foo",
+						PasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "foo",
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"MariaDB ref",
+				&Connection{
+					ObjectMeta: meta,
+					Spec: ConnectionSpec{
+						MariaDBRef: &MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "foo",
+							},
+						},
+						Username: "foo",
+						PasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "foo",
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"MaxScale ref",
+				&Connection{
+					ObjectMeta: meta,
+					Spec: ConnectionSpec{
+						MaxScaleRef: &corev1.ObjectReference{
+							Name: "foo",
+						},
+						Username: "foo",
+						PasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "foo",
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"MariaDB and MaxScale refs",
+				&Connection{
+					ObjectMeta: meta,
+					Spec: ConnectionSpec{
+						MaxScaleRef: &corev1.ObjectReference{
+							Name: "foo",
+						},
+						MariaDBRef: &MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "foo",
+							},
+						},
+						Username: "foo",
+						PasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "foo",
+							},
+						},
+					},
+				},
+				true,
+			),
+		)
+	})
 	Context("When updating a Connection", Ordered, func() {
 		key := types.NamespacedName{
 			Name:      "conn-update",
