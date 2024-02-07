@@ -83,11 +83,6 @@ type ConnectionSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Host string `json:"host,omitempty"`
-	// Database to use when configuring the
-	// Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Port int32 `json:"port,omitempty"`
 	// Database to use when configuring the Connection.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

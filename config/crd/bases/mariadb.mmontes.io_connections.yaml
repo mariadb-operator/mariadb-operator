@@ -175,9 +175,8 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               port:
-                description: Database to use when configuring the Port to connect
-                  to. If not provided, it defaults to the MariaDB port or to the first
-                  MaxScale listener.
+                description: Port to connect to. If not provided, it defaults to the
+                  MariaDB port or to the first MaxScale listener.
                 format: int32
                 type: integer
               secretName:

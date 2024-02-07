@@ -15,6 +15,14 @@ func (m *MaxScale) InternalServiceKey() types.NamespacedName {
 	}
 }
 
+// ConnectionKey defines the key for the Connection
+func (m *MaxScale) ConnectionKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-connection", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // AdminPasswordSecretKeyRef defines the Secret key selector for the admin password
 func (m *MaxScale) AdminPasswordSecretKeyRef() corev1.SecretKeySelector {
 	return corev1.SecretKeySelector{

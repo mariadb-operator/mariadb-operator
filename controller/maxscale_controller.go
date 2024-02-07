@@ -74,7 +74,7 @@ type reconcilePhaseMaxScale struct {
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscales,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscales/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscales/finalizers,verbs=update
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=users;grants,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=users;grants;connections,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
@@ -178,6 +178,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "Listener State",
 			reconcile: r.reconcileListenerState,
+		},
+		{
+			name:      "Connection",
+			reconcile: r.reconcileConnection,
 		},
 	}
 
@@ -1075,6 +1079,29 @@ func (r *MaxScaleReconciler) reconcileListenerState(ctx context.Context, req *re
 		return ctrl.Result{}, nil
 	})
 }
+func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if req.mxs.Spec.Connection == nil {
+		return ctrl.Result{}, nil
+	}
+	key := req.mxs.ConnectionKey()
+	var existingConn mariadbv1alpha1.Connection
+	if err := r.Get(ctx, key, &existingConn); err == nil {
+		return ctrl.Result{}, nil
+	}
+
+	connOpts := builder.ConnectionOpts{
+		MaxScale:             req.mxs,
+		Key:                  key,
+		Username:             req.mxs.Spec.Auth.ClientUsername,
+		PasswordSecretKeyRef: req.mxs.Spec.Auth.ClientPasswordSecretKeyRef,
+		Template:             req.mxs.Spec.Connection,
+	}
+	conn, err := r.Builder.BuildConnection(connOpts, req.mxs)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error building Connection: %v", err)
+	}
+	return ctrl.Result{}, r.Create(ctx, conn)
+}
 
 func (r *MaxScaleReconciler) forEachPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	fn func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error)) (ctrl.Result, error) {
@@ -1118,6 +1145,7 @@ func (r *MaxScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&mariadbv1alpha1.MaxScale{}).
 		Owns(&mariadbv1alpha1.User{}).
 		Owns(&mariadbv1alpha1.Grant{}).
+		Owns(&mariadbv1alpha1.Connection{}).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.Service{}).
 		Owns(&policyv1.PodDisruptionBudget{}).

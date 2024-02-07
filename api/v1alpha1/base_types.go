@@ -290,6 +290,10 @@ type ConnectionTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ServiceName *string `json:"serviceName,omitempty" webhook:"inmutable"`
+	// Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Port int32 `json:"port,omitempty"`
 }
 
 // SQLTemplate defines a template to customize SQL objects.

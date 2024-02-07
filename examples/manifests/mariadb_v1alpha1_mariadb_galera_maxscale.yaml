@@ -31,6 +31,10 @@ spec:
       annotations:
         metallb.universe.tf/loadBalancerIPs: 172.18.0.229
 
+    connection:
+      secretName: mxs-galera-conn
+      port: 3306
+
   galera:
     enabled: true
 

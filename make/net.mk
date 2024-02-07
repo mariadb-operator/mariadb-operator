@@ -79,10 +79,10 @@ host-minio: ## Add minio hosts to /etc/hosts.
 
 .PHONY: host-maxscale-repl
 host-maxscale-repl: ## Add maxscale-repl hosts to /etc/hosts.
-	@./hack/add_host.sh 210 maxscale-repl-0.maxscale-internal.default.svc.cluster.local
-	@./hack/add_host.sh 211 maxscale-repl-1.maxscale-internal.default.svc.cluster.local
-	@./hack/add_host.sh 212 maxscale-repl-2.maxscale-internal.default.svc.cluster.local
-	@./hack/add_host.sh 213 maxscale-repl-3.maxscale-internal.default.svc.cluster.local
+	@./hack/add_host.sh 210 maxscale-repl-0.maxscale-repl-internal.default.svc.cluster.local
+	@./hack/add_host.sh 211 maxscale-repl-1.maxscale-repl-internal.default.svc.cluster.local
+	@./hack/add_host.sh 212 maxscale-repl-2.maxscale-repl-internal.default.svc.cluster.local
+	@./hack/add_host.sh 213 maxscale-repl-3.maxscale-repl-internal.default.svc.cluster.local
 	@./hack/add_host.sh 214 maxscale-repl.default.svc.cluster.local
 	@./hack/add_host.sh 215 mariadb-repl-maxscale-0.mariadb-repl-maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 216 mariadb-repl-maxscale-1.mariadb-repl-maxscale-internal.default.svc.cluster.local

@@ -1323,6 +1323,73 @@ spec:
                         type: string
                     type: object
                 type: object
+              connection:
+                description: Connection provides a template to define the Connection
+                  for MaxScale.
+                properties:
+                  healthCheck:
+                    description: HealthCheck to be used in the Connection.
+                    properties:
+                      interval:
+                        description: Interval used to perform health checks.
+                        type: string
+                      retryInterval:
+                        description: RetryInterval is the intervañ used to perform
+                          health check retries.
+                        type: string
+                    type: object
+                  params:
+                    additionalProperties:
+                      type: string
+                    description: Params to be used in the Connection.
+                    type: object
+                  port:
+                    description: Port to connect to. If not provided, it defaults
+                      to the MariaDB port or to the first MaxScale listener.
+                    format: int32
+                    type: integer
+                  secretName:
+                    description: SecretName to be used in the Connection.
+                    type: string
+                  secretTemplate:
+                    description: SecretTemplate to be used in the Connection.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations to be added to the Secret object.
+                        type: object
+                      databaseKey:
+                        description: DatabaseKey to be used in the Secret.
+                        type: string
+                      format:
+                        description: Format to be used in the Secret.
+                        type: string
+                      hostKey:
+                        description: HostKey to be used in the Secret.
+                        type: string
+                      key:
+                        description: Key to be used in the Secret.
+                        type: string
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Labels to be added to the Secret object.
+                        type: object
+                      passwordKey:
+                        description: PasswordKey to be used in the Secret.
+                        type: string
+                      portKey:
+                        description: PortKey to be used in the Secret.
+                        type: string
+                      usernameKey:
+                        description: UsernameKey to be used in the Secret.
+                        type: string
+                    type: object
+                  serviceName:
+                    description: ServiceName to be used in the Connection.
+                    type: string
+                type: object
               env:
                 description: Env represents the environment variables to be injected
                   in a container.

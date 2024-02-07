@@ -56,7 +56,7 @@ var _ = Describe("MaxScale controller", func() {
 		})
 	})
 
-	Context("When creating a MariaDB replication with MaxScale", FlakeAttempts(3), func() {
+	Context("When creating a MariaDB replication with MaxScale", func() {
 		It("Should reconcile", func() {
 			testMdbMxsKey := types.NamespacedName{
 				Name:      "mxs-repl",
@@ -106,12 +106,22 @@ var _ = Describe("MaxScale controller", func() {
 									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.64",
 								},
 							},
+							Connection: &mariadbv1alpha1.ConnectionTemplate{
+								SecretName: ptr.To("mxs-repl-conn"),
+								HealthCheck: &mariadbv1alpha1.HealthCheck{
+									Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+								},
+							},
 						},
 					},
 				},
 			}
 			By("Creating MariaDB replication with MaxScale")
 			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&testMdbMxs)
+				deleteMaxScale(testMdbMxs.MaxScaleKey())
+			})
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -123,9 +133,6 @@ var _ = Describe("MaxScale controller", func() {
 
 			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
 			expecFailoverSuccess(&testMdbMxs, 30*time.Second)
-
-			deleteMariaDB(&testMdbMxs)
-			deleteMaxScale(testMdbMxs.MaxScaleKey())
 		})
 	})
 
@@ -177,6 +184,12 @@ var _ = Describe("MaxScale controller", func() {
 								Type: corev1.ServiceTypeLoadBalancer,
 								Annotations: map[string]string{
 									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.84",
+								},
+							},
+							Connection: &mariadbv1alpha1.ConnectionTemplate{
+								SecretName: ptr.To("mxs-galera-conn"),
+								HealthCheck: &mariadbv1alpha1.HealthCheck{
+									Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 								},
 							},
 						},
@@ -267,6 +280,15 @@ func expectMaxScaleReady(key types.NamespacedName) {
 	By("Expecting to create a Service")
 	var svc corev1.Service
 	Expect(k8sClient.Get(testCtx, key, &svc)).To(Succeed())
+
+	By("Expecting Connection to be ready eventually")
+	Eventually(func() bool {
+		var conn mariadbv1alpha1.Connection
+		if err := k8sClient.Get(testCtx, mxs.ConnectionKey(), &conn); err != nil {
+			return false
+		}
+		return conn.IsReady()
+	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB, primaryTearDownPeriod time.Duration) {
