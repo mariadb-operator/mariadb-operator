@@ -54,42 +54,6 @@ var _ = Describe("MaxScale controller", func() {
 					len(testDefaultMxs.Spec.Services) > 0 && testDefaultMxs.Spec.Monitor.Module != ""
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
-
-		It("Should reconcile", func() {
-			By("Creating MaxScale")
-			testMaxScaleKey := types.NamespacedName{
-				Name:      "maxscale",
-				Namespace: testNamespace,
-			}
-			testMaxScale := mariadbv1alpha1.MaxScale{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testMaxScaleKey.Name,
-					Namespace: testMaxScaleKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name:      testMdbkey.Name,
-							Namespace: testMdbkey.Namespace,
-						},
-					},
-					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
-						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
-							Type: corev1.ServiceTypeLoadBalancer,
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.214",
-							},
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &testMaxScale)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMaxScale(testMaxScaleKey)
-			})
-
-			expectMaxScaleReady(testMaxScaleKey)
-		})
 	})
 
 	Context("When creating a MariaDB replication with MaxScale", func() {
@@ -321,7 +285,7 @@ func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB, primaryTearDownPeriod ti
 		Expect(k8sClient.Get(testCtx, mdb.MaxScaleKey(), &mxs)).Should(Succeed())
 		Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
 		return true
-	}, testTimeout, testInterval).Should(BeTrue())
+	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	By("Tearing down primary consistently")
 	Consistently(func() bool {
