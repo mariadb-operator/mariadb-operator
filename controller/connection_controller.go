@@ -131,7 +131,7 @@ func (r *ConnectionReconciler) waitForRefs(ctx context.Context, conn *mariadbv1a
 		}
 	}
 	if conn.Spec.MaxScaleRef != nil && refs.MaxScale != nil {
-		if !refs.MariaDB.IsReady() {
+		if !refs.MaxScale.IsReady() {
 			if err := r.patchStatus(ctx, conn, r.ConditionReady.PatcherFailed("MaxScale not ready")); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
 			}
@@ -295,6 +295,9 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 }
 
 func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1alpha1.Connection, clientOpts clientsql.Opts) error {
+	if conn.Spec.HealthCheck == nil {
+		return nil
+	}
 	log.FromContext(ctx).V(1).Info("Checking connection health")
 	db, err := clientsql.ConnectWithOpts(clientOpts)
 	if err != nil {

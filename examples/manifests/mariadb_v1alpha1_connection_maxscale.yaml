@@ -1,0 +1,15 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Connection
+metadata:
+  name: connection-maxscale
+spec:
+  maxScaleRef:
+    name: maxscale-galera
+  username: maxscale-galera-client
+  passwordSecretKeyRef:
+    name: maxscale-galera-client
+    key: password
+  secretName: conn-mxs
+  # this will consume connections from the MaxScale client
+  healthCheck:
+    interval: 30s
