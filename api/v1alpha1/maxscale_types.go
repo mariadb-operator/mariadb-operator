@@ -41,6 +41,8 @@ type MaxScaleServer struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Maintenance bool `json:"maintenance,omitempty"`
 	// Params defines extra parameters to pass to the server.
+	// Any parameter supported by MaxScale may be specified here. See reference:
+	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#server_1.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Params map[string]string `json:"params,omitempty"`
@@ -115,6 +117,11 @@ type MaxScaleMonitor struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CooperativeMonitoring *CooperativeMonitoring `json:"cooperativeMonitoring,omitempty"`
 	// Params defines extra parameters to pass to the monitor.
+	// Any parameter supported by MaxScale may be specified here. See reference:
+	// https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/.
+	// Monitor specific parameter are also suported:
+	// https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters.
+	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Params map[string]string `json:"params,omitempty"`
@@ -149,6 +156,8 @@ type MaxScaleListener struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Protocol string `json:"protocol,omitempty"`
 	// Params defines extra parameters to pass to the listener.
+	// Any parameter supported by MaxScale may be specified here. See reference:
+	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Params map[string]string `json:"params,omitempty"`
@@ -191,6 +200,11 @@ type MaxScaleService struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Listener MaxScaleListener `json:"listener"`
 	// Params defines extra parameters to pass to the monitor.
+	// Any parameter supported by MaxScale may be specified here. See reference:
+	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
+	// Router specific parameter are also suported:
+	// https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.
+	// https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Params map[string]string `json:"params,omitempty"`
@@ -242,6 +256,8 @@ type MaxScaleConfigSync struct {
 // MaxScaleConfig defines the MaxScale configuration.
 type MaxScaleConfig struct {
 	// Params is a key value pair of parameters to be used in the MaxScale static configuration file.
+	// Any parameter supported by MaxScale may be specified here. See reference:
+	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#global-settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Params map[string]string `json:"params,omitempty"`

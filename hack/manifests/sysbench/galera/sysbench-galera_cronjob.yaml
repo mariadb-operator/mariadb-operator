@@ -18,10 +18,10 @@ spec:
               - oltp_read_write 
               - --tables=10 
               - --table_size=1000000
-              - --mysql-host=maxscale-galera.default.svc.cluster.local
+              - --mysql-host=mariadb-galera-maxscale.default.svc.cluster.local
               - --mysql-port=3306
-              - --mysql-user=maxscale-client
-              - --mysql-password=MaxScale11!
+              - --mysql-user=mariadb-galera-maxscale-client
+              - --mysql-password=^NtfR0FZ94!b6exC
               - --mysql-db=sbtest
               - --time=300 
               - --threads=16 

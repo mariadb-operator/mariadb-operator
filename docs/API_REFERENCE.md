@@ -574,7 +574,7 @@ _Appears in:_
 | `name` _string_ | Name is the identifier of the listener. It is defaulted if not provided |
 | `port` _integer_ | Port is the network port where the MaxScale server will listen. |
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol. |
-| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the listener. |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the listener. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1. |
 
 
 
@@ -595,7 +595,7 @@ _Appears in:_
 | `port` _integer_ | Port is the network port of the MariaDB server. If not provided, it defaults to 3306. |
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with this MariaDB server. If not provided, it defaults to MariaDBBackend. |
 | `maintenance` _boolean_ | Maintenance indicates whether the server is in maintenance mode. |
-| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the server. |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the server. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#server_1. |
 
 
 
