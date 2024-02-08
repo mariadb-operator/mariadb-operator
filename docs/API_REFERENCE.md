@@ -100,8 +100,6 @@ Connection is the Schema for the connections API. It is used to configure connec
 | `spec` _[ConnectionSpec](#connectionspec)_ |  |
 
 
-
-
 #### ConnectionSpec
 
 
@@ -135,7 +133,10 @@ ConnectionTemplate defines a template to customize Connection objects.
 
 _Appears in:_
 - [ConnectionSpec](#connectionspec)
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |
@@ -154,7 +155,12 @@ _Appears in:_
 Container object definition.
 
 _Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
 - [PodTemplate](#podtemplate)
 
 | Field | Description |
@@ -180,8 +186,12 @@ ContainerTemplate defines a template to configure Container objects.
 
 _Appears in:_
 - [Container](#container)
+- [Exporter](#exporter)
 - [GaleraAgent](#galeraagent)
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |
@@ -246,13 +256,27 @@ _Appears in:_
 
 #### Exporter
 
-_Underlying type:_ _[struct{ContainerTemplate "json:\",inline\""; Image string "json:\"image,omitempty\""; ImagePullPolicy k8s.io/api/core/v1.PullPolicy "json:\"imagePullPolicy,omitempty\""; Port int32 "json:\"port,omitempty\""}](#struct{containertemplate-"json:\",inline\"";-image-string-"json:\"image,omitempty\"";-imagepullpolicy-k8sioapicorev1pullpolicy-"json:\"imagepullpolicy,omitempty\"";-port-int32-"json:\"port,omitempty\""})_
+
 
 Exporter defines a metrics exporter container.
 
 _Appears in:_
 - [Metrics](#metrics)
 
+| Field | Description |
+| --- | --- |
+| `command` _string array_ | Command to be used in the Container. |
+| `args` _string array_ | Args to be used in the Container. |
+| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core) array_ | Env represents the environment variables to be injected in a container. |
+| `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |
+| `volumeMounts` _[VolumeMount](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core) array_ | VolumeMounts to be used in the Container. |
+| `livenessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | LivenessProbe to be used in the Container. |
+| `readinessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | ReadinessProbe to be used in the Container. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
+| `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |
+| `image` _string_ | Image name to be used as metrics exporter. The supported format is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
+| `port` _integer_ | Port where the exporter will be listening for connections. |
 
 
 #### Galera
@@ -266,24 +290,96 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `primary` _[PrimaryGalera](#primarygalera)_ | Primary is the Galera configuration for the primary node. |
+| `sst` _[SST](#sst)_ | SST is the Snapshot State Transfer used when new Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html. |
+| `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |
+| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/agent. |
+| `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
+| `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/init. |
+| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB. |
 | `enabled` _boolean_ | Enabled is a flag to enable Galera. |
 
 
+#### GaleraAgent
 
 
 
+GaleraAgent is a sidecar agent that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/agent.
 
+_Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+
+| Field | Description |
+| --- | --- |
+| `command` _string array_ | Command to be used in the Container. |
+| `args` _string array_ | Args to be used in the Container. |
+| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core) array_ | Env represents the environment variables to be injected in a container. |
+| `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |
+| `volumeMounts` _[VolumeMount](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core) array_ | VolumeMounts to be used in the Container. |
+| `livenessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | LivenessProbe to be used in the Container. |
+| `readinessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | ReadinessProbe to be used in the Container. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
+| `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |
+| `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
+| `port` _integer_ | Port where the agent will be listening for connections. |
+| `kubernetesAuth` _[KubernetesAuth](#kubernetesauth)_ | KubernetesAuth to be used by the agent container |
+| `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |
+
+
+#### GaleraRecovery
+
+
+
+GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html.
+
+_Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+
+| Field | Description |
+| --- | --- |
+| `enabled` _boolean_ | Enabled is a flag to enable GaleraRecovery. |
+| `clusterHealthyTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks, is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator. |
+| `clusterBootstrapTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterBootstrapTimeout is the time limit for bootstrapping a cluster. Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted. |
+| `podRecoveryTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodRecoveryTimeout is the time limit for executing the recovery sequence within a Pod. This process includes enabling the recovery mode in the Galera configuration file, restarting the Pod and retrieving the sequence from a log file. |
+| `podSyncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodSyncTimeout is the time limit we give to a Pod to reach the Sync state. Once this timeout is reached, the Pod is restarted. |
+
+
+#### GaleraRecoveryBootstrap
+
+
+
+GaleraRecoveryBootstrap indicates when and in which Pod the cluster bootstrap process has been performed.
+
+_Appears in:_
+- [GaleraRecoveryStatus](#galerarecoverystatus)
+
+| Field | Description |
+| --- | --- |
+| `time` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta)_ |  |
+| `pod` _string_ |  |
 
 
 #### GaleraSpec
 
-_Underlying type:_ _[struct{Primary *PrimaryGalera "json:\"primary,omitempty\""; SST *SST "json:\"sst,omitempty\""; ReplicaThreads *int "json:\"replicaThreads,omitempty\""; Agent *GaleraAgent "json:\"agent,omitempty\""; Recovery *GaleraRecovery "json:\"recovery,omitempty\""; InitContainer *Container "json:\"initContainer,omitempty\""; VolumeClaimTemplate *VolumeClaimTemplate "json:\"volumeClaimTemplate,omitempty\""}](#struct{primary-*primarygalera-"json:\"primary,omitempty\"";-sst-*sst-"json:\"sst,omitempty\"";-replicathreads-*int-"json:\"replicathreads,omitempty\"";-agent-*galeraagent-"json:\"agent,omitempty\"";-recovery-*galerarecovery-"json:\"recovery,omitempty\"";-initcontainer-*container-"json:\"initcontainer,omitempty\"";-volumeclaimtemplate-*volumeclaimtemplate-"json:\"volumeclaimtemplate,omitempty\""})_
+
 
 GaleraSpec is the Galera desired state specification.
 
 _Appears in:_
 - [Galera](#galera)
 
+| Field | Description |
+| --- | --- |
+| `primary` _[PrimaryGalera](#primarygalera)_ | Primary is the Galera configuration for the primary node. |
+| `sst` _[SST](#sst)_ | SST is the Snapshot State Transfer used when new Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html. |
+| `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |
+| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/agent. |
+| `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
+| `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/init. |
+| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB. |
 
 
 #### Grant
@@ -389,8 +485,7 @@ _Appears in:_
 
 MariaDB is the Schema for the mariadbs API. It is used to define MariaDB clusters.
 
-_Appears in:_
-- [ConnectionRefs](#connectionrefs)
+
 
 | Field | Description |
 | --- | --- |
@@ -413,6 +508,39 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `command` _string array_ | Command to be used in the Container. |
+| `args` _string array_ | Args to be used in the Container. |
+| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core) array_ | Env represents the environment variables to be injected in a container. |
+| `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |
+| `volumeMounts` _[VolumeMount](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core) array_ | VolumeMounts to be used in the Container. |
+| `livenessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | LivenessProbe to be used in the Container. |
+| `readinessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | ReadinessProbe to be used in the Container. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
+| `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |
+| `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |
+| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
+| `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
+| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
+| `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
+| `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |
+| `topologySpreadConstraints` _[TopologySpreadConstraint](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core) array_ | TopologySpreadConstraints to be used in the Pod. |
+| `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported. |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
+| `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
+| `services` _[MaxScaleService](#maxscaleservice) array_ | Services define how the traffic is forwarded to the MariaDB servers. It is defaulted if not provided. |
+| `monitor` _[MaxScaleMonitor](#maxscalemonitor)_ | Monitor monitors MariaDB server instances. It is required if 'spec.mariaDbRef' is not provided. |
+| `admin` _[MaxScaleAdmin](#maxscaleadmin)_ | Admin configures the admin REST API and GUI. |
+| `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |
+| `auth` _[MaxScaleAuth](#maxscaleauth)_ | Auth defines the credentials required for MaxScale to connect to MariaDB. |
+| `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection provides a template to define the Connection for MaxScale. |
+| `replicas` _integer_ | Replicas indicates the number of desired instances. |
+| `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
+| `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | UpdateStrategy defines the update strategy for the StatefulSet object. |
+| `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the Kubernetes Service object. |
+| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s. |
 | `enabled` _boolean_ | Enabled is a flag to enable Metrics |
 
 
@@ -512,8 +640,7 @@ _Appears in:_
 
 MaxScale is the Schema for the maxscales API. It is used to define MaxScale clusters.
 
-_Appears in:_
-- [ConnectionRefs](#connectionrefs)
+
 
 | Field | Description |
 | --- | --- |
@@ -525,13 +652,57 @@ _Appears in:_
 | `spec` _[MaxScaleSpec](#maxscalespec)_ |  |
 
 
+#### MaxScaleAdmin
 
 
+
+MaxScaleAdmin configures the admin REST API and GUI.
+
+_Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description |
+| --- | --- |
+| `port` _integer_ | Port where the admin REST API and GUI will be exposed. |
+| `guiEnabled` _boolean_ | GuiEnabled indicates whether the admin GUI should be enabled. |
+
+
+#### MaxScaleAuth
+
+
+
+MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB.
+
+_Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description |
+| --- | --- |
+| `generate` _boolean_ | Generate  defies whether the operator should generate users and grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef. |
+| `adminUsername` _string_ | AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided. |
+| `adminPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admib REST API. It is defaulted if not provided. |
+| `deleteDefaultAdmin` _boolean_ | DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true. |
+| `clientUsername` _string_ | ClientUsername is the user to connect to MaxScale. It is defaulted if not provided. |
+| `clientPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided. |
+| `clientMaxConnections` _integer_ | ClientMaxConnections defines the maximum number of connections that the client can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas. |
+| `serverUsername` _string_ | ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided. |
+| `serverPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided. |
+| `serverMaxConnections` _integer_ | ServerMaxConnections defines the maximum number of connections that the server can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas. |
+| `monitorUsername` _string_ | MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided. |
+| `monitorPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided. |
+| `monitorMaxConnections` _integer_ | MonitorMaxConnections defines the maximum number of connections that the monitor can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas. |
+| `syncUsername` _string_ | MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled. |
+| `syncPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled. |
+| `syncMaxConnections` _integer_ | SyncMaxConnections defines the maximum number of connections that the sync can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas. |
 
 
 #### MaxScaleBaseSpec
 
-_Underlying type:_ _[struct{ContainerTemplate "json:\",inline\""; PodTemplate "json:\",inline\""; Image string "json:\"image,omitempty\""; ImagePullPolicy k8s.io/api/core/v1.PullPolicy "json:\"imagePullPolicy,omitempty\""; ImagePullSecrets []k8s.io/api/core/v1.LocalObjectReference "json:\"imagePullSecrets,omitempty\" webhook:\"inmutable\""; Services []MaxScaleService "json:\"services,omitempty\""; Monitor MaxScaleMonitor "json:\"monitor,omitempty\""; Admin MaxScaleAdmin "json:\"admin,omitempty\""; Config MaxScaleConfig "json:\"config,omitempty\""; Auth MaxScaleAuth "json:\"auth,omitempty\""; Connection *ConnectionTemplate "json:\"connection,omitempty\""; Replicas int32 "json:\"replicas,omitempty\""; PodDisruptionBudget *PodDisruptionBudget "json:\"podDisruptionBudget,omitempty\""; UpdateStrategy *k8s.io/api/apps/v1.StatefulSetUpdateStrategy "json:\"updateStrategy,omitempty\""; KubernetesService *ServiceTemplate "json:\"kubernetesService,omitempty\""; RequeueInterval *k8s.io/apimachinery/pkg/apis/meta/v1.Duration "json:\"requeueInterval,omitempty\""}](#struct{containertemplate-"json:\",inline\"";-podtemplate-"json:\",inline\"";-image-string-"json:\"image,omitempty\"";-imagepullpolicy-k8sioapicorev1pullpolicy-"json:\"imagepullpolicy,omitempty\"";-imagepullsecrets-[]k8sioapicorev1localobjectreference-"json:\"imagepullsecrets,omitempty\"-webhook:\"inmutable\"";-services-[]maxscaleservice-"json:\"services,omitempty\"";-monitor-maxscalemonitor-"json:\"monitor,omitempty\"";-admin-maxscaleadmin-"json:\"admin,omitempty\"";-config-maxscaleconfig-"json:\"config,omitempty\"";-auth-maxscaleauth-"json:\"auth,omitempty\"";-connection-*connectiontemplate-"json:\"connection,omitempty\"";-replicas-int32-"json:\"replicas,omitempty\"";-poddisruptionbudget-*poddisruptionbudget-"json:\"poddisruptionbudget,omitempty\"";-updatestrategy-*k8sioapiappsv1statefulsetupdatestrategy-"json:\"updatestrategy,omitempty\"";-kubernetesservice-*servicetemplate-"json:\"kubernetesservice,omitempty\"";-requeueinterval-*k8sioapimachinerypkgapismetav1duration-"json:\"requeueinterval,omitempty\""})_
+
 
 MaxScaleBaseSpec defines the base specification for MaxScale.
 
@@ -539,8 +710,59 @@ _Appears in:_
 - [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleSpec](#maxscalespec)
 
+| Field | Description |
+| --- | --- |
+| `command` _string array_ | Command to be used in the Container. |
+| `args` _string array_ | Args to be used in the Container. |
+| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core) array_ | Env represents the environment variables to be injected in a container. |
+| `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |
+| `volumeMounts` _[VolumeMount](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core) array_ | VolumeMounts to be used in the Container. |
+| `livenessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | LivenessProbe to be used in the Container. |
+| `readinessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | ReadinessProbe to be used in the Container. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
+| `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |
+| `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |
+| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
+| `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
+| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
+| `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
+| `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |
+| `topologySpreadConstraints` _[TopologySpreadConstraint](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core) array_ | TopologySpreadConstraints to be used in the Pod. |
+| `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported. |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
+| `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
+| `services` _[MaxScaleService](#maxscaleservice) array_ | Services define how the traffic is forwarded to the MariaDB servers. It is defaulted if not provided. |
+| `monitor` _[MaxScaleMonitor](#maxscalemonitor)_ | Monitor monitors MariaDB server instances. It is required if 'spec.mariaDbRef' is not provided. |
+| `admin` _[MaxScaleAdmin](#maxscaleadmin)_ | Admin configures the admin REST API and GUI. |
+| `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |
+| `auth` _[MaxScaleAuth](#maxscaleauth)_ | Auth defines the credentials required for MaxScale to connect to MariaDB. |
+| `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection provides a template to define the Connection for MaxScale. |
+| `replicas` _integer_ | Replicas indicates the number of desired instances. |
+| `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
+| `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | UpdateStrategy defines the update strategy for the StatefulSet object. |
+| `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the Kubernetes Service object. |
+| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s. |
 
 
+#### MaxScaleConfig
+
+
+
+MaxScaleConfig defines the MaxScale configuration.
+
+_Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description |
+| --- | --- |
+| `params` _object (keys:string, values:string)_ | Params is a key value pair of parameters to be used in the MaxScale static configuration file. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#global-settings. |
+| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files. It is defaulted if not provided. |
+| `sync` _[MaxScaleConfigSync](#maxscaleconfigsync)_ | Sync defines how to replicate configuration across MaxScale replicas. It is defaulted when HA is enabled. |
 
 
 #### MaxScaleConfigSync
@@ -577,6 +799,25 @@ _Appears in:_
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the listener. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1. |
 
 
+#### MaxScaleMonitor
+
+
+
+MaxScaleMonitor monitors MariaDB server instances
+
+_Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description |
+| --- | --- |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |
+| `name` _string_ | Name is the identifier of the monitor. It is defaulted if not provided. |
+| `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. It is mandatory when no MariaDB reference is provided. |
+| `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. It is defaulted if not provided. |
+| `cooperativeMonitoring` _[CooperativeMonitoring](#cooperativemonitoring)_ | CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when HA is enabled. |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/. Monitor specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters. https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration. |
 
 
 #### MaxScaleServer
@@ -598,6 +839,24 @@ _Appears in:_
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the server. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#server_1. |
 
 
+#### MaxScaleService
+
+
+
+Services define how the traffic is forwarded to the MariaDB servers.
+
+_Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description |
+| --- | --- |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |
+| `name` _string_ | Name is the identifier of the MaxScale service. |
+| `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |
+| `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1. Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration. https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration. |
 
 
 #### MaxScaleSpec
@@ -611,6 +870,39 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `command` _string array_ | Command to be used in the Container. |
+| `args` _string array_ | Args to be used in the Container. |
+| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core) array_ | Env represents the environment variables to be injected in a container. |
+| `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |
+| `volumeMounts` _[VolumeMount](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core) array_ | VolumeMounts to be used in the Container. |
+| `livenessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | LivenessProbe to be used in the Container. |
+| `readinessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | ReadinessProbe to be used in the Container. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
+| `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |
+| `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |
+| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
+| `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
+| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
+| `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
+| `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |
+| `topologySpreadConstraints` _[TopologySpreadConstraint](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core) array_ | TopologySpreadConstraints to be used in the Pod. |
+| `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported. |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
+| `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
+| `services` _[MaxScaleService](#maxscaleservice) array_ | Services define how the traffic is forwarded to the MariaDB servers. It is defaulted if not provided. |
+| `monitor` _[MaxScaleMonitor](#maxscalemonitor)_ | Monitor monitors MariaDB server instances. It is required if 'spec.mariaDbRef' is not provided. |
+| `admin` _[MaxScaleAdmin](#maxscaleadmin)_ | Admin configures the admin REST API and GUI. |
+| `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |
+| `auth` _[MaxScaleAuth](#maxscaleauth)_ | Auth defines the credentials required for MaxScale to connect to MariaDB. |
+| `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection provides a template to define the Connection for MaxScale. |
+| `replicas` _integer_ | Replicas indicates the number of desired instances. |
+| `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
+| `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | UpdateStrategy defines the update strategy for the StatefulSet object. |
+| `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the Kubernetes Service object. |
+| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s. |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field. |
 | `servers` _[MaxScaleServer](#maxscaleserver) array_ | Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided. |
 
@@ -651,7 +943,10 @@ _Appears in:_
 PodDisruptionBudget is the Pod availability bundget for a MariaDB
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |
@@ -666,7 +961,10 @@ _Appears in:_
 PodTemplate defines a template to configure Container objects.
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |
@@ -682,10 +980,56 @@ _Appears in:_
 | `topologySpreadConstraints` _[TopologySpreadConstraint](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core) array_ | TopologySpreadConstraints to be used in the Pod. |
 
 
+#### PrimaryGalera
 
 
 
+PrimaryGalera is the Galera configuration for the primary node.
 
+_Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+
+| Field | Description |
+| --- | --- |
+| `podIndex` _integer_ | PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover. |
+| `automaticFailover` _boolean_ | AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover. |
+
+
+#### PrimaryReplication
+
+
+
+PrimaryReplication is the replication configuration for the primary node.
+
+_Appears in:_
+- [Replication](#replication)
+- [ReplicationSpec](#replicationspec)
+
+| Field | Description |
+| --- | --- |
+| `podIndex` _integer_ | PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover. |
+| `automaticFailover` _boolean_ | AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover. |
+
+
+#### ReplicaReplication
+
+
+
+ReplicaReplication is the replication configuration for the replica nodes.
+
+_Appears in:_
+- [Replication](#replication)
+- [ReplicationSpec](#replicationspec)
+
+| Field | Description |
+| --- | --- |
+| `waitPoint` _[WaitPoint](#waitpoint)_ | WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine. More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |
+| `gtid` _[Gtid](#gtid)_ | Gtid indicates which Global Transaction ID should be used when connecting a replica to the master. See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos. |
+| `replPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user. |
+| `connectionTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ConnectionTimeout to be used when the replica connects to the primary. |
+| `connectionRetries` _integer_ | ConnectionRetries to be used when the replica connects to the primary. |
+| `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover. If the timeout is reached, the replica GTID will be reset and the switchover will continue. |
 
 
 #### Replication
@@ -699,18 +1043,28 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |
+| `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |
+| `syncBinlog` _boolean_ | SyncBinlog indicates whether the binary log should be synchronized to the disk after every event. It trades off performance for consistency. See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog. |
+| `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes. This probes check that the primary can receive queries and that the replica has the replication thread running. |
 | `enabled` _boolean_ | Enabled is a flag to enable Replication. |
 
 
 #### ReplicationSpec
 
-_Underlying type:_ _[struct{Primary *PrimaryReplication "json:\"primary,omitempty\""; Replica *ReplicaReplication "json:\"replica,omitempty\""; SyncBinlog *bool "json:\"syncBinlog,omitempty\""; ProbesEnabled *bool "json:\"probesEnabled,omitempty\""}](#struct{primary-*primaryreplication-"json:\"primary,omitempty\"";-replica-*replicareplication-"json:\"replica,omitempty\"";-syncbinlog-*bool-"json:\"syncbinlog,omitempty\"";-probesenabled-*bool-"json:\"probesenabled,omitempty\""})_
+
 
 ReplicationSpec is the Replication desired state specification.
 
 _Appears in:_
 - [Replication](#replication)
 
+| Field | Description |
+| --- | --- |
+| `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |
+| `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |
+| `syncBinlog` _boolean_ | SyncBinlog indicates whether the binary log should be synchronized to the disk after every event. It trades off performance for consistency. See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog. |
+| `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes. This probes check that the primary can receive queries and that the replica has the replication thread running. |
 
 
 #### ReplicationState
@@ -828,6 +1182,16 @@ _Appears in:_
 | `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |
 
 
+#### SST
+
+_Underlying type:_ _string_
+
+SST is the Snapshot State Transfer used when new Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html.
+
+_Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+
 
 
 #### Schedule
@@ -871,13 +1235,19 @@ _Appears in:_
 
 #### ServiceMonitor
 
-_Underlying type:_ _[struct{PrometheusRelease string "json:\"prometheusRelease,omitempty\""; JobLabel string "json:\"jobLabel,omitempty\""; Interval string "json:\"interval,omitempty\""; ScrapeTimeout string "json:\"scrapeTimeout,omitempty\""}](#struct{prometheusrelease-string-"json:\"prometheusrelease,omitempty\"";-joblabel-string-"json:\"joblabel,omitempty\"";-interval-string-"json:\"interval,omitempty\"";-scrapetimeout-string-"json:\"scrapetimeout,omitempty\""})_
+
 
 ServiceMonitor defines a prometheus ServiceMonitor object.
 
 _Appears in:_
 - [Metrics](#metrics)
 
+| Field | Description |
+| --- | --- |
+| `prometheusRelease` _string_ | PrometheusRelease is the release label to add to the ServiceMonitor object. |
+| `jobLabel` _string_ | JobLabel to add to the ServiceMonitor object. |
+| `interval` _string_ | Interval for scraping metrics. |
+| `scrapeTimeout` _string_ | ScrapeTimeout defines the timeout for scraping metrics. |
 
 
 #### ServiceRouter
@@ -898,7 +1268,10 @@ _Appears in:_
 ServiceTemplate defines a template to customize Service objects.
 
 _Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScaleBaseSpec](#maxscalebasespec)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description |
 | --- | --- |
@@ -1035,6 +1408,8 @@ _Appears in:_
 VolumeClaimTemplate defines a template to customize PVC objects.
 
 _Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleConfig](#maxscaleconfig)
 
