@@ -95,18 +95,22 @@ spec:
     clientPasswordSecretKeyRef:
       name: maxscale
       key: password
+    clientMaxConnections: 90
     serverUsername: maxscale-server
     serverPasswordSecretKeyRef:
       name: maxscale
       key: password
+    serverMaxConnections: 90 
     monitorUsername: maxscale-monitor
     monitorPasswordSecretKeyRef:
       name: maxscale
       key: password
+    monitorMaxConnections: 90 
     syncUsername: maxscale-sync
     syncPasswordSecretKeyRef:
       name: maxscale
       key: password
+    syncMaxConnections: 90
 
   podSecurityContext:
     runAsUser: 0
