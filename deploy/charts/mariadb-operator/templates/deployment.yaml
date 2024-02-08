@@ -53,7 +53,7 @@ spec:
             {{- if .Values.ha.enabled }}
             - --leader-elect
             {{- end }}
-            {{- range .Values.extrArgs }}
+            {{- range .Values.extraArgs }}
             - {{ . }}
             {{- end }}
           ports:
