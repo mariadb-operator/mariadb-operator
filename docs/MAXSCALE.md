@@ -173,7 +173,7 @@ spec:
 
 Once you have provisioned the `MaxScale` resource, you also need to set a reference in the `MariaDB` resource. This is explained in the [MariaDB CR](#mariadb-cr) section.
 
-Refer to the [API reference](./API_REFERENCE.md) and the [example suite](../examples/) for further detail.
+Refer to the [Reference](#reference) section for further detail.
 
 ## `MariaDB` CR
 
@@ -193,9 +193,7 @@ spec:
     enabled: true
 ```
 
-
-
-Refer to the [API reference](./API_REFERENCE.md) and the [example suite](../examples/) for further detail.
+Refer to the [Reference](#reference) section for further detail.
 
 ## `MariaDB` + `MaxScale` CRs
 
@@ -221,7 +219,7 @@ spec:
 ```
 This will automatically setup the references between `MariaDB` and `MaxScale` and [default](#defaults) the rest of the fields as described in previous sections.
 
-Refer to the [API reference](./API_REFERENCE.md) and the [example suite](../examples/) for further detail.
+Refer to the [Reference](#reference) section for further detail.
 
 ## Defaults
 
@@ -235,11 +233,103 @@ Refer to the [API reference](./API_REFERENCE.md) and the [example suite](../exam
 
 ## Server configuration
 
+As an alternative to provide a reference to a `MariaDB` via `spec.mariaDbRef`, you can also specify the servers manually, like in this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml):
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  servers:
+    - name: mariadb-0
+      address: mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local
+    - name: mariadb-1
+      address: mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local
+    - name: mariadb-2
+      address: mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local
+```
+
+As you could see, you can refer to a in-cluser MariaDB server by providing the DNS names of the `MariaDB` `Pods` as server addresses. In addition, you can also refer to external MariaDB instances running outside of the Kubernetes cluster where `mariadb-operator` was deployed, see this [example](../examples/manifests/mariadb_v1alpha1_maxscale_external.yaml):
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  servers:
+    - name: mariadb-0
+      address: 172.18.0.140
+      port: 3306
+    - name: mariadb-1
+      address: 172.18.0.141
+    - name: mariadb-2
+      address: 172.18.0.142
+
+  monitor:
+    name: mariadb-monitor
+    module: galeramon
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      disable_master_failback: "false"
+      available_when_donor: "false"
+      disable_master_role_setting: "false"
+
+  auth:
+    adminUsername: mariadb-operator
+    adminPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    clientUsername: maxscale-client
+    clientPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    serverUsername: maxscale-server
+    serverPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    monitorUsername: maxscale-monitor
+    monitorPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    syncUsername: maxscale-sync
+    syncPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+```
+
+⚠️ Pointing to external MariaDBs has a some limitations ⚠️. Since the operator doesn't have a reference to a `MariaDB` resource (`spec.mariaDbRef`), it will be unable to perform the following actions:
+- Infer the monitor module (`spec.monitor.module`), so it will need to be provided by the user.
+- Autogenerate authentication credentials (`spec.auth`), so they will need to be provided by the user. See [Authentication](#authentication) section. 
+
 ## Server maintenance
+
+You can put servers in maintenance mode by setting `maintenance = true`, as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  servers:
+    - name: mariadb-0
+      address: mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local
+      port: 3306
+      protocol: MariaDBBackend
+      maintenance: false
+```
+
+Maintenance mode prevents MaxScale from routing traffic to the server and also excludes it from being elected as the new primary during failover events.
 
 ## Configuration
 
-Like MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
+Like MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` to instruct the operator to create the `maxscale.conf`, as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -272,7 +362,7 @@ MaxScale requires authentication with differents levels of permissions for the f
 - MaxScale monitor conneccting to MariaDB servers
 - MaxScale configuration sync to connect to MariaDB servers. See [High availability](#high-availability) section.
 
-By default, `mariadb-operator` autogenerates this credentials when `spec.mariaDbRef` and `spec.auth.generate = true`, but you are still able to provide your own, as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
+By default, `mariadb-operator` autogenerates this credentials when `spec.mariaDbRef` is set and `spec.auth.generate = true`, but you are still able to provide your own, as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
