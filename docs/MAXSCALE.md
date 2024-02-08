@@ -13,29 +13,215 @@ To better understand what MaxScale is capable of you may check the [product page
 
 ## MaxScale resources
 
+Prior to configuring MaxScale within Kubernetes, it's essential to have a basic understanding of the resources managed through its API.
+
 #### Servers
 
-https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#server_1
+A server defines the backend database servers that MaxScale forwards traffic to. For more detailed information, please consult the [server reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#server).
 
 #### Monitors
 
-https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/
-https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters
-https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration
+A monitor is agent that queries the state of the servers and makes it available to the services in order to route traffic based on it. For more detailed information, please consult the [monitor reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#monitor).
 
+Depending on which highly available configuration your servers have, you will need to choose betweeen the following modules:
+- [Galera Monitor](https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/): Detects whether servers are part of the cluster, ensuring synchronization among them, and assigning primary and replica roles as needed.
+- [MariaDB Monitor](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/): Probes the state of the cluster, assigns roles to the servers, and executes failover, switchover, and rejoin operations as necessary.
 #### Services
 
-https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1
-https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration
-https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration
+A service defines how the traffic is routed to the servers based on a routing algorithm that takes into account the state of the servers and its role. For more detailed information, please consult the [service reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service).
+
+Depending on your requirements to route traffic, you may choose between the following routers:
+- [Readwritesplit](https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/): Route write queries to the primary server and read queries to the replica servers:
+- [Readconnroute](https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/): Load balance connections between multiple servers.
 
 #### Listeners
 
-https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1
+A listener specifies a port where MaxScale listens for incoming connections. It is associated with a service that handles the requests received on that port. For more detailed information, please consult the [listener reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener).
 
 ## `MaxScale` CR
 
+The minimal spec you need to provision a MaxScale instance is just a reference to a `MariaDB` resource, like in this [example](../examples/manifests/mariadb_v1alpha1_maxscale.yaml):
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+```
+
+This will provision a new `StatefulSet` for running MaxScale and configure the servers specified by the `MariaDB` resource. Refer to the [Server configuration](#server-configuration) section if you want to manually configure the MariaDB servers.
+
+The rest of the configuration uses reasonable [defaults](#defaults) set automatically by the operator. If you need a more fine grained configuration, you can provide this values yourself, see Galera [example](../examples/manifests/mariadb_v1alpha1_maxscale_galera.yaml):
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  mariaDbRef:
+    name: mariadb-galera
+
+  services:
+    - name: rw-router
+      router: readwritesplit
+      params:
+        transaction_replay: "true"
+        transaction_replay_attempts: "10"
+        transaction_replay_timeout: "5s"
+        max_slave_connections: "255"
+        max_replication_lag: "3s"
+        master_accept_reads: "true"
+      listener:
+        port: 3306
+        protocol: MariaDBProtocol
+        params:
+          connection_metadata: "tx_isolation=auto"
+    - name: rconn-master-router
+      router: readconnroute
+      params:
+        router_options: "master"
+        max_replication_lag: "3s"
+        master_accept_reads: "true"
+      listener:
+        port: 3307
+    - name: rconn-slave-router
+      router: readconnroute
+      params:
+        router_options: "slave"
+        max_replication_lag: "3s"
+      listener:
+        port: 3308
+
+  monitor:
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      disable_master_failback: "false"
+      available_when_donor: "false"
+      disable_master_role_setting: "false"
+
+  kubernetesService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+```
+
+As you can see, the [MaxScale resources](#maxscale-resources) we previously mentioned have a counterpart resource in the `MaxScale` CR. 
+
+The previous example configured a `MaxScale` for a Galera cluster, but you may also configure `MaxScale` with a MariaDB that uses replication. It is important to note that the monitor module is automatically infered by the operator based on the `MariaDB` reference you provided, however, its parameters are specific to each monitor module. See the replication [example](../examples/manifests/mariadb_v1alpha1_maxscale_replication.yaml):
+
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-repl
+spec:
+...
+  mariaDbRef:
+    name: mariadb-repl
+
+  services:
+    - name: rw-router
+      router: readwritesplit
+      params:
+        transaction_replay: "true"
+        transaction_replay_attempts: "10"
+        transaction_replay_timeout: "5s"
+        max_slave_connections: "255"
+        max_replication_lag: "3s"
+        master_accept_reads: "true"
+      listener:
+        port: 3306
+        protocol: MariaDBProtocol
+        params:
+          connection_metadata: "tx_isolation=auto"
+    - name: rconn-master-router
+      router: readconnroute
+      params:
+        router_options: "master"
+        max_replication_lag: "3s"
+        master_accept_reads: "true"
+      listener:
+        port: 3307
+    - name: rconn-slave-router
+      router: readconnroute
+      params:
+        router_options: "slave"
+        max_replication_lag: "3s"
+      listener:
+        port: 3308
+
+  monitor:
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      auto_failover: "true"
+      auto_rejoin: "true"
+      switchover_on_low_disk_space: "true"
+
+  kubernetesService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+```
+
+Once you have provisioned the `MaxScale` resource, you also need to set a reference in the `MariaDB` resource. This is explained in the [MariaDB CR](#mariadb-cr) section.
+
+Refer to the [API reference](./API_REFERENCE.md) and the [example suite](../examples/) for further detail.
+
 ## `MariaDB` CR
+
+After having provisioned a `MaxScale` resource as described in the [MaxScale CR](#mariadb-cr) section, you also need to make the `MariaDB` resource aware of this by setting a `spec.maxScaleRef`. By doing so, high availability tasks such the primary failover will be delegated to `MaxScale`, see the following [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml):
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+...
+  maxScaleRef:
+    name: maxscale-galera
+
+  galera:
+    enabled: true
+```
+
+
+
+Refer to the [API reference](./API_REFERENCE.md) and the [example suite](../examples/) for further detail.
+
+## `MariaDB` + `MaxScale` CRs
+
+In order to simplify the setup described in the [MaxScale CR](#mariadb-cr) and [MariaDB CR](#mariadb-cr) sections, you can provision a `MaxScale` to be used with `MariaDB` in just one resource, take a look at this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml):
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+...
+  maxScale:
+    enabled: true
+
+    kubernetesService:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.229
+
+  galera:
+    enabled: true
+```
+This will automatically setup the references between `MariaDB` and `MaxScale` and [default](#defaults) the rest of the fields as described in previous sections.
+
+Refer to the [API reference](./API_REFERENCE.md) and the [example suite](../examples/) for further detail.
 
 ## Configuration
 
@@ -49,11 +235,16 @@ https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-g
 
 ## High availability
 
-## Maintenance
+## Server configuration
 
-## External MariaDBs
+## Server maintenance
 
 ## Status
 
 ## MaxScale GUI
 
+## MaxScale API
+
+`mariadb-operator`interacts with the [MaxScale REST API](https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/) to reconcile the specification provided by the user, considering both the MaxScale status retrieved from the API and the provided spec.
+
+[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://www.postman.com/mariadb-operator/workspace/mariadb-operator/collection/9776-74dfd54a-2b2b-451f-95ab-006e1d9d9998?action=share&creator=9776&active-environment=9776-a841398f-204a-48c8-ac04-6f6c3bb1d268)

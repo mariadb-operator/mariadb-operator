@@ -18,7 +18,7 @@ spec:
 
   # point to an existing MaxScale instance. Doing this will delegate tasks such as primary failover to MaxScale.
   # maxScaleRef:
-  #   name: maxscale
+  #   name: maxscale-repl
 
   # provision a MaxScale instance and set 'spec.maxScaleRef' automatically.
   maxScale:
