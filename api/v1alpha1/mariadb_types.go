@@ -93,14 +93,76 @@ type Metrics struct {
 
 // MariaDBMaxScaleSpec defines a MaxScale resources to be used with the current MariaDB.
 type MariaDBMaxScaleSpec struct {
-	// MaxScaleBaseSpec is the MaxScale desired state specification.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MaxScaleBaseSpec `json:",inline"`
-	// Enabled is a flag to enable Metrics
+	// Enabled is a flag to enable a MaxScale instance to be used with the current MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
+	// ContainerTemplate defines templates to configure Container objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ContainerTemplate `json:",inline"`
+	// PodTemplate defines templates to configure Pod objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodTemplate `json:",inline"`
+	// Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.
+	// Only MaxScale official images are supported.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Image string `json:"image,omitempty"`
+	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+	// +optional
+	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	// Services define how the traffic is forwarded to the MariaDB servers.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Services []MaxScaleService `json:"services,omitempty"`
+	// Monitor monitors MariaDB server instances.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Monitor *MaxScaleMonitor `json:"monitor,omitempty"`
+	// Admin configures the admin REST API and GUI.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Admin *MaxScaleAdmin `json:"admin,omitempty"`
+	// Config defines the MaxScale configuration.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Config *MaxScaleConfig `json:"config,omitempty"`
+	// Auth defines the credentials required for MaxScale to connect to MariaDB.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Auth *MaxScaleAuth `json:"auth,omitempty"`
+	// Connection provides a template to define the Connection for MaxScale.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Connection *ConnectionTemplate `json:"connection,omitempty"`
+	// Replicas indicates the number of desired instances.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
+	Replicas *int32 `json:"replicas,omitempty"`
+	// PodDisruptionBudget defines the budget for replica availability.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
+	// UpdateStrategy defines the update strategy for the StatefulSet object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
+	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
+	// Service defines templates to configure the Kubernetes Service object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	KubernetesService *ServiceTemplate `json:"kubernetesService,omitempty"`
+	// RequeueInterval is used to perform requeue reconcilizations.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
@@ -180,12 +242,12 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
-	// MaxScaleRef is a reference to a MaxScale instance that is forwarding the traffic to the current MariaDB instance.
+	// MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.
 	// Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxScaleRef *corev1.ObjectReference `json:"maxScaleRef,omitempty"`
-	// MaxScale is the MaxScale specification that defines the MaxScale instance that will be used with MariaDB.
+	// MaxScale is the MaxScale specification that defines the MaxScale resource to be used with the current MariaDB.
 	// When enabling this field, MaxScaleRef is automatically set.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

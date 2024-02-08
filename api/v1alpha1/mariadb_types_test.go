@@ -321,19 +321,17 @@ var _ = Describe("MariaDB types", func() {
 					Spec: MariaDBSpec{
 						MaxScale: &MariaDBMaxScaleSpec{
 							Enabled: true,
-							MaxScaleBaseSpec: MaxScaleBaseSpec{
-								Services: []MaxScaleService{
-									{
-										Name:   "rw-router",
-										Router: ServiceRouterReadWriteSplit,
-										Listener: MaxScaleListener{
-											Port: 3306,
-										},
+							Services: []MaxScaleService{
+								{
+									Name:   "rw-router",
+									Router: ServiceRouterReadWriteSplit,
+									Listener: MaxScaleListener{
+										Port: 3306,
 									},
 								},
-								Monitor: MaxScaleMonitor{
-									Module: MonitorModuleMariadb,
-								},
+							},
+							Monitor: &MaxScaleMonitor{
+								Module: MonitorModuleMariadb,
 							},
 						},
 					},
@@ -357,19 +355,17 @@ var _ = Describe("MariaDB types", func() {
 						},
 						MaxScale: &MariaDBMaxScaleSpec{
 							Enabled: true,
-							MaxScaleBaseSpec: MaxScaleBaseSpec{
-								Services: []MaxScaleService{
-									{
-										Name:   "rw-router",
-										Router: ServiceRouterReadWriteSplit,
-										Listener: MaxScaleListener{
-											Port: 3306,
-										},
+							Services: []MaxScaleService{
+								{
+									Name:   "rw-router",
+									Router: ServiceRouterReadWriteSplit,
+									Listener: MaxScaleListener{
+										Port: 3306,
 									},
 								},
-								Monitor: MaxScaleMonitor{
-									Module: MonitorModuleMariadb,
-								},
+							},
+							Monitor: &MaxScaleMonitor{
+								Module: MonitorModuleMariadb,
 							},
 						},
 					},

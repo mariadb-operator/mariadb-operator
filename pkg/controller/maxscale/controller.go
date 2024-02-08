@@ -38,7 +38,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1
 	}
 
 	key := mdb.MaxScaleKey()
-	desiredMxs, err := r.builder.BuildMaxScale(key, mdb, &mdb.Spec.MaxScale.MaxScaleBaseSpec)
+	desiredMxs, err := r.builder.BuildMaxScale(key, mdb, mdb.Spec.MaxScale)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building MaxScale: %v", err)
 	}
@@ -53,8 +53,8 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1
 
 	patch := client.MergeFrom(existingMxs.DeepCopy())
 
-	existingSpec := &existingMxs.Spec.MaxScaleBaseSpec
-	desiredSpec := &desiredMxs.Spec.MaxScaleBaseSpec
+	existingSpec := &existingMxs.Spec
+	desiredSpec := &desiredMxs.Spec
 	specType := reflect.TypeOf(*existingSpec)
 	specValue := reflect.ValueOf(existingSpec).Elem()
 
