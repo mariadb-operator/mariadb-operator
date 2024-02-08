@@ -356,10 +356,10 @@ Refer to the [MaxScale reference](https://mariadb.com/kb/en/mariadb-maxscale-230
 ## Authentication
 
 MaxScale requires authentication with differents levels of permissions for the following components/actors:
-- Admin REST API consumed by `mariadb-operator`
+- [MaxScale API](#maxscale-api) consumed by `mariadb-operator`
 - Clients connecting to MaxScale
 - MaxScale connecting to MariaDB servers
-- MaxScale monitor conneccting to MariaDB servers
+- MaxScale monitor connecting to MariaDB servers
 - MaxScale configuration sync to connect to MariaDB servers. See [High availability](#high-availability) section.
 
 By default, `mariadb-operator` autogenerates this credentials when `spec.mariaDbRef` is set and `spec.auth.generate = true`, but you are still able to provide your own, as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
@@ -402,6 +402,53 @@ spec:
 
 As you could see, you are also able to limit the number of connections for each component/actor. Bear in mind that, when running in [High availability](#high-availability), you may need to increase this number, as more MaxScale instances implies more connections.
 
+## Kubernetes `Service`
+
+In order for your applications to address MaxScale, a Kubernetes `Service` is provisioned with all the ports specified in the MaxScale listeners. You are able to provide a template to customize this `Service`, as this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml) shows:
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  kubernetesService:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+```
+
+Which results in the following `Service` getting reconciled:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.229
+  name: maxscale-galera
+spec:
+...
+  ports:
+  - name: admin
+    port: 8989
+    targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    targetPort: 3308
+  selector:
+    app.kubernetes.io/instance: maxscale-galera
+    app.kubernetes.io/name: maxscale
+  type: LoadBalancer
+```
+
 ## Connection
 
 You can leverage the `Connection` resource to automatically configure connection strings in `Secret` resources that your applications can mount, see this [example](../examples/manifests/mariadb_v1alpha1_connection_maxscale.yaml):
@@ -419,9 +466,10 @@ spec:
     name: maxscale-galera-client
     key: password
   secretName: conn-mxs
+  port: 3306
 ```
 
-Alternatively, you can also provide a connection template to your `MaxScale` resource, see this [example](../examples/manifests/mariadb_v1alpha1_maxscale.yaml):
+Alternatively, you can also provide a connection template to your `MaxScale` resource, see this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml):
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -434,16 +482,156 @@ spec:
     secretName: mxs-galera-conn
     port: 3306
 ```
+Note that, the `Connection` uses the `Service` described in the [Kubernetes Service](#kubernetes-service) section and you are able to specify which MaxScale service to connect to by providing the port (`spec.port`) of the corresponding MaxScale listener.
 
 ## High availability
 
-## Status
+To synchronize the configuration state across multiple replicas, MaxScale stores the configuration externally in a MariaDB table and conducts periodic polling across all replicas. By default, this table is `mysql.maxscale_config`, but this can be configured by the user as well as the synchronization interval.
+
+Another important consideration regarding HA is that only one monitor can be running to prevent conflicts. This can be achieved via cooperative locking, which can be configured by the user. Refer to [MaxScale docs](https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/) for more information.
+
+
+See this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml):
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  replicas: 3
+
+  monitor:
+    name: mariadb-monitor
+    module: galeramon
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      disable_master_failback: "false"
+      available_when_donor: "false"
+      disable_master_role_setting: "false"   
+
+  config:
+    sync:
+      database: mysql
+      interval: 5s
+      timeout: 10s
+```
+
+Multiple `MaxScale` replicas can be specified by providing the `spec.replicas` field. Note that, `MaxScale` exposes the [scale subresource](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource), so you can scale/downscale it by running the following command:
+
+```bash
+kubectl scale maxscale maxscale-galera --replicas 3
+```
+Or even configuring an `HorizontalPodAutoscaler` to do the job automatically.
+
+## Suspend resources
+
+In order to enable this feature, you must set the `--feature-maxscale-suspend` feature flag:
+```bash
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set extraArgs={--feature-maxscale-suspend}
+```
+Then you will be able to suspend [MaxScale resources](#maxscale-resources), for instance, see the following [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) to suspend a monitor:
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  monitor:
+    name: mariadb-monitor
+    module: galeramon
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      disable_master_failback: "false"
+      available_when_donor: "false"
+      disable_master_role_setting: "false"   
+    suspend: true
+```
+
+## Troubleshooting
+
+`mariadb-operator` tracks both the `MaxScale` status in regards to Kubernetes resources as well as the status of the MaxScale API resources. This information is available on the status field of the `MaxScale` resource, it may be very useful for debugging purposes:
+
+```yaml
+status:
+  conditions:
+  - lastTransitionTime: "2024-02-08T17:29:01Z"
+    message: Running
+    reason: MaxScaleReady
+    status: "True"
+    type: Ready
+  configSync:
+    databaseVersion: 20
+    maxScaleVersion: 20
+  listeners:
+  - name: rconn-master-router-listener
+    state: Running
+  - name: rconn-slave-router-listener
+    state: Running
+  - name: rw-router-listener
+    state: Running
+  monitor:
+    name: galeramon-monitor
+    state: Running
+  primaryServer: mariadb-galera-1
+  replicas: 1
+  servers:
+  - name: mariadb-galera-0
+    state: Slave, Synced, Running
+  - name: mariadb-galera-1
+    state: Master, Synced, Running
+  - name: mariadb-galera-2
+    state: Slave, Synced, Running
+  services:
+  - name: rconn-master-router
+    state: Started
+  - name: rconn-slave-router
+    state: Started
+  - name: rw-router
+    state: Started
+```
+
+Kubernetes events emitted by `mariadb-operator` may also be very relevant for debugging. For instance, an event is emitted whenever the primary server changes:
+
+```bash
+ kubectl get events --field-selector involvedObject.name=mariadb-repl-maxscale --sort-by='.lastTimestamp'
+
+LAST SEEN   TYPE      REASON                         OBJECT                           MESSAGE
+24s         Normal    MaxScalePrimaryServerChanged   maxscale/mariadb-repl-maxscale   MaxScale primary server changed from 'mariadb-repl-0' to 'mariadb-repl-1'
+```
+
+`mariadb-operator` logs can also be a good source of information for troubleshooting. You can increase its verbosity and enable [MaxScale API](#maxscale-api) request logs by running:
+
+```bash
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set logLevel=debug --set extraArgs={--log-maxscale}
+```
 
 ## MaxScale GUI
 
+MaxScale offers a shiny user interface that provides very useful information about the [MaxScale resources](#maxscale-resources). You can  enable it providing the following configuration, as this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml) shows:
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  admin:
+    port: 8989
+    guiEnabled: true
+```
+
+The GUI is exposed via the [Kubernetes Service](#kubernetes-service) in the same port as the [MaxScale API](#maxscale-api). Once you access, you will need to enter the [MaxScale API](#maxscale-api) credentials configured by `mariadb-operator` in a `Secret`. See the [Authentication](#authentication) section for more details.
+
 ## MaxScale API
 
-`mariadb-operator`interacts with the [MaxScale REST API](https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/) to reconcile the specification provided by the user, considering both the MaxScale status retrieved from the API and the provided spec.
+`mariadb-operator` interacts with the [MaxScale REST API](https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/) to reconcile the specification provided by the user, considering both the MaxScale status retrieved from the API and the provided spec.
 
 [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://www.postman.com/mariadb-operator/workspace/mariadb-operator/collection/9776-74dfd54a-2b2b-451f-95ab-006e1d9d9998?action=share&creator=9776&active-environment=9776-a841398f-204a-48c8-ac04-6f6c3bb1d268)
 

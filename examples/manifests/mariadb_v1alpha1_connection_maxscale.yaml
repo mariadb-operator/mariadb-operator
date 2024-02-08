@@ -10,6 +10,7 @@ spec:
     name: maxscale-galera-client
     key: password
   secretName: conn-mxs
+  port: 3306
   # this will consume connections from the MaxScale client
   healthCheck:
     interval: 30s
