@@ -437,8 +437,8 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	}
 }
 
-// MaxScaleBaseSpec defines the base specification for MaxScale.
-type MaxScaleBaseSpec struct {
+// MaxScaleSpec defines the desired state of MaxScale.
+type MaxScaleSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -447,6 +447,14 @@ type MaxScaleBaseSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodTemplate `json:",inline"`
+	// MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
+	// Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Servers []MaxScaleServer `json:"servers"`
 	// Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.
 	// Only MaxScale official images are supported.
 	// +optional
@@ -505,22 +513,6 @@ type MaxScaleBaseSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
-}
-
-// MaxScaleSpec defines the desired state of MaxScale.
-type MaxScaleSpec struct {
-	// MaxScaleBaseSpec defines the base specification for MaxScale.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MaxScaleBaseSpec `json:",inline"`
-	// MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
-	// Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Servers []MaxScaleServer `json:"servers"`
 }
 
 // MaxScaleAPIStatus is the state of the servers in the MaxScale API.

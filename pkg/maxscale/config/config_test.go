@@ -20,10 +20,8 @@ func TestMaxScaleConfig(t *testing.T) {
 			name: "default",
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
-						Admin: mariadbv1alpha1.MaxScaleAdmin{
-							Port: 8989,
-						},
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
 					},
 				},
 			},
@@ -41,19 +39,17 @@ admin_secure_gui=false
 			name: "extra params",
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
-						Config: mariadbv1alpha1.MaxScaleConfig{
-							Params: map[string]string{
-								"log_info":   "true",
-								"logdir":     "/var/log/maxscale/",
-								"datadir":    "/var/lib/maxscale/",
-								"persistdir": "/var/lib/maxscale/maxscale.cnf.d/",
-							},
+					Config: mariadbv1alpha1.MaxScaleConfig{
+						Params: map[string]string{
+							"log_info":   "true",
+							"logdir":     "/var/log/maxscale/",
+							"datadir":    "/var/lib/maxscale/",
+							"persistdir": "/var/lib/maxscale/maxscale.cnf.d/",
 						},
-						Admin: mariadbv1alpha1.MaxScaleAdmin{
-							Port:       8989,
-							GuiEnabled: ptr.To(false),
-						},
+					},
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port:       8989,
+						GuiEnabled: ptr.To(false),
 					},
 				},
 			},
@@ -75,17 +71,15 @@ persistdir=/var/lib/maxscale/maxscale.cnf.d/
 			name: "override params",
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
-						Config: mariadbv1alpha1.MaxScaleConfig{
-							Params: map[string]string{
-								"threads":    "4",
-								"datadir":    "/var/lib/maxscale/",
-								"persistdir": "/var/lib/maxscale/maxscale.cnf.d/",
-							},
+					Config: mariadbv1alpha1.MaxScaleConfig{
+						Params: map[string]string{
+							"threads":    "4",
+							"datadir":    "/var/lib/maxscale/",
+							"persistdir": "/var/lib/maxscale/maxscale.cnf.d/",
 						},
-						Admin: mariadbv1alpha1.MaxScaleAdmin{
-							Port: 8989,
-						},
+					},
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
 					},
 				},
 			},
@@ -105,18 +99,16 @@ persistdir=/var/lib/maxscale/maxscale.cnf.d/
 			name: "non overridable params",
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
-						Config: mariadbv1alpha1.MaxScaleConfig{
-							Params: map[string]string{
-								"threads":                 "4",
-								"persist_runtime_changes": "false",
-								"load_persisted_configs":  "false",
-								"admin_secure_gui":        "true",
-							},
+					Config: mariadbv1alpha1.MaxScaleConfig{
+						Params: map[string]string{
+							"threads":                 "4",
+							"persist_runtime_changes": "false",
+							"load_persisted_configs":  "false",
+							"admin_secure_gui":        "true",
 						},
-						Admin: mariadbv1alpha1.MaxScaleAdmin{
-							Port: 8989,
-						},
+					},
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
 					},
 				},
 			},

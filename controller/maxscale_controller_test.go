@@ -97,20 +97,18 @@ var _ = Describe("MaxScale controller", func() {
 						},
 					},
 					MaxScale: &mariadbv1alpha1.MariaDBMaxScaleSpec{
-						Enabled: true,
-						MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
-							Replicas: 3,
-							KubernetesService: &mariadbv1alpha1.ServiceTemplate{
-								Type: corev1.ServiceTypeLoadBalancer,
-								Annotations: map[string]string{
-									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.64",
-								},
+						Enabled:  true,
+						Replicas: ptr.To(int32(3)),
+						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
+							Type: corev1.ServiceTypeLoadBalancer,
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.64",
 							},
-							Connection: &mariadbv1alpha1.ConnectionTemplate{
-								SecretName: ptr.To("mxs-repl-conn"),
-								HealthCheck: &mariadbv1alpha1.HealthCheck{
-									Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
-								},
+						},
+						Connection: &mariadbv1alpha1.ConnectionTemplate{
+							SecretName: ptr.To("mxs-repl-conn"),
+							HealthCheck: &mariadbv1alpha1.HealthCheck{
+								Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 							},
 						},
 					},
@@ -177,20 +175,18 @@ var _ = Describe("MaxScale controller", func() {
 						},
 					},
 					MaxScale: &mariadbv1alpha1.MariaDBMaxScaleSpec{
-						Enabled: true,
-						MaxScaleBaseSpec: mariadbv1alpha1.MaxScaleBaseSpec{
-							Replicas: 3,
-							KubernetesService: &mariadbv1alpha1.ServiceTemplate{
-								Type: corev1.ServiceTypeLoadBalancer,
-								Annotations: map[string]string{
-									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.84",
-								},
+						Enabled:  true,
+						Replicas: ptr.To(int32(3)),
+						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
+							Type: corev1.ServiceTypeLoadBalancer,
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.84",
 							},
-							Connection: &mariadbv1alpha1.ConnectionTemplate{
-								SecretName: ptr.To("mxs-galera-conn"),
-								HealthCheck: &mariadbv1alpha1.HealthCheck{
-									Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
-								},
+						},
+						Connection: &mariadbv1alpha1.ConnectionTemplate{
+							SecretName: ptr.To("mxs-galera-conn"),
+							HealthCheck: &mariadbv1alpha1.HealthCheck{
+								Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 							},
 						},
 					},
