@@ -113,7 +113,7 @@ spec:
 
 As you can see, the [MaxScale resources](#maxscale-resources) we previously mentioned have a counterpart resource in the `MaxScale` CR. 
 
-The previous example configured a `MaxScale` for a Galera cluster, but you may also configure `MaxScale` with a MariaDB that uses replication. It is important to note that the monitor module is automatically infered by the operator based on the `MariaDB` reference you provided, however, its parameters are specific to each monitor module. See the replication [example](../examples/manifests/mariadb_v1alpha1_maxscale_replication.yaml):
+The previous example configured a `MaxScale` for a Galera cluster, but you may also configure `MaxScale` with a `MariaDB` that uses replication. It is important to note that the monitor module is automatically infered by the operator based on the `MariaDB` reference you provided, however, its parameters are specific to each monitor module. See the replication [example](../examples/manifests/mariadb_v1alpha1_maxscale_replication.yaml):
 
 
 ```yaml
@@ -223,21 +223,129 @@ This will automatically setup the references between `MariaDB` and `MaxScale` an
 
 Refer to the [API reference](./API_REFERENCE.md) and the [example suite](../examples/) for further detail.
 
-## Configuration
-
-https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/
-
 ## Defaults
 
-## Authentication
-
-## Connection
-
-## High availability
+`mariadb-operator` aims to provide highly configurable CRs, but at the same maximize its usability by providing reasonable defaults. In the case of `MaxScale`, the following defaulting logic is applied:
+- `spec.servers` are infered from `spec.mariaDbRef` 
+- `spec.monitor.module` is infered from the `spec.mariaDbRef`
+- If `spec.services` is not provided, the following are configured by default
+  - `readwritesplit` service on port `3306`
+  - `readconnroute` service pointing to the primary node on port `3307`
+  - `readconnroute` service pointing to the replica nodes on port `3308`
 
 ## Server configuration
 
 ## Server maintenance
+
+## Configuration
+
+Like MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  config:
+    params:
+      log_info: "true"
+    volumeClaimTemplate:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
+```
+
+Both this static configuration and the resources created by the operator using the [MaxScale API](#maxscale-api) are stored under a volume provisioned by the `spec.config.volumeClaimTemplate`.
+
+Refer to the [MaxScale reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/) to provide static configuration.
+
+## Authentication
+
+MaxScale requires authentication with differents levels of permissions for the following components/actors:
+- Admin REST API consumed by `mariadb-operator`
+- Clients connecting to MaxScale
+- MaxScale connecting to MariaDB servers
+- MaxScale monitor conneccting to MariaDB servers
+- MaxScale configuration sync to connect to MariaDB servers. See [High availability](#high-availability) section.
+
+By default, `mariadb-operator` autogenerates this credentials when `spec.mariaDbRef` and `spec.auth.generate = true`, but you are still able to provide your own, as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  auth:
+    generate: true
+    adminUsername: mariadb-operator
+    adminPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    deleteDefaultAdmin: true
+    clientUsername: maxscale-client
+    clientPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    clientMaxConnections: 90
+    serverUsername: maxscale-server
+    serverPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    serverMaxConnections: 90 
+    monitorUsername: maxscale-monitor
+    monitorPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    monitorMaxConnections: 90 
+    syncUsername: maxscale-sync
+    syncPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    syncMaxConnections: 90
+```
+
+As you could see, you are also able to limit the number of connections for each component/actor. Bear in mind that, when running in [High availability](#high-availability), you may need to increase this number, as more MaxScale instances implies more connections.
+
+## Connection
+
+You can leverage the `Connection` resource to automatically configure connection strings in `Secret` resources that your applications can mount, see this [example](../examples/manifests/mariadb_v1alpha1_connection_maxscale.yaml):
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Connection
+metadata:
+  name: connection-maxscale
+spec:
+  maxScaleRef:
+    name: maxscale-galera
+  username: maxscale-galera-client
+  passwordSecretKeyRef:
+    name: maxscale-galera-client
+    key: password
+  secretName: conn-mxs
+```
+
+Alternatively, you can also provide a connection template to your `MaxScale` resource, see this [example](../examples/manifests/mariadb_v1alpha1_maxscale.yaml):
+
+```yaml
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...  
+  connection:
+    secretName: mxs-galera-conn
+    port: 3306
+```
+
+## High availability
 
 ## Status
 
@@ -248,3 +356,7 @@ https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-g
 `mariadb-operator`interacts with the [MaxScale REST API](https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/) to reconcile the specification provided by the user, considering both the MaxScale status retrieved from the API and the provided spec.
 
 [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://www.postman.com/mariadb-operator/workspace/mariadb-operator/collection/9776-74dfd54a-2b2b-451f-95ab-006e1d9d9998?action=share&creator=9776&active-environment=9776-a841398f-204a-48c8-ac04-6f6c3bb1d268)
+
+## Reference
+- [API reference](./API_REFERENCE.md)
+- [Example suite](../examples/)
