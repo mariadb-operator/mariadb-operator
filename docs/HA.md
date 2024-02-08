@@ -13,4 +13,6 @@ Whenever the primary changes, either by the user or by the operator, both the `<
 
 The primary may be manually changed by the user at any point by updating the `spec.[replication|galera].primary.podIndex` field. Alternatively,  automatic primary failover can be enabled by setting `spec.[replication|galera].primary.automaticFailover`, which will make the operator to switch primary whenever the primary `Pod` goes down.
 
-Although using the Kubernetes services for addressing the primary and secondary works, the most highly available setup we can offer relies on [MaxScale](https://mariadb.com/docs/server/products/mariadb-maxscale/), our advanced database proxy. Please take a look at the [MaxScale docs](./MAXSCALE.md).
+## MaxScale
+
+While Kubernetes services can be utilized to dynamically address primary and secondary instances, the most robust high availability configuration we recommend relies on [MaxScale](https://mariadb.com/docs/server/products/mariadb-maxscale/). Please refer to [MaxScale docs](./MAXSCALE.md) for further details.
