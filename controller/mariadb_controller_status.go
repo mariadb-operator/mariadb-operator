@@ -11,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,13 +24,13 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		return ctrl.Result{}, err
 	}
 
-	replicationStatus, err := r.getReplicationStatus(ctx, mdb)
-	if err != nil {
-		log.FromContext(ctx).V(1).Info("error getting replication status", "err", err)
+	replicationStatus, replErr := r.getReplicationStatus(ctx, mdb)
+	if replErr != nil {
+		log.FromContext(ctx).V(1).Info("error getting replication status", "err", replErr)
 	}
-	mxsPrimaryPodIndex, err := r.getMaxScalePrimaryPod(ctx, mdb)
-	if err != nil {
-		log.FromContext(ctx).V(1).Info("error getting MaxScale primary Pod", "err", err)
+	mxsPrimaryPodIndex, mxsErr := r.getMaxScalePrimaryPod(ctx, mdb)
+	if mxsErr != nil {
+		log.FromContext(ctx).V(1).Info("error getting MaxScale primary Pod", "err", mxsErr)
 	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -41,6 +42,10 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 			status.ReplicationStatus = replicationStatus
 		}
 
+		if apierrors.IsNotFound(mxsErr) {
+			r.ConditionReady.PatcherRefResolver(mxsErr, mariadbv1alpha1.MaxScale{})(&mdb.Status)
+			return nil
+		}
 		if mdb.IsRestoringBackup() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
 			return nil
 		}
@@ -101,7 +106,7 @@ func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mari
 	}
 	mxs, err := r.RefResolver.MaxScale(ctx, mdb.Spec.MaxScaleRef, mdb.Namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error getting MaxScale: %v", err)
+		return nil, err
 	}
 	primarySrv := mxs.Status.GetPrimaryServer()
 	if primarySrv == nil {
