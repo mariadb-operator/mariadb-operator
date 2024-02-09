@@ -3,9 +3,9 @@
 > [!WARNING]  
 > This documentation applies to `mariadb-operator` version >= v0.0.25
 
-MaxScale is a sophisticated database proxy, router, and load balancer designed specifically for MariaDB. It provides a range of features that ensure optimal high availability:
+MaxScale is a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB. It provides a range of features that ensure optimal high availability:
 - Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
-- Connection-based routing: Load balance connection between multiple servers.
+- Connection-based routing: Load balance connections between multiple servers.
 - Automatic primary failover based on MariaDB internals.
 - Replay pending transactions when a server goes down.
 - Support for Galera and Replication.
