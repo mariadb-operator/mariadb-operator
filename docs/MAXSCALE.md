@@ -239,7 +239,7 @@ spec:
   galera:
     enabled: true
 ```
-This will automatically set the references between `MariaDB` and `MaxScale` and [defaults](#defaults) the rest of the fields.
+This will automatically set the references between `MariaDB` and `MaxScale` and [default](#defaults) the rest of the fields.
 
 Refer to the [Reference](#reference) section for further detail.
 
@@ -622,7 +622,7 @@ status:
 Kubernetes events emitted by `mariadb-operator` may also be very relevant for debugging. For instance, an event is emitted whenever the primary server changes:
 
 ```bash
- kubectl get events --field-selector involvedObject.name=mariadb-repl-maxscale --sort-by='.lastTimestamp'
+kubectl get events --field-selector involvedObject.name=mariadb-repl-maxscale --sort-by='.lastTimestamp'
 
 LAST SEEN   TYPE      REASON                         OBJECT                           MESSAGE
 24s         Normal    MaxScalePrimaryServerChanged   maxscale/mariadb-repl-maxscale   MaxScale primary server changed from 'mariadb-repl-0' to 'mariadb-repl-1'
