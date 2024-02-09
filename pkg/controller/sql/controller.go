@@ -2,7 +2,6 @@ package sql
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -42,8 +41,8 @@ func NewSqlReconciler(client client.Client, cr *condition.Ready, wr WrappedRecon
 
 func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.Result, error) {
 	if resource.IsBeingDeleted() {
-		if err := r.Finalizer.Finalize(ctx, resource); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error finalizing %s: %v", resource.GetName(), err)
+		if result, err := r.Finalizer.Finalize(ctx, resource); !result.IsZero() || err != nil {
+			return result, err
 		}
 		return ctrl.Result{}, nil
 	}
@@ -59,14 +58,17 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", errBundle)
 	}
 
-	if err := waitForMariaDB(ctx, r.Client, resource, mariadb); err != nil {
+	if result, err := waitForMariaDB(ctx, r.Client, resource, mariadb); !result.IsZero() || err != nil {
 		var errBundle *multierror.Error
-		errBundle = multierror.Append(errBundle, err)
 
-		err := r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherWithError(err))
-		errBundle = multierror.Append(errBundle, err)
+		if err != nil {
+			errBundle = multierror.Append(errBundle, err)
 
-		return ctrl.Result{}, fmt.Errorf("error waiting for MariaDB: %v", errBundle)
+			err := r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherWithError(err))
+			errBundle = multierror.Append(errBundle, err)
+		}
+
+		return result, errBundle.ErrorOrNil()
 	}
 
 	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
@@ -129,11 +131,7 @@ func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource) (c
 }
 
 func waitForMariaDB(ctx context.Context, client client.Client, resource Resource,
-	mdb *mariadbv1alpha1.MariaDB) error {
-	if !resource.MariaDBRef().WaitForIt {
-		return nil
-	}
-	var mariadbErr *multierror.Error
+	mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	healthy, err := health.IsStatefulSetHealthy(
 		ctx,
 		client,
@@ -143,10 +141,11 @@ func waitForMariaDB(ctx context.Context, client client.Client, resource Resource
 		health.WithEndpointPolicy(health.EndpointPolicyAll),
 	)
 	if err != nil {
-		mariadbErr = multierror.Append(mariadbErr, err)
+		return ctrl.Result{}, err
 	}
 	if !healthy {
-		mariadbErr = multierror.Append(mariadbErr, errors.New("MariaDB not healthy"))
+		log.FromContext(ctx).V(1).Info("MariaDB unhealthy. Requeuing SQL resource")
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
-	return mariadbErr.ErrorOrNil()
+	return ctrl.Result{}, nil
 }

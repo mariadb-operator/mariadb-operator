@@ -30,7 +30,7 @@ type WrappedReconciler interface {
 
 type Finalizer interface {
 	AddFinalizer(context.Context) error
-	Finalize(context.Context, Resource) error
+	Finalize(context.Context, Resource) (ctrl.Result, error)
 }
 
 type WrappedFinalizer interface {
