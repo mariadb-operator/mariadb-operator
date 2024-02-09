@@ -40,8 +40,7 @@ A listener specifies a port where MaxScale listens for incoming connections. It 
 
 ## `MaxScale` CR
 
-The minimal spec you need to provision a MaxScale instance is just a reference to a `MariaDB` resource, like in this [example](../examples/manifests/mariadb_v1alpha1_maxscale.yaml):
-
+The minimal spec you need to provision a MaxScale instance is just a reference to a `MariaDB` resource:
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MaxScale
@@ -54,7 +53,7 @@ spec:
 
 This will provision a new `StatefulSet` for running MaxScale and configure the servers specified by the `MariaDB` resource. Refer to the [Server configuration](#server-configuration) section if you want to manually configure the MariaDB servers.
 
-The rest of the configuration uses reasonable [defaults](#defaults) set automatically by the operator. If you need a more fine grained configuration, you can provide this values yourself, see Galera [example](../examples/manifests/mariadb_v1alpha1_maxscale_galera.yaml):
+The rest of the configuration uses reasonable [defaults](#defaults) set automatically by the operator. If you need a more fine grained configuration, you can provide this values yourself:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -113,8 +112,7 @@ spec:
 
 As you can see, the [MaxScale resources](#maxscale-resources) we previously mentioned have a counterpart resource in the `MaxScale` CR. 
 
-The previous example configured a `MaxScale` for a Galera cluster, but you may also configure `MaxScale` with a `MariaDB` that uses replication. It is important to note that the monitor module is automatically infered by the operator based on the `MariaDB` reference you provided, however, its parameters are specific to each monitor module. See the replication [example](../examples/manifests/mariadb_v1alpha1_maxscale_replication.yaml):
-
+The previous example configured a `MaxScale` for a Galera cluster, but you may also configure `MaxScale` with a `MariaDB` that uses replication. It is important to note that the monitor module is automatically infered by the operator based on the `MariaDB` reference you provided, however, its parameters are specific to each monitor module:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -177,7 +175,7 @@ Refer to the [Reference](#reference) section for further detail.
 
 ## `MariaDB` CR
 
-After having provisioned a `MaxScale` resource as described in the [MaxScale CR](#mariadb-cr) section, you also need to make the `MariaDB` resource aware of this by setting a `spec.maxScaleRef`. By doing so, high availability tasks such the primary failover will be delegated to `MaxScale`, see the following [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml):
+After having provisioned a `MaxScale` resource as described in the [MaxScale CR](#mariadb-cr) section, you also need to make the `MariaDB` resource aware of this by setting a `spec.maxScaleRef`. By doing so, high availability tasks such the primary failover will be delegated to `MaxScale`:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -197,7 +195,7 @@ Refer to the [Reference](#reference) section for further detail.
 
 ## `MariaDB` + `MaxScale` CRs
 
-In order to simplify the setup described in the [MaxScale CR](#mariadb-cr) and [MariaDB CR](#mariadb-cr) sections, you can provision a `MaxScale` to be used with `MariaDB` in just one resource, take a look at this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml):
+In order to simplify the setup described in the [MaxScale CR](#mariadb-cr) and [MariaDB CR](#mariadb-cr) sections, you can provision a `MaxScale` to be used with `MariaDB` in just one resource:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -224,16 +222,17 @@ Refer to the [Reference](#reference) section for further detail.
 ## Defaults
 
 `mariadb-operator` aims to provide highly configurable CRs, but at the same maximize its usability by providing reasonable defaults. In the case of `MaxScale`, the following defaulting logic is applied:
-- `spec.servers` are infered from `spec.mariaDbRef` 
-- `spec.monitor.module` is infered from the `spec.mariaDbRef`
-- If `spec.services` is not provided, the following are configured by default
-  - `readwritesplit` service on port `3306`
-  - `readconnroute` service pointing to the primary node on port `3307`
-  - `readconnroute` service pointing to the replica nodes on port `3308`
+- `spec.servers` are infered from `spec.mariaDbRef`,
+- `spec.monitor.module` is infered from the `spec.mariaDbRef`.
+- `spec.monitor.cooperativeMonitoring` is set if [High availability](#high-availability) is enabled.
+- If `spec.services` is not provided, the following are configured by default:
+  - `readwritesplit` service on port `3306`.
+  - `readconnroute` service pointing to the primary node on port `3307`.
+  - `readconnroute` service pointing to the replica nodes on port `3308`.
 
 ## Server configuration
 
-As an alternative to provide a reference to a `MariaDB` via `spec.mariaDbRef`, you can also specify the servers manually, like in this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml):
+As an alternative to provide a reference to a `MariaDB` via `spec.mariaDbRef`, you can also specify the servers manually:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -251,7 +250,7 @@ spec:
       address: mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local
 ```
 
-As you could see, you can refer to a in-cluser MariaDB server by providing the DNS names of the `MariaDB` `Pods` as server addresses. In addition, you can also refer to external MariaDB instances running outside of the Kubernetes cluster where `mariadb-operator` was deployed, see this [example](../examples/manifests/mariadb_v1alpha1_maxscale_external.yaml):
+As you could see, you can refer to a in-cluser MariaDB server by providing the DNS names of the `MariaDB` `Pods` as server addresses. In addition, you can also refer to external MariaDB instances running outside of the Kubernetes cluster where `mariadb-operator` was deployed:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -308,7 +307,7 @@ spec:
 
 ## Server maintenance
 
-You can put servers in maintenance mode by setting `maintenance = true`, as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
+You can put servers in maintenance mode by setting `maintenance = true`:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -329,7 +328,7 @@ Maintenance mode prevents MaxScale from routing traffic to the server and also e
 
 ## Configuration
 
-Like MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` to instruct the operator to create the `maxscale.conf`, as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
+Like MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` to instruct the operator to create the `maxscale.conf`:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -362,7 +361,7 @@ MaxScale requires authentication with differents levels of permissions for the f
 - MaxScale monitor connecting to MariaDB servers
 - MaxScale configuration sync to connect to MariaDB servers. See [High availability](#high-availability) section.
 
-By default, `mariadb-operator` autogenerates this credentials when `spec.mariaDbRef` is set and `spec.auth.generate = true`, but you are still able to provide your own, as this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) shows:
+By default, `mariadb-operator` autogenerates this credentials when `spec.mariaDbRef` is set and `spec.auth.generate = true`, but you are still able to provide your own:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -404,7 +403,7 @@ As you could see, you are also able to limit the number of connections for each 
 
 ## Kubernetes `Service`
 
-In order for your applications to address MaxScale, a Kubernetes `Service` is provisioned with all the ports specified in the MaxScale listeners. You are able to provide a template to customize this `Service`, as this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml) shows:
+In order for your applications to address MaxScale, a Kubernetes `Service` is provisioned with all the ports specified in the MaxScale listeners. You are able to provide a template to customize this `Service`:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -451,7 +450,7 @@ spec:
 
 ## Connection
 
-You can leverage the `Connection` resource to automatically configure connection strings in `Secret` resources that your applications can mount, see this [example](../examples/manifests/mariadb_v1alpha1_connection_maxscale.yaml):
+You can leverage the `Connection` resource to automatically configure connection strings in `Secret` resources that your applications can mount:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -469,7 +468,7 @@ spec:
   port: 3306
 ```
 
-Alternatively, you can also provide a connection template to your `MaxScale` resource, see this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml):
+Alternatively, you can also provide a connection template to your `MaxScale` resource:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -489,9 +488,6 @@ Note that, the `Connection` uses the `Service` described in the [Kubernetes Serv
 To synchronize the configuration state across multiple replicas, MaxScale stores the configuration externally in a MariaDB table and conducts periodic polling across all replicas. By default, this table is `mysql.maxscale_config`, but this can be configured by the user as well as the synchronization interval.
 
 Another important consideration regarding HA is that only one monitor can be running to prevent conflicts. This can be achieved via cooperative locking, which can be configured by the user. Refer to [MaxScale docs](https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/) for more information.
-
-
-See this [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml):
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -532,7 +528,7 @@ In order to enable this feature, you must set the `--feature-maxscale-suspend` f
 ```bash
 helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set extraArgs={--feature-maxscale-suspend}
 ```
-Then you will be able to suspend [MaxScale resources](#maxscale-resources), for instance, see the following [example](../examples/manifests/mariadb_v1alpha1_maxscale_full.yaml) to suspend a monitor:
+Then you will be able to suspend any [MaxScale resources](#maxscale-resources), for instance, you can suspend a monitor:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -613,7 +609,7 @@ helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set 
 
 ## MaxScale GUI
 
-MaxScale offers a shiny user interface that provides very useful information about the [MaxScale resources](#maxscale-resources). You can  enable it providing the following configuration, as this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_maxscale.yaml) shows:
+MaxScale offers a shiny user interface that provides very useful information about the [MaxScale resources](#maxscale-resources). You can  enable it providing the following configuration:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
