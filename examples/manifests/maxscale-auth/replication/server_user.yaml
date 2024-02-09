@@ -1,7 +1,7 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: User
 metadata:
-  name: maxscale-server
+  name: maxscale-repl-server
 spec:
   mariaDbRef:
     name: mariadb-repl

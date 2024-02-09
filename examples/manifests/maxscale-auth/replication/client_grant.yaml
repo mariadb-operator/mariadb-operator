@@ -1,7 +1,7 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: Grant
 metadata:
-  name: maxscale-client
+  name: maxscale-repl-client
 spec:
   mariaDbRef:
     name: mariadb-repl
@@ -12,7 +12,7 @@ spec:
     - "DELETE"
   database: "*"
   table: "*"
-  username: maxscale-client
+  username: maxscale-repl-client
   grantOption: false
   host: "%" 
   retryInterval: 5s

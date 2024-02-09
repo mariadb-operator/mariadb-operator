@@ -1,9 +1,8 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: User
 metadata:
-  name: maxscale-monitor-galera
+  name: maxscale-galera-monitor
 spec:
-  name: maxscale-monitor
   mariaDbRef:
     name: mariadb-galera
   passwordSecretKeyRef:

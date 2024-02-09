@@ -91,22 +91,22 @@ spec:
       name: maxscale
       key: password
     deleteDefaultAdmin: true
-    clientUsername: maxscale-client
+    clientUsername: maxscale-galera-client
     clientPasswordSecretKeyRef:
       name: maxscale
       key: password
     clientMaxConnections: 90
-    serverUsername: maxscale-server
+    serverUsername: maxscale-galera-server
     serverPasswordSecretKeyRef:
       name: maxscale
       key: password
     serverMaxConnections: 90 
-    monitorUsername: maxscale-monitor
+    monitorUsername: maxscale-galera-monitor
     monitorPasswordSecretKeyRef:
       name: maxscale
       key: password
     monitorMaxConnections: 90 
-    syncUsername: maxscale-sync
+    syncUsername: maxscale-galera-sync
     syncPasswordSecretKeyRef:
       name: maxscale
       key: password

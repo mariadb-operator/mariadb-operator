@@ -1,7 +1,7 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: Grant
 metadata:
-  name: maxscale-monitor
+  name: maxscale-repl-monitor
 spec:
   mariaDbRef:
     name: mariadb-repl
@@ -24,7 +24,7 @@ spec:
     - "SUPER"
   database: "*"
   table: "*"
-  username: maxscale-monitor
+  username: maxscale-repl-monitor
   grantOption: false
   host: "%"
   retryInterval: 5s

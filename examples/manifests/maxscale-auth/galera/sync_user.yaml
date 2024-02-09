@@ -1,7 +1,7 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: User
 metadata:
-  name: maxscale-sync
+  name: maxscale-galera-sync
 spec:
   mariaDbRef:
     name: mariadb-galera

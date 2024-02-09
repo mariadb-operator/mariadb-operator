@@ -1,7 +1,7 @@
 apiVersion: mariadb.mmontes.io/v1alpha1
 kind: Grant
 metadata:
-  name: maxscale-sync-galera
+  name: maxscale-galera-sync
 spec:
   mariaDbRef:
     name: mariadb-galera
@@ -13,7 +13,7 @@ spec:
     - "DROP"
   database: "mysql"
   table: "maxscale_config"
-  username: maxscale-sync
+  username: maxscale-galera-sync
   grantOption: false
   host: "%" 
   retryInterval: 5s

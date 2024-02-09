@@ -72,19 +72,19 @@ spec:
     adminPasswordSecretKeyRef:
       name: maxscale
       key: password
-    clientUsername: maxscale-client
+    clientUsername: maxscale-galera-client
     clientPasswordSecretKeyRef:
       name: maxscale
       key: password
-    serverUsername: maxscale-server
+    serverUsername: maxscale-galera-server
     serverPasswordSecretKeyRef:
       name: maxscale
       key: password
-    monitorUsername: maxscale-monitor
+    monitorUsername: maxscale-galera-monitor
     monitorPasswordSecretKeyRef:
       name: maxscale
       key: password
-    syncUsername: maxscale-sync
+    syncUsername: maxscale-galera-sync
     syncPasswordSecretKeyRef:
       name: maxscale
       key: password
