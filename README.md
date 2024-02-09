@@ -25,9 +25,9 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Highly configurable](./examples/manifests/mariadb_v1alpha1_mariadb_full.yaml) MariaDB servers.
 - Multiple [HA modes](./docs/HA.md): SemiSync Replication and Galera.
 - Automatic [primary failover](./docs/HA.md).
-- Enhanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer designed specifically for MariaDB.
+- Enhanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB.
   - Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
-  - Connection-based routing: Load balance connection between multiple servers.
+  - Connection-based routing: Load balance connections between multiple servers.
   - Automatic primary failover based on MariaDB internals.
   - Replay pending transactions when a server goes down.
   - Support for Galera and Replication.
