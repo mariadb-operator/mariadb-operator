@@ -628,6 +628,8 @@ spec:
 
 The GUI is exposed via the [Kubernetes Service](#kubernetes-service) in the same port as the [MaxScale API](#maxscale-api). Once you access, you will need to enter the [MaxScale API](#maxscale-api) credentials configured by `mariadb-operator` in a `Secret`. See the [Authentication](#authentication) section for more details.
 
+![MaxScale GUI](https://mariadb-operator.github.io/mariadb-operator/assets/maxscale-gui.png)
+
 ## MaxScale API
 
 `mariadb-operator` interacts with the [MaxScale REST API](https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/) to reconcile the specification provided by the user, considering both the MaxScale status retrieved from the API and the provided spec.
