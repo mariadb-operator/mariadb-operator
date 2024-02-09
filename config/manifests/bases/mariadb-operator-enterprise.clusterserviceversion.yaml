@@ -2682,13 +2682,11 @@ spec:
     type: AllNamespaces
   keywords:
   - mariadb
+  - mysql
+  - operator
   - mariadb-operator
   - database
-  - sql
-  - backup
-  - restore
-  - high-availability
-  - storage
+  - maxscale
   links:
   - name: MariaDB
     url: https://mariadb.com/

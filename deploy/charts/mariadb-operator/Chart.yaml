@@ -11,7 +11,9 @@ maintainers:
   - name: mmontes11
     email: mariadb-operator@proton.me
 keywords:
-  - "mariadb"
-  - "operator"
-  - "mariadb-operator"
-  - "database"
+  - mariadb
+  - mysql
+  - operator
+  - mariadb-operator
+  - database
+  - maxscale
