@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -241,14 +242,10 @@ func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, req *requestMa
 }
 
 func (r *MaxScaleReconciler) setMariadbDefaults(ctx context.Context, req *requestMaxScale) error {
-	if req.mxs.Spec.MariaDBRef == nil {
-		return nil
-	}
-	mdb, err := r.RefResolver.MariaDB(ctx, req.mxs.Spec.MariaDBRef, req.mxs.Namespace)
+	mdb, err := r.getMariaDB(ctx, req)
 	if err != nil {
-		return fmt.Errorf("error getting MariaDB reference: %v", err)
+		return err
 	}
-
 	servers := make([]mariadbv1alpha1.MaxScaleServer, mdb.Spec.Replicas)
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
 		name := stsobj.PodName(mdb.ObjectMeta, i)
@@ -286,6 +283,27 @@ func (r *MaxScaleReconciler) setMariadbDefaults(ctx context.Context, req *reques
 		}
 		mxs.SetDefaults(r.Environment)
 	})
+}
+
+func (r *MaxScaleReconciler) getMariaDB(ctx context.Context, req *requestMaxScale) (*mariadbv1alpha1.MariaDB, error) {
+	if req.mxs.Spec.MariaDBRef == nil {
+		return nil, errors.New("'spec.mariaDbRef' must be set")
+	}
+	mdb, err := r.RefResolver.MariaDB(ctx, req.mxs.Spec.MariaDBRef, req.mxs.Namespace)
+	if err != nil {
+		var errBundle *multierror.Error
+		errBundle = multierror.Append(errBundle, err)
+
+		patcher := r.ConditionReady.PatcherRefResolver(err, mdb)
+		patchErr := r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+			patcher(mss)
+			return nil
+		})
+		errBundle = multierror.Append(errBundle, patchErr)
+
+		return nil, fmt.Errorf("error getting MariaDB: %v", errBundle)
+	}
+	return mdb, nil
 }
 
 func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
