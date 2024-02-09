@@ -12,6 +12,29 @@ MaxScale is a sophisticated database proxy, router, and load balancer designed s
 
 To better understand what MaxScale is capable of you may check the [product page](https://mariadb.com/docs/server/products/mariadb-maxscale/) and the [documentation](https://mariadb.com/kb/en/maxscale/). 
 
+## Table of contents
+- [MaxScale resources](#maxscale-resources)
+    - [Servers](#servers)
+    - [Monitors](#monitors)
+    - [Services](#services)
+    - [Listeners](#listeners)
+- [`MaxScale` CR](#maxscale-cr)
+- [`MariaDB` CR](#mariadb-cr)
+- [`MariaDB` + `MaxScale` CRs](#mariadb--maxscale-crs)
+- [Defaults](#defaults)
+- [Server configuration](#server-configuration)
+- [Server maintenance](#server-maintenance)
+- [Configuration](#configuration)
+- [Authentication](#authentication)
+- [Kubernetes `Service`](#kubernetes-service)
+- [Connection](#connection)
+- [High availability](#high-availability)
+- [Suspend resources](#suspend-resources)
+- [Troubleshooting](#troubleshooting)
+- [MaxScale GUI](#maxscale-gui)
+- [MaxScale API](#maxscale-api)
+- [Reference](#reference)
+
 ## MaxScale resources
 
 Prior to configuring MaxScale within Kubernetes, it's essential to have a basic understanding of the resources managed through its API.
@@ -176,7 +199,7 @@ Refer to the [Reference](#reference) section for further detail.
 
 ## `MariaDB` CR
 
-You can set a `spec.maxScaleRef` in your `MariaDB` resource to make it `MaxScale`-aware. By doing so, the primary server reported by `MaxScale` will be used and the high availability tasks such the primary failover will be delegated to `MaxScale`:
+You can set a `spec.maxScaleRef` in your `MariaDB` resource to make it `MaxScale`-aware. By doing so, the primary server reported by `MaxScale` will be used in `MariaDB` and the high availability tasks such the primary failover will be delegated to `MaxScale`:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -216,7 +239,7 @@ spec:
   galera:
     enabled: true
 ```
-This will automatically set the references between `MariaDB` and `MaxScale` and [default](#defaults) the rest of the fields as described in previous sections.
+This will automatically set the references between `MariaDB` and `MaxScale` and [defaults](#defaults) the rest of the fields.
 
 Refer to the [Reference](#reference) section for further detail.
 
@@ -322,7 +345,7 @@ spec:
       address: mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local
       port: 3306
       protocol: MariaDBBackend
-      maintenance: false
+      maintenance: true
 ```
 
 Maintenance mode prevents MaxScale from routing traffic to the server and also excludes it from being elected as the new primary during failover events.
@@ -349,9 +372,9 @@ spec:
         - ReadWriteOnce
 ```
 
-Both this static configuration and the resources created by the operator using the [MaxScale API](#maxscale-api) are stored under a volume provisioned by the `spec.config.volumeClaimTemplate`.
+Both this global configuration and the resources created by the operator using the [MaxScale API](#maxscale-api) are stored under a volume provisioned by the `spec.config.volumeClaimTemplate`.
 
-Refer to the [MaxScale reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/) to provide static configuration.
+Refer to the [MaxScale reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/) to provide global configuration.
 
 ## Authentication
 
@@ -482,6 +505,7 @@ spec:
     secretName: mxs-galera-conn
     port: 3306
 ```
+
 Note that, the `Connection` uses the `Service` described in the [Kubernetes Service](#kubernetes-service) section and you are able to specify which MaxScale service to connect to by providing the port (`spec.port`) of the corresponding MaxScale listener.
 
 ## High availability
