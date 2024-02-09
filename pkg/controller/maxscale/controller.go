@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
@@ -32,9 +31,6 @@ func NewMaxScaleReconciler(client client.Client, builder *builder.Builder, env *
 func (r *MaxScaleReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if !ptr.Deref(mdb.Spec.MaxScale, mariadbv1alpha1.MariaDBMaxScaleSpec{}).Enabled {
 		return ctrl.Result{}, nil
-	}
-	if !mdb.IsReady() {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	key := mdb.MaxScaleKey()
