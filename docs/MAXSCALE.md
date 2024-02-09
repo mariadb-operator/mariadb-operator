@@ -4,8 +4,8 @@
 > This documentation applies to `mariadb-operator` version >= v0.0.25
 
 MaxScale is a sophisticated database proxy, router, and load balancer designed specifically for MariaDB. It provides a range of features that ensure optimal high availability:
-- Query based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
-- Connection based routing: Load balance connection between multiple servers.
+- Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
+- Connection-based routing: Load balance connection between multiple servers.
 - Automatic primary failover based on MariaDB internals.
 - Replay pending transactions when a server goes down.
 - Support for Galera and replication.
@@ -136,7 +136,7 @@ spec:
 
 As you can see, the [MaxScale resources](#maxscale-resources) we previously mentioned have a counterpart resource in the `MaxScale` CR. 
 
-The previous example configured a `MaxScale` for a Galera cluster, but you may also configure `MaxScale` with a `MariaDB` that uses replication. It is important to note that the monitor module is automatically infered by the operator based on the `MariaDB` reference you provided, however, its parameters are specific to each monitor module:
+The previous example configured a `MaxScale` for a Galera cluster, but you may also configure `MaxScale` with a `MariaDB` that uses replication. It is important to note that the monitor module is automatically inferred by the operator based on the `MariaDB` reference you provided, however, its parameters are specific to each monitor module:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -219,7 +219,7 @@ Refer to the [Reference](#reference) section for further detail.
 
 ## `MariaDB` + `MaxScale` CRs
 
-In order to simplify the setup described in the [MaxScale CR](#mariadb-cr) and [MariaDB CR](#mariadb-cr) sections, you can provision a `MaxScale` to be used with `MariaDB` in just one resource:
+To streamline the setup outlined in the [MaxScale CR](#mariadb-cr) and [MariaDB CR](#mariadb-cr) sections, you can provision a `MaxScale` to be used with `MariaDB` in just one resource:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -246,8 +246,8 @@ Refer to the [Reference](#reference) section for further detail.
 ## Defaults
 
 `mariadb-operator` aims to provide highly configurable CRs, but at the same maximize its usability by providing reasonable defaults. In the case of `MaxScale`, the following defaulting logic is applied:
-- `spec.servers` are infered from `spec.mariaDbRef`.
-- `spec.monitor.module` is infered from the `spec.mariaDbRef`.
+- `spec.servers` are inferred from `spec.mariaDbRef`.
+- `spec.monitor.module` is inferred from the `spec.mariaDbRef`.
 - `spec.monitor.cooperativeMonitoring` is set if [high availability](#high-availability) is enabled.
 - If `spec.services` is not provided, the following are configured by default:
   - `readwritesplit` service on port `3306`.
@@ -352,7 +352,7 @@ Maintenance mode prevents MaxScale from routing traffic to the server and also e
 
 ## Configuration
 
-Like MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` to instruct the operator to create the `maxscale.conf`:
+Similar to MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` to instruct the operator to create the `maxscale.conf`:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -427,7 +427,7 @@ As you could see, you are also able to limit the number of connections for each 
 
 ## Kubernetes `Service`
 
-In order for your applications to address MaxScale, a Kubernetes `Service` is provisioned with all the ports specified in the MaxScale listeners. You are able to provide a template to customize this `Service`:
+To enable your applications to communicate with MaxScale, a Kubernetes `Service` is provisioned with all the ports specified in the MaxScale listeners. You have the flexibility to provide a template to customize this `Service`:
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
@@ -442,7 +442,7 @@ spec:
       metallb.universe.tf/loadBalancerIPs: 172.18.0.224
 ```
 
-Which results in the following `Service` getting reconciled:
+This results in the reconciliation of the following `Service`:
 
 ```yaml
 apiVersion: v1
@@ -512,7 +512,7 @@ Note that, the `Connection` uses the `Service` described in the [Kubernetes Serv
 
 To synchronize the configuration state across multiple replicas, MaxScale stores the configuration externally in a MariaDB table and conducts periodic polling across all replicas. By default, the table `mysql.maxscale_config` is used, but this can be configured by the user as well as the synchronization interval.
 
-Another important consideration regarding HA is that only one monitor can be running at a time in order to prevent conflicts. This can be achieved via cooperative locking, which can be configured by the user. Refer to [MaxScale docs](https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/) for more information.
+Another crucial aspect to consider regarding HA is that only one monitor can be running at any given time to avoid conflicts. This can be achieved via cooperative locking, which can be configured by the user. Refer to [MaxScale docs](https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/) for more information.
 
 ```yaml
 apiVersion: mariadb.mmontes.io/v1alpha1
