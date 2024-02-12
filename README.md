@@ -50,8 +50,6 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 
 Please, refer to the [documentation](./docs/), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail.
 
-`mariadb-operator` community is growing, take a look at the [list of adopters](./ADOPTERS.md).
-
 ## Bare minimum installation
 
 This installation flavour provides the minimum resources required to run `mariadb-operator` in your cluster.
@@ -188,6 +186,10 @@ You can embrace [GitOps](https://opengitops.dev/) best practises by using this o
 ## Roadmap
 
 Take a look at our [roadmap](./ROADMAP.md) and feel free to open an issue to suggest new features.
+
+## Adopters
+
+Please create a PR and add your company or project to our [ADOPTERS.md file](./ADOPTERS.md) if you are using our project!
 
 ## Contributing
 
