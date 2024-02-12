@@ -2,4 +2,4 @@
 
 - `<YOUR-COMPANY>`
 
-Feel free open a PR and add your company to the list!
+Feel free open a PR and add your company or project to the list!
