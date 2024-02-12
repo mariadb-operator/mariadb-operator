@@ -113,6 +113,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileSecret,
 		},
 		{
+			name:      "Auth",
+			reconcile: r.reconcileAuth,
+		},
+		{
 			name:      "ServiceAccount",
 			reconcile: r.reconcileServiceAccount,
 		},
@@ -131,10 +135,6 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "StatefulSet Ready",
 			reconcile: r.ensureStatefulSetReady,
-		},
-		{
-			name:      "Auth",
-			reconcile: r.reconcileAuth,
 		},
 		{
 			name:      "Admin",
