@@ -3,6 +3,9 @@
 > [!WARNING]  
 > This documentation applies to `mariadb-operator` version >= v0.0.25
 
+> [!IMPORTANT]  
+> MaxScale 23.08 is licensed under [Business Source License](https://github.com/mariadb-corporation/MaxScale/blob/23.08/LICENSE2308.TXT)
+
 MaxScale is a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB. It provides a range of features that ensure optimal high availability:
 - Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
 - Connection-based routing: Load balance connections between multiple servers.
