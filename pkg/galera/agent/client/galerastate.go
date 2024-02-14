@@ -2,22 +2,28 @@ package client
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
 type GaleraState struct {
-	*Client
+	client *mdbhttp.Client
+}
+
+func NewGaleraState(client *mdbhttp.Client) *GaleraState {
+	return &GaleraState{
+		client: client,
+	}
 }
 
 func (g *GaleraState) Get(ctx context.Context) (*recovery.GaleraState, error) {
-	req, err := g.newRequestWithContext(ctx, http.MethodGet, "/api/galerastate", nil)
+	res, err := g.client.Get(ctx, "/api/galerastate", nil)
 	if err != nil {
 		return nil, err
 	}
 	var galeraState recovery.GaleraState
-	if err := g.do(req, &galeraState); err != nil {
+	if err := handleResponse(res, &galeraState); err != nil {
 		return nil, err
 	}
 	return &galeraState, nil
