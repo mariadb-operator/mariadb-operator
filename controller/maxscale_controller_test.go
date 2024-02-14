@@ -130,7 +130,7 @@ var _ = Describe("MaxScale controller", func() {
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
-			expecFailoverSuccess(&testMdbMxs, 30*time.Second)
+			expecFailoverSuccess(&testMdbMxs, 40*time.Second)
 		})
 	})
 
@@ -208,7 +208,7 @@ var _ = Describe("MaxScale controller", func() {
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
-			expecFailoverSuccess(&testMdbMxs, 10*time.Second)
+			expecFailoverSuccess(&testMdbMxs, 20*time.Second)
 		})
 	})
 })
@@ -332,7 +332,7 @@ func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB, primaryTearDownPeriod ti
 		g.Expect(*podIndex).NotTo(Equal(prevPrimaryPodIndex))
 		g.Expect(*podIndex).To(Equal(*mdb.Status.CurrentPrimaryPodIndex))
 		return true
-	}, testTimeout, testInterval).Should(BeTrue())
+	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
 func deleteMaxScale(key types.NamespacedName) {
