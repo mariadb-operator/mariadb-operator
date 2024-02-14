@@ -46,10 +46,7 @@ spec:
     sst: mariabackup
     replicaThreads: 1
     agent:
-      image:
-        repository: ghcr.io/mariadb-operator/agent
-        tag: "v0.0.2"
-        pullPolicy: IfNotPresent
+      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
       port: 5555
       kubernetesAuth:
         enabled: true
@@ -104,7 +101,7 @@ kubectl get mariadb mariadb-galera -o jsonpath="{.status.conditions[?(@.type=='G
 
 kubectl get statefulsets -o wide
 NAME             READY   AGE   CONTAINERS      IMAGES
-mariadb-galera   3/3     58m   mariadb,agent   mariadb:11.0.3,ghcr.io/mariadb-operator/agent:v0.0.3
+mariadb-galera   3/3     58m   mariadb,agent   mariadb:11.0.3,ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
 
 kubectl get pods -o wide
 NAME                                        READY   STATUS    RESTARTS   AGE   IP           NODE          NOMINATED NODE   READINESS GATES
