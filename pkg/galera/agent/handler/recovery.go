@@ -9,17 +9,16 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/mariadb-operator/agent/pkg/galera"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/responsewriter"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 type Recovery struct {
 	fileManager    *filemanager.FileManager
-	responseWriter *responsewriter.ResponseWriter
+	responseWriter *mdbhttp.ResponseWriter
 	locker         sync.Locker
 	logger         *logr.Logger
 	timeout        time.Duration
@@ -33,7 +32,7 @@ func WithRecoveryTimeout(timeout time.Duration) RecoveryOption {
 	}
 }
 
-func NewRecover(fileManager *filemanager.FileManager, responseWriter *responsewriter.ResponseWriter, locker sync.Locker,
+func NewRecover(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter, locker sync.Locker,
 	logger *logr.Logger, opts ...RecoveryOption) *Recovery {
 	recovery := &Recovery{
 		fileManager:    fileManager,
@@ -75,7 +74,7 @@ func (r *Recovery) Post(w http.ResponseWriter, req *http.Request) {
 	defer r.locker.Unlock()
 	r.logger.V(1).Info("starting recovery")
 
-	exists, err := r.fileManager.ConfigFileExists(galera.RecoveryFileName)
+	exists, err := r.fileManager.ConfigFileExists(recovery.RecoveryFileName)
 	if err != nil {
 		r.responseWriter.WriteErrorf(w, "error checking recovery config: %v", err)
 		return
@@ -101,7 +100,7 @@ func (r *Recovery) Delete(w http.ResponseWriter, req *http.Request) {
 	defer r.locker.Unlock()
 	r.logger.V(1).Info("disabling recovery")
 
-	if err := r.fileManager.DeleteConfigFile(galera.RecoveryFileName); err != nil {
+	if err := r.fileManager.DeleteConfigFile(recovery.RecoveryFileName); err != nil {
 		if os.IsNotExist(err) {
 			r.responseWriter.Write(w, errors.NewAPIError("recovery config not found"), http.StatusNotFound)
 			return
@@ -112,8 +111,8 @@ func (r *Recovery) Delete(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (r *Recovery) pollUntilRecovered(ctx context.Context) (*galera.Bootstrap, error) {
-	var bootstrap *galera.Bootstrap
+func (r *Recovery) pollUntilRecovered(ctx context.Context) (*recovery.Bootstrap, error) {
+	var bootstrap *recovery.Bootstrap
 	err := wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(context.Context) (bool, error) {
 		b, err := r.recover()
 		if err != nil {
@@ -129,12 +128,12 @@ func (r *Recovery) pollUntilRecovered(ctx context.Context) (*galera.Bootstrap, e
 	return bootstrap, nil
 }
 
-func (r *Recovery) recover() (*galera.Bootstrap, error) {
-	bytes, err := r.fileManager.ReadStateFile(galera.RecoveryLogFileName)
+func (r *Recovery) recover() (*recovery.Bootstrap, error) {
+	bytes, err := r.fileManager.ReadStateFile(recovery.RecoveryLogFileName)
 	if err != nil {
 		return nil, fmt.Errorf("error reading Galera state file: %v", err)
 	}
-	var bootstrap galera.Bootstrap
+	var bootstrap recovery.Bootstrap
 	if err := bootstrap.Unmarshal(bytes); err != nil {
 		return nil, fmt.Errorf("error unmarshaling bootstrap: %v", err)
 	}

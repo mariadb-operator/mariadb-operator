@@ -211,10 +211,11 @@ metadata:
           "apiVersion": "mariadb.mmontes.io/v1alpha1",
           "kind": "MaxScale",
           "metadata": {
-            "name": "maxscale"
+            "name": "maxscale-galera"
           },
           "spec": {
             "admin": {
+              "guiEnabled": true,
               "port": 8989
             },
             "auth": {
@@ -223,26 +224,7 @@ metadata:
                 "name": "maxscale"
               },
               "adminUsername": "mariadb-operator",
-              "clientPasswordSecretKeyRef": {
-                "key": "password",
-                "name": "maxscale"
-              },
-              "clientUsername": "maxscale-client",
-              "monitorPasswordSecretKeyRef": {
-                "key": "password",
-                "name": "maxscale"
-              },
-              "monitorUsername": "maxscale-monitor",
-              "serverPasswordSecretKeyRef": {
-                "key": "password",
-                "name": "maxscale"
-              },
-              "serverUsername": "maxscale-server",
-              "syncPasswordSecretKeyRef": {
-                "key": "password",
-                "name": "maxscale"
-              },
-              "syncUsername": "maxscale-sync"
+              "generate": true
             },
             "config": {
               "sync": {
@@ -251,41 +233,30 @@ metadata:
                 "timeout": "10s"
               }
             },
+            "connection": {
+              "port": 3306,
+              "secretName": "mxs-galera-conn"
+            },
             "kubernetesService": {
               "annotations": {
-                "metallb.universe.tf/loadBalancerIPs": "172.18.0.214"
+                "metallb.universe.tf/loadBalancerIPs": "172.18.0.224"
               },
               "type": "LoadBalancer"
+            },
+            "mariaDbRef": {
+              "name": "mariadb-galera"
             },
             "monitor": {
               "cooperativeMonitoring": "majority_of_all",
               "interval": "2s",
-              "module": "mariadbmon",
               "params": {
-                "auto_failover": "true",
-                "auto_rejoin": "true",
-                "switchover_on_low_disk_space": "true"
+                "available_when_donor": "false",
+                "disable_master_failback": "false",
+                "disable_master_role_setting": "false"
               }
             },
             "replicas": 3,
             "requeueInterval": "10s",
-            "servers": [
-              {
-                "address": "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
-                "maintenance": false,
-                "name": "mariadb-0",
-                "port": 3306,
-                "protocol": "MariaDBBackend"
-              },
-              {
-                "address": "mariadb-repl-1.mariadb-repl-internal.default.svc.cluster.local",
-                "name": "mariadb-1"
-              },
-              {
-                "address": "mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local",
-                "name": "mariadb-2"
-              }
-            ],
             "services": [
               {
                 "listener": {
@@ -413,7 +384,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-02-01T18:31:44Z"
+    createdAt: "2024-02-14T13:57:20Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -563,7 +534,7 @@ spec:
             name: ""
             version: v1
         specDescriptors:
-          - description: Database to use for configuring the Connection.
+          - description: Database to use when configuring the Connection.
             displayName: Database
             path: database
           - description: HealthCheck to be used in the Connection.
@@ -575,18 +546,33 @@ spec:
           - description: RetryInterval is the intervañ used to perform health check retries.
             displayName: Retry Interval
             path: healthCheck.retryInterval
-          - description: MariaDBRef is a reference to a MariaDB object.
+          - description: Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host.
+            displayName: Host
+            path: host
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: MariaDBRef is a reference to the MariaDB to connect to. Either MariaDBRef or MaxScaleRef must be provided.
             displayName: Maria DBRef
             path: mariaDbRef
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
+          - description: MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided.
+            displayName: Max Scale Ref
+            path: maxScaleRef
           - description: Params to be used in the Connection.
             displayName: Params
             path: params
           - description: PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
+          - description: Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
+            displayName: Port
+            path: port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: SecretName to be used in the Connection.
             displayName: Secret Name
             path: secretName
@@ -844,6 +830,12 @@ spec:
           - description: Params to be used in the Connection.
             displayName: Params
             path: connection.params
+          - description: Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
+            displayName: Port
+            path: connection.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: SecretName to be used in the Connection.
             displayName: Secret Name
             path: connection.secretName
@@ -895,7 +887,7 @@ spec:
           - description: Replication configures high availability via Galera.
             displayName: Galera
             path: galera
-          - description: 'GaleraAgent is a sidecar agent that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/agent.'
+          - description: GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
             displayName: Agent
             path: galera.agent
           - description: Args to be used in the Container.
@@ -1109,7 +1101,7 @@ spec:
           - description: LivenessProbe to be used in the Container.
             displayName: Liveness Probe
             path: livenessProbe
-          - description: MaxScale is the MaxScale specification that defines the MaxScale instance that will be used with MariaDB. When enabling this field, MaxScaleRef is automatically set.
+          - description: MaxScale is the MaxScale specification that defines the MaxScale resource to be used with the current MariaDB. When enabling this field, MaxScaleRef is automatically set.
             displayName: Max Scale
             path: maxScale
           - description: Admin configures the admin REST API and GUI.
@@ -1138,6 +1130,11 @@ spec:
           - description: AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
             displayName: Admin Username
             path: maxScale.auth.adminUsername
+          - description: ClientMaxConnections defines the maximum number of connections that the client can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas.
+            displayName: Client Max Connections
+            path: maxScale.auth.clientMaxConnections
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
           - description: ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
             displayName: Client Password Secret Key Ref
             path: maxScale.auth.clientPasswordSecretKeyRef
@@ -1150,18 +1147,33 @@ spec:
           - description: Generate  defies whether the operator should generate users and grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
             displayName: Generate
             path: maxScale.auth.generate
+          - description: MonitorMaxConnections defines the maximum number of connections that the monitor can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas.
+            displayName: Monitor Max Connections
+            path: maxScale.auth.monitorMaxConnections
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
           - description: MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
             displayName: Monitor Password Secret Key Ref
             path: maxScale.auth.monitorPasswordSecretKeyRef
           - description: MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
             displayName: Monitor Username
             path: maxScale.auth.monitorUsername
+          - description: ServerMaxConnections defines the maximum number of connections that the server can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas.
+            displayName: Server Max Connections
+            path: maxScale.auth.serverMaxConnections
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
           - description: ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
             displayName: Server Password Secret Key Ref
             path: maxScale.auth.serverPasswordSecretKeyRef
           - description: ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
             displayName: Server Username
             path: maxScale.auth.serverUsername
+          - description: SyncMaxConnections defines the maximum number of connections that the sync can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas.
+            displayName: Sync Max Connections
+            path: maxScale.auth.syncMaxConnections
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
           - description: SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
             displayName: Sync Password Secret Key Ref
             path: maxScale.auth.syncPasswordSecretKeyRef
@@ -1174,7 +1186,7 @@ spec:
           - description: Config defines the MaxScale configuration.
             displayName: Config
             path: maxScale.config
-          - description: Params is a key value pair of parameters to be used in the MaxScale static configuration file.
+          - description: 'Params is a key value pair of parameters to be used in the MaxScale static configuration file. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#global-settings.'
             displayName: Params
             path: maxScale.config.params
           - description: Sync defines how to replicate configuration across MaxScale replicas. It is defaulted when HA is enabled.
@@ -1198,7 +1210,64 @@ spec:
           - description: Labels to be used in the PVC.
             displayName: Labels
             path: maxScale.config.volumeClaimTemplate.labels
-          - description: Enabled is a flag to enable Metrics
+          - description: Connection provides a template to define the Connection for MaxScale.
+            displayName: Connection
+            path: maxScale.connection
+          - description: HealthCheck to be used in the Connection.
+            displayName: Health Check
+            path: maxScale.connection.healthCheck
+          - description: Interval used to perform health checks.
+            displayName: Interval
+            path: maxScale.connection.healthCheck.interval
+          - description: RetryInterval is the intervañ used to perform health check retries.
+            displayName: Retry Interval
+            path: maxScale.connection.healthCheck.retryInterval
+          - description: Params to be used in the Connection.
+            displayName: Params
+            path: maxScale.connection.params
+          - description: Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
+            displayName: Port
+            path: maxScale.connection.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: SecretName to be used in the Connection.
+            displayName: Secret Name
+            path: maxScale.connection.secretName
+          - description: SecretTemplate to be used in the Connection.
+            displayName: Secret Template
+            path: maxScale.connection.secretTemplate
+          - description: Annotations to be added to the Secret object.
+            displayName: Annotations
+            path: maxScale.connection.secretTemplate.annotations
+          - description: DatabaseKey to be used in the Secret.
+            displayName: Database Key
+            path: maxScale.connection.secretTemplate.databaseKey
+          - description: Format to be used in the Secret.
+            displayName: Format
+            path: maxScale.connection.secretTemplate.format
+          - description: HostKey to be used in the Secret.
+            displayName: Host Key
+            path: maxScale.connection.secretTemplate.hostKey
+          - description: Key to be used in the Secret.
+            displayName: Key
+            path: maxScale.connection.secretTemplate.key
+          - description: Labels to be added to the Secret object.
+            displayName: Labels
+            path: maxScale.connection.secretTemplate.labels
+          - description: PasswordKey to be used in the Secret.
+            displayName: Password Key
+            path: maxScale.connection.secretTemplate.passwordKey
+          - description: PortKey to be used in the Secret.
+            displayName: Port Key
+            path: maxScale.connection.secretTemplate.portKey
+          - description: UsernameKey to be used in the Secret.
+            displayName: Username Key
+            path: maxScale.connection.secretTemplate.usernameKey
+          - description: ServiceName to be used in the Connection.
+            displayName: Service Name
+            path: maxScale.connection.serviceName
+          - description: Enabled is a flag to enable a MaxScale instance to be used with the current MariaDB.
             displayName: Enabled
             path: maxScale.enabled
             x-descriptors:
@@ -1293,7 +1362,7 @@ spec:
           - description: LivenessProbe to be used in the Container.
             displayName: Liveness Probe
             path: maxScale.livenessProbe
-          - description: Monitor monitors MariaDB server instances. It is required if 'spec.mariaDbRef' is not provided.
+          - description: Monitor monitors MariaDB server instances.
             displayName: Monitor
             path: maxScale.monitor
           - description: CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when HA is enabled.
@@ -1308,7 +1377,7 @@ spec:
           - description: Name is the identifier of the monitor. It is defaulted if not provided.
             displayName: Name
             path: maxScale.monitor.name
-          - description: Params defines extra parameters to pass to the monitor.
+          - description: 'Params defines extra parameters to pass to the monitor. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/. Monitor specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters. https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.'
             displayName: Params
             path: maxScale.monitor.params
           - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
@@ -1340,7 +1409,7 @@ spec:
             path: maxScale.replicas
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:podCount
-          - description: RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s.
+          - description: RequeueInterval is used to perform requeue reconcilizations.
             displayName: Requeue Interval
             path: maxScale.requeueInterval
           - description: Resouces describes the compute resource requirements.
@@ -1354,7 +1423,7 @@ spec:
           - description: ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
             displayName: Service Account Name
             path: maxScale.serviceAccountName
-          - description: Services define how the traffic is forwarded to the MariaDB servers. It is defaulted if not provided.
+          - description: Services define how the traffic is forwarded to the MariaDB servers.
             displayName: Services
             path: maxScale.services
           - description: MaxScaleListener defines how the MaxScale server will listen for connections.
@@ -1363,7 +1432,7 @@ spec:
           - description: Name is the identifier of the listener. It is defaulted if not provided
             displayName: Name
             path: maxScale.services[0].listener.name
-          - description: Params defines extra parameters to pass to the listener.
+          - description: 'Params defines extra parameters to pass to the listener. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1.'
             displayName: Params
             path: maxScale.services[0].listener.params
           - description: Port is the network port where the MaxScale server will listen.
@@ -1380,7 +1449,7 @@ spec:
           - description: Name is the identifier of the MaxScale service.
             displayName: Name
             path: maxScale.services[0].name
-          - description: Params defines extra parameters to pass to the monitor.
+          - description: 'Params defines extra parameters to pass to the monitor. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1. Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration. https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
             displayName: Params
             path: maxScale.services[0].params
           - description: Router is the type of router to use.
@@ -1446,7 +1515,7 @@ spec:
           - description: Volumes to be used in the Pod.
             displayName: Volumes
             path: maxScale.volumes
-          - description: MaxScaleRef is a reference to a MaxScale instance that is forwarding the traffic to the current MariaDB instance. Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
+          - description: MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB. Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
             displayName: Max Scale Ref
             path: maxScaleRef
           - description: Metrics configures metrics and how to scrape them.
@@ -1571,6 +1640,12 @@ spec:
           - description: Params to be used in the Connection.
             displayName: Params
             path: primaryConnection.params
+          - description: Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
+            displayName: Port
+            path: primaryConnection.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: SecretName to be used in the Connection.
             displayName: Secret Name
             path: primaryConnection.secretName
@@ -1727,6 +1802,12 @@ spec:
           - description: Params to be used in the Connection.
             displayName: Params
             path: secondaryConnection.params
+          - description: Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
+            displayName: Port
+            path: secondaryConnection.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: SecretName to be used in the Connection.
             displayName: Secret Name
             path: secondaryConnection.secretName
@@ -1918,6 +1999,9 @@ spec:
         kind: MaxScale
         name: maxscales.mariadb.mmontes.io
         resources:
+          - kind: Connection
+            name: ""
+            version: v1alpha1
           - kind: Event
             name: ""
             version: v1
@@ -1972,6 +2056,11 @@ spec:
           - description: AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
             displayName: Admin Username
             path: auth.adminUsername
+          - description: ClientMaxConnections defines the maximum number of connections that the client can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas.
+            displayName: Client Max Connections
+            path: auth.clientMaxConnections
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
           - description: ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
             displayName: Client Password Secret Key Ref
             path: auth.clientPasswordSecretKeyRef
@@ -1984,18 +2073,33 @@ spec:
           - description: Generate  defies whether the operator should generate users and grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
             displayName: Generate
             path: auth.generate
+          - description: MonitorMaxConnections defines the maximum number of connections that the monitor can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas.
+            displayName: Monitor Max Connections
+            path: auth.monitorMaxConnections
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
           - description: MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
             displayName: Monitor Password Secret Key Ref
             path: auth.monitorPasswordSecretKeyRef
           - description: MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
             displayName: Monitor Username
             path: auth.monitorUsername
+          - description: ServerMaxConnections defines the maximum number of connections that the server can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas.
+            displayName: Server Max Connections
+            path: auth.serverMaxConnections
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
           - description: ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
             displayName: Server Password Secret Key Ref
             path: auth.serverPasswordSecretKeyRef
           - description: ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
             displayName: Server Username
             path: auth.serverUsername
+          - description: SyncMaxConnections defines the maximum number of connections that the sync can establish. If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections. It defaults to 30 times the number of MaxScale replicas.
+            displayName: Sync Max Connections
+            path: auth.syncMaxConnections
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
           - description: SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
             displayName: Sync Password Secret Key Ref
             path: auth.syncPasswordSecretKeyRef
@@ -2008,7 +2112,7 @@ spec:
           - description: Config defines the MaxScale configuration.
             displayName: Config
             path: config
-          - description: Params is a key value pair of parameters to be used in the MaxScale static configuration file.
+          - description: 'Params is a key value pair of parameters to be used in the MaxScale static configuration file. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#global-settings.'
             displayName: Params
             path: config.params
           - description: Sync defines how to replicate configuration across MaxScale replicas. It is defaulted when HA is enabled.
@@ -2032,6 +2136,63 @@ spec:
           - description: Labels to be used in the PVC.
             displayName: Labels
             path: config.volumeClaimTemplate.labels
+          - description: Connection provides a template to define the Connection for MaxScale.
+            displayName: Connection
+            path: connection
+          - description: HealthCheck to be used in the Connection.
+            displayName: Health Check
+            path: connection.healthCheck
+          - description: Interval used to perform health checks.
+            displayName: Interval
+            path: connection.healthCheck.interval
+          - description: RetryInterval is the intervañ used to perform health check retries.
+            displayName: Retry Interval
+            path: connection.healthCheck.retryInterval
+          - description: Params to be used in the Connection.
+            displayName: Params
+            path: connection.params
+          - description: Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
+            displayName: Port
+            path: connection.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: SecretName to be used in the Connection.
+            displayName: Secret Name
+            path: connection.secretName
+          - description: SecretTemplate to be used in the Connection.
+            displayName: Secret Template
+            path: connection.secretTemplate
+          - description: Annotations to be added to the Secret object.
+            displayName: Annotations
+            path: connection.secretTemplate.annotations
+          - description: DatabaseKey to be used in the Secret.
+            displayName: Database Key
+            path: connection.secretTemplate.databaseKey
+          - description: Format to be used in the Secret.
+            displayName: Format
+            path: connection.secretTemplate.format
+          - description: HostKey to be used in the Secret.
+            displayName: Host Key
+            path: connection.secretTemplate.hostKey
+          - description: Key to be used in the Secret.
+            displayName: Key
+            path: connection.secretTemplate.key
+          - description: Labels to be added to the Secret object.
+            displayName: Labels
+            path: connection.secretTemplate.labels
+          - description: PasswordKey to be used in the Secret.
+            displayName: Password Key
+            path: connection.secretTemplate.passwordKey
+          - description: PortKey to be used in the Secret.
+            displayName: Port Key
+            path: connection.secretTemplate.portKey
+          - description: UsernameKey to be used in the Secret.
+            displayName: Username Key
+            path: connection.secretTemplate.usernameKey
+          - description: ServiceName to be used in the Connection.
+            displayName: Service Name
+            path: connection.serviceName
           - description: Env represents the environment variables to be injected in a container.
             displayName: Env
             path: env
@@ -2143,7 +2304,7 @@ spec:
           - description: Name is the identifier of the monitor. It is defaulted if not provided.
             displayName: Name
             path: monitor.name
-          - description: Params defines extra parameters to pass to the monitor.
+          - description: 'Params defines extra parameters to pass to the monitor. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/. Monitor specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters. https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.'
             displayName: Params
             path: monitor.params
           - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
@@ -2198,7 +2359,7 @@ spec:
           - description: Name is the identifier of the MariaDB server.
             displayName: Name
             path: servers[0].name
-          - description: Params defines extra parameters to pass to the server.
+          - description: 'Params defines extra parameters to pass to the server. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#server_1.'
             displayName: Params
             path: servers[0].params
           - description: Port is the network port of the MariaDB server. If not provided, it defaults to 3306.
@@ -2221,7 +2382,7 @@ spec:
           - description: Name is the identifier of the listener. It is defaulted if not provided
             displayName: Name
             path: services[0].listener.name
-          - description: Params defines extra parameters to pass to the listener.
+          - description: 'Params defines extra parameters to pass to the listener. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1.'
             displayName: Params
             path: services[0].listener.params
           - description: Port is the network port where the MaxScale server will listen.
@@ -2238,7 +2399,7 @@ spec:
           - description: Name is the identifier of the MaxScale service.
             displayName: Name
             path: services[0].name
-          - description: Params defines extra parameters to pass to the monitor.
+          - description: 'Params defines extra parameters to pass to the monitor. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1. Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration. https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
             displayName: Params
             path: services[0].params
           - description: Router is the type of router to use.
@@ -2541,7 +2702,7 @@ spec:
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
-          - description: MaxUserConnections defines the maximum number of connections that the User can have.
+          - description: MaxUserConnections defines the maximum number of connections that the User can establish.
             displayName: Max User Connections
             path: maxUserConnections
             x-descriptors:
@@ -2761,6 +2922,17 @@ spec:
             - apiGroups:
                 - mariadb.mmontes.io
               resources:
+                - connections
+                - grants
+                - users
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - mariadb.mmontes.io
+              resources:
                 - connections/finalizers
               verbs:
                 - update
@@ -2809,16 +2981,6 @@ spec:
                 - list
                 - patch
                 - update
-                - watch
-            - apiGroups:
-                - mariadb.mmontes.io
-              resources:
-                - grants
-                - users
-              verbs:
-                - create
-                - list
-                - patch
                 - watch
             - apiGroups:
                 - mariadb.mmontes.io
@@ -3130,13 +3292,11 @@ spec:
       type: AllNamespaces
   keywords:
     - mariadb
+    - mysql
+    - operator
     - mariadb-operator
     - database
-    - sql
-    - backup
-    - restore
-    - high-availability
-    - storage
+    - maxscale
   links:
     - name: MariaDB
       url: https://mariadb.com/
@@ -3150,14 +3310,14 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
+    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
+      name: mariadb
     - image: mariadb/maxscale@sha256:5c658141992f1b83580759137bbe1b881ebe73e07c85819e46a8a14f332ff690
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
       name: exporter
     - image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
       name: mariadb-operator-enterprise
-    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
-      name: mariadb
   version: 0.0.24
   webhookdefinitions:
     - admissionReviewVersions:

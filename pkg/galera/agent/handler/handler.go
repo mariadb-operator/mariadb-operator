@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/responsewriter"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
 type Handler struct {
@@ -22,19 +22,19 @@ func NewHandler(fileManager *filemanager.FileManager, logger *logr.Logger, recov
 
 	bootstrap := NewBootstrap(
 		fileManager,
-		responsewriter.NewResponseWriter(&bootstrapLogger),
+		mdbhttp.NewResponseWriter(&bootstrapLogger),
 		mux,
 		&bootstrapLogger,
 	)
 	galerastate := NewGaleraState(
 		fileManager,
-		responsewriter.NewResponseWriter(&galeraStateLogger),
+		mdbhttp.NewResponseWriter(&galeraStateLogger),
 		mux.RLocker(),
 		&galeraStateLogger,
 	)
 	recovery := NewRecover(
 		fileManager,
-		responsewriter.NewResponseWriter(&recoveryLogger),
+		mdbhttp.NewResponseWriter(&recoveryLogger),
 		mux,
 		&recoveryLogger,
 		recoveryOpts...,

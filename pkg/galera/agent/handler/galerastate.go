@@ -6,20 +6,20 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/mariadb-operator/agent/pkg/galera"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/responsewriter"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
 type GaleraState struct {
 	fileManager    *filemanager.FileManager
-	responseWriter *responsewriter.ResponseWriter
+	responseWriter *mdbhttp.ResponseWriter
 	locker         sync.Locker
 	logger         *logr.Logger
 }
 
-func NewGaleraState(fileManager *filemanager.FileManager, responseWriter *responsewriter.ResponseWriter, locker sync.Locker,
+func NewGaleraState(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter, locker sync.Locker,
 	logger *logr.Logger) *GaleraState {
 	return &GaleraState{
 		fileManager:    fileManager,
@@ -34,7 +34,7 @@ func (g *GaleraState) Get(w http.ResponseWriter, r *http.Request) {
 	defer g.locker.Unlock()
 	g.logger.V(1).Info("getting galera state")
 
-	bytes, err := g.fileManager.ReadStateFile(galera.GaleraStateFileName)
+	bytes, err := g.fileManager.ReadStateFile(recovery.GaleraStateFileName)
 	if err != nil {
 		if os.IsNotExist(err) {
 			g.responseWriter.Write(w, errors.NewAPIError("galera state not found"), http.StatusNotFound)
@@ -44,7 +44,7 @@ func (g *GaleraState) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var galeraState galera.GaleraState
+	var galeraState recovery.GaleraState
 	if err := galeraState.Unmarshal(bytes); err != nil {
 		g.responseWriter.WriteErrorf(w, "error unmarshaling galera state: %v", err)
 		return

@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/client"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
 
 type agentClientSet struct {
 	mariadb       *mariadbv1alpha1.MariaDB
-	clientOpts    []client.Option
+	clientOpts    []mdbhttp.Option
 	clientByIndex map[int]*client.Client
 	mux           *sync.Mutex
 }
 
-func newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, opts ...client.Option) (*agentClientSet, error) {
+func newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, opts ...mdbhttp.Option) (*agentClientSet, error) {
 	if !mariadb.Galera().Enabled {
 		return nil, errors.New("'mariadb.spec.galera.enabled' should be enabled to create an agent agentClientSet")
 	}

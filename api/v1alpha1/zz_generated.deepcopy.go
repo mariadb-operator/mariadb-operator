@@ -30,7 +30,7 @@ THE SOFTWARE.
 package v1alpha1
 
 import (
-	"github.com/mariadb-operator/agent/pkg/galera"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -698,14 +698,14 @@ func (in *GaleraRecoveryStatus) DeepCopyInto(out *GaleraRecoveryStatus) {
 	*out = *in
 	if in.State != nil {
 		in, out := &in.State, &out.State
-		*out = make(map[string]*galera.GaleraState, len(*in))
+		*out = make(map[string]*recovery.GaleraState, len(*in))
 		for key, val := range *in {
-			var outVal *galera.GaleraState
+			var outVal *recovery.GaleraState
 			if val == nil {
 				(*out)[key] = nil
 			} else {
 				in, out := &val, &outVal
-				*out = new(galera.GaleraState)
+				*out = new(recovery.GaleraState)
 				**out = **in
 			}
 			(*out)[key] = outVal
@@ -713,14 +713,14 @@ func (in *GaleraRecoveryStatus) DeepCopyInto(out *GaleraRecoveryStatus) {
 	}
 	if in.Recovered != nil {
 		in, out := &in.Recovered, &out.Recovered
-		*out = make(map[string]*galera.Bootstrap, len(*in))
+		*out = make(map[string]*recovery.Bootstrap, len(*in))
 		for key, val := range *in {
-			var outVal *galera.Bootstrap
+			var outVal *recovery.Bootstrap
 			if val == nil {
 				(*out)[key] = nil
 			} else {
 				in, out := &val, &outVal
-				*out = new(galera.Bootstrap)
+				*out = new(recovery.Bootstrap)
 				**out = **in
 			}
 			(*out)[key] = outVal

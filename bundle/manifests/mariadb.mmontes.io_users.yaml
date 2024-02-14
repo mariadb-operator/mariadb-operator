@@ -102,7 +102,7 @@ spec:
               maxUserConnections:
                 default: 10
                 description: MaxUserConnections defines the maximum number of connections
-                  that the User can have.
+                  that the User can establish.
                 format: int32
                 type: integer
               name:

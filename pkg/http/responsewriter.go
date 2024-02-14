@@ -1,4 +1,4 @@
-package responsewriter
+package http
 
 import (
 	"encoding/json"

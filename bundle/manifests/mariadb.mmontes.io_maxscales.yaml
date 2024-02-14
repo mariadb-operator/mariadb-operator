@@ -924,6 +924,14 @@ spec:
                     description: AdminUsername is an admin username to call the admin
                       REST API. It is defaulted if not provided.
                     type: string
+                  clientMaxConnections:
+                    description: ClientMaxConnections defines the maximum number of
+                      connections that the client can establish. If HA is enabled,
+                      make sure to increase this value, as more MaxScale replicas
+                      implies more connections. It defaults to 30 times the number
+                      of MaxScale replicas.
+                    format: int32
+                    type: integer
                   clientPasswordSecretKeyRef:
                     description: ClientPasswordSecretKeyRef is Secret key reference
                       to the password to connect to MaxScale. It is defaulted if not
@@ -959,6 +967,14 @@ spec:
                       users and grants for MaxScale to work. It only supports MariaDBs
                       specified via spec.mariaDbRef.
                     type: boolean
+                  monitorMaxConnections:
+                    description: MonitorMaxConnections defines the maximum number
+                      of connections that the monitor can establish. If HA is enabled,
+                      make sure to increase this value, as more MaxScale replicas
+                      implies more connections. It defaults to 30 times the number
+                      of MaxScale replicas.
+                    format: int32
+                    type: integer
                   monitorPasswordSecretKeyRef:
                     description: MonitorPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale monitor to connect to MariaDB
@@ -984,6 +1000,14 @@ spec:
                     description: MonitorUsername is the user used by MaxScale monitor
                       to connect to MariaDB server. It is defaulted if not provided.
                     type: string
+                  serverMaxConnections:
+                    description: ServerMaxConnections defines the maximum number of
+                      connections that the server can establish. If HA is enabled,
+                      make sure to increase this value, as more MaxScale replicas
+                      implies more connections. It defaults to 30 times the number
+                      of MaxScale replicas.
+                    format: int32
+                    type: integer
                   serverPasswordSecretKeyRef:
                     description: ServerPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale to connect to MariaDB server.
@@ -1009,6 +1033,14 @@ spec:
                     description: ServerUsername is the user used by MaxScale to connect
                       to MariaDB server. It is defaulted if not provided.
                     type: string
+                  syncMaxConnections:
+                    description: SyncMaxConnections defines the maximum number of
+                      connections that the sync can establish. If HA is enabled, make
+                      sure to increase this value, as more MaxScale replicas implies
+                      more connections. It defaults to 30 times the number of MaxScale
+                      replicas.
+                    format: int32
+                    type: integer
                   syncPasswordSecretKeyRef:
                     description: SyncPasswordSecretKeyRef is Secret key reference
                       to the password used by MaxScale config to connect to MariaDB
@@ -1047,8 +1079,9 @@ spec:
                   params:
                     additionalProperties:
                       type: string
-                    description: Params is a key value pair of parameters to be used
-                      in the MaxScale static configuration file.
+                    description: 'Params is a key value pair of parameters to be used
+                      in the MaxScale static configuration file. Any parameter supported
+                      by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#global-settings.'
                     type: object
                   sync:
                     description: Sync defines how to replicate configuration across
@@ -1289,6 +1322,73 @@ spec:
                           backing this claim.
                         type: string
                     type: object
+                type: object
+              connection:
+                description: Connection provides a template to define the Connection
+                  for MaxScale.
+                properties:
+                  healthCheck:
+                    description: HealthCheck to be used in the Connection.
+                    properties:
+                      interval:
+                        description: Interval used to perform health checks.
+                        type: string
+                      retryInterval:
+                        description: RetryInterval is the intervañ used to perform
+                          health check retries.
+                        type: string
+                    type: object
+                  params:
+                    additionalProperties:
+                      type: string
+                    description: Params to be used in the Connection.
+                    type: object
+                  port:
+                    description: Port to connect to. If not provided, it defaults
+                      to the MariaDB port or to the first MaxScale listener.
+                    format: int32
+                    type: integer
+                  secretName:
+                    description: SecretName to be used in the Connection.
+                    type: string
+                  secretTemplate:
+                    description: SecretTemplate to be used in the Connection.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations to be added to the Secret object.
+                        type: object
+                      databaseKey:
+                        description: DatabaseKey to be used in the Secret.
+                        type: string
+                      format:
+                        description: Format to be used in the Secret.
+                        type: string
+                      hostKey:
+                        description: HostKey to be used in the Secret.
+                        type: string
+                      key:
+                        description: Key to be used in the Secret.
+                        type: string
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Labels to be added to the Secret object.
+                        type: object
+                      passwordKey:
+                        description: PasswordKey to be used in the Secret.
+                        type: string
+                      portKey:
+                        description: PortKey to be used in the Secret.
+                        type: string
+                      usernameKey:
+                        description: UsernameKey to be used in the Secret.
+                        type: string
+                    type: object
+                  serviceName:
+                    description: ServiceName to be used in the Connection.
+                    type: string
                 type: object
               env:
                 description: Env represents the environment variables to be injected
@@ -2465,7 +2565,11 @@ spec:
                   params:
                     additionalProperties:
                       type: string
-                    description: Params defines extra parameters to pass to the monitor.
+                    description: 'Params defines extra parameters to pass to the monitor.
+                      Any parameter supported by MaxScale may be specified here. See
+                      reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/.
+                      Monitor specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters.
+                      https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.'
                     type: object
                   suspend:
                     description: Suspend indicates whether the current resource should
@@ -3043,8 +3147,9 @@ spec:
                     params:
                       additionalProperties:
                         type: string
-                      description: Params defines extra parameters to pass to the
-                        server.
+                      description: 'Params defines extra parameters to pass to the
+                        server. Any parameter supported by MaxScale may be specified
+                        here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#server_1.'
                       type: object
                     port:
                       description: Port is the network port of the MariaDB server.
@@ -3083,8 +3188,9 @@ spec:
                         params:
                           additionalProperties:
                             type: string
-                          description: Params defines extra parameters to pass to
-                            the listener.
+                          description: 'Params defines extra parameters to pass to
+                            the listener. Any parameter supported by MaxScale may
+                            be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1.'
                           type: object
                         port:
                           description: Port is the network port where the MaxScale
@@ -3108,8 +3214,11 @@ spec:
                     params:
                       additionalProperties:
                         type: string
-                      description: Params defines extra parameters to pass to the
-                        monitor.
+                      description: 'Params defines extra parameters to pass to the
+                        monitor. Any parameter supported by MaxScale may be specified
+                        here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
+                        Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.
+                        https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
                       type: object
                     router:
                       description: Router is the type of router to use.

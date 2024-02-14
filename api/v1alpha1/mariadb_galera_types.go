@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	agentgalera "github.com/mariadb-operator/agent/pkg/galera"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -103,7 +103,6 @@ func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string
 }
 
 // GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
-// More info: https://github.com/mariadb-operator/agent.
 type GaleraAgent struct {
 	// ContainerTemplate defines a template to configure Container objects.
 	// +optional
@@ -232,7 +231,6 @@ type GaleraSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaThreads *int `json:"replicaThreads,omitempty"`
 	// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
-	// More info: https://github.com/mariadb-operator/agent.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Agent *GaleraAgent `json:"agent,omitempty"`
@@ -352,9 +350,9 @@ type GaleraRecoveryBootstrap struct {
 // GaleraRecoveryStatus is the current state of the Galera recovery process.
 type GaleraRecoveryStatus struct {
 	// State is a per Pod representation of the Galera state file (grastate.dat).
-	State map[string]*agentgalera.GaleraState `json:"state,omitempty"`
+	State map[string]*recovery.GaleraState `json:"state,omitempty"`
 	// State is a per Pod representation of the sequence recovery process.
-	Recovered map[string]*agentgalera.Bootstrap `json:"recovered,omitempty"`
+	Recovered map[string]*recovery.Bootstrap `json:"recovered,omitempty"`
 	// Bootstrap indicates when and in which Pod the cluster bootstrap process has been performed.
 	Bootstrap *GaleraRecoveryBootstrap `json:"bootstrap,omitempty"`
 }
