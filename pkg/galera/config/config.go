@@ -8,14 +8,14 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/mariadb-operator/agent/pkg/galera"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
 
 const (
 	ConfigFileName    = "0-galera.cnf"
-	BootstrapFileName = galera.BootstrapFileName
+	BootstrapFileName = recovery.BootstrapFileName
 )
 
 var BootstrapFile = []byte(`[galera]

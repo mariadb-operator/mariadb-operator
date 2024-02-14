@@ -1,8 +1,10 @@
 package log
 
 import (
+	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -33,4 +35,21 @@ func SetupLogger(level, timeEncoder string, development bool) {
 	}
 	logger := zap.New(zap.UseFlagOptions(&opts))
 	ctrl.SetLogger(logger)
+}
+
+func SetupLoggerWithCommand(cmd *cobra.Command) error {
+	logLevel, err := cmd.Flags().GetString("log-level")
+	if err != nil {
+		return fmt.Errorf("error getting 'log-level' flag: %v\n", err)
+	}
+	logTimeEncoder, err := cmd.Flags().GetString("log-time-encoder")
+	if err != nil {
+		return fmt.Errorf("error getting 'log-time-encoder' flag: %v\n", err)
+	}
+	logDev, err := cmd.Flags().GetBool("log-dev")
+	if err != nil {
+		return fmt.Errorf("error getting 'log-dev' flag: %v\n", err)
+	}
+	SetupLogger(logLevel, logTimeEncoder, logDev)
+	return nil
 }

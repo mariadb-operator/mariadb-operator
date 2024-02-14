@@ -14,7 +14,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
-	"github.com/mariadb-operator/mariadb-operator/pkg/kubeclientset"
+	kubeclientset "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/clientset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -45,14 +45,14 @@ func init() {
 var RootCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Init.",
-	Long:  `Manages the initialization of Galera Pods.`,
+	Long:  `Init container for Galera and co-operates with mariadb-operator.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := setupLogger(cmd); err != nil {
+		if err := log.SetupLoggerWithCommand(cmd); err != nil {
 			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("starting backup")
+		logger.Info("starting init")
 
 		ctx, cancel := newContext()
 		defer cancel()
@@ -63,7 +63,7 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		clientset, err := kubeclientset.NewKubeclientSet()
+		clientset, err := kubeclientset.NewClientSet()
 		if err != nil {
 			logger.Error(err, "Error creating Kubernetes clientset")
 			os.Exit(1)
@@ -144,23 +144,6 @@ func getEnv(ctx context.Context) (*environment, error) {
 		return nil, err
 	}
 	return &env, nil
-}
-
-func setupLogger(cmd *cobra.Command) error {
-	logLevel, err := cmd.Flags().GetString("log-level")
-	if err != nil {
-		return fmt.Errorf("error getting 'log-level' flag: %v\n", err)
-	}
-	logTimeEncoder, err := cmd.Flags().GetString("log-time-encoder")
-	if err != nil {
-		return fmt.Errorf("error getting 'log-time-encoder' flag: %v\n", err)
-	}
-	logDev, err := cmd.Flags().GetBool("log-dev")
-	if err != nil {
-		return fmt.Errorf("error getting 'log-dev' flag: %v\n", err)
-	}
-	log.SetupLogger(logLevel, logTimeEncoder, logDev)
-	return nil
 }
 
 func newContext() (context.Context, context.CancelFunc) {

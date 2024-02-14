@@ -81,3 +81,11 @@ INIT_FLAGS ?= $(RUN_FLAGS) --mariadb-name=mariadb-galera --mariadb-namespace=def
 .PHONY: init
 init: init-dir ## Run init from your host.
 	$(INIT_ENV) go run cmd/controller/*.go init $(INIT_FLAGS)
+
+AGENT_ENV ?= KUBECONFIG=$(HOME)/.kube/config
+# AGENT_AUTH_FLAGS ?= --kubernetes-auth=true --kubernetes-trusted-name=mariadb-galera --kubernetes-trusted-namespace=default
+AGENT_AUTH_FLAGS ?=
+AGENT_FLAGS ?= $(RUN_FLAGS) $(AGENT_AUTH_FLAGS) --config-dir=mariadb/config --state-dir=mariadb/state
+.PHONY: agent
+agent: ## Run agent from your host.
+	$(AGENT_ENV) go run cmd/controller/*.go agent $(AGENT_FLAGS)
