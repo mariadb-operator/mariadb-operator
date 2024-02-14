@@ -206,24 +206,24 @@ func TestGetTargerRecoveryFile(t *testing.T) {
 }
 
 func TestGetBackupFilesToDelete(t *testing.T) {
-	previousNowFunc := now
+	previousNowFn := now
 	tests := []struct {
 		name         string
-		now          func() time.Time
+		nowFn        func() time.Time
 		backupFiles  []string
 		maxRetention time.Duration
 		wantBackups  []string
 	}{
 		{
 			name:         "no backups",
-			now:          timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			nowFn:        testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
 			backupFiles:  nil,
 			maxRetention: 1 * time.Hour,
 			wantBackups:  nil,
 		},
 		{
-			name: "invalid backups",
-			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			name:  "invalid backups",
+			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
 			backupFiles: []string{
 				"backup.foo.sql",
 				"backup.bar.sql",
@@ -233,8 +233,8 @@ func TestGetBackupFilesToDelete(t *testing.T) {
 			wantBackups:  nil,
 		},
 		{
-			name: "no old backups",
-			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			name:  "no old backups",
+			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
 			backupFiles: []string{
 				"backup.2023-12-22T13:00:00Z.sql",
 				"backup.2023-12-22T14:00:00Z.sql",
@@ -249,8 +249,8 @@ func TestGetBackupFilesToDelete(t *testing.T) {
 			wantBackups:  nil,
 		},
 		{
-			name: "multiple old backups",
-			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			name:  "multiple old backups",
+			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
 			backupFiles: []string{
 				"backup.2023-12-22T13:00:00Z.sql",
 				"backup.2023-12-22T14:00:00Z.sql",
@@ -268,8 +268,8 @@ func TestGetBackupFilesToDelete(t *testing.T) {
 			},
 		},
 		{
-			name: "multiple old backups with invalid",
-			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			name:  "multiple old backups with invalid",
+			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
 			backupFiles: []string{
 				"backup.2023-12-22T13:00:00Z.sql",
 				"backup.2023-12-22T14:00:00Z.sql",
@@ -290,8 +290,8 @@ func TestGetBackupFilesToDelete(t *testing.T) {
 			},
 		},
 		{
-			name: "all old backups",
-			now:  timeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
+			name:  "all old backups",
+			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
 			backupFiles: []string{
 				"backup.2023-12-22T13:00:00Z.sql",
 				"backup.2023-12-22T14:00:00Z.sql",
@@ -318,9 +318,9 @@ func TestGetBackupFilesToDelete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			now = tt.now
+			now = tt.nowFn
 			t.Cleanup(func() {
-				now = previousNowFunc
+				now = previousNowFn
 			})
 
 			backups := GetOldBackupFiles(tt.backupFiles, tt.maxRetention, logger)
@@ -331,7 +331,7 @@ func TestGetBackupFilesToDelete(t *testing.T) {
 	}
 }
 
-func timeFn(t time.Time) func() time.Time {
+func testTimeFn(t time.Time) func() time.Time {
 	return func() time.Time { return t }
 }
 

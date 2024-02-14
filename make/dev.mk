@@ -70,3 +70,14 @@ RESTORE_FLAGS ?= --target-time=1970-01-01T00:00:00Z $(BACKUP_COMMON_FLAGS)
 .PHONY: restore
 restore: lint ## Run restore from your host.
 	$(BACKUP_ENV) go run cmd/controller/*.go backup restore $(RESTORE_FLAGS)
+
+.PHONY: init-dir
+init-dir: ## Create config and state directories for init local development.
+	mkdir -p mariadb/config
+	mkdir -p mariadb/state
+
+INIT_ENV ?= KUBECONFIG=$(HOME)/.kube/config POD_NAME=mariadb-galera-0 MARIADB_ROOT_PASSWORD=MariaDB11!
+INIT_FLAGS ?= $(RUN_FLAGS) --mariadb-name=mariadb-galera --mariadb-namespace=default --config-dir=mariadb/config --state-dir=mariadb/state
+.PHONY: init
+init: init-dir ## Run init from your host.
+	$(INIT_ENV) go run cmd/controller/*.go init $(INIT_FLAGS)
