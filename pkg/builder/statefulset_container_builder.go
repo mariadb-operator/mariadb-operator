@@ -461,7 +461,7 @@ var (
 				},
 			},
 		},
-		InitialDelaySeconds: 60,
+		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
 		PeriodSeconds:       10,
 	}
