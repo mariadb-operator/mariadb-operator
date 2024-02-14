@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func NewKubeclientSet() (*kubernetes.Clientset, error) {
+func NewClientSet() (*kubernetes.Clientset, error) {
 	restConfig, err := restConfig()
 	if err != nil {
 		return nil, fmt.Errorf("error getting REST config: %v", err)

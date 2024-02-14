@@ -8,6 +8,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	agentcmd "github.com/mariadb-operator/mariadb-operator/cmd/agent"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/cmd/backup"
 	initcmd "github.com/mariadb-operator/mariadb-operator/cmd/init"
 	"github.com/mariadb-operator/mariadb-operator/controller"
@@ -359,6 +360,7 @@ func main() {
 	rootCmd.AddCommand(webhookCmd)
 	rootCmd.AddCommand(backupcmd.RootCmd)
 	rootCmd.AddCommand(initcmd.RootCmd)
+	rootCmd.AddCommand(agentcmd.RootCmd)
 
 	cobra.CheckErr(rootCmd.Execute())
 }

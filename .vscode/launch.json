@@ -144,8 +144,28 @@
         "--state-dir=mariadb/state"
       ],
       "env": {
+        "KUBECONFIG": "${env:HOME}/.kube/config",
         "POD_NAME": "mariadb-galera-0",
         "MARIADB_ROOT_PASSWORD": "MariaDB11!",
+      },
+      "cwd": "${workspaceRoot}"
+    },
+    {
+      "name": "Agent",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/controller",
+      "args": [
+        "agent",
+        "--log-dev",
+        "--log-level=info",
+        "--log-time-encoder=iso8601",
+        "--config-dir=mariadb/config",
+        "--state-dir=mariadb/state"
+      ],
+      "env": {
+        "KUBECONFIG": "${env:HOME}/.kube/config",
       },
       "cwd": "${workspaceRoot}"
     },

@@ -62,7 +62,7 @@ var RootCmd = &cobra.Command{
 	Long:  `Manages the backup files to implement the retention policy.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := setupLogger(cmd); err != nil {
+		if err := log.SetupLoggerWithCommand(cmd); err != nil {
 			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
@@ -112,23 +112,6 @@ var RootCmd = &cobra.Command{
 			}
 		}
 	},
-}
-
-func setupLogger(cmd *cobra.Command) error {
-	logLevel, err := cmd.Flags().GetString("log-level")
-	if err != nil {
-		return fmt.Errorf("error getting 'log-level' flag: %v\n", err)
-	}
-	logTimeEncoder, err := cmd.Flags().GetString("log-time-encoder")
-	if err != nil {
-		return fmt.Errorf("error getting 'log-time-encoder' flag: %v\n", err)
-	}
-	logDev, err := cmd.Flags().GetBool("log-dev")
-	if err != nil {
-		return fmt.Errorf("error getting 'log-dev' flag: %v\n", err)
-	}
-	log.SetupLogger(logLevel, logTimeEncoder, logDev)
-	return nil
 }
 
 func newContext() (context.Context, context.CancelFunc) {
