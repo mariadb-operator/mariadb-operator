@@ -1,6 +1,9 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 type APIError struct {
 	Message string `json:"message"`
@@ -36,4 +39,11 @@ func NewError(httpCode int, message string) error {
 		HTTPCode: httpCode,
 		Message:  message,
 	}
+}
+
+func IsNotFound(err error) bool {
+	if clientErr, ok := err.(*Error); ok {
+		return clientErr.HTTPCode == http.StatusNotFound
+	}
+	return false
 }

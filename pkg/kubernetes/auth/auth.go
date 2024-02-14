@@ -7,8 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	agenterrors "github.com/mariadb-operator/agent/pkg/errors"
-	"github.com/mariadb-operator/agent/pkg/responsewriter"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	authv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -26,7 +25,7 @@ func (t *Trusted) String() string {
 type KubernetesAuth struct {
 	clientset      *kubernetes.Clientset
 	trusted        *Trusted
-	responseWriter *responsewriter.ResponseWriter
+	responseWriter *mdbhttp.ResponseWriter
 	logger         logr.Logger
 }
 
@@ -34,7 +33,7 @@ func NewKubernetesAuth(clientset *kubernetes.Clientset, trusted *Trusted, logger
 	return &KubernetesAuth{
 		clientset:      clientset,
 		trusted:        trusted,
-		responseWriter: responsewriter.NewResponseWriter(&logger),
+		responseWriter: mdbhttp.NewResponseWriter(&logger),
 		logger:         logger,
 	}
 }
@@ -44,7 +43,7 @@ func (a *KubernetesAuth) Handler(next http.Handler) http.Handler {
 		token, err := authToken(r)
 		if err != nil {
 			a.logger.V(1).Info("Error getting Authorization header", "err", err)
-			a.responseWriter.Write(w, agenterrors.NewAPIError("unauthorized"), http.StatusUnauthorized)
+			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
 			return
 		}
 		tokenReview := &authv1.TokenReview{
@@ -55,22 +54,22 @@ func (a *KubernetesAuth) Handler(next http.Handler) http.Handler {
 		tokenReviewRes, err := a.clientset.AuthenticationV1().TokenReviews().Create(r.Context(), tokenReview, metav1.CreateOptions{})
 		if err != nil {
 			a.logger.V(1).Info("Error verifying token in TokenReview API", "err", err)
-			a.responseWriter.Write(w, agenterrors.NewAPIError("unauthorized"), http.StatusUnauthorized)
+			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
 			return
 		}
 		if !tokenReviewRes.Status.Authenticated {
 			a.logger.V(1).Info("TokenReview not valid")
-			a.responseWriter.Write(w, agenterrors.NewAPIError("unauthorized"), http.StatusUnauthorized)
+			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
 			return
 		}
 		if tokenReviewRes.Status.User.Username == "" {
 			a.logger.V(1).Info("Username not found")
-			a.responseWriter.Write(w, agenterrors.NewAPIError("unauthorized"), http.StatusUnauthorized)
+			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
 			return
 		}
 		if a.trusted.String() != tokenReviewRes.Status.User.Username {
 			a.logger.V(1).Info("Username not allowed", "username", tokenReviewRes.Status.User.Username)
-			a.responseWriter.Write(w, agenterrors.NewAPIError("forbidden"), http.StatusForbidden)
+			a.responseWriter.Write(w, newAPIError("forbidden"), http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -88,4 +87,18 @@ func authToken(r *http.Request) (string, error) {
 		return "", errors.New("invalid Authorization header")
 	}
 	return parts[1], nil
+}
+
+type apiError struct {
+	Message string `json:"message"`
+}
+
+func (e *apiError) Error() string {
+	return e.Message
+}
+
+func newAPIError(message string) error {
+	return &apiError{
+		Message: message,
+	}
 }

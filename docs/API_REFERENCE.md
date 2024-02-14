@@ -290,7 +290,7 @@ _Appears in:_
 | `primary` _[PrimaryGalera](#primarygalera)_ | Primary is the Galera configuration for the primary node. |
 | `sst` _[SST](#sst)_ | SST is the Snapshot State Transfer used when new Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html. |
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |
-| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/agent. |
+| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
 | `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/init. |
 | `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB. |
@@ -301,7 +301,7 @@ _Appears in:_
 
 
 
-GaleraAgent is a sidecar agent that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/agent.
+GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
 
 _Appears in:_
 - [Galera](#galera)
@@ -373,7 +373,7 @@ _Appears in:_
 | `primary` _[PrimaryGalera](#primarygalera)_ | Primary is the Galera configuration for the primary node. |
 | `sst` _[SST](#sst)_ | SST is the Snapshot State Transfer used when new Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html. |
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |
-| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/agent. |
+| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
 | `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/init. |
 | `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB. |

@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
-	"github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
@@ -27,7 +27,7 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 	if err != nil {
 		return fmt.Errorf("error getting Pods: %v", err)
 	}
-	agentClientSet, err := r.newAgentClientSet(mariadb, client.WithTimeout(5*time.Second))
+	agentClientSet, err := r.newAgentClientSet(mariadb, mdbhttp.WithTimeout(5*time.Second))
 	if err != nil {
 		return fmt.Errorf("error getting agent client: %v", err)
 	}

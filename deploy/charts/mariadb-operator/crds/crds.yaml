@@ -6925,8 +6925,8 @@ spec:
                 description: Replication configures high availability via Galera.
                 properties:
                   agent:
-                    description: 'GaleraAgent is a sidecar agent that co-operates
-                      with mariadb-operator. More info: https://github.com/mariadb-operator/agent.'
+                    description: GaleraAgent is a sidecar agent that co-operates with
+                      mariadb-operator.
                     properties:
                       args:
                         description: Args to be used in the Container.

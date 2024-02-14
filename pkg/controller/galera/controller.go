@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	agentclient "github.com/mariadb-operator/agent/pkg/client"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -148,19 +149,19 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 		if err != nil {
 			return fmt.Errorf("error creating agent client: %v", err)
 		}
-		if err := agentClient.Bootstrap.Disable(ctx); err != nil && !agentclient.IsNotFound(err) {
+		if err := agentClient.Bootstrap.Disable(ctx); err != nil && !errors.IsNotFound(err) {
 			return fmt.Errorf("error disabling bootstrap in Pod %d: %v", i, err)
 		}
 	}
 	return nil
 }
 
-func (r *GaleraReconciler) newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, clientOpts ...agentclient.Option) (*agentClientSet, error) {
-	opts := []agentclient.Option{}
+func (r *GaleraReconciler) newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, clientOpts ...mdbhttp.Option) (*agentClientSet, error) {
+	opts := []mdbhttp.Option{}
 	opts = append(opts, clientOpts...)
 	if mariadb.Galera().Agent.KubernetesAuth.Enabled {
 		opts = append(opts,
-			agentclient.WithKubernetesAuth(true, r.env.MariadbOperatorSAPath),
+			mdbhttp.WithKubernetesAuth(r.env.MariadbOperatorSAPath),
 		)
 	}
 	return newAgentClientSet(mariadb, opts...)

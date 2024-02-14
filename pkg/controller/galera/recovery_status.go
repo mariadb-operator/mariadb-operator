@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	agentgalera "github.com/mariadb-operator/agent/pkg/galera"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -18,7 +18,7 @@ type recoveryStatus struct {
 }
 
 type bootstrapSource struct {
-	bootstrap *agentgalera.Bootstrap
+	bootstrap *recovery.Bootstrap
 	pod       *corev1.Pod
 }
 
@@ -56,17 +56,17 @@ func (rs *recoveryStatus) galeraRecoveryStatus() *mariadbv1alpha1.GaleraRecovery
 	return rs.inner
 }
 
-func (rs *recoveryStatus) setState(pod string, state *agentgalera.GaleraState) {
+func (rs *recoveryStatus) setState(pod string, state *recovery.GaleraState) {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
 	if rs.inner.State == nil {
-		rs.inner.State = make(map[string]*agentgalera.GaleraState)
+		rs.inner.State = make(map[string]*recovery.GaleraState)
 	}
 	rs.inner.State[pod] = state
 }
 
-func (rs *recoveryStatus) state(pod string) (*agentgalera.GaleraState, bool) {
+func (rs *recoveryStatus) state(pod string) (*recovery.GaleraState, bool) {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
@@ -74,17 +74,17 @@ func (rs *recoveryStatus) state(pod string) (*agentgalera.GaleraState, bool) {
 	return state, ok
 }
 
-func (rs *recoveryStatus) setRecovered(pod string, bootstrap *agentgalera.Bootstrap) {
+func (rs *recoveryStatus) setRecovered(pod string, bootstrap *recovery.Bootstrap) {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
 	if rs.inner.Recovered == nil {
-		rs.inner.Recovered = make(map[string]*agentgalera.Bootstrap)
+		rs.inner.Recovered = make(map[string]*recovery.Bootstrap)
 	}
 	rs.inner.Recovered[pod] = bootstrap
 }
 
-func (rs *recoveryStatus) recovered(pod string) (*agentgalera.Bootstrap, bool) {
+func (rs *recoveryStatus) recovered(pod string) (*recovery.Bootstrap, bool) {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
@@ -140,7 +140,7 @@ func (rs *recoveryStatus) safeToBootstrap(pods []corev1.Pod) (*bootstrapSource, 
 			for _, p := range pods {
 				if k == p.Name {
 					return &bootstrapSource{
-						bootstrap: &agentgalera.Bootstrap{
+						bootstrap: &recovery.Bootstrap{
 							UUID:  v.UUID,
 							Seqno: v.Seqno,
 						},
@@ -182,7 +182,7 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod) (*bootstrapSource, 
 
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
-	var currentSoure agentgalera.GaleraRecoverer
+	var currentSoure recovery.GaleraRecoverer
 	var currentPod corev1.Pod
 
 	for _, p := range pods {
@@ -201,7 +201,7 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod) (*bootstrapSource, 
 		return nil, errors.New("bootstrap source not found")
 	}
 	return &bootstrapSource{
-		bootstrap: &agentgalera.Bootstrap{
+		bootstrap: &recovery.Bootstrap{
 			UUID:  currentSoure.GetUUID(),
 			Seqno: currentSoure.GetSeqno(),
 		},
