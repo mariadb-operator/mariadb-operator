@@ -314,7 +314,10 @@ func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB, primaryTearDownPeriod ti
 		if err := k8sClient.Get(testCtx, key, &pod); err != nil {
 			return apierrors.IsNotFound(err)
 		}
-		return k8sClient.Delete(testCtx, &pod) == nil
+		if err := k8sClient.Delete(testCtx, &pod); err != nil {
+			return apierrors.IsNotFound(err)
+		}
+		return true
 	}, primaryTearDownPeriod, testInterval).Should(BeTrue())
 
 	By("Expecting primary to have changed eventually")
