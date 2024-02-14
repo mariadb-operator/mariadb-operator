@@ -699,7 +699,7 @@ var _ = Describe("MariaDB Galera", func() {
 					return false
 				}
 				return mdb.IsReady()
-			}, testVeryHighTimeout, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Galera to be configured eventually")
 			Eventually(func() bool {
@@ -805,7 +805,7 @@ var _ = Describe("MariaDB Galera", func() {
 					return false
 				}
 				return mdb.IsReady()
-			}, testVeryHighTimeout, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Galera NOT to be ready eventually")
 			Eventually(func() bool {
@@ -813,7 +813,7 @@ var _ = Describe("MariaDB Galera", func() {
 					return false
 				}
 				return mdb.HasGaleraNotReadyCondition()
-			}, testVeryHighTimeout, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
@@ -821,7 +821,7 @@ var _ = Describe("MariaDB Galera", func() {
 					return false
 				}
 				return mdb.IsReady()
-			}, testVeryHighTimeout, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Galera to be ready eventually")
 			Eventually(func() bool {
@@ -829,7 +829,7 @@ var _ = Describe("MariaDB Galera", func() {
 					return false
 				}
 				return mdb.HasGaleraReadyCondition()
-			}, testVeryHighTimeout, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
