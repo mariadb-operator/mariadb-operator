@@ -2,39 +2,45 @@ package client
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
 type Recovery struct {
-	*Client
+	client *mdbhttp.Client
+}
+
+func NewRecovery(client *mdbhttp.Client) *Recovery {
+	return &Recovery{
+		client: client,
+	}
 }
 
 func (r *Recovery) Enable(ctx context.Context) error {
-	req, err := r.newRequestWithContext(ctx, http.MethodPut, "/api/recovery", nil)
+	res, err := r.client.Put(ctx, "/api/recovery", nil, nil)
 	if err != nil {
 		return err
 	}
-	return r.do(req, nil)
+	return handleResponse(res, nil)
 }
 
 func (r *Recovery) Start(ctx context.Context) (*recovery.Bootstrap, error) {
-	req, err := r.newRequestWithContext(ctx, http.MethodPost, "/api/recovery", nil)
+	res, err := r.client.Post(ctx, "/api/recovery", nil, nil)
 	if err != nil {
 		return nil, err
 	}
 	var bootstrap recovery.Bootstrap
-	if err := r.do(req, &bootstrap); err != nil {
+	if err := handleResponse(res, &bootstrap); err != nil {
 		return nil, err
 	}
 	return &bootstrap, nil
 }
 
 func (r *Recovery) Disable(ctx context.Context) error {
-	req, err := r.newRequestWithContext(ctx, http.MethodDelete, "/api/recovery", nil)
+	res, err := r.client.Delete(ctx, "/api/recovery", nil, nil)
 	if err != nil {
 		return err
 	}
-	return r.do(req, nil)
+	return handleResponse(res, nil)
 }

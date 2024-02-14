@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -16,43 +17,59 @@ import (
 
 var defaultTimeout = 10 * time.Second
 
-type Option func(*Client)
+type Option func(*Client) error
 
 func WithHTTPClient(httpClient *http.Client) Option {
-	return func(c *Client) {
+	return func(c *Client) error {
 		if httpClient == nil {
 			httpClient = http.DefaultClient
 		}
 		c.httpClient = httpClient
+		return nil
 	}
 }
 
 func WithTimeout(timeout time.Duration) Option {
-	return func(c *Client) {
+	return func(c *Client) error {
 		if timeout == 0 {
 			timeout = defaultTimeout
 		}
 		c.httpClient.Timeout = timeout
+		return nil
 	}
 }
 
 func WithBasicAuth(username, password string) Option {
-	return func(c *Client) {
+	return func(c *Client) error {
 		raw := fmt.Sprintf("%s:%s", username, password)
 		encoded := b64.StdEncoding.EncodeToString([]byte(raw))
 		c.headers["Authorization"] = fmt.Sprintf("Basic %s", encoded)
+		return nil
+	}
+}
+
+func WithKubernetesAuth(serviceAccountPath string) Option {
+	return func(c *Client) error {
+		bytes, err := os.ReadFile(serviceAccountPath)
+		if err != nil {
+			return fmt.Errorf("error getting Kubernetes auth header: error reading '%s': %v", serviceAccountPath, err)
+		}
+		c.headers["Authorization"] = fmt.Sprintf("Bearer %s", string(bytes))
+		return nil
 	}
 }
 
 func WithVersion(version string) Option {
-	return func(c *Client) {
+	return func(c *Client) error {
 		c.version = strings.TrimPrefix(version, "/")
+		return nil
 	}
 }
 
 func WithLogger(logger *logr.Logger) Option {
-	return func(c *Client) {
+	return func(c *Client) error {
 		c.logger = logger
+		return nil
 	}
 }
 
@@ -77,7 +94,9 @@ func NewClient(baseUrl string, opts ...Option) (*Client, error) {
 		headers: make(map[string]string, 0),
 	}
 	for _, setOpt := range opts {
-		setOpt(client)
+		if err := setOpt(client); err != nil {
+			return nil, err
+		}
 	}
 	client.httpClient.Transport = NewHeadersTransport(client.httpClient.Transport, client.headers)
 	return client, nil
