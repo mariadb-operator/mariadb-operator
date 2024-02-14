@@ -127,5 +127,27 @@
       },
       "cwd": "${workspaceRoot}"
     },
+    {
+      "name": "Init",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/controller",
+      "args": [
+        "init",
+        "--log-dev",
+        "--log-level=info",
+        "--log-time-encoder=iso8601",
+        "--mariadb-name=mariadb-galera",
+        "--mariadb-namespace=default",
+        "--config-dir=mariadb/config",
+        "--state-dir=mariadb/state"
+      ],
+      "env": {
+        "POD_NAME": "mariadb-galera-0",
+        "MARIADB_ROOT_PASSWORD": "MariaDB11!",
+      },
+      "cwd": "${workspaceRoot}"
+    },
   ]
 }

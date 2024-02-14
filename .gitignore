@@ -31,3 +31,6 @@ artifacts/
 
 # Backup
 /backup/
+
+# Init
+/mariadb/
