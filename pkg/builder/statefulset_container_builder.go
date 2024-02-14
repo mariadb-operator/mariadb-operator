@@ -90,6 +90,7 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.
 	container.Args = func() []string {
 		args := container.Args
 		args = append(args, []string{
+			"agent",
 			fmt.Sprintf("--addr=:%d", *mariadb.Galera().Agent.Port),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
@@ -165,6 +166,7 @@ func galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
 	container.Args = func() []string {
 		args := container.Args
 		args = append(args, []string{
+			"init",
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
 			fmt.Sprintf("--mariadb-name=%s", mariadb.Name),

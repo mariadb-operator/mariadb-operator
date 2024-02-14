@@ -535,7 +535,7 @@ var _ = Describe("MariaDB webhook", func() {
 						Enabled: true,
 						GaleraSpec: GaleraSpec{
 							Agent: &GaleraAgent{
-								Image:           "ghcr.io/mariadb-operator/agent:v0.0.3",
+								Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 								ImagePullPolicy: corev1.PullIfNotPresent,
 							},
 							Recovery: &GaleraRecovery{
