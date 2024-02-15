@@ -122,16 +122,17 @@ func (r *MariaDB) validateMaxScale() error {
 
 func (r *MariaDB) validateGalera() error {
 	galera := ptr.Deref(r.Spec.Galera, Galera{})
-
 	if !galera.Enabled {
 		return nil
 	}
-	if galera.Primary.PodIndex != nil && (*galera.Primary.PodIndex < 0) || *galera.Primary.PodIndex >= int(r.Spec.Replicas) {
-		return field.Invalid(
-			field.NewPath("spec").Child("galera").Child("primary").Child("podIndex"),
-			r.Replication().Primary.PodIndex,
-			"'spec.galera.primary.podIndex' out of 'spec.replicas' bounds",
-		)
+	if galera.Primary.PodIndex != nil {
+		if *galera.Primary.PodIndex < 0 || *galera.Primary.PodIndex >= int(r.Spec.Replicas) {
+			return field.Invalid(
+				field.NewPath("spec").Child("galera").Child("primary").Child("podIndex"),
+				r.Replication().Primary.PodIndex,
+				"'spec.galera.primary.podIndex' out of 'spec.replicas' bounds",
+			)
+		}
 	}
 	if !reflect.ValueOf(galera.SST).IsZero() {
 		if err := galera.SST.Validate(); err != nil {
