@@ -2,7 +2,6 @@ package init
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -22,7 +21,6 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -63,13 +61,12 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		clientset, err := kubeclientset.NewClientSet()
+		clientSet, err := kubeclientset.NewClientSet()
 		if err != nil {
 			logger.Error(err, "Error creating Kubernetes clientset")
 			os.Exit(1)
 		}
-
-		mdb, err := mariadb(ctx, mariadbName, mariadbNamespace, clientset)
+		mdb, err := clientSet.GetMariaDB(ctx, mariadbName, mariadbNamespace)
 		if err != nil {
 			logger.Error(err, "Error getting MariaDB")
 			os.Exit(1)
@@ -125,7 +122,7 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		logger.Info("Waiting for previous Pod to be ready", "pod", previousPodName)
-		if err := waitForPodReady(ctx, mdb, previousPodName, clientset, logger); err != nil {
+		if err := waitForPodReady(ctx, mdb, previousPodName, clientSet, logger); err != nil {
 			logger.Error(err, "Error waiting for previous Pod to be ready", "pod", previousPodName)
 			os.Exit(1)
 		}
@@ -156,19 +153,6 @@ func newContext() (context.Context, context.CancelFunc) {
 	)
 }
 
-func mariadb(ctx context.Context, name, namespace string, clientset *kubernetes.Clientset) (*mariadbv1alpha1.MariaDB, error) {
-	path := fmt.Sprintf("/apis/mariadb.mmontes.io/v1alpha1/namespaces/%s/mariadbs/%s", namespace, name)
-	bytes, err := clientset.RESTClient().Get().AbsPath(path).DoRaw(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error requesting '%s' MariaDB in namespace '%s': %v", name, namespace, err)
-	}
-	var mdb mariadbv1alpha1.MariaDB
-	if err := json.Unmarshal(bytes, &mdb); err != nil {
-		return nil, fmt.Errorf("error decoding MariaDB: %v", err)
-	}
-	return &mdb, nil
-}
-
 func previousPodName(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (string, error) {
 	if podIndex == 0 {
 		return "", fmt.Errorf("Pod '%s' is the first Pod", statefulset.PodName(mariadb.ObjectMeta, podIndex))
@@ -177,7 +161,7 @@ func previousPodName(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (string, er
 	return statefulset.PodName(mariadb.ObjectMeta, previousPodIndex), nil
 }
 
-func waitForPodReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, name string, clientset *kubernetes.Clientset,
+func waitForPodReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, name string, clientset *kubeclientset.ClientSet,
 	logger logr.Logger) error {
 	return wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(context.Context) (bool, error) {
 		pod, err := clientset.CoreV1().Pods(mariadb.Namespace).Get(ctx, name, metav1.GetOptions{})

@@ -8,9 +8,9 @@ import (
 
 	"github.com/go-logr/logr"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	kubeclientset "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/clientset"
 	authv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 type Trusted struct {
@@ -23,15 +23,15 @@ func (t *Trusted) String() string {
 }
 
 type KubernetesAuth struct {
-	clientset      *kubernetes.Clientset
+	clientSet      *kubeclientset.ClientSet
 	trusted        *Trusted
 	responseWriter *mdbhttp.ResponseWriter
 	logger         logr.Logger
 }
 
-func NewKubernetesAuth(clientset *kubernetes.Clientset, trusted *Trusted, logger logr.Logger) *KubernetesAuth {
+func NewKubernetesAuth(clientSet *kubeclientset.ClientSet, trusted *Trusted, logger logr.Logger) *KubernetesAuth {
 	return &KubernetesAuth{
-		clientset:      clientset,
+		clientSet:      clientSet,
 		trusted:        trusted,
 		responseWriter: mdbhttp.NewResponseWriter(&logger),
 		logger:         logger,
@@ -51,7 +51,7 @@ func (a *KubernetesAuth) Handler(next http.Handler) http.Handler {
 				Token: token,
 			},
 		}
-		tokenReviewRes, err := a.clientset.AuthenticationV1().TokenReviews().Create(r.Context(), tokenReview, metav1.CreateOptions{})
+		tokenReviewRes, err := a.clientSet.AuthenticationV1().TokenReviews().Create(r.Context(), tokenReview, metav1.CreateOptions{})
 		if err != nil {
 			a.logger.V(1).Info("Error verifying token in TokenReview API", "err", err)
 			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
