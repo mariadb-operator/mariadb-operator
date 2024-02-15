@@ -30,14 +30,8 @@ func TestConfigMarshal(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							SST: func() *mariadbv1alpha1.SST {
-								s := mariadbv1alpha1.SSTRsync
-								return &s
-							}(),
-							ReplicaThreads: func() *int {
-								r := 1
-								return &r
-							}(),
+							SST:            mariadbv1alpha1.SSTRsync,
+							ReplicaThreads: 1,
 						},
 					},
 					Replicas: 0,
@@ -80,14 +74,8 @@ func TestConfigMarshal(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							SST: func() *mariadbv1alpha1.SST {
-								s := mariadbv1alpha1.SSTRsync
-								return &s
-							}(),
-							ReplicaThreads: func() *int {
-								r := 1
-								return &r
-							}(),
+							SST:            mariadbv1alpha1.SSTRsync,
+							ReplicaThreads: 1,
 						},
 					},
 					Replicas: 3,
@@ -128,14 +116,8 @@ wsrep_sst_method="rsync"
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							SST: func() *mariadbv1alpha1.SST {
-								s := mariadbv1alpha1.SSTMariaBackup
-								return &s
-							}(),
-							ReplicaThreads: func() *int {
-								r := 2
-								return &r
-							}(),
+							SST:            mariadbv1alpha1.SSTMariaBackup,
+							ReplicaThreads: 2,
 						},
 					},
 					Replicas: 3,

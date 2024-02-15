@@ -18,9 +18,11 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -49,14 +51,18 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if !mariadb.Galera().Enabled || !mariadb.Galera().Recovery.Enabled ||
+
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+	if !galera.Enabled || !recovery.Enabled ||
 		!mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("galera").WithName("health")
 	logger.Info("Checking Galera cluster health")
 
-	healthyCtx, cancelHealthy := context.WithTimeout(ctx, mariadb.Galera().Recovery.ClusterHealthyTimeout.Duration)
+	clusterHealthyTimeout := ptr.Deref(recovery.ClusterHealthyTimeout, metav1.Duration{Duration: 30 * time.Second}).Duration
+	healthyCtx, cancelHealthy := context.WithTimeout(ctx, clusterHealthyTimeout)
 	defer cancelHealthy()
 	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, mariadb, &sts, logger)
 	if err != nil {

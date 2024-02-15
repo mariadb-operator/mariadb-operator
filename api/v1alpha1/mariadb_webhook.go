@@ -2,9 +2,11 @@ package v1alpha1
 
 import (
 	"errors"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	log "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -28,11 +30,6 @@ func (r *MariaDB) Default() {
 	if r.Spec.Replication != nil && r.Spec.Replication.Enabled {
 		mariadbLogger.V(1).Info("Defaulting spec.replication", "mariadb", r.Name)
 		r.Spec.Replication.FillWithDefaults()
-		return
-	}
-	if r.Spec.Galera != nil && r.Spec.Galera.Enabled {
-		mariadbLogger.V(1).Info("Defaulting spec.galera", "mariadb", r.Name)
-		r.Spec.Galera.FillWithDefaults()
 		return
 	}
 }
@@ -92,7 +89,7 @@ func (r *MariaDB) ValidateDelete() (admission.Warnings, error) {
 }
 
 func (r *MariaDB) validateHA() error {
-	if r.Replication().Enabled && r.Galera().Enabled {
+	if r.Replication().Enabled && ptr.Deref(r.Spec.Galera, Galera{}).Enabled {
 		return errors.New("You may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !r.IsHAEnabled() && r.Spec.Replicas > 1 {
@@ -124,27 +121,31 @@ func (r *MariaDB) validateMaxScale() error {
 }
 
 func (r *MariaDB) validateGalera() error {
-	if !r.Galera().Enabled {
+	galera := ptr.Deref(r.Spec.Galera, Galera{})
+
+	if !galera.Enabled {
 		return nil
 	}
-	if *r.Galera().Primary.PodIndex < 0 || *r.Galera().Primary.PodIndex >= int(r.Spec.Replicas) {
+	if galera.Primary.PodIndex != nil && (*galera.Primary.PodIndex < 0) || *galera.Primary.PodIndex >= int(r.Spec.Replicas) {
 		return field.Invalid(
 			field.NewPath("spec").Child("galera").Child("primary").Child("podIndex"),
 			r.Replication().Primary.PodIndex,
 			"'spec.galera.primary.podIndex' out of 'spec.replicas' bounds",
 		)
 	}
-	if err := r.Galera().SST.Validate(); err != nil {
-		return field.Invalid(
-			field.NewPath("spec").Child("galera").Child("sst"),
-			r.Galera().SST,
-			err.Error(),
-		)
+	if !reflect.ValueOf(galera.SST).IsZero() {
+		if err := galera.SST.Validate(); err != nil {
+			return field.Invalid(
+				field.NewPath("spec").Child("galera").Child("sst"),
+				galera.SST,
+				err.Error(),
+			)
+		}
 	}
-	if *r.Galera().ReplicaThreads < 1 {
+	if galera.ReplicaThreads < 0 {
 		return field.Invalid(
 			field.NewPath("spec").Child("galera").Child("replicaThreads"),
-			r.Galera().ReplicaThreads,
+			galera.ReplicaThreads,
 			"'spec.galera.replicaThreads' must be at least 1",
 		)
 	}

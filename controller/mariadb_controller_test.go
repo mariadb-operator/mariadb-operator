@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -572,6 +573,55 @@ var _ = Describe("MariaDB replication", func() {
 
 var _ = Describe("MariaDB Galera", func() {
 	Context("When creating a MariaDB Galera", func() {
+		It("Should default", func() {
+			By("Creating MariaDB")
+			testDefaultKey := types.NamespacedName{
+				Name:      "test-mariadb-default",
+				Namespace: testNamespace,
+			}
+			testDefaultMariaDb := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testDefaultKey.Name,
+					Namespace: testDefaultKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(testCtx, &testDefaultMariaDb)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&testDefaultMariaDb)
+			})
+
+			By("Expecting to eventually default")
+			Eventually(func(g Gomega) bool {
+				if err := k8sClient.Get(testCtx, testDefaultKey, &testDefaultMariaDb); err != nil {
+					return false
+				}
+				g.Expect(testDefaultMariaDb.Spec.Galera).ToNot(BeZero())
+				g.Expect(testDefaultMariaDb.Spec.Galera.Primary).ToNot(BeZero())
+				g.Expect(testDefaultMariaDb.Spec.Galera.SST).ToNot(BeZero())
+				g.Expect(testDefaultMariaDb.Spec.Galera.ReplicaThreads).ToNot(BeZero())
+				g.Expect(testDefaultMariaDb.Spec.Galera.Recovery).ToNot(BeZero())
+				g.Expect(testDefaultMariaDb.Spec.Galera.InitContainer).ToNot(BeZero())
+				g.Expect(testDefaultMariaDb.Spec.Galera.VolumeClaimTemplate).ToNot(BeZero())
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
+		})
 		It("Should reconcile", func() {
 			clusterHealthyTimeout := metav1.Duration{Duration: 30 * time.Second}
 			recoveryTimeout := metav1.Duration{Duration: 5 * time.Minute}
@@ -613,9 +663,9 @@ var _ = Describe("MariaDB Galera", func() {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Primary: &mariadbv1alpha1.PrimaryGalera{
-								PodIndex:          func() *int { i := 0; return &i }(),
-								AutomaticFailover: func() *bool { af := true; return &af }(),
+							Primary: mariadbv1alpha1.PrimaryGalera{
+								PodIndex:          ptr.To(0),
+								AutomaticFailover: ptr.To(true),
 							},
 							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled:                 true,
@@ -624,7 +674,7 @@ var _ = Describe("MariaDB Galera", func() {
 								PodRecoveryTimeout:      &recoveryTimeout,
 								PodSyncTimeout:          &recoveryTimeout,
 							},
-							VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+							VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -767,7 +817,7 @@ var _ = Describe("MariaDB Galera", func() {
 
 			By("Updating MariaDB primary")
 			podIndex := 1
-			mdb.Galera().Primary.PodIndex = &podIndex
+			mdb.Spec.Galera.Primary.PodIndex = ptr.To(podIndex)
 			Expect(k8sClient.Update(testCtx, &mdb)).To(Succeed())
 
 			By("Expecting MariaDB to eventually change primary")
