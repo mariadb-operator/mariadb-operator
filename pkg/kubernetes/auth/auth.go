@@ -8,9 +8,8 @@ import (
 
 	"github.com/go-logr/logr"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
-	kubeclientset "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/clientset"
 	authv1 "k8s.io/api/authentication/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Trusted struct {
@@ -23,15 +22,15 @@ func (t *Trusted) String() string {
 }
 
 type KubernetesAuth struct {
-	clientSet      *kubeclientset.ClientSet
+	k8sClient      ctrlclient.Client
 	trusted        *Trusted
 	responseWriter *mdbhttp.ResponseWriter
 	logger         logr.Logger
 }
 
-func NewKubernetesAuth(clientSet *kubeclientset.ClientSet, trusted *Trusted, logger logr.Logger) *KubernetesAuth {
+func NewKubernetesAuth(k8sClient ctrlclient.Client, trusted *Trusted, logger logr.Logger) *KubernetesAuth {
 	return &KubernetesAuth{
-		clientSet:      clientSet,
+		k8sClient:      k8sClient,
 		trusted:        trusted,
 		responseWriter: mdbhttp.NewResponseWriter(&logger),
 		logger:         logger,
@@ -51,24 +50,23 @@ func (a *KubernetesAuth) Handler(next http.Handler) http.Handler {
 				Token: token,
 			},
 		}
-		tokenReviewRes, err := a.clientSet.AuthenticationV1().TokenReviews().Create(r.Context(), tokenReview, metav1.CreateOptions{})
-		if err != nil {
+		if err := a.k8sClient.Create(r.Context(), tokenReview); err != nil {
 			a.logger.V(1).Info("Error verifying token in TokenReview API", "err", err)
 			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
 			return
 		}
-		if !tokenReviewRes.Status.Authenticated {
+		if !tokenReview.Status.Authenticated {
 			a.logger.V(1).Info("TokenReview not valid")
 			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
 			return
 		}
-		if tokenReviewRes.Status.User.Username == "" {
+		if tokenReview.Status.User.Username == "" {
 			a.logger.V(1).Info("Username not found")
 			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
 			return
 		}
-		if a.trusted.String() != tokenReviewRes.Status.User.Username {
-			a.logger.V(1).Info("Username not allowed", "username", tokenReviewRes.Status.User.Username)
+		if a.trusted.String() != tokenReview.Status.User.Username {
+			a.logger.V(1).Info("Username not allowed", "username", tokenReview.Status.User.Username)
 			a.responseWriter.Write(w, newAPIError("forbidden"), http.StatusForbidden)
 			return
 		}

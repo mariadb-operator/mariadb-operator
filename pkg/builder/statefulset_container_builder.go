@@ -97,6 +97,8 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.
 			fmt.Sprintf("--addr=:%d", agent.Port),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
+			fmt.Sprintf("--mariadb-name=%s", mariadb.Name),
+			fmt.Sprintf("--mariadb-namespace=%s", mariadb.Namespace),
 		}...)
 		if agent.GracefulShutdownTimeout != nil {
 			args = append(args, fmt.Sprintf("--graceful-shutdown-timeout=%s", agent.GracefulShutdownTimeout.Duration))
@@ -113,6 +115,7 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.
 		}
 		return args
 	}()
+	container.Env = mariadbEnv(mariadb)
 	container.VolumeMounts = mariadbVolumeMounts(mariadb)
 	container.LivenessProbe = func() *corev1.Probe {
 		if container.LivenessProbe != nil {
@@ -370,10 +373,16 @@ func buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1al
 }
 
 func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	if mariadb.IsGaleraEnabled() {
+		return mariadbGaleraProbe(mariadb, "/liveness", mariadb.Spec.LivenessProbe)
+	}
 	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe)
 }
 
 func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	if mariadb.IsGaleraEnabled() {
+		return mariadbGaleraProbe(mariadb, "/readiness", mariadb.Spec.LivenessProbe)
+	}
 	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe)
 }
 
@@ -382,11 +391,6 @@ func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1
 		replProbe := mariadbReplProbe(mariadb, probe)
 		setProbeThresholds(replProbe, probe)
 		return replProbe
-	}
-	if mariadb.IsGaleraEnabled() {
-		galerProbe := *galeraStsProbe
-		setProbeThresholds(&galerProbe, probe)
-		return &galerProbe
 	}
 	if probe != nil {
 		return probe
@@ -411,6 +415,20 @@ func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *co
 	}
 	setProbeThresholds(mxsProbe, probe)
 	return mxsProbe
+}
+
+func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *corev1.Probe) *corev1.Probe {
+	agent := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
+	galeraProbe := corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: path,
+				Port: intstr.FromInt(int(agent.Port)),
+			},
+		},
+	}
+	setProbeThresholds(&galeraProbe, probe)
+	return &galeraProbe
 }
 
 func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *corev1.Probe) *corev1.Probe {
@@ -449,20 +467,6 @@ var (
 					"bash",
 					"-c",
 					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-				},
-			},
-		},
-		InitialDelaySeconds: 20,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-	}
-	galeraStsProbe = &corev1.Probe{
-		ProbeHandler: corev1.ProbeHandler{
-			Exec: &corev1.ExecAction{
-				Command: []string{
-					"bash",
-					"-c",
-					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SHOW STATUS LIKE 'wsrep_ready'\" | grep -c ON ",
 				},
 			},
 		},
