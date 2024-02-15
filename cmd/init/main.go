@@ -13,18 +13,23 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
-	kubeclientset "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/clientset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"github.com/sethvargo/go-envconfig"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
+	scheme           = runtime.NewScheme()
 	logger           = ctrl.Log
 	configDir        string
 	stateDir         string
@@ -33,11 +38,14 @@ var (
 )
 
 func init() {
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
+
 	RootCmd.Flags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d",
 		"The directory that contains MariaDB configuration files")
 	RootCmd.Flags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
-	RootCmd.Flags().StringVar(&mariadbName, "mariadb-name", "", "The name of the MariaDB to be initialized")
-	RootCmd.Flags().StringVar(&mariadbNamespace, "mariadb-namespace", "", "The namespace of the MariaDB to be initialized")
+	RootCmd.Flags().StringVar(&mariadbName, "mariadb-name", "", "The name of the MariaDB resource")
+	RootCmd.Flags().StringVar(&mariadbNamespace, "mariadb-namespace", "", "The namespace of the MariaDB resource")
 }
 
 var RootCmd = &cobra.Command{
@@ -61,13 +69,23 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		clientSet, err := kubeclientset.NewClientSet()
+		restConfig, err := ctrl.GetConfig()
 		if err != nil {
-			logger.Error(err, "Error creating Kubernetes clientset")
+			logger.Error(err, "Error getting REST config")
 			os.Exit(1)
 		}
-		mdb, err := clientSet.GetMariaDB(ctx, mariadbName, mariadbNamespace)
+		k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
 		if err != nil {
+			logger.Error(err, "Error creating Kubernetes client")
+			os.Exit(1)
+		}
+
+		var mdb mariadbv1alpha1.MariaDB
+		key := types.NamespacedName{
+			Name:      mariadbName,
+			Namespace: mariadbNamespace,
+		}
+		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
 			logger.Error(err, "Error getting MariaDB")
 			os.Exit(1)
 		}
@@ -77,7 +95,7 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "Error creating file manager")
 			os.Exit(1)
 		}
-		configBytes, err := config.NewConfigFile(mdb).Marshal(env.PodName, env.MariadbRootPassword)
+		configBytes, err := config.NewConfigFile(&mdb).Marshal(env.PodName, env.MariadbRootPassword)
 		if err != nil {
 			logger.Error(err, "Error getting Galera config")
 			os.Exit(1)
@@ -116,13 +134,17 @@ var RootCmd = &cobra.Command{
 			os.Exit(0)
 		}
 
-		previousPodName, err := previousPodName(mdb, *idx)
+		logger.Info("Waiting for previous Pod to be ready", "pod", previousPodName)
+		previousPodName, err := previousPodName(&mdb, *idx)
 		if err != nil {
 			logger.Error(err, "Error getting previous Pod")
 			os.Exit(1)
 		}
-		logger.Info("Waiting for previous Pod to be ready", "pod", previousPodName)
-		if err := waitForPodReady(ctx, mdb, previousPodName, clientSet, logger); err != nil {
+		previousKey := types.NamespacedName{
+			Name:      previousPodName,
+			Namespace: mariadbNamespace,
+		}
+		if err := waitForPodReady(ctx, previousKey, k8sClient, logger); err != nil {
 			logger.Error(err, "Error waiting for previous Pod to be ready", "pod", previousPodName)
 			os.Exit(1)
 		}
@@ -161,15 +183,15 @@ func previousPodName(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (string, er
 	return statefulset.PodName(mariadb.ObjectMeta, previousPodIndex), nil
 }
 
-func waitForPodReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, name string, clientset *kubeclientset.ClientSet,
+func waitForPodReady(ctx context.Context, key types.NamespacedName, client client.Client,
 	logger logr.Logger) error {
 	return wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(context.Context) (bool, error) {
-		pod, err := clientset.CoreV1().Pods(mariadb.Namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
+		var pod corev1.Pod
+		if err := client.Get(ctx, key, &pod); err != nil {
 			logger.V(1).Info("Error getting Pod", "err", err)
 			return false, nil
 		}
-		if !mariadbpod.PodReady(pod) {
+		if !mariadbpod.PodReady(&pod) {
 			logger.V(1).Info("Pod not ready", "pod", previousPodName)
 			return false, nil
 		}

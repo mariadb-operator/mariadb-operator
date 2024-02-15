@@ -10,7 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/handler"
 	kubeauth "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/auth"
-	kubeclientset "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/clientset"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Options struct {
@@ -45,7 +45,7 @@ func WithKubernetesAuth(auth bool, trusted *kubeauth.Trusted) Option {
 	}
 }
 
-func NewRouter(handler *handler.Handler, clientSet *kubeclientset.ClientSet, logger logr.Logger, opts ...Option) http.Handler {
+func NewRouter(handler *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
 	routerOpts := Options{
 		CompressLevel:     5,
 		KubernetesAuth:    false,
@@ -61,19 +61,21 @@ func NewRouter(handler *handler.Handler, clientSet *kubeclientset.ClientSet, log
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	r.Mount("/api", apiRouter(handler, clientSet, logger, &routerOpts))
+	r.Mount("/api", apiRouter(handler, k8sClient, logger, &routerOpts))
+	r.Get("/liveness", handler.Probe.Liveness)
+	r.Get("/readiness", handler.Probe.Readiness)
 
 	return r
 }
 
-func apiRouter(h *handler.Handler, clientSet *kubeclientset.ClientSet, logger logr.Logger, opts *Options) http.Handler {
+func apiRouter(h *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logger, opts *Options) http.Handler {
 	r := chi.NewRouter()
 	if opts.RateLimitRequests != nil && opts.RateLimitDuration != nil {
 		r.Use(httprate.LimitAll(*opts.RateLimitRequests, *opts.RateLimitDuration))
 	}
 	r.Use(middleware.Logger)
 	if opts.KubernetesAuth && opts.KubernetesTrusted != nil {
-		kauth := kubeauth.NewKubernetesAuth(clientSet, opts.KubernetesTrusted, logger)
+		kauth := kubeauth.NewKubernetesAuth(k8sClient, opts.KubernetesTrusted, logger)
 		r.Use(kauth.Handler)
 	}
 

@@ -6,22 +6,30 @@ import (
 	"os"
 	"time"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/handler"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/server"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
 	kubeauth "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/auth"
-	kubeclientset "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/clientset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	logger    = ctrl.Log
-	addr      string
-	configDir string
-	stateDir  string
+	scheme           = runtime.NewScheme()
+	logger           = ctrl.Log
+	addr             string
+	configDir        string
+	stateDir         string
+	mariadbName      string
+	mariadbNamespace string
 
 	compressLevel              int
 	rateLimitRequests          int
@@ -34,9 +42,14 @@ var (
 )
 
 func init() {
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
+
 	RootCmd.Flags().StringVar(&addr, "addr", ":5555", "The address that the HTTP server binds to")
 	RootCmd.Flags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d", "The directory that contains MariaDB configuration files")
 	RootCmd.Flags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
+	RootCmd.Flags().StringVar(&mariadbName, "mariadb-name", "", "The name of the MariaDB resource")
+	RootCmd.Flags().StringVar(&mariadbNamespace, "mariadb-namespace", "", "The namespace of the MariaDB resource")
 
 	RootCmd.Flags().IntVar(&compressLevel, "compress-level", 5, "HTTP compression level")
 	RootCmd.Flags().IntVar(&rateLimitRequests, "rate-limit-requests", 0, "Number of requests to be used as rate limit")
@@ -63,9 +76,14 @@ var RootCmd = &cobra.Command{
 		}
 		logger.Info("starting agent")
 
-		clientset, err := kubeclientset.NewClientSet()
+		restConfig, err := ctrl.GetConfig()
 		if err != nil {
-			logger.Error(err, "Error creating Kubernetes clientset")
+			logger.Error(err, "Error getting REST config")
+			os.Exit(1)
+		}
+		k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
+		if err != nil {
+			logger.Error(err, "Error creating Kubernetes client")
 			os.Exit(1)
 		}
 
@@ -75,8 +93,14 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		mariadbKey := types.NamespacedName{
+			Name:      mariadbName,
+			Namespace: mariadbNamespace,
+		}
 		handlerLogger := logger.WithName("handler")
 		handler := handler.NewHandler(
+			mariadbKey,
+			k8sClient,
 			fileManager,
 			&handlerLogger,
 			handler.WithRecoveryTimeout(recoveryTimeout),
@@ -97,7 +121,7 @@ var RootCmd = &cobra.Command{
 		}
 		router := router.NewRouter(
 			handler,
-			clientset,
+			k8sClient,
 			logger,
 			routerOpts...,
 		)

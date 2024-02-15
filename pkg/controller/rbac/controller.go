@@ -130,6 +130,17 @@ func (r *RBACReconciler) reconcileRole(ctx context.Context, key types.Namespaced
 				"get",
 			},
 		},
+		{
+			APIGroups: []string{
+				corev1.GroupName,
+			},
+			Resources: []string{
+				"secrets",
+			},
+			Verbs: []string{
+				"get",
+			},
+		},
 	}
 	role, err := r.builder.BuildRole(key, mariadb, rules)
 	if err != nil {
