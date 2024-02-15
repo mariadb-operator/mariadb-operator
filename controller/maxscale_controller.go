@@ -270,7 +270,7 @@ func (r *MaxScaleReconciler) setMariadbDefaults(ctx context.Context, req *reques
 		"auto_rejoin":                  "true",
 		"switchover_on_low_disk_space": "true",
 	}
-	if mdb.Galera().Enabled {
+	if mdb.IsGaleraEnabled() {
 		monitorModule = mariadbv1alpha1.MonitorModuleGalera
 		monitorParams = nil
 	}

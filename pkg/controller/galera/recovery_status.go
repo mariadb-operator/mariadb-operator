@@ -10,6 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 type recoveryStatus struct {
@@ -127,7 +128,12 @@ func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
 	if rs.inner.Bootstrap.Time == nil {
 		return false
 	}
-	deadline := rs.inner.Bootstrap.Time.Add(mdb.Galera().Recovery.ClusterBootstrapTimeout.Duration)
+
+	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+	timeout := ptr.Deref(recovery.ClusterBootstrapTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+
+	deadline := rs.inner.Bootstrap.Time.Add(timeout)
 	return time.Now().After(deadline)
 }
 

@@ -194,8 +194,9 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 		}
 	}
 
-	if mariadb.Galera().Enabled {
-		vctpl := *mariadb.Galera().VolumeClaimTemplate
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	if galera.Enabled {
+		vctpl := galera.VolumeClaimTemplate
 		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        galeraresources.GaleraConfigVolume,
@@ -264,7 +265,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 			},
 		})
 	}
-	if mariadb.Galera().Enabled {
+	if mariadb.IsGaleraEnabled() {
 		volumes = append(volumes, corev1.Volume{
 			Name: ServiceAccountVolume,
 			VolumeSource: corev1.VolumeSource{
@@ -345,7 +346,7 @@ func mariadbHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 		if mariadb.Replication().Enabled {
 			annotations[annotation.ReplicationAnnotation] = ""
 		}
-		if mariadb.Galera().Enabled {
+		if mariadb.IsGaleraEnabled() {
 			annotations[annotation.GaleraAnnotation] = ""
 		}
 	}

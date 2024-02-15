@@ -145,9 +145,9 @@ func defaultPrimary(mdb *mariadbv1alpha1.MariaDB) {
 		return
 	}
 	podIndex := 0
-	if mdb.Galera().Enabled {
-		primaryGalera := ptr.Deref(mdb.Galera().Primary, mariadbv1alpha1.PrimaryGalera{})
-		podIndex = ptr.Deref(primaryGalera.PodIndex, 0)
+	if mdb.IsGaleraEnabled() {
+		galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+		podIndex = ptr.Deref(galera.Primary.PodIndex, 0)
 	}
 	if mdb.Replication().Enabled {
 		primaryReplication := ptr.Deref(mdb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})

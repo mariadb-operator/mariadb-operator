@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 // SST is the Snapshot State Transfer used when new Pods join the cluster.
@@ -61,16 +63,13 @@ type PrimaryGalera struct {
 	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
 }
 
-// FillWithDefaults fills the current PrimaryGalera object with DefaultGaleraSpec.
-// This enables having minimal PrimaryGalera objects and provides sensible defaults.
-func (r *PrimaryGalera) FillWithDefaults() {
+// SetDefaults sets reasonable defaults.
+func (r *PrimaryGalera) SetDefaults() {
 	if r.PodIndex == nil {
-		index := *DefaultGaleraSpec.Primary.PodIndex
-		r.PodIndex = &index
+		r.PodIndex = ptr.To(0)
 	}
 	if r.AutomaticFailover == nil {
-		failover := *DefaultGaleraSpec.Primary.AutomaticFailover
-		r.AutomaticFailover = &failover
+		r.AutomaticFailover = ptr.To(true)
 	}
 }
 
@@ -119,9 +118,8 @@ type GaleraAgent struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Port where the agent will be listening for connections.
 	// +optional
-	// +kubebuilder:default=5555
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Port *int32 `json:"port,omitempty"`
+	Port int32 `json:"port,omitempty"`
 	// KubernetesAuth to be used by the agent container
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -132,23 +130,24 @@ type GaleraAgent struct {
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
 }
 
-// FillWithDefaults fills the current GaleraAgent object with DefaultReplicationSpec.
-// This enables having minimal GaleraAgent objects and provides sensible defaults.
-func (r *GaleraAgent) FillWithDefaults() {
+// SetDefaults sets reasonable defaults.
+func (r *GaleraAgent) SetDefaults() {
 	if r.Image == "" {
-		r.Image = DefaultGaleraSpec.Agent.Image
+		r.Image = "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26"
 	}
 	if r.ImagePullPolicy == "" {
-		r.ImagePullPolicy = DefaultGaleraSpec.Agent.ImagePullPolicy
+		r.ImagePullPolicy = corev1.PullIfNotPresent
 	}
-	if r.Port == nil {
-		r.Port = DefaultGaleraSpec.Agent.Port
+	if r.Port == 0 {
+		r.Port = 5555
 	}
 	if r.KubernetesAuth == nil {
-		r.KubernetesAuth = DefaultGaleraSpec.Agent.KubernetesAuth
+		r.KubernetesAuth = &KubernetesAuth{
+			Enabled: true,
+		}
 	}
 	if r.GracefulShutdownTimeout == nil {
-		r.GracefulShutdownTimeout = DefaultGaleraSpec.Agent.GracefulShutdownTimeout
+		r.GracefulShutdownTimeout = ptr.To(metav1.Duration{Duration: 1 * time.Second})
 	}
 }
 
@@ -182,22 +181,19 @@ type GaleraRecovery struct {
 	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
 }
 
-func (g *GaleraRecovery) FillWithDefaults() {
+// SetDefaults sets reasonable defaults.
+func (g *GaleraRecovery) SetDefaults() {
 	if g.ClusterHealthyTimeout == nil {
-		timeout := DefaultGaleraSpec.Recovery.ClusterHealthyTimeout
-		g.ClusterHealthyTimeout = timeout
+		g.ClusterHealthyTimeout = ptr.To(metav1.Duration{Duration: 30 * time.Second})
 	}
 	if g.ClusterBootstrapTimeout == nil {
-		timeout := DefaultGaleraSpec.Recovery.ClusterBootstrapTimeout
-		g.ClusterBootstrapTimeout = timeout
+		g.ClusterBootstrapTimeout = ptr.To(metav1.Duration{Duration: 5 * time.Minute})
 	}
 	if g.PodRecoveryTimeout == nil {
-		timeout := DefaultGaleraSpec.Recovery.PodRecoveryTimeout
-		g.PodRecoveryTimeout = timeout
+		g.PodRecoveryTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
 	}
 	if g.PodSyncTimeout == nil {
-		timeout := DefaultGaleraSpec.Recovery.PodSyncTimeout
-		g.PodSyncTimeout = timeout
+		g.PodSyncTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
 	}
 }
 
@@ -213,120 +209,22 @@ type Galera struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
-// GaleraSpec is the Galera desired state specification.
-type GaleraSpec struct {
-	// Primary is the Galera configuration for the primary node.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Primary *PrimaryGalera `json:"primary,omitempty"`
-	// SST is the Snapshot State Transfer used when new Pods join the cluster.
-	// More info: https://galeracluster.com/library/documentation/sst.html.
-	// +optional
-	// +kubebuilder:validation:Enum=rsync;mariabackup;mysqldump
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SST *SST `json:"sst,omitempty"`
-	// ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.
-	// More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ReplicaThreads *int `json:"replicaThreads,omitempty"`
-	// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Agent *GaleraAgent `json:"agent,omitempty"`
-	// GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
-	// More info: https://galeracluster.com/library/documentation/crash-recovery.html.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Recovery *GaleraRecovery `json:"recovery,omitempty"`
-	// InitContainer is an init container that co-operates with mariadb-operator.
-	// More info: https://github.com/mariadb-operator/init.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	InitContainer *Container `json:"initContainer,omitempty"`
-	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files
-	// shared between the InitContainer, Agent and MariaDB.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
-}
-
-// FillWithDefaults fills the current GaleraSpec object with DefaultGaleraSpec.
-// This enables having minimal GaleraSpec objects and provides sensible defaults.
-func (g *GaleraSpec) FillWithDefaults() {
-	if g.Primary == nil {
-		primary := *DefaultGaleraSpec.Primary
-		g.Primary = &primary
-	} else {
-		g.Primary.FillWithDefaults()
+// SetDefaults sets reasonable defaults.
+func (g *Galera) SetDefaults() {
+	if g.SST == "" {
+		g.SST = SSTMariaBackup
 	}
-	if g.SST == nil {
-		sst := *DefaultGaleraSpec.SST
-		g.SST = &sst
+	if g.ReplicaThreads == 0 {
+		g.ReplicaThreads = 1
 	}
-	if g.ReplicaThreads == nil {
-		replicaThreads := *DefaultGaleraSpec.ReplicaThreads
-		g.ReplicaThreads = &replicaThreads
-	}
-	if g.Agent == nil {
-		agent := *DefaultGaleraSpec.Agent
-		g.Agent = &agent
-	} else {
-		g.Agent.FillWithDefaults()
-	}
-	if g.Recovery == nil {
-		recovery := *DefaultGaleraSpec.Recovery
-		g.Recovery = &recovery
-	} else {
-		g.Recovery.FillWithDefaults()
-	}
-	if g.InitContainer == nil {
-		initContainer := *DefaultGaleraSpec.InitContainer
-		g.InitContainer = &initContainer
-	}
-	if g.VolumeClaimTemplate == nil {
-		volumeClaimTemplate := *DefaultGaleraSpec.VolumeClaimTemplate
-		g.VolumeClaimTemplate = &volumeClaimTemplate
-	}
-}
-
-var (
-	fiveSeconds    = metav1.Duration{Duration: 5 * time.Second}
-	threeMinutes   = metav1.Duration{Duration: 3 * time.Minute}
-	fiveMinutes    = metav1.Duration{Duration: 5 * time.Minute}
-	tenMinutes     = metav1.Duration{Duration: 10 * time.Minute}
-	sst            = SSTMariaBackup
-	replicaThreads = 1
-
-	// DefaultGaleraSpec provides sensible defaults for the GaleraSpec.
-	DefaultGaleraSpec = GaleraSpec{
-		Primary: &PrimaryGalera{
-			PodIndex:          func() *int { i := 0; return &i }(),
-			AutomaticFailover: func() *bool { af := true; return &af }(),
-		},
-		SST:            &sst,
-		ReplicaThreads: &replicaThreads,
-		Agent: &GaleraAgent{
+	if reflect.ValueOf(g.InitContainer).IsZero() {
+		g.InitContainer = Container{
 			Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 			ImagePullPolicy: corev1.PullIfNotPresent,
-			Port:            func() *int32 { p := int32(5555); return &p }(),
-			KubernetesAuth: &KubernetesAuth{
-				Enabled: true,
-			},
-			GracefulShutdownTimeout: &fiveSeconds,
-		},
-		Recovery: &GaleraRecovery{
-			Enabled:                 true,
-			ClusterHealthyTimeout:   &threeMinutes,
-			ClusterBootstrapTimeout: &tenMinutes,
-			PodRecoveryTimeout:      &fiveMinutes,
-			PodSyncTimeout:          &fiveMinutes,
-		},
-		InitContainer: &Container{
-			Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-			ImagePullPolicy: corev1.PullIfNotPresent,
-		},
-		VolumeClaimTemplate: &VolumeClaimTemplate{
+		}
+	}
+	if reflect.ValueOf(g.VolumeClaimTemplate).IsZero() {
+		g.VolumeClaimTemplate = VolumeClaimTemplate{
 			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -337,9 +235,58 @@ var (
 					corev1.ReadWriteOnce,
 				},
 			},
-		},
+		}
 	}
-)
+	g.Primary.SetDefaults()
+	g.Agent.SetDefaults()
+
+	if g.Recovery == nil {
+		g.Recovery = &GaleraRecovery{
+			Enabled: true,
+		}
+	}
+	if ptr.Deref(g.Recovery, GaleraRecovery{}).Enabled {
+		g.Recovery.SetDefaults()
+	}
+}
+
+// GaleraSpec is the Galera desired state specification.
+type GaleraSpec struct {
+	// Primary is the Galera configuration for the primary node.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Primary PrimaryGalera `json:"primary,omitempty"`
+	// SST is the Snapshot State Transfer used when new Pods join the cluster.
+	// More info: https://galeracluster.com/library/documentation/sst.html.
+	// +optional
+	// +kubebuilder:validation:Enum=rsync;mariabackup;mysqldump
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SST SST `json:"sst,omitempty"`
+	// ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.
+	// More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ReplicaThreads int `json:"replicaThreads,omitempty"`
+	// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Agent GaleraAgent `json:"agent,omitempty"`
+	// GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
+	// More info: https://galeracluster.com/library/documentation/crash-recovery.html.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Recovery *GaleraRecovery `json:"recovery,omitempty"`
+	// InitContainer is an init container that co-operates with mariadb-operator.
+	// More info: https://github.com/mariadb-operator/init.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	InitContainer Container `json:"initContainer,omitempty"`
+	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files
+	// shared between the InitContainer, Agent and MariaDB.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
+}
 
 // GaleraRecoveryBootstrap indicates when and in which Pod the cluster bootstrap process has been performed.
 type GaleraRecoveryBootstrap struct {

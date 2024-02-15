@@ -25,7 +25,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.
 	var containers []corev1.Container
 	containers = append(containers, mariadbContainer)
 
-	if mariadb.Galera().Enabled {
+	if mariadb.IsGaleraEnabled() {
 		containers = append(containers, b.galeraAgentContainer(mariadb))
 	}
 	if mariadb.Spec.SidecarContainers != nil {
@@ -78,28 +78,33 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 }
 
 func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
-	agent := mariadb.Galera().Agent
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	agent := galera.Agent
+	recovery := galera.Recovery
+
 	container := buildContainer(agent.Image, agent.ImagePullPolicy, &agent.ContainerTemplate)
 	container.Name = AgentContainerName
 	container.Ports = []corev1.ContainerPort{
 		{
 			Name:          galeraresources.AgentPortName,
-			ContainerPort: *mariadb.Galera().Agent.Port,
+			ContainerPort: agent.Port,
 		},
 	}
 	container.Args = func() []string {
 		args := container.Args
 		args = append(args, []string{
 			"agent",
-			fmt.Sprintf("--addr=:%d", *mariadb.Galera().Agent.Port),
+			fmt.Sprintf("--addr=:%d", agent.Port),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
-			fmt.Sprintf("--graceful-shutdown-timeout=%s", mariadb.Galera().Agent.GracefulShutdownTimeout.Duration),
 		}...)
-		if mariadb.Galera().Recovery.Enabled {
-			args = append(args, fmt.Sprintf("--recovery-timeout=%s", mariadb.Galera().Recovery.PodRecoveryTimeout.Duration))
+		if agent.GracefulShutdownTimeout != nil {
+			args = append(args, fmt.Sprintf("--graceful-shutdown-timeout=%s", agent.GracefulShutdownTimeout.Duration))
 		}
-		if mariadb.Galera().Agent.KubernetesAuth.Enabled {
+		if recovery.Enabled && recovery.PodRecoveryTimeout != nil {
+			args = append(args, fmt.Sprintf("--recovery-timeout=%s", recovery.PodRecoveryTimeout.Duration))
+		}
+		if ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{}).Enabled {
 			args = append(args, []string{
 				"--kubernetes-auth",
 				fmt.Sprintf("--kubernetes-trusted-name=%s", b.env.MariadbOperatorName),
@@ -113,13 +118,13 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.
 		if container.LivenessProbe != nil {
 			return container.LivenessProbe
 		}
-		return defaultAgentProbe(mariadb.Galera())
+		return defaultAgentProbe(galera)
 	}()
 	container.ReadinessProbe = func() *corev1.Probe {
 		if container.ReadinessProbe != nil {
 			return container.ReadinessProbe
 		}
-		return defaultAgentProbe(mariadb.Galera())
+		return defaultAgentProbe(galera)
 	}()
 	container.SecurityContext = func() *corev1.SecurityContext {
 		if container.SecurityContext != nil {
@@ -149,17 +154,17 @@ func mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB) []corev1.Container 
 			initContainers = append(initContainers, initContainer)
 		}
 	}
-	if mariadb.Galera().Enabled {
+	if mariadb.IsGaleraEnabled() {
 		initContainers = append(initContainers, galeraInitContainer(mariadb))
 	}
 	return initContainers
 }
 
 func galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
-	if !mariadb.Galera().Enabled {
+	if !mariadb.IsGaleraEnabled() {
 		return corev1.Container{}
 	}
-	init := mariadb.Galera().InitContainer
+	init := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).InitContainer
 	container := buildContainer(init.Image, init.ImagePullPolicy, &init.ContainerTemplate)
 
 	container.Name = InitContainerName
@@ -284,7 +289,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount 
 			MountPath: ProbesMountPath,
 		})
 	}
-	if mariadb.Galera().Enabled {
+	if mariadb.IsGaleraEnabled() {
 		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 			{
 				Name:      galeraresources.GaleraConfigVolume,
@@ -326,7 +331,7 @@ func mariadbPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 			ContainerPort: mariadb.Spec.Port,
 		},
 	}
-	if mariadb.Galera().Enabled {
+	if mariadb.IsGaleraEnabled() {
 		ports = append(ports, []corev1.ContainerPort{
 			{
 				Name:          galeraresources.GaleraClusterPortName,
@@ -378,7 +383,7 @@ func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1
 		setProbeThresholds(replProbe, probe)
 		return replProbe
 	}
-	if mariadb.Galera().Enabled {
+	if mariadb.IsGaleraEnabled() {
 		galerProbe := *galeraStsProbe
 		setProbeThresholds(&galerProbe, probe)
 		return &galerProbe
@@ -470,7 +475,7 @@ var (
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path: "/health",
-					Port: intstr.FromInt(int(*galera.Agent.Port)),
+					Port: intstr.FromInt(int(galera.Agent.Port)),
 				},
 			},
 		}

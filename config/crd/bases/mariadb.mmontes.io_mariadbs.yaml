@@ -3184,7 +3184,6 @@ spec:
                             type: integer
                         type: object
                       port:
-                        default: 5555
                         description: Port where the agent will be listening for connections.
                         format: int32
                         type: integer

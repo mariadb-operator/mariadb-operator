@@ -11,6 +11,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -59,7 +60,7 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 	if err != nil {
 		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
-	if !mariadb.Galera().Enabled {
+	if !mariadb.IsGaleraEnabled() {
 		return nil
 	}
 	role, err := r.reconcileRole(ctx, key, mariadb)
@@ -76,14 +77,16 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 		return fmt.Errorf("error reconciling RoleBinding: %v", err)
 	}
 
-	if mariadb.Galera().Agent.KubernetesAuth.Enabled {
+	agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
+	k8sAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
+	if k8sAuth.Enabled {
 		authDelegatorRoleRef := rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
 			Kind:     "ClusterRole",
 			Name:     "system:auth-delegator",
 		}
 		key := types.NamespacedName{
-			Name:      fmt.Sprintf("%s:auth-delegator", mariadb.Galera().Agent.KubernetesAuth.AuthDelegatorRoleNameOrDefault(mariadb)),
+			Name:      fmt.Sprintf("%s:auth-delegator", k8sAuth.AuthDelegatorRoleNameOrDefault(mariadb)),
 			Namespace: mariadb.Namespace,
 		}
 		if err := r.reconcileClusterRoleBinding(ctx, key, mariadb, sa, authDelegatorRoleRef); err != nil {

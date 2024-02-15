@@ -469,7 +469,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			Port: mariadb.Spec.Port,
 		},
 	}
-	if mariadb.Galera().Enabled {
+	if mariadb.IsGaleraEnabled() {
 		ports = append(ports, []corev1.ServicePort{
 			{
 				Name: galeraresources.GaleraClusterPortName,
@@ -485,7 +485,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			},
 			{
 				Name: galeraresources.AgentPortName,
-				Port: *mariadb.Galera().Agent.Port,
+				Port: ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent.Port,
 			},
 		}...)
 	}

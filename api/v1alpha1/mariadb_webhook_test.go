@@ -79,8 +79,8 @@ var _ = Describe("MariaDB webhook", func() {
 						Galera: &Galera{
 							Enabled: true,
 							GaleraSpec: GaleraSpec{
-								SST:            &sst,
-								ReplicaThreads: &replicaThreads,
+								SST:            SSTMariaBackup,
+								ReplicaThreads: 1,
 							},
 						},
 						Replicas: 3,
@@ -126,8 +126,8 @@ var _ = Describe("MariaDB webhook", func() {
 						Galera: &Galera{
 							Enabled: true,
 							GaleraSpec: GaleraSpec{
-								SST:            &sst,
-								ReplicaThreads: &replicaThreads,
+								SST:            SSTMariaBackup,
+								ReplicaThreads: 1,
 							},
 						},
 						Replicas: 3,
@@ -155,7 +155,7 @@ var _ = Describe("MariaDB webhook", func() {
 						Galera: &Galera{
 							Enabled: true,
 							GaleraSpec: GaleraSpec{
-								SST: &sst,
+								SST: SSTMariaBackup,
 							},
 						},
 						Replicas: 1,
@@ -172,11 +172,8 @@ var _ = Describe("MariaDB webhook", func() {
 						Galera: &Galera{
 							Enabled: true,
 							GaleraSpec: GaleraSpec{
-								SST: func() *SST {
-									s := SST("foo")
-									return &s
-								}(),
-								ReplicaThreads: &replicaThreads,
+								SST:            SST("foo"),
+								ReplicaThreads: 1,
 							},
 						},
 						Replicas: 3,
@@ -193,11 +190,8 @@ var _ = Describe("MariaDB webhook", func() {
 						Galera: &Galera{
 							Enabled: true,
 							GaleraSpec: GaleraSpec{
-								SST: &sst,
-								ReplicaThreads: func() *int {
-									r := -1
-									return &r
-								}(),
+								SST:            SSTMariaBackup,
+								ReplicaThreads: -1,
 							},
 						},
 						Replicas: 3,
@@ -237,8 +231,8 @@ var _ = Describe("MariaDB webhook", func() {
 						EphemeralStorage: ptr.To(true),
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
-								Primary: &PrimaryGalera{
-									PodIndex: func() *int { i := 4; return &i }(),
+								Primary: PrimaryGalera{
+									PodIndex: ptr.To(4),
 								},
 							},
 							Enabled: true,
@@ -509,79 +503,6 @@ var _ = Describe("MariaDB webhook", func() {
 
 			By("Expect MariaDB replication spec to be defaulted")
 			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(DefaultReplicationSpec))
-		})
-
-		It("Should partially default Galera", func() {
-			mariadb := MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mariadb-galera-default-webhook",
-					Namespace: testNamespace,
-				},
-				Spec: MariaDBSpec{
-					VolumeClaimTemplate: VolumeClaimTemplate{
-						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
-					Replicas: 3,
-					Galera: &Galera{
-						Enabled: true,
-						GaleraSpec: GaleraSpec{
-							Agent: &GaleraAgent{
-								Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-								ImagePullPolicy: corev1.PullIfNotPresent,
-							},
-							Recovery: &GaleraRecovery{
-								Enabled: true,
-							},
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
-
-			By("Expect MariaDB Galera spec to be defaulted")
-			Expect(mariadb.Spec.Galera.GaleraSpec).To(Equal(DefaultGaleraSpec))
-		})
-
-		It("Should default Galera", func() {
-			mariadb := MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mariadb-galera-partial-default-webhook",
-					Namespace: testNamespace,
-				},
-				Spec: MariaDBSpec{
-					VolumeClaimTemplate: VolumeClaimTemplate{
-						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
-					Replicas: 3,
-					Galera: &Galera{
-						Enabled: true,
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
-
-			By("Expect MariaDB Galera spec to be defaulted")
-			Expect(mariadb.Spec.Galera.GaleraSpec).To(Equal(DefaultGaleraSpec))
 		})
 	})
 

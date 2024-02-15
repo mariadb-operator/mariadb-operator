@@ -63,7 +63,7 @@ func (r *PodGaleraController) ReconcilePodReady(ctx context.Context, pod corev1.
 
 	logger.Info("Switching primary", "from-index", *fromIndex, "to-index", *toIndex)
 	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
-		mdb.Galera().Primary.PodIndex = toIndex
+		mariadb.Spec.Galera.Primary.PodIndex = toIndex
 	}); err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (r *PodGaleraController) ReconcilePodNotReady(ctx context.Context, pod core
 	}
 
 	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
-		mdb.Galera().Primary.PodIndex = toIndex
+		mdb.Spec.Galera.Primary.PodIndex = toIndex
 	}); err != nil {
 		return err
 	}
@@ -114,11 +114,13 @@ func (r *PodGaleraController) ReconcilePodNotReady(ctx context.Context, pod core
 }
 
 func (r *PodGaleraController) shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
+	if !mariadb.IsGaleraEnabled() || mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
 		return false
 	}
-	primaryGalera := ptr.Deref(mariadb.Galera().Primary, mariadbv1alpha1.PrimaryGalera{})
-	return mariadb.Galera().Enabled && *primaryGalera.AutomaticFailover && mariadb.HasGaleraConfiguredCondition()
+	primaryGalera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary
+	automaticFailover := ptr.Deref(primaryGalera.AutomaticFailover, false)
+
+	return automaticFailover && mariadb.HasGaleraConfiguredCondition()
 }
 
 func (r *PodGaleraController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

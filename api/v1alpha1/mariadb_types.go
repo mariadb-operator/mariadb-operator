@@ -412,6 +412,10 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 			Namespace: m.Namespace,
 		}
 	}
+
+	if ptr.Deref(m.Spec.Galera, Galera{}).Enabled {
+		m.Spec.Galera.SetDefaults()
+	}
 }
 
 // Replication with defaulting accessor
@@ -423,18 +427,14 @@ func (m *MariaDB) Replication() Replication {
 	return *m.Spec.Replication
 }
 
-// Galera with defaulting accessor
-func (m *MariaDB) Galera() Galera {
-	if m.Spec.Galera == nil {
-		m.Spec.Galera = &Galera{}
-	}
-	m.Spec.Galera.FillWithDefaults()
-	return *m.Spec.Galera
+// IsHAEnabled indicates whether the MariaDB instance has Galera enabled
+func (m *MariaDB) IsGaleraEnabled() bool {
+	return ptr.Deref(m.Spec.Galera, Galera{}).Enabled
 }
 
 // IsHAEnabled indicates whether the MariaDB instance has HA enabled
 func (m *MariaDB) IsHAEnabled() bool {
-	return m.Replication().Enabled || m.Galera().Enabled
+	return m.Replication().Enabled || m.IsGaleraEnabled()
 }
 
 // IsMaxScaleEnabled indicates that a MaxScale instance is forwarding traffic to this MariaDB instance

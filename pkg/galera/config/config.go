@@ -11,6 +11,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -32,10 +33,11 @@ func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB) *ConfigFile {
 }
 
 func (c *ConfigFile) Marshal(podName, mariadbRootPassword string) ([]byte, error) {
-	galera := c.mariadb.Galera()
-	if !galera.Enabled {
+	if !c.mariadb.IsGaleraEnabled() {
 		return nil, errors.New("MariaDB Galera not enabled, unable to render config file")
 	}
+	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+
 	tpl := createTpl("galera", `[mariadb]
 bind-address=0.0.0.0
 default_storage_engine=InnoDB
@@ -82,10 +84,10 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 	}{
 		ClusterAddress: clusterAddr,
 		NodeAddress:    nodeAddr,
-		Threads:        *galera.ReplicaThreads,
+		Threads:        galera.ReplicaThreads,
 		Pod:            podName,
 		SST:            sst,
-		SSTAuth:        *galera.SST == mariadbv1alpha1.SSTMariaBackup || *galera.SST == mariadbv1alpha1.SSTMysqldump,
+		SSTAuth:        galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
 		RootPassword:   mariadbRootPassword,
 	})
 	if err != nil {

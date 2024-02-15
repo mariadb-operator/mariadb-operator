@@ -16,8 +16,10 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -132,7 +134,10 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 
 func (r *GaleraReconciler) recoverPod(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podKey types.NamespacedName,
 	clientSet *sqlClientSet.ClientSet, logger logr.Logger) error {
-	syncTimeout := mariadb.Galera().Recovery.PodSyncTimeout.Duration
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+	syncTimeout := ptr.Deref(recovery.PodSyncTimeout, metav1.Duration{Duration: 3 * time.Minute}).Duration
+
 	syncCtx, cancelSync := context.WithTimeout(ctx, syncTimeout)
 	defer cancelSync()
 
@@ -332,7 +337,11 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 			}()
 
 			logger.V(1).Info("Performing recovery", "pod", pod.Name)
-			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, mariadb.Galera().Recovery.PodRecoveryTimeout.Duration)
+			galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+			recoveryTimeout := ptr.Deref(recovery.PodRecoveryTimeout, metav1.Duration{Duration: 3 * time.Minute}).Duration
+
+			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, recoveryTimeout)
 			defer cancelRecovery()
 			if err = pollUntilSucessWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
 				bootstrap, err := client.Recovery.Start(ctx)

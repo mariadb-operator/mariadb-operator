@@ -17,6 +17,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -75,7 +76,7 @@ func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, en
 }
 
 func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !mariadb.Galera().Enabled || mariadb.IsRestoringBackup() {
+	if !mariadb.IsGaleraEnabled() || mariadb.IsRestoringBackup() {
 		return nil
 	}
 	sts, err := r.statefulSet(ctx, mariadb)
@@ -107,7 +108,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 
 	if shouldReconcileSwitchover(mariadb) {
 		fromIndex := *mariadb.Status.CurrentPrimaryPodIndex
-		toIndex := *mariadb.Galera().Primary.PodIndex
+		toIndex := ptr.Deref(ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary.PodIndex, 0)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			status.UpdateCurrentPrimary(mariadb, toIndex)
@@ -123,10 +124,12 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 }
 
 func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.IsMaxScaleEnabled() {
+	if mdb.IsMaxScaleEnabled() || mdb.Status.CurrentPrimaryPodIndex == nil {
 		return false
 	}
-	return mdb.Status.CurrentPrimaryPodIndex != nil && *mdb.Status.CurrentPrimaryPodIndex != *mdb.Galera().Primary.PodIndex
+	currentPodIndex := ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
+	desiredPodIndex := ptr.Deref(ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary.PodIndex, 0)
+	return currentPodIndex != desiredPodIndex
 }
 
 func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
@@ -159,11 +162,14 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 func (r *GaleraReconciler) newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, clientOpts ...mdbhttp.Option) (*agentClientSet, error) {
 	opts := []mdbhttp.Option{}
 	opts = append(opts, clientOpts...)
-	if mariadb.Galera().Agent.KubernetesAuth.Enabled {
+
+	agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
+	if ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{}).Enabled {
 		opts = append(opts,
 			mdbhttp.WithKubernetesAuth(r.env.MariadbOperatorSAPath),
 		)
 	}
+
 	return newAgentClientSet(mariadb, opts...)
 }
 
