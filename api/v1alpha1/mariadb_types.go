@@ -413,7 +413,7 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 		}
 	}
 
-	if ptr.Deref(m.Spec.Galera, Galera{}).Enabled {
+	if m.IsGaleraEnabled() {
 		m.Spec.Galera.SetDefaults()
 	}
 }
