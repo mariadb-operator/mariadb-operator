@@ -89,7 +89,7 @@ func (r *MariaDB) ValidateDelete() (admission.Warnings, error) {
 }
 
 func (r *MariaDB) validateHA() error {
-	if r.Replication().Enabled && ptr.Deref(r.Spec.Galera, Galera{}).Enabled {
+	if r.Replication().Enabled && r.IsGaleraEnabled() {
 		return errors.New("You may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !r.IsHAEnabled() && r.Spec.Replicas > 1 {
