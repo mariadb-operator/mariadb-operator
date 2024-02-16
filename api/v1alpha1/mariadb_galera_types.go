@@ -189,10 +189,10 @@ func (g *GaleraRecovery) SetDefaults() {
 		g.ClusterBootstrapTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
 	}
 	if g.PodRecoveryTimeout == nil {
-		g.PodRecoveryTimeout = ptr.To(metav1.Duration{Duration: 1 * time.Minute})
+		g.PodRecoveryTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
 	}
 	if g.PodSyncTimeout == nil {
-		g.PodSyncTimeout = ptr.To(metav1.Duration{Duration: 1 * time.Minute})
+		g.PodSyncTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
 	}
 }
 
@@ -301,6 +301,8 @@ type GaleraRecoveryStatus struct {
 	Recovered map[string]*recovery.Bootstrap `json:"recovered,omitempty"`
 	// Bootstrap indicates when and in which Pod the cluster bootstrap process has been performed.
 	Bootstrap *GaleraRecoveryBootstrap `json:"bootstrap,omitempty"`
+	// PodsRestarted that the Pods have been restarted after the cluster bootstrap.
+	PodsRestarted *bool `json:"podsRestarted,omitempty"`
 }
 
 // HasGaleraReadyCondition indicates whether the MariaDB object has a GaleraReady status condition.

@@ -104,9 +104,6 @@ func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Co
 func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
 	logger logr.Logger) (bool, error) {
 	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
-	if sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
-		return true, nil
-	}
 	if sts.Status.ReadyReplicas == 0 {
 		return false, nil
 	}
@@ -119,15 +116,6 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 	client, err := r.readyClient(clientCtx, mariadb, clientSet)
 	if err != nil {
 		return false, fmt.Errorf("error getting ready client: %v", err)
-	}
-
-	status, err := client.GaleraClusterStatus(clientCtx)
-	if err != nil {
-		return false, fmt.Errorf("error getting Galera cluster status: %v", err)
-	}
-	logger.V(1).Info("Galera cluster status", "status", status)
-	if status != "Primary" {
-		return false, nil
 	}
 
 	size, err := client.GaleraClusterSize(clientCtx)
