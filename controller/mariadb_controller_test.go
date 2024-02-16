@@ -731,24 +731,8 @@ var _ = Describe("MariaDB Galera", func() {
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
 					return false
 				}
-				return mdb.IsReady()
+				return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
 			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting Galera to be configured eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.HasGaleraConfiguredCondition()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting Galera to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.HasGaleraReadyCondition()
-			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to create a Service")
 			var svc corev1.Service
@@ -837,7 +821,7 @@ var _ = Describe("MariaDB Galera", func() {
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
 					return false
 				}
-				return mdb.IsReady()
+				return !mdb.IsReady()
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Galera NOT to be ready eventually")
@@ -853,16 +837,8 @@ var _ = Describe("MariaDB Galera", func() {
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
 					return false
 				}
-				return mdb.IsReady()
+				return mdb.IsReady() && mdb.HasGaleraReadyCondition()
 			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting Galera to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.HasGaleraReadyCondition()
-			}, testVeryHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
