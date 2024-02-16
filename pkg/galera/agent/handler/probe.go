@@ -117,7 +117,7 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 		p.responseWriter.WriteError(w, "error getting local state")
 		return
 	}
-	if state != "Synced" && state != "Donor/Desynced" {
+	if state != "Synced" {
 		p.readinessLogger.Info("MariaDB Galera is not synced", "state", state)
 		p.responseWriter.WriteErrorf(w, "MariaDB Galera is not synced. State: %s", state)
 		return

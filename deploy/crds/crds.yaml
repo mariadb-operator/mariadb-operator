@@ -20288,6 +20288,10 @@ spec:
                         format: date-time
                         type: string
                     type: object
+                  podsRestarted:
+                    description: PodsRestarted that the Pods have been restarted after
+                      the cluster bootstrap.
+                    type: boolean
                   recovered:
                     additionalProperties:
                       properties:

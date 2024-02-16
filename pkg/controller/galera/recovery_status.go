@@ -33,18 +33,22 @@ func (b *bootstrapSource) String() string {
 }
 
 func newRecoveryStatus(mariadb *mariadbv1alpha1.MariaDB) *recoveryStatus {
-	var inner mariadbv1alpha1.GaleraRecoveryStatus
-	if mariadb.Status.GaleraRecovery != nil {
-		if mariadb.Status.GaleraRecovery.State != nil {
-			inner.State = mariadb.Status.GaleraRecovery.State
-		}
-		if mariadb.Status.GaleraRecovery.Recovered != nil {
-			inner.Recovered = mariadb.Status.GaleraRecovery.Recovered
-		}
-		if mariadb.Status.GaleraRecovery.Bootstrap != nil {
-			inner.Bootstrap = mariadb.Status.GaleraRecovery.Bootstrap
-		}
+	inner := mariadbv1alpha1.GaleraRecoveryStatus{}
+	galeraRecovery := ptr.Deref(mariadb.Status.GaleraRecovery, mariadbv1alpha1.GaleraRecoveryStatus{})
+
+	if galeraRecovery.State != nil {
+		inner.State = galeraRecovery.State
 	}
+	if galeraRecovery.Recovered != nil {
+		inner.Recovered = galeraRecovery.Recovered
+	}
+	if galeraRecovery.Bootstrap != nil {
+		inner.Bootstrap = galeraRecovery.Bootstrap
+	}
+	if galeraRecovery.PodsRestarted != nil {
+		inner.PodsRestarted = galeraRecovery.PodsRestarted
+	}
+
 	return &recoveryStatus{
 		inner: &inner,
 		mux:   &sync.RWMutex{},
@@ -213,4 +217,11 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod) (*bootstrapSource, 
 		},
 		pod: &currentPod,
 	}, nil
+}
+
+func (rs *recoveryStatus) podRestarted() bool {
+	rs.mux.RLock()
+	defer rs.mux.RUnlock()
+
+	return ptr.Deref(rs.inner.PodsRestarted, false)
 }
