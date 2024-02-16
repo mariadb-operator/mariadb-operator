@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -37,8 +38,10 @@ func NewProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, resp
 }
 
 func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
-	mdb := p.getMariaDB(r.Context(), w)
-	if mdb == nil {
+	var mdb mariadbv1alpha1.MariaDB
+	if err := p.k8sClient.Get(r.Context(), p.mariadbKey, &mdb); err != nil {
+		p.logger.Error(err, "error getting MariaDB")
+		p.responseWriter.WriteError(w, "error getting MariaDB")
 		return
 	}
 	// avoid restarting Pods during cluster recovery
@@ -47,8 +50,10 @@ func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sqlClient := p.getSqlClient(r.Context(), w, mdb)
-	if sqlClient == nil {
+	sqlClient, err := p.getSqlClient(r.Context(), &mdb)
+	if err != nil {
+		p.logger.Error(err, "error getting SQL client")
+		p.responseWriter.WriteError(w, "error getting SQL client")
 		return
 	}
 	defer sqlClient.Close()
@@ -69,18 +74,22 @@ func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
-	mdb := p.getMariaDB(r.Context(), w)
-	if mdb == nil {
+	var mdb mariadbv1alpha1.MariaDB
+	if err := p.k8sClient.Get(r.Context(), p.mariadbKey, &mdb); err != nil {
+		p.logger.Error(err, "error getting MariaDB")
+		p.responseWriter.WriteError(w, "error getting MariaDB")
 		return
 	}
-	// keep sending traffic Pods during cluster recovery
+	// keep sending traffic to Pods during cluster recovery
 	if mdb.HasGaleraNotReadyCondition() {
 		p.responseWriter.WriteOK(w, nil)
 		return
 	}
 
-	sqlClient := p.getSqlClient(r.Context(), w, mdb)
-	if sqlClient == nil {
+	sqlClient, err := p.getSqlClient(r.Context(), &mdb)
+	if err != nil {
+		p.logger.Error(err, "error getting SQL client")
+		p.responseWriter.WriteError(w, "error getting SQL client")
 		return
 	}
 	defer sqlClient.Close()
@@ -103,7 +112,7 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 		p.responseWriter.WriteError(w, "error getting local state")
 		return
 	}
-	if state != "Synced" {
+	if state != "Synced" && state != "Donor" {
 		p.logger.Error(errors.New("MariaDB Galera is not synced"), "state", state)
 		p.responseWriter.WriteErrorf(w, "MariaDB Galera is not synced. State: %s", state)
 		return
@@ -112,30 +121,15 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 	p.responseWriter.WriteOK(w, nil)
 }
 
-func (p *Probe) getMariaDB(ctx context.Context, w http.ResponseWriter) *mariadbv1alpha1.MariaDB {
-	var mdb mariadbv1alpha1.MariaDB
-	if err := p.k8sClient.Get(ctx, p.mariadbKey, &mdb); err != nil {
-		p.logger.Error(err, "error getting MariaDB")
-		p.responseWriter.WriteError(w, "error getting MariaDB")
-		return nil
-	}
-	return &mdb
-}
-
-func (p *Probe) getSqlClient(ctx context.Context, w http.ResponseWriter,
-	mdb *mariadbv1alpha1.MariaDB) *sql.Client {
+func (p *Probe) getSqlClient(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*sql.Client, error) {
 	env := "POD_NAME"
 	podName := os.Getenv(env)
 	if podName == "" {
-		p.logger.Error(errors.New("error getting Pod name"), "Environment variable not found", "env", env)
-		p.responseWriter.WriteErrorf(w, "error getting Pod name: Environment variable not found: %s", env)
-		return nil
+		return nil, fmt.Errorf("environment variable '%s' not found", env)
 	}
 	podIndex, err := statefulset.PodIndex(podName)
 	if err != nil {
-		p.logger.Error(err, "error Pod index")
-		p.responseWriter.WriteError(w, "error Pod index")
-		return nil
+		return nil, fmt.Errorf("error getting Pod index: %v", err)
 	}
 
 	client, err := sql.NewInternalClientWithPodIndex(
@@ -146,9 +140,7 @@ func (p *Probe) getSqlClient(ctx context.Context, w http.ResponseWriter,
 		sql.WithTimeout(5*time.Second),
 	)
 	if err != nil {
-		p.logger.Error(err, "error getting SQL client")
-		p.responseWriter.WriteError(w, "error getting SQL client")
-		return nil
+		return nil, fmt.Errorf("error getting SQL client: %v", err)
 	}
-	return client
+	return client, nil
 }
