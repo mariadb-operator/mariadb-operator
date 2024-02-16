@@ -8494,16 +8494,15 @@ spec:
                         description: Enabled is a flag to enable GaleraRecovery.
                         type: boolean
                       podRecoveryTimeout:
-                        description: PodRecoveryTimeout is the time limit for executing
-                          the recovery sequence within a Pod. This process includes
-                          enabling the recovery mode in the Galera configuration file,
-                          restarting the Pod and retrieving the sequence from a log
-                          file.
+                        description: PodRecoveryTimeout is the time limit for recevorying
+                          the sequence of a Pod during the cluster recovery. Once
+                          this timeout is reached, the Pod is restarted.
                         type: string
                       podSyncTimeout:
-                        description: PodSyncTimeout is the time limit we give to a
-                          Pod to become ready after a cluster bootstrap. Once this
-                          timeout is reached, the Pod is restarted.
+                        description: PodSyncTimeout is the time limit for a Pod to
+                          join the cluster after having performed a cluster bootstrap
+                          during the cluster recovery. Once this timeout is reached,
+                          the Pod is restarted.
                         type: string
                     type: object
                   replicaThreads:
