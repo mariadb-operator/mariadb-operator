@@ -8502,8 +8502,8 @@ spec:
                         type: string
                       podSyncTimeout:
                         description: PodSyncTimeout is the time limit we give to a
-                          Pod to reach the Sync state. Once this timeout is reached,
-                          the Pod is restarted.
+                          Pod to become ready after a cluster bootstrap. Once this
+                          timeout is reached, the Pod is restarted.
                         type: string
                     type: object
                   replicaThreads:
