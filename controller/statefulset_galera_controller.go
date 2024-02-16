@@ -67,7 +67,8 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	defer cancelHealthy()
 	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, mariadb, &sts, logger)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error polling MariaDB health: %v", err)
+		logger.V(1).Info("Error polling MariaDB health", "err", err)
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	if healthy {
