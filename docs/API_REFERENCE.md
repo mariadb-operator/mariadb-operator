@@ -341,7 +341,7 @@ _Appears in:_
 | `clusterHealthyTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks, is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator. |
 | `clusterBootstrapTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterBootstrapTimeout is the time limit for bootstrapping a cluster. Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted. |
 | `podRecoveryTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodRecoveryTimeout is the time limit for executing the recovery sequence within a Pod. This process includes enabling the recovery mode in the Galera configuration file, restarting the Pod and retrieving the sequence from a log file. |
-| `podSyncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodSyncTimeout is the time limit we give to a Pod to reach the Sync state. Once this timeout is reached, the Pod is restarted. |
+| `podSyncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodSyncTimeout is the time limit we give to a Pod to become ready after a cluster bootstrap. Once this timeout is reached, the Pod is restarted. |
 
 
 #### GaleraRecoveryBootstrap
