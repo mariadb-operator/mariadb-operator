@@ -623,8 +623,6 @@ var _ = Describe("MariaDB Galera", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
 		It("Should reconcile", func() {
-			clusterHealthyTimeout := metav1.Duration{Duration: 30 * time.Second}
-			recoveryTimeout := metav1.Duration{Duration: 5 * time.Minute}
 			mdb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mariadb-galera",
@@ -651,15 +649,13 @@ var _ = Describe("MariaDB Galera", func() {
 							},
 						},
 					},
-					MyCnf: func() *string {
-						cfg := `[mariadb]
-						bind-address=*
-						default_storage_engine=InnoDB
-						binlog_format=row
-						innodb_autoinc_lock_mode=2
-						max_allowed_packet=256M`
-						return &cfg
-					}(),
+					MyCnf: ptr.To(`[mariadb]
+					bind-address=*
+					default_storage_engine=InnoDB
+					binlog_format=row
+					innodb_autoinc_lock_mode=2
+					max_allowed_packet=256M
+					`),
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
@@ -668,11 +664,7 @@ var _ = Describe("MariaDB Galera", func() {
 								AutomaticFailover: ptr.To(true),
 							},
 							Recovery: &mariadbv1alpha1.GaleraRecovery{
-								Enabled:                 true,
-								ClusterHealthyTimeout:   &clusterHealthyTimeout,
-								ClusterBootstrapTimeout: &recoveryTimeout,
-								PodRecoveryTimeout:      &recoveryTimeout,
-								PodSyncTimeout:          &recoveryTimeout,
+								Enabled: true,
 							},
 							VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
@@ -696,10 +688,7 @@ var _ = Describe("MariaDB Galera", func() {
 						},
 					},
 					Connection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: func() *string {
-							s := "mdb-galera-conn"
-							return &s
-						}(),
+						SecretName: ptr.To("mdb-galera-conn"),
 						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 							Key: &testConnSecretKey,
 						},
@@ -711,10 +700,7 @@ var _ = Describe("MariaDB Galera", func() {
 						},
 					},
 					PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: func() *string {
-							s := "mdb-galera-conn-primary"
-							return &s
-						}(),
+						SecretName: ptr.To("mdb-galera-conn-primary"),
 						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 							Key: &testConnSecretKey,
 						},
@@ -726,10 +712,7 @@ var _ = Describe("MariaDB Galera", func() {
 						},
 					},
 					SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: func() *string {
-							s := "mdb-galera-conn-secondary"
-							return &s
-						}(),
+						SecretName: ptr.To("mdb-galera-conn-secondary"),
 						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 							Key: &testConnSecretKey,
 						},
