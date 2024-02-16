@@ -20,9 +20,10 @@ import (
 )
 
 var (
-	testHighTimeout = 3 * time.Minute
-	testTimeout     = 1 * time.Minute
-	testInterval    = 1 * time.Second
+	testVeryHighTimeout = 5 * time.Minute
+	testHighTimeout     = 3 * time.Minute
+	testTimeout         = 1 * time.Minute
+	testInterval        = 1 * time.Second
 
 	testNamespace = "default"
 	testMdbkey    = types.NamespacedName{

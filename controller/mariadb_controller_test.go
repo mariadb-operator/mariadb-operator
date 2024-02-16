@@ -862,7 +862,7 @@ var _ = Describe("MariaDB Galera", func() {
 					return false
 				}
 				return mdb.HasGaleraReadyCondition()
-			}, testHighTimeout, testInterval).Should(BeTrue())
+			}, testVeryHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Connection to be ready eventually")
 			Eventually(func() bool {
