@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -19,7 +20,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -142,20 +143,28 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 
 func (r *StatefulSetGaleraReconciler) readyClient(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *sqlClientSet.ClientSet) (*sqlClient.Client, error) {
-	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
-		key := types.NamespacedName{
-			Name:      statefulset.PodName(mariadb.ObjectMeta, i),
-			Namespace: mariadb.Namespace,
-		}
-		var p corev1.Pod
-		if err := r.Get(ctx, key, &p); err != nil {
-			return nil, fmt.Errorf("error getting Pod: %v", err)
-		}
+	list := corev1.PodList{}
+	listOpts := &client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDB(mariadb).
+				Build(),
+		),
+		Namespace: mariadb.GetNamespace(),
+	}
+	if err := r.List(ctx, &list, listOpts); err != nil {
+		return nil, fmt.Errorf("error listing Pods: %v", err)
+	}
+
+	for _, p := range list.Items {
 		if !pod.PodReady(&p) {
 			continue
 		}
-
-		if client, err := clientSet.ClientForIndex(ctx, i); err == nil {
+		index, err := statefulset.PodIndex(p.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error getting Pod index: %v", err)
+		}
+		if client, err := clientSet.ClientForIndex(ctx, *index); err == nil {
 			return client, nil
 		}
 	}

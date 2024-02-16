@@ -3,12 +3,14 @@ package galera
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -17,9 +19,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -195,20 +199,22 @@ func (r *GaleraReconciler) recoverPod(ctx context.Context, mariadb *mariadbv1alp
 }
 
 func (r *GaleraReconciler) pods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
-	var pods []corev1.Pod
-	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
-		key := types.NamespacedName{
-			Name:      statefulset.PodName(mariadb.ObjectMeta, i),
-			Namespace: mariadb.Namespace,
-		}
-		var pod corev1.Pod
-		err := r.Get(ctx, key, &pod)
-		if err != nil {
-			return nil, fmt.Errorf("error getting Pod '%s': %v", key.Name, err)
-		}
-		pods = append(pods, pod)
+	list := corev1.PodList{}
+	listOpts := &client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDB(mariadb).
+				Build(),
+		),
+		Namespace: mariadb.GetNamespace(),
 	}
-	return pods, nil
+	if err := r.List(ctx, &list, listOpts); err != nil {
+		return nil, fmt.Errorf("error listing Pods: %v", err)
+	}
+	sort.Slice(list.Items, func(i, j int) bool {
+		return list.Items[i].Name < list.Items[j].Name
+	})
+	return list.Items, nil
 }
 
 func (r *GaleraReconciler) notReadyPods(pods []corev1.Pod) []corev1.Pod {
