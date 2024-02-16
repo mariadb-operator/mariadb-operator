@@ -426,6 +426,9 @@ func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *corev1
 				Port: intstr.FromInt(int(agent.Port)),
 			},
 		},
+		InitialDelaySeconds: 20,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
 	}
 	setProbeThresholds(&galeraProbe, probe)
 	return &galeraProbe
