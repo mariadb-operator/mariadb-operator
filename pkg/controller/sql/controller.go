@@ -104,10 +104,7 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 	err = r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherWithError(errBundle.ErrorOrNil()))
 	errBundle = multierror.Append(errBundle, err)
 
-	if err := errBundle.ErrorOrNil(); err != nil {
-		return ctrl.Result{}, err
-	}
-	return r.requeueResult(ctx, resource)
+	return r.requeueResult(ctx, resource, errBundle.ErrorOrNil())
 }
 
 func (r *SqlReconciler) retryResult(ctx context.Context, resource Resource, err error) (ctrl.Result, error) {
@@ -115,10 +112,18 @@ func (r *SqlReconciler) retryResult(ctx context.Context, resource Resource, err 
 		log.FromContext(ctx).Error(err, "Error reconciling SQL resource", "resource", resource.GetName())
 		return ctrl.Result{RequeueAfter: resource.RetryInterval().Duration}, nil
 	}
-	return ctrl.Result{}, err
+	if err != nil {
+		log.FromContext(ctx).V(1).Info("Error reconciling SQL resource", "err", err)
+		return ctrl.Result{Requeue: true}, nil
+	}
+	return ctrl.Result{}, nil
 }
 
-func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource) (ctrl.Result, error) {
+func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource, err error) (ctrl.Result, error) {
+	if err != nil {
+		log.FromContext(ctx).V(1).Info("Error reconciling SQL resource", "err", err)
+		return ctrl.Result{Requeue: true}, nil
+	}
 	if resource.RequeueInterval() != nil {
 		log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
 		return ctrl.Result{RequeueAfter: resource.RequeueInterval().Duration}, nil
