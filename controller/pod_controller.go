@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -13,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type PodReadinessController interface {
@@ -58,11 +58,13 @@ func (r *PodController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	if mariadbpod.PodReady(&pod) {
 		if err := r.podReadinessController.ReconcilePodReady(ctx, pod, mariadb); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling Pod '%s' in Ready state: %v", pod.Name, err)
+			log.FromContext(ctx).V(1).Info("Error reconciling Pod in Ready state", "pod", pod.Name)
+			return ctrl.Result{Requeue: true}, nil
 		}
 	} else {
 		if err := r.podReadinessController.ReconcilePodNotReady(ctx, pod, mariadb); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling Pod '%s' in non Ready state: %v", pod.Name, err)
+			log.FromContext(ctx).V(1).Info("Error reconciling Pod in non Ready state", "pod", pod.Name)
+			return ctrl.Result{Requeue: true}, nil
 		}
 	}
 	return ctrl.Result{}, nil
