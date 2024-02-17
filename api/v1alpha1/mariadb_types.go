@@ -414,7 +414,7 @@ func (m *MariaDB) SetDefaults(env *environment.Environment) {
 	}
 
 	if m.IsGaleraEnabled() {
-		m.Spec.Galera.SetDefaults()
+		m.Spec.Galera.SetDefaults(m)
 	}
 }
 

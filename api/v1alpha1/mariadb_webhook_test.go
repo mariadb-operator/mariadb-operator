@@ -164,6 +164,27 @@ var _ = Describe("MariaDB webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid min cluster size",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						EphemeralStorage: ptr.To(true),
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								SST: SSTMariaBackup,
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(int32(4)),
+								},
+							},
+						},
+						Replicas: 3,
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid SST",
 				&MariaDB{
 					ObjectMeta: meta,

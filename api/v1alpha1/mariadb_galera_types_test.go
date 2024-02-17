@@ -15,12 +15,17 @@ var _ = Describe("MariaDB Galera types", func() {
 	Context("When creating a MariaDB Galera object", func() {
 		DescribeTable(
 			"Should default",
-			func(galera, expected *Galera) {
-				galera.SetDefaults()
+			func(mdb *MariaDB, galera, expected *Galera) {
+				galera.SetDefaults(mdb)
 				Expect(galera).To(BeEquivalentTo(expected))
 			},
 			Entry(
 				"Full default",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+					},
+				},
 				&Galera{
 					Enabled: true,
 				},
@@ -60,6 +65,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 						Recovery: &GaleraRecovery{
 							Enabled:                 true,
+							MinClusterSize:          ptr.To(int32(2)),
 							ClusterHealthyTimeout:   ptr.To(metav1.Duration{Duration: 30 * time.Second}),
 							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Minute}),
 							PodRecoveryTimeout:      ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
@@ -70,6 +76,11 @@ var _ = Describe("MariaDB Galera types", func() {
 			),
 			Entry(
 				"Partial default",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+					},
+				},
 				&Galera{
 					Enabled: true,
 					GaleraSpec: GaleraSpec{
@@ -81,6 +92,10 @@ var _ = Describe("MariaDB Galera types", func() {
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: false,
 							},
+						},
+						Recovery: &GaleraRecovery{
+							Enabled:        true,
+							MinClusterSize: ptr.To(int32(1)),
 						},
 					},
 				},
@@ -120,6 +135,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 						Recovery: &GaleraRecovery{
 							Enabled:                 true,
+							MinClusterSize:          ptr.To(int32(1)),
 							ClusterHealthyTimeout:   ptr.To(metav1.Duration{Duration: 30 * time.Second}),
 							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Minute}),
 							PodRecoveryTimeout:      ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
@@ -130,6 +146,11 @@ var _ = Describe("MariaDB Galera types", func() {
 			),
 			Entry(
 				"Recovery disabled",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+					},
+				},
 				&Galera{
 					Enabled: true,
 					GaleraSpec: GaleraSpec{

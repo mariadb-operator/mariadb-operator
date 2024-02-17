@@ -122,12 +122,12 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster size: %v", err)
 	}
-	logger.Info("Galera cluster size", "size", size)
-	if size != int(mariadb.Spec.Replicas) {
-		return false, nil
-	}
 
-	return true, nil
+	recovery := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Recovery
+	minClusterSize := ptr.Deref(recovery.MinClusterSize, 1)
+
+	logger.V(1).Info("Galera cluster size", "size", size, "min-size", minClusterSize)
+	return size >= int(minClusterSize), nil
 }
 
 func (r *StatefulSetGaleraReconciler) readyClient(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
