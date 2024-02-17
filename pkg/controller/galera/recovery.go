@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	galeraclient "github.com/mariadb-operator/mariadb-operator/pkg/galera/client"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
@@ -430,8 +431,7 @@ func (r *GaleraReconciler) deletePod(ctx context.Context, podKey types.Namespace
 	})
 }
 
-// TODO: recovery client and re-use this code in probeS?
-func (r *GaleraReconciler) waitUntilPodSynced(ctx context.Context, podKey types.NamespacedName, clientSet *sqlClientSet.ClientSet,
+func (r *GaleraReconciler) waitUntilPodSynced(ctx context.Context, podKey types.NamespacedName, sqlClientSet *sqlClientSet.ClientSet,
 	logger logr.Logger) error {
 	return pollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
@@ -443,26 +443,14 @@ func (r *GaleraReconciler) waitUntilPodSynced(ctx context.Context, podKey types.
 		if err != nil {
 			return fmt.Errorf("error getting Pod index: %v", err)
 		}
+		galeraClient := galeraclient.NewGaleraClient(sqlClientSet, sql.WithTimeout(5*time.Second))
 
-		client, err := clientSet.ClientForIndex(ctx, *podIndex, sql.WithTimeout(5*time.Second))
+		synced, err := galeraClient.IsPodSynced(ctx, *podIndex)
 		if err != nil {
-			return fmt.Errorf("error getting SQL client: %v", err)
+			return fmt.Errorf("error checking Pod sync: %v", err)
 		}
-
-		status, err := client.GaleraClusterStatus(ctx)
-		if err != nil {
-			return fmt.Errorf("error getting cluster status: %v", err)
-		}
-		if status != "Primary" {
-			return fmt.Errorf("Pod in unhealthy status: %s", status)
-		}
-
-		state, err := client.GaleraLocalState(ctx)
-		if err != nil {
-			return fmt.Errorf("error getting local state: %v", err)
-		}
-		if state != "Synced" {
-			return fmt.Errorf("Pod in not synced state: %s", state)
+		if !synced {
+			return errors.New("Pod not synced")
 		}
 		return nil
 	})
