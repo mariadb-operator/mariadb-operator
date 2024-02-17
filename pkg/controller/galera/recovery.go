@@ -20,12 +20,13 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
@@ -180,7 +181,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 			logger.Info("Restarting Pod", "pod", key.Name)
 		}
 
-		if err := r.deletePod(syncContext, key, logger); err != nil {
+		if err := r.pollUntilPodDeleted(syncContext, key, logger); err != nil {
 			var aggErr *multierror.Error
 			aggErr = multierror.Append(aggErr, err)
 
@@ -190,7 +191,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 
 			return fmt.Errorf("error deleting Pod '%s': %v", key.Name, aggErr)
 		}
-		if err := r.waitUntilPodSynced(syncContext, key, sqlClientSet, logger); err != nil {
+		if err := r.pollUntilPodSynced(syncContext, key, sqlClientSet, logger); err != nil {
 			var aggErr *multierror.Error
 			aggErr = multierror.Append(aggErr, err)
 
@@ -211,7 +212,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 
 func (r *GaleraReconciler) getPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
 	list := corev1.PodList{}
-	listOpts := &client.ListOptions{
+	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
 			labels.NewLabelsBuilder().
 				WithMariaDB(mariadb).
@@ -325,23 +326,6 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 				return
 			}
 
-			deleteCtx, cancelDelete := context.WithTimeout(ctx, 3*time.Minute)
-			defer cancelDelete()
-			go func() {
-				ticker := time.NewTicker(30 * time.Second)
-				for {
-					select {
-					case <-deleteCtx.Done():
-						return
-					case <-ticker.C:
-						logger.V(1).Info("Deleting Pod", "pod", pod.Name)
-						if err := r.Delete(ctx, &pod); err != nil {
-							logger.V(1).Info("Error deleting Pod", "pod", pod.Name, "err", err)
-						}
-					}
-				}
-			}()
-
 			logger.V(1).Info("Performing recovery", "pod", pod.Name)
 			galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
@@ -350,6 +334,16 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, recoveryTimeout)
 			defer cancelRecovery()
 			if err = pollUntilSucessWithTimeout(recoveryCtx, logger, func(ctx context.Context) error {
+				if err := r.Delete(ctx, &pod); err != nil && !apierrors.IsNotFound(err) {
+					return err
+				}
+
+				runningCtx, runningCancel := context.WithTimeout(ctx, 30*time.Second)
+				defer runningCancel()
+				if err := r.pollUntilPodRunning(runningCtx, ctrlclient.ObjectKeyFromObject(&pod), logger); err != nil {
+					return err
+				}
+
 				bootstrap, err := client.Recovery.Start(ctx)
 				if err != nil {
 					return err
@@ -364,7 +358,6 @@ func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1
 				errChan <- fmt.Errorf("error performing recovery in Pod '%s': %v", pod.Name, err)
 				return
 			}
-			cancelDelete()
 
 			logger.V(1).Info("Disabling recovery", "pod", pod.Name)
 			disableCtx, cancelDisable := context.WithTimeout(ctx, 30*time.Second)
@@ -418,7 +411,20 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, 
 	return nil
 }
 
-func (r *GaleraReconciler) deletePod(ctx context.Context, podKey types.NamespacedName, logger logr.Logger) error {
+func (r *GaleraReconciler) pollUntilPodRunning(ctx context.Context, podKey types.NamespacedName, logger logr.Logger) error {
+	return pollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
+		var pod corev1.Pod
+		if err := r.Get(ctx, podKey, &pod); err != nil {
+			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
+		}
+		if pod.Status.Phase == corev1.PodRunning {
+			return nil
+		}
+		return errors.New("Pod not running")
+	})
+}
+
+func (r *GaleraReconciler) pollUntilPodDeleted(ctx context.Context, podKey types.NamespacedName, logger logr.Logger) error {
 	return pollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
 		if err := r.Get(ctx, podKey, &pod); err != nil {
@@ -431,7 +437,7 @@ func (r *GaleraReconciler) deletePod(ctx context.Context, podKey types.Namespace
 	})
 }
 
-func (r *GaleraReconciler) waitUntilPodSynced(ctx context.Context, podKey types.NamespacedName, sqlClientSet *sqlClientSet.ClientSet,
+func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, podKey types.NamespacedName, sqlClientSet *sqlClientSet.ClientSet,
 	logger logr.Logger) error {
 	return pollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
