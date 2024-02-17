@@ -120,7 +120,7 @@ func (r *PodGaleraController) shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) 
 	primaryGalera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary
 	automaticFailover := ptr.Deref(primaryGalera.AutomaticFailover, false)
 
-	return automaticFailover && mariadb.HasGaleraConfiguredCondition()
+	return automaticFailover && mariadb.HasGaleraConfiguredCondition() && mariadb.HasGaleraReadyCondition()
 }
 
 func (r *PodGaleraController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
