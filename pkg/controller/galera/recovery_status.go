@@ -14,7 +14,7 @@ import (
 )
 
 type recoveryStatus struct {
-	inner *mariadbv1alpha1.GaleraRecoveryStatus
+	inner mariadbv1alpha1.GaleraRecoveryStatus
 	mux   *sync.RWMutex
 }
 
@@ -50,11 +50,11 @@ func newRecoveryStatus(mariadb *mariadbv1alpha1.MariaDB) *recoveryStatus {
 	}
 
 	return &recoveryStatus{
-		inner: &inner,
+		inner: inner,
 		mux:   &sync.RWMutex{},
 	}
 }
-func (rs *recoveryStatus) galeraRecoveryStatus() *mariadbv1alpha1.GaleraRecoveryStatus {
+func (rs *recoveryStatus) galeraRecoveryStatus() mariadbv1alpha1.GaleraRecoveryStatus {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
@@ -101,16 +101,15 @@ func (rs *recoveryStatus) reset() {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
-	rs.inner = nil
+	rs.inner = mariadbv1alpha1.GaleraRecoveryStatus{}
 }
 
 func (rs *recoveryStatus) setBootstrapping(pod string) {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
-	now := metav1.NewTime(time.Now())
 	rs.inner.Bootstrap = &mariadbv1alpha1.GaleraRecoveryBootstrap{
-		Time: &now,
+		Time: ptr.To(metav1.NewTime(time.Now())),
 		Pod:  &pod,
 	}
 }
@@ -219,7 +218,14 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod) (*bootstrapSource, 
 	}, nil
 }
 
-func (rs *recoveryStatus) podRestarted() bool {
+func (rs *recoveryStatus) setPodsRestarted(restarted bool) {
+	rs.mux.Lock()
+	defer rs.mux.Unlock()
+
+	rs.inner.PodsRestarted = ptr.To(restarted)
+}
+
+func (rs *recoveryStatus) podsRestarted() bool {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"sync"
 	"time"
@@ -61,7 +62,7 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 			return fmt.Errorf("error recovering cluster: %v", err)
 		}
 	}
-	if !rs.podRestarted() {
+	if !rs.podsRestarted() {
 		logger.Info("Recovering Pods")
 		if err := r.recoverPods(ctx, mariadb, pods, rs, sqlClientSet, podLogger); err != nil {
 			return fmt.Errorf("error recovering Pods: %v", err)
@@ -169,7 +170,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 		}
 	}
 
-	rs.galeraRecoveryStatus().PodsRestarted = ptr.To(true)
+	rs.setPodsRestarted(true)
 	if err := r.patchRecoveryStatus(ctx, mariadb, rs); err != nil {
 		return fmt.Errorf("error patching recovery status: %v", err)
 	}
@@ -438,7 +439,13 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, 
 
 func (r *GaleraReconciler) patchRecoveryStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, rs *recoveryStatus) error {
 	return r.patchStatus(ctx, mdb, func(mdbStatus *mariadbv1alpha1.MariaDBStatus) {
-		mdbStatus.GaleraRecovery = rs.galeraRecoveryStatus()
+		galeraRecoveryStatus := rs.galeraRecoveryStatus()
+
+		if reflect.ValueOf(galeraRecoveryStatus).IsZero() {
+			mdbStatus.GaleraRecovery = nil
+		} else {
+			mdbStatus.GaleraRecovery = ptr.To(galeraRecoveryStatus)
+		}
 	})
 }
 
