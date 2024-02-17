@@ -9,6 +9,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 func TestRecoveryStatusGetSet(t *testing.T) {
@@ -82,7 +83,7 @@ func TestRecoveryStatusGetSet(t *testing.T) {
 		t.Errorf("unexpected recovered value: expected: %v, got: %v", nil, gotRecovered)
 	}
 
-	expectedRecoveryStatus := &mariadbv1alpha1.GaleraRecoveryStatus{
+	expectedRecoveryStatus := mariadbv1alpha1.GaleraRecoveryStatus{
 		State: map[string]*recovery.GaleraState{
 			"mariadb-galera-0": state0,
 			"mariadb-galera-1": state1,
@@ -95,6 +96,26 @@ func TestRecoveryStatusGetSet(t *testing.T) {
 		},
 	}
 	gotRecoveryStatus := rs.galeraRecoveryStatus()
+	if !reflect.DeepEqual(expectedRecoveryStatus, gotRecoveryStatus) {
+		t.Errorf("unexpected recovery status value: expected: %v, got: %v", expectedRecoveryStatus, gotRecoveryStatus)
+	}
+
+	rs.setPodsRestarted(true)
+	expectedRecoveryStatus = mariadbv1alpha1.GaleraRecoveryStatus{
+		State: map[string]*recovery.GaleraState{
+			"mariadb-galera-0": state0,
+			"mariadb-galera-1": state1,
+			"mariadb-galera-2": state2,
+		},
+		Recovered: map[string]*recovery.Bootstrap{
+			"mariadb-galera-0": recovered0,
+			"mariadb-galera-1": recovered1,
+			"mariadb-galera-2": recovered2,
+		},
+		PodsRestarted: ptr.To(true),
+	}
+
+	gotRecoveryStatus = rs.galeraRecoveryStatus()
 	if !reflect.DeepEqual(expectedRecoveryStatus, gotRecoveryStatus) {
 		t.Errorf("unexpected recovery status value: expected: %v, got: %v", expectedRecoveryStatus, gotRecoveryStatus)
 	}
@@ -1072,5 +1093,35 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 				t.Errorf("expect error to not have occurred, got: %v", err)
 			}
 		})
+	}
+}
+
+func TestRecoveryStatusPodsRestarted(t *testing.T) {
+	timeout := 3 * time.Second
+	duration := metav1.Duration{Duration: timeout}
+	mdb := &mariadbv1alpha1.MariaDB{
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Galera: &mariadbv1alpha1.Galera{
+				Enabled: true,
+				GaleraSpec: mariadbv1alpha1.GaleraSpec{
+					Recovery: &mariadbv1alpha1.GaleraRecovery{
+						Enabled:                 true,
+						ClusterHealthyTimeout:   &duration,
+						ClusterBootstrapTimeout: &duration,
+						PodRecoveryTimeout:      &duration,
+						PodSyncTimeout:          &duration,
+					},
+				},
+			},
+		},
+	}
+	rs := newRecoveryStatus(mdb)
+	if rs.podsRestarted() {
+		t.Error("expect recovery status to not have Pods restarted")
+	}
+
+	rs.setPodsRestarted(true)
+	if !rs.podsRestarted() {
+		t.Error("expect recovery status to have Pods restarted")
 	}
 }
