@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 	"time"
@@ -158,6 +159,12 @@ type GaleraRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
+	// MinClusterSize is the minimum number of replicas to consider the cluster healthy.
+	// If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.
+	// It defaults to half of the replicas specified by the MariaDB object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MinClusterSize *int32 `json:"minClusterSize,omitempty"`
 	// ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,
 	// is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.
 	// +optional
@@ -181,7 +188,10 @@ type GaleraRecovery struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (g *GaleraRecovery) SetDefaults() {
+func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
+	if g.MinClusterSize == nil {
+		g.MinClusterSize = ptr.To(int32(math.Ceil(0.5 * float64(mdb.Spec.Replicas))))
+	}
 	if g.ClusterHealthyTimeout == nil {
 		g.ClusterHealthyTimeout = ptr.To(metav1.Duration{Duration: 30 * time.Second})
 	}
@@ -209,7 +219,7 @@ type Galera struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (g *Galera) SetDefaults() {
+func (g *Galera) SetDefaults(mdb *MariaDB) {
 	if g.SST == "" {
 		g.SST = SSTMariaBackup
 	}
@@ -245,7 +255,7 @@ func (g *Galera) SetDefaults() {
 		}
 	}
 	if ptr.Deref(g.Recovery, GaleraRecovery{}).Enabled {
-		g.Recovery.SetDefaults()
+		g.Recovery.SetDefaults(mdb)
 	}
 }
 
