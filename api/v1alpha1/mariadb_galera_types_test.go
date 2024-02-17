@@ -61,8 +61,8 @@ var _ = Describe("MariaDB Galera types", func() {
 						Recovery: &GaleraRecovery{
 							Enabled:                 true,
 							ClusterHealthyTimeout:   ptr.To(metav1.Duration{Duration: 30 * time.Second}),
-							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
-							PodRecoveryTimeout:      ptr.To(metav1.Duration{Duration: 1 * time.Minute}),
+							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Minute}),
+							PodRecoveryTimeout:      ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
 							PodSyncTimeout:          ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
 						},
 					},
@@ -121,8 +121,8 @@ var _ = Describe("MariaDB Galera types", func() {
 						Recovery: &GaleraRecovery{
 							Enabled:                 true,
 							ClusterHealthyTimeout:   ptr.To(metav1.Duration{Duration: 30 * time.Second}),
-							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
-							PodRecoveryTimeout:      ptr.To(metav1.Duration{Duration: 1 * time.Minute}),
+							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Minute}),
+							PodRecoveryTimeout:      ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
 							PodSyncTimeout:          ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
 						},
 					},

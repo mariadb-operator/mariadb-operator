@@ -134,7 +134,7 @@ func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
 
 	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
 	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
-	timeout := ptr.Deref(recovery.ClusterBootstrapTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+	timeout := ptr.Deref(recovery.ClusterBootstrapTimeout, metav1.Duration{Duration: 10 * time.Minute}).Duration
 
 	deadline := rs.inner.Bootstrap.Time.Add(timeout)
 	return time.Now().After(deadline)
