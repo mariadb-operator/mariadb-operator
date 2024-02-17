@@ -18,10 +18,6 @@ spec:
 
   galera:
     enabled: true
-    agent:
-      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.29
-    initContainer:
-      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.29
 
   service:
     type: LoadBalancer
