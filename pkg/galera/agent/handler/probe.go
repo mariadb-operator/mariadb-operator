@@ -9,9 +9,11 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	galeraclient "github.com/mariadb-operator/mariadb-operator/pkg/galera/client"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,6 +48,7 @@ func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 		p.responseWriter.WriteError(w, "error getting MariaDB")
 		return
 	}
+
 	// avoid restarting Pods during cluster recovery
 	if mdb.HasGaleraNotReadyCondition() {
 		p.livenessLogger.Info("Galera not ready. Returning OK")
@@ -53,23 +56,26 @@ func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sqlClient, err := p.getSqlClient(r.Context(), &mdb)
-	if err != nil {
-		p.livenessLogger.Error(err, "error getting SQL client")
-		p.responseWriter.WriteError(w, "error getting SQL client")
-		return
-	}
-	defer sqlClient.Close()
+	sqlClientSet := sqlClientSet.NewClientSet(&mdb, p.refResolver)
+	defer sqlClientSet.Close()
+	galeraClient := galeraclient.NewGaleraClient(sqlClientSet, sql.WithTimeout(5*time.Second))
 
-	status, err := sqlClient.GaleraClusterStatus(r.Context())
+	podIndex, err := getPodIndex(r.Context(), &mdb)
 	if err != nil {
-		p.livenessLogger.Error(err, "error getting cluster status")
-		p.responseWriter.WriteError(w, "error getting cluster status")
+		p.livenessLogger.Error(err, "error getting Pod index")
+		p.responseWriter.WriteError(w, "error getting Pod index")
 		return
 	}
-	if status != "Primary" {
-		p.livenessLogger.Info("MariaDB Galera is unhealthy", "status", status)
-		p.responseWriter.WriteErrorf(w, "MariaDB Galera is unhealthy. Status: %s", status)
+
+	healthy, err := galeraClient.IsPodHealthy(r.Context(), *podIndex)
+	if err != nil {
+		p.livenessLogger.Error(err, "error getting Pod health")
+		p.responseWriter.WriteError(w, "error getting Pod health")
+		return
+	}
+	if !healthy {
+		p.livenessLogger.Error(err, "Pod not healthy")
+		p.responseWriter.WriteError(w, "Pod not healthy")
 		return
 	}
 
@@ -84,6 +90,7 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 		p.responseWriter.WriteError(w, "error getting MariaDB")
 		return
 	}
+
 	// keep sending traffic to Pods during cluster recovery
 	if mdb.HasGaleraNotReadyCondition() {
 		p.readinessLogger.Info("Galera not ready. Returning OK")
@@ -91,42 +98,33 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sqlClient, err := p.getSqlClient(r.Context(), &mdb)
-	if err != nil {
-		p.readinessLogger.Error(err, "error getting SQL client")
-		p.responseWriter.WriteError(w, "error getting SQL client")
-		return
-	}
-	defer sqlClient.Close()
+	sqlClientSet := sqlClientSet.NewClientSet(&mdb, p.refResolver)
+	defer sqlClientSet.Close()
+	galeraClient := galeraclient.NewGaleraClient(sqlClientSet, sql.WithTimeout(5*time.Second))
 
-	status, err := sqlClient.GaleraClusterStatus(r.Context())
+	podIndex, err := getPodIndex(r.Context(), &mdb)
 	if err != nil {
-		p.readinessLogger.Error(err, "error getting cluster status")
-		p.responseWriter.WriteError(w, "error getting cluster status")
-		return
-	}
-	if status != "Primary" {
-		p.readinessLogger.Info("MariaDB Galera is unhealthy", "status", status)
-		p.responseWriter.WriteErrorf(w, "MariaDB Galera is unhealthy. Status: %s", status)
+		p.readinessLogger.Error(err, "error getting Pod index")
+		p.responseWriter.WriteError(w, "error getting Pod index")
 		return
 	}
 
-	state, err := sqlClient.GaleraLocalState(r.Context())
+	synced, err := galeraClient.IsPodSynced(r.Context(), *podIndex)
 	if err != nil {
-		p.readinessLogger.Error(err, "error getting local state")
-		p.responseWriter.WriteError(w, "error getting local state")
+		p.readinessLogger.Error(err, "error getting Pod sync")
+		p.responseWriter.WriteError(w, "error getting Pod sync")
 		return
 	}
-	if state != "Synced" {
-		p.readinessLogger.Info("MariaDB Galera is not synced", "state", state)
-		p.responseWriter.WriteErrorf(w, "MariaDB Galera is not synced. State: %s", state)
+	if !synced {
+		p.readinessLogger.Error(err, "Pod not synced")
+		p.responseWriter.WriteError(w, "Pod not synced")
 		return
 	}
 
 	p.responseWriter.WriteOK(w, nil)
 }
 
-func (p *Probe) getSqlClient(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*sql.Client, error) {
+func getPodIndex(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
 	env := "POD_NAME"
 	podName := os.Getenv(env)
 	if podName == "" {
@@ -136,16 +134,5 @@ func (p *Probe) getSqlClient(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) 
 	if err != nil {
 		return nil, fmt.Errorf("error getting Pod index: %v", err)
 	}
-
-	client, err := sql.NewInternalClientWithPodIndex(
-		ctx,
-		mdb,
-		p.refResolver,
-		*podIndex,
-		sql.WithTimeout(5*time.Second),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error getting SQL client: %v", err)
-	}
-	return client, nil
+	return podIndex, nil
 }
