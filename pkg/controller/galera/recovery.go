@@ -61,21 +61,12 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 			return fmt.Errorf("error recovering cluster: %v", err)
 		}
 	}
-
 	if !rs.podRestarted() {
 		logger.Info("Recovering Pods")
 		if err := r.recoverPods(ctx, mariadb, pods, rs, sqlClientSet, podLogger); err != nil {
 			return fmt.Errorf("error recovering Pods: %v", err)
 		}
 	}
-
-	if rs.podRestarted() {
-		logger.Info("Waiting for cluster to be healthy")
-		if err := r.wailtUntilClusterHealthy(ctx, mariadb, sqlClientSet, clusterLogger); err != nil {
-			return fmt.Errorf("error waiting cluster to be healthy: %v", err)
-		}
-	}
-
 	return nil
 }
 
@@ -159,7 +150,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	specRecovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
-	syncTimeout := ptr.Deref(specRecovery.PodSyncTimeout, metav1.Duration{Duration: 1 * time.Minute}).Duration
+	syncTimeout := ptr.Deref(specRecovery.PodSyncTimeout, metav1.Duration{Duration: 3 * time.Minute}).Duration
 	syncContext, syncCancel := context.WithTimeout(ctx, syncTimeout)
 	defer syncCancel()
 
@@ -183,28 +174,6 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 		return fmt.Errorf("error patching recovery status: %v", err)
 	}
 	return nil
-}
-
-func (r *GaleraReconciler) wailtUntilClusterHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *sqlClientSet.ClientSet, logger logr.Logger) error {
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	specRecovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
-
-	clusterHealthyTimeout := ptr.Deref(specRecovery.ClusterHealthyTimeout, metav1.Duration{Duration: 30 * time.Second}).Duration
-	clusterHealthyContext, clusterHealthyCancel := context.WithTimeout(ctx, clusterHealthyTimeout)
-	defer clusterHealthyCancel()
-
-	return pollUntilSucessWithTimeout(clusterHealthyContext, logger, func(ctx context.Context) error {
-		var mdb mariadbv1alpha1.MariaDB
-		if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &mdb); err != nil {
-			return fmt.Errorf("error getting MariaDB: %v", err)
-		}
-		if !mdb.HasGaleraNotReadyCondition() {
-			return errors.New("MariaDB Galera not ready")
-		}
-
-		return nil
-	})
 }
 
 func (r *GaleraReconciler) deletePod(ctx context.Context, podKey types.NamespacedName, logger logr.Logger) error {
