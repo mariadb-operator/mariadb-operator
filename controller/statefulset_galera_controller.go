@@ -122,7 +122,7 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *ma
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster size: %v", err)
 	}
-	logger.V(1).Info("Galera cluster size", "size", size)
+	logger.Info("Galera cluster size", "size", size)
 	if size != int(mariadb.Spec.Replicas) {
 		return false, nil
 	}
