@@ -63,7 +63,7 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 	}
 	if !rs.podsRestarted() {
 		logger.Info("Recovering Pods")
-		if err := r.recoverPods(ctx, mariadb, pods, rs, sqlClientSet, podLogger); err != nil {
+		if err := r.recoverPods(ctx, mariadb, pods, rs, agentClientSet, sqlClientSet, podLogger); err != nil {
 			return fmt.Errorf("error recovering Pods: %v", err)
 		}
 	}
@@ -121,12 +121,30 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 }
 
 func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
-	rs *recoveryStatus, clientSet *sqlClientSet.ClientSet, logger logr.Logger) error {
+	rs *recoveryStatus, agentClientSet *agentClientSet, sqlClientSet *sqlClientSet.ClientSet,
+	logger logr.Logger) error {
 	statusRecovery := ptr.Deref(mariadb.Status.GaleraRecovery, mariadbv1alpha1.GaleraRecoveryStatus{})
 	bootstrap := ptr.Deref(statusRecovery.Bootstrap, mariadbv1alpha1.GaleraRecoveryBootstrap{})
 
 	if bootstrap.Pod == nil {
 		return errors.New("Unable to recover Pods. Cluster hasn't been bootstrapped")
+	}
+	index, err := statefulset.PodIndex(*bootstrap.Pod)
+	if err != nil {
+		return fmt.Errorf("error getting Pod index: %v", err)
+	}
+	client, err := agentClientSet.clientForIndex(*index)
+	if err != nil {
+		return fmt.Errorf("error getting agent client: %v", err)
+	}
+
+	galeraState, err := client.GaleraState.Get(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting Galera state: %v", err)
+	}
+	if !galeraState.SafeToBootstrap {
+		logger.Info("Pod is no longer safe to bootstrap. Resetting recovery", "pod", *bootstrap.Pod)
+		return r.resetRecovery(ctx, mariadb, rs)
 	}
 
 	bootstrapPodKey := types.NamespacedName{
@@ -171,7 +189,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 
 			return fmt.Errorf("error deleting Pod '%s': %v", key.Name, aggErr)
 		}
-		if err := r.waitUntilPodSynced(syncContext, key, clientSet, logger); err != nil {
+		if err := r.waitUntilPodSynced(syncContext, key, sqlClientSet, logger); err != nil {
 			var aggErr *multierror.Error
 			aggErr = multierror.Append(aggErr, err)
 
