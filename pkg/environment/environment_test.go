@@ -84,7 +84,7 @@ func TestWathcNamespaces(t *testing.T) {
 			for k, v := range tt.env {
 				t.Setenv(k, v)
 			}
-			env, err := GetEnvironment(context.Background())
+			env, err := GetOperatorEnv(context.Background())
 			if err != nil && !tt.wantErr {
 				t.Fatalf("unexpected error getting environment: %v", err)
 			}

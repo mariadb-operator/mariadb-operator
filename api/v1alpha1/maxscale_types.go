@@ -621,7 +621,7 @@ type MaxScale struct {
 }
 
 // SetDefaults sets default values.
-func (m *MaxScale) SetDefaults(env *environment.Environment) {
+func (m *MaxScale) SetDefaults(env *environment.OperatorEnv) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMaxscaleImage
 	}

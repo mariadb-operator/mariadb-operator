@@ -34,6 +34,14 @@ cluster-workers: ## List cluster worker Nodes.
 cluster-nodes: kind ## Get cluster nodes.
 	@$(KIND) get nodes --name $(CLUSTER)
 
+.PHONY: stop-control-plane
+stop-control-plane: ## Stop control-plane Node.
+	docker stop $(CLUSTER)-control-plane
+
+.PHONY: start-control-plane
+start-control-plane: ## Start control-plane Node.
+	docker start $(CLUSTER)-control-plane
+
 ##@ Registry
 
 .PHONY: registry

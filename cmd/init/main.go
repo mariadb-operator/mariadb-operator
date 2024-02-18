@@ -11,12 +11,12 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	"github.com/sethvargo/go-envconfig"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,12 +29,10 @@ import (
 )
 
 var (
-	scheme           = runtime.NewScheme()
-	logger           = ctrl.Log
-	configDir        string
-	stateDir         string
-	mariadbName      string
-	mariadbNamespace string
+	scheme    = runtime.NewScheme()
+	logger    = ctrl.Log
+	configDir string
+	stateDir  string
 )
 
 func init() {
@@ -44,8 +42,6 @@ func init() {
 	RootCmd.Flags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d",
 		"The directory that contains MariaDB configuration files")
 	RootCmd.Flags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
-	RootCmd.Flags().StringVar(&mariadbName, "mariadb-name", "", "The name of the MariaDB resource")
-	RootCmd.Flags().StringVar(&mariadbNamespace, "mariadb-namespace", "", "The namespace of the MariaDB resource")
 }
 
 var RootCmd = &cobra.Command{
@@ -58,43 +54,49 @@ var RootCmd = &cobra.Command{
 			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("starting init")
+		logger.Info("Starting init")
 
 		ctx, cancel := newContext()
 		defer cancel()
 
-		env, err := getEnv(ctx)
+		env, err := environment.GetPodEnv(ctx)
 		if err != nil {
 			logger.Error(err, "Error getting environment variables")
 			os.Exit(1)
 		}
-
-		restConfig, err := ctrl.GetConfig()
-		if err != nil {
-			logger.Error(err, "Error getting REST config")
-			os.Exit(1)
-		}
-		k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
-		if err != nil {
-			logger.Error(err, "Error creating Kubernetes client")
-			os.Exit(1)
-		}
-
-		var mdb mariadbv1alpha1.MariaDB
-		key := types.NamespacedName{
-			Name:      mariadbName,
-			Namespace: mariadbNamespace,
-		}
-		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
-			logger.Error(err, "Error getting MariaDB")
-			os.Exit(1)
-		}
-
 		fileManager, err := filemanager.NewFileManager(configDir, stateDir)
 		if err != nil {
 			logger.Error(err, "Error creating file manager")
 			os.Exit(1)
 		}
+		k8sClient, err := getK8sClient()
+		if err != nil {
+			logger.Error(err, "Error getting Kubernetes client")
+			os.Exit(1)
+		}
+
+		key := types.NamespacedName{
+			Name:      env.MariadbName,
+			Namespace: env.PodNamespace,
+		}
+		var mdb mariadbv1alpha1.MariaDB
+		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
+			logger.Error(err, "Error getting MariaDB")
+
+			exists, err := fileManager.ConfigFileExists(config.ConfigFileName)
+			if err != nil {
+				logger.Error(err, "Error checking if config file exists", "file", config.ConfigFileName)
+				os.Exit(1)
+			}
+			if exists {
+				logger.Info("Unable to get MariaDB. Reusing existing config file", "file", config.ConfigFileName)
+				os.Exit(0)
+			} else {
+				logger.Info("Unable to get MariaDB. Config file not found", "file", config.ConfigFileName)
+				os.Exit(1)
+			}
+		}
+
 		configBytes, err := config.NewConfigFile(&mdb).Marshal(env.PodName, env.MariadbRootPassword)
 		if err != nil {
 			logger.Error(err, "Error getting Galera config")
@@ -134,15 +136,15 @@ var RootCmd = &cobra.Command{
 			os.Exit(0)
 		}
 
-		logger.Info("Waiting for previous Pod to be ready", "pod", previousPodName)
-		previousPodName, err := previousPodName(&mdb, *idx)
+		previousPodName, err := getPreviousPodName(&mdb, *idx)
 		if err != nil {
 			logger.Error(err, "Error getting previous Pod")
 			os.Exit(1)
 		}
+		logger.Info("Waiting for previous Pod to be ready", "pod", previousPodName)
 		previousKey := types.NamespacedName{
 			Name:      previousPodName,
-			Namespace: mariadbNamespace,
+			Namespace: env.PodNamespace,
 		}
 		if err := waitForPodReady(ctx, previousKey, k8sClient, logger); err != nil {
 			logger.Error(err, "Error waiting for previous Pod to be ready", "pod", previousPodName)
@@ -150,19 +152,6 @@ var RootCmd = &cobra.Command{
 		}
 		logger.Info("Init done")
 	},
-}
-
-type environment struct {
-	PodName             string `env:"POD_NAME,required"`
-	MariadbRootPassword string `env:"MARIADB_ROOT_PASSWORD,required"`
-}
-
-func getEnv(ctx context.Context) (*environment, error) {
-	var env environment
-	if err := envconfig.Process(ctx, &env); err != nil {
-		return nil, err
-	}
-	return &env, nil
 }
 
 func newContext() (context.Context, context.CancelFunc) {
@@ -175,7 +164,19 @@ func newContext() (context.Context, context.CancelFunc) {
 	)
 }
 
-func previousPodName(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (string, error) {
+func getK8sClient() (client.Client, error) {
+	restConfig, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error getting REST config: %v", err)
+	}
+	k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, fmt.Errorf("error creating Kubernetes client: %v", err)
+	}
+	return k8sClient, nil
+}
+
+func getPreviousPodName(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (string, error) {
 	if podIndex == 0 {
 		return "", fmt.Errorf("Pod '%s' is the first Pod", statefulset.PodName(mariadb.ObjectMeta, podIndex))
 	}
@@ -192,10 +193,10 @@ func waitForPodReady(ctx context.Context, key types.NamespacedName, client clien
 			return false, nil
 		}
 		if !mariadbpod.PodReady(&pod) {
-			logger.V(1).Info("Pod not ready", "pod", previousPodName)
+			logger.V(1).Info("Pod not ready", "pod", pod.Name)
 			return false, nil
 		}
-		logger.V(1).Info("Pod ready", "pod", previousPodName)
+		logger.V(1).Info("Pod ready", "pod", pod.Name)
 		return true, nil
 	})
 }

@@ -114,7 +114,7 @@ var _ = BeforeSuite(func() {
 	galeraRecorder := k8sManager.GetEventRecorderFor("galera")
 	replRecorder := k8sManager.GetEventRecorderFor("replication")
 
-	env, err := environment.GetEnvironment(testCtx)
+	env, err := environment.GetOperatorEnv(testCtx)
 	Expect(err).ToNot(HaveOccurred())
 	discoveryClient, err := discovery.NewDiscoveryClient(cfg)
 	Expect(err).ToNot(HaveOccurred())

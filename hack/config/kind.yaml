@@ -7,8 +7,6 @@ nodes:
     image: *image
   - role: worker
     image: *image
-  - role: worker
-    image: *image
     kubeadmConfigPatches: &kubeadmConfigPatches
       - |
         kind: JoinConfiguration

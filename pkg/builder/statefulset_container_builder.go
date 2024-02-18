@@ -97,8 +97,6 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.
 			fmt.Sprintf("--addr=:%d", agent.Port),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
-			fmt.Sprintf("--mariadb-name=%s", mariadb.Name),
-			fmt.Sprintf("--mariadb-namespace=%s", mariadb.Namespace),
 		}...)
 		if agent.GracefulShutdownTimeout != nil {
 			args = append(args, fmt.Sprintf("--graceful-shutdown-timeout=%s", agent.GracefulShutdownTimeout.Duration))
@@ -177,8 +175,6 @@ func galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
 			"init",
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
-			fmt.Sprintf("--mariadb-name=%s", mariadb.Name),
-			fmt.Sprintf("--mariadb-namespace=%s", mariadb.Namespace),
 		}...)
 		return args
 	}()
@@ -228,6 +224,18 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 					FieldPath: "metadata.name",
 				},
 			},
+		},
+		{
+			Name: "POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name:  "MARIADB_NAME",
+			Value: mariadb.Name,
 		},
 	}
 

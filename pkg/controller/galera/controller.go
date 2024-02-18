@@ -45,14 +45,14 @@ func WithServiceReconciler(sr *service.ServiceReconciler) Option {
 type GaleraReconciler struct {
 	client.Client
 	recorder            record.EventRecorder
-	env                 *environment.Environment
+	env                 *environment.OperatorEnv
 	builder             *builder.Builder
 	refResolver         *refresolver.RefResolver
 	configMapReconciler *configmap.ConfigMapReconciler
 	serviceReconciler   *service.ServiceReconciler
 }
 
-func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, env *environment.Environment, builder *builder.Builder,
+func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, env *environment.OperatorEnv, builder *builder.Builder,
 	opts ...Option) *GaleraReconciler {
 	r := &GaleraReconciler{
 		Client:   client,

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/handler"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/server"
@@ -23,13 +24,11 @@ import (
 )
 
 var (
-	scheme           = runtime.NewScheme()
-	logger           = ctrl.Log
-	addr             string
-	configDir        string
-	stateDir         string
-	mariadbName      string
-	mariadbNamespace string
+	scheme    = runtime.NewScheme()
+	logger    = ctrl.Log
+	addr      string
+	configDir string
+	stateDir  string
 
 	compressLevel              int
 	rateLimitRequests          int
@@ -48,8 +47,6 @@ func init() {
 	RootCmd.Flags().StringVar(&addr, "addr", ":5555", "The address that the HTTP server binds to")
 	RootCmd.Flags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d", "The directory that contains MariaDB configuration files")
 	RootCmd.Flags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
-	RootCmd.Flags().StringVar(&mariadbName, "mariadb-name", "", "The name of the MariaDB resource")
-	RootCmd.Flags().StringVar(&mariadbNamespace, "mariadb-namespace", "", "The namespace of the MariaDB resource")
 
 	RootCmd.Flags().IntVar(&compressLevel, "compress-level", 5, "HTTP compression level")
 	RootCmd.Flags().IntVar(&rateLimitRequests, "rate-limit-requests", 0, "Number of requests to be used as rate limit")
@@ -74,28 +71,27 @@ var RootCmd = &cobra.Command{
 			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("starting agent")
+		logger.Info("Starting agent")
 
-		restConfig, err := ctrl.GetConfig()
+		env, err := environment.GetPodEnv(context.Background())
 		if err != nil {
-			logger.Error(err, "Error getting REST config")
+			logger.Error(err, "Error getting environment variables")
 			os.Exit(1)
 		}
-		k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
-		if err != nil {
-			logger.Error(err, "Error creating Kubernetes client")
-			os.Exit(1)
-		}
-
 		fileManager, err := filemanager.NewFileManager(configDir, stateDir)
 		if err != nil {
 			logger.Error(err, "Error creating file manager")
 			os.Exit(1)
 		}
+		k8sClient, err := getK8sClient()
+		if err != nil {
+			logger.Error(err, "Error getting Kubernetes client")
+			os.Exit(1)
+		}
 
 		mariadbKey := types.NamespacedName{
-			Name:      mariadbName,
-			Namespace: mariadbNamespace,
+			Name:      env.MariadbName,
+			Namespace: env.PodNamespace,
 		}
 		handlerLogger := logger.WithName("handler")
 		handler := handler.NewHandler(
@@ -138,4 +134,16 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
+}
+
+func getK8sClient() (client.Client, error) {
+	restConfig, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error getting REST config: %v", err)
+	}
+	k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, fmt.Errorf("error creating Kubernetes client: %v", err)
+	}
+	return k8sClient, nil
 }

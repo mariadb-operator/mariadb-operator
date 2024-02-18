@@ -52,7 +52,7 @@ type MariaDBReconciler struct {
 	Builder         *builder.Builder
 	RefResolver     *refresolver.RefResolver
 	ConditionReady  *condition.Ready
-	Environment     *environment.Environment
+	Environment     *environment.OperatorEnv
 	DiscoveryClient *discovery.DiscoveryClient
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
