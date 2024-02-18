@@ -65,12 +65,12 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	clusterHealthyTimeout := ptr.Deref(recovery.ClusterHealthyTimeout, metav1.Duration{Duration: 30 * time.Second}).Duration
 	healthyCtx, cancelHealthy := context.WithTimeout(ctx, clusterHealthyTimeout)
 	defer cancelHealthy()
-	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, mariadb, &sts, logger)
+
+	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, &sts, logger)
 	if err != nil {
 		logger.V(1).Info("Error polling MariaDB health", "err", err)
 		return ctrl.Result{Requeue: true}, nil
 	}
-
 	if healthy {
 		return ctrl.Result{}, nil
 	}
@@ -83,14 +83,13 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB: %v", err)
 	}
-
 	return ctrl.Result{}, nil
 }
 
-func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	sts *appsv1.StatefulSet, logger logr.Logger) (bool, error) {
+func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, sts *appsv1.StatefulSet,
+	logger logr.Logger) (bool, error) {
 	err := wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(ctx context.Context) (bool, error) {
-		return r.isHealthy(ctx, mariadb, sts, logger)
+		return r.isHealthy(ctx, sts, logger)
 	})
 	if err != nil {
 		if wait.Interrupted(err) {
@@ -101,8 +100,18 @@ func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Co
 	return true, nil
 }
 
-func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
-	logger logr.Logger) (bool, error) {
+func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, sts *appsv1.StatefulSet, logger logr.Logger) (bool, error) {
+	mariadb, err := r.RefResolver.MariaDBFromAnnotation(ctx, sts.ObjectMeta)
+	if err != nil {
+		logger.V(1).Info("Error getting MariaDB", "err", err)
+	}
+	if mariadb != nil && err == nil {
+		// recovery already in prgress
+		if mariadb.HasGaleraNotReadyCondition() {
+			return true, nil
+		}
+	}
+
 	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
 	if sts.Status.ReadyReplicas == 0 {
 		return false, nil
