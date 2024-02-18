@@ -5,28 +5,10 @@ import (
 	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
 )
 
-type GaleraClient struct {
-	sqlClientSet *sqlClientSet.ClientSet
-	opts         []sql.Opt
-}
-
-func NewGaleraClient(sqlClientSet *sqlClientSet.ClientSet, opts ...sql.Opt) *GaleraClient {
-	return &GaleraClient{
-		sqlClientSet: sqlClientSet,
-		opts:         opts,
-	}
-}
-
-func (g *GaleraClient) IsPodHealthy(ctx context.Context, podIndex int) (bool, error) {
-	client, err := g.sqlClientSet.ClientForIndex(ctx, podIndex, g.opts...)
-	if err != nil {
-		return false, fmt.Errorf("error getting SQL client: %v", err)
-	}
-
-	status, err := client.GaleraClusterStatus(ctx)
+func IsPodHealthy(ctx context.Context, sqlClient *sql.Client) (bool, error) {
+	status, err := sqlClient.GaleraClusterStatus(ctx)
 	if err != nil {
 		return false, fmt.Errorf("error getting cluster status: %v", err)
 	}
@@ -34,8 +16,8 @@ func (g *GaleraClient) IsPodHealthy(ctx context.Context, podIndex int) (bool, er
 	return status == "Primary", nil
 }
 
-func (g *GaleraClient) IsPodSynced(ctx context.Context, podIndex int) (bool, error) {
-	healthy, err := g.IsPodHealthy(ctx, podIndex)
+func IsPodSynced(ctx context.Context, sqlClient *sql.Client) (bool, error) {
+	healthy, err := IsPodHealthy(ctx, sqlClient)
 	if err != nil {
 		return false, fmt.Errorf("error checking Pod health: %v", err)
 	}
@@ -43,12 +25,7 @@ func (g *GaleraClient) IsPodSynced(ctx context.Context, podIndex int) (bool, err
 		return false, nil
 	}
 
-	client, err := g.sqlClientSet.ClientForIndex(ctx, podIndex, g.opts...)
-	if err != nil {
-		return false, fmt.Errorf("error getting SQL client: %v", err)
-	}
-
-	state, err := client.GaleraLocalState(ctx)
+	state, err := sqlClient.GaleraLocalState(ctx)
 	if err != nil {
 		return false, fmt.Errorf("error getting local state: %v", err)
 	}

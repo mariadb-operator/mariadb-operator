@@ -449,9 +449,12 @@ func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, podKey types.
 		if err != nil {
 			return fmt.Errorf("error getting Pod index: %v", err)
 		}
-		galeraClient := galeraclient.NewGaleraClient(sqlClientSet, sql.WithTimeout(5*time.Second))
+		sqlClient, err := sqlClientSet.ClientForIndex(ctx, *podIndex, sql.WithTimeout(5*time.Second))
+		if err != nil {
+			return fmt.Errorf("errpr getting SQL client: %v", err)
+		}
 
-		synced, err := galeraClient.IsPodSynced(ctx, *podIndex)
+		synced, err := galeraclient.IsPodSynced(ctx, sqlClient)
 		if err != nil {
 			return fmt.Errorf("error checking Pod sync: %v", err)
 		}

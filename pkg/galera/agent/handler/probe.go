@@ -56,10 +56,6 @@ func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sqlClientSet := sqlClientSet.NewClientSet(&mdb, p.refResolver)
-	defer sqlClientSet.Close()
-	galeraClient := galeraclient.NewGaleraClient(sqlClientSet, sql.WithTimeout(5*time.Second))
-
 	podIndex, err := getPodIndex(r.Context(), &mdb)
 	if err != nil {
 		p.livenessLogger.Error(err, "error getting Pod index")
@@ -67,7 +63,16 @@ func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	healthy, err := galeraClient.IsPodHealthy(r.Context(), *podIndex)
+	sqlClientSet := sqlClientSet.NewClientSet(&mdb, p.refResolver)
+	defer sqlClientSet.Close()
+	sqlClient, err := sqlClientSet.ClientForIndex(r.Context(), *podIndex, sql.WithTimeout(5*time.Second))
+	if err != nil {
+		p.livenessLogger.Error(err, "error getting SQL client")
+		p.responseWriter.WriteError(w, "error getting SQL client")
+		return
+	}
+
+	healthy, err := galeraclient.IsPodHealthy(r.Context(), sqlClient)
 	if err != nil {
 		p.livenessLogger.Error(err, "error getting Pod health")
 		p.responseWriter.WriteError(w, "error getting Pod health")
@@ -98,18 +103,23 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sqlClientSet := sqlClientSet.NewClientSet(&mdb, p.refResolver)
-	defer sqlClientSet.Close()
-	galeraClient := galeraclient.NewGaleraClient(sqlClientSet, sql.WithTimeout(5*time.Second))
-
 	podIndex, err := getPodIndex(r.Context(), &mdb)
 	if err != nil {
-		p.readinessLogger.Error(err, "error getting Pod index")
+		p.livenessLogger.Error(err, "error getting Pod index")
 		p.responseWriter.WriteError(w, "error getting Pod index")
 		return
 	}
 
-	synced, err := galeraClient.IsPodSynced(r.Context(), *podIndex)
+	sqlClientSet := sqlClientSet.NewClientSet(&mdb, p.refResolver)
+	defer sqlClientSet.Close()
+	sqlClient, err := sqlClientSet.ClientForIndex(r.Context(), *podIndex, sql.WithTimeout(5*time.Second))
+	if err != nil {
+		p.livenessLogger.Error(err, "error getting SQL client")
+		p.responseWriter.WriteError(w, "error getting SQL client")
+		return
+	}
+
+	synced, err := galeraclient.IsPodSynced(r.Context(), sqlClient)
 	if err != nil {
 		p.readinessLogger.Error(err, "error getting Pod sync")
 		p.responseWriter.WriteError(w, "error getting Pod sync")
