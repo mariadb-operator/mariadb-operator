@@ -19,13 +19,13 @@ var _ = Describe("MaxScale types", func() {
 		Name:      "maxscale-obj",
 		Namespace: "maxscale-obj",
 	}
-	env := &environment.Environment{
+	env := &environment.OperatorEnv{
 		RelatedMariadbImage: "mariadb/maxscale:23.08",
 	}
 	Context("When creating a MaxScale object", func() {
 		DescribeTable(
 			"Should default",
-			func(mxs, expected *MaxScale, env *environment.Environment) {
+			func(mxs, expected *MaxScale, env *environment.OperatorEnv) {
 				mxs.SetDefaults(env)
 				Expect(mxs).To(BeEquivalentTo(expected))
 			},

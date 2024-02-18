@@ -17,10 +17,10 @@ import (
 type MaxScaleReconciler struct {
 	client.Client
 	builder     *builder.Builder
-	environment *environment.Environment
+	environment *environment.OperatorEnv
 }
 
-func NewMaxScaleReconciler(client client.Client, builder *builder.Builder, env *environment.Environment) *MaxScaleReconciler {
+func NewMaxScaleReconciler(client client.Client, builder *builder.Builder, env *environment.OperatorEnv) *MaxScaleReconciler {
 	return &MaxScaleReconciler{
 		Client:      client,
 		builder:     builder,

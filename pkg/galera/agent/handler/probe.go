@@ -2,19 +2,15 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	galeraclient "github.com/mariadb-operator/mariadb-operator/pkg/galera/client"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
-	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -22,7 +18,6 @@ import (
 type Probe struct {
 	mariadbKey      types.NamespacedName
 	k8sClient       ctrlclient.Client
-	refResolver     *refresolver.RefResolver
 	responseWriter  *mdbhttp.ResponseWriter
 	livenessLogger  logr.Logger
 	readinessLogger logr.Logger
@@ -33,7 +28,6 @@ func NewProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, resp
 	return &Probe{
 		mariadbKey:      mariadbKey,
 		k8sClient:       k8sClient,
-		refResolver:     refresolver.New(k8sClient),
 		responseWriter:  responseWriter,
 		livenessLogger:  logger.WithName("liveness"),
 		readinessLogger: logger.WithName("readiness"),
@@ -42,37 +36,40 @@ func NewProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, resp
 
 func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 	p.livenessLogger.V(1).Info("Probe started")
+
+	k8sCtx, k8sCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer k8sCancel()
+
 	var mdb mariadbv1alpha1.MariaDB
-	if err := p.k8sClient.Get(r.Context(), p.mariadbKey, &mdb); err != nil {
+	if err := p.k8sClient.Get(k8sCtx, p.mariadbKey, &mdb); err != nil {
 		p.livenessLogger.Error(err, "error getting MariaDB")
-		p.responseWriter.WriteError(w, "error getting MariaDB")
-		return
 	}
 
-	// avoid restarting Pods during cluster recovery
 	if mdb.HasGaleraNotReadyCondition() {
-		p.livenessLogger.Info("Galera not ready. Returning OK")
+		p.livenessLogger.Info("Galera not ready. Returning OK to facilitate recovery")
 		p.responseWriter.WriteOK(w, nil)
 		return
 	}
 
-	podIndex, err := getPodIndex(r.Context(), &mdb)
+	env, err := environment.GetPodEnv(context.Background())
 	if err != nil {
-		p.livenessLogger.Error(err, "error getting Pod index")
-		p.responseWriter.WriteError(w, "error getting Pod index")
+		p.livenessLogger.Error(err, "error getting environment")
+		p.responseWriter.WriteErrorf(w, "error getting environment: %v", err)
 		return
 	}
 
-	sqlClientSet := sqlClientSet.NewClientSet(&mdb, p.refResolver)
-	defer sqlClientSet.Close()
-	sqlClient, err := sqlClientSet.ClientForIndex(r.Context(), *podIndex, sql.WithTimeout(5*time.Second))
+	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer sqlCancel()
+
+	sqlClient, err := sql.NewInternalClientWithPodEnv(sqlCtx, env, sql.WithTimeout(1*time.Second))
 	if err != nil {
 		p.livenessLogger.Error(err, "error getting SQL client")
-		p.responseWriter.WriteError(w, "error getting SQL client")
+		p.responseWriter.WriteErrorf(w, "error getting SQL client: %v", err)
 		return
 	}
+	defer sqlClient.Close()
 
-	healthy, err := galeraclient.IsPodHealthy(r.Context(), sqlClient)
+	healthy, err := galeraclient.IsPodHealthy(sqlCtx, sqlClient)
 	if err != nil {
 		p.livenessLogger.Error(err, "error getting Pod health")
 		p.responseWriter.WriteError(w, "error getting Pod health")
@@ -89,37 +86,40 @@ func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 
 func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 	p.readinessLogger.V(1).Info("Probe started")
+
+	k8sCtx, k8sCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer k8sCancel()
+
 	var mdb mariadbv1alpha1.MariaDB
-	if err := p.k8sClient.Get(r.Context(), p.mariadbKey, &mdb); err != nil {
+	if err := p.k8sClient.Get(k8sCtx, p.mariadbKey, &mdb); err != nil {
 		p.readinessLogger.Error(err, "error getting MariaDB")
-		p.responseWriter.WriteError(w, "error getting MariaDB")
-		return
 	}
 
-	// keep sending traffic to Pods during cluster recovery
 	if mdb.HasGaleraNotReadyCondition() {
-		p.readinessLogger.Info("Galera not ready. Returning OK")
+		p.readinessLogger.Info("Galera not ready. Returning OK to facilitate recovery")
 		p.responseWriter.WriteOK(w, nil)
 		return
 	}
 
-	podIndex, err := getPodIndex(r.Context(), &mdb)
+	env, err := environment.GetPodEnv(context.Background())
 	if err != nil {
-		p.livenessLogger.Error(err, "error getting Pod index")
-		p.responseWriter.WriteError(w, "error getting Pod index")
+		p.readinessLogger.Error(err, "error getting environment")
+		p.responseWriter.WriteErrorf(w, "error getting environment: %v", err)
 		return
 	}
 
-	sqlClientSet := sqlClientSet.NewClientSet(&mdb, p.refResolver)
-	defer sqlClientSet.Close()
-	sqlClient, err := sqlClientSet.ClientForIndex(r.Context(), *podIndex, sql.WithTimeout(5*time.Second))
+	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer sqlCancel()
+
+	sqlClient, err := sql.NewInternalClientWithPodEnv(sqlCtx, env, sql.WithTimeout(1*time.Second))
 	if err != nil {
-		p.livenessLogger.Error(err, "error getting SQL client")
-		p.responseWriter.WriteError(w, "error getting SQL client")
+		p.readinessLogger.Error(err, "error getting SQL client")
+		p.responseWriter.WriteErrorf(w, "error getting SQL client: %v", err)
 		return
 	}
+	defer sqlClient.Close()
 
-	synced, err := galeraclient.IsPodSynced(r.Context(), sqlClient)
+	synced, err := galeraclient.IsPodSynced(sqlCtx, sqlClient)
 	if err != nil {
 		p.readinessLogger.Error(err, "error getting Pod sync")
 		p.responseWriter.WriteError(w, "error getting Pod sync")
@@ -132,17 +132,4 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.responseWriter.WriteOK(w, nil)
-}
-
-func getPodIndex(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
-	env := "POD_NAME"
-	podName := os.Getenv(env)
-	if podName == "" {
-		return nil, fmt.Errorf("environment variable '%s' not found", env)
-	}
-	podIndex, err := statefulset.PodIndex(podName)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Pod index: %v", err)
-	}
-	return podIndex, nil
 }

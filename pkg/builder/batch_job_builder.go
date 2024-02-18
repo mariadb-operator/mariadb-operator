@@ -156,7 +156,7 @@ func jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []co
 }
 
 func jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, env *environment.Environment,
+	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, env *environment.OperatorEnv,
 	securityContext *corev1.SecurityContext) corev1.Container {
 	return jobContainer("mariadb-operator", cmd, env.MariadbOperatorImage, volumeMounts, envVar, resources, mariadb, securityContext)
 }

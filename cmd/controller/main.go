@@ -104,7 +104,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to get config")
 			os.Exit(1)
 		}
-		env, err := environment.GetEnvironment(ctx)
+		env, err := environment.GetOperatorEnv(ctx)
 		if err != nil {
 			setupLog.Error(err, "Error getting environment")
 			os.Exit(1)

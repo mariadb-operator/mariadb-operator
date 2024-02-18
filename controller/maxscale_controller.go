@@ -45,7 +45,7 @@ type MaxScaleReconciler struct {
 
 	Builder        *builder.Builder
 	ConditionReady *condition.Ready
-	Environment    *environment.Environment
+	Environment    *environment.OperatorEnv
 	RefResolver    *refresolver.RefResolver
 
 	SecretReconciler      *secret.SecretReconciler

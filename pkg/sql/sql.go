@@ -13,6 +13,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 )
@@ -134,6 +135,29 @@ func NewInternalClientWithPodIndex(ctx context.Context, mariadb *mariadbv1alpha1
 	}
 	opts = append(opts, clientOpts...)
 	return NewClientWithMariaDB(ctx, mariadb, refResolver, opts...)
+}
+
+func NewInternalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironment, clientOpts ...Opt) (*Client, error) {
+	port, err := env.Port()
+	if err != nil {
+		return nil, fmt.Errorf("error getting port: %v", err)
+	}
+	opts := []Opt{
+		WithUsername("root"),
+		WithPassword(env.MariadbRootPassword),
+		WitHost(
+			fmt.Sprintf(
+				"%s.%s.%s.svc.%s",
+				env.PodName,
+				mariadbv1alpha1.InternalServiceName(env.MariadbName),
+				env.PodNamespace,
+				env.ClusterName,
+			),
+		),
+		WithPort(port),
+	}
+	opts = append(opts, clientOpts...)
+	return NewClient(opts...)
 }
 
 func BuildDSN(opts Opts) (string, error) {

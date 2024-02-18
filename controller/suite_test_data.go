@@ -66,7 +66,7 @@ func waitForMariaDB(ctx context.Context, k8sClient client.Client) {
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
-func createTestData(ctx context.Context, k8sClient client.Client, env environment.Environment) {
+func createTestData(ctx context.Context, k8sClient client.Client, env environment.OperatorEnv) {
 	var testCidrPrefix, err = docker.GetKindCidrPrefix()
 	Expect(testCidrPrefix).ShouldNot(Equal(""))
 	Expect(err).ToNot(HaveOccurred())

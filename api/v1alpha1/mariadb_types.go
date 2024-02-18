@@ -365,7 +365,7 @@ type MariaDB struct {
 }
 
 // SetDefaults sets default values.
-func (m *MariaDB) SetDefaults(env *environment.Environment) {
+func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMariadbImage
 	}

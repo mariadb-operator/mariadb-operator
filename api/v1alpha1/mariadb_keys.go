@@ -48,9 +48,14 @@ func (m *MariaDB) RestoreKey() types.NamespacedName {
 // InternalServiceKey defines the key for the internal headless Service
 func (m *MariaDB) InternalServiceKey() types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-internal", m.Name),
+		Name:      InternalServiceName(m.Name),
 		Namespace: m.Namespace,
 	}
+}
+
+// InternalServiceName defines the name for the internal headless Service
+func InternalServiceName(mariadbName string) string {
+	return fmt.Sprintf("%s-internal", mariadbName)
 }
 
 // PrimaryServiceKey defines the key for the primary Service

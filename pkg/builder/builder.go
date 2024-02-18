@@ -7,10 +7,10 @@ import (
 
 type Builder struct {
 	scheme *runtime.Scheme
-	env    *environment.Environment
+	env    *environment.OperatorEnv
 }
 
-func NewBuilder(scheme *runtime.Scheme, env *environment.Environment) *Builder {
+func NewBuilder(scheme *runtime.Scheme, env *environment.OperatorEnv) *Builder {
 	return &Builder{
 		scheme: scheme,
 		env:    env,
