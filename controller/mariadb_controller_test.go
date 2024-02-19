@@ -571,18 +571,18 @@ var _ = Describe("MariaDB replication", func() {
 	})
 })
 
-var _ = Describe("MariaDB Galera", func() {
+var _ = Describe("MariaDB Galera", Serial, func() {
 	Context("When creating a MariaDB Galera", func() {
+		key := types.NamespacedName{
+			Name:      "mariadb-galera",
+			Namespace: testNamespace,
+		}
 		It("Should default", func() {
 			By("Creating MariaDB")
-			testDefaultKey := types.NamespacedName{
-				Name:      "test-mariadb-default",
-				Namespace: testNamespace,
-			}
 			testDefaultMariaDb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testDefaultKey.Name,
-					Namespace: testDefaultKey.Namespace,
+					Name:      key.Name,
+					Namespace: key.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -609,7 +609,7 @@ var _ = Describe("MariaDB Galera", func() {
 
 			By("Expecting to eventually default")
 			Eventually(func(g Gomega) bool {
-				if err := k8sClient.Get(testCtx, testDefaultKey, &testDefaultMariaDb); err != nil {
+				if err := k8sClient.Get(testCtx, key, &testDefaultMariaDb); err != nil {
 					return false
 				}
 				g.Expect(testDefaultMariaDb.Spec.Galera).ToNot(BeZero())
@@ -618,15 +618,68 @@ var _ = Describe("MariaDB Galera", func() {
 				g.Expect(testDefaultMariaDb.Spec.Galera.ReplicaThreads).ToNot(BeZero())
 				g.Expect(testDefaultMariaDb.Spec.Galera.Recovery).ToNot(BeZero())
 				g.Expect(testDefaultMariaDb.Spec.Galera.InitContainer).ToNot(BeZero())
-				g.Expect(testDefaultMariaDb.Spec.Galera.VolumeClaimTemplate).ToNot(BeZero())
+				g.Expect(testDefaultMariaDb.Spec.Galera.Config).ToNot(BeZero())
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
+
+		It("Should be able to reuse storage", func() {
+			mdb := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      key.Name,
+					Namespace: key.Namespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
+						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("100Mi"),
+								},
+							},
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
+								ReuseStorageVolume: ptr.To(true),
+							},
+						},
+					},
+					Replicas: 3,
+					Service: &mariadbv1alpha1.ServiceTemplate{
+						Type: corev1.ServiceTypeLoadBalancer,
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
+						},
+					},
+				},
+			}
+
+			By("Creating MariaDB Galera")
+			Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&mdb)
+			})
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
+					return false
+				}
+				return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
+			}, testHighTimeout, testInterval).Should(BeTrue())
+		})
+
 		It("Should reconcile", func() {
 			mdb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mariadb-galera",
-					Namespace: testNamespace,
+					Name:      key.Name,
+					Namespace: key.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Username: &testUser,
@@ -666,15 +719,18 @@ var _ = Describe("MariaDB Galera", func() {
 							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
-							VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
-										Requests: corev1.ResourceList{
-											"storage": resource.MustParse("100Mi"),
+							Config: mariadbv1alpha1.GaleraConfig{
+								ReuseStorageVolume: ptr.To(false),
+								VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+									PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+										Resources: corev1.ResourceRequirements{
+											Requests: corev1.ResourceList{
+												"storage": resource.MustParse("100Mi"),
+											},
 										},
-									},
-									AccessModes: []corev1.PersistentVolumeAccessMode{
-										corev1.ReadWriteOnce,
+										AccessModes: []corev1.PersistentVolumeAccessMode{
+											corev1.ReadWriteOnce,
+										},
 									},
 								},
 							},

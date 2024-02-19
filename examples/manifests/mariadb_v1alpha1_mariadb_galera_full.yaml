@@ -54,12 +54,14 @@ spec:
       podSyncTimeout: 3m
     initContainer:
       image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
-    volumeClaimTemplate:
-      resources:
-        requests:
-          storage: 300Mi
-      accessModes:
-        - ReadWriteOnce
+    config:
+      reuseStorageVolume: false
+      volumeClaimTemplate:
+        resources:
+          requests:
+            storage: 300Mi
+        accessModes:
+          - ReadWriteOnce
 
   service:
     type: LoadBalancer

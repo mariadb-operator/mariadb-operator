@@ -293,8 +293,8 @@ _Appears in:_
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
-| `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/init. |
-| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB. |
+| `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |
+| `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |
 | `enabled` _boolean_ | Enabled is a flag to enable Galera. |
 
 
@@ -324,6 +324,22 @@ _Appears in:_
 | `port` _integer_ | Port where the agent will be listening for connections. |
 | `kubernetesAuth` _[KubernetesAuth](#kubernetesauth)_ | KubernetesAuth to be used by the agent container |
 | `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |
+
+
+#### GaleraConfig
+
+
+
+GaleraConfig defines storage options for the Galera configuration files.
+
+_Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+
+| Field | Description |
+| --- | --- |
+| `reuseStorageVolume` _boolean_ | ReuseStorageVolume indicates that storage volume used by MariaDB should be reused to store the Galera configuration files. It defaults to false, which implies that a dedicated volume for the Galera configuration files is provisioned. |
+| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB. |
 
 
 #### GaleraRecovery
@@ -378,8 +394,8 @@ _Appears in:_
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
-| `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. More info: https://github.com/mariadb-operator/init. |
-| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB. |
+| `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |
+| `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |
 
 
 #### Grant
@@ -1353,8 +1369,7 @@ _Appears in:_
 VolumeClaimTemplate defines a template to customize PVC objects.
 
 _Appears in:_
-- [Galera](#galera)
-- [GaleraSpec](#galeraspec)
+- [GaleraConfig](#galeraconfig)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleConfig](#maxscaleconfig)
 

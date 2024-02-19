@@ -39,15 +39,18 @@ var _ = Describe("MariaDB Galera types", func() {
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 						AvailableWhenDonor: ptr.To(false),
-						VolumeClaimTemplate: VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": resource.MustParse("100Mi"),
+						Config: GaleraConfig{
+							ReuseStorageVolume: ptr.To(false),
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("100Mi"),
+										},
 									},
-								},
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									corev1.ReadWriteOnce,
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
 								},
 							},
 						},
@@ -111,15 +114,18 @@ var _ = Describe("MariaDB Galera types", func() {
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 						AvailableWhenDonor: ptr.To(true),
-						VolumeClaimTemplate: VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": resource.MustParse("100Mi"),
+						Config: GaleraConfig{
+							ReuseStorageVolume: ptr.To(false),
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("100Mi"),
+										},
 									},
-								},
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									corev1.ReadWriteOnce,
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
 								},
 							},
 						},
@@ -172,15 +178,18 @@ var _ = Describe("MariaDB Galera types", func() {
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 						AvailableWhenDonor: ptr.To(false),
-						VolumeClaimTemplate: VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": resource.MustParse("100Mi"),
+						Config: GaleraConfig{
+							ReuseStorageVolume: ptr.To(false),
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("100Mi"),
+										},
 									},
-								},
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									corev1.ReadWriteOnce,
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
 								},
 							},
 						},

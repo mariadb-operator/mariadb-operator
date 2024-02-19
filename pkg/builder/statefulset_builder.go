@@ -195,8 +195,10 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 	}
 
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	if galera.Enabled {
-		vctpl := galera.VolumeClaimTemplate
+	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
+	vctpl := galera.Config.VolumeClaimTemplate
+
+	if mariadb.IsGaleraEnabled() && !reuseStorageVolume && vctpl != nil {
 		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        galeraresources.GaleraConfigVolume,
