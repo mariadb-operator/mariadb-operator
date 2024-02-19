@@ -38,6 +38,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
+						AvailableWhenDonor: ptr.To(false),
 						VolumeClaimTemplate: VolumeClaimTemplate{
 							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 								Resources: corev1.ResourceRequirements{
@@ -93,6 +94,7 @@ var _ = Describe("MariaDB Galera types", func() {
 								Enabled: false,
 							},
 						},
+						AvailableWhenDonor: ptr.To(true),
 						Recovery: &GaleraRecovery{
 							Enabled:        true,
 							MinClusterSize: ptr.To(int32(1)),
@@ -108,6 +110,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
+						AvailableWhenDonor: ptr.To(true),
 						VolumeClaimTemplate: VolumeClaimTemplate{
 							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 								Resources: corev1.ResourceRequirements{
@@ -168,6 +171,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
+						AvailableWhenDonor: ptr.To(false),
 						VolumeClaimTemplate: VolumeClaimTemplate{
 							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 								Resources: corev1.ResourceRequirements{

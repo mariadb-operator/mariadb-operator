@@ -16,6 +16,11 @@ func IsPodHealthy(ctx context.Context, sqlClient *sql.Client) (bool, error) {
 	return status == "Primary", nil
 }
 
+var (
+	GaleraStateSynced string = "Synced"
+	GaleraStateDonor  string = "Donor/Desynced"
+)
+
 func IsPodSynced(ctx context.Context, sqlClient *sql.Client) (bool, error) {
 	healthy, err := IsPodHealthy(ctx, sqlClient)
 	if err != nil {
@@ -30,5 +35,5 @@ func IsPodSynced(ctx context.Context, sqlClient *sql.Client) (bool, error) {
 		return false, fmt.Errorf("error getting local state: %v", err)
 	}
 
-	return state == "Synced", nil
+	return state == GaleraStateSynced, nil
 }
