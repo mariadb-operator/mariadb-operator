@@ -206,6 +206,40 @@ func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 	}
 }
 
+// GaleraConfig defines storage options for the Galera configuration files.
+type GaleraConfig struct {
+	// ReuseStorageVolume indicates that storage volume used by MariaDB should be reused to store the Galera configuration files.
+	// It defaults to false, which implies that a dedicated volume for the Galera configuration files is provisioned.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ReuseStorageVolume *bool `json:"reuseStorageVolume,omitempty" webhook:"inmutableinit"`
+	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty" webhook:"inmutableinit"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (g *GaleraConfig) SetDefaults() {
+	if g.ReuseStorageVolume == nil {
+		g.ReuseStorageVolume = ptr.To(false)
+	}
+	if !ptr.Deref(g.ReuseStorageVolume, false) && g.VolumeClaimTemplate == nil {
+		g.VolumeClaimTemplate = &VolumeClaimTemplate{
+			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						"storage": resource.MustParse("100Mi"),
+					},
+				},
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+			},
+		}
+	}
+}
+
 // Galera allows you to enable multi-master HA via Galera in your MariaDB cluster.
 type Galera struct {
 	// GaleraSpec is the Galera desired state specification.
@@ -235,22 +269,9 @@ func (g *Galera) SetDefaults(mdb *MariaDB) {
 			ImagePullPolicy: corev1.PullIfNotPresent,
 		}
 	}
-	if reflect.ValueOf(g.VolumeClaimTemplate).IsZero() {
-		g.VolumeClaimTemplate = VolumeClaimTemplate{
-			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						"storage": resource.MustParse("100Mi"),
-					},
-				},
-				AccessModes: []corev1.PersistentVolumeAccessMode{
-					corev1.ReadWriteOnce,
-				},
-			},
-		}
-	}
 	g.Primary.SetDefaults()
 	g.Agent.SetDefaults()
+	g.Config.SetDefaults()
 
 	if g.Recovery == nil {
 		g.Recovery = &GaleraRecovery{
@@ -293,15 +314,13 @@ type GaleraSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Recovery *GaleraRecovery `json:"recovery,omitempty"`
 	// InitContainer is an init container that co-operates with mariadb-operator.
-	// More info: https://github.com/mariadb-operator/init.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	InitContainer Container `json:"initContainer,omitempty"`
-	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files
-	// shared between the InitContainer, Agent and MariaDB.
+	// GaleraConfig defines storage options for the Galera configuration files.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
+	Config GaleraConfig `json:"config,omitempty"`
 }
 
 // GaleraRecoveryBootstrap indicates when and in which Pod the cluster bootstrap process has been performed.

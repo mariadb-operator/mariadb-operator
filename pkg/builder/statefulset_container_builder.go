@@ -286,14 +286,22 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      StorageVolume,
-			MountPath: MariadbStorageMountPath,
-		},
-		{
 			Name:      ConfigVolume,
 			MountPath: MariadbConfigMountPath,
 		},
 	}
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
+
+	storageVolumeMount := corev1.VolumeMount{
+		Name:      StorageVolume,
+		MountPath: MariadbStorageMountPath,
+	}
+	if mariadb.IsGaleraEnabled() && reuseStorageVolume {
+		storageVolumeMount.SubPath = StorageVolume
+	}
+	volumeMounts = append(volumeMounts, storageVolumeMount)
+
 	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      ProbesVolume,
@@ -301,16 +309,22 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB) []corev1.VolumeMount 
 		})
 	}
 	if mariadb.IsGaleraEnabled() {
-		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
-			{
-				Name:      galeraresources.GaleraConfigVolume,
-				MountPath: galeraresources.GaleraConfigMountPath,
-			},
-			{
-				Name:      ServiceAccountVolume,
-				MountPath: ServiceAccountMountPath,
-			},
-		}...)
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      ServiceAccountVolume,
+			MountPath: ServiceAccountMountPath,
+		})
+
+		galeraConfigVolumeMount := corev1.VolumeMount{
+			MountPath: galeraresources.GaleraConfigMountPath,
+		}
+		if reuseStorageVolume {
+			galeraConfigVolumeMount.Name = StorageVolume
+			galeraConfigVolumeMount.SubPath = galeraresources.GaleraConfigVolume
+		} else {
+			galeraConfigVolumeMount.Name = galeraresources.GaleraConfigVolume
+		}
+
+		volumeMounts = append(volumeMounts, galeraConfigVolumeMount)
 	}
 	if mariadb.Spec.VolumeMounts != nil {
 		volumeMounts = append(volumeMounts, mariadb.Spec.VolumeMounts...)
