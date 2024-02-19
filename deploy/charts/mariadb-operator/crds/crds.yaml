@@ -7700,6 +7700,10 @@ spec:
                           type: object
                         type: array
                     type: object
+                  availableWhenDonor:
+                    description: AvailableWhenDonor indicates whether a donor node
+                      should be responding to queries. It defaults to false.
+                    type: boolean
                   enabled:
                     description: Enabled is a flag to enable Galera.
                     type: boolean

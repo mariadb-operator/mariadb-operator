@@ -752,6 +752,11 @@ func (in *GaleraRecoveryStatus) DeepCopy() *GaleraRecoveryStatus {
 func (in *GaleraSpec) DeepCopyInto(out *GaleraSpec) {
 	*out = *in
 	in.Primary.DeepCopyInto(&out.Primary)
+	if in.AvailableWhenDonor != nil {
+		in, out := &in.AvailableWhenDonor, &out.AvailableWhenDonor
+		*out = new(bool)
+		**out = **in
+	}
 	in.Agent.DeepCopyInto(&out.Agent)
 	if in.Recovery != nil {
 		in, out := &in.Recovery, &out.Recovery

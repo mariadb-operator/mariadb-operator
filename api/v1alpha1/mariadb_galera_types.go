@@ -223,6 +223,9 @@ func (g *Galera) SetDefaults(mdb *MariaDB) {
 	if g.SST == "" {
 		g.SST = SSTMariaBackup
 	}
+	if g.AvailableWhenDonor == nil {
+		g.AvailableWhenDonor = ptr.To(false)
+	}
 	if g.ReplicaThreads == 0 {
 		g.ReplicaThreads = 1
 	}
@@ -271,6 +274,10 @@ type GaleraSpec struct {
 	// +kubebuilder:validation:Enum=rsync;mariabackup;mysqldump
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SST SST `json:"sst,omitempty"`
+	// AvailableWhenDonor indicates whether a donor node should be responding to queries. It defaults to false.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AvailableWhenDonor *bool `json:"availableWhenDonor,omitempty"`
 	// ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.
 	// More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
 	// +optional

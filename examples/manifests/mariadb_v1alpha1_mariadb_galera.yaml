@@ -18,6 +18,7 @@ spec:
 
   galera:
     enabled: true
+    availableWhenDonor: true
 
   service:
     type: LoadBalancer

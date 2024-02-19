@@ -37,20 +37,21 @@ spec:
       podIndex: 0
       automaticFailover: true
     sst: mariabackup
+    availableWhenDonor: false
     replicaThreads: 1
     agent:
       image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
       port: 5555
       kubernetesAuth:
         enabled: true
-      gracefulShutdownTimeout: 5s
+      gracefulShutdownTimeout: 1s
     recovery:
       enabled: true
       minClusterSize: 2
-      clusterHealthyTimeout: 3m
+      clusterHealthyTimeout: 30s
       clusterBootstrapTimeout: 10m
-      podRecoveryTimeout: 5m
-      podSyncTimeout: 5m
+      podRecoveryTimeout: 3m
+      podSyncTimeout: 3m
     initContainer:
       image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
     volumeClaimTemplate:

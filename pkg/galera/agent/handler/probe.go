@@ -12,6 +12,7 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -119,17 +120,37 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 	}
 	defer sqlClient.Close()
 
-	synced, err := galeraclient.IsPodSynced(sqlCtx, sqlClient)
+	healthy, err := galeraclient.IsPodHealthy(sqlCtx, sqlClient)
 	if err != nil {
-		p.readinessLogger.Error(err, "error getting Pod sync")
-		p.responseWriter.WriteError(w, "error getting Pod sync")
+		p.readinessLogger.Error(err, "error getting Pod health")
+		p.responseWriter.WriteError(w, "error getting Pod health")
 		return
 	}
-	if !synced {
-		p.readinessLogger.Error(err, "Pod not synced")
-		p.responseWriter.WriteError(w, "Pod not synced")
+	if !healthy {
+		p.readinessLogger.Error(err, "Pod not healthy")
+		p.responseWriter.WriteError(w, "Pod not healthy")
 		return
 	}
 
-	p.responseWriter.WriteOK(w, nil)
+	state, err := sqlClient.GaleraLocalState(sqlCtx)
+	if err != nil {
+		p.readinessLogger.Error(err, "error getting Pod state")
+		p.responseWriter.WriteError(w, "error getting Pod state")
+		return
+	}
+	if state == galeraclient.GaleraStateSynced {
+		p.responseWriter.WriteOK(w, nil)
+		return
+	}
+
+	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+	availableWhenDonor := ptr.Deref(galera.AvailableWhenDonor, false)
+
+	if availableWhenDonor && state == galeraclient.GaleraStateDonor {
+		p.responseWriter.WriteOK(w, nil)
+		return
+	}
+
+	p.readinessLogger.Error(err, "Pod in non ready state", "state", state)
+	p.responseWriter.WriteErrorf(w, "Pod in non ready state: %s", state)
 }

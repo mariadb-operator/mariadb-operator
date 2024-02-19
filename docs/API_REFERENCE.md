@@ -289,6 +289,7 @@ _Appears in:_
 | --- | --- |
 | `primary` _[PrimaryGalera](#primarygalera)_ | Primary is the Galera configuration for the primary node. |
 | `sst` _[SST](#sst)_ | SST is the Snapshot State Transfer used when new Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html. |
+| `availableWhenDonor` _boolean_ | AvailableWhenDonor indicates whether a donor node should be responding to queries. It defaults to false. |
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
@@ -373,6 +374,7 @@ _Appears in:_
 | --- | --- |
 | `primary` _[PrimaryGalera](#primarygalera)_ | Primary is the Galera configuration for the primary node. |
 | `sst` _[SST](#sst)_ | SST is the Snapshot State Transfer used when new Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html. |
+| `availableWhenDonor` _boolean_ | AvailableWhenDonor indicates whether a donor node should be responding to queries. It defaults to false. |
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
