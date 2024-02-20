@@ -152,7 +152,7 @@ func configureGalera(fm *filemanager.FileManager, env *environment.PodEnvironmen
 	if !shouldConfigureGalera(podIndex, isMariadbInit) {
 		return nil
 	}
-	configBytes, err := config.NewConfigFile(mdb).Marshal(env.PodName, env.MariadbRootPassword)
+	configBytes, err := config.NewConfigFile(mdb).Marshal(env)
 	if err != nil {
 		return fmt.Errorf("error getting Galera config: %v", err)
 	}

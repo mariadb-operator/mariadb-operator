@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net"
 	"strings"
 	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/utils/ptr"
@@ -32,7 +32,7 @@ func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB) *ConfigFile {
 	}
 }
 
-func (c *ConfigFile) Marshal(podName, mariadbRootPassword string) ([]byte, error) {
+func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error) {
 	if !c.mariadb.IsGaleraEnabled() {
 		return nil, errors.New("MariaDB Galera not enabled, unable to render config file")
 	}
@@ -64,10 +64,6 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 	if err != nil {
 		return nil, fmt.Errorf("error getting cluster address: %v", err)
 	}
-	nodeAddr, err := nodeIP(podName, c.mariadb)
-	if err != nil {
-		return nil, fmt.Errorf("error getting node address. %v", err)
-	}
 	sst, err := galera.SST.MariaDBFormat()
 	if err != nil {
 		return nil, fmt.Errorf("error getting SST: %v", err)
@@ -84,13 +80,13 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 		RootPassword   string
 	}{
 		ClusterAddress: clusterAddr,
-		NodeAddress:    nodeAddr,
+		NodeAddress:    podEnv.PodIP,
 		GaleraLibPath:  galera.GaleraLibPath,
 		Threads:        galera.ReplicaThreads,
-		Pod:            podName,
+		Pod:            podEnv.PodName,
 		SST:            sst,
 		SSTAuth:        galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
-		RootPassword:   mariadbRootPassword,
+		RootPassword:   podEnv.MariadbRootPassword,
 	})
 	if err != nil {
 		return nil, err
@@ -111,23 +107,6 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 		)
 	}
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
-}
-
-var nodeIP = func(podName string, mdb *mariadbv1alpha1.MariaDB) (string, error) {
-	i, err := statefulset.PodIndex(podName)
-	if err != nil {
-		return "", fmt.Errorf("error getting index for Pod '%s': %v", podName, err)
-	}
-	fqdn := statefulset.PodFQDNWithService(
-		mdb.ObjectMeta,
-		*i,
-		mdb.InternalServiceKey().Name,
-	)
-	ips, err := net.LookupIP(fqdn)
-	if err != nil {
-		return "", fmt.Errorf("errorf resolving '%s': %v", fqdn, err)
-	}
-	return ips[0].To4().String(), nil
 }
 
 func createTpl(name, t string) *template.Template {
