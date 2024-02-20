@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -253,12 +254,15 @@ type Galera struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (g *Galera) SetDefaults(mdb *MariaDB) {
+func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
 	if g.SST == "" {
 		g.SST = SSTMariaBackup
 	}
 	if g.AvailableWhenDonor == nil {
 		g.AvailableWhenDonor = ptr.To(false)
+	}
+	if g.GaleraLibPath == "" {
+		g.GaleraLibPath = env.MariadbGaleraLibPath
 	}
 	if g.ReplicaThreads == 0 {
 		g.ReplicaThreads = 1
@@ -299,6 +303,11 @@ type GaleraSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AvailableWhenDonor *bool `json:"availableWhenDonor,omitempty"`
+	// GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided.
+	// More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	GaleraLibPath string `json:"galeraLibPath,omitempty"`
 	// ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.
 	// More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
 	// +optional

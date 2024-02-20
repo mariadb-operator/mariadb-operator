@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"time"
 
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -12,11 +13,14 @@ import (
 )
 
 var _ = Describe("MariaDB Galera types", func() {
+	env := &environment.OperatorEnv{
+		MariadbGaleraLibPath: "/usr/lib/galera/libgalera_smm.so",
+	}
 	Context("When creating a MariaDB Galera object", func() {
 		DescribeTable(
 			"Should default",
-			func(mdb *MariaDB, galera, expected *Galera) {
-				galera.SetDefaults(mdb)
+			func(mdb *MariaDB, galera, expected *Galera, env *environment.OperatorEnv) {
+				galera.SetDefaults(mdb, env)
 				Expect(galera).To(BeEquivalentTo(expected))
 			},
 			Entry(
@@ -39,6 +43,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 						AvailableWhenDonor: ptr.To(false),
+						GaleraLibPath:      "/usr/lib/galera/libgalera_smm.so",
 						Config: GaleraConfig{
 							ReuseStorageVolume: ptr.To(false),
 							VolumeClaimTemplate: &VolumeClaimTemplate{
@@ -77,6 +82,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 					},
 				},
+				env,
 			),
 			Entry(
 				"Partial default",
@@ -88,7 +94,8 @@ var _ = Describe("MariaDB Galera types", func() {
 				&Galera{
 					Enabled: true,
 					GaleraSpec: GaleraSpec{
-						SST: SSTRsync,
+						SST:           SSTRsync,
+						GaleraLibPath: "/usr/lib/galera/libgalera_enterprise_smm.so",
 						Primary: PrimaryGalera{
 							AutomaticFailover: ptr.To(false),
 						},
@@ -108,6 +115,7 @@ var _ = Describe("MariaDB Galera types", func() {
 					Enabled: true,
 					GaleraSpec: GaleraSpec{
 						SST:            SSTRsync,
+						GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
 						ReplicaThreads: 1,
 						InitContainer: Container{
 							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
@@ -152,6 +160,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 					},
 				},
+				env,
 			),
 			Entry(
 				"Recovery disabled",
@@ -177,6 +186,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
+						GaleraLibPath:      "/usr/lib/galera/libgalera_smm.so",
 						AvailableWhenDonor: ptr.To(false),
 						Config: GaleraConfig{
 							ReuseStorageVolume: ptr.To(false),
@@ -211,6 +221,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 					},
 				},
+				env,
 			),
 		)
 	})

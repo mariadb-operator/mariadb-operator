@@ -3844,6 +3844,11 @@ spec:
                   enabled:
                     description: Enabled is a flag to enable Galera.
                     type: boolean
+                  galeraLibPath:
+                    description: 'GaleraLibPath is a path inside the MariaDB image
+                      to the wsrep provider plugin. It is defaulted if not provided.
+                      More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.'
+                    type: string
                   initContainer:
                     description: InitContainer is an init container that co-operates
                       with mariadb-operator.

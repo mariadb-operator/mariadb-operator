@@ -846,13 +846,41 @@ spec:
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: galera.agent.volumeMounts
+      - description: AvailableWhenDonor indicates whether a donor node should be responding
+          to queries. It defaults to false.
+        displayName: Available When Donor
+        path: galera.availableWhenDonor
+      - description: GaleraConfig defines storage options for the Galera configuration
+          files.
+        displayName: Config
+        path: galera.config
+      - description: ReuseStorageVolume indicates that storage volume used by MariaDB
+          should be reused to store the Galera configuration files. It defaults to
+          false, which implies that a dedicated volume for the Galera configuration
+          files is provisioned.
+        displayName: Reuse Storage Volume
+        path: galera.config.reuseStorageVolume
+      - description: VolumeClaimTemplate is a template for the PVC that will contain
+          the Galera configuration files shared between the InitContainer, Agent and
+          MariaDB.
+        displayName: Volume Claim Template
+        path: galera.config.volumeClaimTemplate
+      - description: Annotations to be used in the PVC.
+        displayName: Annotations
+        path: galera.config.volumeClaimTemplate.annotations
+      - description: Labels to be used in the PVC.
+        displayName: Labels
+        path: galera.config.volumeClaimTemplate.labels
       - description: Enabled is a flag to enable Galera.
         displayName: Enabled
         path: galera.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: 'InitContainer is an init container that co-operates with mariadb-operator.
-          More info: https://github.com/mariadb-operator/init.'
+      - description: GaleraLibPath is a path inside the MariaDB image to the wsrep
+          provider plugin. It is defaulted if not provided.
+        displayName: Galera Lib Path
+        path: galera.galeraLibPath
+      - description: InitContainer is an init container that co-operates with mariadb-operator.
         displayName: Init Container
         path: galera.initContainer
       - description: Args to be used in the Container.
@@ -929,14 +957,21 @@ spec:
         path: galera.recovery.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: PodRecoveryTimeout is the time limit for executing the recovery
-          sequence within a Pod. This process includes enabling the recovery mode
-          in the Galera configuration file, restarting the Pod and retrieving the
-          sequence from a log file.
+      - description: MinClusterSize is the minimum number of replicas to consider
+          the cluster healthy. If Galera consistently reports less replicas than this
+          value for the given 'ClusterHealthyTimeout' interval, a cluster recovery
+          is iniated. It defaults to half of the replicas specified by the MariaDB
+          object.
+        displayName: Min Cluster Size
+        path: galera.recovery.minClusterSize
+      - description: PodRecoveryTimeout is the time limit for recevorying the sequence
+          of a Pod during the cluster recovery. Once this timeout is reached, the
+          Pod is restarted.
         displayName: Pod Recovery Timeout
         path: galera.recovery.podRecoveryTimeout
-      - description: PodSyncTimeout is the time limit we give to a Pod to reach the
-          Sync state. Once this timeout is reached, the Pod is restarted.
+      - description: PodSyncTimeout is the time limit for a Pod to join the cluster
+          after having performed a cluster bootstrap during the cluster recovery.
+          Once this timeout is reached, the Pod is restarted.
         displayName: Pod Sync Timeout
         path: galera.recovery.podSyncTimeout
       - description: 'ReplicaThreads is the number of replica threads used to apply
@@ -947,17 +982,6 @@ spec:
           cluster. More info: https://galeracluster.com/library/documentation/sst.html.'
         displayName: SST
         path: galera.sst
-      - description: VolumeClaimTemplate is a template for the PVC that will contain
-          the Galera configuration files shared between the InitContainer, Agent and
-          MariaDB.
-        displayName: Volume Claim Template
-        path: galera.volumeClaimTemplate
-      - description: Annotations to be used in the PVC.
-        displayName: Annotations
-        path: galera.volumeClaimTemplate.annotations
-      - description: Labels to be used in the PVC.
-        displayName: Labels
-        path: galera.volumeClaimTemplate.labels
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`. Only MariaDB official images are supported.
         displayName: Image

@@ -75,6 +75,7 @@ func TestConfigMarshal(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							SST:            mariadbv1alpha1.SSTRsync,
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 1,
 						},
 					},
@@ -117,6 +118,7 @@ wsrep_sst_method="rsync"
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							SST:            mariadbv1alpha1.SSTMariaBackup,
+							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
 							ReplicaThreads: 2,
 						},
 					},
@@ -134,7 +136,7 @@ innodb_autoinc_lock_mode=2
 
 # Cluster configuration
 wsrep_on=ON
-wsrep_provider=/usr/lib/galera/libgalera_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
 wsrep_cluster_address="gcomm://mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local"
 wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads=2

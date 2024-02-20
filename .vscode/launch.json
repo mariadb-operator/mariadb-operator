@@ -23,6 +23,7 @@
         "RELATED_IMAGE_MARIADB": "mariadb:11.2.2",
         "RELATED_IMAGE_MAXSCALE": "mariadb/maxscale:23.08",
         "RELATED_IMAGE_EXPORTER": "prom/mysqld-exporter:v0.15.1",
+        "MARIADB_GALERA_LIB_PATH": "/usr/lib/galera/libgalera_smm.so",
       }
     },
     {
@@ -44,6 +45,7 @@
         "RELATED_IMAGE_MARIADB": "us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6",
         "RELATED_IMAGE_MAXSCALE": "mariadb/maxscale:23.08",
         "RELATED_IMAGE_EXPORTER": "prom/mysqld-exporter:v0.15.1",
+        "MARIADB_GALERA_LIB_PATH": "/usr/lib/galera/libgalera_enterprise_smm.so",
       }
     },
     {
