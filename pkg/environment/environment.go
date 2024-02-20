@@ -43,6 +43,7 @@ type PodEnvironment struct {
 	ClusterName         string `env:"CLUSTER_NAME,required"`
 	PodName             string `env:"POD_NAME,required"`
 	PodNamespace        string `env:"POD_NAMESPACE,required"`
+	PodIP               string `env:"POD_IP,required"`
 	MariadbName         string `env:"MARIADB_NAME,required"`
 	MariadbRootPassword string `env:"MARIADB_ROOT_PASSWORD,required"`
 	MariadbPort         string `env:"MYSQL_TCP_PORT,required"`

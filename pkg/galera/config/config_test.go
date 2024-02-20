@@ -4,23 +4,20 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestConfigMarshal(t *testing.T) {
-	previousNodeIPFn := nodeIP
 	tests := []struct {
-		name                string
-		nodeIPFn            func(string, *mariadbv1alpha1.MariaDB) (string, error)
-		mariadb             *mariadbv1alpha1.MariaDB
-		podName             string
-		mariadbRootPassword string
-		wantConfig          string
-		wantErr             bool
+		name       string
+		mariadb    *mariadbv1alpha1.MariaDB
+		podEnv     *environment.PodEnvironment
+		wantConfig string
+		wantErr    bool
 	}{
 		{
-			name:     "no replicas",
-			nodeIPFn: testNodeIPFn,
+			name: "no replicas",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
@@ -37,14 +34,16 @@ func TestConfigMarshal(t *testing.T) {
 					Replicas: 0,
 				},
 			},
-			podName:             "mariadb-galera-0",
-			mariadbRootPassword: "mariadb",
-			wantConfig:          "",
-			wantErr:             true,
+			podEnv: &environment.PodEnvironment{
+				PodName:             "mariadb-galera-0",
+				PodIP:               "10.244.0.32",
+				MariadbRootPassword: "mariadb",
+			},
+			wantConfig: "",
+			wantErr:    true,
 		},
 		{
-			name:     "Galera not enabled",
-			nodeIPFn: testNodeIPFn,
+			name: "Galera not enabled",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
@@ -57,14 +56,16 @@ func TestConfigMarshal(t *testing.T) {
 					Replicas: 0,
 				},
 			},
-			podName:             "mariadb-galera-0",
-			mariadbRootPassword: "mariadb",
-			wantConfig:          "",
-			wantErr:             true,
+			podEnv: &environment.PodEnvironment{
+				PodName:             "mariadb-galera-0",
+				PodIP:               "10.244.0.32",
+				MariadbRootPassword: "mariadb",
+			},
+			wantConfig: "",
+			wantErr:    true,
 		},
 		{
-			name:     "rsync",
-			nodeIPFn: testNodeIPFn,
+			name: "rsync",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
@@ -82,8 +83,11 @@ func TestConfigMarshal(t *testing.T) {
 					Replicas: 3,
 				},
 			},
-			podName:             "mariadb-galera-0",
-			mariadbRootPassword: "mariadb",
+			podEnv: &environment.PodEnvironment{
+				PodName:             "mariadb-galera-0",
+				PodIP:               "10.244.0.32",
+				MariadbRootPassword: "mariadb",
+			},
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind-address=0.0.0.0
@@ -106,8 +110,7 @@ wsrep_sst_method="rsync"
 			wantErr: false,
 		},
 		{
-			name:     "mariabackup",
-			nodeIPFn: testNodeIPFn,
+			name: "mariabackup",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
@@ -125,8 +128,11 @@ wsrep_sst_method="rsync"
 					Replicas: 3,
 				},
 			},
-			podName:             "mariadb-galera-1",
-			mariadbRootPassword: "mariadb",
+			podEnv: &environment.PodEnvironment{
+				PodName:             "mariadb-galera-1",
+				PodIP:               "10.244.0.32",
+				MariadbRootPassword: "mariadb",
+			},
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind-address=0.0.0.0
@@ -152,13 +158,8 @@ wsrep_sst_auth="root:mariadb"
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			nodeIP = tt.nodeIPFn
-			t.Cleanup(func() {
-				nodeIP = previousNodeIPFn
-			})
-
 			config := NewConfigFile(tt.mariadb)
-			bytes, err := config.Marshal(tt.podName, tt.mariadbRootPassword)
+			bytes, err := config.Marshal(tt.podEnv)
 			if tt.wantErr && err == nil {
 				t.Fatal("error expected, got nil")
 			}
@@ -170,8 +171,4 @@ wsrep_sst_auth="root:mariadb"
 			}
 		})
 	}
-}
-
-func testNodeIPFn(podName string, mdb *mariadbv1alpha1.MariaDB) (string, error) {
-	return "10.244.0.32", nil
 }
