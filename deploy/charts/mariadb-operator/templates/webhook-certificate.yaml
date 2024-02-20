@@ -38,8 +38,10 @@ spec:
   {{- end }}
   secretName: {{ include "mariadb-operator.fullname" . }}-webhook-cert
   secretTemplate:
+    {{- with .Values.webhook.cert.secretLabels }}
     labels:
-      {{- include "mariadb-operator-webhook.labels" . | nindent 6 }}
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     {{- with .Values.webhook.cert.secretAnnotations }}
     annotations:
       {{- toYaml . | nindent 4 }}

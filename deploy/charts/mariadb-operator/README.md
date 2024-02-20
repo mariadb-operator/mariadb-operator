@@ -96,6 +96,7 @@ helm uninstall mariadb-operator
 | webhook.cert.certManager.renewBefore | string | `""` | Renew before duration to be used in the Certificate resource. |
 | webhook.cert.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. |
 | webhook.cert.secretAnnotations | object | `{}` | Annotatioms to be added to webhook TLS secret. |
+| webhook.cert.secretLabels | object | `{}` | Labels to be added to webhook TLS secret. |
 | webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
 | webhook.extraVolumeMounts | list | `[]` | Extra volumes to mount to webhook container |
 | webhook.extraVolumes | list | `[]` | Extra volumes to pass to webhook Pod |

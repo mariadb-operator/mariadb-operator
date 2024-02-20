@@ -111,6 +111,8 @@ webhook:
       renewBefore: ""
     # -- Annotatioms to be added to webhook TLS secret.
     secretAnnotations: {}
+    # -- Labels to be added to webhook TLS secret.
+    secretLabels: {}
     # -- Path where the CA certificate will be mounted.
     caPath: /tmp/k8s-webhook-server/certificate-authority
     # -- Path where the certificate will be mounted.
