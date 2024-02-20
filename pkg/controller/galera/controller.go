@@ -149,7 +149,7 @@ func (r GaleraReconciler) initBootstrapPod(ctx context.Context, mariadb *mariadb
 	}
 	var bootstrapPod corev1.Pod
 	if err := r.Get(ctx, bootstrapPodKey, &bootstrapPod); err != nil {
-		logger.V(1).Info("Error getting bootstrap Pod", "pod", bootstrapPod.Name)
+		logger.V(1).Info("Error getting bootstrap Pod", "pod", bootstrapPod.Name, "err", err)
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
@@ -164,7 +164,8 @@ func (r GaleraReconciler) initBootstrapPod(ctx context.Context, mariadb *mariadb
 
 	bootstrapEnabled, err := client.Bootstrap.IsEnabled(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking bootstrap: %v", err)
+		logger.V(1).Info("Error checking bootstrap", "err", err)
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	if bootstrapEnabled {
 		return ctrl.Result{}, nil
@@ -172,7 +173,8 @@ func (r GaleraReconciler) initBootstrapPod(ctx context.Context, mariadb *mariadb
 
 	isInit, err := client.State.IsMariaDBInit(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error MariaDB init state: %v", err)
+		logger.V(1).Info("Error checking MariaDB init state", "err", err)
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	if !isInit {
 		logger.V(1).Info("MariaDB not initialized. Requeuing")
