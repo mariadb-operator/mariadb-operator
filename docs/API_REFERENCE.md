@@ -154,6 +154,7 @@ _Appears in:_
 Container object definition.
 
 _Appears in:_
+- [Exporter](#exporter)
 - [Galera](#galera)
 - [GaleraSpec](#galeraspec)
 - [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
@@ -271,6 +272,16 @@ _Appears in:_
 | `readinessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | ReadinessProbe to be used in the Container. |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
 | `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |
+| `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |
+| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
+| `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
+| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
+| `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
+| `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |
+| `topologySpreadConstraints` _[TopologySpreadConstraint](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core) array_ | TopologySpreadConstraints to be used in the Pod. |
 | `image` _string_ | Image name to be used as metrics exporter. The supported format is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
 | `port` _integer_ | Port where the exporter will be listening for connections. |
@@ -924,6 +935,7 @@ _Appears in:_
 PodTemplate defines a template to configure Container objects.
 
 _Appears in:_
+- [Exporter](#exporter)
 - [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
