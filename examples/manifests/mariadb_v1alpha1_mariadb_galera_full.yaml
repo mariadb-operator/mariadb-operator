@@ -38,6 +38,7 @@ spec:
       automaticFailover: true
     sst: mariabackup
     availableWhenDonor: false
+    galeraLibPath: /usr/lib/galera/libgalera_smm.so
     replicaThreads: 1
     agent:
       image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26

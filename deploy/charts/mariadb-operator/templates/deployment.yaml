@@ -62,7 +62,7 @@ spec:
               name: metrics
           envFrom:
             - configMapRef:
-                name: mariadb-operator-images
+                name: mariadb-operator-env
           env:
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName }}

@@ -46,7 +46,7 @@ innodb_autoinc_lock_mode=2
 
 # Cluster configuration
 wsrep_on=ON
-wsrep_provider=/usr/lib/galera/libgalera_smm.so
+wsrep_provider={{ .GaleraLibPath }}
 wsrep_cluster_address="{{ .ClusterAddress }}"
 wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads={{ .Threads }}
@@ -76,6 +76,7 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 	err = tpl.Execute(buf, struct {
 		ClusterAddress string
 		NodeAddress    string
+		GaleraLibPath  string
 		Threads        int
 		Pod            string
 		SST            string
@@ -84,6 +85,7 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 	}{
 		ClusterAddress: clusterAddr,
 		NodeAddress:    nodeAddr,
+		GaleraLibPath:  galera.GaleraLibPath,
 		Threads:        galera.ReplicaThreads,
 		Pod:            podName,
 		SST:            sst,

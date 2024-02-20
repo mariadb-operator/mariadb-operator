@@ -15,12 +15,13 @@ helm-crds: kustomize ## Generate CRDs for Helm chart.
 	$(KUSTOMIZE) build config/crd > deploy/charts/mariadb-operator/crds/crds.yaml
 
 .PHONY: helm-images
-helm-images: ## Update images in Helm chart.
-	$(KUBECTL) create configmap mariadb-operator-images \
+helm-images: ## Update operator env in the Helm chart.
+	$(KUBECTL) create configmap mariadb-operator-env \
 		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
 		--from-literal=RELATED_IMAGE_MAXSCALE=$(RELATED_IMAGE_MAXSCALE) \
 		--from-literal=RELATED_IMAGE_EXPORTER=$(RELATED_IMAGE_EXPORTER) \
 		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
+		--from-literal=MARIADB_GALERA_LIB_PATH=$(MARIADB_GALERA_LIB_PATH) \
 		--dry-run=client -o yaml \
 		> deploy/charts/mariadb-operator/templates/configmap.yaml
 
