@@ -62,7 +62,7 @@ func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer sqlCancel()
 
-	sqlClient, err := sql.NewInternalClientWithPodEnv(sqlCtx, env, sql.WithTimeout(1*time.Second))
+	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, env, sql.WithTimeout(1*time.Second))
 	if err != nil {
 		p.livenessLogger.Error(err, "error getting SQL client")
 		p.responseWriter.WriteErrorf(w, "error getting SQL client: %v", err)
@@ -112,7 +112,7 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer sqlCancel()
 
-	sqlClient, err := sql.NewInternalClientWithPodEnv(sqlCtx, env, sql.WithTimeout(1*time.Second))
+	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, env, sql.WithTimeout(1*time.Second))
 	if err != nil {
 		p.readinessLogger.Error(err, "error getting SQL client")
 		p.responseWriter.WriteErrorf(w, "error getting SQL client: %v", err)

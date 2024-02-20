@@ -140,7 +140,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 		return fmt.Errorf("error getting agent client: %v", err)
 	}
 
-	galeraState, err := client.GaleraState.Get(ctx)
+	galeraState, err := client.State.GetGaleraState(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting Galera state: %v", err)
 	}
@@ -259,7 +259,7 @@ func (r *GaleraReconciler) stateByPod(ctx context.Context, mariadb *mariadbv1alp
 			stateCtx, cancelState := context.WithTimeout(ctx, 30*time.Second)
 			defer cancelState()
 			if err = pollUntilSucessWithTimeout(stateCtx, logger, func(ctx context.Context) error {
-				galeraState, err := client.GaleraState.Get(ctx)
+				galeraState, err := client.State.GetGaleraState(ctx)
 				if err != nil {
 					return err
 				}

@@ -10,9 +10,9 @@ import (
 )
 
 type Client struct {
-	Bootstrap   *Bootstrap
-	GaleraState *GaleraState
-	Recovery    *Recovery
+	Bootstrap *Bootstrap
+	State     *State
+	Recovery  *Recovery
 }
 
 func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
@@ -22,9 +22,9 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 	}
 
 	return &Client{
-		Bootstrap:   NewBootstrap(httpClient),
-		GaleraState: NewGaleraState(httpClient),
-		Recovery:    NewRecovery(httpClient),
+		Bootstrap: NewBootstrap(httpClient),
+		State:     NewState(httpClient),
+		Recovery:  NewRecovery(httpClient),
 	}, nil
 }
 

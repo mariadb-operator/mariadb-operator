@@ -5,23 +5,24 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/state"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Handler struct {
-	Bootstrap   *Bootstrap
-	GaleraState *GaleraState
-	Recovery    *Recovery
-	Probe       *Probe
+	Bootstrap *Bootstrap
+	State     *State
+	Recovery  *Recovery
+	Probe     *Probe
 }
 
 func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileManager *filemanager.FileManager,
-	logger *logr.Logger, recoveryOpts ...RecoveryOption) *Handler {
+	initState *state.State, logger *logr.Logger, recoveryOpts ...RecoveryOption) *Handler {
 	mux := &sync.RWMutex{}
 	bootstrapLogger := logger.WithName("bootstrap")
-	galeraStateLogger := logger.WithName("galerastate")
+	stateLogger := logger.WithName("state")
 	recoveryLogger := logger.WithName("recovery")
 	probeLogger := logger.WithName("probe")
 
@@ -31,11 +32,12 @@ func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileM
 		mux,
 		&bootstrapLogger,
 	)
-	galerastate := NewGaleraState(
+	state := NewState(
 		fileManager,
-		mdbhttp.NewResponseWriter(&galeraStateLogger),
+		initState,
+		mdbhttp.NewResponseWriter(&stateLogger),
 		mux.RLocker(),
-		&galeraStateLogger,
+		&stateLogger,
 	)
 	recovery := NewRecover(
 		fileManager,
@@ -52,9 +54,9 @@ func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileM
 	)
 
 	return &Handler{
-		Bootstrap:   bootstrap,
-		GaleraState: galerastate,
-		Recovery:    recovery,
-		Probe:       probe,
+		Bootstrap: bootstrap,
+		State:     state,
+		Recovery:  recovery,
+		Probe:     probe,
 	}
 }

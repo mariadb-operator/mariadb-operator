@@ -80,14 +80,18 @@ func apiRouter(h *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logg
 	}
 
 	r.Route("/bootstrap", func(r chi.Router) {
-		r.Put("/", h.Bootstrap.Put)
-		r.Delete("/", h.Bootstrap.Delete)
+		r.Get("/", h.Bootstrap.IsBootstrapEnabled)
+		r.Put("/", h.Bootstrap.Enable)
+		r.Delete("/", h.Bootstrap.Disable)
 	})
-	r.Get("/galerastate", h.GaleraState.Get)
+	r.Route("/state", func(r chi.Router) {
+		r.Get("/galera", h.State.GetGaleraState)
+		r.Get("/mariadb", h.State.IsMariadbInit)
+	})
 	r.Route("/recovery", func(r chi.Router) {
-		r.Put("/", h.Recovery.Put)
-		r.Post("/", h.Recovery.Post)
-		r.Delete("/", h.Recovery.Delete)
+		r.Put("/", h.Recovery.Enable)
+		r.Post("/", h.Recovery.Start)
+		r.Delete("/", h.Recovery.Disable)
 	})
 
 	return r

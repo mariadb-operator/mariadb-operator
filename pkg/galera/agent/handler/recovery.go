@@ -47,7 +47,7 @@ func NewRecover(fileManager *filemanager.FileManager, responseWriter *mdbhttp.Re
 	return recovery
 }
 
-func (r *Recovery) Put(w http.ResponseWriter, req *http.Request) {
+func (r *Recovery) Enable(w http.ResponseWriter, req *http.Request) {
 	r.locker.Lock()
 	defer r.locker.Unlock()
 	r.logger.V(1).Info("enabling recovery")
@@ -69,7 +69,7 @@ func (r *Recovery) Put(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (r *Recovery) Post(w http.ResponseWriter, req *http.Request) {
+func (r *Recovery) Start(w http.ResponseWriter, req *http.Request) {
 	r.locker.Lock()
 	defer r.locker.Unlock()
 	r.logger.V(1).Info("starting recovery")
@@ -95,7 +95,7 @@ func (r *Recovery) Post(w http.ResponseWriter, req *http.Request) {
 	r.responseWriter.WriteOK(w, bootstrap)
 }
 
-func (r *Recovery) Delete(w http.ResponseWriter, req *http.Request) {
+func (r *Recovery) Disable(w http.ResponseWriter, req *http.Request) {
 	r.locker.Lock()
 	defer r.locker.Unlock()
 	r.logger.V(1).Info("disabling recovery")

@@ -9,27 +9,30 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/state"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
-type GaleraState struct {
+type State struct {
 	fileManager    *filemanager.FileManager
+	state          *state.State
 	responseWriter *mdbhttp.ResponseWriter
 	locker         sync.Locker
 	logger         *logr.Logger
 }
 
-func NewGaleraState(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter, locker sync.Locker,
-	logger *logr.Logger) *GaleraState {
-	return &GaleraState{
+func NewState(fileManager *filemanager.FileManager, state *state.State, responseWriter *mdbhttp.ResponseWriter,
+	locker sync.Locker, logger *logr.Logger) *State {
+	return &State{
 		fileManager:    fileManager,
+		state:          state,
 		responseWriter: responseWriter,
 		locker:         locker,
 		logger:         logger,
 	}
 }
 
-func (g *GaleraState) Get(w http.ResponseWriter, r *http.Request) {
+func (g *State) GetGaleraState(w http.ResponseWriter, r *http.Request) {
 	g.locker.Lock()
 	defer g.locker.Unlock()
 	g.logger.V(1).Info("getting galera state")
@@ -50,4 +53,21 @@ func (g *GaleraState) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g.responseWriter.WriteOK(w, galeraState)
+}
+
+func (g *State) IsMariadbInit(w http.ResponseWriter, r *http.Request) {
+	g.locker.Lock()
+	defer g.locker.Unlock()
+	g.logger.V(1).Info("getting MariaDB init state")
+
+	isInit, err := g.state.IsMariadbInit()
+	if err != nil {
+		g.responseWriter.WriteErrorf(w, "error getting MariaDb init state %v", err)
+		return
+	}
+	if isInit {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
 }
