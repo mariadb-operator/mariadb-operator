@@ -148,7 +148,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		},
 		{
 			Name:      "Galera",
-			Reconcile: r.reconcileGalera,
+			Reconcile: r.GaleraReconciler.Reconcile,
 		},
 		{
 			Name:      "Restore",
@@ -318,10 +318,6 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 		}
 	}
 	return ctrl.Result{}, r.reconcileDefaultConnection(ctx, mariadb)
-}
-
-func (r *MariaDBReconciler) reconcileGalera(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	return ctrl.Result{}, r.GaleraReconciler.Reconcile(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {

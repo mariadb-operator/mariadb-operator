@@ -32,7 +32,20 @@ func NewBootstrap(fileManager *filemanager.FileManager, responseWriter *mdbhttp.
 	}
 }
 
-func (b *Bootstrap) Put(w http.ResponseWriter, r *http.Request) {
+func (b *Bootstrap) IsBootstrapEnabled(w http.ResponseWriter, r *http.Request) {
+	exists, err := b.fileManager.ConfigFileExists(recovery.BootstrapFileName)
+	if err != nil {
+		b.responseWriter.WriteErrorf(w, "error checking bootstrap config: %v", err)
+		return
+	}
+	if exists {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+func (b *Bootstrap) Enable(w http.ResponseWriter, r *http.Request) {
 	var bootstrap recovery.Bootstrap
 	if err := json.NewDecoder(r.Body).Decode(&bootstrap); err != nil {
 		b.responseWriter.Write(w, galeraErrors.NewAPIErrorf("error decoding bootstrap: %v", err), http.StatusBadRequest)
@@ -63,7 +76,7 @@ func (b *Bootstrap) Put(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (b *Bootstrap) Delete(w http.ResponseWriter, r *http.Request) {
+func (b *Bootstrap) Disable(w http.ResponseWriter, r *http.Request) {
 	b.locker.Lock()
 	defer b.locker.Unlock()
 	b.logger.V(1).Info("disabling bootstrap")

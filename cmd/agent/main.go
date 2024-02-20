@@ -12,6 +12,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/server"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/state"
 	kubeauth "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/spf13/cobra"
@@ -83,6 +84,7 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "Error creating file manager")
 			os.Exit(1)
 		}
+		state := state.NewState(stateDir)
 		k8sClient, err := getK8sClient()
 		if err != nil {
 			logger.Error(err, "Error getting Kubernetes client")
@@ -98,6 +100,7 @@ var RootCmd = &cobra.Command{
 			mariadbKey,
 			k8sClient,
 			fileManager,
+			state,
 			&handlerLogger,
 			handler.WithRecoveryTimeout(recoveryTimeout),
 		)
