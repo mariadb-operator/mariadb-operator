@@ -95,6 +95,39 @@ jobs:
       - name: Test
         run: make test
 
+  test-ent:
+    name: Test Enterprise
+    runs-on: ubuntu-latest
+    needs: detect-noop
+    if: ${{ needs.detect-noop.outputs.noop != 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Login GAR
+        uses: docker/login-action@v2
+        with:
+          registry: us-central1-docker.pkg.dev
+          username: _json_key
+          password: ${{ secrets.GAR_JSON_KEY }}
+
+      - name: Cluster
+        run: |
+          make cluster
+          make registry
+          make install-ent
+          make install-minio
+          make net
+
+      - name: Test
+        run: make test-ent
+
   olm:
     name: OLM
     runs-on: ubuntu-latest
