@@ -147,6 +147,9 @@ serviceaccount: cluster-ctx  ## Create long-lived ServiceAccount token for devel
 .PHONY: install
 install: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount cert docker-dev ## Install everything you need for local development.
 
+.PHONY: install-ent
+install-ent: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount cert docker-dev-ent ## Install everything you need for local enterprise development.
+
 ##@ Deploy
 
 .PHONY: deploy-ent
