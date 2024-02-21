@@ -155,6 +155,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, labels map[
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
 			ServiceAccountName:           serviceAccount(mxs.Spec.ServiceAccountName, mxs.Name),
+			InitContainers:               maxscaleInitContainers(mxs),
 			Containers:                   containers,
 			ImagePullSecrets:             mxs.Spec.ImagePullSecrets,
 			Volumes:                      maxscaleVolumes(mxs),
