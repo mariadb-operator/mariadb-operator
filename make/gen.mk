@@ -21,6 +21,8 @@ helm-images: ## Update operator env in the Helm chart.
 		--from-literal=RELATED_IMAGE_MAXSCALE=$(RELATED_IMAGE_MAXSCALE) \
 		--from-literal=RELATED_IMAGE_EXPORTER=$(RELATED_IMAGE_EXPORTER) \
 		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
+		--from-literal=MARIADB_GALERA_INIT_IMAGE=$(MARIADB_GALERA_INIT_IMAGE) \
+		--from-literal=MARIADB_GALERA_AGENT_IMAGE=$(MARIADB_GALERA_AGENT_IMAGE) \
 		--from-literal=MARIADB_GALERA_LIB_PATH=$(MARIADB_GALERA_LIB_PATH) \
 		--dry-run=client -o yaml \
 		> deploy/charts/mariadb-operator/templates/configmap.yaml
