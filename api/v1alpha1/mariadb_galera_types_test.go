@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 )
 
@@ -76,7 +77,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 						Recovery: &GaleraRecovery{
 							Enabled:                 true,
-							MinClusterSize:          ptr.To(int32(2)),
+							MinClusterSize:          ptr.To(intstr.FromString("50%")),
 							ClusterHealthyTimeout:   ptr.To(metav1.Duration{Duration: 30 * time.Second}),
 							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Minute}),
 							PodRecoveryTimeout:      ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
@@ -114,7 +115,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						AvailableWhenDonor: ptr.To(true),
 						Recovery: &GaleraRecovery{
 							Enabled:        true,
-							MinClusterSize: ptr.To(int32(1)),
+							MinClusterSize: ptr.To(intstr.FromString("33%")),
 						},
 					},
 				},
@@ -159,7 +160,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 						Recovery: &GaleraRecovery{
 							Enabled:                 true,
-							MinClusterSize:          ptr.To(int32(1)),
+							MinClusterSize:          ptr.To(intstr.FromString("33%")),
 							ClusterHealthyTimeout:   ptr.To(metav1.Duration{Duration: 30 * time.Second}),
 							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Minute}),
 							PodRecoveryTimeout:      ptr.To(metav1.Duration{Duration: 3 * time.Minute}),
@@ -229,6 +230,259 @@ var _ = Describe("MariaDB Galera types", func() {
 					},
 				},
 				env,
+			),
+		)
+
+		DescribeTable(
+			"Has minimum cluster size",
+			func(currentSize int, mdb *MariaDB, wantBool bool, wantErr bool) {
+				clusterHasMinSize, err := mdb.Spec.Galera.Recovery.HasMinClusterSize(currentSize, mdb)
+				if wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+				Expect(clusterHasMinSize).To(Equal(wantBool))
+			},
+			Entry(
+				"Invalid min cluster size",
+				1,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									MinClusterSize: ptr.To(intstr.FromString("foo")),
+								},
+							},
+						},
+					},
+				},
+				false,
+				true,
+			),
+			Entry(
+				"Zero replicas",
+				0,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									MinClusterSize: ptr.To(intstr.FromString("50%")),
+								},
+							},
+						},
+					},
+				},
+				false,
+				false,
+			),
+			Entry(
+				"Less than min size",
+				1,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									MinClusterSize: ptr.To(intstr.FromString("50%")),
+								},
+							},
+						},
+					},
+				},
+				false,
+				false,
+			),
+			Entry(
+				"Exact min size",
+				2,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									MinClusterSize: ptr.To(intstr.FromString("50%")),
+								},
+							},
+						},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"More than min size",
+				3,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromString("50%")),
+								},
+							},
+						},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"Even number of replicas",
+				2,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 4,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromString("50%")),
+								},
+							},
+						},
+					},
+				},
+				true,
+				false,
+			),
+		)
+
+		DescribeTable(
+			"Validate min cluster size",
+			func(mdb *MariaDB, wantErr bool) {
+				err := mdb.Spec.Galera.Recovery.Validate(mdb)
+				if wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			},
+			Entry(
+				"No min cluster size",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled: true,
+								},
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Invalid min cluster size",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromString("foo")),
+								},
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Disabled recovery",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        false,
+									MinClusterSize: ptr.To(intstr.FromString("foo")),
+								},
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Percentage",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromString("50%")),
+								},
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Integer in range",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(1)),
+								},
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Integer negative",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(-1)),
+								},
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Integer out of range",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(4)),
+								},
+							},
+						},
+					},
+				},
+				true,
 			),
 		)
 	})

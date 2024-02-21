@@ -175,7 +175,7 @@ var _ = Describe("MariaDB webhook", func() {
 								SST: SSTMariaBackup,
 								Recovery: &GaleraRecovery{
 									Enabled:        true,
-									MinClusterSize: ptr.To(int32(4)),
+									MinClusterSize: ptr.To(intstr.FromInt(4)),
 								},
 							},
 						},

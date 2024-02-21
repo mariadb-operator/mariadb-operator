@@ -150,12 +150,12 @@ func (r *MariaDB) validateGalera() error {
 			"'spec.galera.replicaThreads' must be at least 1",
 		)
 	}
-	if galera.Recovery != nil && galera.Recovery.MinClusterSize != nil {
-		if *galera.Recovery.MinClusterSize < 0 || *galera.Recovery.MinClusterSize > r.Spec.Replicas {
+	if galera.Recovery != nil {
+		if err := galera.Recovery.Validate(r); err != nil {
 			return field.Invalid(
-				field.NewPath("spec").Child("galera").Child("recovery").Child("minClusterSize"),
-				r.Replication().Primary.PodIndex,
-				"'spec.galera.recovery.minClusterSize' out of 'spec.replicas' bounds",
+				field.NewPath("spec").Child("galera").Child("recovery"),
+				galera.Recovery,
+				err.Error(),
 			)
 		}
 	}

@@ -571,18 +571,14 @@ var _ = Describe("MariaDB replication", func() {
 	})
 })
 
-var _ = Describe("MariaDB Galera", Serial, func() {
+var _ = Describe("MariaDB Galera", func() {
 	Context("When creating a MariaDB Galera", func() {
-		key := types.NamespacedName{
-			Name:      "mariadb-galera",
-			Namespace: testNamespace,
-		}
 		It("Should default", func() {
 			By("Creating MariaDB")
 			testDefaultMariaDb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      key.Name,
-					Namespace: key.Namespace,
+					Name:      "test-mariadb-galera-default",
+					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -609,7 +605,7 @@ var _ = Describe("MariaDB Galera", Serial, func() {
 
 			By("Expecting to eventually default")
 			Eventually(func(g Gomega) bool {
-				if err := k8sClient.Get(testCtx, key, &testDefaultMariaDb); err != nil {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testDefaultMariaDb), &testDefaultMariaDb); err != nil {
 					return false
 				}
 				g.Expect(testDefaultMariaDb.Spec.Galera).ToNot(BeZero())
@@ -623,11 +619,16 @@ var _ = Describe("MariaDB Galera", Serial, func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
 
-		It("Should be able to reuse storage", func() {
+		galeraKey := types.NamespacedName{
+			Name:      "mariadb-galera",
+			Namespace: testNamespace,
+		}
+
+		It("Should be able to reuse storage", Serial, func() {
 			mdb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      key.Name,
-					Namespace: key.Namespace,
+					Name:      galeraKey.Name,
+					Namespace: galeraKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
@@ -650,7 +651,7 @@ var _ = Describe("MariaDB Galera", Serial, func() {
 							},
 						},
 					},
-					Replicas: 3,
+					Replicas: 1,
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
 						Annotations: map[string]string{
@@ -675,11 +676,11 @@ var _ = Describe("MariaDB Galera", Serial, func() {
 			}, testHighTimeout, testInterval).Should(BeTrue())
 		})
 
-		It("Should reconcile", func() {
+		It("Should reconcile", Serial, func() {
 			mdb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      key.Name,
-					Namespace: key.Namespace,
+					Name:      galeraKey.Name,
+					Namespace: galeraKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Username: &testUser,
