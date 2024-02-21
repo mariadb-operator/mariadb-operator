@@ -206,7 +206,7 @@ var _ = Describe("Grant controller", func() {
 					Privileges: []string{
 						"ALL",
 					},
-					Database:    "data-test",
+					Database:    testDatabase,
 					Table:       "*",
 					Username:    userKey.Name,
 					GrantOption: true,

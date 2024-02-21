@@ -15,7 +15,7 @@ var _ = Describe("Database controller", func() {
 		It("Should reconcile", func() {
 			By("Creating a Database")
 			databaseKey := types.NamespacedName{
-				Name:      "data-test",
+				Name:      "database-create-test",
 				Namespace: testNamespace,
 			}
 			database := mariadbv1alpha1.Database{
