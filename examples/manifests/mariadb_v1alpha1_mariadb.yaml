@@ -39,3 +39,6 @@ spec:
 
   metrics:
     enabled: true
+
+  podDisruptionBudget:
+    maxUnavailable: 50%

@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"strings"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 )
 
@@ -162,10 +162,10 @@ type GaleraRecovery struct {
 	Enabled bool `json:"enabled"`
 	// MinClusterSize is the minimum number of replicas to consider the cluster healthy.
 	// If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.
-	// It defaults to half of the replicas specified by the MariaDB object.
+	// It defaults to 50% of the replicas specified by the MariaDB object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MinClusterSize *int32 `json:"minClusterSize,omitempty"`
+	MinClusterSize *intstr.IntOrString `json:"minClusterSize,omitempty"`
 	// ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,
 	// is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.
 	// +optional
@@ -191,7 +191,7 @@ type GaleraRecovery struct {
 // SetDefaults sets reasonable defaults.
 func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 	if g.MinClusterSize == nil {
-		g.MinClusterSize = ptr.To(int32(math.Ceil(0.5 * float64(mdb.Spec.Replicas))))
+		g.MinClusterSize = ptr.To(intstr.FromString("50%"))
 	}
 	if g.ClusterHealthyTimeout == nil {
 		g.ClusterHealthyTimeout = ptr.To(metav1.Duration{Duration: 30 * time.Second})
@@ -205,6 +205,34 @@ func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 	if g.PodSyncTimeout == nil {
 		g.PodSyncTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
 	}
+}
+
+// Validate determines whether a GaleraRecovery is valid.
+func (g *GaleraRecovery) Validate(mdb *MariaDB) error {
+	if !g.Enabled || g.MinClusterSize == nil {
+		return nil
+	}
+	_, err := intstr.GetScaledValueFromIntOrPercent(g.MinClusterSize, 0, false)
+	if err != nil {
+		return err
+	}
+	if g.MinClusterSize.Type == intstr.Int {
+		minClusterSize := g.MinClusterSize.IntValue()
+		if minClusterSize < 0 || minClusterSize > int(mdb.Spec.Replicas) {
+			return fmt.Errorf("'spec.galera.recovery.minClusterSize' out of 'spec.replicas' bounds: %d", minClusterSize)
+		}
+	}
+	return nil
+}
+
+// HasMinClusterSize returns whether the current cluster has the minimum number of replicas. If not, a cluster recovery will be performed.
+func (g *GaleraRecovery) HasMinClusterSize(currentSize int, mdb *MariaDB) (bool, error) {
+	minClusterSize := ptr.Deref(g.MinClusterSize, intstr.FromString("50%"))
+	scaled, err := intstr.GetScaledValueFromIntOrPercent(&minClusterSize, int(mdb.Spec.Replicas), true)
+	if err != nil {
+		return false, err
+	}
+	return currentSize >= scaled, nil
 }
 
 // GaleraConfig defines storage options for the Galera configuration files.

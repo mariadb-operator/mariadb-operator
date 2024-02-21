@@ -660,7 +660,7 @@ func (in *GaleraRecovery) DeepCopyInto(out *GaleraRecovery) {
 	*out = *in
 	if in.MinClusterSize != nil {
 		in, out := &in.MinClusterSize, &out.MinClusterSize
-		*out = new(int32)
+		*out = new(intstr.IntOrString)
 		**out = **in
 	}
 	if in.ClusterHealthyTimeout != nil {

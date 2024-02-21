@@ -8739,13 +8739,15 @@ spec:
                         description: Enabled is a flag to enable GaleraRecovery.
                         type: boolean
                       minClusterSize:
+                        anyOf:
+                        - type: integer
+                        - type: string
                         description: MinClusterSize is the minimum number of replicas
                           to consider the cluster healthy. If Galera consistently
                           reports less replicas than this value for the given 'ClusterHealthyTimeout'
                           interval, a cluster recovery is iniated. It defaults to
-                          half of the replicas specified by the MariaDB object.
-                        format: int32
-                        type: integer
+                          50% of the replicas specified by the MariaDB object.
+                        x-kubernetes-int-or-string: true
                       podRecoveryTimeout:
                         description: PodRecoveryTimeout is the time limit for recevorying
                           the sequence of a Pod during the cluster recovery. Once
