@@ -14,7 +14,9 @@ import (
 
 var _ = Describe("MariaDB Galera types", func() {
 	env := &environment.OperatorEnv{
-		MariadbGaleraLibPath: "/usr/lib/galera/libgalera_smm.so",
+		MariadbGaleraInitImage:  "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+		MariadbGaleraAgentImage: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+		MariadbGaleraLibPath:    "/usr/lib/galera/libgalera_smm.so",
 	}
 	Context("When creating a MariaDB Galera object", func() {
 		DescribeTable(
@@ -99,7 +101,12 @@ var _ = Describe("MariaDB Galera types", func() {
 						Primary: PrimaryGalera{
 							AutomaticFailover: ptr.To(false),
 						},
+						InitContainer: Container{
+							Image:           "mariadb/mariadb-operator-enterprise:v0.0.26",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+						},
 						Agent: GaleraAgent{
+							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: false,
 							},
@@ -118,7 +125,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
 						ReplicaThreads: 1,
 						InitContainer: Container{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Image:           "mariadb/mariadb-operator-enterprise:v0.0.26",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 						AvailableWhenDonor: ptr.To(true),
@@ -142,7 +149,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(false),
 						},
 						Agent: GaleraAgent{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Image:           "mariadb/mariadb-operator-enterprise:v0.0.26",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Port:            5555,
 							KubernetesAuth: &KubernetesAuth{

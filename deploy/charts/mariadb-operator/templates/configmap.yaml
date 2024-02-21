@@ -1,5 +1,7 @@
 apiVersion: v1
 data:
+  MARIADB_GALERA_AGENT_IMAGE: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
+  MARIADB_GALERA_INIT_IMAGE: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
   MARIADB_GALERA_LIB_PATH: /usr/lib/galera/libgalera_smm.so
   MARIADB_OPERATOR_IMAGE: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
   RELATED_IMAGE_EXPORTER: prom/mysqld-exporter:v0.15.1

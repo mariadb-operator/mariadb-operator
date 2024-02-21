@@ -876,8 +876,8 @@ spec:
         path: galera.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: GaleraLibPath is a path inside the MariaDB image to the wsrep
-          provider plugin. It is defaulted if not provided.
+      - description: 'GaleraLibPath is a path inside the MariaDB image to the wsrep
+          provider plugin. It is defaulted if not provided. More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.'
         displayName: Galera Lib Path
         path: galera.galeraLibPath
       - description: InitContainer is an init container that co-operates with mariadb-operator.
@@ -1568,6 +1568,9 @@ spec:
       - description: Exporter defines the metrics exporter container.
         displayName: Exporter
         path: metrics.exporter
+      - description: Affinity to be used in the Pod.
+        displayName: Affinity
+        path: metrics.exporter.affinity
       - description: Args to be used in the Container.
         displayName: Args
         path: metrics.exporter.args
@@ -1592,14 +1595,69 @@ spec:
         path: metrics.exporter.imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: InitContainers to be used in the Pod.
+        displayName: Init Containers
+        path: metrics.exporter.initContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: metrics.exporter.initContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: metrics.exporter.initContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: metrics.exporter.initContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: metrics.exporter.initContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: metrics.exporter.initContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: metrics.exporter.initContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: metrics.exporter.initContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: metrics.exporter.initContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: metrics.exporter.initContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: metrics.exporter.initContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: metrics.exporter.initContainers[0].volumeMounts
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: metrics.exporter.livenessProbe
+      - description: NodeSelector to be used in the Pod.
+        displayName: Node Selector
+        path: metrics.exporter.nodeSelector
+      - description: SecurityContext holds pod-level security attributes and common
+          container settings.
+        displayName: Pod Security Context
+        path: metrics.exporter.podSecurityContext
       - description: Port where the exporter will be listening for connections.
         displayName: Port
         path: metrics.exporter.port
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: PriorityClassName to be used in the Pod.
+        displayName: Priority Class Name
+        path: metrics.exporter.priorityClassName
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: metrics.exporter.readinessProbe
@@ -1612,9 +1670,67 @@ spec:
           to a container.
         displayName: Security Context
         path: metrics.exporter.securityContext
+      - description: ServiceAccountName is the name of the ServiceAccount to be used
+          by the Pods.
+        displayName: Service Account Name
+        path: metrics.exporter.serviceAccountName
+      - description: SidecarContainers to be used in the Pod.
+        displayName: Sidecar Containers
+        path: metrics.exporter.sidecarContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: metrics.exporter.sidecarContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: metrics.exporter.sidecarContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: metrics.exporter.sidecarContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: metrics.exporter.sidecarContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: metrics.exporter.sidecarContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: metrics.exporter.sidecarContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: metrics.exporter.sidecarContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: metrics.exporter.sidecarContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: metrics.exporter.sidecarContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: metrics.exporter.sidecarContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: metrics.exporter.sidecarContainers[0].volumeMounts
+      - description: Tolerations to be used in the Pod.
+        displayName: Tolerations
+        path: metrics.exporter.tolerations
+      - description: TopologySpreadConstraints to be used in the Pod.
+        displayName: Topology Spread Constraints
+        path: metrics.exporter.topologySpreadConstraints
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: metrics.exporter.volumeMounts
+      - description: Volumes to be used in the Pod.
+        displayName: Volumes
+        path: metrics.exporter.volumes
       - description: PasswordSecretKeyRef is a reference to the password of the monitoring
           user used by the exporter.
         displayName: Password Secret Key Ref

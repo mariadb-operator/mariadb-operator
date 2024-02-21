@@ -133,9 +133,9 @@ type GaleraAgent struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (r *GaleraAgent) SetDefaults() {
+func (r *GaleraAgent) SetDefaults(env *environment.OperatorEnv) {
 	if r.Image == "" {
-		r.Image = "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26"
+		r.Image = env.MariadbGaleraAgentImage
 	}
 	if r.ImagePullPolicy == "" {
 		r.ImagePullPolicy = corev1.PullIfNotPresent
@@ -269,12 +269,12 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
 	}
 	if reflect.ValueOf(g.InitContainer).IsZero() {
 		g.InitContainer = Container{
-			Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+			Image:           env.MariadbGaleraInitImage,
 			ImagePullPolicy: corev1.PullIfNotPresent,
 		}
 	}
 	g.Primary.SetDefaults()
-	g.Agent.SetDefaults()
+	g.Agent.SetDefaults(env)
 	g.Config.SetDefaults()
 
 	if g.Recovery == nil {
