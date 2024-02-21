@@ -55,7 +55,7 @@ var (
 	}
 )
 
-func waitForMariaDB(ctx context.Context, k8sClient client.Client) {
+func expectMariadbReady(ctx context.Context, k8sClient client.Client) {
 	var mdb mariadbv1alpha1.MariaDB
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
@@ -77,7 +77,7 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			Namespace: testPwdKey.Namespace,
 		},
 		Data: map[string][]byte{
-			testPwdSecretKey: []byte("test"),
+			testPwdSecretKey: []byte("MariaDB11!"),
 		},
 	}
 	Expect(k8sClient.Create(ctx, &password)).To(Succeed())
@@ -179,36 +179,8 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 		},
 	}
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
-	waitForMariaDB(ctx, k8sClient)
+	expectMariadbReady(ctx, k8sClient)
 }
-
-// func deleteTestData(ctx context.Context, k8sClient client.Client) {
-// 	var password corev1.Secret
-// 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
-// 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
-
-// 	var mdb mariadbv1alpha1.MariaDB
-// 	Expect(k8sClient.Get(ctx, testPwdKey, &mdb)).To(Succeed())
-// 	Expect(k8sClient.Delete(ctx, &mdb)).To(Succeed())
-
-// 	Eventually(func(g Gomega) bool {
-// 		listOpts := &client.ListOptions{
-// 			LabelSelector: klabels.SelectorFromSet(
-// 				labels.NewLabelsBuilder().
-// 					WithMariaDB(&mdb).
-// 					Build(),
-// 			),
-// 			Namespace: mdb.GetNamespace(),
-// 		}
-// 		pvcList := &corev1.PersistentVolumeClaimList{}
-// 		g.Expect(k8sClient.List(ctx, pvcList, listOpts)).To(Succeed())
-
-// 		for _, pvc := range pvcList.Items {
-// 			g.Expect(k8sClient.Delete(ctx, &pvc)).To(Succeed())
-// 		}
-// 		return true
-// 	}, 30*time.Second, 1*time.Second).Should(BeTrue())
-// }
 
 func testS3WithBucket(bucket string) *mariadbv1alpha1.S3 {
 	return &mariadbv1alpha1.S3{

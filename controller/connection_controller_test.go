@@ -81,7 +81,7 @@ var _ = Describe("Connection controller", func() {
 						Database: &testDatabase,
 					},
 				},
-				"test:test@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
+				"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
 			),
 			Entry(
 				"Creating a Connection providing ServiceName",
@@ -124,7 +124,7 @@ var _ = Describe("Connection controller", func() {
 						Database: &testDatabase,
 					},
 				},
-				"test:test@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
+				"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
 			),
 			Entry(
 				"Creating a Connection providing DSN Format",
@@ -170,7 +170,7 @@ var _ = Describe("Connection controller", func() {
 						Database: &testDatabase,
 					},
 				},
-				"mysql://test:test@mdb-test.default.svc.cluster.local:3306/test?timeout=5s",
+				"mysql://test:MariaDB11!@mdb-test.default.svc.cluster.local:3306/test?timeout=5s",
 			),
 		)
 
@@ -280,7 +280,7 @@ var _ = Describe("Connection controller", func() {
 			Expect(string(user)).To(Equal(testUser))
 			pass, ok := secret.Data["pass"]
 			Expect(ok).To(BeTrue())
-			Expect(string(pass)).To(Equal("test"))
+			Expect(string(pass)).To(Equal("MariaDB11!"))
 			host, ok := secret.Data["host"]
 			Expect(ok).To(BeTrue())
 			Expect(string(host)).To(Equal("mdb-test.default.svc.cluster.local"))
