@@ -160,9 +160,9 @@ type GaleraRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
-	// MinClusterSize is the minimum number of replicas to consider the cluster healthy.
+	// MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%).
 	// If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.
-	// It defaults to 50% of the replicas specified by the MariaDB object.
+	// It defaults to '50%' of the replicas specified by the MariaDB object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MinClusterSize *intstr.IntOrString `json:"minClusterSize,omitempty"`
