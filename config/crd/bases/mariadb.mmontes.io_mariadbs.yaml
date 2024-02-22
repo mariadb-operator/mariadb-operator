@@ -930,7 +930,8 @@ spec:
                         type: string
                       prefix:
                         description: Prefix allows backups to be placed under a specific
-                          prefix in the bucket.
+                          prefix in the bucket. A trailing slash '/' is added if not
+                          provided.
                         type: string
                       region:
                         description: Region is the S3 region name to use.

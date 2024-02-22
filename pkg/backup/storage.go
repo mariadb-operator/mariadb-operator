@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-logr/logr"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/pkg/minio"
@@ -134,17 +135,28 @@ func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
 
 func (s *S3BackupStorage) Push(ctx context.Context, fileName string) error {
 	filePath := filepath.Join(s.basePath, fileName)
-	_, err := s.client.FPutObject(ctx, s.bucket, s.Prefix+fileName, filePath, minio.PutObjectOptions{})
+	_, err := s.client.FPutObject(ctx, s.bucket, s.prefixedFileName(fileName), filePath, minio.PutObjectOptions{})
 	return err
 }
 
 func (s *S3BackupStorage) Pull(ctx context.Context, fileName string) error {
 	filePath := filepath.Join(s.basePath, fileName)
-	return s.client.FGetObject(ctx, s.bucket, s.Prefix+fileName, filePath, minio.GetObjectOptions{})
+	return s.client.FGetObject(ctx, s.bucket, s.prefixedFileName(fileName), filePath, minio.GetObjectOptions{})
 }
 
 func (s *S3BackupStorage) Delete(ctx context.Context, fileName string) error {
-	return s.client.RemoveObject(ctx, s.bucket, s.Prefix+fileName, minio.RemoveObjectOptions{})
+	return s.client.RemoveObject(ctx, s.bucket, s.prefixedFileName(fileName), minio.RemoveObjectOptions{})
+}
+
+func (s *S3BackupStorage) prefixedFileName(fileName string) string {
+	if s.Prefix == "" {
+		return fileName
+	}
+	prefix := s.Prefix
+	if !strings.HasSuffix("/", prefix) {
+		prefix += "/"
+	}
+	return prefix + fileName
 }
 
 func shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
