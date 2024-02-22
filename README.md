@@ -198,6 +198,7 @@ We welcome and encourage contributions to this project! Please check our [contri
 ## Blogs
 
 - [Run and operate MariaDB in Kubernetes with mariadb-operator](https://mariadb.org/mariadb-in-kubernetes-with-mariadb-operator/) - MariaDB Foundation
+- [Get Started with MariaDB in Kubernetes and mariadb-operator](https://mariadb.com/resources/blog/get-started-with-mariadb-in-kubernetes-and-mariadb-operator/) - MariaDB Corporation
 
 ## Get in touch
 
