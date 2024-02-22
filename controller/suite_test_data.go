@@ -128,27 +128,12 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 					Key: &testConnSecretKey,
 				},
 			},
-			VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
-				PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							"storage": resource.MustParse("100Mi"),
-						},
-					},
-					AccessModes: []corev1.PersistentVolumeAccessMode{
-						corev1.ReadWriteOnce,
-					},
-				},
-			},
-			MyCnf: func() *string {
-				cfg := `[mariadb]
-				bind-address=*
-				default_storage_engine=InnoDB
-				binlog_format=row
-				innodb_autoinc_lock_mode=2
-				max_allowed_packet=256M`
-				return &cfg
-			}(),
+			MyCnf: ptr.To(`[mariadb]
+			bind-address=*
+			default_storage_engine=InnoDB
+			binlog_format=row
+			innodb_autoinc_lock_mode=2
+			max_allowed_packet=256M`),
 			Port: 3306,
 			Service: &mariadbv1alpha1.ServiceTemplate{
 				Type: corev1.ServiceTypeLoadBalancer,
@@ -175,6 +160,9 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 					},
 					Key: testPwdSecretKey,
 				},
+			},
+			Storage: mariadbv1alpha1.Storage{
+				Size: ptr.To(resource.MustParse("300Mi")),
 			},
 		},
 	}

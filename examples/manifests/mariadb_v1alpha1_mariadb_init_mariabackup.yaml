@@ -19,9 +19,5 @@ spec:
     - name: mariabackup
       mountPath: /var/mariadb/backup/
 
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi

@@ -3,12 +3,8 @@ kind: MariaDB
 metadata:
   name: mariadb-from-s3
 spec:
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
 
   bootstrapFrom:
     s3:

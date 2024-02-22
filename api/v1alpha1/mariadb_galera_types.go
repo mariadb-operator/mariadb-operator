@@ -188,6 +188,24 @@ type GaleraRecovery struct {
 	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
 }
 
+// Validate determines whether a GaleraRecovery is valid.
+func (g *GaleraRecovery) Validate(mdb *MariaDB) error {
+	if !g.Enabled || g.MinClusterSize == nil {
+		return nil
+	}
+	_, err := intstr.GetScaledValueFromIntOrPercent(g.MinClusterSize, 0, false)
+	if err != nil {
+		return err
+	}
+	if g.MinClusterSize.Type == intstr.Int {
+		minClusterSize := g.MinClusterSize.IntValue()
+		if minClusterSize < 0 || minClusterSize > int(mdb.Spec.Replicas) {
+			return fmt.Errorf("'spec.galera.recovery.minClusterSize' out of 'spec.replicas' bounds: %d", minClusterSize)
+		}
+	}
+	return nil
+}
+
 // SetDefaults sets reasonable defaults.
 func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 	if g.MinClusterSize == nil {
@@ -205,24 +223,6 @@ func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 	if g.PodSyncTimeout == nil {
 		g.PodSyncTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
 	}
-}
-
-// Validate determines whether a GaleraRecovery is valid.
-func (g *GaleraRecovery) Validate(mdb *MariaDB) error {
-	if !g.Enabled || g.MinClusterSize == nil {
-		return nil
-	}
-	_, err := intstr.GetScaledValueFromIntOrPercent(g.MinClusterSize, 0, false)
-	if err != nil {
-		return err
-	}
-	if g.MinClusterSize.Type == intstr.Int {
-		minClusterSize := g.MinClusterSize.IntValue()
-		if minClusterSize < 0 || minClusterSize > int(mdb.Spec.Replicas) {
-			return fmt.Errorf("'spec.galera.recovery.minClusterSize' out of 'spec.replicas' bounds: %d", minClusterSize)
-		}
-	}
-	return nil
 }
 
 // HasMinClusterSize returns whether the current cluster has the minimum number of replicas. If not, a cluster recovery will be performed.

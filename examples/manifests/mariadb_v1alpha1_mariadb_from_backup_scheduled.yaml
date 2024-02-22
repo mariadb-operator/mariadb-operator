@@ -3,12 +3,8 @@ kind: MariaDB
 metadata:
   name: mariadb-from-backup-scheduled
 spec:
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
 
   bootstrapFrom:
     backupRef:

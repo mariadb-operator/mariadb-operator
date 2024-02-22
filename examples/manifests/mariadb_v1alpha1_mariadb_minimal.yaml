@@ -4,4 +4,5 @@ metadata:
   name: mariadb-min
 spec:
   rootEmptyPassword: true
-  ephemeralStorage: true
+  storage:
+    ephemeral: true

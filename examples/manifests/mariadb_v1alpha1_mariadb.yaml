@@ -17,12 +17,9 @@ spec:
   imagePullPolicy: IfNotPresent
 
   port: 3306
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+
+  storage:
+    size: 1Gi
 
   service:
     type: LoadBalancer

@@ -9,12 +9,8 @@ spec:
   username: mariadb
   database: mariadb
 
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 10Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
 
   replicas: 3
 

@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -33,7 +34,6 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -42,6 +42,10 @@ var _ = Describe("MariaDB types", func() {
 							Key: "password",
 						},
 						Port: 3306,
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+						},
 					},
 				},
 				env,
@@ -51,8 +55,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						Image:            "mariadb:lts",
-						EphemeralStorage: ptr.To(false),
+						Image: "mariadb:lts",
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: "root",
@@ -60,13 +63,16 @@ var _ = Describe("MariaDB types", func() {
 							Key: "pwd",
 						},
 						Port: 3307,
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+						},
 					},
 				},
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             "mariadb:lts",
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -75,6 +81,10 @@ var _ = Describe("MariaDB types", func() {
 							Key: "pwd",
 						},
 						Port: 3307,
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+						},
 					},
 				},
 				env,
@@ -85,7 +95,6 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             "mariadb:lts",
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(true),
 						Port:              3307,
 					},
@@ -94,9 +103,12 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             "mariadb:lts",
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(true),
 						Port:              3307,
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+						},
 					},
 				},
 				env,
@@ -120,7 +132,6 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -142,6 +153,10 @@ var _ = Describe("MariaDB types", func() {
 								Name: "mariadb-obj-config",
 							},
 							Key: "my.cnf",
+						},
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
 						},
 					},
 				},
@@ -172,7 +187,6 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -195,6 +209,10 @@ var _ = Describe("MariaDB types", func() {
 							},
 							Key: "mariadb.cnf",
 						},
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+						},
 					},
 				},
 				env,
@@ -212,7 +230,6 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -228,6 +245,10 @@ var _ = Describe("MariaDB types", func() {
 								Name: "mariadb-obj-password",
 							},
 							Key: "password",
+						},
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
 						},
 					},
 				},
@@ -252,7 +273,6 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -268,6 +288,10 @@ var _ = Describe("MariaDB types", func() {
 								Name: "user-password",
 							},
 							Key: "pwd",
+						},
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
 						},
 					},
 				},
@@ -287,7 +311,6 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -309,6 +332,10 @@ var _ = Describe("MariaDB types", func() {
 								},
 								Key: "password",
 							},
+						},
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
 						},
 					},
 				},
@@ -340,7 +367,6 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -367,6 +393,148 @@ var _ = Describe("MariaDB types", func() {
 							Monitor: &MaxScaleMonitor{
 								Module: MonitorModuleMariadb,
 							},
+						},
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+						},
+					},
+				},
+				env,
+			),
+			Entry(
+				"storage",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+							Size:               ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:   "my-class",
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-obj-root",
+							},
+							Key: "password",
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+							Size:               ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:   "my-class",
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("100Mi"),
+										},
+									},
+									StorageClassName: ptr.To("my-class"),
+								},
+							},
+						},
+					},
+				},
+				env,
+			),
+			Entry(
+				"storage drift",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-obj-root",
+							},
+							Key: "password",
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+							Size:               ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:   "my-class",
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("200Mi"),
+										},
+									},
+									StorageClassName: ptr.To("my-class"),
+								},
+							},
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-obj-root",
+							},
+							Key: "password",
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+							Size:               ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:   "my-class",
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("100Mi"),
+										},
+									},
+									StorageClassName: ptr.To("my-class"),
+								},
+							},
+						},
+					},
+				},
+				env,
+			),
+			Entry(
+				"ephemeral storage",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Ephemeral: ptr.To(true),
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-obj-root",
+							},
+							Key: "password",
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral: ptr.To(true),
 						},
 					},
 				},
@@ -410,13 +578,28 @@ var _ = Describe("MariaDB types", func() {
 						Metrics: &Metrics{
 							Enabled: true,
 						},
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+							Size:               ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:   "my-class",
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("100Mi"),
+										},
+									},
+									StorageClassName: ptr.To("my-class"),
+								},
+							},
+						},
 					},
 				},
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image:             "mariadb:lts",
-						EphemeralStorage:  ptr.To(false),
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -461,9 +644,209 @@ var _ = Describe("MariaDB types", func() {
 								Key: "password",
 							},
 						},
+						Storage: Storage{
+							Ephemeral:          ptr.To(false),
+							ResizeInUseVolumes: ptr.To(true),
+							Size:               ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:   "my-class",
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("100Mi"),
+										},
+									},
+									StorageClassName: ptr.To("my-class"),
+								},
+							},
+						},
 					},
 				},
 				env,
+			),
+		)
+
+		DescribeTable(
+			"Validate storage",
+			func(mdb *MariaDB, wantErr bool) {
+				err := mdb.Spec.Storage.Validate(mdb)
+				if wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			},
+			Entry(
+				"Empty",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Ephemeral and HA",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+						},
+						Storage: Storage{
+							Ephemeral: ptr.To(true),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Ephemeral and regular",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Ephemeral: ptr.To(true),
+							Size:      ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Ephemeral",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Ephemeral: ptr.To(true),
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Zero size",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("0Mi")),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Size",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"VolumeClaimTemplate",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("100Mi"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Size and VolumeClaimTemplate",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("100Mi"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				false,
+			),
+		)
+
+		DescribeTable(
+			"Get size",
+			func(mdb *MariaDB, wantSize *resource.Quantity) {
+				Expect(mdb.Spec.Storage.GetSize()).To(Equal(wantSize))
+			},
+			Entry(
+				"Empty",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{},
+					},
+				},
+				nil,
+			),
+			Entry(
+				"No storage",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceCPU: resource.MustParse("100Mi"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				nil,
+			),
+			Entry(
+				"From VolumeClaimTemplate",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("100Mi"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				ptr.To(resource.MustParse("100Mi")),
+			),
+			Entry(
+				"From Size",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				ptr.To(resource.MustParse("100Mi")),
 			),
 		)
 	})
