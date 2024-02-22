@@ -332,7 +332,7 @@ type S3 struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Region string `json:"region" webhook:"inmutable"`
-	// Prefix allows backups to be placed under a specific prefix in the bucket.
+	// Prefix allows backups to be placed under a specific prefix in the bucket. A trailing slash '/' is added if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Prefix string `json:"prefix" webhook:"inmutable"`
