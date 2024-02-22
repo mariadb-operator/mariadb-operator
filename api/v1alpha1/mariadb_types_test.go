@@ -439,6 +439,9 @@ var _ = Describe("MariaDB types", func() {
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
 									},
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
 									StorageClassName: ptr.To("my-class"),
 								},
 							},
@@ -473,6 +476,9 @@ var _ = Describe("MariaDB types", func() {
 											corev1.ResourceStorage: resource.MustParse("200Mi"),
 										},
 									},
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
 									StorageClassName: ptr.To("my-class"),
 								},
 							},
@@ -502,6 +508,9 @@ var _ = Describe("MariaDB types", func() {
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
+									},
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
 									},
 									StorageClassName: ptr.To("my-class"),
 								},
