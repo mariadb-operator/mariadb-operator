@@ -18,12 +18,8 @@ spec:
 
   port: 3306
 
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 10Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
   volumes: 
     - name: mariabackup
       persistentVolumeClaim:

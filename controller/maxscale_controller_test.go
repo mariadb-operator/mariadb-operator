@@ -68,22 +68,13 @@ var _ = Describe("MaxScale controller", func() {
 					Namespace: testMdbMxsKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
-						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 					},
 					Replicas: 3,
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
 						Annotations: map[string]string{
@@ -146,22 +137,13 @@ var _ = Describe("MaxScale controller", func() {
 					Namespace: testMdbMxsKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					VolumeClaimTemplate: mariadbv1alpha1.VolumeClaimTemplate{
-						PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"storage": resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					Replicas: 3,
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
 						Annotations: map[string]string{

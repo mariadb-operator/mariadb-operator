@@ -1,13 +1,14 @@
 package v1alpha1
 
 import (
-	"reflect"
+	"errors"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -93,6 +94,108 @@ type Metrics struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+}
+
+// Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB.
+type Storage struct {
+	// Ephemeral indicates whether to use ephemeral storage in the PVCs. It is only compatible with non HA MariaDBs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Ephemeral *bool `json:"ephemeral,omitempty" webhook:"inmutableinit"`
+	// Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Size *resource.Quantity `json:"size,omitempty"`
+	// StorageClassName to be used to provision the PVCS. It superseeds the 'StorageClassName' specified in 'VolumeClaimTemplate'.
+	// If not provided, the default 'StorageClass' configured in the cluster is used.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StorageClassName string `json:"storageClassName,omitempty" webhook:"inmutable"`
+	// ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing.
+	// It defaults to true.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	ResizeInUseVolumes *bool `json:"resizeInUseVolumes,omitempty"`
+	// VolumeClaimTemplate provides a template to define the PVCs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
+}
+
+// Storate determines whether a Storage object is valid.
+func (s *Storage) Validate(mdb *MariaDB) error {
+	if s.Ephemeral != nil {
+		if *s.Ephemeral && mdb.IsHAEnabled() {
+			return errors.New("Ephemeral storage is only compatible with non HA MariaDBs")
+		}
+		if *s.Ephemeral && (s.Size != nil || s.VolumeClaimTemplate != nil) {
+			return errors.New("Either ephemeral or regular storage must be provided")
+		}
+		if *s.Ephemeral {
+			return nil
+		}
+	}
+	if s.Size != nil && s.Size.IsZero() {
+		return errors.New("Greater than zero storage size must be provided")
+	}
+	if s.Size == nil && s.VolumeClaimTemplate == nil {
+		return errors.New("Either storage size or volumeClaimTemplate must be provided")
+	}
+	return nil
+}
+
+// SetDefaults sets reasonable defaults.
+func (s *Storage) SetDefaults() {
+	if s.Ephemeral == nil {
+		s.Ephemeral = ptr.To(false)
+	}
+	if s.ResizeInUseVolumes == nil && !ptr.Deref(s.Ephemeral, false) {
+		s.ResizeInUseVolumes = ptr.To(true)
+	}
+
+	if s.Size != nil {
+		if s.shouldUpdateSize(*s.Size) {
+			vctpl := VolumeClaimTemplate{
+				PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: *s.Size,
+						},
+					},
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+				},
+			}
+			if s.StorageClassName != "" {
+				vctpl.PersistentVolumeClaimSpec.StorageClassName = &s.StorageClassName
+			}
+			s.VolumeClaimTemplate = &vctpl
+		}
+	}
+}
+
+// GetSize obtains the size of the PVC.
+func (s *Storage) GetSize() *resource.Quantity {
+	vctpl := ptr.Deref(s.VolumeClaimTemplate, VolumeClaimTemplate{})
+	if storage, ok := vctpl.Resources.Requests[corev1.ResourceStorage]; ok {
+		return &storage
+	}
+	if s.Size != nil {
+		return s.Size
+	}
+	return nil
+}
+
+func (s *Storage) shouldUpdateSize(size resource.Quantity) bool {
+	if s.VolumeClaimTemplate == nil {
+		return true
+	}
+	vctplSize, ok := s.VolumeClaimTemplate.Resources.Requests[corev1.ResourceStorage]
+	if !ok {
+		return true
+	}
+	return size.Cmp(vctplSize) != 0
 }
 
 // MariaDBMaxScaleSpec defines a MaxScale resources to be used with the current MariaDB.
@@ -234,6 +337,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	BootstrapFrom *RestoreSource `json:"bootstrapFrom,omitempty"`
+	// Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Storage Storage `json:"storage"`
 	// Metrics configures metrics and how to scrape them.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -265,14 +372,6 @@ type MariaDBSpec struct {
 	// +kubebuilder:default=3306
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Port int32 `json:"port,omitempty"`
-	// EphemeralStorage indicates whether to use ephemeral storage for the instances.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	EphemeralStorage *bool `json:"ephemeralStorage,omitempty" webhook:"inmutableinit"`
-	// VolumeClaimTemplate provides a template to define the Pod PVCs.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate" webhook:"inmutable"`
 	// PodDisruptionBudget defines the budget for replica availability.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -368,14 +467,10 @@ type MariaDB struct {
 	Status MariaDBStatus `json:"status,omitempty"`
 }
 
-// SetDefaults sets default values.
+// SetDefaults sets reasonable defaults.
 func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMariadbImage
-	}
-
-	if m.Spec.EphemeralStorage == nil {
-		m.Spec.EphemeralStorage = ptr.To(false)
 	}
 
 	if m.Spec.RootEmptyPassword == nil {
@@ -420,6 +515,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 	if m.IsGaleraEnabled() {
 		m.Spec.Galera.SetDefaults(m, env)
 	}
+	m.Spec.Storage.SetDefaults()
 }
 
 // Replication with defaulting accessor
@@ -468,12 +564,7 @@ func (m *MariaDB) IsRootPasswordDefined() bool {
 
 // IsEphemeralStorageEnabled indicates whether the MariaDB instance has ephemeral storage enabled
 func (m *MariaDB) IsEphemeralStorageEnabled() bool {
-	return m.Spec.EphemeralStorage != nil && *m.Spec.EphemeralStorage
-}
-
-// IsVolumeClaimTemplateDefined indicates whether the MariaDB instance has a VolumeClaimTemplate defined
-func (m *MariaDB) IsVolumeClaimTemplateDefined() bool {
-	return !reflect.ValueOf(m.Spec.VolumeClaimTemplate).IsZero()
+	return ptr.Deref(m.Spec.Storage.Ephemeral, false)
 }
 
 // IsReady indicates whether the MariaDB instance is ready

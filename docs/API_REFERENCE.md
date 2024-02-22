@@ -644,6 +644,7 @@ _Appears in:_
 | `myCnf` _string_ | MyCnf allows to specify the my.cnf file mounted by Mariadb. |
 | `myCnfConfigMapKeyRef` _[ConfigMapKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core)_ | MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap. If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field. |
 | `bootstrapFrom` _[RestoreSource](#restoresource)_ | BootstrapFrom defines a source to bootstrap from. |
+| `storage` _[Storage](#storage)_ | Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB. |
 | `metrics` _[Metrics](#metrics)_ | Metrics configures metrics and how to scrape them. |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |
@@ -651,8 +652,6 @@ _Appears in:_
 | `maxScale` _[MariaDBMaxScaleSpec](#mariadbmaxscalespec)_ | MaxScale is the MaxScale specification that defines the MaxScale resource to be used with the current MariaDB. When enabling this field, MaxScaleRef is automatically set. |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. |
 | `port` _integer_ | Port where the instances will be listening for connections. |
-| `ephemeralStorage` _boolean_ | EphemeralStorage indicates whether to use ephemeral storage for the instances. |
-| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the Pod PVCs. |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |
 | `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | PodDisruptionBudget defines the update strategy for the StatefulSet object. |
 | `service` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the general Service object. |
@@ -1307,6 +1306,24 @@ _Appears in:_
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
 
 
+#### Storage
+
+
+
+Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB.
+
+_Appears in:_
+- [MariaDBSpec](#mariadbspec)
+
+| Field | Description |
+| --- | --- |
+| `ephemeral` _boolean_ | Ephemeral indicates whether to use ephemeral storage in the PVCs. It is only compatible with non HA MariaDBs. |
+| `size` _[Quantity](#quantity)_ | Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. |
+| `storageClassName` _string_ | StorageClassName to be used to provision the PVCS. It superseeds the 'StorageClassName' specified in 'VolumeClaimTemplate'. If not provided, the default 'StorageClass' configured in the cluster is used. |
+| `resizeInUseVolumes` _boolean_ | ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing. It defaults to true. |
+| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the PVCs. |
+
+
 #### SuspendTemplate
 
 
@@ -1384,8 +1401,8 @@ VolumeClaimTemplate defines a template to customize PVC objects.
 
 _Appears in:_
 - [GaleraConfig](#galeraconfig)
-- [MariaDBSpec](#mariadbspec)
 - [MaxScaleConfig](#maxscaleconfig)
+- [Storage](#storage)
 
 | Field | Description |
 | --- | --- |

@@ -80,7 +80,11 @@ func (r *MariaDB) ValidateUpdate(old runtime.Object) (admission.Warnings, error)
 			return nil, err
 		}
 	}
-	return nil, r.validatePrimarySwitchover(oldMariadb)
+
+	if err := r.validatePrimarySwitchover(oldMariadb); err != nil {
+		return nil, err
+	}
+	return nil, r.validateUpdateStorage(oldMariadb)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -234,23 +238,30 @@ func (r *MariaDB) validatePodDisruptionBudget() error {
 }
 
 func (r *MariaDB) validateStorage() error {
-	// spec.ephemeralStorage or spec.volumeClaimTemplate shall be defined explicitly
-	if !r.IsEphemeralStorageEnabled() && !r.IsVolumeClaimTemplateDefined() {
+	if err := r.Spec.Storage.Validate(r); err != nil {
 		return field.Invalid(
-			field.NewPath("spec").Child("volumeClaimTemplate"),
-			r.Spec.VolumeClaimTemplate,
-			"'spec.ephemeralStorage' or 'spec.volumeClaimTemplate' must be defined",
+			field.NewPath("spec").Child("storage"),
+			r.Spec.Storage,
+			err.Error(),
 		)
 	}
-	// spec.ephemeralStorage and spec.volumeClaimTemplate shall be mutually exclusive
-	if r.IsEphemeralStorageEnabled() && r.IsVolumeClaimTemplateDefined() {
-		return field.Invalid(
-			field.NewPath("spec").Child("ephemeralStorage"),
-			r.Spec.EphemeralStorage,
-			"'spec.ephemeralStorage' must be disabled when 'spec.volumeClaimTemplate' is specified",
-		)
-	}
+	return nil
+}
 
+func (r *MariaDB) validateUpdateStorage(old *MariaDB) error {
+	if err := r.validateStorage(); err != nil {
+		return err
+	}
+	currentSize := r.Spec.Storage.GetSize()
+	oldSize := old.Spec.Storage.GetSize()
+
+	if currentSize != nil && oldSize != nil && currentSize.Cmp(*oldSize) < 0 {
+		return field.Invalid(
+			field.NewPath("spec").Child("storage"),
+			r.Spec.Storage,
+			"Storage size cannot be decreased",
+		)
+	}
 	return nil
 }
 

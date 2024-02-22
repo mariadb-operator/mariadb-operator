@@ -10,11 +10,5 @@ spec:
     annotations:
       database.myorg.io: mariadb
 
-  volumeClaimTemplate:
-    annotations:
-      database.myorg.io: mariadb
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi

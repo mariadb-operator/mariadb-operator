@@ -16,12 +16,8 @@ spec:
     params:
       parseTime: "true"
 
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
 
   service:
     type: LoadBalancer

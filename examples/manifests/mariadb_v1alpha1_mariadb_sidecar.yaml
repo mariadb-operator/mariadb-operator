@@ -9,9 +9,5 @@ spec:
         - sleep
         - infinity
 
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
