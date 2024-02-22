@@ -246,8 +246,13 @@ var _ = Describe("MariaDB controller", func() {
 				return bootstrapMariaDB.IsReady()
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
-			By("Expecting MariaDB to have restored backup")
-			Expect(bootstrapMariaDB.HasRestoredBackup()).To(BeTrue())
+			By("Expecting MariaDB to eventually have restored backup")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, bootstrapMariaDBKey, &bootstrapMariaDB); err != nil {
+					return false
+				}
+				return bootstrapMariaDB.HasRestoredBackup()
+			}, testTimeout, testInterval).Should(BeTrue())
 		})
 	})
 
