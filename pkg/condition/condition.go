@@ -57,9 +57,9 @@ func (p *Ready) PatcherRefResolver(err error, obj interface{}) Patcher {
 func (p *Ready) PatcherHealthy(err error) Patcher {
 	return func(c Conditioner) {
 		if err == nil {
-			SetReadyHealthty(c)
+			SetReadyHealthy(c)
 		} else {
-			SetReadyUnhealthtyWithError(c, err)
+			SetReadyUnhealthyWithError(c, err)
 		}
 	}
 }

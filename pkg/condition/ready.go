@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func SetReadyHealthty(c Conditioner) {
+func SetReadyHealthy(c Conditioner) {
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
@@ -17,7 +17,7 @@ func SetReadyHealthty(c Conditioner) {
 	})
 }
 
-func SetReadyUnhealthtyWithError(c Conditioner, err error) {
+func SetReadyUnhealthyWithError(c Conditioner, err error) {
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
