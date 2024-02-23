@@ -18917,6 +18917,12 @@ spec:
                           backing this claim.
                         type: string
                     type: object
+                  waitForVolumeResize:
+                    description: WaitForVolumeResize indicates whether to wait for
+                      the PVCs to be resized before marking the MariaDB object as
+                      ready. This will block other operations such as cluster recovery
+                      while the resize is in progress. It defaults to true.
+                    type: boolean
                 type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
