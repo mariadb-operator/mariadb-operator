@@ -65,6 +65,12 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - pvcs
+  verbs:
+  - list
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
   - create
@@ -104,6 +110,7 @@ rules:
   - statefulsets
   verbs:
   - create
+  - delete
   - get
   - list
   - patch

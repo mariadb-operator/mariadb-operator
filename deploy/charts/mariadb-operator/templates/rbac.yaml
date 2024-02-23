@@ -102,6 +102,12 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - pvcs
+  verbs:
+  - list
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
   - create
@@ -145,6 +151,7 @@ rules:
   - list
   - patch
   - watch
+  - delete
 - apiGroups:
   - authentication.k8s.io
   resources:
