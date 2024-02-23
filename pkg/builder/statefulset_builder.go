@@ -21,10 +21,12 @@ const (
 	StorageVolume            = "storage"
 	MariadbStorageMountPath  = "/var/lib/mysql"
 	MaxscaleStorageMountPath = "/var/lib/maxscale"
+	StorageVolumeRole        = "storage"
 
 	ConfigVolume            = "config"
 	MariadbConfigMountPath  = "/etc/mysql/conf.d"
 	MaxscaleConfigMountPath = "/etc/config"
+	ConfigVolumeRole        = "config"
 
 	ProbesVolume    = "probes"
 	ProbesMountPath = "/etc/probes"
@@ -183,11 +185,16 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 
 	if !mariadb.IsEphemeralStorageEnabled() {
 		vctpl := mariadb.Spec.Storage.VolumeClaimTemplate
+		labels := labels.NewLabelsBuilder().
+			WithLabels(vctpl.Labels).
+			WithPVCRole(StorageVolumeRole).
+			Build()
+
 		pvcs = []corev1.PersistentVolumeClaim{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        StorageVolume,
-					Labels:      vctpl.Labels,
+					Labels:      labels,
 					Annotations: vctpl.Annotations,
 				},
 				Spec: vctpl.PersistentVolumeClaimSpec,
@@ -200,10 +207,15 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 	vctpl := galera.Config.VolumeClaimTemplate
 
 	if mariadb.IsGaleraEnabled() && !reuseStorageVolume && vctpl != nil {
+		labels := labels.NewLabelsBuilder().
+			WithLabels(vctpl.Labels).
+			WithPVCRole(ConfigVolumeRole).
+			Build()
+
 		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        galeraresources.GaleraConfigVolume,
-				Labels:      vctpl.Labels,
+				Labels:      labels,
 				Annotations: vctpl.Annotations,
 			},
 			Spec: vctpl.PersistentVolumeClaimSpec,

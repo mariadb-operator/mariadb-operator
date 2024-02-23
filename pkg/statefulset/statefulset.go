@@ -6,7 +6,11 @@ import (
 	"strconv"
 	"strings"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 func ServiceFQDNWithService(meta metav1.ObjectMeta, service string) string {
@@ -39,4 +43,13 @@ func PodIndex(podName string) (*int, error) {
 		return nil, fmt.Errorf("invalid Pod name: %v, error: %v", podName, err)
 	}
 	return &index, nil
+}
+
+func GetStorageSize(sts *appsv1.StatefulSet, storageVolume string) *resource.Quantity {
+	for _, vctpl := range sts.Spec.VolumeClaimTemplates {
+		if vctpl.Name == storageVolume {
+			return ptr.To(vctpl.Spec.Resources.Requests[corev1.ResourceStorage])
+		}
+	}
+	return nil
 }

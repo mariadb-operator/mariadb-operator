@@ -28,11 +28,15 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -125,6 +129,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "RBAC",
 			Reconcile: r.reconcileRBAC,
+		},
+		{
+			Name:      "Storage",
+			Reconcile: r.reconcileStorage,
 		},
 		{
 			Name:      "StatefulSet",
@@ -261,6 +269,80 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 
 func (r *MariaDBReconciler) reconcileRBAC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	return ctrl.Result{}, r.RBACReconciler.ReconcileMariadbRBAC(ctx, mariadb)
+}
+
+func (r *MariaDBReconciler) reconcileStorage(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !mariadb.IsReady() {
+		return ctrl.Result{}, nil
+	}
+	key := client.ObjectKeyFromObject(mariadb)
+	var existingSts appsv1.StatefulSet
+	if err := r.Get(ctx, key, &existingSts); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	existingSize := stsobj.GetStorageSize(&existingSts, builder.StorageVolume)
+	desiredSize := mariadb.Spec.Storage.GetSize()
+	if existingSize == nil {
+		return ctrl.Result{}, errors.New("invalid existing storage size")
+	}
+	if desiredSize == nil {
+		return ctrl.Result{}, errors.New("invalid desired storage size")
+	}
+
+	sizeCmp := desiredSize.Cmp(*existingSize)
+	if sizeCmp == 0 {
+		return ctrl.Result{}, nil
+	}
+	if sizeCmp < 0 {
+		return ctrl.Result{}, fmt.Errorf("cannot decrease storage size from '%s' to '%s'", existingSize, desiredSize)
+	}
+
+	if result, err := r.resizeInUsePVCs(ctx, mariadb, *desiredSize); !result.IsZero() || err != nil {
+		return result, err
+	}
+	if result, err := r.resizeStatefulSet(ctx, mariadb, &existingSts); !result.IsZero() || err != nil {
+		return result, err
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) resizeInUsePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	size resource.Quantity) (ctrl.Result, error) {
+	if !ptr.Deref(mariadb.Spec.Storage.ResizeInUseVolumes, true) {
+		return ctrl.Result{}, nil
+	}
+
+	pvcList := corev1.PersistentVolumeClaimList{}
+	listOpts := client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDB(mariadb).
+				WithPVCRole(builder.StorageVolumeRole).
+				Build(),
+		),
+		Namespace: mariadb.GetNamespace(),
+	}
+	if err := r.List(ctx, &pvcList, &listOpts); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
+	}
+
+	for _, pvc := range pvcList.Items {
+		patch := client.MergeFrom(pvc.DeepCopy())
+		pvc.Spec.Resources.Requests[corev1.ResourceStorage] = size
+		if err := r.Patch(ctx, &pvc, patch); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching PVC '%s': %v", pvc.Name, err)
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) resizeStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	sts *appsv1.StatefulSet) (ctrl.Result, error) {
+	if err := r.Delete(ctx, sts, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationOrphan)}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error deleting StatefulSet: %v", err)
+	}
+	return r.reconcileStatefulSet(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
