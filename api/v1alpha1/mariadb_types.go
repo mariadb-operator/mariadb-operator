@@ -162,10 +162,9 @@ func (s *Storage) SetDefaults() {
 	}
 
 	if s.Size != nil {
-		if s.shouldUpdateStorage() {
+		if s.shouldUpdateVolumeClaimTemplate() {
 			vctpl := VolumeClaimTemplate{
 				PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-					StorageClassName: &s.StorageClassName,
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceStorage: *s.Size,
@@ -175,6 +174,9 @@ func (s *Storage) SetDefaults() {
 						corev1.ReadWriteOnce,
 					},
 				},
+			}
+			if s.StorageClassName != "" {
+				vctpl.StorageClassName = &s.StorageClassName
 			}
 			s.VolumeClaimTemplate = &vctpl
 		}
@@ -193,7 +195,7 @@ func (s *Storage) GetSize() *resource.Quantity {
 	return nil
 }
 
-func (s *Storage) shouldUpdateStorage() bool {
+func (s *Storage) shouldUpdateVolumeClaimTemplate() bool {
 	if s.Size == nil {
 		return false
 	}
@@ -208,7 +210,7 @@ func (s *Storage) shouldUpdateStorage() bool {
 	if s.Size.Cmp(vctplSize) != 0 {
 		return true
 	}
-	return s.StorageClassName != ptr.Deref(s.VolumeClaimTemplate.StorageClassName, "")
+	return s.StorageClassName != "" && s.StorageClassName != ptr.Deref(s.VolumeClaimTemplate.StorageClassName, "")
 }
 
 // MariaDBMaxScaleSpec defines a MaxScale resources to be used with the current MariaDB.
