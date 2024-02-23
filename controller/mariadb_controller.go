@@ -27,6 +27,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pvc"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
@@ -329,21 +330,11 @@ func (r *MariaDBReconciler) resizeInUsePVCs(ctx context.Context, mariadb *mariad
 		return ctrl.Result{}, nil
 	}
 
-	pvcList := corev1.PersistentVolumeClaimList{}
-	listOpts := client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDB(mariadb).
-				WithPVCRole(builder.StorageVolumeRole).
-				Build(),
-		),
-		Namespace: mariadb.GetNamespace(),
+	pvcs, err := r.getStoragePVCs(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
-	if err := r.List(ctx, &pvcList, &listOpts); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
-	}
-
-	for _, pvc := range pvcList.Items {
+	for _, pvc := range pvcs {
 		patch := client.MergeFrom(pvc.DeepCopy())
 		pvc.Spec.Resources.Requests[corev1.ResourceStorage] = size
 		if err := r.Patch(ctx, &pvc, patch); err != nil {
@@ -361,30 +352,61 @@ func (r *MariaDBReconciler) resizeStatefulSet(ctx context.Context, mariadb *mari
 	return r.reconcileStatefulSet(ctx, mariadb)
 }
 
-func (r *MariaDBReconciler) waitForStorageResize(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	key := client.ObjectKeyFromObject(mariadb)
+func (r *MariaDBReconciler) waitForStorageResize(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("Waiting for storage resize")
+
+	if ptr.Deref(mdb.Spec.Storage.ResizeInUseVolumes, true) {
+		pvcs, err := r.getStoragePVCs(ctx, mdb)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		for _, p := range pvcs {
+			if pvc.IsResizing(p) {
+				logger.V(1).Info("Waiting for PVC resize", "pvc", p.Name)
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+			}
+		}
+	}
+
+	key := client.ObjectKeyFromObject(mdb)
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, key, &sts); err != nil {
 		return ctrl.Result{}, err
 	}
-	log.FromContext(ctx).V(1).Info("Waiting for storage resize")
-
-	if sts.Status.ReadyReplicas != mariadb.Spec.Replicas {
-		log.FromContext(ctx).V(1).Info(
-			"Waiting for StatefulSet resize",
+	if sts.Status.ReadyReplicas != mdb.Spec.Replicas {
+		logger.V(1).Info(
+			"Waiting for StatefulSet ready",
 			"ready-replicas", sts.Status.ReadyReplicas,
-			"expec-replicas", mariadb.Spec.Replicas,
+			"expected-replicas", mdb.Spec.Replicas,
 		)
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+	if err := r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetReadyStorageResized(status)
 		return nil
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) getStoragePVCs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) ([]corev1.PersistentVolumeClaim, error) {
+	pvcList := corev1.PersistentVolumeClaimList{}
+	listOpts := client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDB(mdb).
+				WithPVCRole(builder.StorageVolumeRole).
+				Build(),
+		),
+		Namespace: mdb.GetNamespace(),
+	}
+	if err := r.List(ctx, &pvcList, &listOpts); err != nil {
+		return nil, fmt.Errorf("error listing PVCs: %v", err)
+	}
+	return pvcList.Items, nil
 }
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
