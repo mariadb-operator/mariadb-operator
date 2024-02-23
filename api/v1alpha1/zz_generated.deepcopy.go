@@ -2580,6 +2580,11 @@ func (in *Storage) DeepCopyInto(out *Storage) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.WaitForVolumeResize != nil {
+		in, out := &in.WaitForVolumeResize, &out.WaitForVolumeResize
+		*out = new(bool)
+		**out = **in
+	}
 	if in.VolumeClaimTemplate != nil {
 		in, out := &in.VolumeClaimTemplate, &out.VolumeClaimTemplate
 		*out = new(VolumeClaimTemplate)

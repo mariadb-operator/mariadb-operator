@@ -43,8 +43,9 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Port: 3306,
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -64,8 +65,9 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Port: 3307,
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -82,8 +84,9 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Port: 3307,
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -106,8 +109,9 @@ var _ = Describe("MariaDB types", func() {
 						RootEmptyPassword: ptr.To(true),
 						Port:              3307,
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -155,8 +159,9 @@ var _ = Describe("MariaDB types", func() {
 							Key: "my.cnf",
 						},
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -210,8 +215,9 @@ var _ = Describe("MariaDB types", func() {
 							Key: "mariadb.cnf",
 						},
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -247,8 +253,9 @@ var _ = Describe("MariaDB types", func() {
 							Key: "password",
 						},
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -290,8 +297,9 @@ var _ = Describe("MariaDB types", func() {
 							Key: "pwd",
 						},
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -334,8 +342,9 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -395,8 +404,9 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
 						},
 					},
 				},
@@ -428,10 +438,11 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Port: 3306,
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
-							Size:               ptr.To(resource.MustParse("100Mi")),
-							StorageClassName:   "my-class",
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+							Size:                ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:    "my-class",
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.ResourceRequirements{
@@ -498,10 +509,11 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Port: 3306,
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
-							Size:               ptr.To(resource.MustParse("100Mi")),
-							StorageClassName:   "my-class",
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+							Size:                ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:    "my-class",
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.ResourceRequirements{
@@ -588,10 +600,11 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
-							Size:               ptr.To(resource.MustParse("100Mi")),
-							StorageClassName:   "my-class",
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+							Size:                ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:    "my-class",
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.ResourceRequirements{
@@ -654,10 +667,11 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						Storage: Storage{
-							Ephemeral:          ptr.To(false),
-							ResizeInUseVolumes: ptr.To(true),
-							Size:               ptr.To(resource.MustParse("100Mi")),
-							StorageClassName:   "my-class",
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+							Size:                ptr.To(resource.MustParse("100Mi")),
+							StorageClassName:    "my-class",
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.ResourceRequirements{

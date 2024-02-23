@@ -116,6 +116,11 @@ type Storage struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	ResizeInUseVolumes *bool `json:"resizeInUseVolumes,omitempty"`
+	// WaitForVolumeResize indicates whether to wait for the PVCs to be resized before marking the MariaDB object as ready. This will block other operations such as cluster recovery while the resize is in progress.
+	// It defaults to true.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	WaitForVolumeResize *bool `json:"waitForVolumeResize,omitempty"`
 	// VolumeClaimTemplate provides a template to define the PVCs.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -151,6 +156,9 @@ func (s *Storage) SetDefaults() {
 	}
 	if s.ResizeInUseVolumes == nil && !ptr.Deref(s.Ephemeral, false) {
 		s.ResizeInUseVolumes = ptr.To(true)
+	}
+	if s.WaitForVolumeResize == nil && !ptr.Deref(s.Ephemeral, false) {
+		s.WaitForVolumeResize = ptr.To(true)
 	}
 
 	if s.Size != nil {

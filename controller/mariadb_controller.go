@@ -356,7 +356,7 @@ func (r *MariaDBReconciler) waitForStorageResize(ctx context.Context, mdb *maria
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Waiting for storage resize")
 
-	if ptr.Deref(mdb.Spec.Storage.ResizeInUseVolumes, true) {
+	if ptr.Deref(mdb.Spec.Storage.ResizeInUseVolumes, true) && ptr.Deref(mdb.Spec.Storage.WaitForVolumeResize, true) {
 		pvcs, err := r.getStoragePVCs(ctx, mdb)
 		if err != nil {
 			return ctrl.Result{}, err
