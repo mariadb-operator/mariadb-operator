@@ -479,7 +479,7 @@ var _ = Describe("MariaDB types", func() {
 									AccessModes: []corev1.PersistentVolumeAccessMode{
 										corev1.ReadWriteOnce,
 									},
-									StorageClassName: ptr.To("my-class"),
+									StorageClassName: ptr.To("another-class"),
 								},
 							},
 						},
