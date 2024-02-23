@@ -21,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -53,20 +54,20 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
-	if !galera.Enabled || !recovery.Enabled ||
-		!mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
+	if !shouldPerformClusterRecovery(mariadb) {
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("galera").WithName("health")
 	logger.Info("Checking Galera cluster health")
 
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+
 	clusterHealthyTimeout := ptr.Deref(recovery.ClusterHealthyTimeout, metav1.Duration{Duration: 30 * time.Second}).Duration
 	healthyCtx, cancelHealthy := context.WithTimeout(ctx, clusterHealthyTimeout)
 	defer cancelHealthy()
 
-	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, &sts, logger)
+	healthy, err := r.pollUntilHealthyWithTimeout(healthyCtx, sts.ObjectMeta, logger)
 	if err != nil {
 		logger.V(1).Info("Error polling MariaDB health", "err", err)
 		return ctrl.Result{Requeue: true}, nil
@@ -86,10 +87,10 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return ctrl.Result{}, nil
 }
 
-func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, sts *appsv1.StatefulSet,
+func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, stsObjMeta metav1.ObjectMeta,
 	logger logr.Logger) (bool, error) {
 	err := wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(ctx context.Context) (bool, error) {
-		return r.isHealthy(ctx, sts, logger)
+		return r.isHealthy(ctx, stsObjMeta, logger)
 	})
 	if err != nil {
 		if wait.Interrupted(err) {
@@ -100,19 +101,24 @@ func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Co
 	return true, nil
 }
 
-func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, sts *appsv1.StatefulSet, logger logr.Logger) (bool, error) {
-	mariadb, err := r.RefResolver.MariaDBFromAnnotation(ctx, sts.ObjectMeta)
+func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta metav1.ObjectMeta, logger logr.Logger) (bool, error) {
+	mdb, err := r.RefResolver.MariaDBFromAnnotation(ctx, stsObjMeta)
 	if err != nil {
-		logger.V(1).Info("Error getting MariaDB", "err", err)
+		return false, fmt.Errorf("error getting MariaDB: %v", err)
 	}
-	if mariadb != nil && err == nil {
-		// recovery already in prgress
-		if mariadb.HasGaleraNotReadyCondition() {
-			return true, nil
-		}
+	if !shouldPerformClusterRecovery(mdb) {
+		return true, nil
 	}
 
-	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
+	key := types.NamespacedName{
+		Name:      stsObjMeta.Name,
+		Namespace: stsObjMeta.Namespace,
+	}
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, key, &sts); err != nil {
+		return false, fmt.Errorf("error getting StatefulSet: %v", err)
+	}
+	logger.Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
 	if sts.Status.ReadyReplicas == 0 {
 		return false, nil
 	}
@@ -120,9 +126,9 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, sts *appsv1
 	clientCtx, cancelClient := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelClient()
 
-	clientSet := sqlClientSet.NewClientSet(mariadb, r.RefResolver)
+	clientSet := sqlClientSet.NewClientSet(mdb, r.RefResolver)
 	defer clientSet.Close()
-	client, err := r.readyClient(clientCtx, mariadb, clientSet)
+	client, err := r.readyClient(clientCtx, mdb, clientSet)
 	if err != nil {
 		return false, fmt.Errorf("error getting ready client: %v", err)
 	}
@@ -132,9 +138,9 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, sts *appsv1
 		return false, fmt.Errorf("error getting Galera cluster size: %v", err)
 	}
 
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
 	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
-	clusterHasMinSize, err := recovery.HasMinClusterSize(size, mariadb)
+	clusterHasMinSize, err := recovery.HasMinClusterSize(size, mdb)
 	if err != nil {
 		return false, fmt.Errorf("error checking min cluster size: %v", err)
 	}
@@ -178,6 +184,18 @@ func (r *StatefulSetGaleraReconciler) patchStatus(ctx context.Context, mariadb *
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
+}
+
+func shouldPerformClusterRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
+	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+	if !galera.Enabled || !recovery.Enabled {
+		return false
+	}
+	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || !mdb.HasGaleraConfiguredCondition() || mdb.HasGaleraNotReadyCondition() {
+		return false
+	}
+	return true
 }
 
 // SetupWithManager sets up the controller with the Manager.

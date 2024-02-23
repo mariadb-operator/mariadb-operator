@@ -582,6 +582,20 @@ func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
 }
 
+// IsResizingStorage indicates whether the MariaDB instance is resizing storage
+func (m *MariaDB) IsResizingStorage() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeStorageResized)
+}
+
+// IsResizingStorage indicates whether the MariaDB instance is waiting for storage resize
+func (m *MariaDB) IsWaitingForStorageResize() bool {
+	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeStorageResized)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonWaitStorageResize
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB

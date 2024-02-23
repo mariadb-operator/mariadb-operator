@@ -100,3 +100,44 @@ func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStat
 		Message: "Running",
 	})
 }
+
+func SetReadyStorageResizing(c Conditioner) {
+	msg := "Resizing storage"
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonResizingStorage,
+		Message: msg,
+	})
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeStorageResized,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonResizingStorage,
+		Message: msg,
+	})
+}
+
+func SetReadyWaitingStorageResize(c Conditioner) {
+	msg := "Waiting for storage resize"
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonWaitStorageResize,
+		Message: msg,
+	})
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeStorageResized,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonWaitStorageResize,
+		Message: msg,
+	})
+}
+
+func SetReadyStorageResized(c Conditioner) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeStorageResized,
+		Status:  metav1.ConditionTrue,
+		Reason:  mariadbv1alpha1.ConditionReasonStorageResized,
+		Message: "Storage resized",
+	})
+}

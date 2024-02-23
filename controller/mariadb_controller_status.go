@@ -46,7 +46,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 			r.ConditionReady.PatcherRefResolver(mxsErr, mariadbv1alpha1.MaxScale{})(&mdb.Status)
 			return nil
 		}
-		if mdb.IsRestoringBackup() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
+		if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
 			return nil
 		}
 		condition.SetReadyWithStatefulSet(&mdb.Status, &sts)
