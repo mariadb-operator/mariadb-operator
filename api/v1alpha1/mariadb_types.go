@@ -161,25 +161,23 @@ func (s *Storage) SetDefaults() {
 		s.WaitForVolumeResize = ptr.To(true)
 	}
 
-	if s.Size != nil {
-		if s.shouldUpdateVolumeClaimTemplate() {
-			vctpl := VolumeClaimTemplate{
-				PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: *s.Size,
-						},
-					},
-					AccessModes: []corev1.PersistentVolumeAccessMode{
-						corev1.ReadWriteOnce,
+	if s.shouldUpdateVolumeClaimTemplate() {
+		vctpl := VolumeClaimTemplate{
+			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: *s.Size,
 					},
 				},
-			}
-			if s.StorageClassName != "" {
-				vctpl.StorageClassName = &s.StorageClassName
-			}
-			s.VolumeClaimTemplate = &vctpl
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+			},
 		}
+		if s.StorageClassName != "" {
+			vctpl.StorageClassName = &s.StorageClassName
+		}
+		s.VolumeClaimTemplate = &vctpl
 	}
 }
 
