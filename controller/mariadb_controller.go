@@ -188,7 +188,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				patcher(s)
 				return nil
 			})
-			if apierrors.IsNotFound(patchErr) {
+			if !apierrors.IsNotFound(patchErr) {
 				errBundle = multierror.Append(errBundle, patchErr)
 			}
 
@@ -272,9 +272,10 @@ func (r *MariaDBReconciler) reconcileRBAC(ctx context.Context, mariadb *mariadbv
 }
 
 func (r *MariaDBReconciler) reconcileStorage(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsReady() {
-		return ctrl.Result{}, nil
+	if mariadb.IsWaitingForStorageResize() {
+		return r.waitForStorageResize(ctx, mariadb)
 	}
+
 	key := client.ObjectKeyFromObject(mariadb)
 	var existingSts appsv1.StatefulSet
 	if err := r.Get(ctx, key, &existingSts); err != nil {
@@ -298,13 +299,28 @@ func (r *MariaDBReconciler) reconcileStorage(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, fmt.Errorf("cannot decrease storage size from '%s' to '%s'", existingSize, desiredSize)
 	}
 
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		condition.SetReadyStorageResizing(status)
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
+	}
+
 	if result, err := r.resizeInUsePVCs(ctx, mariadb, *desiredSize); !result.IsZero() || err != nil {
 		return result, err
 	}
 	if result, err := r.resizeStatefulSet(ctx, mariadb, &existingSts); !result.IsZero() || err != nil {
 		return result, err
 	}
-	return ctrl.Result{}, nil
+
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		condition.SetReadyWaitingStorageResize(status)
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
+	}
+
+	return r.waitForStorageResize(ctx, mariadb)
 }
 
 func (r *MariaDBReconciler) resizeInUsePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -343,6 +359,32 @@ func (r *MariaDBReconciler) resizeStatefulSet(ctx context.Context, mariadb *mari
 		return ctrl.Result{}, fmt.Errorf("error deleting StatefulSet: %v", err)
 	}
 	return r.reconcileStatefulSet(ctx, mariadb)
+}
+
+func (r *MariaDBReconciler) waitForStorageResize(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	key := client.ObjectKeyFromObject(mariadb)
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, key, &sts); err != nil {
+		return ctrl.Result{}, err
+	}
+	log.FromContext(ctx).V(1).Info("Waiting for storage resize")
+
+	if sts.Status.ReadyReplicas != mariadb.Spec.Replicas {
+		log.FromContext(ctx).V(1).Info(
+			"Waiting for StatefulSet resize",
+			"ready-replicas", sts.Status.ReadyReplicas,
+			"expec-replicas", mariadb.Spec.Replicas,
+		)
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		condition.SetReadyStorageResized(status)
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
