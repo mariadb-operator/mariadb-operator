@@ -9,6 +9,7 @@ const (
 	appLabel           = "app.kubernetes.io/name"
 	instanceLabel      = "app.kubernetes.io/instance"
 	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
+	volumeRole         = "pvc.mariadb.mmontes.io/role"
 	appMariaDb         = "mariadb"
 	appExporter        = "exporter"
 	appMaxScale        = "maxscale"
@@ -67,6 +68,11 @@ func (b *LabelsBuilder) WithMetricsSelectorLabels(mdb *mariadbv1alpha1.MariaDB) 
 func (b *LabelsBuilder) WithMaxScaleSelectorLabels(mxs *mariadbv1alpha1.MaxScale) *LabelsBuilder {
 	return b.WithApp(appMaxScale).
 		WithInstance(mxs.Name)
+}
+
+func (b *LabelsBuilder) WithPVCRole(role string) *LabelsBuilder {
+	b.labels[volumeRole] = role
+	return b
 }
 
 func (b *LabelsBuilder) Build() map[string]string {
