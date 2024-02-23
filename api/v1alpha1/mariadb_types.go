@@ -102,7 +102,7 @@ type Storage struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Ephemeral *bool `json:"ephemeral,omitempty" webhook:"inmutableinit"`
-	// Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'.
+	// Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Size *resource.Quantity `json:"size,omitempty"`
@@ -154,9 +154,10 @@ func (s *Storage) SetDefaults() {
 	}
 
 	if s.Size != nil {
-		if s.shouldUpdateSize(*s.Size) {
+		if s.shouldUpdateStorage() {
 			vctpl := VolumeClaimTemplate{
 				PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+					StorageClassName: &s.StorageClassName,
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceStorage: *s.Size,
@@ -166,9 +167,6 @@ func (s *Storage) SetDefaults() {
 						corev1.ReadWriteOnce,
 					},
 				},
-			}
-			if s.StorageClassName != "" {
-				vctpl.PersistentVolumeClaimSpec.StorageClassName = &s.StorageClassName
 			}
 			s.VolumeClaimTemplate = &vctpl
 		}
@@ -187,15 +185,22 @@ func (s *Storage) GetSize() *resource.Quantity {
 	return nil
 }
 
-func (s *Storage) shouldUpdateSize(size resource.Quantity) bool {
+func (s *Storage) shouldUpdateStorage() bool {
+	if s.Size == nil {
+		return false
+	}
 	if s.VolumeClaimTemplate == nil {
 		return true
 	}
+
 	vctplSize, ok := s.VolumeClaimTemplate.Resources.Requests[corev1.ResourceStorage]
 	if !ok {
 		return true
 	}
-	return size.Cmp(vctplSize) != 0
+	if s.Size.Cmp(vctplSize) != 0 {
+		return true
+	}
+	return s.StorageClassName != ptr.Deref(s.VolumeClaimTemplate.StorageClassName, "")
 }
 
 // MariaDBMaxScaleSpec defines a MaxScale resources to be used with the current MariaDB.
