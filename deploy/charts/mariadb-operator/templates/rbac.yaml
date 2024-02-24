@@ -147,11 +147,11 @@ rules:
   - statefulsets
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
   - watch
-  - delete
 - apiGroups:
   - authentication.k8s.io
   resources:
@@ -225,7 +225,19 @@ rules:
   resources:
   - connections
   - grants
+  - maxscale
   - restores
+  - users
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - mariadb.mmontes.io
+  resources:
+  - connections
+  - grants
   - users
   verbs:
   - create
@@ -283,16 +295,6 @@ rules:
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - mariadb.mmontes.io
-  resources:
-  - grants
-  - users
-  verbs:
-  - create
-  - list
-  - patch
   - watch
 - apiGroups:
   - mariadb.mmontes.io
