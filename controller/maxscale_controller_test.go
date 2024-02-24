@@ -5,6 +5,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -56,7 +57,7 @@ var _ = Describe("MaxScale controller", func() {
 		})
 	})
 
-	Context("When creating a MariaDB replication with MaxScale", Serial, FlakeAttempts(3), func() {
+	Context("When creating a MariaDB replication with MaxScale", Serial, func() {
 		It("Should reconcile", func() {
 			testMdbMxsKey := types.NamespacedName{
 				Name:      "mxs-repl",
@@ -121,7 +122,7 @@ var _ = Describe("MaxScale controller", func() {
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
-			expecFailoverSuccess(&testMdbMxs, 40*time.Second)
+			expecFailoverSuccess(&testMdbMxs)
 		})
 	})
 
@@ -190,7 +191,7 @@ var _ = Describe("MaxScale controller", func() {
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
-			expecFailoverSuccess(&testMdbMxs, 20*time.Second)
+			expecFailoverSuccess(&testMdbMxs)
 		})
 	})
 })
@@ -269,38 +270,22 @@ func expectMaxScaleReady(key types.NamespacedName) {
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
-func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB, primaryTearDownPeriod time.Duration) {
+func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB) {
 	var (
-		mxs                 mariadbv1alpha1.MaxScale
-		prevPrimaryPodIndex int
+		mxs             mariadbv1alpha1.MaxScale
+		previousPrimary string
 	)
 	By("Expecting primary to be set eventually")
 	Eventually(func(g Gomega) bool {
 		Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), mdb)).Should(Succeed())
 		Expect(mdb.Status.CurrentPrimary).ToNot(BeNil())
 		Expect(mdb.Status.CurrentPrimaryPodIndex).ToNot(BeNil())
-		prevPrimaryPodIndex = *mdb.Status.CurrentPrimaryPodIndex
+		previousPrimary = *mdb.Status.CurrentPrimary
 
 		Expect(k8sClient.Get(testCtx, mdb.MaxScaleKey(), &mxs)).Should(Succeed())
 		Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
 		return true
 	}, testHighTimeout, testInterval).Should(BeTrue())
-
-	By("Tearing down primary consistently")
-	Consistently(func() bool {
-		key := types.NamespacedName{
-			Name:      *mdb.Status.CurrentPrimary,
-			Namespace: testNamespace,
-		}
-		var pod corev1.Pod
-		if err := k8sClient.Get(testCtx, key, &pod); err != nil {
-			return apierrors.IsNotFound(err)
-		}
-		if err := k8sClient.Delete(testCtx, &pod); err != nil {
-			return apierrors.IsNotFound(err)
-		}
-		return true
-	}, primaryTearDownPeriod, testInterval).Should(BeTrue())
 
 	By("Expecting primary to have changed eventually")
 	Eventually(func(g Gomega) bool {
@@ -311,11 +296,13 @@ func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB, primaryTearDownPeriod ti
 		g.Expect(mdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
 		g.Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
 
+		g.Expect(deletePod(previousPrimary)).To(Succeed())
+
 		podIndex, err := podIndexForServer(*mxs.Status.PrimaryServer, &mxs, mdb)
+		primary := stsobj.PodName(mdb.ObjectMeta, *podIndex)
 		g.Expect(podIndex).NotTo(BeNil())
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(*podIndex).NotTo(Equal(prevPrimaryPodIndex))
-		g.Expect(*podIndex).To(Equal(*mdb.Status.CurrentPrimaryPodIndex))
+		g.Expect(primary).NotTo(Equal(previousPrimary))
 		return true
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
@@ -349,4 +336,19 @@ func deleteMaxScale(key types.NamespacedName) {
 		}
 		return true
 	}, 30*time.Second, 1*time.Second).Should(BeTrue())
+}
+
+func deletePod(podName string) error {
+	key := types.NamespacedName{
+		Name:      podName,
+		Namespace: testNamespace,
+	}
+	var pod corev1.Pod
+	if err := k8sClient.Get(testCtx, key, &pod); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	if err := k8sClient.Delete(testCtx, &pod); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	return nil
 }
