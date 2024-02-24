@@ -113,7 +113,7 @@ func (r *MariaDBReconciler) waitForStorageResize(ctx context.Context, mdb *maria
 			return ctrl.Result{}, err
 		}
 		for _, p := range pvcs {
-			if pvc.IsResizing(p) {
+			if pvc.IsResizing(&p) {
 				logger.V(1).Info("Waiting for PVC resize", "pvc", p.Name)
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 			}
