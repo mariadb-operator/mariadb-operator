@@ -159,6 +159,9 @@ metadata:
               }
             },
             "database": "mariadb",
+            "galera": {
+              "enabled": true
+            },
             "metrics": {
               "enabled": true
             },
@@ -176,9 +179,6 @@ metadata:
               "type": "ClusterIP"
             },
             "replicas": 3,
-            "replication": {
-              "enabled": true
-            },
             "secondaryConnection": {
               "secretName": "mariadb-repl-conn-secondary",
               "secretTemplate": {
@@ -191,20 +191,13 @@ metadata:
             "service": {
               "type": "ClusterIP"
             },
+            "storage": {
+              "size": "1Gi"
+            },
             "updateStrategy": {
               "type": "RollingUpdate"
             },
-            "username": "mariadb",
-            "volumeClaimTemplate": {
-              "accessModes": [
-                "ReadWriteOnce"
-              ],
-              "resources": {
-                "requests": {
-                  "storage": "1Gi"
-                }
-              }
-            }
+            "username": "mariadb"
           }
         },
         {
@@ -384,7 +377,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-02-21T12:00:10Z"
+    createdAt: "2024-02-24T10:13:32Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -486,7 +479,7 @@ spec:
           - description: Endpoint is the S3 API endpoint without scheme.
             displayName: Endpoint
             path: storage.s3.endpoint
-          - description: Prefix allows backups to be placed under a specific prefix in the bucket.
+          - description: Prefix allows backups to be placed under a specific prefix in the bucket. A trailing slash '/' is added if not provided.
             displayName: Prefix
             path: storage.s3.prefix
           - description: Region is the S3 region name to use.
@@ -783,7 +776,7 @@ spec:
           - description: Endpoint is the S3 API endpoint without scheme.
             displayName: Endpoint
             path: bootstrapFrom.s3.endpoint
-          - description: Prefix allows backups to be placed under a specific prefix in the bucket.
+          - description: Prefix allows backups to be placed under a specific prefix in the bucket. A trailing slash '/' is added if not provided.
             displayName: Prefix
             path: bootstrapFrom.s3.prefix
           - description: Region is the S3 region name to use.
@@ -881,9 +874,6 @@ spec:
           - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
             displayName: Env From
             path: envFrom
-          - description: EphemeralStorage indicates whether to use ephemeral storage for the instances.
-            displayName: Ephemeral Storage
-            path: ephemeralStorage
           - description: Replication configures high availability via Galera.
             displayName: Galera
             path: galera
@@ -1035,7 +1025,7 @@ spec:
             path: galera.recovery.enabled
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-          - description: MinClusterSize is the minimum number of replicas to consider the cluster healthy. If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated. It defaults to half of the replicas specified by the MariaDB object.
+          - description: MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%). If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated. It defaults to '50%' of the replicas specified by the MariaDB object.
             displayName: Min Cluster Size
             path: galera.recovery.minClusterSize
           - description: PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery. Once this timeout is reached, the Pod is restarted.
@@ -2063,6 +2053,39 @@ spec:
           - description: VolumeMounts to be used in the Container.
             displayName: Volume Mounts
             path: sidecarContainers[0].volumeMounts
+          - description: Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB.
+            displayName: Storage
+            path: storage
+          - description: Ephemeral indicates whether to use ephemeral storage in the PVCs. It is only compatible with non HA MariaDBs.
+            displayName: Ephemeral
+            path: storage.ephemeral
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing. It defaults to true.
+            displayName: Resize In Use Volumes
+            path: storage.resizeInUseVolumes
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.
+            displayName: Size
+            path: storage.size
+          - description: StorageClassName to be used to provision the PVCS. It superseeds the 'StorageClassName' specified in 'VolumeClaimTemplate'. If not provided, the default 'StorageClass' configured in the cluster is used.
+            displayName: Storage Class Name
+            path: storage.storageClassName
+          - description: VolumeClaimTemplate provides a template to define the PVCs.
+            displayName: Volume Claim Template
+            path: storage.volumeClaimTemplate
+          - description: Annotations to be used in the PVC.
+            displayName: Annotations
+            path: storage.volumeClaimTemplate.annotations
+          - description: Labels to be used in the PVC.
+            displayName: Labels
+            path: storage.volumeClaimTemplate.labels
+          - description: WaitForVolumeResize indicates whether to wait for the PVCs to be resized before marking the MariaDB object as ready. This will block other operations such as cluster recovery while the resize is in progress. It defaults to true.
+            displayName: Wait For Volume Resize
+            path: storage.waitForVolumeResize
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
@@ -2077,15 +2100,6 @@ spec:
           - description: Username is the username of the user to be created on bootstrap.
             displayName: Username
             path: username
-          - description: VolumeClaimTemplate provides a template to define the Pod PVCs.
-            displayName: Volume Claim Template
-            path: volumeClaimTemplate
-          - description: Annotations to be used in the PVC.
-            displayName: Annotations
-            path: volumeClaimTemplate.annotations
-          - description: Labels to be used in the PVC.
-            displayName: Labels
-            path: volumeClaimTemplate.labels
           - description: VolumeMounts to be used in the Container.
             displayName: Volume Mounts
             path: volumeMounts
@@ -2675,7 +2689,7 @@ spec:
           - description: Endpoint is the S3 API endpoint without scheme.
             displayName: Endpoint
             path: s3.endpoint
-          - description: Prefix allows backups to be placed under a specific prefix in the bucket.
+          - description: Prefix allows backups to be placed under a specific prefix in the bucket. A trailing slash '/' is added if not provided.
             displayName: Prefix
             path: s3.prefix
           - description: Region is the S3 region name to use.
@@ -2914,6 +2928,12 @@ spec:
             - apiGroups:
                 - ""
               resources:
+                - pvcs
+              verbs:
+                - list
+            - apiGroups:
+                - ""
+              resources:
                 - secrets
               verbs:
                 - create
@@ -2953,6 +2973,7 @@ spec:
                 - statefulsets
               verbs:
                 - create
+                - delete
                 - get
                 - list
                 - patch

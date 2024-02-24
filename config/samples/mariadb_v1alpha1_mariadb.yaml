@@ -6,16 +6,12 @@ spec:
   username: mariadb
   database: mariadb
 
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
 
   replicas: 3
 
-  replication:
+  galera:
     enabled: true
 
   service:
