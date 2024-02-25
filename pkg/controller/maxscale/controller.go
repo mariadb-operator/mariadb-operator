@@ -58,7 +58,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1
 		existingFieldValue := specValue.Field(i)
 		desiredFieldValue := reflect.ValueOf(desiredSpec).Elem().Field(i)
 
-		if !desiredFieldValue.IsZero() {
+		if !desiredFieldValue.IsZero() && existingFieldValue.IsZero() {
 			existingFieldValue.Set(desiredFieldValue)
 		}
 	}
