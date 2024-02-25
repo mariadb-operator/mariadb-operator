@@ -807,7 +807,7 @@ var _ = Describe("MariaDB types", func() {
 				false,
 			),
 			Entry(
-				"Storage size mistmatch",
+				"Storage decrease",
 				&MariaDB{
 					Spec: MariaDBSpec{
 						Storage: Storage{
@@ -825,6 +825,26 @@ var _ = Describe("MariaDB types", func() {
 					},
 				},
 				true,
+			),
+			Entry(
+				"Storage increase",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("150Mi")),
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("100Mi"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				false,
 			),
 		)
 
