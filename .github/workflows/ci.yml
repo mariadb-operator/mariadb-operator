@@ -87,7 +87,7 @@ jobs:
 
       - name: Cluster
         run: |
-          make cluster
+          make cluster-ha
           make install
           make install-minio
           make net
@@ -119,7 +119,7 @@ jobs:
 
       - name: Cluster
         run: |
-          make cluster
+          make cluster-ha
           make registry
           make install-ent
           make install-minio

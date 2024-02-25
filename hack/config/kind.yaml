@@ -2,9 +2,13 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
-    image: &image kindest/node:v1.26.0
+    image: &image kindest/node:v1.28.0
   - role: worker
     image: *image
+  - role: worker
+    image: *image
+  - role: worker
+    image: *image  
   - role: worker
     image: *image
     kubeadmConfigPatches: &kubeadmConfigPatches
@@ -14,9 +18,3 @@ nodes:
           taints:
             - key: "mariadb.mmontes.io/ha"
               effect: "NoSchedule"
-  - role: worker
-    image: *image
-    kubeadmConfigPatches: *kubeadmConfigPatches
-  - role: worker
-    image: *image
-    kubeadmConfigPatches: *kubeadmConfigPatches

@@ -138,15 +138,7 @@ spec:
       memory: 1Gi
 
   affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchExpressions:
-              - key: app.kubernetes.io/instance
-                operator: In
-                values:
-                  - maxscale
-          topologyKey: "kubernetes.io/hostname"
+    enableAntiAffinity: true
 
   tolerations:
     - key: "mariadb.mmontes.io/ha"

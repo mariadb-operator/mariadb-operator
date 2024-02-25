@@ -124,6 +124,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels ma
 			WithAnnotations(mariadb.Spec.PodAnnotations).
 			WithAnnotations(mariadbHAAnnotations(mariadb)).
 			Build()
+	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.Affinity{}).Affinity
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
@@ -134,7 +135,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels ma
 			ImagePullSecrets:             mariadb.Spec.ImagePullSecrets,
 			Volumes:                      mariadbVolumes(mariadb),
 			SecurityContext:              mariadb.Spec.PodSecurityContext,
-			Affinity:                     mariadb.Spec.Affinity,
+			Affinity:                     &affinity,
 			NodeSelector:                 mariadb.Spec.NodeSelector,
 			Tolerations:                  mariadb.Spec.Tolerations,
 			PriorityClassName:            priorityClass(mariadb.Spec.PriorityClassName),
@@ -152,6 +153,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, labels map[
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mxs)).
 			WithLabels(labels).
 			Build()
+	affinity := ptr.Deref(mxs.Spec.Affinity, mariadbv1alpha1.Affinity{}).Affinity
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
@@ -162,7 +164,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, labels map[
 			ImagePullSecrets:             mxs.Spec.ImagePullSecrets,
 			Volumes:                      maxscaleVolumes(mxs),
 			SecurityContext:              mxs.Spec.PodSecurityContext,
-			Affinity:                     mxs.Spec.Affinity,
+			Affinity:                     &affinity,
 			NodeSelector:                 mxs.Spec.NodeSelector,
 			Tolerations:                  mxs.Spec.Tolerations,
 			PriorityClassName:            priorityClass(mxs.Spec.PriorityClassName),

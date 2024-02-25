@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -28,6 +29,7 @@ func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, selector
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter container: %v", err)
 	}
+	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.Affinity{}).Affinity
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: selectorLabels,
@@ -47,7 +49,7 @@ func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, selector
 				},
 			},
 			SecurityContext:           mariadb.Spec.Metrics.Exporter.PodSecurityContext,
-			Affinity:                  mariadb.Spec.Metrics.Exporter.Affinity,
+			Affinity:                  &affinity,
 			NodeSelector:              mariadb.Spec.Metrics.Exporter.NodeSelector,
 			Tolerations:               mariadb.Spec.Metrics.Exporter.Tolerations,
 			PriorityClassName:         priorityClass(mariadb.Spec.Metrics.Exporter.PriorityClassName),
