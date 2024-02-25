@@ -806,6 +806,26 @@ var _ = Describe("MariaDB types", func() {
 				},
 				false,
 			),
+			Entry(
+				"Storage size mistmatch",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("50Mi")),
+							VolumeClaimTemplate: &VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: resource.MustParse("100Mi"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				true,
+			),
 		)
 
 		DescribeTable(

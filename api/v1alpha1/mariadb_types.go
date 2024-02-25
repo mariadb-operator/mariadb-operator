@@ -146,6 +146,15 @@ func (s *Storage) Validate(mdb *MariaDB) error {
 	if s.Size == nil && s.VolumeClaimTemplate == nil {
 		return errors.New("Either storage size or volumeClaimTemplate must be provided")
 	}
+	if s.Size != nil && s.VolumeClaimTemplate != nil {
+		vctplSize, ok := s.VolumeClaimTemplate.Resources.Requests[corev1.ResourceStorage]
+		if !ok {
+			return nil
+		}
+		if s.Size.Cmp(vctplSize) != 0 {
+			return errors.New("Storage size mismatch")
+		}
+	}
 	return nil
 }
 
