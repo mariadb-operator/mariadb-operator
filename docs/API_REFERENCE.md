@@ -21,6 +21,27 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 
 
 
+#### Affinity
+
+
+
+Affinity defines policies to schedule Pods in Nodes.
+
+_Appears in:_
+- [Exporter](#exporter)
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
+- [MariaDBSpec](#mariadbspec)
+- [MaxScaleSpec](#maxscalespec)
+- [PodTemplate](#podtemplate)
+
+| Field | Description |
+| --- | --- |
+| `nodeAffinity` _[NodeAffinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#nodeaffinity-v1-core)_ | Describes node affinity scheduling rules for the pod. |
+| `podAffinity` _[PodAffinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podaffinity-v1-core)_ | Describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s)). |
+| `podAntiAffinity` _[PodAntiAffinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podantiaffinity-v1-core)_ | Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s)). |
+| `enableAntiAffinity` _boolean_ | EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods. |
+
+
 #### Backup
 
 
@@ -276,7 +297,7 @@ _Appears in:_
 | `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
-| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `affinity` _[Affinity](#affinity)_ | Affinity to be used in the Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
 | `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
@@ -551,7 +572,7 @@ _Appears in:_
 | `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
-| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `affinity` _[Affinity](#affinity)_ | Affinity to be used in the Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
 | `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
@@ -625,7 +646,7 @@ _Appears in:_
 | `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
-| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `affinity` _[Affinity](#affinity)_ | Affinity to be used in the Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
 | `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
@@ -859,7 +880,7 @@ _Appears in:_
 | `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
-| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `affinity` _[Affinity](#affinity)_ | Affinity to be used in the Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
 | `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |
@@ -947,7 +968,7 @@ _Appears in:_
 | `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |
 | `podSecurityContext` _[PodSecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core)_ | SecurityContext holds pod-level security attributes and common container settings. |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |
-| `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Pod. |
+| `affinity` _[Affinity](#affinity)_ | Affinity to be used in the Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |
 | `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |

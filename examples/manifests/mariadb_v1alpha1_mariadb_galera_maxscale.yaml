@@ -19,8 +19,6 @@ spec:
   # provision a MaxScale instance and set 'spec.maxScaleRef' automatically.
   maxScale:
     enabled: true
-
-    replicas: 3
     
     kubernetesService:
       type: LoadBalancer

@@ -538,6 +538,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 		m.Spec.Galera.SetDefaults(m, env)
 	}
 	m.Spec.Storage.SetDefaults()
+	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
 }
 
 // Replication with defaulting accessor

@@ -7,6 +7,7 @@ import (
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -15,6 +16,7 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
 			Build()
+	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.Affinity{}).Affinity
 	restore := &mariadbv1alpha1.Restore{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.RestoreSpec{
@@ -25,7 +27,7 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 				},
 				WaitForIt: true,
 			},
-			Affinity:           mariadb.Spec.Affinity,
+			Affinity:           &affinity,
 			NodeSelector:       mariadb.Spec.NodeSelector,
 			Tolerations:        mariadb.Spec.Tolerations,
 			PodSecurityContext: mariadb.Spec.PodSecurityContext,

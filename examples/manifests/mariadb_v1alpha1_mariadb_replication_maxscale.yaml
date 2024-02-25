@@ -20,8 +20,6 @@ spec:
   maxScale:
     enabled: true
 
-    replicas: 3
-
     kubernetesService:
       type: LoadBalancer
       annotations:

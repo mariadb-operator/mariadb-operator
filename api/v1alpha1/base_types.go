@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
@@ -10,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -131,6 +133,45 @@ type Container struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
+// Affinity defines policies to schedule Pods in Nodes.
+type Affinity struct {
+	// Affinity to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	corev1.Affinity `json:",inline"`
+	// EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.
+	// Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	EnableAntiAffinity *bool `json:"enableAntiAffinity,omitempty" webhook:"inmutable"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (a *Affinity) SetDefaults(objMeta metav1.ObjectMeta) {
+	if ptr.Deref(a.EnableAntiAffinity, false) && reflect.ValueOf(a.Affinity).IsZero() {
+		a.Affinity = corev1.Affinity{
+			PodAntiAffinity: &corev1.PodAntiAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "app.kubernetes.io/instance",
+									Operator: metav1.LabelSelectorOpIn,
+									Values: []string{
+										objMeta.Name,
+									},
+								},
+							},
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		}
+	}
+}
+
 // PodTemplate defines a template to configure Container objects.
 type PodTemplate struct {
 	// InitContainers to be used in the Pod.
@@ -152,7 +193,7 @@ type PodTemplate struct {
 	// Affinity to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	Affinity *Affinity `json:"affinity,omitempty"`
 	// NodeSelector to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -173,6 +214,13 @@ type PodTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (p *PodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
+	if p.Affinity != nil {
+		p.Affinity.SetDefaults(objMeta)
+	}
 }
 
 // IsServiceAccountNameDefined indicates whether the current object has a ServiceAccountName defined

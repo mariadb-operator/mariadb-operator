@@ -674,6 +674,7 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv) {
 	m.Spec.Admin.SetDefaults(m)
 	m.Spec.Config.SetDefaults(m)
 	m.Spec.Auth.SetDefaults(m)
+	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
 }
 
 // IsReady indicates whether the Maxscale instance is ready.
