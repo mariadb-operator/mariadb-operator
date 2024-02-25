@@ -144,11 +144,15 @@ install-samples: cluster-ctx  ## Install sample configuration.
 serviceaccount: cluster-ctx  ## Create long-lived ServiceAccount token for development.
 	@./hack/create_serviceaccount.sh
 
+.PHONY: storageclass
+storageclass: cluster-ctx  ## Create StorageClass that allows volume expansion.
+	$(KUBECTL) apply -f ./hack/manifests/storageclass.yaml
+
 .PHONY: install
-install: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount cert docker-dev ## Install everything you need for local development.
+install: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount storageclass cert docker-dev ## Install everything you need for local development.
 
 .PHONY: install-ent
-install-ent: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount cert docker-dev-ent ## Install everything you need for local enterprise development.
+install-ent: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount storageclass cert docker-dev-ent ## Install everything you need for local enterprise development.
 
 ##@ Deploy
 

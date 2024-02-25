@@ -5,8 +5,10 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -15,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -585,49 +588,6 @@ var _ = Describe("MariaDB Galera", func() {
 			Namespace: testNamespace,
 		}
 
-		It("Should be able to reuse storage", Serial, func() {
-			mdb := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      galeraKey.Name,
-					Namespace: galeraKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Config: mariadbv1alpha1.GaleraConfig{
-								ReuseStorageVolume: ptr.To(true),
-							},
-						},
-					},
-					Replicas: 1,
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("300Mi")),
-					},
-					Service: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
-						},
-					},
-				},
-			}
-
-			By("Creating MariaDB Galera")
-			Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMariaDB(&mdb)
-			})
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
-			}, testHighTimeout, testInterval).Should(BeTrue())
-		})
-
 		It("Should reconcile", Serial, func() {
 			mdb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -863,6 +823,90 @@ var _ = Describe("MariaDB Galera", func() {
 				Namespace: testNamespace,
 			}
 			expectMariadbMaxScaleReady(&mdb, mxsKey)
+		})
+
+		It("Should reconcile storage", Serial, func() {
+			mdb := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      galeraKey.Name,
+					Namespace: galeraKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
+								ReuseStorageVolume: ptr.To(true),
+							},
+						},
+					},
+					Replicas: 3,
+					Storage: mariadbv1alpha1.Storage{
+						Size:                ptr.To(resource.MustParse("300Mi")),
+						StorageClassName:    "standard-resize",
+						ResizeInUseVolumes:  ptr.To(true),
+						WaitForVolumeResize: ptr.To(true),
+					},
+					Service: &mariadbv1alpha1.ServiceTemplate{
+						Type: corev1.ServiceTypeLoadBalancer,
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
+						},
+					},
+				},
+			}
+
+			By("Creating MariaDB Galera")
+			Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&mdb)
+			})
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
+					return false
+				}
+				return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
+			}, testHighTimeout, testInterval).Should(BeTrue())
+
+			By("Updating storage")
+			mdb.Spec.Storage.Size = ptr.To(resource.MustParse("400Mi"))
+			Expect(k8sClient.Update(testCtx, &mdb)).To(Succeed())
+
+			By("Expecting MariaDB to have resized storage eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
+					return false
+				}
+				return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeStorageResized)
+			}, testHighTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting StatefulSet storage to have been resized")
+			var sts appsv1.StatefulSet
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &sts)).To(Succeed())
+			mdbSize := mdb.Spec.Storage.GetSize()
+			stsSize := stsobj.GetStorageSize(&sts, builder.StorageVolume)
+			Expect(mdbSize).NotTo(BeNil())
+			Expect(stsSize).NotTo(BeNil())
+			Expect(mdbSize.Cmp(*stsSize)).To(Equal(0))
+
+			By("Expecting PVCs to have been resized")
+			pvcList := corev1.PersistentVolumeClaimList{}
+			listOpts := client.ListOptions{
+				LabelSelector: klabels.SelectorFromSet(
+					labels.NewLabelsBuilder().
+						WithMariaDB(&mdb).
+						WithPVCRole(builder.StorageVolumeRole).
+						Build(),
+				),
+				Namespace: mdb.GetNamespace(),
+			}
+			Expect(k8sClient.List(testCtx, &pvcList, &listOpts)).To(Succeed())
+			for _, p := range pvcList.Items {
+				pvcSize := p.Spec.Resources.Requests[corev1.ResourceStorage]
+				Expect(mdbSize.Cmp(pvcSize)).To(Equal(0))
+			}
 		})
 	})
 })
