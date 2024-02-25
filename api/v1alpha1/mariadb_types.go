@@ -151,8 +151,8 @@ func (s *Storage) Validate(mdb *MariaDB) error {
 		if !ok {
 			return nil
 		}
-		if s.Size.Cmp(vctplSize) != 0 {
-			return errors.New("Storage size mismatch")
+		if s.Size.Cmp(vctplSize) < 0 {
+			return errors.New("Storage size cannot be decreased")
 		}
 	}
 	return nil
