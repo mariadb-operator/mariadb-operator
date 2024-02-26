@@ -125,11 +125,6 @@ func (in *BackupSpec) DeepCopyInto(out *BackupSpec) {
 	in.PodTemplate.DeepCopyInto(&out.PodTemplate)
 	out.MariaDBRef = in.MariaDBRef
 	in.Storage.DeepCopyInto(&out.Storage)
-	if in.Args != nil {
-		in, out := &in.Args, &out.Args
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.Schedule != nil {
 		in, out := &in.Schedule, &out.Schedule
 		*out = new(Schedule)
@@ -2128,11 +2123,6 @@ func (in *RestoreSpec) DeepCopyInto(out *RestoreSpec) {
 	in.PodTemplate.DeepCopyInto(&out.PodTemplate)
 	in.RestoreSource.DeepCopyInto(&out.RestoreSource)
 	out.MariaDBRef = in.MariaDBRef
-	if in.Args != nil {
-		in, out := &in.Args, &out.Args
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.InheritMetadata != nil {
 		in, out := &in.InheritMetadata, &out.InheritMetadata
 		*out = new(InheritMetadata)

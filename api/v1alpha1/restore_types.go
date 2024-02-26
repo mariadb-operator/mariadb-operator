@@ -24,10 +24,6 @@ type RestoreSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
-	// Args to be used in the Restore container.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Args []string `json:"args,omitempty"`
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
