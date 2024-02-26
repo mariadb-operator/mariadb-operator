@@ -32,6 +32,13 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
+						ContainerTemplate: ContainerTemplate{
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
 						Storage: BackupStorage{},
 						MariaDBRef: MariaDBRef{
 							ObjectReference: corev1.ObjectReference{
@@ -39,12 +46,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 							WaitForIt: true,
 						},
-						BackoffLimit: 10,
-						Resources: &corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"cpu": resource.MustParse("100m"),
-							},
-						},
+						BackoffLimit:  10,
 						RestartPolicy: corev1.RestartPolicyOnFailure,
 					},
 				},
@@ -58,6 +60,13 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
+						ContainerTemplate: ContainerTemplate{
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
 						Storage: BackupStorage{
 							S3: &S3{
 								Bucket:   "test",
@@ -75,12 +84,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 							WaitForIt: true,
 						},
-						BackoffLimit: 10,
-						Resources: &corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"cpu": resource.MustParse("100m"),
-							},
-						},
+						BackoffLimit:  10,
 						RestartPolicy: corev1.RestartPolicyOnFailure,
 					},
 				},
@@ -94,6 +98,13 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
+						ContainerTemplate: ContainerTemplate{
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
 						Storage: BackupStorage{
 							S3: &S3{
 								Bucket:   "test",
@@ -106,12 +117,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 							WaitForIt: true,
 						},
-						BackoffLimit: 10,
-						Resources: &corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"cpu": resource.MustParse("100m"),
-							},
-						},
+						BackoffLimit:  10,
 						RestartPolicy: corev1.RestartPolicyOnFailure,
 					},
 				},
@@ -125,6 +131,13 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
+						ContainerTemplate: ContainerTemplate{
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
 						Schedule: &Schedule{
 							Cron: "foo",
 						},
@@ -140,12 +153,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 							WaitForIt: true,
 						},
-						BackoffLimit: 10,
-						Resources: &corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"cpu": resource.MustParse("100m"),
-							},
-						},
+						BackoffLimit:  10,
 						RestartPolicy: corev1.RestartPolicyOnFailure,
 					},
 				},
@@ -159,6 +167,13 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
+						ContainerTemplate: ContainerTemplate{
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
 						Schedule: &Schedule{
 							Cron: "*/1 * * * *",
 						},
@@ -174,12 +189,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 							WaitForIt: true,
 						},
-						BackoffLimit: 10,
-						Resources: &corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								"cpu": resource.MustParse("100m"),
-							},
-						},
+						BackoffLimit:  10,
 						RestartPolicy: corev1.RestartPolicyOnFailure,
 					},
 				},
@@ -200,6 +210,13 @@ var _ = Describe("Backup webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: BackupSpec{
+					ContainerTemplate: ContainerTemplate{
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("100m"),
+							},
+						},
+					},
 					MaxRetention: metav1.Duration{Duration: 12 * time.Hour},
 					Storage: BackupStorage{
 						S3: &S3{
@@ -213,12 +230,7 @@ var _ = Describe("Backup webhook", func() {
 						},
 						WaitForIt: true,
 					},
-					BackoffLimit: 10,
-					Resources: &corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							"cpu": resource.MustParse("100m"),
-						},
-					},
+					BackoffLimit:  10,
 					RestartPolicy: corev1.RestartPolicyOnFailure,
 				},
 			}
