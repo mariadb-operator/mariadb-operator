@@ -182,6 +182,13 @@ var _ = Describe("Restore webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: RestoreSpec{
+					ContainerTemplate: ContainerTemplate{
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("100m"),
+							},
+						},
+					},
 					RestoreSource: RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: "backup-webhook",
@@ -194,12 +201,7 @@ var _ = Describe("Restore webhook", func() {
 						},
 						WaitForIt: true,
 					},
-					BackoffLimit: 10,
-					Resources: &corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							"cpu": resource.MustParse("100m"),
-						},
-					},
+					BackoffLimit:  10,
 					RestartPolicy: corev1.RestartPolicyOnFailure,
 				},
 			}

@@ -8,6 +8,14 @@ import (
 
 // SqlJobSpec defines the desired state of SqlJob
 type SqlJobSpec struct {
+	// ContainerTemplate defines templates to configure Container objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ContainerTemplate `json:",inline"`
+	// PodTemplate defines templates to configure Pod objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -56,30 +64,6 @@ type SqlJobSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
-	// Resouces describes the compute resource requirements.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty" webhook:"inmutable"`
-	// Affinity to be used in the SqlJob Pod.
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// NodeSelector to be used in the SqlJob Pod.
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// Tolerations to be used in the SqlJob Pod.
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// SecurityContext holds security configuration that will be applied to a container.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
-	// SecurityContext holds pod-level security attributes and common container settings.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 }
 
 // SqlJobStatus defines the observed state of SqlJob

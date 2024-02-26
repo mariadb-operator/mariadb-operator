@@ -9,7 +9,9 @@ import (
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -60,45 +62,47 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
 	volumes, volumeSources := jobBatchStorageVolume(volume, backup.Spec.Storage.S3)
+	affinity := ptr.Deref(backup.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
-	opts := []jobOption{
-		withJobMeta(objMeta),
-		withJobVolumes(volumes...),
-		withJobInitContainers(
-			jobMariadbContainer(
-				cmd.MariadbDump(backup, mariadb),
-				volumeSources,
-				jobEnv(mariadb),
-				backup.Spec.Resources,
-				mariadb,
-				backup.Spec.SecurityContext,
-			),
-		),
-		withJobContainers(
-			jobMariadbOperatorContainer(
-				cmd.MariadbOperatorBackup(),
-				volumeSources,
-				jobS3Env(backup.Spec.Storage.S3),
-				backup.Spec.Resources,
-				mariadb,
-				b.env,
-				backup.Spec.SecurityContext,
-			),
-		),
-		withJobBackoffLimit(backup.Spec.BackoffLimit),
-		withJobRestartPolicy(backup.Spec.RestartPolicy),
-		withAffinity(backup.Spec.Affinity),
-		withNodeSelector(backup.Spec.NodeSelector),
-		withTolerations(backup.Spec.Tolerations...),
-		withPodSecurityContext(backup.Spec.PodSecurityContext),
+	job := &batchv1.Job{
+		ObjectMeta: objMeta,
+		Spec: batchv1.JobSpec{
+			BackoffLimit: &backup.Spec.BackoffLimit,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: objMeta,
+				Spec: corev1.PodSpec{
+					RestartPolicy: backup.Spec.RestartPolicy,
+					Volumes:       volumes,
+					InitContainers: []corev1.Container{
+						jobMariadbContainer(
+							cmd.MariadbDump(backup, mariadb),
+							volumeSources,
+							jobEnv(mariadb),
+							backup.Spec.Resources,
+							mariadb,
+							backup.Spec.SecurityContext,
+						),
+					},
+					Containers: []corev1.Container{
+						jobMariadbOperatorContainer(
+							cmd.MariadbOperatorBackup(),
+							volumeSources,
+							jobS3Env(backup.Spec.Storage.S3),
+							backup.Spec.Resources,
+							mariadb,
+							b.env,
+							backup.Spec.SecurityContext,
+						),
+					},
+					Affinity:           &affinity,
+					NodeSelector:       backup.Spec.NodeSelector,
+					Tolerations:        backup.Spec.Tolerations,
+					SecurityContext:    backup.Spec.PodSecurityContext,
+					ServiceAccountName: ptr.Deref(backup.Spec.ServiceAccountName, "default"),
+				},
+			},
+		},
 	}
-
-	builder, err := newJobBuilder(opts...)
-	if err != nil {
-		return nil, fmt.Errorf("error building backup Job: %v", err)
-	}
-
-	job := builder.build()
 	if err := controllerutil.SetControllerReference(backup, job, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
@@ -110,7 +114,6 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 	if backup.Spec.Schedule == nil {
 		return nil, errors.New("schedule field is mandatory when building a CronJob")
 	}
-
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(backup.Spec.InheritMetadata).
@@ -162,45 +165,47 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
 	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.RestoreSource.Volume, restore.Spec.S3)
+	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
-	jobOpts := []jobOption{
-		withJobMeta(objMeta),
-		withJobVolumes(volumes...),
-		withJobInitContainers(
-			jobMariadbOperatorContainer(
-				cmd.MariadbOperatorRestore(),
-				volumeSources,
-				jobS3Env(restore.Spec.S3),
-				restore.Spec.Resources,
-				mariadb,
-				b.env,
-				restore.Spec.SecurityContext,
-			),
-		),
-		withJobContainers(
-			jobMariadbContainer(
-				cmd.MariadbRestore(mariadb),
-				volumeSources,
-				jobEnv(mariadb),
-				restore.Spec.Resources,
-				mariadb,
-				restore.Spec.SecurityContext,
-			),
-		),
-		withJobBackoffLimit(restore.Spec.BackoffLimit),
-		withJobRestartPolicy(restore.Spec.RestartPolicy),
-		withAffinity(restore.Spec.Affinity),
-		withNodeSelector(restore.Spec.NodeSelector),
-		withTolerations(restore.Spec.Tolerations...),
-		withPodSecurityContext(restore.Spec.PodSecurityContext),
+	job := &batchv1.Job{
+		ObjectMeta: objMeta,
+		Spec: batchv1.JobSpec{
+			BackoffLimit: &restore.Spec.BackoffLimit,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: objMeta,
+				Spec: corev1.PodSpec{
+					RestartPolicy: restore.Spec.RestartPolicy,
+					Volumes:       volumes,
+					InitContainers: []corev1.Container{
+						jobMariadbOperatorContainer(
+							cmd.MariadbOperatorRestore(),
+							volumeSources,
+							jobS3Env(restore.Spec.S3),
+							restore.Spec.Resources,
+							mariadb,
+							b.env,
+							restore.Spec.SecurityContext,
+						),
+					},
+					Containers: []corev1.Container{
+						jobMariadbContainer(
+							cmd.MariadbRestore(mariadb),
+							volumeSources,
+							jobEnv(mariadb),
+							restore.Spec.Resources,
+							mariadb,
+							restore.Spec.SecurityContext,
+						),
+					},
+					Affinity:           &affinity,
+					NodeSelector:       restore.Spec.NodeSelector,
+					Tolerations:        restore.Spec.Tolerations,
+					SecurityContext:    restore.Spec.PodSecurityContext,
+					ServiceAccountName: ptr.Deref(restore.Spec.ServiceAccountName, "default"),
+				},
+			},
+		},
 	}
-
-	builder, err := newJobBuilder(jobOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("error building backup Job: %v", err)
-	}
-
-	job := builder.build()
 	if err := controllerutil.SetControllerReference(restore, job, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
@@ -213,8 +218,6 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(sqlJob.Spec.InheritMetadata).
 			Build()
-
-	volumes, volumeMounts := sqlJobvolumes(sqlJob)
 
 	sqlOpts := []command.SqlOpt{
 		command.WithSqlUserEnv(batchUserEnv),
@@ -229,33 +232,37 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		return nil, fmt.Errorf("error building sql command: %v", err)
 	}
 
-	jobOpts := []jobOption{
-		withJobMeta(objMeta),
-		withJobVolumes(volumes...),
-		withJobContainers(
-			jobMariadbContainer(
-				cmd.ExecCommand(mariadb),
-				volumeMounts,
-				sqlJobEnv(sqlJob),
-				sqlJob.Spec.Resources,
-				mariadb,
-				sqlJob.Spec.SecurityContext,
-			),
-		),
-		withJobBackoffLimit(sqlJob.Spec.BackoffLimit),
-		withJobRestartPolicy(sqlJob.Spec.RestartPolicy),
-		withAffinity(sqlJob.Spec.Affinity),
-		withNodeSelector(sqlJob.Spec.NodeSelector),
-		withTolerations(sqlJob.Spec.Tolerations...),
-		withPodSecurityContext(sqlJob.Spec.PodSecurityContext),
-	}
+	volumes, volumeMounts := sqlJobvolumes(sqlJob)
+	affinity := ptr.Deref(sqlJob.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
-	builder, err := newJobBuilder(jobOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("error building sql Job: %v", err)
+	job := &batchv1.Job{
+		ObjectMeta: objMeta,
+		Spec: batchv1.JobSpec{
+			BackoffLimit: &sqlJob.Spec.BackoffLimit,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: objMeta,
+				Spec: corev1.PodSpec{
+					RestartPolicy: sqlJob.Spec.RestartPolicy,
+					Volumes:       volumes,
+					Containers: []corev1.Container{
+						jobMariadbContainer(
+							cmd.ExecCommand(mariadb),
+							volumeMounts,
+							sqlJobEnv(sqlJob),
+							sqlJob.Spec.Resources,
+							mariadb,
+							sqlJob.Spec.SecurityContext,
+						),
+					},
+					Affinity:           &affinity,
+					NodeSelector:       sqlJob.Spec.NodeSelector,
+					Tolerations:        sqlJob.Spec.Tolerations,
+					SecurityContext:    sqlJob.Spec.PodSecurityContext,
+					ServiceAccountName: ptr.Deref(sqlJob.Spec.ServiceAccountName, "default"),
+				},
+			},
+		},
 	}
-
-	job := builder.build()
 	if err := controllerutil.SetControllerReference(sqlJob, job, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
@@ -267,7 +274,6 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 	if sqlJob.Spec.Schedule == nil {
 		return nil, errors.New("schedule field is mandatory when building a CronJob")
 	}
-
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(sqlJob.Spec.InheritMetadata).
