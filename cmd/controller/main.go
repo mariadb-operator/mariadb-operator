@@ -279,6 +279,7 @@ var rootCmd = &cobra.Command{
 			Builder:           builder,
 			RefResolver:       refResolver,
 			ConditionComplete: conditionComplete,
+			RBACReconciler:    rbacReconciler,
 			BatchReconciler:   batchReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Backup")
@@ -290,6 +291,7 @@ var rootCmd = &cobra.Command{
 			Builder:           builder,
 			RefResolver:       refResolver,
 			ConditionComplete: conditionComplete,
+			RBACReconciler:    rbacReconciler,
 			BatchReconciler:   batchReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "restore")
@@ -325,6 +327,7 @@ var rootCmd = &cobra.Command{
 			RefResolver:         refResolver,
 			ConfigMapReconciler: configMapReconciler,
 			ConditionComplete:   conditionComplete,
+			RBACReconciler:      rbacReconciler,
 			RequeueInterval:     requeueSqlJob,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "SqlJob")

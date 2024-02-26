@@ -167,15 +167,25 @@ var _ = Describe("SqlJob controller", func() {
 			}
 
 			By("Expecting to create a Job")
-			for _, j := range sqlJobs {
+			for _, sqlJob := range sqlJobs {
 				var job batchv1.Job
-				Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&j), &job)).To(Succeed())
+				Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sqlJob), &job)).To(Succeed())
 
 				By("Expecting Jobs to have metadata")
 				Expect(job.ObjectMeta.Labels).NotTo(BeNil())
 				Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 				Expect(job.ObjectMeta.Annotations).NotTo(BeNil())
 				Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+
+				By("Expecting to create a ServiceAccount eventually")
+				var svcAcc corev1.ServiceAccount
+				key := sqlJob.Spec.PodTemplate.ServiceAccountKey(job.ObjectMeta)
+				Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
+
+				Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
+				Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 			}
 		})
 	})

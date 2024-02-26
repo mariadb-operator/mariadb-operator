@@ -11,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,6 +35,7 @@ type SqlJobReconciler struct {
 	RefResolver         *refresolver.RefResolver
 	ConditionComplete   *condition.Complete
 	ConfigMapReconciler *configmap.ConfigMapReconciler
+	RBACReconciler      *rbac.RBACReconciler
 	RequeueInterval     time.Duration
 }
 
@@ -78,6 +80,9 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
+	if err := r.reconcileServiceAccount(ctx, &sqlJob); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling ServiceAccount: %v", err)
+	}
 	if err := r.reconcileConfigMap(ctx, &sqlJob, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling ConfigMap: %v", err)
 	}
@@ -244,6 +249,14 @@ func (r *SqlJobReconciler) setDefaults(ctx context.Context, sqlJob *mariadbv1alp
 	return r.patch(ctx, sqlJob, func(s *mariadbv1alpha1.SqlJob) {
 		s.SetDefaults()
 	})
+}
+
+func (r *SqlJobReconciler) reconcileServiceAccount(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) error {
+	key := sqlJob.Spec.ServiceAccountKey(sqlJob.ObjectMeta)
+	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, sqlJob, builder.ServiceAccountOpts{
+		Metadata: sqlJob.Spec.InheritMetadata,
+	})
+	return err
 }
 
 func (r *SqlJobReconciler) patchStatus(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,

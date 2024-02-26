@@ -10,6 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,6 +27,7 @@ type BackupReconciler struct {
 	Builder           *builder.Builder
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *condition.Complete
+	RBACReconciler    *rbac.RBACReconciler
 	BatchReconciler   *batch.BatchReconciler
 }
 
@@ -66,6 +68,10 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
+	if err := r.reconcileServiceAccount(ctx, &backup); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling ServiceAccount: %v", err)
+	}
+
 	var batchErr *multierror.Error
 	err = r.BatchReconciler.Reconcile(ctx, &backup, mariaDb)
 	batchErr = multierror.Append(batchErr, err)
@@ -91,6 +97,14 @@ func (r *BackupReconciler) setDefaults(ctx context.Context, backup *mariadbv1alp
 	return r.patch(ctx, backup, func(b *mariadbv1alpha1.Backup) {
 		backup.SetDefaults()
 	})
+}
+
+func (r *BackupReconciler) reconcileServiceAccount(ctx context.Context, backup *mariadbv1alpha1.Backup) error {
+	key := backup.Spec.ServiceAccountKey(backup.ObjectMeta)
+	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, backup, builder.ServiceAccountOpts{
+		Metadata: backup.Spec.InheritMetadata,
+	})
+	return err
 }
 
 func (r *BackupReconciler) patch(ctx context.Context, backup *mariadbv1alpha1.Backup, patcher func(*mariadbv1alpha1.Backup)) error {
