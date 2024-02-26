@@ -34,9 +34,7 @@ spec:
       key: dsn
 
   affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - topologyKey: "kubernetes.io/hostname"
+    enableAntiAffinity: true
 
   podDisruptionBudget:
     maxUnavailable: 66%

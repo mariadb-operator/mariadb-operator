@@ -124,7 +124,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels ma
 			WithAnnotations(mariadb.Spec.PodAnnotations).
 			WithAnnotations(mariadbHAAnnotations(mariadb)).
 			Build()
-	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.Affinity{}).Affinity
+	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
@@ -153,7 +153,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, labels map[
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mxs)).
 			WithLabels(labels).
 			Build()
-	affinity := ptr.Deref(mxs.Spec.Affinity, mariadbv1alpha1.Affinity{}).Affinity
+	affinity := ptr.Deref(mxs.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{

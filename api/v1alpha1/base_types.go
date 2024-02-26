@@ -133,8 +133,8 @@ type Container struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
-// Affinity defines policies to schedule Pods in Nodes.
-type Affinity struct {
+// AffinityConfig defines policies to schedule Pods in Nodes.
+type AffinityConfig struct {
 	// Affinity to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -147,7 +147,7 @@ type Affinity struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (a *Affinity) SetDefaults(objMeta metav1.ObjectMeta) {
+func (a *AffinityConfig) SetDefaults(objMeta metav1.ObjectMeta) {
 	if ptr.Deref(a.EnableAntiAffinity, false) && reflect.ValueOf(a.Affinity).IsZero() {
 		a.Affinity = corev1.Affinity{
 			PodAntiAffinity: &corev1.PodAntiAffinity{
@@ -193,7 +193,7 @@ type PodTemplate struct {
 	// Affinity to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Affinity *Affinity `json:"affinity,omitempty"`
+	Affinity *AffinityConfig `json:"affinity,omitempty"`
 	// NodeSelector to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
