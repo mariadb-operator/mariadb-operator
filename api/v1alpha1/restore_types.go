@@ -83,6 +83,13 @@ func (r *Restore) IsComplete() bool {
 	return meta.IsStatusConditionTrue(r.Status.Conditions, ConditionTypeComplete)
 }
 
+func (b *Restore) SetDefaults() {
+	if b.Spec.BackoffLimit == 0 {
+		b.Spec.BackoffLimit = 5
+	}
+	b.Spec.PodTemplate.SetDefaults(b.ObjectMeta)
+}
+
 // +kubebuilder:object:root=true
 
 // RestoreList contains a list of restore

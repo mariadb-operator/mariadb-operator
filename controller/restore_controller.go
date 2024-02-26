@@ -94,6 +94,7 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1alpha1.Restore) error {
 	if err := r.patch(ctx, restore, func(r *mariadbv1alpha1.Restore) error {
+		restore.SetDefaults()
 		r.Spec.RestoreSource.SetDefaults()
 		return nil
 	}); err != nil {

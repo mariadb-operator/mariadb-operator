@@ -103,6 +103,10 @@ func (s *SqlJob) IsComplete() bool {
 	return meta.IsStatusConditionTrue(s.Status.Conditions, ConditionTypeComplete)
 }
 
+func (s *SqlJob) SetDefaults() {
+	s.Spec.PodTemplate.SetDefaults(s.ObjectMeta)
+}
+
 //+kubebuilder:object:root=true
 
 // SqlJobList contains a list of SqlJob
