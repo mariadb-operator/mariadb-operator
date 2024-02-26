@@ -284,9 +284,6 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: args
-      - description: Args to be used in the Backup container.
-        displayName: Args
-        path: args
       - description: BackoffLimit defines the maximum number of attempts to successfully
           take a Backup.
         displayName: Backoff Limit
@@ -2994,9 +2991,6 @@ spec:
         displayName: Enable Anti Affinity
         path: affinity.enableAntiAffinity
       - description: Args to be used in the Container.
-        displayName: Args
-        path: args
-      - description: Args to be used in the Restore container.
         displayName: Args
         path: args
       - description: BackoffLimit defines the maximum number of attempts to successfully

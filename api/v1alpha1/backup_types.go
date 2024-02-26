@@ -60,10 +60,6 @@ type BackupSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Storage BackupStorage `json:"storage" webhook:"inmutable"`
-	// Args to be used in the Backup container.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Args []string `json:"args,omitempty"`
 	// Schedule defines when the Backup will be taken.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

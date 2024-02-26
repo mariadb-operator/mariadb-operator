@@ -886,12 +886,9 @@ spec:
                     type: object
                 type: object
               args:
-                allOf:
-                - items:
-                    type: string
-                - items:
-                    type: string
                 description: Args to be used in the Container.
+                items:
+                  type: string
                 type: array
               backoffLimit:
                 default: 5
