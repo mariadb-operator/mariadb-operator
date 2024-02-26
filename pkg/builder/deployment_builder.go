@@ -29,7 +29,7 @@ func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, selector
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter container: %v", err)
 	}
-	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.Affinity{}).Affinity
+	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: selectorLabels,

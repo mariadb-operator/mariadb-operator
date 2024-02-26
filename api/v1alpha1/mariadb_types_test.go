@@ -567,7 +567,7 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						PodTemplate: PodTemplate{
-							Affinity: &Affinity{
+							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
 							},
 						},
@@ -591,7 +591,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						PodTemplate: PodTemplate{
-							Affinity: &Affinity{
+							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
@@ -675,7 +675,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						PodTemplate: PodTemplate{
-							Affinity: &Affinity{
+							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
@@ -767,7 +767,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						PodTemplate: PodTemplate{
-							Affinity: &Affinity{
+							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{

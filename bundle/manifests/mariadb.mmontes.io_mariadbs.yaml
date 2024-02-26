@@ -53,6 +53,12 @@ spec:
               affinity:
                 description: Affinity to be used in the Pod.
                 properties:
+                  enableAntiAffinity:
+                    description: EnableAntiAffinity configures PodAntiAffinity so
+                      each Pod is scheduled in a different Node, enabling HA. Make
+                      sure you have at least as many Nodes available as the replicas
+                      to not end up with unscheduled Pods.
+                    type: boolean
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
                       pod.
@@ -5624,6 +5630,12 @@ spec:
                   affinity:
                     description: Affinity to be used in the Pod.
                     properties:
+                      enableAntiAffinity:
+                        description: EnableAntiAffinity configures PodAntiAffinity
+                          so each Pod is scheduled in a different Node, enabling HA.
+                          Make sure you have at least as many Nodes available as the
+                          replicas to not end up with unscheduled Pods.
+                        type: boolean
                       nodeAffinity:
                         description: Describes node affinity scheduling rules for
                           the pod.
@@ -11551,6 +11563,12 @@ spec:
                       affinity:
                         description: Affinity to be used in the Pod.
                         properties:
+                          enableAntiAffinity:
+                            description: EnableAntiAffinity configures PodAntiAffinity
+                              so each Pod is scheduled in a different Node, enabling
+                              HA. Make sure you have at least as many Nodes available
+                              as the replicas to not end up with unscheduled Pods.
+                            type: boolean
                           nodeAffinity:
                             description: Describes node affinity scheduling rules
                               for the pod.

@@ -16,7 +16,7 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(mariadb).
 			Build()
-	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.Affinity{}).Affinity
+	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 	restore := &mariadbv1alpha1.Restore{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.RestoreSpec{
