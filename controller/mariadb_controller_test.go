@@ -63,6 +63,20 @@ var _ = Describe("MariaDB controller", func() {
 			By("Getting MariaDB")
 			Expect(k8sClient.Get(testCtx, testMdbkey, &testMariaDb)).To(Succeed())
 
+			By("Expecting to create a ServiceAccount eventually")
+			Eventually(func() bool {
+				var svcAcc corev1.ServiceAccount
+				key := testMariaDb.Spec.PodTemplate.ServiceAccountKey(testMariaDb.ObjectMeta)
+				if err := k8sClient.Get(testCtx, key, &svcAcc); err != nil {
+					return false
+				}
+				Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
+				Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
+
 			By("Expecting to create a ConfigMap eventually")
 			Eventually(func() bool {
 				var cm corev1.ConfigMap
@@ -74,7 +88,9 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				Expect(cm.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(cm.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 				Expect(cm.ObjectMeta.Annotations).NotTo(BeNil())
+				Expect(cm.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 

@@ -252,6 +252,10 @@ func expectMaxScaleReady(key types.NamespacedName) {
 		return true
 	}, testTimeout, testInterval).Should(BeTrue())
 
+	By("Expecting to create a ServiceAccount")
+	var svcAcc corev1.ServiceAccount
+	Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
+
 	By("Expecting to create a StatefulSet")
 	var sts appsv1.StatefulSet
 	Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
