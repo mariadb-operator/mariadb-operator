@@ -24,16 +24,53 @@ const (
 	maxScaleRuntimeConfigMountPath = "/var/lib/maxscale/maxscale.cnf.d"
 )
 
-func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, selectorLabels map[string]string) (*corev1.PodTemplateSpec, error) {
-	container, err := buildExporterContainer(mariadb)
+func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*appsv1.Deployment, error) {
+	if !mariadb.AreMetricsEnabled() {
+		return nil, errors.New("MariaDB instance does not specify Metrics")
+	}
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(mariadb).
+			Build()
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMetricsSelectorLabels(mariadb).
+			Build()
+
+	podTemplate, err := b.exporterPodTemplate(mariadb, key, selectorLabels)
+	if err != nil {
+		return nil, fmt.Errorf("error building exporter pod template: %v", err)
+	}
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: objMeta,
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: selectorLabels,
+			},
+			Template: *podTemplate,
+		},
+	}
+	if err := controllerutil.SetControllerReference(mariadb, deployment, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Deployment: %v", err)
+	}
+	return deployment, nil
+}
+
+func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
+	selectorLabels map[string]string) (*corev1.PodTemplateSpec, error) {
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMariaDB(mariadb).
+			WithLabels(selectorLabels).
+			Build()
+	container, err := exporterContainer(mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter container: %v", err)
 	}
 	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 	return &corev1.PodTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels: selectorLabels,
-		},
+		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				container,
@@ -58,40 +95,7 @@ func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, selector
 	}, nil
 }
 
-func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*appsv1.Deployment, error) {
-	if !mariadb.AreMetricsEnabled() {
-		return nil, errors.New("MariaDB instance does not specify Metrics")
-	}
-	objMeta :=
-		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
-			Build()
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMetricsSelectorLabels(mariadb).
-			Build()
-
-	podTemplate, err := b.exporterPodTemplate(mariadb, selectorLabels)
-	if err != nil {
-		return nil, fmt.Errorf("error building exporter pod template: %v", err)
-	}
-
-	deployment := &appsv1.Deployment{
-		ObjectMeta: objMeta,
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: selectorLabels,
-			},
-			Template: *podTemplate,
-		},
-	}
-	if err := controllerutil.SetControllerReference(mariadb, deployment, b.scheme); err != nil {
-		return nil, fmt.Errorf("error setting controller reference to Deployment: %v", err)
-	}
-	return deployment, nil
-}
-
-func buildExporterContainer(mariadb *mariadbv1alpha1.MariaDB) (corev1.Container, error) {
+func exporterContainer(mariadb *mariadbv1alpha1.MariaDB) (corev1.Container, error) {
 	if mariadb.Spec.Metrics == nil {
 		return corev1.Container{}, errors.New("metrics should be set")
 	}
