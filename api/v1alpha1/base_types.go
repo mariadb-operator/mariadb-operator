@@ -10,6 +10,7 @@ import (
 	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 )
@@ -223,6 +224,14 @@ func (p *PodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
 	}
 	if p.Affinity != nil {
 		p.Affinity.SetDefaults(objMeta)
+	}
+}
+
+// ServiceAccountKey defines the key for the ServiceAccount object.
+func (p *PodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      ptr.Deref(p.ServiceAccountName, "default"),
+		Namespace: objMeta.Namespace,
 	}
 }
 

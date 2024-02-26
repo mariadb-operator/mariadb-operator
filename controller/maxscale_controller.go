@@ -354,7 +354,8 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 }
 
 func (r *MaxScaleReconciler) reconcileServiceAccount(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, client.ObjectKeyFromObject(req.mxs), req.mxs, builder.ServiceAccountOpts{})
+	key := req.mxs.Spec.PodTemplate.ServiceAccountKey(req.mxs.ObjectMeta)
+	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, req.mxs, builder.ServiceAccountOpts{})
 	return ctrl.Result{}, err
 }
 
