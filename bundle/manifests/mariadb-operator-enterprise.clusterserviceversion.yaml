@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-02-26T10:34:59Z"
+    createdAt: "2024-02-26T12:23:26Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.33.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -417,6 +417,15 @@ spec:
             path: backoffLimit
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
+          - description: InheritMetadata defines the metadata to be inherited by children resources.
+            displayName: Inherit Metadata
+            path: inheritMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: inheritMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: inheritMetadata.labels
           - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
             displayName: Log Level
             path: logLevel
@@ -2660,6 +2669,15 @@ spec:
           - description: BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
             displayName: Backup Ref
             path: backupRef
+          - description: InheritMetadata defines the metadata to be inherited by children resources.
+            displayName: Inherit Metadata
+            path: inheritMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: inheritMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: inheritMetadata.labels
           - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
             displayName: Log Level
             path: logLevel
@@ -2769,6 +2787,15 @@ spec:
           - description: DependsOn defines dependencies with other SqlJob objectecs.
             displayName: Depends On
             path: dependsOn
+          - description: InheritMetadata defines the metadata to be inherited by children resources.
+            displayName: Inherit Metadata
+            path: inheritMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: inheritMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: inheritMetadata.labels
           - description: MariaDBRef is a reference to a MariaDB object.
             displayName: Maria DBRef
             path: mariaDbRef
