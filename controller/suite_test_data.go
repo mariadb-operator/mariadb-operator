@@ -213,6 +213,14 @@ func testBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.Bac
 				},
 				WaitForIt: true,
 			},
+			InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+				Labels: map[string]string{
+					"mariadb.mmontes.io/test": "test",
+				},
+				Annotations: map[string]string{
+					"mariadb.mmontes.io/test": "test",
+				},
+			},
 			Storage: storage,
 		},
 	}

@@ -53,6 +53,14 @@ var _ = Describe("Restore controller", func() {
 						},
 						WaitForIt: true,
 					},
+					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+						Labels: map[string]string{
+							"mariadb.mmontes.io/test": "test",
+						},
+						Annotations: map[string]string{
+							"mariadb.mmontes.io/test": "test",
+						},
+					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						BackupRef: &corev1.LocalObjectReference{
 							Name: backup.Name,
@@ -87,6 +95,12 @@ var _ = Describe("Restore controller", func() {
 				Fields{
 					"Name": Equal("mariadb"),
 				})))
+
+			By("Expecting Job to have metadata")
+			Expect(job.ObjectMeta.Labels).NotTo(BeNil())
+			Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+			Expect(job.ObjectMeta.Annotations).NotTo(BeNil())
+			Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 
 			By("Expecting Restore to complete eventually")
 			Eventually(func() bool {
