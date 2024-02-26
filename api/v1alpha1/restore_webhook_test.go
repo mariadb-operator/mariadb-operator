@@ -246,7 +246,7 @@ var _ = Describe("Restore webhook", func() {
 						},
 					}
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating MariaDBRef",

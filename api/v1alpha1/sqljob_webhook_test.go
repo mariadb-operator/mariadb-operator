@@ -206,7 +206,7 @@ var _ = Describe("SqlJob webhook", func() {
 						},
 					}
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating MariaDBRef",
