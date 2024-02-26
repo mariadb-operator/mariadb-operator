@@ -47,6 +47,9 @@ var _ = Describe("Restore controller", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: mariadbv1alpha1.RestoreSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Args: []string{"--verbose"},
+					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
 							Name: testMdbkey.Name,
@@ -67,7 +70,6 @@ var _ = Describe("Restore controller", func() {
 						},
 						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
-					Args: []string{"--verbose"},
 				},
 			}
 			Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
