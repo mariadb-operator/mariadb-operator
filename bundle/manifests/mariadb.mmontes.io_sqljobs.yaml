@@ -900,6 +900,21 @@ spec:
                   type: object
                   x-kubernetes-map-type: atomic
                 type: array
+              inheritMetadata:
+                description: InheritMetadata defines the metadata to be inherited
+                  by children resources.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to be added to children resources.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be added to children resources.
+                    type: object
+                type: object
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:

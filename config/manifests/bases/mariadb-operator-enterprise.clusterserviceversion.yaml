@@ -285,6 +285,16 @@ spec:
         path: backoffLimit
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: InheritMetadata defines the metadata to be inherited by children
+          resources.
+        displayName: Inherit Metadata
+        path: inheritMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: inheritMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: inheritMetadata.labels
       - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
         displayName: Log Level
         path: logLevel
@@ -2860,6 +2870,16 @@ spec:
           over S3 and Volume.
         displayName: Backup Ref
         path: backupRef
+      - description: InheritMetadata defines the metadata to be inherited by children
+          resources.
+        displayName: Inherit Metadata
+        path: inheritMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: inheritMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: inheritMetadata.labels
       - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
         displayName: Log Level
         path: logLevel
@@ -2983,6 +3003,16 @@ spec:
       - description: DependsOn defines dependencies with other SqlJob objectecs.
         displayName: Depends On
         path: dependsOn
+      - description: InheritMetadata defines the metadata to be inherited by children
+          resources.
+        displayName: Inherit Metadata
+        path: inheritMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: inheritMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: inheritMetadata.labels
       - description: MariaDBRef is a reference to a MariaDB object.
         displayName: Maria DBRef
         path: mariaDbRef
