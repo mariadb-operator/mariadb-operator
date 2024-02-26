@@ -134,6 +134,11 @@ func (in *BackupSpec) DeepCopyInto(out *BackupSpec) {
 		**out = **in
 	}
 	out.MaxRetention = in.MaxRetention
+	if in.InheritMetadata != nil {
+		in, out := &in.InheritMetadata, &out.InheritMetadata
+		*out = new(InheritMetadata)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
 		*out = new(v1.ResourceRequirements)
@@ -2163,6 +2168,11 @@ func (in *RestoreSpec) DeepCopyInto(out *RestoreSpec) {
 		*out = new(v1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.InheritMetadata != nil {
+		in, out := &in.InheritMetadata, &out.InheritMetadata
+		*out = new(InheritMetadata)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
 		*out = new(v1.Affinity)
@@ -2513,6 +2523,11 @@ func (in *SqlJobSpec) DeepCopyInto(out *SqlJobSpec) {
 	if in.SqlConfigMapKeyRef != nil {
 		in, out := &in.SqlConfigMapKeyRef, &out.SqlConfigMapKeyRef
 		*out = new(v1.ConfigMapKeySelector)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.InheritMetadata != nil {
+		in, out := &in.InheritMetadata, &out.InheritMetadata
+		*out = new(InheritMetadata)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Resources != nil {

@@ -80,6 +80,10 @@ type BackupSpec struct {
 	// +kubebuilder:validation:Enum=Always;OnFailure;Never
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
+	// InheritMetadata defines the metadata to be inherited by children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
 	// Resouces describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}

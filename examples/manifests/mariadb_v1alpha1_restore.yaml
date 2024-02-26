@@ -7,6 +7,11 @@ spec:
     name: mariadb
   backupRef:
     name: backup
+  inheritMetadata:
+    labels:
+      database.myorg.io: mariadb  
+    annotations:
+      database.myorg.io: mariadb
   args:
     - "--verbose"
   resources:

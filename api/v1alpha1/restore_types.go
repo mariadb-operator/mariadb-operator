@@ -40,6 +40,10 @@ type RestoreSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty" webhook:"inmutable"`
+	// InheritMetadata defines the metadata to be inherited by children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
 	// Affinity to be used in the Restore Pod.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

@@ -34,7 +34,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(backup.Spec.InheritMetadata).
 			Build()
 
 	cmdOpts := []command.BackupOpt{
@@ -113,7 +113,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(backup.Spec.InheritMetadata).
 			Build()
 	job, err := b.BuildBackupJob(key, backup, mariadb)
 	if err != nil {
@@ -142,7 +142,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(restore.Spec.InheritMetadata).
 			Build()
 	cmdOpts := []command.BackupOpt{
 		command.WithBackup(
@@ -211,7 +211,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(sqlJob.Spec.InheritMetadata).
 			Build()
 
 	volumes, volumeMounts := sqlJobvolumes(sqlJob)

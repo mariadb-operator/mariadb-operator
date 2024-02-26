@@ -45,6 +45,12 @@ var _ = Describe("Backup controller", func() {
 					"Name": Equal("mariadb-operator"),
 				})))
 
+			By("Expecting Job to have metadata")
+			Expect(job.ObjectMeta.Labels).NotTo(BeNil())
+			Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+			Expect(job.ObjectMeta.Annotations).NotTo(BeNil())
+			Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {

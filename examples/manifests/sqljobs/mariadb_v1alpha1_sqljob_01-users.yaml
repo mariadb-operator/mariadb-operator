@@ -5,6 +5,11 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
+  inheritMetadata:
+    labels:
+      database.myorg.io: mariadb  
+    annotations:
+      database.myorg.io: mariadb
   username: mariadb
   passwordSecretKeyRef:
     name: mariadb

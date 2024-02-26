@@ -79,6 +79,7 @@ _Appears in:_
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully take a Backup. |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Pod. |
+| `inheritMetadata` _[InheritMetadata](#inheritmetadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
 | `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Backup Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Backup Pod. |
@@ -506,7 +507,10 @@ _Appears in:_
 InheritMetadata defines the metadata to be inherited by children resources.
 
 _Appears in:_
+- [BackupSpec](#backupspec)
 - [MariaDBSpec](#mariadbspec)
+- [RestoreSpec](#restorespec)
+- [SqlJobSpec](#sqljobspec)
 
 | Field | Description |
 | --- | --- |
@@ -1131,6 +1135,7 @@ _Appears in:_
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully perform a Backup. |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Job. |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
+| `inheritMetadata` _[InheritMetadata](#inheritmetadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
 | `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the Restore Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Restore Pod. |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Restore Pod. |
@@ -1319,6 +1324,7 @@ _Appears in:_
 | `sqlConfigMapKeyRef` _[ConfigMapKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core)_ | SqlConfigMapKeyRef is a reference to a ConfigMap containing the Sql script. It is defaulted to a ConfigMap with the contents of the Sql field. |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob. |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the SqlJob Pod. |
+| `inheritMetadata` _[InheritMetadata](#inheritmetadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |
 | `affinity` _[Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#affinity-v1-core)_ | Affinity to be used in the SqlJob Pod. |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the SqlJob Pod. |

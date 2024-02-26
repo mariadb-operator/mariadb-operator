@@ -25,6 +25,14 @@ var _ = Describe("SqlJob controller", func() {
 						},
 						WaitForIt: true,
 					},
+					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+						Labels: map[string]string{
+							"mariadb.mmontes.io/test": "test",
+						},
+						Annotations: map[string]string{
+							"mariadb.mmontes.io/test": "test",
+						},
+					},
 					Username: testUser,
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -63,6 +71,14 @@ var _ = Describe("SqlJob controller", func() {
 						},
 						WaitForIt: true,
 					},
+					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+						Labels: map[string]string{
+							"mariadb.mmontes.io/test": "test",
+						},
+						Annotations: map[string]string{
+							"mariadb.mmontes.io/test": "test",
+						},
+					},
 					Username: testUser,
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -95,6 +111,14 @@ var _ = Describe("SqlJob controller", func() {
 							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
+					},
+					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+						Labels: map[string]string{
+							"mariadb.mmontes.io/test": "test",
+						},
+						Annotations: map[string]string{
+							"mariadb.mmontes.io/test": "test",
+						},
 					},
 					Username: testUser,
 					PasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -146,6 +170,14 @@ var _ = Describe("SqlJob controller", func() {
 			for _, j := range sqlJobs {
 				var job batchv1.Job
 				Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&j), &job)).To(Succeed())
+			}
+
+			By("Expecting Jobs to have metadata")
+			for _, j := range sqlJobs {
+				Expect(j.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(j.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(j.ObjectMeta.Annotations).NotTo(BeNil())
+				Expect(j.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 			}
 		})
 	})

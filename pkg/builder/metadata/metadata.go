@@ -21,17 +21,21 @@ func NewMetadataBuilder(key types.NamespacedName) *MetadataBuilder {
 	}
 }
 
-func (b *MetadataBuilder) WithMariaDB(mariadb *mariadbv1alpha1.MariaDB) *MetadataBuilder {
-	if mariadb == nil {
+func (b *MetadataBuilder) WithMariaDB(mdb *mariadbv1alpha1.MariaDB) *MetadataBuilder {
+	if mdb == nil {
 		return b
 	}
-	if mariadb.Spec.InheritMetadata == nil {
+	return b.WithMetadata(mdb.Spec.InheritMetadata)
+}
+
+func (b *MetadataBuilder) WithMetadata(meta *mariadbv1alpha1.InheritMetadata) *MetadataBuilder {
+	if meta == nil {
 		return b
 	}
-	for k, v := range mariadb.Spec.InheritMetadata.Labels {
+	for k, v := range meta.Labels {
 		b.objMeta.Labels[k] = v
 	}
-	for k, v := range mariadb.Spec.InheritMetadata.Annotations {
+	for k, v := range meta.Annotations {
 		b.objMeta.Annotations[k] = v
 	}
 	return b
