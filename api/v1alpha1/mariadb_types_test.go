@@ -562,6 +562,64 @@ var _ = Describe("MariaDB types", func() {
 				env,
 			),
 			Entry(
+				"affinity",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							Affinity: &Affinity{
+								EnableAntiAffinity: ptr.To(true),
+							},
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-obj-root",
+							},
+							Key: "password",
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						PodTemplate: PodTemplate{
+							Affinity: &Affinity{
+								EnableAntiAffinity: ptr.To(true),
+								Affinity: corev1.Affinity{
+									PodAntiAffinity: &corev1.PodAntiAffinity{
+										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+											{
+												LabelSelector: &metav1.LabelSelector{
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app.kubernetes.io/instance",
+															Operator: metav1.LabelSelectorOpIn,
+															Values: []string{
+																objMeta.Name,
+															},
+														},
+													},
+												},
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				env,
+			),
+			Entry(
 				"Full",
 				&MariaDB{
 					ObjectMeta: objMeta,
@@ -613,6 +671,31 @@ var _ = Describe("MariaDB types", func() {
 										},
 									},
 									StorageClassName: ptr.To("my-class"),
+								},
+							},
+						},
+						PodTemplate: PodTemplate{
+							Affinity: &Affinity{
+								EnableAntiAffinity: ptr.To(true),
+								Affinity: corev1.Affinity{
+									PodAntiAffinity: &corev1.PodAntiAffinity{
+										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+											{
+												LabelSelector: &metav1.LabelSelector{
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app.kubernetes.io/instance",
+															Operator: metav1.LabelSelectorOpIn,
+															Values: []string{
+																objMeta.Name,
+															},
+														},
+													},
+												},
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
 								},
 							},
 						},
@@ -680,6 +763,31 @@ var _ = Describe("MariaDB types", func() {
 										},
 									},
 									StorageClassName: ptr.To("my-class"),
+								},
+							},
+						},
+						PodTemplate: PodTemplate{
+							Affinity: &Affinity{
+								EnableAntiAffinity: ptr.To(true),
+								Affinity: corev1.Affinity{
+									PodAntiAffinity: &corev1.PodAntiAffinity{
+										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+											{
+												LabelSelector: &metav1.LabelSelector{
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app.kubernetes.io/instance",
+															Operator: metav1.LabelSelectorOpIn,
+															Values: []string{
+																objMeta.Name,
+															},
+														},
+													},
+												},
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
 								},
 							},
 						},
