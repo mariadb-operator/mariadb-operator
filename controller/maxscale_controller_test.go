@@ -69,11 +69,6 @@ var _ = Describe("MaxScale controller", func() {
 					Namespace: testMdbMxsKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						Affinity: &mariadbv1alpha1.Affinity{
-							EnableAntiAffinity: ptr.To(true),
-						},
-					},
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 					},
@@ -94,12 +89,7 @@ var _ = Describe("MaxScale controller", func() {
 						},
 					},
 					MaxScale: &mariadbv1alpha1.MariaDBMaxScaleSpec{
-						Enabled: true,
-						PodTemplate: mariadbv1alpha1.PodTemplate{
-							Affinity: &mariadbv1alpha1.Affinity{
-								EnableAntiAffinity: ptr.To(true),
-							},
-						},
+						Enabled:  true,
 						Replicas: ptr.To(int32(3)),
 						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 							Type: corev1.ServiceTypeLoadBalancer,
@@ -148,11 +138,6 @@ var _ = Describe("MaxScale controller", func() {
 					Namespace: testMdbMxsKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						Affinity: &mariadbv1alpha1.Affinity{
-							EnableAntiAffinity: ptr.To(true),
-						},
-					},
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
@@ -173,12 +158,7 @@ var _ = Describe("MaxScale controller", func() {
 						},
 					},
 					MaxScale: &mariadbv1alpha1.MariaDBMaxScaleSpec{
-						Enabled: true,
-						PodTemplate: mariadbv1alpha1.PodTemplate{
-							Affinity: &mariadbv1alpha1.Affinity{
-								EnableAntiAffinity: ptr.To(true),
-							},
-						},
+						Enabled:  true,
 						Replicas: ptr.To(int32(3)),
 						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 							Type: corev1.ServiceTypeLoadBalancer,

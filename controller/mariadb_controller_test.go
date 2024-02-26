@@ -310,11 +310,6 @@ var _ = Describe("MariaDB replication", func() {
 					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						Affinity: &mariadbv1alpha1.Affinity{
-							EnableAntiAffinity: ptr.To(true),
-						},
-					},
 					Username: &testUser,
 					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -600,11 +595,6 @@ var _ = Describe("MariaDB Galera", func() {
 					Namespace: galeraKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						Affinity: &mariadbv1alpha1.Affinity{
-							EnableAntiAffinity: ptr.To(true),
-						},
-					},
 					Username: &testUser,
 					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
