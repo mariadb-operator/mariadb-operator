@@ -270,7 +270,7 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(sqlJob.Spec.InheritMetadata).
 			Build()
 	job, err := b.BuildSqlJob(key, sqlJob, mariadb)
 	if err != nil {

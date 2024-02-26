@@ -172,10 +172,10 @@ var _ = Describe("SqlJob controller", func() {
 				Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&j), &job)).To(Succeed())
 
 				By("Expecting Jobs to have metadata")
-				Expect(j.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(j.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
-				Expect(j.ObjectMeta.Annotations).NotTo(BeNil())
-				Expect(j.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(job.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(job.ObjectMeta.Annotations).NotTo(BeNil())
+				Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 			}
 		})
 	})
