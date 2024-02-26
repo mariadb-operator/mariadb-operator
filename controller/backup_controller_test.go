@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -23,6 +24,20 @@ var _ = Describe("Backup controller", func() {
 			DeferCleanup(func() {
 				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 			})
+
+			By("Expecting to create a ServiceAccount eventually")
+			Eventually(func() bool {
+				var svcAcc corev1.ServiceAccount
+				key := backup.Spec.PodTemplate.ServiceAccountKey(backup.ObjectMeta)
+				if err := k8sClient.Get(testCtx, key, &svcAcc); err != nil {
+					return false
+				}
+				Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
+				Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
+				Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
 
 			var job batchv1.Job
 			By("Expecting to create a Job eventually")
