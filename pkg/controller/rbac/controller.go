@@ -49,9 +49,9 @@ func (r *RBACReconciler) ReconcileServiceAccount(ctx context.Context, key types.
 }
 
 func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := client.ObjectKeyFromObject(mariadb)
-	if mariadb.Spec.IsServiceAccountNameDefined() {
-		key.Name = *mariadb.Spec.ServiceAccountName
+	key := types.NamespacedName{
+		Name:      ptr.Deref(mariadb.Spec.ServiceAccountName, "default"),
+		Namespace: mariadb.GetNamespace(),
 	}
 	opts := builder.ServiceAccountOpts{
 		MariaDB: mariadb,

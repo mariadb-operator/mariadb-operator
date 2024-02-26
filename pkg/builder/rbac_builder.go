@@ -13,7 +13,8 @@ import (
 )
 
 type ServiceAccountOpts struct {
-	MariaDB *mariadbv1alpha1.MariaDB
+	MariaDB  *mariadbv1alpha1.MariaDB
+	Metadata *mariadbv1alpha1.InheritMetadata
 }
 
 func (b *Builder) BuildServiceAccount(key types.NamespacedName, owner metav1.Object,
@@ -21,6 +22,7 @@ func (b *Builder) BuildServiceAccount(key types.NamespacedName, owner metav1.Obj
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMariaDB(opts.MariaDB).
+			WithMetadata(opts.Metadata).
 			Build()
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: objMeta,

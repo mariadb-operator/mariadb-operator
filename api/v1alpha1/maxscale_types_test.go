@@ -57,6 +57,9 @@ var _ = Describe("MaxScale types", func() {
 				&MaxScale{
 					ObjectMeta: objMeta,
 					Spec: MaxScaleSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image: env.RelatedMaxscaleImage,
 						Servers: []MaxScaleServer{
 							{
@@ -196,6 +199,9 @@ var _ = Describe("MaxScale types", func() {
 				&MaxScale{
 					ObjectMeta: objMeta,
 					Spec: MaxScaleSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:           env.RelatedMaxscaleImage,
 						Replicas:        3,
 						RequeueInterval: &metav1.Duration{Duration: 10 * time.Second},

@@ -218,14 +218,12 @@ type PodTemplate struct {
 
 // SetDefaults sets reasonable defaults.
 func (p *PodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
+	if p.ServiceAccountName == nil {
+		p.ServiceAccountName = ptr.To(objMeta.Name)
+	}
 	if p.Affinity != nil {
 		p.Affinity.SetDefaults(objMeta)
 	}
-}
-
-// IsServiceAccountNameDefined indicates whether the current object has a ServiceAccountName defined
-func (p *PodTemplate) IsServiceAccountNameDefined() bool {
-	return p.ServiceAccountName != nil && *p.ServiceAccountName != ""
 }
 
 // VolumeClaimTemplate defines a template to customize PVC objects.

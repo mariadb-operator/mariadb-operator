@@ -4,6 +4,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,6 +12,7 @@ import (
 )
 
 var _ = Describe("MariaDB types", func() {
+	format.MaxLength = 8000
 	objMeta := metav1.ObjectMeta{
 		Name:      "mariadb-obj",
 		Namespace: "mariadb-obj",
@@ -33,6 +35,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -74,6 +79,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             "mariadb:lts",
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -105,6 +113,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             "mariadb:lts",
 						RootEmptyPassword: ptr.To(true),
 						Port:              3307,
@@ -135,6 +146,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -191,6 +205,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -235,6 +252,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -279,6 +299,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -318,6 +341,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -375,6 +401,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -428,6 +457,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -499,6 +531,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -545,6 +580,9 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -591,6 +629,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
 							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
 								Affinity: corev1.Affinity{
@@ -675,6 +714,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						PodTemplate: PodTemplate{
+							ServiceAccountName: ptr.To("mariadb-sa"),
 							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
 								Affinity: corev1.Affinity{
@@ -767,6 +807,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						PodTemplate: PodTemplate{
+							ServiceAccountName: ptr.To("mariadb-sa"),
 							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
 								Affinity: corev1.Affinity{

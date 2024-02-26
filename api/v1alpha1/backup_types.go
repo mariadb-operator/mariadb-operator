@@ -146,6 +146,7 @@ func (b *Backup) SetDefaults() {
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5
 	}
+	b.Spec.PodTemplate.SetDefaults(b.ObjectMeta)
 }
 
 func (b *Backup) Volume() (*corev1.VolumeSource, error) {

@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("Backup types", func() {
@@ -29,6 +30,9 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
 						MaxRetention: metav1.Duration{Duration: 30 * 24 * time.Hour},
 						BackoffLimit: 5,
 					},
@@ -39,6 +43,9 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: ptr.To("backup-test"),
+						},
 						MaxRetention: metav1.Duration{Duration: 10 * 24 * time.Hour},
 						BackoffLimit: 3,
 					},
@@ -46,6 +53,9 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: ptr.To("backup-test"),
+						},
 						MaxRetention: metav1.Duration{Duration: 10 * 24 * time.Hour},
 						BackoffLimit: 3,
 					},
