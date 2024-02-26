@@ -78,16 +78,16 @@ var _ = Describe("Restore controller", func() {
 			})
 
 			By("Expecting to create a ServiceAccount eventually")
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				var svcAcc corev1.ServiceAccount
 				key := restore.Spec.PodTemplate.ServiceAccountKey(restore.ObjectMeta)
 				if err := k8sClient.Get(testCtx, key, &svcAcc); err != nil {
 					return false
 				}
-				Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
-				Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
-				Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				g.Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
