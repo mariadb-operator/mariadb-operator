@@ -230,7 +230,7 @@ func (p *PodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
 // ServiceAccountKey defines the key for the ServiceAccount object.
 func (p *PodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      ptr.Deref(p.ServiceAccountName, "default"),
+		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
 		Namespace: objMeta.Namespace,
 	}
 }
