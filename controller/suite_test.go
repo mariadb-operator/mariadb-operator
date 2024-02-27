@@ -240,6 +240,7 @@ var _ = BeforeSuite(func() {
 		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
+		RBACReconciler:    rbacReconciler,
 		BatchReconciler:   batchReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
@@ -250,6 +251,7 @@ var _ = BeforeSuite(func() {
 		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
+		RBACReconciler:    rbacReconciler,
 		BatchReconciler:   batchReconciler,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
@@ -280,6 +282,7 @@ var _ = BeforeSuite(func() {
 		RefResolver:         refResolver,
 		ConfigMapReconciler: configMapReconciler,
 		ConditionComplete:   conditionComplete,
+		RBACReconciler:      rbacReconciler,
 		RequeueInterval:     5 * time.Second,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
