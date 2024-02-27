@@ -10,6 +10,7 @@ spec:
       database.myorg.io: mariadb  
     annotations:
       database.myorg.io: mariadb
+  serviceAccountName: backup
   storage:
     persistentVolumeClaim:
       resources:

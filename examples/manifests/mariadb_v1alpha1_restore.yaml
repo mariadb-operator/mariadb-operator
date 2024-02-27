@@ -12,6 +12,7 @@ spec:
       database.myorg.io: mariadb  
     annotations:
       database.myorg.io: mariadb
+  serviceAccountName: restore
   args:
     - "--verbose"
   resources:
