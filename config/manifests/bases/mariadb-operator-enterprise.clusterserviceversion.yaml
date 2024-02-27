@@ -272,6 +272,9 @@ spec:
       - kind: PersistentVolumeClaim
         name: ""
         version: v1
+      - kind: ServiceAccount
+        name: ""
+        version: v1
       specDescriptors:
       - description: Affinity to be used in the Pod.
         displayName: Affinity
@@ -2981,6 +2984,9 @@ spec:
       - kind: Restore
         name: ""
         version: v1alpha1
+      - kind: ServiceAccount
+        name: ""
+        version: v1
       specDescriptors:
       - description: Affinity to be used in the Pod.
         displayName: Affinity
@@ -3238,6 +3244,9 @@ spec:
         name: ""
         version: v1
       - kind: Job
+        name: ""
+        version: v1
+      - kind: ServiceAccount
         name: ""
         version: v1
       - kind: SqlJob
