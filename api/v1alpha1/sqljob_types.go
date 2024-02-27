@@ -88,7 +88,7 @@ func (s *SqlJobStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].message"
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +operator-sdk:csv:customresourcedefinitions:resources={{SqlJob,v1alpha1},{ConfigMap,v1},{CronJob,v1},{Job,v1}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{SqlJob,v1alpha1},{ConfigMap,v1},{CronJob,v1},{Job,v1},{ServiceAccount,v1}}
 
 // SqlJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
 type SqlJob struct {
