@@ -220,7 +220,7 @@ type PodTemplate struct {
 // SetDefaults sets reasonable defaults.
 func (p *PodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
 	if p.ServiceAccountName == nil {
-		p.ServiceAccountName = ptr.To(objMeta.Name)
+		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
 	}
 	if p.Affinity != nil {
 		p.Affinity.SetDefaults(objMeta)

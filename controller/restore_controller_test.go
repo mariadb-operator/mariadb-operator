@@ -79,11 +79,11 @@ var _ = Describe("Restore controller", func() {
 
 			By("Expecting to create a ServiceAccount eventually")
 			Eventually(func(g Gomega) bool {
+				g.Expect(k8sClient.Get(testCtx, key, restore)).To(Succeed())
 				var svcAcc corev1.ServiceAccount
 				key := restore.Spec.PodTemplate.ServiceAccountKey(restore.ObjectMeta)
-				if err := k8sClient.Get(testCtx, key, &svcAcc); err != nil {
-					return false
-				}
+				g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
+
 				g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
 				g.Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 				g.Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())

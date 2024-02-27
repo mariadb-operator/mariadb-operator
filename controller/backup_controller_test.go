@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("Backup controller", func() {
 	Context("When creating a Backup", func() {
-		It("Should reconcile a Job with PVC storage", func() {
+		It("Should reconcile a Job with PVC storage", Focus, func() {
 			By("Creating Backup")
 			backupKey := types.NamespacedName{
 				Name:      "backup-pvc-test",
@@ -27,11 +27,11 @@ var _ = Describe("Backup controller", func() {
 
 			By("Expecting to create a ServiceAccount eventually")
 			Eventually(func(g Gomega) bool {
+				g.Expect(k8sClient.Get(testCtx, backupKey, backup)).To(Succeed())
 				var svcAcc corev1.ServiceAccount
 				key := backup.Spec.PodTemplate.ServiceAccountKey(backup.ObjectMeta)
-				if err := k8sClient.Get(testCtx, key, &svcAcc); err != nil {
-					return false
-				}
+				g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
+
 				g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
 				g.Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 				g.Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
