@@ -69,7 +69,7 @@ A listener specifies a port where MaxScale listens for incoming connections. It 
 
 The minimal spec you need to provision a MaxScale instance is just a reference to a `MariaDB` resource:
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -83,7 +83,7 @@ This will provision a new `StatefulSet` for running MaxScale and configure the s
 The rest of the configuration uses reasonable [defaults](#defaults) set automatically by the operator. If you need a more fine grained configuration, you can provide this values yourself:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -142,7 +142,7 @@ As you can see, the [MaxScale resources](#maxscale-resources) we previously ment
 The previous example configured a `MaxScale` for a Galera cluster, but you may also configure `MaxScale` with a `MariaDB` that uses replication. It is important to note that the monitor module is automatically inferred by the operator based on the `MariaDB` reference you provided, however, its parameters are specific to each monitor module:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-repl
@@ -205,7 +205,7 @@ Refer to the [Reference](#reference) section for further detail.
 You can set a `spec.maxScaleRef` in your `MariaDB` resource to make it `MaxScale`-aware. By doing so, the primary server reported by `MaxScale` will be used in `MariaDB` and the high availability tasks such the primary failover will be delegated to `MaxScale`:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
@@ -225,7 +225,7 @@ Refer to the [Reference](#reference) section for further detail.
 To streamline the setup outlined in the [MaxScale CR](#mariadb-cr) and [MariaDB CR](#mariadb-cr) sections, you can provision a `MaxScale` to be used with `MariaDB` in just one resource:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
@@ -262,7 +262,7 @@ Refer to the [Reference](#reference) section for further detail.
 As an alternative to provide a reference to a `MariaDB` via `spec.mariaDbRef`, you can also specify the servers manually:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -280,7 +280,7 @@ spec:
 As you could see, you can refer to in-cluser MariaDB servers by providing the DNS names of the `MariaDB` `Pods` as server addresses. In addition, you can also refer to external MariaDB instances running outside of the Kubernetes cluster where `mariadb-operator` was deployed:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -337,7 +337,7 @@ spec:
 You can put servers in maintenance mode by setting `maintenance = true`:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -358,7 +358,7 @@ Maintenance mode prevents MaxScale from routing traffic to the server and also e
 Similar to MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` to instruct the operator to create the `maxscale.conf`:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -391,7 +391,7 @@ MaxScale requires authentication with differents levels of permissions for the f
 By default, `mariadb-operator` autogenerates this credentials when `spec.mariaDbRef` is set and `spec.auth.generate = true`, but you are still able to provide your own:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -433,7 +433,7 @@ As you could see, you are also able to limit the number of connections for each 
 To enable your applications to communicate with MaxScale, a Kubernetes `Service` is provisioned with all the ports specified in the MaxScale listeners. You have the flexibility to provide a template to customize this `Service`:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -480,7 +480,7 @@ spec:
 You can leverage the `Connection` resource to automatically configure connection strings as `Secret` resources that your applications can mount:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Connection
 metadata:
   name: connection-maxscale
@@ -498,7 +498,7 @@ spec:
 Alternatively, you can also provide a connection template to your `MaxScale` resource:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -518,7 +518,7 @@ To synchronize the configuration state across multiple replicas, MaxScale stores
 Another crucial aspect to consider regarding HA is that only one monitor can be running at any given time to avoid conflicts. This can be achieved via cooperative locking, which can be configured by the user. Refer to [MaxScale docs](https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/) for more information.
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -561,7 +561,7 @@ helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set 
 Then you will be able to suspend any [MaxScale resources](#maxscale-resources), for instance, you can suspend a monitor:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera
@@ -642,7 +642,7 @@ helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set 
 MaxScale offers a shiny user interface that provides very useful information about the [MaxScale resources](#maxscale-resources). You can  enable it providing the following configuration:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
   name: maxscale-galera

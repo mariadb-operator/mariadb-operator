@@ -4,9 +4,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: restores.mariadb.mmontes.io
+  name: restores.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: Restore
     listKind: RestoreList

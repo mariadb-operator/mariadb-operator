@@ -1,10 +1,10 @@
 # API Reference
 
 ## Packages
-- [mariadb.mmontes.io/v1alpha1](#mariadbmmontesiov1alpha1)
+- [k8s.mariadb.com/v1alpha1](#k8smariadbcomv1alpha1)
 
 
-## mariadb.mmontes.io/v1alpha1
+## k8s.mariadb.com/v1alpha1
 
 Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 
@@ -55,7 +55,7 @@ Backup is the Schema for the backups API. It is used to define backup jobs and i
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1`
 | `kind` _string_ | `Backup`
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
@@ -129,7 +129,7 @@ Connection is the Schema for the connections API. It is used to configure connec
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1`
 | `kind` _string_ | `Connection`
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
@@ -268,7 +268,7 @@ Database is the Schema for the databases API. It is used to define a logical dat
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1`
 | `kind` _string_ | `Database`
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
@@ -464,7 +464,7 @@ Grant is the Schema for the grants API. It is used to define grants as if you we
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1`
 | `kind` _string_ | `Grant`
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
@@ -564,7 +564,7 @@ MariaDB is the Schema for the mariadbs API. It is used to define MariaDB cluster
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1`
 | `kind` _string_ | `MariaDB`
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
@@ -718,7 +718,7 @@ MaxScale is the Schema for the maxscales API. It is used to define MaxScale clus
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1`
 | `kind` _string_ | `MaxScale`
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
@@ -1112,7 +1112,7 @@ Restore is the Schema for the restores API. It is used to define restore jobs an
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1`
 | `kind` _string_ | `Restore`
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
@@ -1331,7 +1331,7 @@ SqlJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1`
 | `kind` _string_ | `SqlJob`
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |
@@ -1442,7 +1442,7 @@ User is the Schema for the users API.  It is used to define grants as if you wer
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `mariadb.mmontes.io/v1alpha1`
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1`
 | `kind` _string_ | `User`
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |

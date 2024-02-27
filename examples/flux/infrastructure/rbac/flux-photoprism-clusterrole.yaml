@@ -49,7 +49,7 @@ rules:
   - update
   - delete
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - connections
   verbs:

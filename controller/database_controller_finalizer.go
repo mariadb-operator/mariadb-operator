@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	databaseFinalizerName = "database.mariadb.mmontes.io/finalizer"
+	databaseFinalizerName = "database.k8s.mariadb.com/finalizer"
 )
 
 type wrappedDatabaseFinalizer struct {

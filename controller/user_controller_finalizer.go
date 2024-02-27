@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	userFinalizerName = "user.mariadb.mmontes.io/finalizer"
+	userFinalizerName = "user.k8s.mariadb.com/finalizer"
 )
 
 type wrappedUserFinalizer struct {

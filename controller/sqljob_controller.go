@@ -39,9 +39,9 @@ type SqlJobReconciler struct {
 	RequeueInterval     time.Duration
 }
 
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=sqljobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=sqljobs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=sqljobs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=sqljobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=sqljobs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=sqljobs/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=list;watch;create;patch

@@ -30,9 +30,9 @@ type RestoreReconciler struct {
 	BatchReconciler   *batch.BatchReconciler
 }
 
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=restores,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=restores/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=restores/finalizers,verbs=update
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=restores,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=restores/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=restores/finalizers,verbs=update
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;watch;create;patch

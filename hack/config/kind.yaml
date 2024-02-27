@@ -16,5 +16,5 @@ nodes:
         kind: JoinConfiguration
         nodeRegistration:
           taints:
-            - key: "mariadb.mmontes.io/ha"
+            - key: "k8s.mariadb.com/ha"
               effect: "NoSchedule"

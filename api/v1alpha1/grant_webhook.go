@@ -14,7 +14,7 @@ func (r *Grant) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 //nolint
-//+kubebuilder:webhook:path=/validate-mariadb-mmontes-io-v1alpha1-grant,mutating=false,failurePolicy=fail,sideEffects=None,groups=mariadb.mmontes.io,resources=grants,verbs=create;update,versions=v1alpha1,name=vgrant.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-mariadb-mmontes-io-v1alpha1-grant,mutating=false,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=grants,verbs=create;update,versions=v1alpha1,name=vgrant.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Grant{}
 

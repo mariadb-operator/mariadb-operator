@@ -3,7 +3,7 @@ kind: MutatingWebhookConfiguration
 metadata:
   name: mariadb-operator-webhook
   annotations:
-    mariadb.mmontes.io/webhook: ""
+    k8s.mariadb.com/webhook: ""
 webhooks:
 - admissionReviewVersions:
   - v1
@@ -16,7 +16,7 @@ webhooks:
   name: mmariadb.kb.io
   rules:
   - apiGroups:
-    - mariadb.mmontes.io
+    - k8s.mariadb.com
     apiVersions:
     - v1alpha1
     operations:

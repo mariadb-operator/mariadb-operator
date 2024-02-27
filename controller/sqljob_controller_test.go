@@ -27,10 +27,10 @@ var _ = Describe("SqlJob controller", func() {
 					},
 					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
 						Labels: map[string]string{
-							"mariadb.mmontes.io/test": "test",
+							"k8s.mariadb.com/test": "test",
 						},
 						Annotations: map[string]string{
-							"mariadb.mmontes.io/test": "test",
+							"k8s.mariadb.com/test": "test",
 						},
 					},
 					Username: testUser,
@@ -73,10 +73,10 @@ var _ = Describe("SqlJob controller", func() {
 					},
 					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
 						Labels: map[string]string{
-							"mariadb.mmontes.io/test": "test",
+							"k8s.mariadb.com/test": "test",
 						},
 						Annotations: map[string]string{
-							"mariadb.mmontes.io/test": "test",
+							"k8s.mariadb.com/test": "test",
 						},
 					},
 					Username: testUser,
@@ -114,10 +114,10 @@ var _ = Describe("SqlJob controller", func() {
 					},
 					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
 						Labels: map[string]string{
-							"mariadb.mmontes.io/test": "test",
+							"k8s.mariadb.com/test": "test",
 						},
 						Annotations: map[string]string{
-							"mariadb.mmontes.io/test": "test",
+							"k8s.mariadb.com/test": "test",
 						},
 					},
 					Username: testUser,
@@ -175,9 +175,9 @@ var _ = Describe("SqlJob controller", func() {
 
 				By("Expecting Jobs to have metadata")
 				Expect(job.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				Expect(job.ObjectMeta.Annotations).NotTo(BeNil())
-				Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 
 				By("Expecting to create a ServiceAccount")
 				var svcAcc corev1.ServiceAccount
@@ -185,9 +185,9 @@ var _ = Describe("SqlJob controller", func() {
 				Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 
 				Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
-				Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 			}
 		})
 	})

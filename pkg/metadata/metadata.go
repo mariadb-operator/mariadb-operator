@@ -1,8 +1,8 @@
 package metadata
 
 var (
-	ReplicationAnnotation   = "mariadb.mmontes.io/replication"
-	GaleraAnnotation        = "mariadb.mmontes.io/galera"
-	MariadbAnnotation       = "mariadb.mmontes.io/mariadb"
-	WebhookConfigAnnotation = "mariadb.mmontes.io/webhook"
+	ReplicationAnnotation   = "k8s.mariadb.com/replication"
+	GaleraAnnotation        = "k8s.mariadb.com/galera"
+	MariadbAnnotation       = "k8s.mariadb.com/mariadb"
+	WebhookConfigAnnotation = "k8s.mariadb.com/webhook"
 )

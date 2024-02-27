@@ -77,10 +77,10 @@ type reconcilePhaseMariaDB struct {
 
 type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=mariadbs/finalizers,verbs=update
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=maxscale;restores;connections;users;grants,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=maxscale;restores;connections;users;grants,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch

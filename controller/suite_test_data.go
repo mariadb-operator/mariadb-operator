@@ -103,10 +103,10 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			ImagePullPolicy: corev1.PullIfNotPresent,
 			InheritMetadata: &mariadbv1alpha1.InheritMetadata{
 				Labels: map[string]string{
-					"mariadb.mmontes.io/test": "test",
+					"k8s.mariadb.com/test": "test",
 				},
 				Annotations: map[string]string{
-					"mariadb.mmontes.io/test": "test",
+					"k8s.mariadb.com/test": "test",
 				},
 			},
 			RootPasswordSecretKeyRef: corev1.SecretKeySelector{
@@ -215,10 +215,10 @@ func testBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.Bac
 			},
 			InheritMetadata: &mariadbv1alpha1.InheritMetadata{
 				Labels: map[string]string{
-					"mariadb.mmontes.io/test": "test",
+					"k8s.mariadb.com/test": "test",
 				},
 				Annotations: map[string]string{
-					"mariadb.mmontes.io/test": "test",
+					"k8s.mariadb.com/test": "test",
 				},
 			},
 			Storage: storage,

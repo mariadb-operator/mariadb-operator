@@ -258,7 +258,7 @@ spec:
         backup jobs and its storage.
       displayName: Backup
       kind: Backup
-      name: backups.mariadb.mmontes.io
+      name: backups.k8s.mariadb.com
       resources:
       - kind: Backup
         name: ""
@@ -533,7 +533,7 @@ spec:
         configure connection strings for the applications connecting to MariaDB.
       displayName: Connection
       kind: Connection
-      name: connections.mariadb.mmontes.io
+      name: connections.k8s.mariadb.com
       resources:
       - kind: Connection
         name: ""
@@ -637,7 +637,7 @@ spec:
         a logical database as if you were running a 'CREATE DATABASE' statement.
       displayName: Database
       kind: Database
-      name: databases.mariadb.mmontes.io
+      name: databases.k8s.mariadb.com
       resources:
       - kind: Database
         name: ""
@@ -676,7 +676,7 @@ spec:
         as if you were running a 'GRANT' statement.
       displayName: Grant
       kind: Grant
-      name: grants.mariadb.mmontes.io
+      name: grants.k8s.mariadb.com
       resources:
       - kind: Grant
         name: ""
@@ -724,7 +724,7 @@ spec:
         MariaDB clusters.
       displayName: Maria DB
       kind: MariaDB
-      name: mariadbs.mariadb.mmontes.io
+      name: mariadbs.k8s.mariadb.com
       resources:
       - kind: ClusterRoleBinding
         name: ""
@@ -2382,7 +2382,7 @@ spec:
         MaxScale clusters.
       displayName: Max Scale
       kind: MaxScale
-      name: maxscales.mariadb.mmontes.io
+      name: maxscales.k8s.mariadb.com
       resources:
       - kind: Connection
         name: ""
@@ -2976,7 +2976,7 @@ spec:
         restore jobs and its restoration source.
       displayName: Restore
       kind: Restore
-      name: restores.mariadb.mmontes.io
+      name: restores.k8s.mariadb.com
       resources:
       - kind: Job
         name: ""
@@ -3235,7 +3235,7 @@ spec:
         scripts as jobs.
       displayName: Sql Job
       kind: SqlJob
-      name: sqljobs.mariadb.mmontes.io
+      name: sqljobs.k8s.mariadb.com
       resources:
       - kind: ConfigMap
         name: ""
@@ -3473,7 +3473,7 @@ spec:
         as if you were running a 'CREATE USER' statement.
       displayName: User
       kind: User
-      name: users.mariadb.mmontes.io
+      name: users.k8s.mariadb.com
       resources:
       - kind: User
         name: ""
