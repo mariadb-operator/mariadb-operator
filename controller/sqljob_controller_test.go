@@ -167,7 +167,9 @@ var _ = Describe("SqlJob controller", func() {
 			}
 
 			By("Expecting to create a Job")
-			for _, sqlJob := range sqlJobs {
+			for _, sj := range sqlJobs {
+				var sqlJob mariadbv1alpha1.SqlJob
+				Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sj), &sqlJob)).To(Succeed())
 				var job batchv1.Job
 				Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sqlJob), &job)).To(Succeed())
 
@@ -177,7 +179,7 @@ var _ = Describe("SqlJob controller", func() {
 				Expect(job.ObjectMeta.Annotations).NotTo(BeNil())
 				Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
 
-				By("Expecting to create a ServiceAccount eventually")
+				By("Expecting to create a ServiceAccount")
 				var svcAcc corev1.ServiceAccount
 				key := sqlJob.Spec.PodTemplate.ServiceAccountKey(job.ObjectMeta)
 				Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
