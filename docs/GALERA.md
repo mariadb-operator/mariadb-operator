@@ -17,7 +17,7 @@ To be able to effectively provision and recover MariaDB Galera clusters, the fol
 The easiest way to get a MariaDB Galera cluster up and running is setting `spec.galera.enabled = true`, like in this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_minimal.yaml):
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
@@ -32,7 +32,7 @@ This relies on sensible defaults set by either the operator or the webhook, whic
 
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
@@ -279,7 +279,7 @@ This error is returned by the `init` container when it is unable to write the co
 The remediation is running as root or match the user expected by the storage provider to be able to write in the PVC:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera

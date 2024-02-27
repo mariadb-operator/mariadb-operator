@@ -33,9 +33,9 @@ var _ = Describe("Backup controller", func() {
 				g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 
 				g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
-				g.Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				g.Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				g.Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
-				g.Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				g.Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
@@ -62,9 +62,9 @@ var _ = Describe("Backup controller", func() {
 
 			By("Expecting Job to have metadata")
 			Expect(job.ObjectMeta.Labels).NotTo(BeNil())
-			Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+			Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 			Expect(job.ObjectMeta.Annotations).NotTo(BeNil())
-			Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+			Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {

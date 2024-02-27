@@ -70,9 +70,9 @@ var _ = Describe("MariaDB controller", func() {
 				g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 
 				g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
-				g.Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				g.Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				g.Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
-				g.Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				g.Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
@@ -87,9 +87,9 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				Expect(cm.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(cm.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(cm.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				Expect(cm.ObjectMeta.Annotations).NotTo(BeNil())
-				Expect(cm.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(cm.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
@@ -111,9 +111,9 @@ var _ = Describe("MariaDB controller", func() {
 					return false
 				}
 				Expect(svc.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(svc.ObjectMeta.Labels).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(svc.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				Expect(svc.ObjectMeta.Annotations).NotTo(BeNil())
-				Expect(svc.ObjectMeta.Annotations).To(HaveKeyWithValue("mariadb.mmontes.io/test", "test"))
+				Expect(svc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 

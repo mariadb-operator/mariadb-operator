@@ -18,7 +18,7 @@ func (r *MaxScale) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/validate-mariadb-mmontes-io-v1alpha1-maxscale,mutating=false,failurePolicy=fail,sideEffects=None,groups=mariadb.mmontes.io,resources=maxscales,verbs=create;update,versions=v1alpha1,name=vmaxscale.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-mariadb-mmontes-io-v1alpha1-maxscale,mutating=false,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=maxscales,verbs=create;update,versions=v1alpha1,name=vmaxscale.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &MaxScale{}
 

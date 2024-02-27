@@ -4,9 +4,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: backups.mariadb.mmontes.io
+  name: backups.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: Backup
     listKind: BackupList

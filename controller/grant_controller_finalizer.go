@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	grantFinalizerName = "grant.mariadb.mmontes.io/finalizer"
+	grantFinalizerName = "grant.k8s.mariadb.com/finalizer"
 )
 
 type wrappedGrantFinalizer struct {

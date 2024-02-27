@@ -31,9 +31,9 @@ type BackupReconciler struct {
 	BatchReconciler   *batch.BatchReconciler
 }
 
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=backups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=backups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=backups/finalizers,verbs=update
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=backups,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=backups/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=backups/finalizers,verbs=update
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch

@@ -9,7 +9,7 @@ const (
 	appLabel           = "app.kubernetes.io/name"
 	instanceLabel      = "app.kubernetes.io/instance"
 	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
-	volumeRole         = "pvc.mariadb.mmontes.io/role"
+	volumeRole         = "pvc.k8s.mariadb.com/role"
 	appMariaDb         = "mariadb"
 	appExporter        = "exporter"
 	appMaxScale        = "maxscale"

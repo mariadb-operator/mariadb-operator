@@ -21,7 +21,7 @@ Our recommendation is to store the backups externally in a [S3](../examples/mani
 You can take a one-time backup of your `MariaDB` instance by declaring the following resource:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
   name: backup
@@ -39,7 +39,7 @@ spec:
 This will use the default `StorageClass` to provision a PVC that would hold the backup files, but ideally you should use a S3 compatible storage:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
   name: backup
@@ -70,7 +70,7 @@ By providing the authentication details and the TLS configuration via references
 To minimize the Recovery Point Objective (RPO) and mitigate the risk of data loss, it is recommended to perform backups regularly. You can do so by providing a `spec.schedule` in your `Backup` resource:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
   name: backup-scheduled
@@ -92,7 +92,7 @@ It is important to note that regularly scheduled `Backups` complement very well 
 Given that the backups can consume a substantial amount of storage, it is crucial to define your retention policy by providing the `spec.maxRetention` field in your `Backup` resource:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
   name: backup-scheduled
@@ -110,7 +110,7 @@ By default, it will be set to `720h` (30 days), indicating that backups older th
 You can easily restore a `Backup` in your `MariaDB` instance by creating the following resource:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Restore
 metadata:
   name: restore
@@ -126,7 +126,7 @@ This will trigger a `Job` that will mount the same storage as the `Backup` and a
 Nevertheless, the `Restore` resource doesn't necessarily need to specify a `spec.backupRef`, you can point to other storage source that contains backup files, for example a S3 bucket:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Restore
 metadata:
   name: restore
@@ -155,7 +155,7 @@ spec:
 If you have multiple backups available, specially after configuring a [scheduled Backup](#scheduling), the operator is able to infer which backup to restore based on the `spec.targetRecoveryTime` field.
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Restore
 metadata:
   name: restore
@@ -176,7 +176,7 @@ By default, `spec.targetRecoveryTime` will be set to the current time, which mea
 To minimize your Recovery Time Objective (RTO) and to switfly spin up new clusters from existing `Backups`, you can provide a `Resource` source directly in the `MariaDB` object via the `spec.bootstrapFrom` field:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-from-backup
@@ -197,7 +197,7 @@ spec:
 As in the `Restore` resource, you don't strictly need to specify a reference to a `Backup`, you can provide other storage types that contain backup files:
 
 ```yaml
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-from-backup

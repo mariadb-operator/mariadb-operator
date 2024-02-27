@@ -1,4 +1,4 @@
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Connection
 metadata:
   name: connection
@@ -16,9 +16,9 @@ spec:
   secretName: connection
   secretTemplate:
     labels:
-      mariadb.mmontes.io/connection: sample
+      k8s.mariadb.com/connection: sample
     annotations:
-      mariadb.mmontes.io/connection: sample
+      k8s.mariadb.com/connection: sample
     key: dsn
     usernameKey: username
     passwordKey: password

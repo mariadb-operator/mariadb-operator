@@ -183,7 +183,7 @@ rules:
   - patch
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - backups
   verbs:
@@ -195,13 +195,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - backups/finalizers
   verbs:
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - backups/status
   verbs:
@@ -209,7 +209,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - connections
   verbs:
@@ -221,7 +221,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - connections
   - grants
@@ -234,7 +234,7 @@ rules:
   - patch
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - connections
   - grants
@@ -245,13 +245,13 @@ rules:
   - patch
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - connections/finalizers
   verbs:
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - connections/status
   verbs:
@@ -259,7 +259,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - databases
   verbs:
@@ -271,13 +271,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - databases/finalizers
   verbs:
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - databases/status
   verbs:
@@ -285,7 +285,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - grants
   verbs:
@@ -297,13 +297,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - grants/finalizers
   verbs:
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - grants/status
   verbs:
@@ -311,7 +311,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - mariadbs
   verbs:
@@ -323,13 +323,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - mariadbs/finalizers
   verbs:
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - mariadbs/status
   verbs:
@@ -337,7 +337,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - maxscales
   verbs:
@@ -349,13 +349,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - maxscales/finalizers
   verbs:
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - maxscales/status
   verbs:
@@ -363,7 +363,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - restores
   verbs:
@@ -375,13 +375,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - restores/finalizers
   verbs:
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - restores/status
   verbs:
@@ -389,7 +389,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - sqljobs
   verbs:
@@ -401,13 +401,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - sqljobs/finalizers
   verbs:
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - sqljobs/status
   verbs:
@@ -415,7 +415,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - users
   verbs:
@@ -427,13 +427,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - users/finalizers
   verbs:
   - update
 - apiGroups:
-  - mariadb.mmontes.io
+  - k8s.mariadb.com
   resources:
   - users/status
   verbs:

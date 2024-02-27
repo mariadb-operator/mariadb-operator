@@ -43,9 +43,9 @@ func NewGrantReconciler(client client.Client, refResolver *refresolver.RefResolv
 	}
 }
 
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=grants,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=grants/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=grants/finalizers,verbs=update
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=grants,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=grants/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=grants/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

@@ -5,7 +5,7 @@ metadata:
     alm-examples: |-
       [
         {
-          "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "Backup",
           "metadata": {
             "name": "backup"
@@ -58,7 +58,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "Connection",
           "metadata": {
             "name": "connection"
@@ -82,13 +82,13 @@ metadata:
             "secretName": "connection",
             "secretTemplate": {
               "annotations": {
-                "mariadb.mmontes.io/connection": "sample"
+                "k8s.mariadb.com/connection": "sample"
               },
               "databaseKey": "database",
               "hostKey": "host",
               "key": "dsn",
               "labels": {
-                "mariadb.mmontes.io/connection": "sample"
+                "k8s.mariadb.com/connection": "sample"
               },
               "passwordKey": "password",
               "portKey": "port",
@@ -99,7 +99,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "Database",
           "metadata": {
             "name": "data-test"
@@ -114,7 +114,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "Grant",
           "metadata": {
             "name": "grant"
@@ -137,7 +137,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "MariaDB",
           "metadata": {
             "name": "mariadb"
@@ -195,7 +195,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "MaxScale",
           "metadata": {
             "name": "maxscale-galera"
@@ -291,7 +291,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "Restore",
           "metadata": {
             "name": "restore"
@@ -317,7 +317,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "SqlJob",
           "metadata": {
             "name": "03-stars"
@@ -348,7 +348,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "mariadb.mmontes.io/v1alpha1",
+          "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "User",
           "metadata": {
             "name": "user"
@@ -391,7 +391,7 @@ spec:
       - description: Backup is the Schema for the backups API. It is used to define backup jobs and its storage.
         displayName: Backup
         kind: Backup
-        name: backups.mariadb.mmontes.io
+        name: backups.k8s.mariadb.com
         resources:
           - kind: Backup
             name: ""
@@ -637,7 +637,7 @@ spec:
       - description: Connection is the Schema for the connections API. It is used to configure connection strings for the applications connecting to MariaDB.
         displayName: Connection
         kind: Connection
-        name: connections.mariadb.mmontes.io
+        name: connections.k8s.mariadb.com
         resources:
           - kind: Connection
             name: ""
@@ -734,7 +734,7 @@ spec:
       - description: Database is the Schema for the databases API. It is used to define a logical database as if you were running a 'CREATE DATABASE' statement.
         displayName: Database
         kind: Database
-        name: databases.mariadb.mmontes.io
+        name: databases.k8s.mariadb.com
         resources:
           - kind: Database
             name: ""
@@ -771,7 +771,7 @@ spec:
       - description: Grant is the Schema for the grants API. It is used to define grants as if you were running a 'GRANT' statement.
         displayName: Grant
         kind: Grant
-        name: grants.mariadb.mmontes.io
+        name: grants.k8s.mariadb.com
         resources:
           - kind: Grant
             name: ""
@@ -817,7 +817,7 @@ spec:
       - description: MariaDB is the Schema for the mariadbs API. It is used to define MariaDB clusters.
         displayName: Maria DB
         kind: MariaDB
-        name: mariadbs.mariadb.mmontes.io
+        name: mariadbs.k8s.mariadb.com
         resources:
           - kind: ClusterRoleBinding
             name: ""
@@ -2258,7 +2258,7 @@ spec:
       - description: MaxScale is the Schema for the maxscales API. It is used to define MaxScale clusters.
         displayName: Max Scale
         kind: MaxScale
-        name: maxscales.mariadb.mmontes.io
+        name: maxscales.k8s.mariadb.com
         resources:
           - kind: Connection
             name: ""
@@ -2762,7 +2762,7 @@ spec:
       - description: Restore is the Schema for the restores API. It is used to define restore jobs and its restoration source.
         displayName: Restore
         kind: Restore
-        name: restores.mariadb.mmontes.io
+        name: restores.k8s.mariadb.com
         resources:
           - kind: Job
             name: ""
@@ -2990,7 +2990,7 @@ spec:
       - description: SqlJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
         displayName: Sql Job
         kind: SqlJob
-        name: sqljobs.mariadb.mmontes.io
+        name: sqljobs.k8s.mariadb.com
         resources:
           - kind: ConfigMap
             name: ""
@@ -3204,7 +3204,7 @@ spec:
       - description: User is the Schema for the users API.  It is used to define grants as if you were running a 'CREATE USER' statement.
         displayName: User
         kind: User
-        name: users.mariadb.mmontes.io
+        name: users.k8s.mariadb.com
         resources:
           - kind: User
             name: ""
@@ -3393,7 +3393,7 @@ spec:
                 - patch
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - backups
               verbs:
@@ -3405,13 +3405,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - backups/finalizers
               verbs:
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - backups/status
               verbs:
@@ -3419,7 +3419,7 @@ spec:
                 - patch
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - connections
               verbs:
@@ -3431,7 +3431,7 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - connections
                 - grants
@@ -3444,7 +3444,7 @@ spec:
                 - patch
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - connections
                 - grants
@@ -3455,13 +3455,13 @@ spec:
                 - patch
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - connections/finalizers
               verbs:
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - connections/status
               verbs:
@@ -3469,7 +3469,7 @@ spec:
                 - patch
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - databases
               verbs:
@@ -3481,13 +3481,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - databases/finalizers
               verbs:
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - databases/status
               verbs:
@@ -3495,7 +3495,7 @@ spec:
                 - patch
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - grants
               verbs:
@@ -3507,13 +3507,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - grants/finalizers
               verbs:
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - grants/status
               verbs:
@@ -3521,7 +3521,7 @@ spec:
                 - patch
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - mariadbs
               verbs:
@@ -3533,13 +3533,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - mariadbs/finalizers
               verbs:
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - mariadbs/status
               verbs:
@@ -3547,7 +3547,7 @@ spec:
                 - patch
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - maxscales
               verbs:
@@ -3559,13 +3559,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - maxscales/finalizers
               verbs:
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - maxscales/status
               verbs:
@@ -3573,7 +3573,7 @@ spec:
                 - patch
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - restores
               verbs:
@@ -3585,13 +3585,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - restores/finalizers
               verbs:
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - restores/status
               verbs:
@@ -3599,7 +3599,7 @@ spec:
                 - patch
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - sqljobs
               verbs:
@@ -3611,13 +3611,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - sqljobs/finalizers
               verbs:
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - sqljobs/status
               verbs:
@@ -3625,7 +3625,7 @@ spec:
                 - patch
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - users
               verbs:
@@ -3637,13 +3637,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - users/finalizers
               verbs:
                 - update
             - apiGroups:
-                - mariadb.mmontes.io
+                - k8s.mariadb.com
               resources:
                 - users/status
               verbs:
@@ -3858,7 +3858,7 @@ spec:
       generateName: mmariadb.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:
@@ -3878,7 +3878,7 @@ spec:
       generateName: vbackup.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:
@@ -3898,7 +3898,7 @@ spec:
       generateName: vconnection.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:
@@ -3918,7 +3918,7 @@ spec:
       generateName: vdatabase.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:
@@ -3938,7 +3938,7 @@ spec:
       generateName: vgrant.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:
@@ -3958,7 +3958,7 @@ spec:
       generateName: vmariadb.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:
@@ -3978,7 +3978,7 @@ spec:
       generateName: vmaxscale.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:
@@ -3998,7 +3998,7 @@ spec:
       generateName: vrestore.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:
@@ -4018,7 +4018,7 @@ spec:
       generateName: vsqljob.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:
@@ -4038,7 +4038,7 @@ spec:
       generateName: vuser.kb.io
       rules:
         - apiGroups:
-            - mariadb.mmontes.io
+            - k8s.mariadb.com
           apiVersions:
             - v1alpha1
           operations:

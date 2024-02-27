@@ -4,9 +4,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: backups.mariadb.mmontes.io
+  name: backups.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: Backup
     listKind: BackupList
@@ -7105,9 +7105,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: connections.mariadb.mmontes.io
+  name: connections.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: Connection
     listKind: ConnectionList
@@ -7412,9 +7412,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: databases.mariadb.mmontes.io
+  name: databases.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: Database
     listKind: DatabaseList
@@ -7616,9 +7616,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: grants.mariadb.mmontes.io
+  name: grants.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: Grant
     listKind: GrantList
@@ -7836,9 +7836,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: mariadbs.mariadb.mmontes.io
+  name: mariadbs.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: MariaDB
     listKind: MariaDBList
@@ -28783,9 +28783,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: maxscales.mariadb.mmontes.io
+  name: maxscales.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: MaxScale
     listKind: MaxScaleList
@@ -34783,9 +34783,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: restores.mariadb.mmontes.io
+  name: restores.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: Restore
     listKind: RestoreList
@@ -41613,9 +41613,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: sqljobs.mariadb.mmontes.io
+  name: sqljobs.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: SqlJob
     listKind: SqlJobList
@@ -46862,9 +46862,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: users.mariadb.mmontes.io
+  name: users.k8s.mariadb.com
 spec:
-  group: mariadb.mmontes.io
+  group: k8s.mariadb.com
   names:
     kind: User
     listKind: UserList

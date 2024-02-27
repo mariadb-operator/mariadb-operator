@@ -40,9 +40,9 @@ type ConnectionReconciler struct {
 	RequeueInterval time.Duration
 }
 
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=connections,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=connections/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=connections/finalizers,verbs=update
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=connections,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=connections/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=connections/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
