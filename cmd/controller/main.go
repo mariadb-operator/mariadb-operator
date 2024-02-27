@@ -117,7 +117,7 @@ var rootCmd = &cobra.Command{
 			},
 			HealthProbeBindAddress: healthAddr,
 			LeaderElection:         leaderElect,
-			LeaderElectionID:       "mariadb-operator.mmontes.io",
+			LeaderElectionID:       "mariadb-operator.mariadb.com",
 		}
 		if env.WatchNamespace != "" {
 			namespaces, err := env.WatchNamespaces()

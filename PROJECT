@@ -2,7 +2,7 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-domain: mmontes.io
+domain: mariadb.com
 layout:
 - go.kubebuilder.io/v3
 plugins:
@@ -15,8 +15,8 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: MariaDB
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
@@ -28,8 +28,8 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: Backup
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
@@ -40,8 +40,8 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: Restore
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
@@ -52,8 +52,8 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: User
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
@@ -64,8 +64,8 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: Grant
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
@@ -76,8 +76,8 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: Database
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
@@ -88,8 +88,8 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: Connection
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
@@ -100,8 +100,8 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: SqlJob
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
@@ -109,16 +109,16 @@ resources:
     validation: true
     webhookVersion: v1
 - controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: Pod
   version: v1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: mmontes.io
-  group: mariadb
+  domain: mariadb.com
+  group: k8s
   kind: MaxScale
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
