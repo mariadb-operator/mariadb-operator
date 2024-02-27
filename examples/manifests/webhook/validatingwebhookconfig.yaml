@@ -11,7 +11,7 @@ webhooks:
       service:
         name: mariadb-operator-webhook
         namespace: default
-        path: /validate-mariadb-mmontes-io-v1alpha1-backup
+        path: /validate-k8s-mariadb-com-v1alpha1-backup
     failurePolicy: Fail
     name: vbackup.kb.io
     rules:
@@ -31,7 +31,7 @@ webhooks:
       service:
         name: mariadb-operator-webhook
         namespace: default
-        path: /validate-mariadb-mmontes-io-v1alpha1-connection
+        path: /validate-k8s-mariadb-com-v1alpha1-connection
     failurePolicy: Fail
     name: vconnection.kb.io
     rules:
@@ -51,7 +51,7 @@ webhooks:
       service:
         name: mariadb-operator-webhook
         namespace: default
-        path: /validate-mariadb-mmontes-io-v1alpha1-database
+        path: /validate-k8s-mariadb-com-v1alpha1-database
     failurePolicy: Fail
     name: vdatabase.kb.io
     rules:
@@ -71,7 +71,7 @@ webhooks:
       service:
         name: mariadb-operator-webhook
         namespace: default
-        path: /validate-mariadb-mmontes-io-v1alpha1-grant
+        path: /validate-k8s-mariadb-com-v1alpha1-grant
     failurePolicy: Fail
     name: vgrant.kb.io
     rules:
@@ -91,7 +91,7 @@ webhooks:
       service:
         name: mariadb-operator-webhook
         namespace: default
-        path: /validate-mariadb-mmontes-io-v1alpha1-mariadb
+        path: /validate-k8s-mariadb-com-v1alpha1-mariadb
     failurePolicy: Fail
     name: vmariadb.kb.io
     rules:
@@ -111,7 +111,7 @@ webhooks:
       service:
         name: mariadb-operator-webhook
         namespace: default
-        path: /validate-mariadb-mmontes-io-v1alpha1-restore
+        path: /validate-k8s-mariadb-com-v1alpha1-restore
     failurePolicy: Fail
     name: vrestore.kb.io
     rules:
@@ -131,7 +131,7 @@ webhooks:
       service:
         name: mariadb-operator-webhook
         namespace: default
-        path: /validate-mariadb-mmontes-io-v1alpha1-sqljob
+        path: /validate-k8s-mariadb-com-v1alpha1-sqljob
     failurePolicy: Fail
     name: vsqljob.kb.io
     rules:
@@ -151,7 +151,7 @@ webhooks:
       service:
         name: mariadb-operator-webhook
         namespace: default
-        path: /validate-mariadb-mmontes-io-v1alpha1-user
+        path: /validate-k8s-mariadb-com-v1alpha1-user
     failurePolicy: Fail
     name: vuser.kb.io
     rules:

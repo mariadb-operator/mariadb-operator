@@ -11,7 +11,7 @@ webhooks:
     service:
       name: mariadb-operator-webhook
       namespace: default
-      path: /mutate-mariadb-mmontes-io-v1alpha1-mariadb
+      path: /mutate-k8s-mariadb-com-v1alpha1-mariadb
   failurePolicy: Fail
   name: mmariadb.kb.io
   rules:
