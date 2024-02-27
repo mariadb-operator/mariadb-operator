@@ -190,7 +190,7 @@ type PodTemplate struct {
 	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutable"`
+	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutableinit"`
 	// Affinity to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
