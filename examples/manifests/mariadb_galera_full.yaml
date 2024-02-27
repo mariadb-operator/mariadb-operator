@@ -25,8 +25,6 @@ spec:
   maxScale:
     enabled: true
     
-    replicas: 3
-
     kubernetesService:
       type: LoadBalancer
       annotations:
@@ -35,9 +33,6 @@ spec:
     connection:
       secretName: mxs-galera-conn
       port: 3306
-
-    affinity:
-      enableAntiAffinity: true
 
   galera:
     enabled: true
