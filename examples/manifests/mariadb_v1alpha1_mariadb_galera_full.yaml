@@ -11,6 +11,9 @@ spec:
 
   storage:
     size: 1Gi
+    storageClassName: standard
+    resizeInUseVolumes: true
+    waitForVolumeResize: true
 
   replicas: 3
 
