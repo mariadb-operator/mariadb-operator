@@ -34,6 +34,7 @@ type RestoreReconciler struct {
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=restores/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=mariadb.mmontes.io,resources=restores/finalizers,verbs=update
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("Backup controller", func() {
 	Context("When creating a Backup", func() {
-		It("Should reconcile a Job with PVC storage", Focus, func() {
+		It("Should reconcile a Job with PVC storage", func() {
 			By("Creating Backup")
 			backupKey := types.NamespacedName{
 				Name:      "backup-pvc-test",
