@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-02-27T16:43:16Z"
+    createdAt: "2024-02-27T16:52:26Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.33.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -3869,7 +3869,7 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: MutatingAdmissionWebhook
-      webhookPath: /mutate-mariadb-mmontes-io-v1alpha1-mariadb
+      webhookPath: /mutate-k8s-mariadb-com-v1alpha1-mariadb
     - admissionReviewVersions:
         - v1
       containerPort: 443
@@ -3889,7 +3889,7 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: ValidatingAdmissionWebhook
-      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-backup
+      webhookPath: /validate-k8s-mariadb-com-v1alpha1-backup
     - admissionReviewVersions:
         - v1
       containerPort: 443
@@ -3909,7 +3909,7 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: ValidatingAdmissionWebhook
-      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-connection
+      webhookPath: /validate-k8s-mariadb-com-v1alpha1-connection
     - admissionReviewVersions:
         - v1
       containerPort: 443
@@ -3929,7 +3929,7 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: ValidatingAdmissionWebhook
-      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-database
+      webhookPath: /validate-k8s-mariadb-com-v1alpha1-database
     - admissionReviewVersions:
         - v1
       containerPort: 443
@@ -3949,7 +3949,7 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: ValidatingAdmissionWebhook
-      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-grant
+      webhookPath: /validate-k8s-mariadb-com-v1alpha1-grant
     - admissionReviewVersions:
         - v1
       containerPort: 443
@@ -3969,7 +3969,7 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: ValidatingAdmissionWebhook
-      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-mariadb
+      webhookPath: /validate-k8s-mariadb-com-v1alpha1-mariadb
     - admissionReviewVersions:
         - v1
       containerPort: 443
@@ -3989,7 +3989,7 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: ValidatingAdmissionWebhook
-      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-maxscale
+      webhookPath: /validate-k8s-mariadb-com-v1alpha1-maxscale
     - admissionReviewVersions:
         - v1
       containerPort: 443
@@ -4009,7 +4009,7 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: ValidatingAdmissionWebhook
-      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-restore
+      webhookPath: /validate-k8s-mariadb-com-v1alpha1-restore
     - admissionReviewVersions:
         - v1
       containerPort: 443
@@ -4029,7 +4029,7 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: ValidatingAdmissionWebhook
-      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-sqljob
+      webhookPath: /validate-k8s-mariadb-com-v1alpha1-sqljob
     - admissionReviewVersions:
         - v1
       containerPort: 443
@@ -4049,4 +4049,4 @@ spec:
       sideEffects: None
       targetPort: 9443
       type: ValidatingAdmissionWebhook
-      webhookPath: /validate-mariadb-mmontes-io-v1alpha1-user
+      webhookPath: /validate-k8s-mariadb-com-v1alpha1-user

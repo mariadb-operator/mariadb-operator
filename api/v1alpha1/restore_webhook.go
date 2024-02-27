@@ -16,7 +16,7 @@ func (r *Restore) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 //nolint
-//+kubebuilder:webhook:path=/validate-mariadb-mmontes-io-v1alpha1-restore,mutating=false,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=restores,verbs=create;update,versions=v1alpha1,name=vrestore.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-k8s-mariadb-com-v1alpha1-restore,mutating=false,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=restores,verbs=create;update,versions=v1alpha1,name=vrestore.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Restore{}
 
