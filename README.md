@@ -21,8 +21,8 @@
 # 🦭 mariadb-operator
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-- [Easily provision](./examples/manifests/mariadb_v1alpha1_mariadb_minimal.yaml) MariaDB servers in Kubernetes.
-- [Highly configurable](./examples/manifests/mariadb_v1alpha1_mariadb_full.yaml) MariaDB servers.
+- [Easily provision](./examples/manifests/mariadb_minimal.yaml) MariaDB servers in Kubernetes.
+- [Highly configurable](./examples/manifests/mariadb_full.yaml) MariaDB servers.
 - Multiple [HA modes](./docs/HA.md): SemiSync Replication and Galera.
 - Automatic [primary failover](./docs/HA.md).
 - Enhanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB.
@@ -38,8 +38,8 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Target recovery time](./docs/BACKUP.md#target-recovery-time): infer which backup to restore.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter).
-- Manage [users](./examples/manifests/mariadb_v1alpha1_user.yaml), [grants](./examples/manifests/mariadb_v1alpha1_grant.yaml) and logical [databases](./examples/manifests/mariadb_v1alpha1_database.yaml).
-- Configure [connections](./examples/manifests/mariadb_v1alpha1_connection.yaml) for your applications.
+- Manage [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
+- Configure [connections](./examples/manifests/connection.yaml) for your applications.
 - Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
 - Validation webhooks to provide CRD inmutability.
 - Additional printer columns to report the current CRD status.
@@ -83,7 +83,7 @@ kubectl apply -f examples/manifests/config
 
 Next, you can proceed with the installation of a `MariaDB` instance:
 ```bash
-kubectl apply -f examples/manifests/mariadb_v1alpha1_mariadb.yaml
+kubectl apply -f examples/manifests/mariadb.yaml
 ```
 ```bash
 kubectl get mariadbs
@@ -100,9 +100,9 @@ mariadb      ClusterIP   10.96.235.145   <none>        3306/TCP,9104/TCP   2m17s
 ```
 Up and running 🚀, we can now create our first logical database and grant access to users:
 ```bash
-kubectl apply -f examples/manifests/mariadb_v1alpha1_database.yaml
-kubectl apply -f examples/manifests/mariadb_v1alpha1_user.yaml
-kubectl apply -f examples/manifests/mariadb_v1alpha1_grant.yaml
+kubectl apply -f examples/manifests/database.yaml
+kubectl apply -f examples/manifests/user.yaml
+kubectl apply -f examples/manifests/grant.yaml
 ```
 ```bash
 kubectl get databases
@@ -141,7 +141,7 @@ NAME       SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
 
 Now that the database has been initialized, let's take a backup:
 ```bash
-kubectl apply -f examples/manifests/mariadb_v1alpha1_backup.yaml
+kubectl apply -f examples/manifests/backup.yaml
 ``` 
 ```bash
 kubectl get backups
@@ -154,7 +154,7 @@ backup-27782894    1/1           4s         3m2s
 ```
 Last but not least, let's provision a second `MariaDB` instance bootstrapping from the previous backup:
 ```bash
-kubectl apply -f examples/manifests/mariadb_v1alpha1_mariadb_from_backup.yaml
+kubectl apply -f examples/manifests/mariadb_from_backup.yaml
 ``` 
 ```bash
 kubectl get mariadbs

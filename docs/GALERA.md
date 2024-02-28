@@ -14,7 +14,7 @@ To be able to effectively provision and recover MariaDB Galera clusters, the fol
 
 ## Configuration
 
-The easiest way to get a MariaDB Galera cluster up and running is setting `spec.galera.enabled = true`, like in this [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera_minimal.yaml):
+The easiest way to get a MariaDB Galera cluster up and running is setting `spec.galera.enabled = true`, like in this [example](../examples/manifests/mariadb_galera_minimal.yaml):
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -28,7 +28,7 @@ spec:
 ...
 ```
 
-This relies on sensible defaults set by either the operator or the webhook, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other [example](../examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml), so you have fine-grained control over the Galera configuration:
+This relies on sensible defaults set by either the operator or the webhook, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other [example](../examples/manifests/mariadb_galera.yaml), so you have fine-grained control over the Galera configuration:
 
 
 ```yaml
@@ -81,7 +81,7 @@ kubectl apply -f examples/manifests/config
 ```
 Next, you can proceed with the installation of a `MariaDB` instance with Galera support:
 ```bash
-kubectl apply -f examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml
+kubectl apply -f examples/manifests/mariadb_galera.yaml
 ```
 ```bash
 kubectl get mariadbs

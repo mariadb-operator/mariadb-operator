@@ -26,7 +26,7 @@ As you scale your MariaDB with more or less replicas, `mariadb-operator` will re
 
 ## Configuration
 
-The easiest way to setup metrics in your MariaDB instance is just by setting `spec.metrics.enabled = true`, like in this [example](../examples/manifests/mariadb_v1alpha1_mariadb_metrics.yaml):
+The easiest way to setup metrics in your MariaDB instance is just by setting `spec.metrics.enabled = true`, like in this [example](../examples/manifests/mariadb_metrics.yaml):
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -39,7 +39,7 @@ spec:
     enabled: true
 ```
 
-The rest of the fields are defaulted by the operator. If you need a more fine grained configuration, refer to the [API reference](./API_REFERENCE.md) and take a look at this [example](../examples/manifests/mariadb_v1alpha1_mariadb_metrics_full.yaml):
+The rest of the fields are defaulted by the operator. If you need a more fine grained configuration, refer to the [API reference](./API_REFERENCE.md) and take a look at this [example](../examples/manifests/mariadb_metrics_full.yaml):
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
