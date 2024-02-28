@@ -2,19 +2,21 @@
 
 The `mariadb-operator` provides cloud native support for provisioning and operating multi-master MariaDB clusters using Galera. This setup enables the ability to perform both read and write operations on all nodes, enhancing availability and allowing scalability across multiple nodes.
 
-In certain circumstances, it could be the case that all the nodes of your cluster go down, something that Galera is not able to recover by itself, and it requires manual action to bring the cluster up again, as documented in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html). Luckly, `mariadb-operator` has you covered and it encapsulates this operational expertise in the `MariaDB` CRD. You just need to declaratively specify `spec.galera`, as explained in more detail [later in this guide](#configuration).
+In certain circumstances, it could be the case that all the nodes of your cluster go down at the same time, something that Galera is not able to recover by itself, and it requires manual action to bring the cluster up again, as documented in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html). Luckly enough, `mariadb-operator` has you covered and it encapsulates this operational expertise in the `MariaDB` CRD. You just need to declaratively specify `spec.galera`, as explained in more detail [later in this guide](#configuration).
 
-To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-operator` will regularly monitor the cluster's status to make sure it is healthy. If any issues are detected, the operator will initiate the [recovery process](https://galeracluster.com/library/documentation/crash-recovery.html) to restore the cluster to a healthy state. During this process, the operator will set status conditions in the `MariaDB` and emit `Events` so you have a better understanding of the recovery progress and the underlying activities being performed. For example, you may want to know which `Pods` were out of sync to further investigate infrastructure-related issues (i.e. networking, storage...) on the nodes where these `Pods` were scheduled.
+To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-operator` will regularly monitor the cluster's status to make sure it is healthy. If any issues are detected, the operator will initiate the [recovery process](#galera-cluster-recovery) to restore the cluster to a healthy state. During this process, the operator will set status conditions in the `MariaDB` and emit `Events` so you have a better understanding of the recovery progress and the underlying activities being performed. For example, you may want to know which `Pods` were out of sync to further investigate infrastructure-related issues (i.e. networking, storage...) on the nodes where these `Pods` were scheduled.
 
 ## Components
 
 To be able to effectively provision and recover MariaDB Galera clusters, the following components were introduced to co-operate with `mariadb-operator`:
 - **init**: Init container that dynamically provisions the Galera configuration file before the MariaDB container starts. Guarantees ordered deployment of `Pods` even if `spec.podManagementPolicy = Parallel` is set on the MariaDB `StatefulSet`, something crucial for performing the Galera recovery, as the operator needs to restart `Pods` independently.
-- **agent**: Sidecar agent that exposes the Galera state ([`grastate.dat`](https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/)) via HTTP and allows one to remotely bootstrap and recover the Galera cluster. For security reasons, it has authentication based on Kubernetes service accounts; this way only the `mariadb-operator` is able to call the agent.
+- **agent**: Sidecar agent that exposes the Galera state ([`grastate.dat`](https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/)) via HTTP and allows the operator to remotely bootstrap and recover the Galera cluster. For security reasons, it has authentication based on Kubernetes service accounts; this way only the operator is able to call the agent.
+
+All these components are available in the `ghcr.io/mariadb-operator mariadb-operator` image. More preciselly, they are subcommands of the CLI shipped as binary inside the image.
 
 ## Configuration
 
-The easiest way to get a MariaDB Galera cluster up and running is setting `spec.galera.enabled = true`, like in this [example](../examples/manifests/mariadb_galera_minimal.yaml):
+The easiest way to get a MariaDB Galera cluster up and running is setting `spec.galera.enabled = true`, like in this [example](../examples/manifests/mariadb_galera.yaml):
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -23,59 +25,73 @@ metadata:
   name: mariadb-galera
 spec:
 ...
+  replicas: 3
+
   galera:
     enabled: true
-...
 ```
 
-This relies on sensible defaults set by either the operator or the webhook, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other [example](../examples/manifests/mariadb_galera.yaml), so you have fine-grained control over the Galera configuration:
-
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-...
-  galera:
-    enabled: true
-    primary:
-      podIndex: 0
-      automaticFailover: true
-    sst: mariabackup
-    replicaThreads: 1
-    agent:
-      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
-      port: 5555
-      kubernetesAuth:
-        enabled: true
-      gracefulShutdownTimeout: 5s
-    recovery:
-      enabled: true
-      clusterHealthyTimeout: 3m
-      clusterBootstrapTimeout: 10m
-      podRecoveryTimeout: 5m
-      podSyncTimeout: 5m
-    initContainer:
-      image:
-        repository: ghcr.io/mariadb-operator/init
-        tag: "v0.0.5"
-        pullPolicy: IfNotPresent
-    volumeClaimTemplate:
-      resources:
-        requests:
-          storage: 300Mi
-      accessModes:
-        - ReadWriteOnce
-...
-```
+This relies on sensible defaults set by the operator, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other [example](../examples/manifests/mariadb_galera.yaml), so you have fine-grained control over the Galera configuration.
 
 Refer to the [API reference](./API_REFERENCE.md) to better understand the purpose of each field.
 
+## Storage
+
+By default, `mariadb-operator` provisions two PVCs for running Galera:
+- **Storage PVC**: Used to back the MariaDB data directory, mounted at `/var/lib/mysql`.
+- **Config PVC**: Where the Galera config files are located, mounted at `/etc/mysql/conf.d`.
+
+However, you are also able to use just one PVC for keeping both the data and the config files:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    config:
+      reuseStorageVolume: true
+```
+
+## Galera cluster recovery
+
+`mariadb-operator` is able to monitor the Galera cluster and act accordinly to recover it if needed. This feature is enabled by default, but you may tune it as you need:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    recovery:
+      enabled: true
+      minClusterSize: 50%
+      clusterHealthyTimeout: 30s
+      clusterBootstrapTimeout: 10m
+      podRecoveryTimeout: 3m
+      podSyncTimeout: 3m
+```
+
+The `minClusterSize` field indicates the minimum cluster size (either absolut number or percentage) for the operator to consider the cluster healthy. If the cluster is unhealthy for more than the period defined in `clusterHealthyTimeout`, a cluster recovery process is initiated by the operator. The process is explained in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html) and consists of the following steps:
+
+- Recover the sequence number from the `grastate.dat` on each node.
+- Put the nodes in recovery mode and restart them and obtain the sequence number. This step is skipped if we have already valid sequence numbers from the previous step.
+- Mark the node with highest sequence (bootstrap node) as safe to bootstrap.
+- Bootstrap a new cluster in the bootstrap node.
+- Wait until the bootstrap node becomes ready.
+- Restart the rest of the nodes one by one so they can join the new cluster.
+
+Please refer to the [API reference](./API_REFERENCE.md) for further detail.
+
 ## Quickstart
 
-Let's see how `mariadb-operator`🦭 and Galera play together! First of all, install the following configuration manifests that will be referenced by the CRDs further:
+First of all, install the following configuration manifests that will be referenced by the CRDs further:
 ```bash
 kubectl apply -f examples/manifests/config
 ```
@@ -85,8 +101,8 @@ kubectl apply -f examples/manifests/mariadb_galera.yaml
 ```
 ```bash
 kubectl get mariadbs
-NAME             READY   STATUS    PRIMARY POD   AGE
-mariadb-galera   True    Running   All           48m
+NAME             READY   STATUS    PRIMARY POD          AGE
+mariadb-galera   True    Running   mariadb-galera-0     48m
 
 kubectl get events --field-selector involvedObject.name=mariadb-galera --sort-by='.lastTimestamp'
 LAST SEEN   TYPE     REASON                 OBJECT                               MESSAGE
@@ -109,7 +125,7 @@ mariadb-galera-0                            2/2     Running   0          58m   1
 mariadb-galera-1                            2/2     Running   0          58m   10.244.1.9   mdb-worker2   <none>           <none>
 mariadb-galera-2                            2/2     Running   0          58m   10.244.5.4   mdb-worker4   <none>           <none>
 ```
-Up and running 🚀. All right, please fasten your seatbelts and let's proceed with simulating a Galera cluster failure 💥:
+Up and running. Let's now proceed with simulating a Galera cluster failure by deleting all the `Pods` at the same time:
 ```bash
 kubectl delete pods -l app.kubernetes.io/instance=mariadb-galera
 pod "mariadb-galera-0" deleted
@@ -148,7 +164,7 @@ LAST SEEN   TYPE      REASON                    OBJECT                       MES
 kubectl get mariadb mariadb-galera -o jsonpath="{.status.galeraRecovery}"
 {"bootstrap":{"pod":"mariadb-galera-2","time":"2023-07-13T19:25:28Z"},"recovered":{"mariadb-galera-0":{"seqno":3,"uuid":"bf00b9c3-21a9-11ee-984f-9ba9ff0e9285"},"mariadb-galera-1":{"seqno":3,"uuid":"bf00b9c3-21a9-11ee-984f-9ba9ff0e9285"},"mariadb-galera-2":{"seqno":3,"uuid":"bf00b9c3-21a9-11ee-984f-9ba9ff0e9285"}},"state":{"mariadb-galera-0":{"safeToBootstrap":false,"seqno":-1,"uuid":"bf00b9c3-21a9-11ee-984f-9ba9ff0e9285","version":"2.1"},"mariadb-galera-1":{"safeToBootstrap":false,"seqno":-1,"uuid":"bf00b9c3-21a9-11ee-984f-9ba9ff0e9285","version":"2.1"},"mariadb-galera-2":{"safeToBootstrap":false,"seqno":-1,"uuid":"bf00b9c3-21a9-11ee-984f-9ba9ff0e9285","version":"2.1"}}}
 ```
-Finally, the `MariaDB` will become `Ready` again, and your Galera cluster will be back to life! 🦭🎉:
+Finally, the `MariaDB` resource will become `Ready` and your Galera cluster will be operational again:
 ```bash
 kubectl get mariadb mariadb-galera -o jsonpath="{.status.conditions[?(@.type=='GaleraReady')]}"
 {"lastTransitionTime":"2023-07-13T19:27:51Z","message":"Galera ready","reason":"GaleraReady","status":"True","type":"GaleraReady"}
@@ -157,8 +173,6 @@ kubectl get mariadb mariadb-galera
 NAME             READY   STATUS    PRIMARY POD   AGE
 mariadb-galera   True    Running   All           82m
 ```
-
-To conclude, it's important to note that the Galera functionallity is 100% compatible with the rest of `mariadb-operator` constructs: `Backup`, `Restore`, `Connection`... refer to the [main quickstart guide](../README.md#quickstart) for more detail.
 
 ## Troubleshooting
 
@@ -273,10 +287,10 @@ Once you are done with these steps, you will have the context required to jump a
 ```bash
  Error writing Galera config: open /etc/mysql/mariadb.conf.d/0-galera.cnf: permission denied
 ```
-This error is returned by the `init` container when it is unable to write the configuration file in the filesystem backed by the PVC. In particular, this has been raised by users using longhorn and rook as a storage provider, which in some cases rely on root privileges for writing in the PVC:
+This error is returned by the `init` container when it is unable to write the configuration file in the filesystem backed by the PVC. In particular, this has been raised by users using longhorn and rook as a storage provider, which in some cases require a specific user to write in the filesystem:
 - https://github.com/longhorn/longhorn/issues/3549
 
-The remediation is running as root or match the user expected by the storage provider to be able to write in the PVC:
+The remediation is matching the user expected by the storage provider to be able to write in the PVC:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
