@@ -4,14 +4,14 @@ Our recommended HA setup for production is:
 - **[Galera](./GALERA.md)** with at least 3 replicas.
 - Load balance requests using **[MaxScale](./MAXSCALE.md)** as database proxy.
 - Configure **[pod anti affinity](#pod-anti-affinity)** to schedule your `Pods` in different Kubernetes `Nodes`.
-- Define **[pod disruption budgets]()**.
+- Define **[pod disruption budgets](#pod-disruption-budgets)**.
 - Use **[dedicated nodes](#dedicated-nodes)** to avoid noisy neighbours.
 
 Refer to the following sections for further detail.
 
 ## Supported HA modes
 
-- **Single master HA via [SemiSync Replication](../examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml)**: The primary node allows both reads and writes, while secondary nodes only allow reads.
+- **Single master HA via [SemiSync Replication](../examples/manifests/mariadb_replication.yaml)**: The primary node allows both reads and writes, while secondary nodes only allow reads.
 - **Multi master HA via [Galera](./GALERA.md)**: All nodes support reads and writes. We have a designated primary where the writes are performed in order to avoid deadlocks.
 
 ## Kubernetes Services
