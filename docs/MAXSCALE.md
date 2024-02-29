@@ -1,6 +1,6 @@
 # MaxScale
 
-> [!WARNING]  
+> [!NOTE]  
 > This documentation applies to `mariadb-operator` version >= v0.0.25
 
 > [!IMPORTANT]  
