@@ -1,6 +1,6 @@
 # Backup and Restore
 
-> [!WARNING]  
+> [!NOTE]  
 > This documentation applies to `mariadb-operator` version >= v0.0.24
 
 `mariadb-operator` allows you to declarativaly take backups by defining `Backup` resources and later on restore them by using their `Restore` counterpart. These resources get reconciled into `Job`/`CronJob` resources that automatically perform the backup/restore operations, so you don't need to manually operate your `MariaDB`.

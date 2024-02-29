@@ -1,9 +1,9 @@
 # Storage
 
-> [!WARNING]  
+> [!NOTE]  
 > This documentation applies to `mariadb-operator` version >= v0.0.26
 
-This operator gives you flexibility to define the storage that will back your `/var/lib/mysql` data directoty mounted by `MariaDB`.
+This operator gives you flexibility to define the storage that will back the `/var/lib/mysql` data directoty mounted by `MariaDB`.
 
 ## Configuration
 
@@ -56,6 +56,9 @@ spec:
 ```
 
 ## Volume resize
+
+> [!WARNING]  
+> The `StorageClass` used for volume resizing must define `allowVolumeExpansion = true`.
 
 It is possible to resize your storage after having provisioned a `MariaDB`. We need to distinguish between:
 - PVCs already in use.
