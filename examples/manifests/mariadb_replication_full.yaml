@@ -14,6 +14,13 @@ spec:
     storageClassName: standard
     resizeInUseVolumes: true
     waitForVolumeResize: true
+    volumeClaimTemplate:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: standard
 
   replicas: 3
 
