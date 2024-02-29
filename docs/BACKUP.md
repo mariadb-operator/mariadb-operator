@@ -240,3 +240,7 @@ make cluster
 make install-minio
 make net # to access the console via a MetalLB LoadBalancer: https://minio-console:9001
 ```
+
+## Reference
+- [API reference](./API_REFERENCE.md)
+- [Example suite](../examples/)

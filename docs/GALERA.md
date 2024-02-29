@@ -360,3 +360,7 @@ Increase this timeout if you consider that your Galera cluster may take longer t
 
 Here it is a list of GitHub issues reported by `mariadb-operator` users which might shed some light in your investigation:
 - https://github.com/mariadb-operator/mariadb-operator/issues?q=is%3Aclosed+label%3Agalera-troubleshoot+
+
+## Reference
+- [API reference](./API_REFERENCE.md)
+- [Example suite](../examples/)

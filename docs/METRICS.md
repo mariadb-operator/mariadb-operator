@@ -96,3 +96,7 @@ To visualize MariaDB metrics, our [Prometheus reference installation](#prometheu
 
 
 ##### [Galera/MariaDB - Overview](https://grafana.com/grafana/dashboards/13106-galera-mariadb-overview/)
+
+## Reference
+- [API reference](./API_REFERENCE.md)
+- [Example suite](../examples/)
