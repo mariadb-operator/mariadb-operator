@@ -37,7 +37,7 @@ spec:
     enableAntiAffinity: true
 
   podDisruptionBudget:
-    maxUnavailable: 66%
+    maxUnavailable: 33%
 
   updateStrategy:
     type: RollingUpdate

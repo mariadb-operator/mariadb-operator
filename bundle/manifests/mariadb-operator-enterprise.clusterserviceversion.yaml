@@ -161,7 +161,7 @@ metadata:
             },
             "myCnf": "[mariadb]\nbind-address=*\ndefault_storage_engine=InnoDB\nbinlog_format=row\ninnodb_autoinc_lock_mode=2\nmax_allowed_packet=256M\n",
             "podDisruptionBudget": {
-              "maxUnavailable": "66%"
+              "maxUnavailable": "33%"
             },
             "primaryConnection": {
               "secretName": "mariadb-repl-conn-primary",
@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-02-27T18:46:38Z"
+    createdAt: "2024-02-29T13:55:52Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.33.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
