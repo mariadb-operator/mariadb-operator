@@ -24,13 +24,15 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Easily provision](./examples/manifests/mariadb_minimal.yaml) MariaDB servers in Kubernetes.
 - [Highly configurable](./examples/manifests/mariadb_full.yaml) MariaDB servers.
 - Multiple [HA modes](./docs/HA.md): SemiSync Replication and Galera.
-- Automatic [primary failover](./docs/HA.md).
+- Automated [primary failover](./docs/HA.md).
+- Automated [Galera cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
 - Enhanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB.
   - Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
   - Connection-based routing: Load balance connections between multiple servers.
-  - Automatic primary failover based on MariaDB internals.
+  - Automated primary failover based on MariaDB internals.
   - Replay pending transactions when a server goes down.
   - Support for Galera and Replication.
+- Flexible [storage](./docs/STORAGE.md) configuration. [Volume expansion](./docs/STORAGE.md#volume-resize).
 - Take and restore [backups](./docs/BACKUP.md). 
 - Scheduled [backups](./docs/BACKUP.md/#scheduling). 
 - Multiple [backup storage types](./docs/BACKUP.md#storage-types): S3 compatible, PVCs and Kubernetes volumes.
