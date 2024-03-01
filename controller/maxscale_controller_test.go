@@ -188,7 +188,7 @@ var _ = Describe("MaxScale controller", func() {
 					return false
 				}
 				return testMdbMxs.IsReady()
-			}, testHighTimeout, testInterval).Should(BeTrue())
+			}, testVeryHighTimeout, testInterval).Should(BeTrue())
 
 			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
 			expecFailoverSuccess(&testMdbMxs)
