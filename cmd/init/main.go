@@ -80,17 +80,11 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "Error checking Galera init state")
 			os.Exit(1)
 		}
-		isMariadbInit, err := state.IsMariadbInit()
-		if err != nil {
-			logger.Error(err, "Error checking MariaDB init state")
-			os.Exit(1)
-		}
 		podIndex, err := statefulset.PodIndex(env.PodName)
 		if err != nil {
 			logger.Error(err, "error getting index from Pod", "pod", env.PodName)
 			os.Exit(1)
 		}
-		logger.Info("Init state", "galera", isGaleraInit, "mariadb", isMariadbInit)
 
 		key := types.NamespacedName{
 			Name:      env.MariadbName,
@@ -109,14 +103,13 @@ var RootCmd = &cobra.Command{
 			}
 		}
 
-		if err := configureGalera(fileManager, env, &mdb, *podIndex, isMariadbInit); err != nil {
+		if err := configureGalera(fileManager, env, &mdb); err != nil {
 			logger.Error(err, "error configuring Galera")
 			os.Exit(1)
 		}
-		if err := configureGaleraBootstrap(fileManager, &mdb, *podIndex, isMariadbInit, isGaleraInit); err != nil {
+		if err := configureGaleraBootstrap(fileManager, *podIndex, isGaleraInit); err != nil {
 			logger.Error(err, "error configuring Galera bootstrap")
 		}
-
 		if err := waitForPreviousPod(ctx, k8sClient, env, &mdb, *podIndex, isGaleraInit); err != nil {
 			logger.Error(err, "error waiting for previous Pod")
 			os.Exit(1)
@@ -147,46 +140,28 @@ func getK8sClient() (client.Client, error) {
 	return k8sClient, nil
 }
 
-func configureGalera(fm *filemanager.FileManager, env *environment.PodEnvironment, mdb *mariadbv1alpha1.MariaDB,
-	podIndex int, isMariadbInit bool) error {
-	if !shouldConfigureGalera(podIndex, isMariadbInit) {
-		return nil
-	}
+func configureGalera(fm *filemanager.FileManager, env *environment.PodEnvironment, mdb *mariadbv1alpha1.MariaDB) error {
+	logger.Info("Configuring Galera")
+
 	configBytes, err := config.NewConfigFile(mdb).Marshal(env)
 	if err != nil {
 		return fmt.Errorf("error getting Galera config: %v", err)
 	}
-	logger.Info("Configuring Galera")
 	if err := fm.WriteConfigFile(config.ConfigFileName, configBytes); err != nil {
 		return fmt.Errorf("error writing Galera config: %v", err)
 	}
 	return nil
 }
 
-func shouldConfigureGalera(podIndex int, isMariadbInit bool) bool {
-	if podIndex != 0 {
-		return true
-	}
-	return isMariadbInit
-}
+func configureGaleraBootstrap(fm *filemanager.FileManager, podIndex int, isGaleraInit bool) error {
+	if podIndex == 0 && !isGaleraInit {
+		logger.Info("Configuring Galera bootstrap")
 
-func configureGaleraBootstrap(fm *filemanager.FileManager, mdb *mariadbv1alpha1.MariaDB, podIndex int,
-	isMariadbInit bool, isGaleraInit bool) error {
-	if !shouldConfigureGaleraBootstrap(podIndex, isMariadbInit, isGaleraInit) {
-		return nil
-	}
-	logger.Info("Configuring Galera bootstrap")
-	if err := fm.WriteConfigFile(config.BootstrapFileName, config.BootstrapFile); err != nil {
-		return fmt.Errorf("error configuring Galera bootstrap: %v", err)
+		if err := fm.WriteConfigFile(config.BootstrapFileName, config.BootstrapFile); err != nil {
+			return fmt.Errorf("error configuring Galera bootstrap: %v", err)
+		}
 	}
 	return nil
-}
-
-func shouldConfigureGaleraBootstrap(podIndex int, isMariadbInit bool, isGaleraInit bool) bool {
-	if podIndex != 0 {
-		return false
-	}
-	return isMariadbInit && !isGaleraInit
 }
 
 func waitForPreviousPod(ctx context.Context, k8sClient client.Client, env *environment.PodEnvironment,
@@ -198,6 +173,7 @@ func waitForPreviousPod(ctx context.Context, k8sClient client.Client, env *envir
 	if err != nil {
 		return fmt.Errorf("error getting previous Pod: %v", err)
 	}
+
 	logger.Info("Waiting for previous Pod to be ready", "pod", previousPodName)
 	previousKey := types.NamespacedName{
 		Name:      previousPodName,

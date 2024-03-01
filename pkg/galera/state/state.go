@@ -27,11 +27,3 @@ func (i *State) IsGaleraInit() (bool, error) {
 	}
 	return false, nil
 }
-
-func (i *State) IsMariadbInit() (bool, error) {
-	entries, err := os.ReadDir(i.stateDir)
-	if err != nil {
-		return false, fmt.Errorf("error reading state directory: %v", err)
-	}
-	return len(entries) > 0, nil
-}

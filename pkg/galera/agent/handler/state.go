@@ -54,20 +54,3 @@ func (g *State) GetGaleraState(w http.ResponseWriter, r *http.Request) {
 	}
 	g.responseWriter.WriteOK(w, galeraState)
 }
-
-func (g *State) IsMariadbInit(w http.ResponseWriter, r *http.Request) {
-	g.locker.Lock()
-	defer g.locker.Unlock()
-	g.logger.V(1).Info("getting MariaDB init state")
-
-	isInit, err := g.state.IsMariadbInit()
-	if err != nil {
-		g.responseWriter.WriteErrorf(w, "error getting MariaDb init state %v", err)
-		return
-	}
-	if isInit {
-		w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
-}

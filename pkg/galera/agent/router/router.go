@@ -86,7 +86,6 @@ func apiRouter(h *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logg
 	})
 	r.Route("/state", func(r chi.Router) {
 		r.Get("/galera", h.State.GetGaleraState)
-		r.Get("/mariadb", h.State.IsMariadbInit)
 	})
 	r.Route("/recovery", func(r chi.Router) {
 		r.Put("/", h.Recovery.Enable)
