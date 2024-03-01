@@ -225,7 +225,7 @@ func (r *MaxScaleReconciler) getConfigSyncStatus(ctx context.Context, mxs *maria
 	}
 
 	var errBundle *multierror.Error
-	mxsVersion, err := r.getMaxScaleConfigSyncVersion(ctx, mxs, client)
+	mxsVersion, err := r.getMaxScaleConfigSyncVersion(ctx, client)
 	errBundle = multierror.Append(errBundle, err)
 
 	dbVersion, err := r.getDatabaseConfigSyncVersion(ctx, mxs)
@@ -241,8 +241,7 @@ func (r *MaxScaleReconciler) getConfigSyncStatus(ctx context.Context, mxs *maria
 	}, nil
 }
 
-func (r *MaxScaleReconciler) getMaxScaleConfigSyncVersion(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	client *mxsclient.Client) (int, error) {
+func (r *MaxScaleReconciler) getMaxScaleConfigSyncVersion(ctx context.Context, client *mxsclient.Client) (int, error) {
 	mxsStatus, err := client.MaxScale.Get(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error getting MaxScale status: %v", err)
