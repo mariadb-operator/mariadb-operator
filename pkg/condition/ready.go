@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -68,6 +70,24 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 		Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
 		Message: "Running",
 	})
+}
+
+func SetReadyWithInitJob(c Conditioner, job *batchv1.Job) {
+	if jobpkg.IsJobComplete(job) {
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionTrue,
+			Reason:  mariadbv1alpha1.ConditionReasonInitializing,
+			Message: "Initialized",
+		})
+	} else {
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonInitializing,
+			Message: "Initializing",
+		})
+	}
 }
 
 func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStatus) {

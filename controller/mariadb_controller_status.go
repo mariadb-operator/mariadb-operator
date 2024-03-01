@@ -9,8 +9,10 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
+	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,7 +23,7 @@ import (
 func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
-		return ctrl.Result{}, err
+		log.FromContext(ctx).V(1).Info("error getting StatefulSet", "err", err)
 	}
 
 	replicationStatus, replErr := r.getReplicationStatus(ctx, mdb)
@@ -31,6 +33,14 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	mxsPrimaryPodIndex, mxsErr := r.getMaxScalePrimaryPod(ctx, mdb)
 	if mxsErr != nil {
 		log.FromContext(ctx).V(1).Info("error getting MaxScale primary Pod", "err", mxsErr)
+	}
+	var initJob *batchv1.Job
+	if mdb.IsGaleraEnabled() {
+		var err error
+		initJob, err = r.getInitJob(ctx, mdb)
+		if err != nil {
+			log.FromContext(ctx).V(1).Info("error getting init Job", "err", err)
+		}
 	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -44,6 +54,10 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 
 		if apierrors.IsNotFound(mxsErr) && !ptr.Deref(mdb.Spec.MaxScale, mariadbv1alpha1.MariaDBMaxScaleSpec{}).Enabled {
 			r.ConditionReady.PatcherRefResolver(mxsErr, mariadbv1alpha1.MaxScale{})(&mdb.Status)
+			return nil
+		}
+		if initJob != nil && !jobpkg.IsJobComplete(initJob) {
+			condition.SetReadyWithInitJob(&mdb.Status, initJob)
 			return nil
 		}
 		if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
@@ -117,6 +131,14 @@ func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mari
 		return nil, fmt.Errorf("error getting Pod for MaxScale server '%s': %v", *primarySrv, err)
 	}
 	return podIndex, nil
+}
+
+func (r *MariaDBReconciler) getInitJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
+	var job batchv1.Job
+	if err := r.Get(ctx, mdb.InitKey(), &job); err != nil {
+		return nil, err
+	}
+	return &job, nil
 }
 
 func podIndexForServer(serverName string, mxs *mariadbv1alpha1.MaxScale, mdb *mariadbv1alpha1.MariaDB) (*int, error) {

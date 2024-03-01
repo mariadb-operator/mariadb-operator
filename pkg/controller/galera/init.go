@@ -7,6 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,7 +40,7 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 		return ctrl.Result{}, err
 	}
 
-	if !isJobComplete(&initJob) {
+	if !jobpkg.IsJobComplete(&initJob) {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
@@ -153,13 +154,4 @@ func (r *GaleraReconciler) deleteInitJob(ctx context.Context, mariadb *mariadbv1
 		return client.IgnoreNotFound(err)
 	}
 	return nil
-}
-
-func isJobComplete(job *batchv1.Job) bool {
-	for _, c := range job.Status.Conditions {
-		if c.Type == batchv1.JobComplete && c.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
 }

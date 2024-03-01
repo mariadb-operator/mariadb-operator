@@ -22,6 +22,8 @@ const (
 	ConditionReasonResizingStorage     string = "ResizingStorage"
 	ConditionReasonWaitStorageResize   string = "WaitStorageResize"
 	ConditionReasonStorageResized      string = "StorageResized"
+	ConditionReasonInitializing        string = "Initializing"
+	ConditionReasonInitialized         string = "Initialized"
 
 	ConditionReasonMaxScaleNotReady string = "MaxScaleNotReady"
 	ConditionReasonMaxScaleReady    string = "MaxScaleReady"
