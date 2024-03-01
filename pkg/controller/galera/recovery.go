@@ -18,7 +18,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,8 +28,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
-	logger logr.Logger) error {
+func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	pods, err := r.getPods(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting Pods: %v", err)
@@ -65,7 +63,7 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 	}
 	if !rs.podsRestarted() {
 		logger.Info("Recovering Pods")
-		if err := r.recoverPods(ctx, mariadb, pods, rs, agentClientSet, sqlClientSet, podLogger); err != nil {
+		if err := r.recoverPods(ctx, mariadb, rs, agentClientSet, sqlClientSet, podLogger); err != nil {
 			return fmt.Errorf("error recovering Pods: %v", err)
 		}
 	}
@@ -122,9 +120,8 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 	return nil
 }
 
-func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
-	rs *recoveryStatus, agentClientSet *agentClientSet, sqlClientSet *sqlClientSet.ClientSet,
-	logger logr.Logger) error {
+func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, rs *recoveryStatus,
+	agentClientSet *agentClientSet, sqlClientSet *sqlClientSet.ClientSet, logger logr.Logger) error {
 	statusRecovery := ptr.Deref(mariadb.Status.GaleraRecovery, mariadbv1alpha1.GaleraRecoveryStatus{})
 	bootstrap := ptr.Deref(statusRecovery.Bootstrap, mariadbv1alpha1.GaleraRecoveryBootstrap{})
 
