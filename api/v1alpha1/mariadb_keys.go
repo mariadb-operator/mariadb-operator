@@ -136,10 +136,10 @@ func (m *MariaDB) ReplConfigMapKeyRef() corev1.ConfigMapKeySelector {
 	}
 }
 
-// GaleraInitKey defines the keys for the Galera init objects.
-func (m *MariaDB) GaleraInitKey() types.NamespacedName {
+// InitKey defines the keys for the init objects.
+func (m *MariaDB) InitKey() types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-galera-init", m.Name),
+		Name:      fmt.Sprintf("%s-init", m.Name),
 		Namespace: m.Namespace,
 	}
 }

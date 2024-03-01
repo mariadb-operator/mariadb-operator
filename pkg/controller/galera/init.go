@@ -7,7 +7,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
-	resources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,7 +22,7 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 	}
 
 	var initJob batchv1.Job
-	if err := r.Get(ctx, mariadb.GaleraInitKey(), &initJob); err != nil {
+	if err := r.Get(ctx, mariadb.InitKey(), &initJob); err != nil {
 		if apierrors.IsNotFound(err) {
 			if err := r.reconcileJob(ctx, mariadb); err != nil {
 				return ctrl.Result{}, err
@@ -47,7 +46,7 @@ func (r *GaleraReconciler) reconcileJob(ctx context.Context, mariadb *mariadbv1a
 		return err
 	}
 
-	job, err := r.builder.BuilGaleraInitJob(mariadb.GaleraInitKey(), mariadb)
+	job, err := r.builder.BuilInitJob(mariadb.InitKey(), mariadb)
 	if err != nil {
 		return err
 	}
@@ -55,7 +54,7 @@ func (r *GaleraReconciler) reconcileJob(ctx context.Context, mariadb *mariadbv1a
 }
 
 func (r *GaleraReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := mariadb.GaleraInitKey()
+	key := mariadb.InitKey()
 
 	var cm corev1.ConfigMap
 	err := r.Get(ctx, key, &cm)
@@ -69,10 +68,10 @@ func (r *GaleraReconciler) reconcileConfigMap(ctx context.Context, mariadb *mari
 	req := configmap.ReconcileRequest{
 		Mariadb: mariadb,
 		Owner:   mariadb,
-		Key:     mariadb.GaleraInitKey(),
+		Key:     mariadb.InitKey(),
 		Data: map[string]string{
 			// Source: https://github.com/MariaDB/mariadb-docker/blob/master/docker-entrypoint.sh
-			resources.GaleraInitConfigKey: `#!/bin/bash
+			builder.InitConfigKey: `#!/bin/bash
 
 source /usr/local/bin/docker-entrypoint.sh
 
@@ -117,7 +116,7 @@ func (r *GaleraReconciler) reconcilePVC(ctx context.Context, mariadb *mariadbv1a
 
 func (r *GaleraReconciler) deleteInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	var job batchv1.Job
-	if err := r.Get(ctx, mariadb.GaleraInitKey(), &job); err != nil {
+	if err := r.Get(ctx, mariadb.InitKey(), &job); err != nil {
 		return client.IgnoreNotFound(err)
 	}
 	if err := r.Delete(ctx, &job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)}); err != nil {

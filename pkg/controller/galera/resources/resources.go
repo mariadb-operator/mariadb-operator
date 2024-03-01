@@ -4,10 +4,6 @@ var (
 	GaleraConfigVolume    = "galera"
 	GaleraConfigMountPath = "/etc/mysql/mariadb.conf.d"
 
-	GaleraInitConfigVolume = "galera-init"
-	GaleraInitConfigPath   = "/init"
-	GaleraInitConfigKey    = "entrypoint.sh"
-
 	GaleraClusterPortName = "cluster"
 	GaleraClusterPort     = int32(4444)
 	GaleraISTPortName     = "ist"

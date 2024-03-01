@@ -8,7 +8,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
-	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -213,13 +212,13 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
+func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	command := command.NewBashCommand([]string{
-		filepath.Join(galeraresources.GaleraInitConfigPath, galeraresources.GaleraInitConfigKey),
+		filepath.Join(InitConfigPath, InitConfigKey),
 	})
 
 	podTpl, err := b.mariadbPodTemplate(
@@ -238,11 +237,11 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 				},
 			},
 			{
-				Name: galeraresources.GaleraInitConfigVolume,
+				Name: InitVolume,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: mariadb.GaleraInitKey().Name,
+							Name: mariadb.InitKey().Name,
 						},
 						DefaultMode: ptr.To(int32(0777)),
 					},
@@ -251,8 +250,8 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 		}),
 		withExtraVolumeMounts([]corev1.VolumeMount{
 			{
-				Name:      galeraresources.GaleraInitConfigVolume,
-				MountPath: galeraresources.GaleraInitConfigPath,
+				Name:      InitVolume,
+				MountPath: InitConfigPath,
 			},
 		}),
 		withGalera(false),
