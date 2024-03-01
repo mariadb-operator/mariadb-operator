@@ -112,8 +112,83 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 	return sts, nil
 }
 
-func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels map[string]string) (*corev1.PodTemplateSpec, error) {
-	containers, err := b.mariadbContainers(mariadb)
+type mariadbOpts struct {
+	command           []string
+	args              []string
+	restartPolicy     *corev1.RestartPolicy
+	extraVolumes      []corev1.Volume
+	extraVolumeMounts []corev1.VolumeMount
+	includeGalera     bool
+	includePorts      bool
+	includeProbes     bool
+}
+
+func newMariadbOpts(userOpts ...mariadbOpt) *mariadbOpts {
+	opts := &mariadbOpts{
+		includeGalera: true,
+		includePorts:  true,
+		includeProbes: true,
+	}
+	for _, setOpt := range userOpts {
+		setOpt(opts)
+	}
+	return opts
+}
+
+type mariadbOpt func(opts *mariadbOpts)
+
+func withCommand(command []string) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.command = command
+	}
+}
+
+func withArgs(args []string) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.args = args
+	}
+}
+
+func withRestartPolicy(restartPolicy corev1.RestartPolicy) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.restartPolicy = &restartPolicy
+	}
+}
+
+func withExtraVolumes(volumes []corev1.Volume) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.extraVolumes = volumes
+	}
+}
+
+func withExtraVolumeMounts(volumeMounts []corev1.VolumeMount) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.extraVolumeMounts = volumeMounts
+	}
+}
+
+func withGalera(includeGalera bool) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.includeGalera = includeGalera
+	}
+}
+
+func withPorts(includePorts bool) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.includePorts = includePorts
+	}
+}
+
+func withProbes(includeProbes bool) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.includeProbes = includeProbes
+	}
+}
+
+func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels map[string]string,
+	opts ...mariadbOpt) (*corev1.PodTemplateSpec, error) {
+	mariadbOpts := newMariadbOpts(opts...)
+	containers, err := b.mariadbContainers(mariadb, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
@@ -130,10 +205,11 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels ma
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
 			ServiceAccountName:           serviceAccount(mariadb.Spec.ServiceAccountName, mariadb.Name),
-			InitContainers:               mariadbInitContainers(mariadb),
+			RestartPolicy:                ptr.Deref(mariadbOpts.restartPolicy, corev1.RestartPolicyAlways),
+			InitContainers:               mariadbInitContainers(mariadb, opts...),
 			Containers:                   containers,
 			ImagePullSecrets:             mariadb.Spec.ImagePullSecrets,
-			Volumes:                      mariadbVolumes(mariadb),
+			Volumes:                      mariadbVolumes(mariadb, opts...),
 			SecurityContext:              mariadb.Spec.PodSecurityContext,
 			Affinity:                     &affinity,
 			NodeSelector:                 mariadb.Spec.NodeSelector,
@@ -241,7 +317,8 @@ func maxscaleVolumeClaimTemplates(maxscale *mariadbv1alpha1.MaxScale) []corev1.P
 	return pvcs
 }
 
-func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
+func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.Volume {
+	mariadbOpts := newMariadbOpts(opts...)
 	configVolume := corev1.Volume{
 		Name: ConfigVolume,
 		VolumeSource: corev1.VolumeSource{
@@ -333,6 +410,9 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 	}
 	if mariadb.Spec.Volumes != nil {
 		volumes = append(volumes, mariadb.Spec.Volumes...)
+	}
+	if mariadbOpts.extraVolumes != nil {
+		volumes = append(volumes, mariadbOpts.extraVolumes...)
 	}
 	return volumes
 }
