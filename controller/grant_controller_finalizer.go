@@ -67,7 +67,7 @@ func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *sqlCl
 	if err == nil {
 		return nil
 	}
-	if err != nil && !wait.Interrupted(err) {
+	if !wait.Interrupted(err) {
 		return fmt.Errorf("error checking if user exists in MariaDB: %v", err)
 	}
 

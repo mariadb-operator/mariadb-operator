@@ -155,7 +155,7 @@ func (r *WebhookConfigReconciler) reconcileValidatingWebhook(ctx context.Context
 
 	logger.Info("Updating webhook config")
 	if err := r.patchValidatingWebhook(ctx, &validatingWebhook, func(cfg *admissionregistration.ValidatingWebhookConfiguration) {
-		r.injectValidatingWebhook(ctx, cfg, certResult.CAKeyPair.CertPEM, logger)
+		r.injectValidatingWebhook(cfg, certResult.CAKeyPair.CertPEM, logger)
 	}); err != nil {
 		logger.Error(err, "Could not update ValidatingWebhookConfig")
 		r.recorder.Eventf(&validatingWebhook, v1.EventTypeWarning, mariadbv1alpha1.ReasonWebhookUpdateFailed, err.Error())
@@ -165,7 +165,7 @@ func (r *WebhookConfigReconciler) reconcileValidatingWebhook(ctx context.Context
 	return nil
 }
 
-func (r *WebhookConfigReconciler) injectValidatingWebhook(ctx context.Context, cfg *admissionregistration.ValidatingWebhookConfiguration,
+func (r *WebhookConfigReconciler) injectValidatingWebhook(cfg *admissionregistration.ValidatingWebhookConfiguration,
 	certData []byte, logger logr.Logger) {
 	logger.Info("Injecting CA certificate and service names", "name", cfg.Name)
 	for i := range cfg.Webhooks {
@@ -198,7 +198,7 @@ func (r *WebhookConfigReconciler) reconcileMutatingWebhook(ctx context.Context, 
 
 	logger.Info("Updating webhook config")
 	if err := r.patchMutatingWebhook(ctx, &mutatingWebhook, func(cfg *admissionregistration.MutatingWebhookConfiguration) {
-		r.injectMutatingWebhook(ctx, cfg, certResult.CAKeyPair.CertPEM, logger)
+		r.injectMutatingWebhook(cfg, certResult.CAKeyPair.CertPEM, logger)
 	}); err != nil {
 		logger.Error(err, "Could not update MutatingWebhookConfig")
 		r.recorder.Eventf(&mutatingWebhook, v1.EventTypeWarning, mariadbv1alpha1.ReasonWebhookUpdateFailed, err.Error())
@@ -208,7 +208,7 @@ func (r *WebhookConfigReconciler) reconcileMutatingWebhook(ctx context.Context, 
 	return nil
 }
 
-func (r *WebhookConfigReconciler) injectMutatingWebhook(ctx context.Context, cfg *admissionregistration.MutatingWebhookConfiguration,
+func (r *WebhookConfigReconciler) injectMutatingWebhook(cfg *admissionregistration.MutatingWebhookConfiguration,
 	certData []byte, logger logr.Logger) {
 	logger.Info("Injecting CA certificate and service names", "name", cfg.Name)
 	for i := range cfg.Webhooks {
