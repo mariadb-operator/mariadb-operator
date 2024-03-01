@@ -707,7 +707,7 @@ var _ = Describe("MariaDB Galera", func() {
 					return false
 				}
 				return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
-			}, testVeryHighTimeout, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to create a Service")
 			var svc corev1.Service
@@ -883,7 +883,7 @@ var _ = Describe("MariaDB Galera", func() {
 					return false
 				}
 				return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
-			}, testVeryHighTimeout, testInterval).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Updating storage")
 			mdb.Spec.Storage.Size = ptr.To(resource.MustParse("400Mi"))
