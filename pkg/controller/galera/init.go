@@ -75,48 +75,18 @@ func (r *GaleraReconciler) reconcileConfigMap(ctx context.Context, mariadb *mari
 
 source /usr/local/bin/docker-entrypoint.sh
 
-# If container is started as root user, restart as dedicated mysql user
-function run_as_mysql() {
-	if [ "$(id -u)" = "0" ]; then
-		mysql_note "Switching to dedicated user 'mysql'"
-		exec gosu mysql "$0" "$@"
-	fi
-}
-
 mysql_note "Entrypoint script for MariaDB Server ${MARIADB_VERSION} started"
 mysql_check_config "mariadbd"
 
 # Load various environment variables
 docker_setup_env "mariadbd"
-
-# Check if MariaDB is already initialized.
-if [ -n "$DATABASE_ALREADY_EXISTS" ]; then
-	run_as_mysql
-
-	mysql_note "Starting temporary server"
-	docker_temp_server_start "mariadbd"
-	mysql_note "Temporary server started."
-
-	if mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;" &> /dev/null; then
-		mysql_note "MariaDB is already initialized. Skipping initialization."
-		
-		mysql_note "Stopping temporary server"
-		docker_temp_server_stop
-		mysql_note "Temporary server stopped"
-		exit 0
-	fi
-
-	mysql_warn "This MariaDB instance has already been initialized but the root password Secret does not match the existing state."
-	mysql_warn "Please either update the root password Secret or delete the PVC."
-	mysql_note "Stopping temporary server"
-	docker_temp_server_stop
-	mysql_note "Temporary server stopped"
-	exit 1
-fi
-
 docker_create_db_directories
 
-run_as_mysql
+# If container is started as root user, restart as dedicated mysql user
+if [ "$(id -u)" = "0" ]; then
+		mysql_note "Switching to dedicated user 'mysql'"
+		exec gosu mysql "${BASH_SOURCE[0]}" "mariadbd"
+fi
 
 docker_verify_minimum_env
 docker_mariadb_init "mariadbd"`,
