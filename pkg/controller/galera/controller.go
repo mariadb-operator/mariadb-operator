@@ -87,7 +87,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	logger := log.FromContext(ctx).WithName("galera")
 
 	if mariadb.HasGaleraNotReadyCondition() {
-		if err := r.reconcileRecovery(ctx, mariadb, sts, logger.WithName("recovery")); err != nil {
+		if err := r.reconcileRecovery(ctx, mariadb, logger.WithName("recovery")); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
