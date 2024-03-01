@@ -135,3 +135,19 @@ func (m *MariaDB) ReplConfigMapKeyRef() corev1.ConfigMapKeySelector {
 		Key: "replication.sh",
 	}
 }
+
+// GaleraInitKey defines the keys for the Galera init objects.
+func (m *MariaDB) GaleraInitKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-galera-init", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// PVCKey defines the PVC keys.
+func (m *MariaDB) PVCKey(name string, index int) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-%s-%d", name, m.Name, index),
+		Namespace: m.Namespace,
+	}
+}

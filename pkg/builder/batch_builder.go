@@ -8,6 +8,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -207,6 +208,68 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		},
 	}
 	if err := controllerutil.SetControllerReference(restore, job, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+	return job, nil
+}
+
+func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(mariadb.Spec.InheritMetadata).
+			Build()
+	command := command.NewBashCommand([]string{
+		filepath.Join(galeraresources.GaleraInitConfigPath, galeraresources.GaleraInitConfigKey),
+	})
+
+	podTpl, err := b.mariadbPodTemplate(
+		mariadb,
+		objMeta.Labels,
+		withCommand(command.Command),
+		withArgs(command.Args),
+		withRestartPolicy(corev1.RestartPolicyOnFailure),
+		withExtraVolumes([]corev1.Volume{
+			{
+				Name: StorageVolume,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: mariadb.PVCKey(StorageVolume, 0).Name,
+					},
+				},
+			},
+			{
+				Name: galeraresources.GaleraInitConfigVolume,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: mariadb.GaleraInitKey().Name,
+						},
+						DefaultMode: ptr.To(int32(0777)),
+					},
+				},
+			},
+		}),
+		withExtraVolumeMounts([]corev1.VolumeMount{
+			{
+				Name:      galeraresources.GaleraInitConfigVolume,
+				MountPath: galeraresources.GaleraInitConfigPath,
+			},
+		}),
+		withGalera(false),
+		withPorts(false),
+		withProbes(false),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: objMeta,
+		Spec: batchv1.JobSpec{
+			Template: *podTpl,
+		},
+	}
+	if err := controllerutil.SetControllerReference(mariadb, job, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
 	return job, nil

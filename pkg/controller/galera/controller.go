@@ -3,7 +3,6 @@ package galera
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -15,10 +14,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -99,6 +96,9 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		if err := r.disableBootstrap(ctx, mariadb, logger); err != nil {
 			return ctrl.Result{}, err
 		}
+		if err := r.deleteInitJob(ctx, mariadb); err != nil {
+			return ctrl.Result{}, err
+		}
 		logger.Info("Galera cluster is healthy")
 		r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy, "Galera cluster is healthy")
 
@@ -107,12 +107,6 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			condition.SetGaleraConfigured(&mariadb.Status)
 		}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Galera status: %v", err)
-		}
-	}
-
-	if !mariadb.HasGaleraConfiguredCondition() {
-		if result, err := r.initBootstrapPod(ctx, mariadb, logger); !result.IsZero() || err != nil {
-			return result, err
 		}
 	}
 
@@ -139,53 +133,6 @@ func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1al
 		return nil, err
 	}
 	return &sts, nil
-}
-
-func (r GaleraReconciler) initBootstrapPod(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
-	bootstrapPodIndex := 0
-	bootstrapPodKey := types.NamespacedName{
-		Name:      stsobj.PodName(mariadb.ObjectMeta, bootstrapPodIndex),
-		Namespace: mariadb.Namespace,
-	}
-	var bootstrapPod corev1.Pod
-	if err := r.Get(ctx, bootstrapPodKey, &bootstrapPod); err != nil {
-		logger.V(1).Info("Error getting bootstrap Pod", "pod", bootstrapPod.Name, "err", err)
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-
-	clientSet, err := r.newAgentClientSet(mariadb, mdbhttp.WithTimeout(1*time.Second))
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating agent client set: %v", err)
-	}
-	client, err := clientSet.clientForIndex(bootstrapPodIndex)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting agent client: %v", err)
-	}
-
-	bootstrapEnabled, err := client.Bootstrap.IsEnabled(ctx)
-	if err != nil {
-		logger.V(1).Info("Error checking bootstrap", "err", err)
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-	if bootstrapEnabled {
-		return ctrl.Result{}, nil
-	}
-
-	isInit, err := client.State.IsMariaDBInit(ctx)
-	if err != nil {
-		logger.V(1).Info("Error checking MariaDB init state", "err", err)
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-	if !isInit {
-		logger.V(1).Info("MariaDB not initialized. Requeuing")
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-
-	logger.V(1).Info("Restarting bootstrap Pod")
-	if err := r.Delete(ctx, &bootstrapPod); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error restarting bootstrap Pod: %v", err)
-	}
-	return ctrl.Result{}, nil
 }
 
 func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
