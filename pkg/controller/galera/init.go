@@ -21,10 +21,17 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 		return ctrl.Result{}, nil
 	}
 
+	if err := r.reconcilePVC(ctx, mariadb); err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.reconcileConfigMap(ctx, mariadb); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	var initJob batchv1.Job
 	if err := r.Get(ctx, mariadb.InitKey(), &initJob); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := r.reconcileJob(ctx, mariadb); err != nil {
+			if err := r.createJob(ctx, mariadb); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
@@ -38,14 +45,7 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 	return ctrl.Result{}, nil
 }
 
-func (r *GaleraReconciler) reconcileJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if err := r.reconcilePVC(ctx, mariadb); err != nil {
-		return err
-	}
-	if err := r.reconcileConfigMap(ctx, mariadb); err != nil {
-		return err
-	}
-
+func (r *GaleraReconciler) createJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	job, err := r.builder.BuilInitJob(mariadb.InitKey(), mariadb)
 	if err != nil {
 		return err
