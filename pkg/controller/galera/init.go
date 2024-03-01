@@ -15,6 +15,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -32,6 +33,7 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 	var initJob batchv1.Job
 	if err := r.Get(ctx, mariadb.InitKey(), &initJob); err != nil {
 		if apierrors.IsNotFound(err) {
+			log.FromContext(ctx).V(1).Info("Creating init job")
 			if err := r.createJob(ctx, mariadb); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -41,6 +43,7 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 	}
 
 	if !jobpkg.IsJobComplete(&initJob) {
+		log.FromContext(ctx).V(1).Info("Init job not completed. Requeuing")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
