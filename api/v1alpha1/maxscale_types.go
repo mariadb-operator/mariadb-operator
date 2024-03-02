@@ -675,6 +675,12 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv) {
 	m.Spec.Config.SetDefaults(m)
 	m.Spec.Auth.SetDefaults(m)
 	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
+
+	if m.Spec.PodTemplate.PodSecurityContext == nil {
+		m.Spec.PodTemplate.PodSecurityContext = &corev1.PodSecurityContext{
+			FSGroup: ptr.To(int64(996)),
+		}
+	}
 }
 
 // IsReady indicates whether the Maxscale instance is ready.
