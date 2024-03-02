@@ -16,27 +16,30 @@ MaxScale is a sophisticated database proxy, router, and load balancer designed s
 To better understand what MaxScale is capable of you may check the [product page](https://mariadb.com/docs/server/products/mariadb-maxscale/) and the [documentation](https://mariadb.com/kb/en/maxscale/). 
 
 ## Table of contents
-- [MaxScale resources](#maxscale-resources)
-    - [Servers](#servers)
-    - [Monitors](#monitors)
-    - [Services](#services)
-    - [Listeners](#listeners)
-- [`MaxScale` CR](#maxscale-cr)
-- [`MariaDB` CR](#mariadb-cr)
-- [`MariaDB` + `MaxScale` CRs](#mariadb--maxscale-crs)
-- [Defaults](#defaults)
-- [Server configuration](#server-configuration)
-- [Server maintenance](#server-maintenance)
-- [Configuration](#configuration)
-- [Authentication](#authentication)
-- [Kubernetes `Service`](#kubernetes-service)
-- [Connection](#connection)
-- [High availability](#high-availability)
-- [Suspend resources](#suspend-resources)
-- [Troubleshooting](#troubleshooting)
-- [MaxScale GUI](#maxscale-gui)
-- [MaxScale API](#maxscale-api)
-- [Reference](#reference)
+  - [Table of contents](#table-of-contents)
+  - [MaxScale resources](#maxscale-resources)
+      - [Servers](#servers)
+      - [Monitors](#monitors)
+      - [Services](#services)
+      - [Listeners](#listeners)
+  - [`MaxScale` CR](#maxscale-cr)
+  - [`MariaDB` CR](#mariadb-cr)
+  - [`MariaDB` + `MaxScale` CRs](#mariadb--maxscale-crs)
+  - [Defaults](#defaults)
+  - [Server configuration](#server-configuration)
+  - [Server maintenance](#server-maintenance)
+  - [Configuration](#configuration)
+  - [Authentication](#authentication)
+  - [Kubernetes `Service`](#kubernetes-service)
+  - [Connection](#connection)
+  - [High availability](#high-availability)
+  - [Suspend resources](#suspend-resources)
+  - [MaxScale GUI](#maxscale-gui)
+  - [MaxScale API](#maxscale-api)
+  - [Troubleshooting](#troubleshooting)
+    - [Common errors](#common-errors)
+      - [Permission denied writing `/var/lib/maxscale`](#permission-denied-writing-varlibmaxscale)
+  - [Reference](#reference)
 
 ## MaxScale resources
 
@@ -375,7 +378,7 @@ spec:
         - ReadWriteOnce
 ```
 
-Both this global configuration and the resources created by the operator using the [MaxScale API](#maxscale-api) are stored under a volume provisioned by the `spec.config.volumeClaimTemplate`.
+Both this global configuration and the resources created by the operator using the [MaxScale API](#maxscale-api) are stored under a volume provisioned by the `spec.config.volumeClaimTemplate`. Refer to the [troubleshooting](#troubleshooting) if you are getting errors writing on this volume.
 
 Refer to the [MaxScale reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/) to provide global configuration.
 
@@ -579,6 +582,32 @@ spec:
     suspend: true
 ```
 
+## MaxScale GUI
+
+MaxScale offers a shiny user interface that provides very useful information about the [MaxScale resources](#maxscale-resources). You can  enable it providing the following configuration:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  admin:
+    port: 8989
+    guiEnabled: true
+```
+
+The GUI is exposed via the [Kubernetes Service](#kubernetes-service) in the same port as the [MaxScale API](#maxscale-api). Once you access, you will need to enter the [MaxScale API](#maxscale-api) credentials configured by `mariadb-operator` in a `Secret`. See the [Authentication](#authentication) section for more details.
+
+![MaxScale GUI](https://mariadb-operator.github.io/mariadb-operator/assets/maxscale-gui.png)
+
+## MaxScale API
+
+`mariadb-operator` interacts with the [MaxScale REST API](https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/) to reconcile the specification provided by the user, considering both the MaxScale status retrieved from the API and the provided spec.
+
+[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://www.postman.com/mariadb-operator/workspace/mariadb-operator/collection/9776-74dfd54a-2b2b-451f-95ab-006e1d9d9998?action=share&creator=9776&active-environment=9776-a841398f-204a-48c8-ac04-6f6c3bb1d268)
+
 ## Troubleshooting
 
 `mariadb-operator` tracks both the `MaxScale` status in regards to Kubernetes resources as well as the status of the [MaxScale API](#maxscale-api) resources. This information is available on the status field of the `MaxScale` resource, it may be very useful for debugging purposes:
@@ -637,9 +666,17 @@ LAST SEEN   TYPE      REASON                         OBJECT                     
 helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set logLevel=debug --set extraArgs={--log-maxscale}
 ```
 
-## MaxScale GUI
+### Common errors
 
-MaxScale offers a shiny user interface that provides very useful information about the [MaxScale resources](#maxscale-resources). You can  enable it providing the following configuration:
+#### Permission denied writing `/var/lib/maxscale`
+
+This error occurs when the container does not have enough privileges for writing in `/var/lib/maxscale`:
+
+```bash
+Failed to create directory '/var/lib/maxscale/maxscale.cnf.d': 13, Permission denied
+```
+
+To mitigate this, the following defaults are set by the operator:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -648,20 +685,33 @@ metadata:
   name: maxscale-galera
 spec:
 ...
-  admin:
-    port: 8989
-    guiEnabled: true
+podSecurityContext:
+  fsGroup: 996
 ```
 
-The GUI is exposed via the [Kubernetes Service](#kubernetes-service) in the same port as the [MaxScale API](#maxscale-api). Once you access, you will need to enter the [MaxScale API](#maxscale-api) credentials configured by `mariadb-operator` in a `Secret`. See the [Authentication](#authentication) section for more details.
+This enables the `CSIDriver` and the kubelet to recursively set the ownership ofr the `/var/lib/maxscale` folder to the group `996`, which is the one expected by MaxScale. It is important to note that not all the `CSIDrivers` implementations support this feature, see the [CSIDriver documentation](https://kubernetes-csi.github.io/docs/support-fsgroup.html) and refer to this [comment](https://github.com/mariadb-operator/mariadb-operator/issues/381#issuecomment-1974828673) for further information.
 
-![MaxScale GUI](https://mariadb-operator.github.io/mariadb-operator/assets/maxscale-gui.png)
+As an alternative, you can setup an initContainer to perform a `chown`: 
 
-## MaxScale API
-
-`mariadb-operator` interacts with the [MaxScale REST API](https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/) to reconcile the specification provided by the user, considering both the MaxScale status retrieved from the API and the provided spec.
-
-[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://www.postman.com/mariadb-operator/workspace/mariadb-operator/collection/9776-74dfd54a-2b2b-451f-95ab-006e1d9d9998?action=share&creator=9776&active-environment=9776-a841398f-204a-48c8-ac04-6f6c3bb1d268)
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+initContainers:
+- name: volume-hack
+  image: busybox
+  command:
+  - /bin/sh
+  - -c
+  - chown -R 998:996 /var/lib/maxscale
+  resources: {}
+  volumeMounts:
+  - name: storage
+    mountPath: /var/lib/maxscale
+```
 
 ## Reference
 - [API reference](./API_REFERENCE.md)
