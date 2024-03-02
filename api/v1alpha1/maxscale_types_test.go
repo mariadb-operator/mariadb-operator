@@ -59,6 +59,9 @@ var _ = Describe("MaxScale types", func() {
 					Spec: MaxScaleSpec{
 						PodTemplate: PodTemplate{
 							ServiceAccountName: &objMeta.Name,
+							PodSecurityContext: &corev1.PodSecurityContext{
+								FSGroup: ptr.To(int64(996)),
+							},
 						},
 						Image: env.RelatedMaxscaleImage,
 						Servers: []MaxScaleServer{
@@ -201,6 +204,9 @@ var _ = Describe("MaxScale types", func() {
 					Spec: MaxScaleSpec{
 						PodTemplate: PodTemplate{
 							ServiceAccountName: &objMeta.Name,
+							PodSecurityContext: &corev1.PodSecurityContext{
+								FSGroup: ptr.To(int64(996)),
+							},
 						},
 						Image:           env.RelatedMaxscaleImage,
 						Replicas:        3,

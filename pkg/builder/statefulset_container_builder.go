@@ -177,21 +177,7 @@ func mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt)
 }
 
 func maxscaleInitContainers(mxs *mariadbv1alpha1.MaxScale) []corev1.Container {
-	initContainers := []corev1.Container{
-		{
-			Name:  "init-chown",
-			Image: mxs.Spec.Image,
-			Command: []string{
-				"/bin/sh",
-				"-c",
-				"chown -R 998:996 /var/lib/maxscale",
-			},
-			VolumeMounts: maxscaleVolumeMounts(mxs),
-			SecurityContext: &corev1.SecurityContext{
-				RunAsUser: ptr.To(int64(0)),
-			},
-		},
-	}
+	var initContainers []corev1.Container
 	if mxs.Spec.InitContainers != nil {
 		for index, container := range mxs.Spec.InitContainers {
 			initContainer := buildContainer(container.Image, container.ImagePullPolicy, &container.ContainerTemplate)
