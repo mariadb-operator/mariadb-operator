@@ -39,7 +39,10 @@ chmod +x migrate_v0.0.26.sh
 kubectl apply --server-side=true --force-conflicts -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.26.0/crds.yaml
 ```
 
-- Execute the migration script:
+- Make sure you `MariaDB` is in ready state and execute the migration script:
+> [!IMPORTANT]  
+> `MariaDB` must be in a ready state
+
 ```bash
 ./migrate_v0.0.26.sh mariadb-galera.yaml
 ```
@@ -68,4 +71,10 @@ kubectl delete role mariadb-galera
 ```bash
 helm repo update mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
+```
+
+- Cleanup old CRDs:
+```bash
+OLD_HELM_VERSION=0.25.0
+kubectl delete -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-${OLD_HELM_VERSION}/crds.yaml
 ```
