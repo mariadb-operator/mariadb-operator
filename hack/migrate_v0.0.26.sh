@@ -59,7 +59,7 @@ cp "$MARIADB_INPUT" "$MARIADB_OUTPUT"
 "$YQ" eval '
   .apiVersion = "k8s.mariadb.com/v1alpha1" |
 
-  .spec.serviceAccountName= "default" |
+  .spec.serviceAccountName = .metadata.name |
 
   .spec.storage.size = .spec.volumeClaimTemplate.resources.requests.storage |
   .spec.storage.volumeClaimTemplate = .spec.volumeClaimTemplate |
@@ -73,8 +73,6 @@ if [ "$GALERA_ENABLED" = "true" ]; then
   echo "Migrating Galera fields"
 
   "$YQ" eval '
-  .spec.serviceAccountName = .metadata.name |
-
   .spec.galera.config.volumeClaimTemplate= .spec.galera.volumeClaimTemplate |
   .spec.galera.config.reuseStorageVolume= false |
 
@@ -93,4 +91,4 @@ fi
 echo "Creating status patch"
 cp "$MARIADB_INPUT" "$MARIADB_STATUS_OUTPUT"
 
-"$YQ" '. |= pick(["status"])' -i "$MARIADB_STATUS_OUTPUT"
+"$YQ" eval '. |= pick(["status"])' -i "$MARIADB_STATUS_OUTPUT"
