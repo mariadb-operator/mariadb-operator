@@ -71,12 +71,3 @@ kubectl delete role mariadb-galera
 helm repo update mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
-
-- Cleanup old CRDs and migration script:
-```bash
-OLD_HELM_VERSION=0.25.0
-kubectl delete -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-${OLD_HELM_VERSION}/crds.yaml
-```
-```bash
-rm migrate_v0.0.26.sh
-```
