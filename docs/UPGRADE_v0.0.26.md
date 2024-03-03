@@ -20,7 +20,9 @@ https://github.com/mariadb-operator/mariadb-operator/pull/394
 
 Follow these steps for upgrading:
 
-- In your current `mariadb-operator` version, get a manifest of your `MariaDB` resource:
+- In your current `mariadb-operator` version, make sure the `MariaDB` to migrate is in ready state and get a copy of its manifest:
+> [!IMPORTANT]  
+> `MariaDB` must be in a ready state.
 ```bash
 kubectl get mariadbs.mariadb.mmontes.io mariadb-galera -o yaml > mariadb-galera.yaml
 ```
@@ -39,10 +41,7 @@ chmod +x migrate_v0.0.26.sh
 kubectl apply --server-side=true --force-conflicts -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.26.0/crds.yaml
 ```
 
-- Make sure you `MariaDB` is in ready state and execute the migration script:
-> [!IMPORTANT]  
-> `MariaDB` must be in a ready state.
-
+- Execute the migration script:
 ```bash
 ./migrate_v0.0.26.sh mariadb-galera.yaml
 ```
