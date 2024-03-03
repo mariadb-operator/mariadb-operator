@@ -22,7 +22,7 @@ Follow these steps for upgrading:
 
 - In your current `mariadb-operator` version, make sure the `MariaDB` to migrate is in ready state and get a copy of its manifest:
 > [!IMPORTANT]  
-> `MariaDB` must be in a ready state.
+> `MariaDB` must be in ready state.
 ```bash
 kubectl get mariadbs.mariadb.mmontes.io mariadb-galera -o yaml > mariadb-galera.yaml
 ```
