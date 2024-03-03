@@ -20,8 +20,8 @@ function setup_yq() {
     x86_64)
       ARCH="amd64"
       ;;
-    armv7l|armv6l)
-      ARCH="arm"
+    aarch64|arm64|armv8|armv7)
+      ARCH="arm64"
       ;;
     i386)
       ARCH="386"
