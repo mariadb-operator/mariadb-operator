@@ -81,7 +81,7 @@ spec:
 The `minClusterSize` field indicates the minimum cluster size (either absolut number or percentage) for the operator to consider the cluster healthy. If the cluster is unhealthy for more than the period defined in `clusterHealthyTimeout`, a cluster recovery process is initiated by the operator. The process is explained in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html) and consists of the following steps:
 
 - Recover the sequence number from the `grastate.dat` on each node.
-- Put the nodes in recovery mode and restart them and obtain the sequence number. This step is skipped if we have already valid sequence numbers from the previous step.
+- Put the nodes in recovery mode and restart them to obtain the sequence number. This step is skipped if we have already valid sequence numbers from the previous step.
 - Mark the node with highest sequence (bootstrap node) as safe to bootstrap.
 - Bootstrap a new cluster in the bootstrap node.
 - Wait until the bootstrap node becomes ready.
