@@ -32,7 +32,7 @@ chmod +x migrate_v0.0.26.sh
 ```
 
 - Install `v0.0.26` CRDs:
-> [!IMPORTANT]  
+> [!NOTE]  
 > Helm does not handle CRD upgrades. See [helm docs](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations).
 
 ```bash
@@ -41,7 +41,7 @@ kubectl apply --server-side=true --force-conflicts -f https://github.com/mariadb
 
 - Make sure you `MariaDB` is in ready state and execute the migration script:
 > [!IMPORTANT]  
-> `MariaDB` must be in a ready state
+> `MariaDB` must be in a ready state.
 
 ```bash
 ./migrate_v0.0.26.sh mariadb-galera.yaml
