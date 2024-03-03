@@ -4,13 +4,24 @@
 > APIs are currently in `v1alpha1`, which implies that non backward compatible changes might happen. See [Kubernetes API versioning](https://kubernetes.io/docs/reference/using-api/#api-versioning) for more detail.
 
 BREAKING:
-https://github.com/mariadb-operator/mariadb-operator/pull/418
-https://github.com/mariadb-operator/mariadb-operator/pull/416
-https://github.com/mariadb-operator/mariadb-operator/pull/407
-https://github.com/mariadb-operator/mariadb-operator/pull/384
 
-Recommended:
-- Lower galera recovery timeouts
+apiVersion
+https://github.com/mariadb-operator/mariadb-operator/pull/418
+
+storage:
+https://github.com/mariadb-operator/mariadb-operator/pull/407
+
+serviceAccountName:
+https://github.com/mariadb-operator/mariadb-operator/pull/416
+
+galera:
+https://github.com/mariadb-operator/mariadb-operator/pull/384
+https://github.com/mariadb-operator/mariadb-operator/pull/394
+
+RECOMMENDED:
+
+galera:
+Lower galera recovery timeouts
 
 API:
 - Converging to v1beta1
@@ -43,5 +54,6 @@ Metrics:
 - Support for inheritMetadata in Deployment
 
 __BREAKING CHANGE__:  API group has been renamed to `k8s.mariadb.com`
-
 See [API reference](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#galerarecovery).
+
+kubectl patch mariadbs.k8s.mariadb.com mariadb --subresource status --type merge -p "$(cat mariadb.status.new.yaml)"
