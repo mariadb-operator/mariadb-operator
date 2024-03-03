@@ -1,59 +1,71 @@
-# Upgrade guide v0.0.24
+# Upgrade guide v0.0.26
 
 > [!NOTE]  
 > APIs are currently in `v1alpha1`, which implies that non backward compatible changes might happen. See [Kubernetes API versioning](https://kubernetes.io/docs/reference/using-api/#api-versioning) for more detail.
 
-BREAKING:
+This guide illustrates, step by step, how to migrate to `v0.0.26` from previous versions, as some breaking changes have been introduced in the `MariaDB` resource. See the changes grouped by field:
 
-apiVersion
+`apiVersion`
 https://github.com/mariadb-operator/mariadb-operator/pull/418
 
-storage:
+`storage`
 https://github.com/mariadb-operator/mariadb-operator/pull/407
 
-serviceAccountName:
+`serviceAccountName`
 https://github.com/mariadb-operator/mariadb-operator/pull/416
 
-galera:
+`galera`
 https://github.com/mariadb-operator/mariadb-operator/pull/384
 https://github.com/mariadb-operator/mariadb-operator/pull/394
 
-RECOMMENDED:
+Follow these steps for upgrading:
 
-galera:
-Lower galera recovery timeouts
+- In your current `mariadb-operator` version, get a manifest of your `MariaDB` resource:
+```bash
+kubectl get mariadbs.mariadb.mmontes.io mariadb-galera -o yaml > mariadb-galera.yaml
+```
 
-API:
-- Converging to v1beta1
-- Multiple fields introduced: relevant API reference linked on each PR below.
+- Download and setup the migration script:
+```bash
+wget -q "https://raw.githubusercontent.com/mariadb-operator/mariadb-operator/main/hack/migrate_v0.0.26.sh"
+chmod +x migrate_v0.0.26.sh
+```
 
-MariaDB:
-- Significant architecture changes and improved overall stability.
-  - Galera init job
-  - Liveness and rediness probes delegated to agent. Opens a lot of possibilities like availableWhenDonor
-  - mariadb-operator glued CLI: agent and init subcommands
-- This changes result in:
-  - Improved galera stability
-  - Enhanced galera cluster recovery.
-    - More robust and predictable. 
-    - Define relative minClusterSize to trigger recovery
+- Install `v0.0.26` CRDs:
+> [!IMPORTANT]  
+> Helm does not handle CRD upgrades. See [helm docs](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations).
 
-- Reuse storage volume for config
-- Support for MariaDB enterprise image
+```bash
+kubectl apply --server-side=true --force-conflicts -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.26.0/crds.yaml
+```
 
-Backup/Restore/SqlJob:
-- ServiceAccount in Jobs
-- Support for ContainerTemplate and PodTemplate in Jobs
-- Support for inheritMetadata in Jobs
+- Execute the migration script:
+```bash
+./migrate_v0.0.26.sh mariadb-galera.yaml
+```
 
-Storage.
-- Flexible storage configuration
-- Storage resize
+- Apply the `v0.0.26` specification:
+```bash
+kubectl apply -f migrated.mariadb-galera.yaml
+```
 
-Metrics:
-- Support for inheritMetadata in Deployment
+- Patch the `v0.0.26` status:
+```bash
+kubectl patch mariadbs.k8s.mariadb.com mariadb-galera --subresource status --type merge -p "$(cat status.mariadb-galera.yaml)"
+```
 
-__BREAKING CHANGE__:  API group has been renamed to `k8s.mariadb.com`
-See [API reference](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#galerarecovery).
+- Uninstall you current `mariadb-operator`:
+```bash
+helm uninstall mariadb-operator
+```
 
-kubectl patch mariadbs.k8s.mariadb.com mariadb --subresource status --type merge -p "$(cat mariadb.status.new.yaml)"
+- If your `MariaDB` has Galera enabled, delete the `mariadb-galera` `Role`, as it will be specyfing the old CRDs:
+```bash
+kubectl delete role mariadb-galera
+```
+
+- Install the current `mariadb-operator` version:
+```bash
+helm repo update mariadb-operator
+helm install mariadb-operator mariadb-operator/mariadb-operator
+```
