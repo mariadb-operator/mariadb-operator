@@ -56,7 +56,7 @@ kubectl apply -f migrated.mariadb-galera.yaml
 kubectl patch mariadbs.k8s.mariadb.com mariadb-galera --subresource status --type merge -p "$(cat status.mariadb-galera.yaml)"
 ```
 
-- Patch the `StatefulSet` `ownerReferences`. All the remaining owner resources will be instantly recreated by the `v0.0.26` operator, but you might also patch them if you want:
+- Patch the `StatefulSet` `ownerReferences`. All the remaining children resources will be instantly recreated by the `v0.0.26` operator, but you might also patch them if you want:
 > [!WARNING]  
 > Not changing the `StatefulSet` `ownerReferences` implies that it will be garbage collected when deleting the old CRDs.
 
