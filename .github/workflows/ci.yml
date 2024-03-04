@@ -20,7 +20,7 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v5.3.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          paths_ignore: '["**.md"]'
+          paths_ignore: '["**.md","**.md.gotmpl"]'
           concurrent_skipping: false
 
   lint:
