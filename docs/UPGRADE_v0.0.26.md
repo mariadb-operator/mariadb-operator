@@ -56,6 +56,16 @@ kubectl apply -f migrated.mariadb-galera.yaml
 kubectl patch mariadbs.k8s.mariadb.com mariadb-galera --subresource status --type merge -p "$(cat status.mariadb-galera.yaml)"
 ```
 
+- Path the `StatefulSet` `ownerReferences`:
+
+```bash
+MARIADB_UID=$(kubectl get mariadbs.k8s.mariadb.com mariadb-galera -o jsonpath="{.metadata.uid}" | tr -d '\n')
+kubectl patch statefulset mariadb-galera --type=json -p="[
+  {\"op\": \"replace\", \"path\": \"/metadata/ownerReferences/0/apiVersion\", \"value\": \"k8s.mariadb.com/v1alpha1\"}, 
+  {\"op\": \"replace\", \"path\": \"/metadata/ownerReferences/0/uid\", \"value\": \"${MARIADB_UID}\"}
+]"
+```
+
 - Uninstall you current `mariadb-operator`:
 ```bash
 helm uninstall mariadb-operator
@@ -70,4 +80,13 @@ kubectl delete role mariadb-galera
 ```bash
 helm repo update mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
+```
+
+- Cleanup old CRDs and migration script:
+```bash
+OLD_HELM_VERSION=0.25.0
+kubectl delete -f "https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-${OLD_HELM_VERSION}/crds.yaml"
+```
+```bash
+rm migrate_v0.0.26.sh
 ```
