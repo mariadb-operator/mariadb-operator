@@ -28,9 +28,10 @@ const (
 	MaxscaleConfigMountPath = "/etc/config"
 	ConfigVolumeRole        = "config"
 
-	InitVolume     = "init"
-	InitConfigPath = "/init"
-	InitConfigKey  = "entrypoint.sh"
+	InitVolume        = "init"
+	InitConfigPath    = "/init"
+	InitLibKey        = "lib.sh"
+	InitEntrypointKey = "entrypoint.sh"
 
 	ProbesVolume    = "probes"
 	ProbesMountPath = "/etc/probes"

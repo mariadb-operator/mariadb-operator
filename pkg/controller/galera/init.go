@@ -1,12 +1,16 @@
 package galera
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"html/template"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	mdbembed "github.com/mariadb-operator/mariadb-operator/pkg/embed"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -69,15 +73,17 @@ func (r *GaleraReconciler) reconcileConfigMap(ctx context.Context, mariadb *mari
 		return err
 	}
 
-	req := configmap.ReconcileRequest{
-		Mariadb: mariadb,
-		Owner:   mariadb,
-		Key:     mariadb.InitKey(),
-		Data: map[string]string{
-			// Source: https://github.com/MariaDB/mariadb-docker/blob/master/docker-entrypoint.sh
-			builder.InitConfigKey: `#!/bin/bash
+	entrypointBytes, err := mdbembed.ReadEntrypoint()
+	if err != nil {
+		return fmt.Errorf("error reading entrypoint: %v", err)
+	}
 
-source /usr/local/bin/docker-entrypoint.sh
+	tpl, err := template.New("init").Parse(`#!/bin/bash
+
+set -eo pipefail
+
+CURDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+source "${CURDIR}/{{ .LibKey }}"
 
 # If container is started as root user, restart as dedicated mysql user
 function run_as_mysql() {
@@ -123,7 +129,28 @@ docker_create_db_directories
 run_as_mysql
 
 docker_verify_minimum_env
-docker_mariadb_init "mariadbd"`,
+docker_mariadb_init "mariadbd"`)
+	if err != nil {
+		return fmt.Errorf("error building template: %v", err)
+	}
+
+	buf := new(bytes.Buffer)
+	err = tpl.Execute(buf, struct {
+		LibKey string
+	}{
+		LibKey: builder.InitLibKey,
+	})
+	if err != nil {
+		return fmt.Errorf("error rendering template: %v", err)
+	}
+
+	req := configmap.ReconcileRequest{
+		Mariadb: mariadb,
+		Owner:   mariadb,
+		Key:     mariadb.InitKey(),
+		Data: map[string]string{
+			builder.InitLibKey:        string(entrypointBytes),
+			builder.InitEntrypointKey: buf.String(),
 		},
 	}
 	return r.configMapReconciler.Reconcile(ctx, &req)
