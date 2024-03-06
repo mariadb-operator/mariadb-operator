@@ -34,6 +34,9 @@ MARIADB_GALERA_ENT_AGENT_IMAGE ?= $(IMG_ENT_NAME):v0.0.26
 MARIADB_GALERA_LIB_PATH ?= /usr/lib/galera/libgalera_smm.so
 MARIADB_GALERA_ENT_LIB_PATH ?= /usr/lib/galera/libgalera_enterprise_smm.so
 
+MARIADB_DOCKER_COMMIT_HASH ?= d7a950d41e9347ac94ad2d2f28469bff74858db7
+MARIADB_DOCKER_ENTRYPOINT ?= mariadb-docker/entrypoint.sh
+
 DOCKER_CONFIG ?= $(HOME)/.docker/config.json 
 
 .PHONY: all
