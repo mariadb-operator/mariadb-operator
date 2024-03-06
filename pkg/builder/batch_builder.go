@@ -218,7 +218,7 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	command := command.NewBashCommand([]string{
-		filepath.Join(InitConfigPath, InitConfigKey),
+		filepath.Join(InitConfigPath, InitEntrypointKey),
 	})
 
 	podTpl, err := b.mariadbPodTemplate(
