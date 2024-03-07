@@ -6,7 +6,8 @@ spec:
   # metadata that will be inherited by all children objects
   inheritMetadata:
     labels:
-      database.myorg.io: mariadb  
+      database.myorg.io: mariadb
+      sidecar.istio.io/inject: "false"
     annotations:
       database.myorg.io: mariadb
 
