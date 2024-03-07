@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -15,8 +16,9 @@ import (
 )
 
 const (
-	ConfigFileName    = "0-galera.cnf"
-	BootstrapFileName = recovery.BootstrapFileName
+	ConfigFileName      = "0-galera.cnf"
+	WsrepNodeAddressKey = "wsrep_node_address"
+	BootstrapFileName   = recovery.BootstrapFileName
 )
 
 var BootstrapFile = []byte(`[galera]
@@ -52,7 +54,7 @@ wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads={{ .Threads }}
 
 # Node configuration
-wsrep_node_address="{{ .NodeAddress }}"
+{{ .NodeAddressKey }}="{{ .NodeAddress }}"
 wsrep_node_name="{{ .Pod }}"
 wsrep_sst_method="{{ .SST }}"
 {{- if .SSTAuth }}
@@ -71,6 +73,7 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 
 	err = tpl.Execute(buf, struct {
 		ClusterAddress string
+		NodeAddressKey string
 		NodeAddress    string
 		GaleraLibPath  string
 		Threads        int
@@ -80,6 +83,7 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 		RootPassword   string
 	}{
 		ClusterAddress: clusterAddr,
+		NodeAddressKey: WsrepNodeAddressKey,
 		NodeAddress:    podEnv.PodIP,
 		GaleraLibPath:  galera.GaleraLibPath,
 		Threads:        galera.ReplicaThreads,
@@ -107,6 +111,34 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 		)
 	}
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
+}
+
+func UpdateConfigFile(configBytes []byte, key, value string) ([]byte, error) {
+	fileScanner := bufio.NewScanner(bytes.NewReader(configBytes))
+	fileScanner.Split(bufio.ScanLines)
+
+	var updatedLines []string
+	matched := false
+
+	for fileScanner.Scan() {
+		line := fileScanner.Text()
+
+		if strings.HasPrefix(line, key) {
+			updatedLines = append(updatedLines, fmt.Sprintf("%s=\"%s\"", key, value))
+			matched = true
+		} else {
+			updatedLines = append(updatedLines, line)
+		}
+	}
+	if err := fileScanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading config: %v", err)
+	}
+	if !matched {
+		return nil, fmt.Errorf("config key '%s' not found", key)
+	}
+
+	updatedConfig := []byte(strings.Join(updatedLines, "\n"))
+	return updatedConfig, nil
 }
 
 func createTpl(name, t string) *template.Template {

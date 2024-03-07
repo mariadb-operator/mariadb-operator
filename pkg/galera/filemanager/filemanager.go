@@ -45,6 +45,10 @@ func (f *FileManager) WriteConfigFile(name string, bytes []byte) error {
 	return os.WriteFile(filepath.Join(f.configDir, name), bytes, writeFileMode)
 }
 
+func (f *FileManager) ReadConfigFile(name string) ([]byte, error) {
+	return os.ReadFile(filepath.Join(f.configDir, name))
+}
+
 func (f *FileManager) DeleteConfigFile(name string) error {
 	return os.Remove(filepath.Join(f.configDir, name))
 }
