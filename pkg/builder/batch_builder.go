@@ -371,6 +371,8 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 	if s3 == nil {
 		return nil
 	}
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLS{})
+
 	cmdOpts := []command.BackupOpt{
 		command.WithS3(
 			s3.Bucket,
@@ -378,13 +380,11 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 			s3.Region,
 			s3.Prefix,
 		),
+		command.WithS3TLS(tls.Enabled),
 	}
-	if s3.TLS != nil && s3.TLS.Enabled {
-		caCertPath := ""
-		if s3.TLS.CASecretKeyRef != nil {
-			caCertPath = filepath.Join(batchS3PKIMountPath, s3.TLS.CASecretKeyRef.Key)
-		}
-		cmdOpts = append(cmdOpts, command.WithS3TLS(caCertPath))
+	if tls.Enabled && tls.CASecretKeyRef != nil {
+		caCertPath := filepath.Join(batchS3PKIMountPath, s3.TLS.CASecretKeyRef.Key)
+		cmdOpts = append(cmdOpts, command.WithS3CACertPath(caCertPath))
 	}
 	return cmdOpts
 }

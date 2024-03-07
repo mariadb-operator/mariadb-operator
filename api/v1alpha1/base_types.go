@@ -369,6 +369,7 @@ type TLS struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
 	// CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+	// The default CA trust chain includes the Mozilla CA certificates. See: https://wiki.mozilla.org/CA/Included_Certificates.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CASecretKeyRef *corev1.SecretKeySelector `json:"caSecretKeyRef,omitempty"`

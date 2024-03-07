@@ -58,9 +58,14 @@ func WithS3(bucket, endpoint, region, prefix string) BackupOpt {
 	}
 }
 
-func WithS3TLS(caCertPath string) BackupOpt {
+func WithS3TLS(tls bool) BackupOpt {
 	return func(bo *BackupOpts) {
-		bo.S3TLS = true
+		bo.S3TLS = tls
+	}
+}
+
+func WithS3CACertPath(caCertPath string) BackupOpt {
+	return func(bo *BackupOpts) {
 		bo.S3CACertPath = caCertPath
 	}
 }
