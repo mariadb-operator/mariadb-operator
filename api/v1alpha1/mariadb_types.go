@@ -13,18 +13,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// InheritMetadata defines the metadata to be inherited by children resources.
-type InheritMetadata struct {
-	// Labels to be added to children resources.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Labels map[string]string `json:"labels,omitempty"`
-	// Annotations to be added to children resources.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Annotations map[string]string `json:"annotations,omitempty"`
-}
-
 // Exporter defines a metrics exporter container.
 type Exporter struct {
 	// ContainerTemplate defines a template to configure Container objects.
@@ -321,7 +309,7 @@ type MariaDBSpec struct {
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
+	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
 	// PodAnnotations to add to the Pods metadata.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

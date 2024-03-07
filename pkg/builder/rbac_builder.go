@@ -14,7 +14,7 @@ import (
 
 type ServiceAccountOpts struct {
 	MariaDB  *mariadbv1alpha1.MariaDB
-	Metadata *mariadbv1alpha1.InheritMetadata
+	Metadata *mariadbv1alpha1.Metadata
 }
 
 func (b *Builder) BuildServiceAccount(key types.NamespacedName, owner metav1.Object,

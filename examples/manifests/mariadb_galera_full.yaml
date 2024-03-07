@@ -65,6 +65,9 @@ spec:
       podSyncTimeout: 3m
     initContainer:
       image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
+    initJob:
+      labels:
+        sidecar.istio.io/inject: “false”
     config:
       reuseStorageVolume: false
       volumeClaimTemplate:

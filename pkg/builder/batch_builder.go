@@ -212,10 +212,14 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
+func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
+	meta *mariadbv1alpha1.Metadata) (*batchv1.Job, error) {
+	extraMeta := ptr.Deref(meta, mariadbv1alpha1.Metadata{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithLabels(extraMeta.Labels).
+			WithAnnotations(extraMeta.Annotations).
 			Build()
 	command := command.NewBashCommand([]string{
 		filepath.Join(InitConfigPath, InitEntrypointKey),

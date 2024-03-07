@@ -25,7 +25,7 @@ var _ = Describe("SqlJob controller", func() {
 						},
 						WaitForIt: true,
 					},
-					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"k8s.mariadb.com/test": "test",
 						},
@@ -71,7 +71,7 @@ var _ = Describe("SqlJob controller", func() {
 						},
 						WaitForIt: true,
 					},
-					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"k8s.mariadb.com/test": "test",
 						},
@@ -112,7 +112,7 @@ var _ = Describe("SqlJob controller", func() {
 						},
 						WaitForIt: true,
 					},
-					InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"k8s.mariadb.com/test": "test",
 						},
