@@ -7,6 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
@@ -707,6 +708,17 @@ var _ = Describe("MariaDB Galera", func() {
 				deleteMariaDB(&mdb)
 			})
 
+			By("Expecting init Job to eventually be completed")
+			Eventually(func(g Gomega) bool {
+				var job batchv1.Job
+				g.Expect(k8sClient.Get(testCtx, mdb.InitKey(), &job)).To(Succeed())
+
+				g.Expect(job.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
+
+				return jobpkg.IsJobComplete(&job)
+			}, testHighTimeout, testInterval).Should(BeTrue())
+
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
@@ -718,14 +730,6 @@ var _ = Describe("MariaDB Galera", func() {
 			By("Expecting to create a StatefulSet")
 			var sts appsv1.StatefulSet
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &sts)).To(Succeed())
-
-			By("Expecting to create a Job")
-			var job batchv1.Job
-			Expect(k8sClient.Get(testCtx, mdb.InitKey(), &job)).To(Succeed())
-
-			By("Expecting Job to have metadata")
-			Expect(job.ObjectMeta.Labels).NotTo(BeNil())
-			Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
 
 			By("Expecting to create a Service")
 			var svc corev1.Service
