@@ -94,10 +94,11 @@ function run_as_mysql() {
 }
 
 mysql_note "Entrypoint script for MariaDB Server ${MARIADB_VERSION} started"
-mysql_check_config "mariadbd"
 
+mysql_check_config "mariadbd"
 # Load various environment variables
 docker_setup_env "mariadbd"
+docker_create_db_directories
 
 # Check if MariaDB is already initialized.
 if [ -n "$DATABASE_ALREADY_EXISTS" ]; then
@@ -115,21 +116,22 @@ if [ -n "$DATABASE_ALREADY_EXISTS" ]; then
 		mysql_note "Temporary server stopped"
 		exit 0
 	fi
-
-	mysql_warn "This MariaDB instance has already been initialized but the root password Secret does not match the existing state."
+	
+	mysql_warn "This MariaDB instance has already been initialized."
+	mysql_warn "The root password Secret does not match the existing state available in the PVC."
 	mysql_warn "Please either update the root password Secret or delete the PVC."
+	
 	mysql_note "Stopping temporary server"
 	docker_temp_server_stop
 	mysql_note "Temporary server stopped"
 	exit 1
 fi
 
-docker_create_db_directories
-
 run_as_mysql
 
 docker_verify_minimum_env
-docker_mariadb_init "mariadbd"`)
+docker_mariadb_init "mariadbd"
+`)
 	if err != nil {
 		return fmt.Errorf("error building template: %v", err)
 	}
