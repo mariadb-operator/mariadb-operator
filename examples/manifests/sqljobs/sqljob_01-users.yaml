@@ -7,9 +7,7 @@ spec:
     name: mariadb
   inheritMetadata:
     labels:
-      database.myorg.io: mariadb  
-    annotations:
-      database.myorg.io: mariadb
+      sidecar.istio.io/inject: "false"
   serviceAccountName: sqljob
   username: mariadb
   passwordSecretKeyRef:

@@ -9,9 +9,7 @@ spec:
     name: backup
   inheritMetadata:
     labels:
-      database.myorg.io: mariadb  
-    annotations:
-      database.myorg.io: mariadb
+      sidecar.istio.io/inject: "false"
   serviceAccountName: restore
   args:
     - "--verbose"
