@@ -68,7 +68,9 @@ func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, key type
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter container: %v", err)
 	}
-	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
+	exporter := ptr.Deref(mariadb.Spec.Metrics, mariadbv1alpha1.Metrics{}).Exporter
+	affinity := ptr.Deref(exporter.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
+
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
@@ -85,12 +87,12 @@ func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, key type
 					},
 				},
 			},
-			SecurityContext:           mariadb.Spec.Metrics.Exporter.PodSecurityContext,
+			SecurityContext:           exporter.PodSecurityContext,
 			Affinity:                  &affinity,
-			NodeSelector:              mariadb.Spec.Metrics.Exporter.NodeSelector,
-			Tolerations:               mariadb.Spec.Metrics.Exporter.Tolerations,
-			PriorityClassName:         priorityClass(mariadb.Spec.Metrics.Exporter.PriorityClassName),
-			TopologySpreadConstraints: mariadb.Spec.Metrics.Exporter.TopologySpreadConstraints,
+			NodeSelector:              exporter.NodeSelector,
+			Tolerations:               exporter.Tolerations,
+			PriorityClassName:         priorityClass(exporter.PriorityClassName),
+			TopologySpreadConstraints: exporter.TopologySpreadConstraints,
 		},
 	}, nil
 }
