@@ -1,9 +1,6 @@
 package embed
 
-import (
-	"embed"
-	_ "embed"
-)
+import "embed"
 
 //go:embed mariadb-docker/*
 var fs embed.FS
