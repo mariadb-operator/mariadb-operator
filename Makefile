@@ -12,7 +12,7 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-VERSION ?= 0.0.26
+VERSION ?= 0.0.27
 
 IMG_NAME ?= ghcr.io/mariadb-operator/mariadb-operator
 IMG ?= $(IMG_NAME):v$(VERSION)
@@ -27,10 +27,10 @@ RELATED_IMAGE_MARIADB_ENT ?= us-central1-docker.pkg.dev/mariadb-es-docker-regist
 RELATED_IMAGE_MAXSCALE ?= mariadb/maxscale:23.08
 RELATED_IMAGE_EXPORTER ?= prom/mysqld-exporter:v0.15.1
 
-MARIADB_GALERA_INIT_IMAGE ?= $(IMG_NAME):v0.0.26
-MARIADB_GALERA_ENT_INIT_IMAGE ?= $(IMG_ENT_NAME):v0.0.26
-MARIADB_GALERA_AGENT_IMAGE ?= $(IMG_NAME):v0.0.26
-MARIADB_GALERA_ENT_AGENT_IMAGE ?= $(IMG_ENT_NAME):v0.0.26
+MARIADB_GALERA_INIT_IMAGE ?= $(IMG_NAME):v0.0.27
+MARIADB_GALERA_ENT_INIT_IMAGE ?= $(IMG_ENT_NAME):v0.0.27
+MARIADB_GALERA_AGENT_IMAGE ?= $(IMG_NAME):v0.0.27
+MARIADB_GALERA_ENT_AGENT_IMAGE ?= $(IMG_ENT_NAME):v0.0.27
 MARIADB_GALERA_LIB_PATH ?= /usr/lib/galera/libgalera_smm.so
 MARIADB_GALERA_ENT_LIB_PATH ?= /usr/lib/galera/libgalera_enterprise_smm.so
 

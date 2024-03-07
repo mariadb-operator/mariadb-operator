@@ -94,13 +94,12 @@ var RootCmd = &cobra.Command{
 		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
 			logger.Error(err, "Error getting MariaDB")
 
-			if isGaleraInit {
-				logger.Info("Galera already initialized. Init done")
-				os.Exit(0)
-			} else {
-				logger.Info("Galera not initialized. Exiting")
+			if err := updateNodeAddress(fileManager, env); err != nil {
+				logger.Error(err, "Error upddating node address")
 				os.Exit(1)
 			}
+			logger.Info("Updated node address")
+			os.Exit(0)
 		}
 
 		if err := configureGalera(fileManager, env, &mdb); err != nil {
@@ -149,6 +148,24 @@ func configureGalera(fm *filemanager.FileManager, env *environment.PodEnvironmen
 	}
 	if err := fm.WriteConfigFile(config.ConfigFileName, configBytes); err != nil {
 		return fmt.Errorf("error writing Galera config: %v", err)
+	}
+	return nil
+}
+
+func updateNodeAddress(fm *filemanager.FileManager, env *environment.PodEnvironment) error {
+	logger.Info("Attempting to update Galera node address in existing config")
+
+	configBytes, err := fm.ReadConfigFile(config.ConfigFileName)
+	if err != nil {
+		return fmt.Errorf("error getting existing Galera config: %v", err)
+	}
+
+	updatedBytes, err := config.UpdateConfigFile(configBytes, config.WsrepNodeAddressKey, env.PodIP)
+	if err != nil {
+		return fmt.Errorf("error updating existing Galera config: %v", err)
+	}
+	if err := fm.WriteConfigFile(config.ConfigFileName, updatedBytes); err != nil {
+		return fmt.Errorf("error writing existing Galera config: %v", err)
 	}
 	return nil
 }
