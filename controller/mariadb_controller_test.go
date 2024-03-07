@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -650,6 +651,11 @@ var _ = Describe("MariaDB Galera", func() {
 									},
 								},
 							},
+							InitJob: &mariadbv1alpha1.Metadata{
+								Labels: map[string]string{
+									"sidecar.istio.io/inject": "false",
+								},
+							},
 						},
 					},
 					Replicas: 3,
@@ -708,6 +714,18 @@ var _ = Describe("MariaDB Galera", func() {
 				}
 				return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
 			}, testHighTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting to create a StatefulSet")
+			var sts appsv1.StatefulSet
+			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &sts)).To(Succeed())
+
+			By("Expecting to create a Job")
+			var job batchv1.Job
+			Expect(k8sClient.Get(testCtx, mdb.InitKey(), &job)).To(Succeed())
+
+			By("Expecting Job to have metadata")
+			Expect(job.ObjectMeta.Labels).NotTo(BeNil())
+			Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
 
 			By("Expecting to create a Service")
 			var svc corev1.Service
