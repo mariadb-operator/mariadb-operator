@@ -59,13 +59,25 @@ func (f *FileSystemBackupStorage) Delete(ctx context.Context, fileName string) e
 }
 
 type S3BackupStorageOpts struct {
-	Region     string
-	Prefix     string
 	TLS        bool
 	CACertPath string
+	Region     string
+	Prefix     string
 }
 
 type S3BackupStorageOpt func(s *S3BackupStorageOpts)
+
+func WithTLS(tls bool) S3BackupStorageOpt {
+	return func(s *S3BackupStorageOpts) {
+		s.TLS = tls
+	}
+}
+
+func WithCACertPath(caCertPath string) S3BackupStorageOpt {
+	return func(s *S3BackupStorageOpts) {
+		s.CACertPath = caCertPath
+	}
+}
 
 func WithRegion(region string) S3BackupStorageOpt {
 	return func(s *S3BackupStorageOpts) {
@@ -76,13 +88,6 @@ func WithRegion(region string) S3BackupStorageOpt {
 func WithPrefix(prefix string) S3BackupStorageOpt {
 	return func(s *S3BackupStorageOpts) {
 		s.Prefix = prefix
-	}
-}
-
-func WithTLS(caCertPath string) S3BackupStorageOpt {
-	return func(s *S3BackupStorageOpts) {
-		s.TLS = true
-		s.CACertPath = caCertPath
 	}
 }
 
@@ -101,10 +106,9 @@ func NewS3BackupStorage(basePath, bucket, endpoint string, logger logr.Logger, s
 	}
 
 	clientOpts := []mariadbminio.MinioOpt{
+		mariadbminio.WithTLS(opts.TLS),
+		mariadbminio.WithCACertPath(opts.CACertPath),
 		mariadbminio.WithRegion(opts.Region),
-	}
-	if opts.TLS {
-		clientOpts = append(clientOpts, mariadbminio.WithTLS(opts.CACertPath))
 	}
 	client, err := mariadbminio.NewMinioClient(endpoint, clientOpts...)
 	if err != nil {

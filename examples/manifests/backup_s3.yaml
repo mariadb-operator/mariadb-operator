@@ -7,21 +7,30 @@ spec:
     name: mariadb
   maxRetention: 720h # 30 days
   storage:
+    # s3:
+    #   bucket: backups
+    #   endpoint: minio.minio.svc.cluster.local:9000
+    #   region:  us-east-1
+    #   accessKeyIdSecretKeyRef:
+    #     name: minio
+    #     key: access-key-id
+    #   secretAccessKeySecretKeyRef:
+    #     name: minio
+    #     key: secret-access-key
+    #   tls:
+    #     enabled: true
+    #     caSecretKeyRef:
+    #       name: minio-ca
+    #       key: ca.crt
     s3:
-      bucket: backups
-      endpoint: minio.minio.svc.cluster.local:9000
+      bucket: mariadb-operator
+      endpoint: play.min.io
       region:  us-east-1
       accessKeyIdSecretKeyRef:
-        name: minio
+        name: minio-play
         key: access-key-id
       secretAccessKeySecretKeyRef:
-        name: minio
+        name: minio-play
         key: secret-access-key
-      # sessionTokenSecretKeyRef:
-      #   name: minio
-      #   key: session-token
       tls:
         enabled: true
-        caSecretKeyRef:
-          name: minio-ca
-          key: ca.crt

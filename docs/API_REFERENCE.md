@@ -1433,7 +1433,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `enabled` _boolean_ | Enabled is a flag to enable TLS. |
-| `caSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3. |
+| `caSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3. The default CA trust chain includes the Mozilla CA certificates. See: https://wiki.mozilla.org/CA/Included_Certificates. |
 
 
 #### User

@@ -8,11 +8,18 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 code: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-##@ Generate - Entrypoint
+##@ Generate - Embed
 
-.PHONY: entrypoint
-entrypoint: ## Get entrypoint from mariadb-docker to be embeded in binary filesystem. See: https://github.com/MariaDB/mariadb-docker/blob/master/docker-entrypoint.sh.
-	curl -sSLo $(MARIADB_DOCKER_ENTRYPOINT) "$(MARIADB_DOCKER_URL)"
+.PHONY: embed-entrypoint
+embed-entrypoint: ## Get entrypoint from mariadb-docker to be embeded in operator binary. See: https://github.com/MariaDB/mariadb-docker/blob/master/docker-entrypoint.sh.
+	curl -sSLo $(MARIADB_DOCKER_PATH) "$(MARIADB_DOCKER_URL)"
+
+.PHONY: embed-ca
+embed-ca: ## Get Mozilla CA certificates to be embeded in operator binary.
+	curl -sSLo $(CA_CERTS_PATH) "$(CA_CERTS_URL)"
+
+.PHONY: embed
+embed: embed-entrypoint embed-ca ## Generate embeddable artifacts.
 
 ##@ Generate - Helm
 
@@ -87,7 +94,7 @@ api-docs: crd-ref-docs ## Generate API reference docs
 ##@ Generate
 
 .PHONY: generate
-generate: manifests code entrypoint helm manifests-bundle licenses api-docs ## Generate artifacts.
+generate: manifests code embed helm manifests-bundle licenses api-docs ## Generate artifacts.
 
 .PHONY: gen
 gen: generate ## Generate alias.

@@ -6,28 +6,34 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mariadb-operator/mariadb-operator/pkg/embed"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type MinioOpts struct {
-	Region     string
 	TLS        bool
 	CACertPath string
+	Region     string
 }
 
 type MinioOpt func(m *MinioOpts)
 
-func WithRegion(region string) MinioOpt {
+func WithTLS(tls bool) MinioOpt {
 	return func(m *MinioOpts) {
-		m.Region = region
+		m.TLS = tls
 	}
 }
 
-func WithTLS(caCertPath string) MinioOpt {
+func WithCACertPath(caCertPath string) MinioOpt {
 	return func(m *MinioOpts) {
-		m.TLS = true
 		m.CACertPath = caCertPath
+	}
+}
+
+func WithRegion(region string) MinioOpt {
+	return func(m *MinioOpts) {
+		m.Region = region
 	}
 }
 
@@ -80,12 +86,23 @@ func getTransport(opts *MinioOpts) (*http.Transport, error) {
 			transport.TLSClientConfig.RootCAs = pool
 		}
 	}
-	caBytes, err := os.ReadFile(opts.CACertPath)
+
+	if opts.CACertPath != "" {
+		caBytes, err := os.ReadFile(opts.CACertPath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading CA cert: %v", err)
+		}
+		if ok := transport.TLSClientConfig.RootCAs.AppendCertsFromPEM(caBytes); !ok {
+			return nil, fmt.Errorf("error parsing CA cert : %s", err)
+		}
+	}
+
+	caBytes, err := embed.ReadCACertsPEM()
 	if err != nil {
-		return nil, fmt.Errorf("error reading CA cert: %v", err)
+		return nil, fmt.Errorf("error reading CA certs bundle: %v", err)
 	}
 	if ok := transport.TLSClientConfig.RootCAs.AppendCertsFromPEM(caBytes); !ok {
-		return nil, fmt.Errorf("error parsing CA Certifiate : %s", err)
+		return nil, fmt.Errorf("error parsing CA certs bundle : %s", err)
 	}
 
 	return transport, nil
