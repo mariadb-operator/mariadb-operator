@@ -409,6 +409,18 @@ type S3 struct {
 	TLS *TLS `json:"tls,omitempty"`
 }
 
+// Metadata defines the metadata to added to resources.
+type Metadata struct {
+	// Labels to be added to children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Labels map[string]string `json:"labels,omitempty"`
+	// Annotations to be added to children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
 // RestoreSource defines a source for restoring a MariaDB.
 type RestoreSource struct {
 	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.

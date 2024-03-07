@@ -101,7 +101,7 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			},
 			Image:           env.RelatedMariadbImage,
 			ImagePullPolicy: corev1.PullIfNotPresent,
-			InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+			InheritMetadata: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"k8s.mariadb.com/test": "test",
 				},
@@ -213,7 +213,7 @@ func testBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.Bac
 				},
 				WaitForIt: true,
 			},
-			InheritMetadata: &mariadbv1alpha1.InheritMetadata{
+			InheritMetadata: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"k8s.mariadb.com/test": "test",
 				},

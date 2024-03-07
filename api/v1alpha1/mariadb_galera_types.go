@@ -354,6 +354,10 @@ type GaleraSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	InitContainer Container `json:"initContainer,omitempty"`
+	// InitJob defines metadata to the passed to the initialization Job.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	InitJob *Metadata `json:"initJob,omitempty"`
 	// GaleraConfig defines storage options for the Galera configuration files.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

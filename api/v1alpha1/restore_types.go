@@ -43,7 +43,7 @@ type RestoreSpec struct {
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	InheritMetadata *InheritMetadata `json:"inheritMetadata,omitempty"`
+	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
 }
 
 // RestoreStatus defines the observed state of restore

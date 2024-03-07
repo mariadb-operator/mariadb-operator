@@ -28,7 +28,7 @@ func (b *MetadataBuilder) WithMariaDB(mdb *mariadbv1alpha1.MariaDB) *MetadataBui
 	return b.WithMetadata(mdb.Spec.InheritMetadata)
 }
 
-func (b *MetadataBuilder) WithMetadata(meta *mariadbv1alpha1.InheritMetadata) *MetadataBuilder {
+func (b *MetadataBuilder) WithMetadata(meta *mariadbv1alpha1.Metadata) *MetadataBuilder {
 	if meta == nil {
 		return b
 	}

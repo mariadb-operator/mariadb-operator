@@ -100,7 +100,7 @@ _Appears in:_
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully take a Backup. |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Pod. |
-| `inheritMetadata` _[InheritMetadata](#inheritmetadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
+| `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
 
 
 #### BackupStorage
@@ -349,6 +349,7 @@ _Appears in:_
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
 | `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |
+| `initJob` _[Metadata](#metadata)_ | InitJob defines metadata to the passed to the initialization Job. |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |
 | `enabled` _boolean_ | Enabled is a flag to enable Galera. |
 
@@ -451,6 +452,7 @@ _Appears in:_
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html. |
 | `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |
+| `initJob` _[Metadata](#metadata)_ | InitJob defines metadata to the passed to the initialization Job. |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |
 
 
@@ -519,24 +521,6 @@ _Appears in:_
 | --- | --- |
 | `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to perform health checks. |
 | `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RetryInterval is the intervañ used to perform health check retries. |
-
-
-#### InheritMetadata
-
-
-
-InheritMetadata defines the metadata to be inherited by children resources.
-
-_Appears in:_
-- [BackupSpec](#backupspec)
-- [MariaDBSpec](#mariadbspec)
-- [RestoreSpec](#restorespec)
-- [SqlJobSpec](#sqljobspec)
-
-| Field | Description |
-| --- | --- |
-| `labels` _object (keys:string, values:string)_ | Labels to be added to children resources. |
-| `annotations` _object (keys:string, values:string)_ | Annotations to be added to children resources. |
 
 
 #### KubernetesAuth
@@ -680,7 +664,7 @@ _Appears in:_
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. Only MariaDB official images are supported. |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |
 | `imagePullSecrets` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |
-| `inheritMetadata` _[InheritMetadata](#inheritmetadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
+| `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
 | `podAnnotations` _object (keys:string, values:string)_ | PodAnnotations to add to the Pods metadata. |
 | `rootPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | RootPasswordSecretKeyRef is a reference to a Secret key containing the root password. |
 | `rootEmptyPassword` _boolean_ | RootEmptyPassword indicates if the root password should be empty. |
@@ -927,6 +911,26 @@ _Appears in:_
 | `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps)_ | UpdateStrategy defines the update strategy for the StatefulSet object. |
 | `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the Kubernetes Service object. |
 | `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s. |
+
+
+#### Metadata
+
+
+
+Metadata defines the metadata to added to resources.
+
+_Appears in:_
+- [BackupSpec](#backupspec)
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+- [MariaDBSpec](#mariadbspec)
+- [RestoreSpec](#restorespec)
+- [SqlJobSpec](#sqljobspec)
+
+| Field | Description |
+| --- | --- |
+| `labels` _object (keys:string, values:string)_ | Labels to be added to children resources. |
+| `annotations` _object (keys:string, values:string)_ | Annotations to be added to children resources. |
 
 
 #### Metrics
@@ -1176,7 +1180,7 @@ _Appears in:_
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully perform a Backup. |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Job. |
-| `inheritMetadata` _[InheritMetadata](#inheritmetadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
+| `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
 
 
 #### S3
@@ -1379,7 +1383,7 @@ _Appears in:_
 | `sqlConfigMapKeyRef` _[ConfigMapKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core)_ | SqlConfigMapKeyRef is a reference to a ConfigMap containing the Sql script. It is defaulted to a ConfigMap with the contents of the Sql field. |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob. |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the SqlJob Pod. |
-| `inheritMetadata` _[InheritMetadata](#inheritmetadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
+| `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |
 
 
 #### Storage
