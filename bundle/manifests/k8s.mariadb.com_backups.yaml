@@ -3598,7 +3598,9 @@ spec:
                           caSecretKeyRef:
                             description: CASecretKeyRef is a reference to a Secret
                               key containing a CA bundle in PEM format used to establish
-                              TLS connections with S3.
+                              TLS connections with S3. By default, the system trust
+                              chain will be used, but you can use this field to add
+                              more CAs to the bundle.
                             properties:
                               key:
                                 description: The key of the secret to select from.  Must

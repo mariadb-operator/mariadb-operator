@@ -499,7 +499,9 @@ spec:
         displayName: TLS
         path: storage.s3.tls
       - description: CASecretKeyRef is a reference to a Secret key containing a CA
-          bundle in PEM format used to establish TLS connections with S3.
+          bundle in PEM format used to establish TLS connections with S3. By default,
+          the system trust chain will be used, but you can use this field to add more
+          CAs to the bundle.
         displayName: CASecret Key Ref
         path: storage.s3.tls.caSecretKeyRef
       - description: Enabled is a flag to enable TLS.
@@ -833,7 +835,9 @@ spec:
         displayName: TLS
         path: bootstrapFrom.s3.tls
       - description: CASecretKeyRef is a reference to a Secret key containing a CA
-          bundle in PEM format used to establish TLS connections with S3.
+          bundle in PEM format used to establish TLS connections with S3. By default,
+          the system trust chain will be used, but you can use this field to add more
+          CAs to the bundle.
         displayName: CASecret Key Ref
         path: bootstrapFrom.s3.tls.caSecretKeyRef
       - description: Enabled is a flag to enable TLS.
@@ -1070,6 +1074,16 @@ spec:
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: galera.initContainer.volumeMounts
+      - description: InitJob defines metadata to the passed to the initialization
+          Job.
+        displayName: Init Job
+        path: galera.initJob
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: galera.initJob.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: galera.initJob.labels
       - description: Primary is the Galera configuration for the primary node.
         displayName: Primary
         path: galera.primary
@@ -3146,7 +3160,9 @@ spec:
         displayName: TLS
         path: s3.tls
       - description: CASecretKeyRef is a reference to a Secret key containing a CA
-          bundle in PEM format used to establish TLS connections with S3.
+          bundle in PEM format used to establish TLS connections with S3. By default,
+          the system trust chain will be used, but you can use this field to add more
+          CAs to the bundle.
         displayName: CASecret Key Ref
         path: s3.tls.caSecretKeyRef
       - description: Enabled is a flag to enable TLS.
