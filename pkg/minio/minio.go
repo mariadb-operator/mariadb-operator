@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/embed"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -95,14 +94,6 @@ func getTransport(opts *MinioOpts) (*http.Transport, error) {
 		if ok := transport.TLSClientConfig.RootCAs.AppendCertsFromPEM(caBytes); !ok {
 			return nil, fmt.Errorf("error parsing CA cert : %s", err)
 		}
-	}
-
-	caBytes, err := embed.ReadCACertsPEM()
-	if err != nil {
-		return nil, fmt.Errorf("error reading CA certs bundle: %v", err)
-	}
-	if ok := transport.TLSClientConfig.RootCAs.AppendCertsFromPEM(caBytes); !ok {
-		return nil, fmt.Errorf("error parsing CA certs bundle : %s", err)
 	}
 
 	return transport, nil

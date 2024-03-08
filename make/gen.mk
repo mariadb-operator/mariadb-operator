@@ -14,13 +14,6 @@ code: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and Dee
 embed-entrypoint: ## Get entrypoint from mariadb-docker to be embeded in operator binary. See: https://github.com/MariaDB/mariadb-docker/blob/master/docker-entrypoint.sh.
 	curl -sSLo $(MARIADB_DOCKER_PATH) "$(MARIADB_DOCKER_URL)"
 
-.PHONY: embed-ca
-embed-ca: ## Get Mozilla CA certificates to be embeded in operator binary.
-	curl -sSLo $(CA_CERTS_PATH) "$(CA_CERTS_URL)"
-
-.PHONY: embed
-embed: embed-entrypoint embed-ca ## Generate embeddable artifacts.
-
 ##@ Generate - Helm
 
 .PHONY: helm-crds 
@@ -94,7 +87,7 @@ api-docs: crd-ref-docs ## Generate API reference docs
 ##@ Generate
 
 .PHONY: generate
-generate: manifests code embed helm manifests-bundle licenses api-docs ## Generate artifacts.
+generate: manifests code embed-entrypoint helm manifests-bundle licenses api-docs ## Generate artifacts.
 
 .PHONY: gen
 gen: generate ## Generate alias.
