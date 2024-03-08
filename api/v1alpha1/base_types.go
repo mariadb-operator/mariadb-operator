@@ -369,7 +369,7 @@ type TLS struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
 	// CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
-	// By default, the system trust chain will be used to establish the TLS connection, but you can use this fill to add more CAs to the bundle.
+	// By default, the system trust chain will be used to establish the TLS connection, but you can use this field to add more CAs to the bundle.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CASecretKeyRef *corev1.SecretKeySelector `json:"caSecretKeyRef,omitempty"`
