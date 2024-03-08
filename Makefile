@@ -38,9 +38,6 @@ MARIADB_DOCKER_COMMIT_HASH ?= d7a950d41e9347ac94ad2d2f28469bff74858db7
 MARIADB_DOCKER_URL ?= https://raw.githubusercontent.com/MariaDB/mariadb-docker/$(MARIADB_DOCKER_COMMIT_HASH)/10.11/docker-entrypoint.sh
 MARIADB_DOCKER_PATH ?= pkg/embed/mariadb-docker/docker-entrypoint.sh
 
-CA_CERTS_URL ?= https://curl.se/ca/cacert.pem
-CA_CERTS_PATH ?= pkg/embed/ssl/ca.crt
-
 DOCKER_CONFIG ?= $(HOME)/.docker/config.json 
 
 .PHONY: all
