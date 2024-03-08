@@ -240,6 +240,7 @@ make cluster
 make install-minio
 make net # to access the console via a MetalLB LoadBalancer: https://minio-console:9001
 ```
+As an alternative, you can also use [play.min.io](play.min.io) using these [credentials](../examples/manifests/config/minio-secret.yaml).
 
 ## Reference
 - [API reference](./API_REFERENCE.md)

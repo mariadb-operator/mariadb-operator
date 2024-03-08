@@ -3596,10 +3596,11 @@ spec:
                           TLS connections with S3.
                         properties:
                           caSecretKeyRef:
-                            description: 'CASecretKeyRef is a reference to a Secret
+                            description: CASecretKeyRef is a reference to a Secret
                               key containing a CA bundle in PEM format used to establish
-                              TLS connections with S3. The default CA trust chain
-                              includes the Mozilla CA certificates. See: https://wiki.mozilla.org/CA/Included_Certificates.'
+                              TLS connections with S3. By default, the system trust
+                              chain will be used to establish the TLS connection,
+                              but you can use this fill to add more CAs to the bundle.
                             properties:
                               key:
                                 description: The key of the secret to select from.  Must
@@ -8819,10 +8820,11 @@ spec:
                           TLS connections with S3.
                         properties:
                           caSecretKeyRef:
-                            description: 'CASecretKeyRef is a reference to a Secret
+                            description: CASecretKeyRef is a reference to a Secret
                               key containing a CA bundle in PEM format used to establish
-                              TLS connections with S3. The default CA trust chain
-                              includes the Mozilla CA certificates. See: https://wiki.mozilla.org/CA/Included_Certificates.'
+                              TLS connections with S3. By default, the system trust
+                              chain will be used to establish the TLS connection,
+                              but you can use this fill to add more CAs to the bundle.
                             properties:
                               key:
                                 description: The key of the secret to select from.  Must
@@ -37260,10 +37262,11 @@ spec:
                       TLS connections with S3.
                     properties:
                       caSecretKeyRef:
-                        description: 'CASecretKeyRef is a reference to a Secret key
+                        description: CASecretKeyRef is a reference to a Secret key
                           containing a CA bundle in PEM format used to establish TLS
-                          connections with S3. The default CA trust chain includes
-                          the Mozilla CA certificates. See: https://wiki.mozilla.org/CA/Included_Certificates.'
+                          connections with S3. By default, the system trust chain
+                          will be used to establish the TLS connection, but you can
+                          use this fill to add more CAs to the bundle.
                         properties:
                           key:
                             description: The key of the secret to select from.  Must
