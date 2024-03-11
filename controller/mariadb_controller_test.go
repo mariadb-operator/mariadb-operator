@@ -172,7 +172,7 @@ var _ = Describe("MariaDB controller", func() {
 				}
 				g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
 				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
-				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMdbkey.Name))
+				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDb.MetricsKey().Name))
 				g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
 				return true
 			}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
