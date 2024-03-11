@@ -9,6 +9,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	galeraclient "github.com/mariadb-operator/mariadb-operator/pkg/galera/client"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,16 +21,18 @@ type Probe struct {
 	mariadbKey      types.NamespacedName
 	k8sClient       ctrlclient.Client
 	responseWriter  *mdbhttp.ResponseWriter
+	fileManager     *filemanager.FileManager
 	livenessLogger  logr.Logger
 	readinessLogger logr.Logger
 }
 
 func NewProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, responseWriter *mdbhttp.ResponseWriter,
-	logger *logr.Logger) *Probe {
+	fileManager *filemanager.FileManager, logger *logr.Logger) *Probe {
 	return &Probe{
 		mariadbKey:      mariadbKey,
 		k8sClient:       k8sClient,
 		responseWriter:  responseWriter,
+		fileManager:     fileManager,
 		livenessLogger:  logger.WithName("liveness"),
 		readinessLogger: logger.WithName("readiness"),
 	}
@@ -37,6 +40,12 @@ func NewProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, resp
 
 func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 	p.livenessLogger.V(1).Info("Probe started")
+
+	if _, err := p.fileManager.ReadStateFile("sst_in_progress"); err == nil {
+		p.livenessLogger.Info("SST in progress. Returning OK to facilitate its completion")
+		p.responseWriter.WriteOK(w, nil)
+		return
+	}
 
 	k8sCtx, k8sCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer k8sCancel()

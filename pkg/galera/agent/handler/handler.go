@@ -50,6 +50,7 @@ func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileM
 		mariadbKey,
 		client,
 		mdbhttp.NewResponseWriter(&probeLogger),
+		fileManager,
 		&probeLogger,
 	)
 
