@@ -62,7 +62,7 @@ func (b *LabelsBuilder) WithMariaDBSelectorLabels(mdb *mariadbv1alpha1.MariaDB) 
 
 func (b *LabelsBuilder) WithMetricsSelectorLabels(mdb *mariadbv1alpha1.MariaDB) *LabelsBuilder {
 	return b.WithApp(appExporter).
-		WithInstance(mdb.Name)
+		WithInstance(mdb.MetricsKey().Name)
 }
 
 func (b *LabelsBuilder) WithMaxScaleSelectorLabels(mxs *mariadbv1alpha1.MaxScale) *LabelsBuilder {
