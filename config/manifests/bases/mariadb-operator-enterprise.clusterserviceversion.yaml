@@ -801,6 +801,27 @@ spec:
           over S3 and Volume.
         displayName: Backup Ref
         path: bootstrapFrom.backupRef
+      - description: RestoreJob defines properties for the Job used to perform the
+          Restore.
+        displayName: Restore Job
+        path: bootstrapFrom.restoreJob
+      - description: Affinity defines policies to schedule the bootstrap Pods in Nodes.
+        displayName: Affinity
+        path: bootstrapFrom.restoreJob.affinity
+      - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is
+          scheduled in a different Node, enabling HA. Make sure you have at least
+          as many Nodes available as the replicas to not end up with unscheduled Pods.
+        displayName: Enable Anti Affinity
+        path: bootstrapFrom.restoreJob.affinity.enableAntiAffinity
+      - description: Metadata defines additional metadata for the bootstrap Pods.
+        displayName: Metadata
+        path: bootstrapFrom.restoreJob.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: bootstrapFrom.restoreJob.metadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: bootstrapFrom.restoreJob.metadata.labels
       - description: S3 defines the configuration to restore backups from a S3 compatible
           storage. It has priority over Volume.
         displayName: S3

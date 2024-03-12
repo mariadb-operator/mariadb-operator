@@ -224,11 +224,13 @@ var _ = Describe("MariaDB controller", func() {
 					Namespace: bootstrapMariaDBKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					BootstrapFrom: &mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
-							Name: backupKey.Name,
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						RestoreSource: mariadbv1alpha1.RestoreSource{
+							BackupRef: &corev1.LocalObjectReference{
+								Name: backupKey.Name,
+							},
+							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 						},
-						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("100Mi")),
