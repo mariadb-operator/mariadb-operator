@@ -231,6 +231,13 @@ var _ = Describe("MariaDB controller", func() {
 							},
 							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 						},
+						RestoreJob: &mariadbv1alpha1.BootstrapJob{
+							Metadata: &mariadbv1alpha1.Metadata{
+								Labels: map[string]string{
+									"sidecar.istio.io/inject": "false",
+								},
+							},
+						},
 					},
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("100Mi")),
@@ -241,6 +248,17 @@ var _ = Describe("MariaDB controller", func() {
 			DeferCleanup(func() {
 				deleteMariaDB(&bootstrapMariaDB)
 			})
+
+			By("Expecting restore Job to eventually be completed")
+			Eventually(func(g Gomega) bool {
+				var job batchv1.Job
+				g.Expect(k8sClient.Get(testCtx, bootstrapMariaDB.InitKey(), &job)).To(Succeed())
+
+				g.Expect(job.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
+
+				return jobpkg.IsJobComplete(&job)
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
