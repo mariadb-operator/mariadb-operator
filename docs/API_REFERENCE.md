@@ -29,6 +29,7 @@ AffinityConfig defines policies to schedule Pods in Nodes.
 
 _Appears in:_
 - [BackupSpec](#backupspec)
+- [BootstrapJob](#bootstrapjob)
 - [Exporter](#exporter)
 - [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
@@ -117,6 +118,39 @@ _Appears in:_
 | `s3` _[S3](#s3)_ | S3 defines the configuration to store backups in a S3 compatible storage. |
 | `persistentVolumeClaim` _[PersistentVolumeClaimSpec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#persistentvolumeclaimspec-v1-core)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |
 | `volume` _[VolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumesource-v1-core)_ | Volume is a Kubernetes volume specification. |
+
+
+#### BootstrapFrom
+
+
+
+BootstrapFrom defines a source to bootstrap MariaDB from.
+
+_Appears in:_
+- [MariaDBSpec](#mariadbspec)
+
+| Field | Description |
+| --- | --- |
+| `backupRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core)_ | BackupRef is a reference to a Backup object. It has priority over S3 and Volume. |
+| `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |
+| `volume` _[VolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumesource-v1-core)_ | Volume is a Kubernetes Volume object that contains a backup. |
+| `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective. It is used to determine the closest restoration source in time. |
+| `restoreJob` _[BootstrapJob](#bootstrapjob)_ | RestoreJob defines additional properties for the Job used to perform the Restore. |
+
+
+#### BootstrapJob
+
+
+
+BootstrapJob defines a Job used to bootstrap MariaDB.
+
+_Appears in:_
+- [BootstrapFrom](#bootstrapfrom)
+
+| Field | Description |
+| --- | --- |
+| `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity defines policies to schedule the bootstrap Pods in Nodes. |
 
 
 #### Connection
@@ -673,7 +707,7 @@ _Appears in:_
 | `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret. |
 | `myCnf` _string_ | MyCnf allows to specify the my.cnf file mounted by Mariadb. |
 | `myCnfConfigMapKeyRef` _[ConfigMapKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core)_ | MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap. If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field. |
-| `bootstrapFrom` _[RestoreSource](#restoresource)_ | BootstrapFrom defines a source to bootstrap from. |
+| `bootstrapFrom` _[BootstrapFrom](#bootstrapfrom)_ | BootstrapFrom defines a source to bootstrap from. |
 | `storage` _[Storage](#storage)_ | Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB. |
 | `metrics` _[Metrics](#metrics)_ | Metrics configures metrics and how to scrape them. |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. |
@@ -921,6 +955,7 @@ Metadata defines the metadata to added to resources.
 
 _Appears in:_
 - [BackupSpec](#backupspec)
+- [BootstrapJob](#bootstrapjob)
 - [Galera](#galera)
 - [GaleraSpec](#galeraspec)
 - [MariaDBSpec](#mariadbspec)
@@ -1131,7 +1166,7 @@ Restore is the Schema for the restores API. It is used to define restore jobs an
 RestoreSource defines a source for restoring a MariaDB.
 
 _Appears in:_
-- [MariaDBSpec](#mariadbspec)
+- [BootstrapFrom](#bootstrapfrom)
 - [RestoreSpec](#restorespec)
 
 | Field | Description |
@@ -1191,6 +1226,7 @@ _Appears in:_
 
 _Appears in:_
 - [BackupStorage](#backupstorage)
+- [BootstrapFrom](#bootstrapfrom)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 

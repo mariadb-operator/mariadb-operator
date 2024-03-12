@@ -49,9 +49,11 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
-						BootstrapFrom: &RestoreSource{
-							BackupRef: &corev1.LocalObjectReference{
-								Name: "backup-webhook",
+						BootstrapFrom: &BootstrapFrom{
+							RestoreSource: RestoreSource{
+								BackupRef: &corev1.LocalObjectReference{
+									Name: "backup-webhook",
+								},
 							},
 						},
 						Storage: Storage{
@@ -66,8 +68,10 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
-						BootstrapFrom: &RestoreSource{
-							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+						BootstrapFrom: &BootstrapFrom{
+							RestoreSource: RestoreSource{
+								TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+							},
 						},
 						Storage: Storage{
 							Size: ptr.To(resource.MustParse("100Mi")),
@@ -559,9 +563,11 @@ var _ = Describe("MariaDB webhook", func() {
 						Key: "password",
 					},
 					MyCnf: func() *string { c := "foo"; return &c }(),
-					BootstrapFrom: &RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
-							Name: "backup",
+					BootstrapFrom: &BootstrapFrom{
+						RestoreSource: RestoreSource{
+							BackupRef: &corev1.LocalObjectReference{
+								Name: "backup",
+							},
 						},
 					},
 					Metrics: &Metrics{

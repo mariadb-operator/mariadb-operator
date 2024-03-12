@@ -282,6 +282,30 @@ type MariaDBMaxScaleSpec struct {
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
 }
 
+// BootstrapJob defines a Job used to bootstrap MariaDB.
+type BootstrapJob struct {
+	// Metadata defines additional metadata for the bootstrap Jobs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Metadata *Metadata `json:"metadata,omitempty"`
+	// Affinity defines policies to schedule the bootstrap Pods in Nodes.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Affinity *AffinityConfig `json:"affinity,omitempty"`
+}
+
+// BootstrapFrom defines a source to bootstrap MariaDB from.
+type BootstrapFrom struct {
+	// RestoreSource indicates where the initial data to bootstrap MariaDB with is located.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	RestoreSource `json:",inline"`
+	// RestoreJob defines additional properties for the Job used to perform the Restore.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	RestoreJob *BootstrapJob `json:"restoreJob,omitempty"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -346,7 +370,7 @@ type MariaDBSpec struct {
 	// BootstrapFrom defines a source to bootstrap from.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	BootstrapFrom *RestoreSource `json:"bootstrapFrom,omitempty"`
+	BootstrapFrom *BootstrapFrom `json:"bootstrapFrom,omitempty"`
 	// Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
