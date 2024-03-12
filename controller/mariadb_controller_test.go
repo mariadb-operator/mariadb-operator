@@ -252,7 +252,7 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting restore Job to eventually be completed")
 			Eventually(func(g Gomega) bool {
 				var job batchv1.Job
-				g.Expect(k8sClient.Get(testCtx, bootstrapMariaDB.InitKey(), &job)).To(Succeed())
+				g.Expect(k8sClient.Get(testCtx, bootstrapMariaDB.RestoreKey(), &job)).To(Succeed())
 
 				g.Expect(job.ObjectMeta.Labels).NotTo(BeNil())
 				g.Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
