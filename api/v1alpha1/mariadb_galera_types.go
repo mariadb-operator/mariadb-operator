@@ -348,6 +348,11 @@ type GaleraSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaThreads int `json:"replicaThreads,omitempty"`
+	// ProviderOptions is map of Galera configuration parameters.
+	// More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ProviderOptions map[string]string `json:"providerOptions,omitempty"`
 	// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
