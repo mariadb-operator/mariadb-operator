@@ -13415,6 +13415,12 @@ spec:
                           switchover.
                         type: integer
                     type: object
+                  providerOptions:
+                    additionalProperties:
+                      type: string
+                    description: 'ProviderOptions is map of Galera configuration parameters.
+                      More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options.'
+                    type: object
                   recovery:
                     description: 'GaleraRecovery is the recovery process performed
                       by the operator whenever the Galera cluster is not healthy.

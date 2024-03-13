@@ -823,6 +823,13 @@ func (in *GaleraSpec) DeepCopyInto(out *GaleraSpec) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.ProviderOptions != nil {
+		in, out := &in.ProviderOptions, &out.ProviderOptions
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	in.Agent.DeepCopyInto(&out.Agent)
 	if in.Recovery != nil {
 		in, out := &in.Recovery, &out.Recovery

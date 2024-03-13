@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"maps"
+	"net"
 	"strings"
 	"text/template"
 
@@ -41,7 +43,7 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
 	tpl := createTpl("galera", `[mariadb]
-bind-address=0.0.0.0
+bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
 innodb_autoinc_lock_mode=2
@@ -57,6 +59,8 @@ wsrep_slave_threads={{ .Threads }}
 {{ .NodeAddressKey }}="{{ .NodeAddress }}"
 wsrep_node_name="{{ .Pod }}"
 wsrep_sst_method="{{ .SST }}"
+wsrep_provider_options = "{{ .ProviderOpts }}"
+wsrep_sst_receive_address = "{{ .WrappedNodeAddress }}:4444"
 {{- if .SSTAuth }}
 wsrep_sst_auth="root:{{ .RootPassword }}"
 {{- end }}
@@ -70,27 +74,49 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 	if err != nil {
 		return nil, fmt.Errorf("error getting SST: %v", err)
 	}
+	wrappedPodIP, err := c.wrapIPAddress(podEnv.PodIP)
+	if err != nil {
+		return nil, fmt.Errorf("error wrapping address: %v", err)
+	}
+	gcommListenAddress, err := c.currentHostIP(podEnv.PodIP)
+	if err != nil {
+		return nil, fmt.Errorf("error getting address: %v", err)
+	}
+	gcommListenAddress, err = c.wrapIPAddress(gcommListenAddress)
+	if err != nil {
+		return nil, fmt.Errorf("error wrapping address: %v", err)
+	}
+	providerOpts := map[string]string{
+		"gmcast.listen_addr": fmt.Sprintf("tcp://%s:4567", gcommListenAddress),
+		"ist.recv_addr":      fmt.Sprintf("%s:4568", wrappedPodIP),
+	}
+	maps.Copy(providerOpts, galera.ProviderOptions)
+	providerOptsSemColSeparated := c.mapToSemColSeparated(providerOpts)
 
 	err = tpl.Execute(buf, struct {
-		ClusterAddress string
-		NodeAddressKey string
-		NodeAddress    string
-		GaleraLibPath  string
-		Threads        int
-		Pod            string
-		SST            string
-		SSTAuth        bool
-		RootPassword   string
+		ClusterAddress     string
+		NodeAddressKey     string
+		NodeAddress        string
+		WrappedNodeAddress string
+		ProviderOpts       string
+		GaleraLibPath      string
+		Threads            int
+		Pod                string
+		SST                string
+		SSTAuth            bool
+		RootPassword       string
 	}{
-		ClusterAddress: clusterAddr,
-		NodeAddressKey: WsrepNodeAddressKey,
-		NodeAddress:    podEnv.PodIP,
-		GaleraLibPath:  galera.GaleraLibPath,
-		Threads:        galera.ReplicaThreads,
-		Pod:            podEnv.PodName,
-		SST:            sst,
-		SSTAuth:        galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
-		RootPassword:   podEnv.MariadbRootPassword,
+		ClusterAddress:     clusterAddr,
+		NodeAddressKey:     WsrepNodeAddressKey,
+		NodeAddress:        podEnv.PodIP,
+		WrappedNodeAddress: wrappedPodIP,
+		ProviderOpts:       providerOptsSemColSeparated,
+		GaleraLibPath:      galera.GaleraLibPath,
+		Threads:            galera.ReplicaThreads,
+		Pod:                podEnv.PodName,
+		SST:                sst,
+		SSTAuth:            galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
+		RootPassword:       podEnv.MariadbRootPassword,
 	})
 	if err != nil {
 		return nil, err
@@ -111,6 +137,42 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 		)
 	}
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
+}
+
+func (c *ConfigFile) wrapIPAddress(ip string) (string, error) {
+	parsedIp := net.ParseIP(ip)
+	if parsedIp == nil {
+		return "", fmt.Errorf("error in parsing ip address: %v", ip)
+	}
+
+	if parsedIp.To4() == nil {
+		ip = fmt.Sprintf("[%s]", ip)
+	}
+	return ip, nil
+}
+
+func (c *ConfigFile) currentHostIP(ip string) (string, error) {
+	parsedIp := net.ParseIP(ip)
+	if parsedIp == nil {
+		return "", fmt.Errorf("error in parsing ip address: %v", ip)
+	}
+
+	allIPs := ""
+	if parsedIp.To4() != nil {
+		allIPs = "0.0.0.0"
+	} else {
+		allIPs = "::"
+	}
+
+	return allIPs, nil
+}
+
+func (c *ConfigFile) mapToSemColSeparated(wsrepOpts map[string]string) string {
+	buffer := new(bytes.Buffer)
+	for key, val := range wsrepOpts {
+		fmt.Fprintf(buffer, "%s=%s; ", key, val)
+	}
+	return buffer.String()
 }
 
 func UpdateConfigFile(configBytes []byte, key, value string) ([]byte, error) {
