@@ -84,10 +84,17 @@ api-docs: crd-ref-docs ## Generate API reference docs
 		--renderer=markdown \
 		--output-path=./docs/API_REFERENCE.md
 
+##@ Generate - Examples
+
+.PHONY: update-examples
+update-examples: ## Update examples
+	@./hack/bump_version_examples.sh examples/manifests $(IMG_NAME) $(VERSION)
+	@./hack/bump_version_examples.sh config/samples $(IMG_ENT_NAME) $(VERSION)
+
 ##@ Generate
 
 .PHONY: generate
-generate: manifests code embed-entrypoint helm manifests-bundle licenses api-docs ## Generate artifacts.
+generate: manifests code embed-entrypoint helm manifests-bundle licenses api-docs update-examples ## Generate artifacts.
 
 .PHONY: gen
 gen: generate ## Generate alias.
