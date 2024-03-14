@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"net"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -78,7 +79,7 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 	if err != nil {
 		return nil, fmt.Errorf("error wrapping address: %v", err)
 	}
-	gcommListenAddress, err := c.currentHostIP(podEnv.PodIP)
+	gcommListenAddress, err := c.thisHostIP(podEnv.PodIP)
 	if err != nil {
 		return nil, fmt.Errorf("error getting address: %v", err)
 	}
@@ -151,26 +152,36 @@ func (c *ConfigFile) wrapIPAddress(ip string) (string, error) {
 	return ip, nil
 }
 
-func (c *ConfigFile) currentHostIP(ip string) (string, error) {
+func (c *ConfigFile) thisHostIP(ip string) (string, error) {
 	parsedIp := net.ParseIP(ip)
 	if parsedIp == nil {
 		return "", fmt.Errorf("error in parsing ip address: %v", ip)
 	}
 
-	allIPs := ""
+	hostIP := ""
 	if parsedIp.To4() != nil {
-		allIPs = "0.0.0.0"
+		hostIP = "0.0.0.0"
 	} else {
-		allIPs = "::"
+		hostIP = "::"
 	}
 
-	return allIPs, nil
+	return hostIP, nil
 }
 
 func (c *ConfigFile) mapToSemColSeparated(wsrepOpts map[string]string) string {
+	keys := make([]string, 0)
+	for key := range wsrepOpts {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
 	buffer := new(bytes.Buffer)
-	for key, val := range wsrepOpts {
-		fmt.Fprintf(buffer, "%s=%s; ", key, val)
+	idx := 0
+	for _, key := range keys {
+		fmt.Fprintf(buffer, "%s=%s", key, wsrepOpts[key])
+		if idx++; idx != len(wsrepOpts) {
+			fmt.Fprintf(buffer, "; ")
+		}
 	}
 	return buffer.String()
 }
