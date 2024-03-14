@@ -29,7 +29,7 @@ MINIO_CERT_SUBJECT ?= "/CN=minio.minio.svc.cluster.local"
 MINIO_CERT_ALT_NAMES ?= "subjectAltName=DNS:minio,DNS:minio.minio,DNS:minio.minio.svc.cluster.local"
 MINIO_CERT_NAMESPACE ?= minio
 .PHONY: cert-minio
-cert-minio: ca ## Generates minio private key and certificate for local development.
+cert-minio: ca kubectl ## Generates minio private key and certificate for local development.
 	CERT_DIR=$(MINIO_CERT_DIR) CERT_SUBJECT=$(MINIO_CERT_SUBJECT) CERT_ALT_NAMES=$(MINIO_CERT_ALT_NAMES) $(MAKE) cert
 	$(KUBECTL) create namespace $(MINIO_CERT_NAMESPACE) \
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
