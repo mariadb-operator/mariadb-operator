@@ -91,7 +91,7 @@ func TestConfigMarshal(t *testing.T) {
 			},
 			//nolint:lll
 			wantConfig: `[mariadb]
-bind-address=0.0.0.0
+bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
 innodb_autoinc_lock_mode=2
@@ -107,6 +107,8 @@ wsrep_slave_threads=1
 wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-0"
 wsrep_sst_method="rsync"
+wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
+wsrep_sst_receive_address = "10.244.0.32:4444"
 `,
 			wantErr: false,
 		},
@@ -136,7 +138,7 @@ wsrep_sst_method="rsync"
 			},
 			//nolint:lll
 			wantConfig: `[mariadb]
-bind-address=0.0.0.0
+bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
 innodb_autoinc_lock_mode=2
@@ -152,11 +154,114 @@ wsrep_slave_threads=2
 wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 wsrep_sst_method="mariabackup"
+wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
+wsrep_sst_receive_address = "10.244.0.32:4444"
+wsrep_sst_auth="root:mariadb"
+`,
+			wantErr: false,
+		},
+		{
+			name: "IPv6",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "mariadb-galera",
+					Namespace: "default",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
+							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+							ReplicaThreads: 1,
+						},
+					},
+					Replicas: 3,
+				},
+			},
+			podEnv: &environment.PodEnvironment{
+				PodName:             "mariadb-galera-1",
+				PodIP:               "2001:db8::a1",
+				MariadbRootPassword: "mariadb",
+			},
+			//nolint:lll
+			wantConfig: `[mariadb]
+bind_address=*
+default_storage_engine=InnoDB
+binlog_format=row
+innodb_autoinc_lock_mode=2
+
+# Cluster configuration
+wsrep_on=ON
+wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_cluster_address="gcomm://mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local"
+wsrep_cluster_name=mariadb-operator
+wsrep_slave_threads=1
+
+# Node configuration
+wsrep_node_address="2001:db8::a1"
+wsrep_node_name="mariadb-galera-1"
+wsrep_sst_method="mariabackup"
+wsrep_provider_options = "gmcast.listen_addr=tcp://[::]:4567; ist.recv_addr=[2001:db8::a1]:4568"
+wsrep_sst_receive_address = "[2001:db8::a1]:4444"
+wsrep_sst_auth="root:mariadb"
+`,
+			wantErr: false,
+		},
+		{
+			name: "Additional WSREP privider options",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "mariadb-galera",
+					Namespace: "default",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
+							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+							ReplicaThreads: 1,
+							ProviderOptions: map[string]string{
+								"gcache.size": "1G",
+								"fc.limit":    "128",
+							},
+						},
+					},
+					Replicas: 3,
+				},
+			},
+			podEnv: &environment.PodEnvironment{
+				PodName:             "mariadb-galera-1",
+				PodIP:               "2001:db8::a1",
+				MariadbRootPassword: "mariadb",
+			},
+			//nolint:lll
+			wantConfig: `[mariadb]
+bind_address=*
+default_storage_engine=InnoDB
+binlog_format=row
+innodb_autoinc_lock_mode=2
+
+# Cluster configuration
+wsrep_on=ON
+wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_cluster_address="gcomm://mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local"
+wsrep_cluster_name=mariadb-operator
+wsrep_slave_threads=1
+
+# Node configuration
+wsrep_node_address="2001:db8::a1"
+wsrep_node_name="mariadb-galera-1"
+wsrep_sst_method="mariabackup"
+wsrep_provider_options = "fc.limit=128; gcache.size=1G; gmcast.listen_addr=tcp://[::]:4567; ist.recv_addr=[2001:db8::a1]:4568"
+wsrep_sst_receive_address = "[2001:db8::a1]:4444"
 wsrep_sst_auth="root:mariadb"
 `,
 			wantErr: false,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := NewConfigFile(tt.mariadb)
@@ -186,7 +291,7 @@ func TestConfigUpdate(t *testing.T) {
 		{
 			name: "update non existing key",
 			config: `[mariadb]
-bind-address=0.0.0.0
+bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
 innodb_autoinc_lock_mode=2
@@ -202,6 +307,8 @@ wsrep_slave_threads=2
 wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 wsrep_sst_method="mariabackup"
+wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
+wsrep_sst_receive_address = "10.244.0.32:4444"
 wsrep_sst_auth="root:mariadb"`,
 			key:       "foo",
 			value:     "bar",
@@ -211,7 +318,7 @@ wsrep_sst_auth="root:mariadb"`,
 		{
 			name: "update key",
 			config: `[mariadb]
-bind-address=0.0.0.0
+bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
 innodb_autoinc_lock_mode=2
@@ -227,11 +334,13 @@ wsrep_slave_threads=2
 wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 wsrep_sst_method="mariabackup"
+wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
+wsrep_sst_receive_address = "10.244.0.32:4444"
 wsrep_sst_auth="root:mariadb"`,
 			key:   WsrepNodeAddressKey,
 			value: "10.244.0.33",
 			wantBytes: []byte(`[mariadb]
-bind-address=0.0.0.0
+bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
 innodb_autoinc_lock_mode=2
@@ -247,6 +356,8 @@ wsrep_slave_threads=2
 wsrep_node_address="10.244.0.33"
 wsrep_node_name="mariadb-galera-1"
 wsrep_sst_method="mariabackup"
+wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
+wsrep_sst_receive_address = "10.244.0.32:4444"
 wsrep_sst_auth="root:mariadb"`),
 			wantErr: false,
 		},
