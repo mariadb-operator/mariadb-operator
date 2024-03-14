@@ -166,6 +166,10 @@ type GaleraRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MinClusterSize *intstr.IntOrString `json:"minClusterSize,omitempty"`
+	// ClusterMonitorInterval represents the interval used to monitor the Galera cluster health.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ClusterMonitorInterval *metav1.Duration `json:"clusterMonitorInterval,omitempty"`
 	// ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,
 	// is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.
 	// +optional
@@ -210,6 +214,9 @@ func (g *GaleraRecovery) Validate(mdb *MariaDB) error {
 func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 	if g.MinClusterSize == nil {
 		g.MinClusterSize = ptr.To(intstr.FromString("50%"))
+	}
+	if g.ClusterMonitorInterval == nil {
+		g.ClusterMonitorInterval = ptr.To(metav1.Duration{Duration: 10 * time.Second})
 	}
 	if g.ClusterHealthyTimeout == nil {
 		g.ClusterHealthyTimeout = ptr.To(metav1.Duration{Duration: 30 * time.Second})
