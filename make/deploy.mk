@@ -50,6 +50,12 @@ registry: ## Configure registry auth.
 		docker cp $(DOCKER_CONFIG) $$node:/var/lib/kubelet/config.json; \
 	done
 
+REGISTRY_PULL_SECRET ?= registry
+.PHONY: registry-secret
+registry-secret: ## Configure registry pull secret.
+	@$(KUBECTL) create secret docker-registry $(REGISTRY_PULL_SECRET) --from-file=.dockerconfigjson=$(DOCKER_CONFIG) --dry-run=client -o yaml \
+		| $(KUBECTL) apply -f -
+
 OCP_REGISTRY_URL ?= https://index.docker.io/v1/
 .PHONY: openshift-registry
 openshift-registry-add: oc jq ## Add catalog registry in OpenShift global config.
