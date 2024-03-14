@@ -265,9 +265,9 @@ func statefulSetUpdateStrategy(strategy *appsv1.StatefulSetUpdateStrategy) appsv
 
 func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.PersistentVolumeClaim {
 	var pvcs []corev1.PersistentVolumeClaim
+	vctpl := mariadb.Spec.Storage.VolumeClaimTemplate
 
-	if !mariadb.IsEphemeralStorageEnabled() {
-		vctpl := ptr.Deref(mariadb.Spec.Storage.VolumeClaimTemplate, mariadbv1alpha1.VolumeClaimTemplate{})
+	if !mariadb.IsEphemeralStorageEnabled() && vctpl != nil {
 		labels := labels.NewLabelsBuilder().
 			WithLabels(vctpl.Labels).
 			WithPVCRole(StorageVolumeRole).
@@ -287,7 +287,7 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
-	vctpl := galera.Config.VolumeClaimTemplate
+	vctpl = galera.Config.VolumeClaimTemplate
 
 	if mariadb.IsGaleraEnabled() && !reuseStorageVolume && vctpl != nil {
 		labels := labels.NewLabelsBuilder().
