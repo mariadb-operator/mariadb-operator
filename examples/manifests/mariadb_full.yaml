@@ -16,7 +16,7 @@ spec:
   image: mariadb:11.0.3
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
-    - name: registry # run 'make registry-secret' to generate a secret from ~/.docker/config
+    - name: registry # run 'make registry-secret' to generate a secret from ~/.docker/config.json
 
   port: 3306
 
