@@ -74,7 +74,7 @@ func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, key type
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
-			ImagePullSecrets: exporter.ImagePullSecrets,
+			ImagePullSecrets: exporterImagePullSecrets(mariadb, exporter.ImagePullSecrets),
 			Containers: []corev1.Container{
 				container,
 			},
@@ -143,4 +143,11 @@ func exporterContainer(mariadb *mariadbv1alpha1.MariaDB) (corev1.Container, erro
 
 func exporterConfigFile(mariadb *mariadbv1alpha1.MariaDB) string {
 	return fmt.Sprintf("%s/%s", deployConfigMountPath, mariadb.MetricsConfigSecretKeyRef().Key)
+}
+
+func exporterImagePullSecrets(mariadb *mariadbv1alpha1.MariaDB, pullSecrets []corev1.LocalObjectReference) []corev1.LocalObjectReference {
+	var secrets []corev1.LocalObjectReference
+	secrets = append(secrets, mariadb.Spec.ImagePullSecrets...)
+	secrets = append(secrets, pullSecrets...)
+	return secrets
 }
