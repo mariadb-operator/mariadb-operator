@@ -175,6 +175,10 @@ func (a *AffinityConfig) SetDefaults(objMeta metav1.ObjectMeta) {
 
 // PodTemplate defines a template to configure Container objects.
 type PodTemplate struct {
+	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// InitContainers to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
