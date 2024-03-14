@@ -13,7 +13,7 @@ spec:
     key: password
   database: mariadb
 
-  image: mariadb:11.0.3
+  image: mariadb:10.11.7
   imagePullPolicy: IfNotPresent
 
   port: 3306

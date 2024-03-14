@@ -14,19 +14,34 @@ SHELL = /usr/bin/env bash -o pipefail
 
 VERSION ?= 0.0.27
 
+# mariadb-operator
 IMG_NAME ?= ghcr.io/mariadb-operator/mariadb-operator
 IMG ?= $(IMG_NAME):v$(VERSION)
+
 IMG_ENT_NAME ?= mariadb/mariadb-operator-enterprise
 IMG_ENT ?= $(IMG_ENT_NAME):v$(VERSION)
 
-RELATED_IMAGE_MARIADB ?= mariadb:11.2.2
-RELATED_IMAGE_MARIADB_ENT ?= us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server:10.6
-# RELATED_IMAGE_MARIADB_ENT ?= docker.mariadb.com/enterprise-server:10.6
+# mariadb
+RELATED_IMAGE_MARIADB_NAME ?= mariadb
+RELATED_IMAGE_MARIADB_VERSION ?= 10.11.7
+RELATED_IMAGE_MARIADB ?= $(RELATED_IMAGE_MARIADB_NAME):$(RELATED_IMAGE_MARIADB_VERSION)
 
-# TODO: certify image. UBI based and multi-arch.
-RELATED_IMAGE_MAXSCALE ?= mariadb/maxscale:23.08
-RELATED_IMAGE_EXPORTER ?= prom/mysqld-exporter:v0.15.1
+RELATED_IMAGE_MARIADB_ENT_NAME ?= us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server
+# RELATED_IMAGE_MARIADB_ENT_NAME ?= docker.mariadb.com/enterprise-server
+RELATED_IMAGE_MARIADB_ENT_VERSION ?= 10.6
+RELATED_IMAGE_MARIADB_ENT ?= $(RELATED_IMAGE_MARIADB_ENT_NAME):$(RELATED_IMAGE_MARIADB_ENT_VERSION)
 
+# maxscale
+RELATED_IMAGE_MAXSCALE_NAME ?= mariadb/maxscale
+RELATED_IMAGE_MAXSCALE_VERSION ?= 23.08
+RELATED_IMAGE_MAXSCALE ?= $(RELATED_IMAGE_MAXSCALE_NAME):$(RELATED_IMAGE_MAXSCALE_VERSION)
+
+# mysqld-exporter
+RELATED_IMAGE_EXPORTER_NAME ?= prom/mysqld-exporter
+RELATED_IMAGE_EXPORTER_VERSION ?= v0.15.1
+RELATED_IMAGE_EXPORTER ?= $(RELATED_IMAGE_EXPORTER_NAME):$(RELATED_IMAGE_EXPORTER_VERSION)
+
+# galera
 MARIADB_GALERA_INIT_IMAGE ?= $(IMG_NAME):v$(VERSION)
 MARIADB_GALERA_ENT_INIT_IMAGE ?= $(IMG_ENT_NAME):v$(VERSION)
 MARIADB_GALERA_AGENT_IMAGE ?= $(IMG_NAME):v$(VERSION)
@@ -34,6 +49,7 @@ MARIADB_GALERA_ENT_AGENT_IMAGE ?= $(IMG_ENT_NAME):v$(VERSION)
 MARIADB_GALERA_LIB_PATH ?= /usr/lib/galera/libgalera_smm.so
 MARIADB_GALERA_ENT_LIB_PATH ?= /usr/lib/galera/libgalera_enterprise_smm.so
 
+# docker
 MARIADB_DOCKER_COMMIT_HASH ?= d7a950d41e9347ac94ad2d2f28469bff74858db7
 MARIADB_DOCKER_URL ?= https://raw.githubusercontent.com/MariaDB/mariadb-docker/$(MARIADB_DOCKER_COMMIT_HASH)/10.11/docker-entrypoint.sh
 MARIADB_DOCKER_PATH ?= pkg/embed/mariadb-docker/docker-entrypoint.sh
