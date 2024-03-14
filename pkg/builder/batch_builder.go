@@ -72,7 +72,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 				ObjectMeta: objMeta,
 				Spec: corev1.PodSpec{
 					RestartPolicy:    backup.Spec.RestartPolicy,
-					ImagePullSecrets: backup.Spec.ImagePullSecrets,
+					ImagePullSecrets: batchImagePullSecrets(mariadb, backup.Spec.ImagePullSecrets),
 					Volumes:          volumes,
 					InitContainers: []corev1.Container{
 						jobMariadbContainer(
@@ -176,7 +176,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 				ObjectMeta: objMeta,
 				Spec: corev1.PodSpec{
 					RestartPolicy:    restore.Spec.RestartPolicy,
-					ImagePullSecrets: restore.Spec.ImagePullSecrets,
+					ImagePullSecrets: batchImagePullSecrets(mariadb, restore.Spec.ImagePullSecrets),
 					Volumes:          volumes,
 					InitContainers: []corev1.Container{
 						jobMariadbOperatorContainer(
@@ -311,7 +311,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 				ObjectMeta: objMeta,
 				Spec: corev1.PodSpec{
 					RestartPolicy:    sqlJob.Spec.RestartPolicy,
-					ImagePullSecrets: sqlJob.Spec.ImagePullSecrets,
+					ImagePullSecrets: batchImagePullSecrets(mariadb, sqlJob.Spec.ImagePullSecrets),
 					Volumes:          volumes,
 					Containers: []corev1.Container{
 						jobMariadbContainer(
@@ -390,4 +390,11 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 		cmdOpts = append(cmdOpts, command.WithS3CACertPath(caCertPath))
 	}
 	return cmdOpts
+}
+
+func batchImagePullSecrets(mariadb *mariadbv1alpha1.MariaDB, pullSecrets []corev1.LocalObjectReference) []corev1.LocalObjectReference {
+	var secrets []corev1.LocalObjectReference
+	secrets = append(secrets, mariadb.Spec.ImagePullSecrets...)
+	secrets = append(secrets, pullSecrets...)
+	return secrets
 }

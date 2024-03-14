@@ -267,7 +267,7 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 	var pvcs []corev1.PersistentVolumeClaim
 
 	if !mariadb.IsEphemeralStorageEnabled() {
-		vctpl := mariadb.Spec.Storage.VolumeClaimTemplate
+		vctpl := ptr.Deref(mariadb.Spec.Storage.VolumeClaimTemplate, mariadbv1alpha1.VolumeClaimTemplate{})
 		labels := labels.NewLabelsBuilder().
 			WithLabels(vctpl.Labels).
 			WithPVCRole(StorageVolumeRole).
