@@ -74,6 +74,7 @@ func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, key type
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
+			ImagePullSecrets: exporter.ImagePullSecrets,
 			Containers: []corev1.Container{
 				container,
 			},
