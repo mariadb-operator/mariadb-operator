@@ -86,15 +86,33 @@ api-docs: crd-ref-docs ## Generate API reference docs
 
 ##@ Generate - Examples
 
-.PHONY: update-examples
-update-examples: ## Update examples
+.PHONY: examples-operator
+examples-operator: ## Update mariadb-operator version in examples
 	@./hack/bump_version_examples.sh examples/manifests $(IMG_NAME) $(VERSION)
 	@./hack/bump_version_examples.sh config/samples $(IMG_ENT_NAME) $(VERSION)
+
+.PHONY: examples-mariadb
+examples-mariadb: ## Update mariadb version in examples
+	@./hack/bump_version_examples.sh examples/manifests $(RELATED_IMAGE_MARIADB_NAME) $(RELATED_IMAGE_MARIADB_VERSION)
+	@./hack/bump_version_examples.sh config/samples $(RELATED_IMAGE_MARIADB_ENT_NAME) $(RELATED_IMAGE_MARIADB_ENT_VERSION)
+
+.PHONY: examples-maxscale
+examples-maxscale: ## Update maxscale version in examples
+	@./hack/bump_version_examples.sh examples/manifests $(RELATED_IMAGE_MAXSCALE_NAME) $(RELATED_IMAGE_MAXSCALE_VERSION)
+	@./hack/bump_version_examples.sh config/samples $(RELATED_IMAGE_MAXSCALE_NAME) $(RELATED_IMAGE_MAXSCALE_VERSION)
+
+.PHONY: examples-exporter
+examples-maxscale: ## Update exporter version in examples
+	@./hack/bump_version_examples.sh examples/manifests $(RELATED_IMAGE_EXPORTER_NAME) $(RELATED_IMAGE_EXPORTER_VERSION)
+	@./hack/bump_version_examples.sh config/samples $(RELATED_IMAGE_EXPORTER_NAME) $(RELATED_IMAGE_EXPORTER_VERSION)
+
+.PHONY: examples
+examples: examples-operator examples-mariadb examples-maxscale examples-exporter ## Update versions in examples
 
 ##@ Generate
 
 .PHONY: generate
-generate: manifests code embed-entrypoint helm manifests-bundle licenses api-docs update-examples ## Generate artifacts.
+generate: manifests code embed-entrypoint helm manifests-bundle licenses api-docs examples ## Generate artifacts.
 
 .PHONY: gen
 gen: generate ## Generate alias.
