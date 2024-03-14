@@ -51,7 +51,7 @@ spec:
     galeraLibPath: /usr/lib/galera/libgalera_smm.so
     replicaThreads: 1
     agent:
-      image: ghcr.io/mariadb-operator/mariadb-operator:0.0.27
+      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.27
       port: 5555
       kubernetesAuth:
         enabled: true
@@ -64,7 +64,7 @@ spec:
       podRecoveryTimeout: 3m
       podSyncTimeout: 3m
     initContainer:
-      image: ghcr.io/mariadb-operator/mariadb-operator:0.0.27
+      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.27
     initJob:
       labels:
         sidecar.istio.io/inject: "false"
