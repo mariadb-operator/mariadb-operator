@@ -5585,6 +5585,10 @@ spec:
                           checks, is considered unhealthy, and consequently the Galera
                           recovery process will be initiated by the operator.
                         type: string
+                      clusterMonitorInterval:
+                        description: ClusterMonitorInterval represents the interval
+                          used to monitor the Galera cluster health.
+                        type: string
                       enabled:
                         description: Enabled is a flag to enable GaleraRecovery.
                         type: boolean

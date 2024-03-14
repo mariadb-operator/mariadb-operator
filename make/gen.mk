@@ -102,7 +102,7 @@ examples-maxscale: ## Update maxscale version in examples
 	@./hack/bump_version_examples.sh config/samples $(RELATED_IMAGE_MAXSCALE_NAME) $(RELATED_IMAGE_MAXSCALE_VERSION)
 
 .PHONY: examples-exporter
-examples-maxscale: ## Update exporter version in examples
+examples-exporter: ## Update exporter version in examples
 	@./hack/bump_version_examples.sh examples/manifests $(RELATED_IMAGE_EXPORTER_NAME) $(RELATED_IMAGE_EXPORTER_VERSION)
 	@./hack/bump_version_examples.sh config/samples $(RELATED_IMAGE_EXPORTER_NAME) $(RELATED_IMAGE_EXPORTER_VERSION)
 

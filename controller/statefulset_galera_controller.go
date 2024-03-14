@@ -55,10 +55,10 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	if !shouldPerformClusterRecovery(mariadb) {
-		return ctrl.Result{}, nil
+		return r.monitorResult(mariadb), nil
 	}
 	logger := log.FromContext(ctx).WithName("galera").WithName("health")
-	logger.Info("Checking Galera cluster health")
+	logger.V(1).Info("Checking Galera cluster health")
 
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
@@ -73,7 +73,7 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{Requeue: true}, nil
 	}
 	if healthy {
-		return ctrl.Result{}, nil
+		return r.monitorResult(mariadb), nil
 	}
 	logger.Info("Galera cluster is not healthy")
 	r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraClusterNotHealthy, "Galera cluster is not healthy")
@@ -84,7 +84,7 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB: %v", err)
 	}
-	return ctrl.Result{}, nil
+	return r.monitorResult(mariadb), nil
 }
 
 func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Context, stsObjMeta metav1.ObjectMeta,
@@ -118,7 +118,7 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta 
 	if err := r.Get(ctx, key, &sts); err != nil {
 		return false, fmt.Errorf("error getting StatefulSet: %v", err)
 	}
-	logger.Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
+	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
 	if sts.Status.ReadyReplicas == 0 {
 		return false, nil
 	}
@@ -144,7 +144,7 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta 
 	if err != nil {
 		return false, fmt.Errorf("error checking min cluster size: %v", err)
 	}
-	logger.Info("Galera cluster size", "size", size, "has-min-size", clusterHasMinSize)
+	logger.V(1).Info("Galera cluster size", "size", size, "has-min-size", clusterHasMinSize)
 
 	return clusterHasMinSize, nil
 }
@@ -184,6 +184,16 @@ func (r *StatefulSetGaleraReconciler) patchStatus(ctx context.Context, mariadb *
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
+}
+
+func (r *StatefulSetGaleraReconciler) monitorResult(mdb *mariadbv1alpha1.MariaDB) ctrl.Result {
+	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+	if !recovery.Enabled {
+		return ctrl.Result{}
+	}
+	requeueAfter := ptr.Deref(recovery.ClusterMonitorInterval, metav1.Duration{Duration: 10 * time.Second}).Duration
+	return ctrl.Result{RequeueAfter: requeueAfter}
 }
 
 func shouldPerformClusterRecovery(mdb *mariadbv1alpha1.MariaDB) bool {

@@ -698,6 +698,11 @@ func (in *GaleraRecovery) DeepCopyInto(out *GaleraRecovery) {
 		*out = new(intstr.IntOrString)
 		**out = **in
 	}
+	if in.ClusterMonitorInterval != nil {
+		in, out := &in.ClusterMonitorInterval, &out.ClusterMonitorInterval
+		*out = new(metav1.Duration)
+		**out = **in
+	}
 	if in.ClusterHealthyTimeout != nil {
 		in, out := &in.ClusterHealthyTimeout, &out.ClusterHealthyTimeout
 		*out = new(metav1.Duration)
