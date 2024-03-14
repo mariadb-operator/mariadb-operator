@@ -232,10 +232,6 @@ type MariaDBMaxScaleSpec struct {
 	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// Services define how the traffic is forwarded to the MariaDB servers.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -326,10 +322,6 @@ type MariaDBSpec struct {
 	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
