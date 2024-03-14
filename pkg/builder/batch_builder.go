@@ -71,8 +71,9 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: objMeta,
 				Spec: corev1.PodSpec{
-					RestartPolicy: backup.Spec.RestartPolicy,
-					Volumes:       volumes,
+					RestartPolicy:    backup.Spec.RestartPolicy,
+					ImagePullSecrets: backup.Spec.ImagePullSecrets,
+					Volumes:          volumes,
 					InitContainers: []corev1.Container{
 						jobMariadbContainer(
 							cmd.MariadbDump(backup, mariadb),
@@ -174,8 +175,9 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: objMeta,
 				Spec: corev1.PodSpec{
-					RestartPolicy: restore.Spec.RestartPolicy,
-					Volumes:       volumes,
+					RestartPolicy:    restore.Spec.RestartPolicy,
+					ImagePullSecrets: restore.Spec.ImagePullSecrets,
+					Volumes:          volumes,
 					InitContainers: []corev1.Container{
 						jobMariadbOperatorContainer(
 							cmd.MariadbOperatorRestore(),
@@ -308,8 +310,9 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: objMeta,
 				Spec: corev1.PodSpec{
-					RestartPolicy: sqlJob.Spec.RestartPolicy,
-					Volumes:       volumes,
+					RestartPolicy:    sqlJob.Spec.RestartPolicy,
+					ImagePullSecrets: sqlJob.Spec.ImagePullSecrets,
+					Volumes:          volumes,
 					Containers: []corev1.Container{
 						jobMariadbContainer(
 							cmd.ExecCommand(mariadb),
