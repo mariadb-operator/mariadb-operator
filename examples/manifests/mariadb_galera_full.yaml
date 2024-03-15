@@ -50,6 +50,8 @@ spec:
     availableWhenDonor: false
     galeraLibPath: /usr/lib/galera/libgalera_smm.so
     replicaThreads: 1
+    providerOptions:
+      fc.limit: '64'
     agent:
       image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.27
       port: 5555
