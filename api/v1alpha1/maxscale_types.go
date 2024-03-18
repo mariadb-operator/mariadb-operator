@@ -275,7 +275,7 @@ func (m *MaxScaleConfig) SetDefaults(mxs *MaxScale) {
 	if reflect.ValueOf(m.VolumeClaimTemplate).IsZero() {
 		m.VolumeClaimTemplate = VolumeClaimTemplate{
 			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-				Resources: corev1.ResourceRequirements{
+				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{
 						"storage": resource.MustParse("100Mi"),
 					},
