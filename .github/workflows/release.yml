@@ -6,7 +6,7 @@ on:
       - "v*"
 
 env:
-  GORELEASER_VERSION: "v1.18.2"
+  GORELEASER_VERSION: "v1.24.0"
 
 jobs:
   release:
