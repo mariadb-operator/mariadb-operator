@@ -65,7 +65,7 @@ jobs:
           password: ${{ secrets.GAR_JSON_KEY }}
       
       - name: Publish multi-arch operator image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           push: true
           builder: ${{ steps.buildx.outputs.name }}
@@ -88,7 +88,7 @@ jobs:
         run: make preflight-operator
 
       - name: Publish bundle image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           push: true
           context: .
