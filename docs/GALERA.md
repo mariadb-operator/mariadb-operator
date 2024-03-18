@@ -6,6 +6,25 @@ In certain circumstances, it could be the case that all the nodes of your cluste
 
 To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-operator` will regularly monitor the cluster's status to make sure it is healthy. If any issues are detected, the operator will initiate the [recovery process](#galera-cluster-recovery) to restore the cluster to a healthy state. During this process, the operator will set status conditions in the `MariaDB` and emit `Events` so you have a better understanding of the recovery progress and the underlying activities being performed. For example, you may want to know which `Pods` were out of sync to further investigate infrastructure-related issues (i.e. networking, storage...) on the nodes where these `Pods` were scheduled.
 
+## Table of contents
+
+- [Table of contents](#table-of-contents)
+- [Components](#components)
+- [`MariaDB` configuration](#mariadb-configuration)
+- [Storage](#storage)
+- [Galera cluster recovery](#galera-cluster-recovery)
+- [Wsrep provider](#wsrep-provider)
+- [IPv6 support](#ipv6-support)
+- [Quickstart](#quickstart)
+- [Troubleshooting](#troubleshooting)
+  - [Common errors](#common-errors)
+    - [Permission denied writing Galera configuration](#permission-denied-writing-galera-configuration)
+    - [Unauthorized error disabling bootstrap](#unauthorized-error-disabling-bootstrap)
+    - [Timeout waiting for Pod to be Synced](#timeout-waiting-for-pod-to-be-synced)
+    - [Galera cluster bootstrap timed out](#galera-cluster-bootstrap-timed-out)
+  - [GitHub Issues](#github-issues)
+- [Reference](#reference)
+
 ## Components
 
 To be able to effectively provision and recover MariaDB Galera clusters, the following components were introduced to co-operate with `mariadb-operator`:
@@ -14,7 +33,7 @@ To be able to effectively provision and recover MariaDB Galera clusters, the fol
 
 All these components are available in the `ghcr.io/mariadb-operator mariadb-operator` image. More preciselly, they are subcommands of the CLI shipped as binary inside the image.
 
-## Configuration
+## `MariaDB` configuration
 
 The easiest way to get a MariaDB Galera cluster up and running is setting `spec.galera.enabled = true`, like in this [example](../examples/manifests/mariadb_galera.yaml):
 
@@ -88,6 +107,30 @@ The `minClusterSize` field indicates the minimum cluster size (either absolut nu
 - Restart the rest of the nodes one by one so they can join the new cluster.
 
 Please refer to the [API reference](./API_REFERENCE.md) for further detail.
+
+## Wsrep provider
+
+You are able to pass extra options to the Galera wsrep provider by using the `galera.providerOptions` field:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    providerOptions:
+      gcs.fc_limit: '64'
+```
+
+It is important to note that, the `ist.recv_addr` cannot be set by the user, as it is automatically configured to the `Pod` IP by the operator, something that an user won't be able to know beforehand.
+
+A list of the available options can be found in the [MariaDB documentation](https://mariadb.com/kb/en/wsrep_provider_options/).
+
+## IPv6 support
+
+If you have a Kubernetes cluster running with IPv6, the operator will automatically detect the IPv6 addresses of your `Pods` and it will configure several [wsrep provider](#wsrep-provider) options to ensure that the Galera protocol runs smoothly with IPv6.
 
 ## Quickstart
 
