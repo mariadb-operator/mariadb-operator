@@ -477,7 +477,7 @@ var _ = Describe("MariaDB types", func() {
 							StorageClassName:    "my-class",
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
@@ -514,7 +514,7 @@ var _ = Describe("MariaDB types", func() {
 							StorageClassName:   "my-class",
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("200Mi"),
 										},
@@ -551,7 +551,7 @@ var _ = Describe("MariaDB types", func() {
 							StorageClassName:    "my-class",
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
@@ -704,7 +704,7 @@ var _ = Describe("MariaDB types", func() {
 							StorageClassName:    "my-class",
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
@@ -797,7 +797,7 @@ var _ = Describe("MariaDB types", func() {
 							StorageClassName:    "my-class",
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
@@ -923,7 +923,7 @@ var _ = Describe("MariaDB types", func() {
 						Storage: Storage{
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
@@ -943,7 +943,7 @@ var _ = Describe("MariaDB types", func() {
 							Size: ptr.To(resource.MustParse("100Mi")),
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
@@ -963,7 +963,7 @@ var _ = Describe("MariaDB types", func() {
 							Size: ptr.To(resource.MustParse("50Mi")),
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
@@ -983,7 +983,7 @@ var _ = Describe("MariaDB types", func() {
 							Size: ptr.To(resource.MustParse("150Mi")),
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
@@ -1018,7 +1018,7 @@ var _ = Describe("MariaDB types", func() {
 						Storage: Storage{
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU: resource.MustParse("100Mi"),
 										},
@@ -1037,7 +1037,7 @@ var _ = Describe("MariaDB types", func() {
 						Storage: Storage{
 							VolumeClaimTemplate: &VolumeClaimTemplate{
 								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: resource.MustParse("100Mi"),
 										},
