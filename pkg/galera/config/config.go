@@ -13,6 +13,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	options "github.com/mariadb-operator/mariadb-operator/pkg/galera/options"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/utils/ptr"
@@ -88,8 +89,8 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 		return nil, fmt.Errorf("error wrapping address: %v", err)
 	}
 	providerOpts := map[string]string{
-		"gmcast.listen_addr": fmt.Sprintf("tcp://%s:4567", gcommListenAddress),
-		"ist.recv_addr":      fmt.Sprintf("%s:4568", wrappedPodIP),
+		options.WSREPOptGmcastListAddr: fmt.Sprintf("tcp://%s:4567", gcommListenAddress),
+		options.WSREPOptISTRecvAddr:    fmt.Sprintf("%s:4568", wrappedPodIP),
 	}
 	maps.Copy(providerOpts, galera.ProviderOptions)
 	providerOptsSemColSeparated := c.mapToSemColSeparated(providerOpts)

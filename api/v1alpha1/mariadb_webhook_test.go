@@ -247,6 +247,28 @@ var _ = Describe("MariaDB webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid provider options",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								SST: SSTMariaBackup,
+								ProviderOptions: map[string]string{
+									"ist.recv_addr": "1.2.3.4:4568",
+								},
+							},
+						},
+						Replicas: 3,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid replication primary pod index",
 				&MariaDB{
 					ObjectMeta: meta,
