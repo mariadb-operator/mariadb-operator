@@ -112,8 +112,7 @@ examples: examples-operator examples-mariadb examples-maxscale examples-exporter
 ##@ Generate
 
 .PHONY: generate
-# generate: manifests code embed-entrypoint helm manifests-bundle licenses api-docs examples ## Generate artifacts.
-generate: manifests code embed-entrypoint helm manifests-bundle api-docs examples ## Generate artifacts.
+generate: manifests code embed-entrypoint helm manifests-bundle licenses api-docs examples ## Generate artifacts.
 
 .PHONY: gen
 gen: generate ## Generate alias.
