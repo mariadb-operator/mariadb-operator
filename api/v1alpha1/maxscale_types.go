@@ -313,7 +313,7 @@ type MaxScaleAuth struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AdminUsername string `json:"adminUsername,omitempty" webhook:"inmutableinit"`
-	// AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admib REST API. It is defaulted if not provided.
+	// AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admin REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AdminPasswordSecretKeyRef corev1.SecretKeySelector `json:"adminPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
@@ -321,6 +321,14 @@ type MaxScaleAuth struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	DeleteDefaultAdmin *bool `json:"deleteDefaultAdmin,omitempty" webhook:"inmutableinit"`
+	// MetricsUsername is an metrics username to call the REST API. It is defaulted if metrics are enabled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MetricsUsername string `json:"metricsUsername,omitempty" webhook:"inmutableinit"`
+	// MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MetricsPasswordSecretKeyRef corev1.SecretKeySelector `json:"metricsPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -394,6 +402,16 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 		m.DeleteDefaultAdmin = ptr.To(true)
 	}
 
+	metrics := ptr.Deref(mxs.Spec.Metrics, MaxScaleMetrics{})
+	if metrics.Enabled {
+		if m.MetricsUsername == "" {
+			m.MetricsUsername = "metrics"
+		}
+		if m.MetricsPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+			m.MetricsPasswordSecretKeyRef = mxs.MetricsPasswordSecretKeyRef()
+		}
+	}
+
 	if m.ClientUsername == "" {
 		m.ClientUsername = mxs.AuthClientUserKey().Name
 	}
@@ -435,6 +453,22 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 			m.SyncMaxConnections = ptr.To(mxs.defaultConnections())
 		}
 	}
+}
+
+// MaxScaleMetrics defines the metrics for a Maxscale.
+type MaxScaleMetrics struct {
+	// Enabled is a flag to enable Metrics
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
+	// Exporter defines the metrics exporter container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Exporter Exporter `json:"exporter"`
+	// ServiceMonitor defines the ServiceMonior object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
 }
 
 // MaxScaleSpec defines the desired state of MaxScale.
@@ -485,6 +519,10 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Auth MaxScaleAuth `json:"auth,omitempty"`
+	// Metrics configures metrics and how to scrape them.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Metrics *MaxScaleMetrics `json:"metrics,omitempty"`
 	// Connection provides a template to define the Connection for MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -670,6 +708,16 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv) {
 	m.Spec.Admin.SetDefaults(m)
 	m.Spec.Config.SetDefaults(m)
 	m.Spec.Auth.SetDefaults(m)
+
+	if m.AreMetricsEnabled() {
+		if m.Spec.Metrics.Exporter.Image == "" {
+			m.Spec.Metrics.Exporter.Image = env.RelatedExporterMaxscaleImage
+		}
+		if m.Spec.Metrics.Exporter.Port == 0 {
+			m.Spec.Metrics.Exporter.Port = 9105
+		}
+	}
+
 	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
 
 	if m.Spec.PodTemplate.PodSecurityContext == nil {
@@ -687,6 +735,11 @@ func (m *MaxScale) IsReady() bool {
 // IsHAEnabled indicated whether high availability is enabled.
 func (m *MaxScale) IsHAEnabled() bool {
 	return m.Spec.Replicas > 1
+}
+
+// AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
+func (m *MaxScale) AreMetricsEnabled() bool {
+	return ptr.Deref(m.Spec.Metrics, MaxScaleMetrics{}).Enabled
 }
 
 // APIUrl returns the URL of the admin API pointing to the Kubernetes Service.

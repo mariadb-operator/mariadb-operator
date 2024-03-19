@@ -14,13 +14,14 @@ import (
 )
 
 var _ = Describe("MaxScale types", func() {
-	format.MaxLength = 8000
+	format.MaxLength = 10000
 	objMeta := metav1.ObjectMeta{
 		Name:      "maxscale-obj",
 		Namespace: "maxscale-obj",
 	}
 	env := &environment.OperatorEnv{
-		RelatedMariadbImage: "mariadb/maxscale:23.08",
+		RelatedMariadbImage:          "mariadb/maxscale:23.08",
+		RelatedExporterMaxscaleImage: "mariadb/maxscale-prometheus-exporter-ubi:latest",
 	}
 	Context("When creating a MaxScale object", func() {
 		DescribeTable(
@@ -197,6 +198,9 @@ var _ = Describe("MaxScale types", func() {
 						Monitor: MaxScaleMonitor{
 							Module: MonitorModuleMariadb,
 						},
+						Metrics: &MaxScaleMetrics{
+							Enabled: true,
+						},
 					},
 				},
 				&MaxScale{
@@ -284,7 +288,14 @@ var _ = Describe("MaxScale types", func() {
 								Key: "password",
 							},
 							DeleteDefaultAdmin: ptr.To(true),
-							ClientUsername:     "maxscale-obj-client",
+							MetricsUsername:    "metrics",
+							MetricsPasswordSecretKeyRef: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "maxscale-obj-metrics",
+								},
+								Key: "password",
+							},
+							ClientUsername: "maxscale-obj-client",
 							ClientPasswordSecretKeyRef: corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
 									Name: "maxscale-obj-client",
@@ -335,6 +346,13 @@ var _ = Describe("MaxScale types", func() {
 								Address:  "mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local",
 								Port:     3306,
 								Protocol: "MariaDBBackend",
+							},
+						},
+						Metrics: &MaxScaleMetrics{
+							Enabled: true,
+							Exporter: Exporter{
+								Image: "mariadb/maxscale-prometheus-exporter-ubi:latest",
+								Port:  9105,
 							},
 						},
 					},

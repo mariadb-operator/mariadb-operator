@@ -27,7 +27,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.Metrics{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 					},
 				},
@@ -46,7 +46,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 							},
 						},
 					},
-					Metrics: &mariadbv1alpha1.Metrics{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 					},
 				},
@@ -62,7 +62,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.Metrics{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
 							PodTemplate: mariadbv1alpha1.PodTemplate{
@@ -94,7 +94,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 							},
 						},
 					},
-					Metrics: &mariadbv1alpha1.Metrics{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
 							PodTemplate: mariadbv1alpha1.PodTemplate{
