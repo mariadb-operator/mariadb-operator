@@ -1281,7 +1281,7 @@ spec:
         displayName: Auth
         path: maxScale.auth
       - description: AdminPasswordSecretKeyRef is Secret key reference to the admin
-          password to call the admib REST API. It is defaulted if not provided.
+          password to call the admin REST API. It is defaulted if not provided.
         displayName: Admin Password Secret Key Ref
         path: maxScale.auth.adminPasswordSecretKeyRef
       - description: AdminUsername is an admin username to call the admin REST API.
@@ -1313,6 +1313,14 @@ spec:
           grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
         displayName: Generate
         path: maxScale.auth.generate
+      - description: MetricsPasswordSecretKeyRef is Secret key reference to the metrics
+          password to call the admib REST API. It is defaulted if metrics are enabled.
+        displayName: Metrics Password Secret Key Ref
+        path: maxScale.auth.metricsPasswordSecretKeyRef
+      - description: MetricsUsername is an metrics username to call the REST API.
+          It is defaulted if metrics are enabled.
+        displayName: Metrics Username
+        path: maxScale.auth.metricsUsername
       - description: MonitorMaxConnections defines the maximum number of connections
           that the monitor can establish. If HA is enabled, make sure to increase
           this value, as more MaxScale replicas implies more connections. It defaults
@@ -2496,7 +2504,7 @@ spec:
         displayName: Auth
         path: auth
       - description: AdminPasswordSecretKeyRef is Secret key reference to the admin
-          password to call the admib REST API. It is defaulted if not provided.
+          password to call the admin REST API. It is defaulted if not provided.
         displayName: Admin Password Secret Key Ref
         path: auth.adminPasswordSecretKeyRef
       - description: AdminUsername is an admin username to call the admin REST API.
@@ -2528,6 +2536,14 @@ spec:
           grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
         displayName: Generate
         path: auth.generate
+      - description: MetricsPasswordSecretKeyRef is Secret key reference to the metrics
+          password to call the admib REST API. It is defaulted if metrics are enabled.
+        displayName: Metrics Password Secret Key Ref
+        path: auth.metricsPasswordSecretKeyRef
+      - description: MetricsUsername is an metrics username to call the REST API.
+          It is defaulted if metrics are enabled.
+        displayName: Metrics Username
+        path: auth.metricsUsername
       - description: MonitorMaxConnections defines the maximum number of connections
           that the monitor can establish. If HA is enabled, make sure to increase
           this value, as more MaxScale replicas implies more connections. It defaults
@@ -2784,6 +2800,205 @@ spec:
           should wait for MariaDB to be ready.
         displayName: Wait For It
         path: mariaDbRef.waitForIt
+      - description: Metrics configures metrics and how to scrape them.
+        displayName: Metrics
+        path: metrics
+      - description: Enabled is a flag to enable Metrics
+        displayName: Enabled
+        path: metrics.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Exporter defines the metrics exporter container.
+        displayName: Exporter
+        path: metrics.exporter
+      - description: Affinity to be used in the Pod.
+        displayName: Affinity
+        path: metrics.exporter.affinity
+      - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is
+          scheduled in a different Node, enabling HA. Make sure you have at least
+          as many Nodes available as the replicas to not end up with unscheduled Pods.
+        displayName: Enable Anti Affinity
+        path: metrics.exporter.affinity.enableAntiAffinity
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: metrics.exporter.args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: metrics.exporter.command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: metrics.exporter.env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: metrics.exporter.envFrom
+      - description: 'Image name to be used as metrics exporter. The supported format
+          is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
+        displayName: Image
+        path: metrics.exporter.image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: metrics.exporter.imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
+          the image.
+        displayName: Image Pull Secrets
+        path: metrics.exporter.imagePullSecrets
+      - description: InitContainers to be used in the Pod.
+        displayName: Init Containers
+        path: metrics.exporter.initContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: metrics.exporter.initContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: metrics.exporter.initContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: metrics.exporter.initContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: metrics.exporter.initContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: metrics.exporter.initContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: metrics.exporter.initContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: metrics.exporter.initContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: metrics.exporter.initContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: metrics.exporter.initContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: metrics.exporter.initContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: metrics.exporter.initContainers[0].volumeMounts
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: metrics.exporter.livenessProbe
+      - description: NodeSelector to be used in the Pod.
+        displayName: Node Selector
+        path: metrics.exporter.nodeSelector
+      - description: SecurityContext holds pod-level security attributes and common
+          container settings.
+        displayName: Pod Security Context
+        path: metrics.exporter.podSecurityContext
+      - description: Port where the exporter will be listening for connections.
+        displayName: Port
+        path: metrics.exporter.port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: PriorityClassName to be used in the Pod.
+        displayName: Priority Class Name
+        path: metrics.exporter.priorityClassName
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: metrics.exporter.readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: metrics.exporter.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: metrics.exporter.securityContext
+      - description: ServiceAccountName is the name of the ServiceAccount to be used
+          by the Pods.
+        displayName: Service Account Name
+        path: metrics.exporter.serviceAccountName
+      - description: SidecarContainers to be used in the Pod.
+        displayName: Sidecar Containers
+        path: metrics.exporter.sidecarContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: metrics.exporter.sidecarContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: metrics.exporter.sidecarContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: metrics.exporter.sidecarContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: metrics.exporter.sidecarContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: metrics.exporter.sidecarContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: metrics.exporter.sidecarContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: metrics.exporter.sidecarContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: metrics.exporter.sidecarContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: metrics.exporter.sidecarContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: metrics.exporter.sidecarContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: metrics.exporter.sidecarContainers[0].volumeMounts
+      - description: Tolerations to be used in the Pod.
+        displayName: Tolerations
+        path: metrics.exporter.tolerations
+      - description: TopologySpreadConstraints to be used in the Pod.
+        displayName: Topology Spread Constraints
+        path: metrics.exporter.topologySpreadConstraints
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: metrics.exporter.volumeMounts
+      - description: Volumes to be used in the Pod.
+        displayName: Volumes
+        path: metrics.exporter.volumes
+      - description: ServiceMonitor defines the ServiceMonior object.
+        displayName: Service Monitor
+        path: metrics.serviceMonitor
+      - description: Interval for scraping metrics.
+        displayName: Interval
+        path: metrics.serviceMonitor.interval
+      - description: JobLabel to add to the ServiceMonitor object.
+        displayName: Job Label
+        path: metrics.serviceMonitor.jobLabel
+      - description: PrometheusRelease is the release label to add to the ServiceMonitor
+          object.
+        displayName: Prometheus Release
+        path: metrics.serviceMonitor.prometheusRelease
+      - description: ScrapeTimeout defines the timeout for scraping metrics.
+        displayName: Scrape Timeout
+        path: metrics.serviceMonitor.scrapeTimeout
       - description: Monitor monitors MariaDB server instances. It is required if
           'spec.mariaDbRef' is not provided.
         displayName: Monitor
