@@ -63,6 +63,9 @@ jobs:
           registry: us-central1-docker.pkg.dev
           username: _json_key
           password: ${{ secrets.GAR_JSON_KEY }}
+
+      - name: Generate licenses
+        run: make licenses
       
       - name: Publish multi-arch operator image
         uses: docker/build-push-action@v5

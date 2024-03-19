@@ -85,3 +85,7 @@ preflight-operator: preflight ## Run preflight tests on the operator image.
 .PHONY: preflight-bundle
 preflight-bundle: preflight ## Run preflight tests on the bundle image.
 	PFLT_INDEXIMAGE=$(CATALOG_IMG) $(PREFLIGHT) check operator --docker-config $(DOCKER_CONFIG) $(BUNDLE_IMG)
+
+.PHONY: licenses
+licenses: go-licenses ## Generate licenses folder.
+	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force

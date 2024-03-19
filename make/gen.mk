@@ -68,12 +68,6 @@ manifests-bundle-helm-min: manifests manifests-crds ## Generate minimal manifest
 .PHONY: manifests-bundle
 manifests-bundle: manifests-crds manifests-bundle-helm manifests-bundle-helm-min ## Generate manifests.
 
-##@ Generate - Licenses
-
-.PHONY: licenses
-licenses: go-licenses ## Generate licenses folder.
-	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force
-
 ##@ Generate - Documentation
 
 .PHONY: api-docs
@@ -112,7 +106,7 @@ examples: examples-operator examples-mariadb examples-maxscale examples-exporter
 ##@ Generate
 
 .PHONY: generate
-generate: manifests code embed-entrypoint helm manifests-bundle licenses api-docs examples ## Generate artifacts.
+generate: manifests code embed-entrypoint helm manifests-bundle api-docs examples ## Generate artifacts.
 
 .PHONY: gen
 gen: generate ## Generate alias.
