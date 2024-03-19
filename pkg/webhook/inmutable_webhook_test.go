@@ -104,7 +104,7 @@ func TestInmutableWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.Metrics{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: false,
 					},
 				},
@@ -112,7 +112,7 @@ func TestInmutableWebhook(t *testing.T) {
 			new: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.Metrics{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 					},
 				},
@@ -124,7 +124,7 @@ func TestInmutableWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.Metrics{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Username: "foo",
 					},
 				},
@@ -132,7 +132,7 @@ func TestInmutableWebhook(t *testing.T) {
 			new: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.Metrics{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Username: "bar",
 					},
 				},

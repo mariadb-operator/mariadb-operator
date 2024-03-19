@@ -368,7 +368,8 @@ Exporter defines a metrics exporter container.
 
 
 _Appears in:_
-- [Metrics](#metrics)
+- [MariadbMetrics](#mariadbmetrics)
+- [MaxScaleMetrics](#maxscalemetrics)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -778,7 +779,7 @@ _Appears in:_
 | `myCnfConfigMapKeyRef` _[ConfigMapKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core)_ | MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.<br />If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field. |  |  |
 | `bootstrapFrom` _[BootstrapFrom](#bootstrapfrom)_ | BootstrapFrom defines a source to bootstrap from. |  |  |
 | `storage` _[Storage](#storage)_ | Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB. |  |  |
-| `metrics` _[Metrics](#metrics)_ | Metrics configures metrics and how to scrape them. |  |  |
+| `metrics` _[MariadbMetrics](#mariadbmetrics)_ | Metrics configures metrics and how to scrape them. |  |  |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. |  |  |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |  |  |
 | `maxScaleRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectreference-v1-core)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this field implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
@@ -793,6 +794,26 @@ _Appears in:_
 | `primaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | PrimaryConnection defines templates to configure the primary Connection object. |  |  |
 | `secondaryService` _[ServiceTemplate](#servicetemplate)_ | SecondaryService defines templates to configure the secondary Service object. |  |  |
 | `secondaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | SecondaryConnection defines templates to configure the secondary Connection object. |  |  |
+
+
+#### MariadbMetrics
+
+
+
+MariadbMetrics defines the metrics for a MariaDB.
+
+
+
+_Appears in:_
+- [MariaDBSpec](#mariadbspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is a flag to enable Metrics |  |  |
+| `exporter` _[Exporter](#exporter)_ | Exporter defines the metrics exporter container. |  |  |
+| `serviceMonitor` _[ServiceMonitor](#servicemonitor)_ | ServiceMonitor defines the ServiceMonior object. |  |  |
+| `username` _string_ | Username is the username of the monitoring user used by the exporter. |  |  |
+| `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter. |  |  |
 
 
 #### MaxScale
@@ -849,8 +870,10 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `generate` _boolean_ | Generate  defies whether the operator should generate users and grants for MaxScale to work.<br />It only supports MariaDBs specified via spec.mariaDbRef. |  |  |
 | `adminUsername` _string_ | AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided. |  |  |
-| `adminPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admib REST API. It is defaulted if not provided. |  |  |
+| `adminPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admin REST API. It is defaulted if not provided. |  |  |
 | `deleteDefaultAdmin` _boolean_ | DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true. |  |  |
+| `metricsUsername` _string_ | MetricsUsername is an metrics username to call the REST API. It is defaulted if metrics are enabled. |  |  |
+| `metricsPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled. |  |  |
 | `clientUsername` _string_ | ClientUsername is the user to connect to MaxScale. It is defaulted if not provided. |  |  |
 | `clientPasswordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided. |  |  |
 | `clientMaxConnections` _integer_ | ClientMaxConnections defines the maximum number of connections that the client can establish.<br />If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.<br />It defaults to 30 times the number of MaxScale replicas. |  |  |
@@ -920,6 +943,24 @@ _Appears in:_
 | `port` _integer_ | Port is the network port where the MaxScale server will listen. |  | Required: {} <br /> |
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol. |  |  |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the listener.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1. |  |  |
+
+
+#### MaxScaleMetrics
+
+
+
+MaxScaleMetrics defines the metrics for a Maxscale.
+
+
+
+_Appears in:_
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is a flag to enable Metrics |  |  |
+| `exporter` _[Exporter](#exporter)_ | Exporter defines the metrics exporter container. |  |  |
+| `serviceMonitor` _[ServiceMonitor](#servicemonitor)_ | ServiceMonitor defines the ServiceMonior object. |  |  |
 
 
 #### MaxScaleMonitor
@@ -1028,6 +1069,7 @@ _Appears in:_
 | `admin` _[MaxScaleAdmin](#maxscaleadmin)_ | Admin configures the admin REST API and GUI. |  |  |
 | `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |  |  |
 | `auth` _[MaxScaleAuth](#maxscaleauth)_ | Auth defines the credentials required for MaxScale to connect to MariaDB. |  |  |
+| `metrics` _[MaxScaleMetrics](#maxscalemetrics)_ | Metrics configures metrics and how to scrape them. |  |  |
 | `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection provides a template to define the Connection for MaxScale. |  |  |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. | 1 |  |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |  |  |
@@ -1057,26 +1099,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `labels` _object (keys:string, values:string)_ | Labels to be added to children resources. |  |  |
 | `annotations` _object (keys:string, values:string)_ | Annotations to be added to children resources. |  |  |
-
-
-#### Metrics
-
-
-
-Metrics defines the metrics for a MariaDB.
-
-
-
-_Appears in:_
-- [MariaDBSpec](#mariadbspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `enabled` _boolean_ | Enabled is a flag to enable Metrics |  |  |
-| `exporter` _[Exporter](#exporter)_ | Exporter defines the metrics exporter container. |  |  |
-| `serviceMonitor` _[ServiceMonitor](#servicemonitor)_ | ServiceMonitor defines the ServiceMonior object. |  |  |
-| `username` _string_ | Username is the username of the monitoring user used by the exporter. |  |  |
-| `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter. |  |  |
 
 
 #### MonitorModule
@@ -1449,7 +1471,8 @@ ServiceMonitor defines a prometheus ServiceMonitor object.
 
 
 _Appears in:_
-- [Metrics](#metrics)
+- [MariadbMetrics](#mariadbmetrics)
+- [MaxScaleMetrics](#maxscalemetrics)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |

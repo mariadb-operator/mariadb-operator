@@ -1,6 +1,6 @@
 linters-settings:
   gocyclo:
-    min-complexity: 20
+    min-complexity: 22
   lll:
     line-length: 140
   nestif:

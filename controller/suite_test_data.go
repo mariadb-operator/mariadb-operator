@@ -142,7 +142,7 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 					"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.45",
 				},
 			},
-			Metrics: &mariadbv1alpha1.Metrics{
+			Metrics: &mariadbv1alpha1.MariadbMetrics{
 				Enabled: true,
 				Exporter: mariadbv1alpha1.Exporter{
 					Image: env.RelatedExporterImage,

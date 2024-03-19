@@ -10,17 +10,18 @@ import (
 )
 
 type OperatorEnv struct {
-	MariadbOperatorName      string `env:"MARIADB_OPERATOR_NAME,required"`
-	MariadbOperatorNamespace string `env:"MARIADB_OPERATOR_NAMESPACE,required"`
-	MariadbOperatorSAPath    string `env:"MARIADB_OPERATOR_SA_PATH,required"`
-	MariadbOperatorImage     string `env:"MARIADB_OPERATOR_IMAGE,required"`
-	RelatedMariadbImage      string `env:"RELATED_IMAGE_MARIADB,required"`
-	RelatedMaxscaleImage     string `env:"RELATED_IMAGE_MAXSCALE,required"`
-	RelatedExporterImage     string `env:"RELATED_IMAGE_EXPORTER,required"`
-	MariadbGaleraInitImage   string `env:"MARIADB_GALERA_INIT_IMAGE,required"`
-	MariadbGaleraAgentImage  string `env:"MARIADB_GALERA_AGENT_IMAGE,required"`
-	MariadbGaleraLibPath     string `env:"MARIADB_GALERA_LIB_PATH,required"`
-	WatchNamespace           string `env:"WATCH_NAMESPACE"`
+	MariadbOperatorName          string `env:"MARIADB_OPERATOR_NAME,required"`
+	MariadbOperatorNamespace     string `env:"MARIADB_OPERATOR_NAMESPACE,required"`
+	MariadbOperatorSAPath        string `env:"MARIADB_OPERATOR_SA_PATH,required"`
+	MariadbOperatorImage         string `env:"MARIADB_OPERATOR_IMAGE,required"`
+	RelatedMariadbImage          string `env:"RELATED_IMAGE_MARIADB,required"`
+	RelatedMaxscaleImage         string `env:"RELATED_IMAGE_MAXSCALE,required"`
+	RelatedExporterImage         string `env:"RELATED_IMAGE_EXPORTER,required"`
+	RelatedExporterMaxscaleImage string `env:"RELATED_IMAGE_EXPORTER_MAXSCALE,required"`
+	MariadbGaleraInitImage       string `env:"MARIADB_GALERA_INIT_IMAGE,required"`
+	MariadbGaleraAgentImage      string `env:"MARIADB_GALERA_AGENT_IMAGE,required"`
+	MariadbGaleraLibPath         string `env:"MARIADB_GALERA_LIB_PATH,required"`
+	WatchNamespace               string `env:"WATCH_NAMESPACE"`
 }
 
 func (e *OperatorEnv) WatchNamespaces() ([]string, error) {

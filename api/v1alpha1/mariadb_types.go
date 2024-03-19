@@ -60,8 +60,8 @@ type ServiceMonitor struct {
 	ScrapeTimeout string `json:"scrapeTimeout,omitempty"`
 }
 
-// Metrics defines the metrics for a MariaDB.
-type Metrics struct {
+// MariadbMetrics defines the metrics for a MariaDB.
+type MariadbMetrics struct {
 	// Enabled is a flag to enable Metrics
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
@@ -370,7 +370,7 @@ type MariaDBSpec struct {
 	// Metrics configures metrics and how to scrape them.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Metrics *Metrics `json:"metrics,omitempty"`
+	Metrics *MariadbMetrics `json:"metrics,omitempty"`
 	// Replication configures high availability via replication.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -571,7 +571,7 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
 func (m *MariaDB) AreMetricsEnabled() bool {
-	return m.Spec.Metrics != nil && m.Spec.Metrics.Enabled
+	return ptr.Deref(m.Spec.Metrics, MariadbMetrics{}).Enabled
 }
 
 // IsInitialDataEnabled indicates whether the MariaDB instance has initial data enabled

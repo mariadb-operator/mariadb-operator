@@ -33,6 +33,16 @@ func (m *MaxScale) AdminPasswordSecretKeyRef() corev1.SecretKeySelector {
 	}
 }
 
+// MetricsPasswordSecretKeyRef defines the Secret key selector for the metrics password
+func (m *MaxScale) MetricsPasswordSecretKeyRef() corev1.SecretKeySelector {
+	return corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: fmt.Sprintf("%s-metrics", m.Name),
+		},
+		Key: "password",
+	}
+}
+
 // ConfigSecretKeyRef defines the Secret key selector for the configuration
 func (m *MaxScale) ConfigSecretKeyRef() corev1.SecretKeySelector {
 	return corev1.SecretKeySelector{

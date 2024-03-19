@@ -68,7 +68,7 @@ func (b *Builder) exporterPodTemplate(mariadb *mariadbv1alpha1.MariaDB, key type
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter container: %v", err)
 	}
-	exporter := ptr.Deref(mariadb.Spec.Metrics, mariadbv1alpha1.Metrics{}).Exporter
+	exporter := ptr.Deref(mariadb.Spec.Metrics, mariadbv1alpha1.MariadbMetrics{}).Exporter
 	affinity := ptr.Deref(exporter.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	return &corev1.PodTemplateSpec{

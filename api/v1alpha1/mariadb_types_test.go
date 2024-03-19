@@ -333,7 +333,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						Metrics: &Metrics{
+						Metrics: &MariadbMetrics{
 							Enabled: true,
 						},
 					},
@@ -353,7 +353,7 @@ var _ = Describe("MariaDB types", func() {
 							Key: "password",
 						},
 						Port: 3306,
-						Metrics: &Metrics{
+						Metrics: &MariadbMetrics{
 							Enabled: true,
 							Exporter: Exporter{
 								Image: env.RelatedExporterImage,
@@ -693,7 +693,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 							Key: "mariadb.cnf",
 						},
-						Metrics: &Metrics{
+						Metrics: &MariadbMetrics{
 							Enabled: true,
 						},
 						Storage: Storage{
@@ -775,7 +775,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 							Key: "mariadb.cnf",
 						},
-						Metrics: &Metrics{
+						Metrics: &MariadbMetrics{
 							Enabled: true,
 							Exporter: Exporter{
 								Image: env.RelatedExporterImage,

@@ -7656,7 +7656,7 @@ spec:
                     properties:
                       adminPasswordSecretKeyRef:
                         description: AdminPasswordSecretKeyRef is Secret key reference
-                          to the admin password to call the admib REST API. It is
+                          to the admin password to call the admin REST API. It is
                           defaulted if not provided.
                         properties:
                           key:
@@ -7725,6 +7725,33 @@ spec:
                           Generate  defies whether the operator should generate users and grants for MaxScale to work.
                           It only supports MariaDBs specified via spec.mariaDbRef.
                         type: boolean
+                      metricsPasswordSecretKeyRef:
+                        description: MetricsPasswordSecretKeyRef is Secret key reference
+                          to the metrics password to call the admib REST API. It is
+                          defaulted if metrics are enabled.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            description: |-
+                              Name of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      metricsUsername:
+                        description: MetricsUsername is an metrics username to call
+                          the REST API. It is defaulted if metrics are enabled.
+                        type: string
                       monitorMaxConnections:
                         description: |-
                           MonitorMaxConnections defines the maximum number of connections that the monitor can establish.
