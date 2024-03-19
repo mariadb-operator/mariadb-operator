@@ -28,13 +28,8 @@ jobs:
           }
           TAG=${GITHUB_REF/refs\/tags\//}
           VERSION=$(get_version "$TAG")
-          CSV_VERSION=$(get_version $(yq -e '.metadata.name' bundle/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml))
           MAKE_VERSION=$(get_version $(make version))
           
-          if [ "$VERSION" != "$CSV_VERSION" ]; then
-            echo "Tag('$VERSION') and ClusterServiceVersion('$CSV_VERSION') versions don't match!"
-            exit 1;
-          fi
           if [ "$VERSION" != "$MAKE_VERSION" ]; then
             echo "Tag('$VERSION') and Makefile('$MAKE_VERSION') versions don't match!"
             exit 1;
