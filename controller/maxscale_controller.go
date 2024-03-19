@@ -183,6 +183,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			name:      "Connection",
 			reconcile: r.reconcileConnection,
 		},
+		{
+			name:      "Metrics",
+			reconcile: r.reconcileMetrics,
+		},
 	}
 
 	for _, p := range phases {
@@ -329,6 +333,7 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 
 	randomPasswordKeys := []corev1.SecretKeySelector{
 		mxs.Spec.Auth.AdminPasswordSecretKeyRef,
+		mxs.Spec.Auth.MetricsPasswordSecretKeyRef,
 		mxs.Spec.Auth.ClientPasswordSecretKeyRef,
 		mxs.Spec.Auth.ServerPasswordSecretKeyRef,
 		mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
@@ -688,6 +693,9 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMax
 		if err := r.reconcileAdminInPod(ctx, req.mxs, podIndex, podName, client); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling admin in Pod '%s': %v", podName, err)
 		}
+		if err := r.reconcileMetricsAdminInPod(ctx, req.mxs, client); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling metrics admin in Pod '%s': %v", podName, err)
+		}
 		return ctrl.Result{}, nil
 	})
 }
@@ -709,13 +717,35 @@ func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *maria
 	}
 	mxsApi := newMaxScaleAPI(mxs, defaultClient, r.RefResolver)
 
-	if err := mxsApi.createAdminUser(ctx); err != nil {
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef, mxs.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting admin password: %v", err)
+	}
+	if err := mxsApi.createAdminUser(ctx, mxs.Spec.Auth.AdminUsername, password); err != nil {
 		return fmt.Errorf("error creating admin: %v", err)
 	}
 	if ptr.Deref(mxs.Spec.Auth.DeleteDefaultAdmin, false) {
 		if err := defaultClient.User.DeleteDefaultAdmin(ctx); err != nil {
 			return fmt.Errorf("error deleting default admin: %v", err)
 		}
+	}
+	return nil
+}
+
+func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) error {
+	_, err := client.User.Get(ctx, mxs.Spec.Auth.MetricsUsername)
+	if err == nil {
+		return nil
+	}
+	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
+
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.MetricsPasswordSecretKeyRef, mxs.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting metrics admin password: %v", err)
+	}
+	if err := mxsApi.createAdminUser(ctx, mxs.Spec.Auth.MetricsUsername, password); err != nil {
+		return fmt.Errorf("error creating metrics admin: %v", err)
 	}
 	return nil
 }
@@ -1119,6 +1149,13 @@ func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *reque
 		return ctrl.Result{}, fmt.Errorf("error building Connection: %v", err)
 	}
 	return ctrl.Result{}, r.Create(ctx, conn)
+}
+
+func (r *MaxScaleReconciler) reconcileMetrics(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if !req.mxs.AreMetricsEnabled() {
+		return ctrl.Result{}, nil
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) forEachPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,

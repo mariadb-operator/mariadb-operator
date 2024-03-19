@@ -36,17 +36,12 @@ func newMaxScaleAPI(mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client, ref
 
 // MaxScale API - User
 
-func (m *maxScaleAPI) createAdminUser(ctx context.Context) error {
-	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.AdminPasswordSecretKeyRef, m.mxs.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting admin password: %v", err)
-	}
+func (m *maxScaleAPI) createAdminUser(ctx context.Context, username, password string) error {
 	attrs := mxsclient.UserAttributes{
 		Account:  mxsclient.UserAccountAdmin,
 		Password: &password,
 	}
-
-	return m.client.User.Create(ctx, m.mxs.Spec.Auth.AdminUsername, attrs)
+	return m.client.User.Create(ctx, username, attrs)
 }
 
 // MaxScale API - Servers
