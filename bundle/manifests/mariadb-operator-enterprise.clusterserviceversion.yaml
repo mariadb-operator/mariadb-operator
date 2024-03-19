@@ -370,10 +370,10 @@ metadata:
     capabilities: Auto Pilot
     categories: Database
     certified: "true"
-    containerImage: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-    createdAt: "2024-03-08T14:26:50Z"
+    containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
+    createdAt: "2024-03-19T11:26:00Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
-    operators.operatorframework.io/builder: operator-sdk-v1.33.0
+    operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     support: MariaDB Corporation
   labels:
@@ -382,7 +382,7 @@ metadata:
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
     operatorframework.io/os.linux: supported
-  name: mariadb-operator-enterprise.v0.0.24
+  name: mariadb-operator-enterprise.v0.0.27
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -432,6 +432,9 @@ spec:
           - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
             displayName: Env From
             path: envFrom
+          - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+            displayName: Image Pull Secrets
+            path: imagePullSecrets
           - description: InheritMetadata defines the metadata to be inherited by children resources.
             displayName: Inherit Metadata
             path: inheritMetadata
@@ -889,6 +892,24 @@ spec:
           - description: BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
             displayName: Backup Ref
             path: bootstrapFrom.backupRef
+          - description: RestoreJob defines additional properties for the Job used to perform the Restore.
+            displayName: Restore Job
+            path: bootstrapFrom.restoreJob
+          - description: Affinity defines policies to schedule the bootstrap Pods in Nodes.
+            displayName: Affinity
+            path: bootstrapFrom.restoreJob.affinity
+          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Enable Anti Affinity
+            path: bootstrapFrom.restoreJob.affinity.enableAntiAffinity
+          - description: Metadata defines additional metadata for the bootstrap Jobs.
+            displayName: Metadata
+            path: bootstrapFrom.restoreJob.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: bootstrapFrom.restoreJob.metadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: bootstrapFrom.restoreJob.metadata.labels
           - description: S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume.
             displayName: S3
             path: bootstrapFrom.s3
@@ -1145,6 +1166,9 @@ spec:
           - description: PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover.
             displayName: Pod Index
             path: galera.primary.podIndex
+          - description: 'ProviderOptions is map of Galera configuration parameters. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options.'
+            displayName: Provider Options
+            path: galera.providerOptions
           - description: 'GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html.'
             displayName: Recovery
             path: galera.recovery
@@ -1154,6 +1178,9 @@ spec:
           - description: ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks, is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.
             displayName: Cluster Healthy Timeout
             path: galera.recovery.clusterHealthyTimeout
+          - description: ClusterMonitorInterval represents the interval used to monitor the Galera cluster health.
+            displayName: Cluster Monitor Interval
+            path: galera.recovery.clusterMonitorInterval
           - description: Enabled is a flag to enable GaleraRecovery.
             displayName: Enabled
             path: galera.recovery.enabled
@@ -1697,6 +1724,9 @@ spec:
             path: metrics.exporter.imagePullPolicy
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+          - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+            displayName: Image Pull Secrets
+            path: metrics.exporter.imagePullSecrets
           - description: InitContainers to be used in the Pod.
             displayName: Init Containers
             path: metrics.exporter.initContainers
@@ -2812,6 +2842,9 @@ spec:
           - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
             displayName: Env From
             path: envFrom
+          - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+            displayName: Image Pull Secrets
+            path: imagePullSecrets
           - description: InheritMetadata defines the metadata to be inherited by children resources.
             displayName: Inherit Metadata
             path: inheritMetadata
@@ -3049,6 +3082,9 @@ spec:
           - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
             displayName: Env From
             path: envFrom
+          - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+            displayName: Image Pull Secrets
+            path: imagePullSecrets
           - description: InheritMetadata defines the metadata to be inherited by children resources.
             displayName: Inherit Metadata
             path: inheritMetadata
@@ -3723,13 +3759,13 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
+                        value: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
                       - name: RELATED_IMAGE_MAXSCALE
-                        value: mariadb/maxscale@sha256:5c658141992f1b83580759137bbe1b881ebe73e07c85819e46a8a14f332ff690
+                        value: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
                       - name: RELATED_IMAGE_EXPORTER
                         value: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
                       - name: MARIADB_OPERATOR_IMGE
-                        value: mariadb/mariadb-operator-enterprise:v0.0.24
+                        value: mariadb/mariadb-operator-enterprise:v0.0.27
                       - name: MARIADB_GALERA_INIT_IMAGE
                         value: mariadb/mariadb-operator-enterprise:v0.0.27
                       - name: MARIADB_GALERA_AGENT_IMAGE
@@ -3750,7 +3786,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
+                    image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -3853,15 +3889,15 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadb/mariadb-operator-enterprise@sha256:a7bc99c11043b38795b1da6dcb0ecb04a92e6d5db66dd7c058f9c8e772b2ef06
-      name: mariadb-operator-enterprise
-    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:2bebe78b7e292b1cdb88f9d5b6f2b13522a3bc15017e6ab91ef9be4221076c17
-      name: mariadb
-    - image: mariadb/maxscale@sha256:5c658141992f1b83580759137bbe1b881ebe73e07c85819e46a8a14f332ff690
+    - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
       name: exporter
-  version: 0.0.24
+    - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
+      name: mariadb-operator-enterprise
+    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
+      name: mariadb
+  version: 0.0.27
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

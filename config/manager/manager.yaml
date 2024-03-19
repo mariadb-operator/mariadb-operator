@@ -50,7 +50,7 @@ spec:
             - name: RELATED_IMAGE_EXPORTER
               value: prom/mysqld-exporter:v0.15.1
             - name: MARIADB_OPERATOR_IMGE
-              value: mariadb/mariadb-operator-enterprise:v0.0.24
+              value: mariadb/mariadb-operator-enterprise:v0.0.27
             - name: MARIADB_GALERA_INIT_IMAGE
               value: mariadb/mariadb-operator-enterprise:v0.0.27
             - name: MARIADB_GALERA_AGENT_IMAGE

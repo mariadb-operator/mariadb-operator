@@ -304,6 +304,10 @@ spec:
           to environment variables to be injected in the container.
         displayName: Env From
         path: envFrom
+      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
+          the image.
+        displayName: Image Pull Secrets
+        path: imagePullSecrets
       - description: InheritMetadata defines the metadata to be inherited by children
           resources.
         displayName: Inherit Metadata
@@ -801,8 +805,8 @@ spec:
           over S3 and Volume.
         displayName: Backup Ref
         path: bootstrapFrom.backupRef
-      - description: RestoreJob defines properties for the Job used to perform the
-          Restore.
+      - description: RestoreJob defines additional properties for the Job used to
+          perform the Restore.
         displayName: Restore Job
         path: bootstrapFrom.restoreJob
       - description: Affinity defines policies to schedule the bootstrap Pods in Nodes.
@@ -813,7 +817,7 @@ spec:
           as many Nodes available as the replicas to not end up with unscheduled Pods.
         displayName: Enable Anti Affinity
         path: bootstrapFrom.restoreJob.affinity.enableAntiAffinity
-      - description: Metadata defines additional metadata for the bootstrap Pods.
+      - description: Metadata defines additional metadata for the bootstrap Jobs.
         displayName: Metadata
         path: bootstrapFrom.restoreJob.metadata
       - description: Annotations to be added to children resources.
@@ -1118,6 +1122,10 @@ spec:
           may change this field to perform a manual switchover.
         displayName: Pod Index
         path: galera.primary.podIndex
+      - description: 'ProviderOptions is map of Galera configuration parameters. More
+          info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options.'
+        displayName: Provider Options
+        path: galera.providerOptions
       - description: 'GaleraRecovery is the recovery process performed by the operator
           whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html.'
         displayName: Recovery
@@ -1132,6 +1140,10 @@ spec:
           and consequently the Galera recovery process will be initiated by the operator.
         displayName: Cluster Healthy Timeout
         path: galera.recovery.clusterHealthyTimeout
+      - description: ClusterMonitorInterval represents the interval used to monitor
+          the Galera cluster health.
+        displayName: Cluster Monitor Interval
+        path: galera.recovery.clusterMonitorInterval
       - description: Enabled is a flag to enable GaleraRecovery.
         displayName: Enabled
         path: galera.recovery.enabled
@@ -1785,6 +1797,10 @@ spec:
         path: metrics.exporter.imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
+          the image.
+        displayName: Image Pull Secrets
+        path: metrics.exporter.imagePullSecrets
       - description: InitContainers to be used in the Pod.
         displayName: Init Containers
         path: metrics.exporter.initContainers
@@ -3058,6 +3074,10 @@ spec:
           to environment variables to be injected in the container.
         displayName: Env From
         path: envFrom
+      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
+          the image.
+        displayName: Image Pull Secrets
+        path: imagePullSecrets
       - description: InheritMetadata defines the metadata to be inherited by children
           resources.
         displayName: Inherit Metadata
@@ -3327,6 +3347,10 @@ spec:
           to environment variables to be injected in the container.
         displayName: Env From
         path: envFrom
+      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
+          the image.
+        displayName: Image Pull Secrets
+        path: imagePullSecrets
       - description: InheritMetadata defines the metadata to be inherited by children
           resources.
         displayName: Inherit Metadata
