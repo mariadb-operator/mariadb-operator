@@ -114,7 +114,7 @@ jobs:
         # env:
         #   BUNDLE_VALIDATE_FLAGS: "--select-optional suite=operatorframework --select-optional name=multiarch"
 
-      - name: Commit bundle changes
+      - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Updated OLM bundle (${{ steps.version.outputs.VERSION }})
