@@ -7,7 +7,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestExporterImagePullSecrets(t *testing.T) {
@@ -121,7 +120,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildExporterDeployment(tt.mariadb, client.ObjectKeyFromObject(tt.mariadb))
+			job, err := builder.BuildExporterDeployment(tt.mariadb)
 			if err != nil {
 				t.Fatalf("unexpected error building Deployment: %v", err)
 			}
