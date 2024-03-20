@@ -310,7 +310,7 @@ func expectMaxScaleReady(key types.NamespacedName) {
 		g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
 		g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
 		g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", mxs.MetricsKey().Name))
-		g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
+		g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(int(mxs.Spec.Replicas)))
 		return true
 	}, testTimeout, testInterval).Should(BeTrue())
 }
