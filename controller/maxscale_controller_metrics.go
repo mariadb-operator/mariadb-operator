@@ -81,8 +81,8 @@ func (r *MaxScaleReconciler) reconcileExporterConfig(ctx context.Context, req *r
 		Password string
 	}
 	tpl := createTpl(secretKeyRef.Key, `[maxscale_exporter]
-user = {{ .User }}
-password = {{ .Password }}`)
+maxscale_username="{{ .User }}"
+maxscale_password="{{ .Password }}"`)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, tplOpts{
 		User:     req.mxs.Spec.Auth.MetricsUsername,
