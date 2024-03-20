@@ -123,7 +123,7 @@ func TestMergeSlices(t *testing.T) {
 				{},
 				nil,
 			},
-			wantSlice: []string{},
+			wantSlice: nil,
 		},
 		{
 			name: "half empty",
