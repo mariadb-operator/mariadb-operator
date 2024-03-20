@@ -713,9 +713,6 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMax
 
 func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	podIndex int, podName string, client *mxsclient.Client) error {
-	if !mxs.AreMetricsEnabled() {
-		return nil
-	}
 	_, err := client.User.Get(ctx, mxs.Spec.Auth.AdminUsername)
 	if err == nil {
 		return nil
@@ -748,6 +745,9 @@ func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *maria
 
 func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	client *mxsclient.Client) error {
+	if !mxs.AreMetricsEnabled() {
+		return nil
+	}
 	_, err := client.User.Get(ctx, mxs.Spec.Auth.MetricsUsername)
 	if err == nil {
 		return nil

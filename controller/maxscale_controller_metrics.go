@@ -66,13 +66,8 @@ func (r *MaxScaleReconciler) reconcileExporterConfig(ctx context.Context, req *r
 		return nil
 	}
 
-	passwordSecretKeyRef := req.mxs.Spec.Auth.MetricsPasswordSecretKeyRef
-	passwordSecretKey := types.NamespacedName{
-		Name:      passwordSecretKeyRef.Name,
-		Namespace: req.mxs.Namespace,
-	}
-	var passwordSecret corev1.Secret
-	if err := r.Get(ctx, passwordSecretKey, &passwordSecret); err != nil {
+	password, err := r.RefResolver.SecretKeyRef(ctx, req.mxs.Spec.Auth.MetricsPasswordSecretKeyRef, req.mxs.Namespace)
+	if err != nil {
 		return fmt.Errorf("error getting metrics password Secret: %v", err)
 	}
 
@@ -81,16 +76,17 @@ func (r *MaxScaleReconciler) reconcileExporterConfig(ctx context.Context, req *r
 		Password string
 	}
 	tpl := createTpl(secretKeyRef.Key, `[maxscale_exporter]
-maxscale_username="{{ .User }}"
-maxscale_password="{{ .Password }}"`)
+maxscale_username={{ .User }}
+maxscale_password={{ .Password }}`)
 	buf := new(bytes.Buffer)
-	err := tpl.Execute(buf, tplOpts{
+	err = tpl.Execute(buf, tplOpts{
 		User:     req.mxs.Spec.Auth.MetricsUsername,
-		Password: string(passwordSecret.Data[passwordSecretKeyRef.Key]),
+		Password: password,
 	})
 	if err != nil {
 		return fmt.Errorf("error rendering exporter config: %v", err)
 	}
+
 	secretOpts := builder.SecretOpts{
 		Key: key,
 		Data: map[string][]byte{
