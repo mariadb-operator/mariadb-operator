@@ -124,13 +124,8 @@ func (r *MariaDBReconciler) reconcileExporterConfig(ctx context.Context, mariadb
 		return nil
 	}
 
-	passwordSecretKeyRef := mariadb.Spec.Metrics.PasswordSecretKeyRef
-	passwordSecretKey := types.NamespacedName{
-		Name:      passwordSecretKeyRef.Name,
-		Namespace: mariadb.Namespace,
-	}
-	var passwordSecret corev1.Secret
-	if err := r.Get(ctx, passwordSecretKey, &passwordSecret); err != nil {
+	password, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.Metrics.PasswordSecretKeyRef, mariadb.Namespace)
+	if err != nil {
 		return fmt.Errorf("error getting metrics password Secret: %v", err)
 	}
 
@@ -139,12 +134,12 @@ func (r *MariaDBReconciler) reconcileExporterConfig(ctx context.Context, mariadb
 		Password string
 	}
 	tpl := createTpl(secretKeyRef.Key, `[client]
-user = {{ .User }}
-password = {{ .Password }}`)
+user={{ .User }}
+password={{ .Password }}`)
 	buf := new(bytes.Buffer)
-	err := tpl.Execute(buf, tplOpts{
+	err = tpl.Execute(buf, tplOpts{
 		User:     mariadb.Spec.Metrics.Username,
-		Password: string(passwordSecret.Data[passwordSecretKeyRef.Key]),
+		Password: password,
 	})
 	if err != nil {
 		return fmt.Errorf("error rendering exporter config: %v", err)
