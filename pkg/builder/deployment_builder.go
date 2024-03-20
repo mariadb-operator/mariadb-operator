@@ -117,7 +117,7 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 			Template: *podTemplate,
 		},
 	}
-	if err := controllerutil.SetControllerReference(mariadb, deployment, b.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(mxs, deployment, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Deployment: %v", err)
 	}
 	return deployment, nil
