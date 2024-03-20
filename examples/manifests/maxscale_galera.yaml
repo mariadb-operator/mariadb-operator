@@ -73,7 +73,4 @@ spec:
     secretName: mxs-galera-conn
     port: 3306
 
-  metrics:
-    enabled: true
-
   requeueInterval: 10s
