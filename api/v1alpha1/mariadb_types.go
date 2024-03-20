@@ -35,7 +35,6 @@ type Exporter struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Port where the exporter will be listening for connections.
 	// +optional
-	// +kubebuilder:default=9104
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Port int32 `json:"port,omitempty"`
 }
