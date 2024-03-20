@@ -34,6 +34,7 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 			Config:              ptr.Deref(mdbmxs.Config, mariadbv1alpha1.MaxScaleConfig{}),
 			Auth:                ptr.Deref(mdbmxs.Auth, mariadbv1alpha1.MaxScaleAuth{}),
 			Connection:          mdbmxs.Connection,
+			Metrics:             mdbmxs.Metrics,
 			Replicas:            ptr.Deref(mdbmxs.Replicas, 1),
 			PodDisruptionBudget: mdbmxs.PodDisruptionBudget,
 			UpdateStrategy:      mdbmxs.UpdateStrategy,
