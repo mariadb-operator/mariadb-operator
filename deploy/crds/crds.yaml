@@ -17785,7 +17785,6 @@ spec:
                                 type: object
                             type: object
                           port:
-                            default: 9104
                             description: Port where the exporter will be listening
                               for connections.
                             format: int32
@@ -23379,7 +23378,6 @@ spec:
                             type: object
                         type: object
                       port:
-                        default: 9104
                         description: Port where the exporter will be listening for
                           connections.
                         format: int32
@@ -35552,7 +35550,6 @@ spec:
                             type: object
                         type: object
                       port:
-                        default: 9104
                         description: Port where the exporter will be listening for
                           connections.
                         format: int32

@@ -290,11 +290,14 @@ func expectMaxScaleReady(key types.NamespacedName) {
 		}
 		expectedImage := os.Getenv("RELATED_IMAGE_EXPORTER_MAXSCALE")
 		g.Expect(expectedImage).ToNot(BeEmpty())
+
 		By("Expecting Deployment to have exporter image")
 		g.Expect(deploy.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
 			Fields{
 				"Image": Equal(expectedImage),
 			})))
+
+		By("Expecting Deployment to be ready")
 		return deploymentReady(&deploy)
 	}, testTimeout, testInterval).Should(BeTrue())
 
