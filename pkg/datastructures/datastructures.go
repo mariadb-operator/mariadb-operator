@@ -99,3 +99,11 @@ func Diff[C, P any](current Index[C], previous Index[P]) DiffResult {
 		Rest:    rest,
 	}
 }
+
+func MergeSlices[T any](slices ...[]T) []T {
+	result := []T{}
+	for _, s := range slices {
+		result = append(result, s...)
+	}
+	return result
+}

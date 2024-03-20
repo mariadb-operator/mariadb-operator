@@ -12,11 +12,14 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/servicemonitor"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	mxsconfig "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/config"
@@ -42,16 +45,19 @@ type MaxScaleReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 
-	Builder        *builder.Builder
-	ConditionReady *condition.Ready
-	Environment    *environment.OperatorEnv
-	RefResolver    *refresolver.RefResolver
+	Builder         *builder.Builder
+	ConditionReady  *condition.Ready
+	Environment     *environment.OperatorEnv
+	RefResolver     *refresolver.RefResolver
+	DiscoveryClient *discovery.DiscoveryClient
 
-	SecretReconciler      *secret.SecretReconciler
-	RBACReconciler        *rbac.RBACReconciler
-	AuthReconciler        *auth.AuthReconciler
-	StatefulSetReconciler *statefulset.StatefulSetReconciler
-	ServiceReconciler     *service.ServiceReconciler
+	SecretReconciler         *secret.SecretReconciler
+	RBACReconciler           *rbac.RBACReconciler
+	AuthReconciler           *auth.AuthReconciler
+	StatefulSetReconciler    *statefulset.StatefulSetReconciler
+	ServiceReconciler        *service.ServiceReconciler
+	DeploymentReconciler     *deployment.DeploymentReconciler
+	ServiceMonitorReconciler *servicemonitor.ServiceMonitorReconciler
 
 	SuspendEnabled bool
 
@@ -81,6 +87,8 @@ type reconcilePhaseMaxScale struct {
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -1157,13 +1165,6 @@ func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *reque
 	return ctrl.Result{}, r.Create(ctx, conn)
 }
 
-func (r *MaxScaleReconciler) reconcileMetrics(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	if !req.mxs.AreMetricsEnabled() {
-		return ctrl.Result{}, nil
-	}
-	return ctrl.Result{}, nil
-}
-
 func (r *MaxScaleReconciler) forEachPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	fn func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error)) (ctrl.Result, error) {
 
@@ -1211,5 +1212,6 @@ func (r *MaxScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&appsv1.StatefulSet{}).
+		Owns(&appsv1.Deployment{}).
 		Complete(r)
 }

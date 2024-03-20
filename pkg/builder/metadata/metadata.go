@@ -28,6 +28,15 @@ func (b *MetadataBuilder) WithMariaDB(mdb *mariadbv1alpha1.MariaDB) *MetadataBui
 	return b.WithMetadata(mdb.Spec.InheritMetadata)
 }
 
+func (b *MetadataBuilder) WithReleaseLabel(release string) *MetadataBuilder {
+	if release == "" {
+		return b
+	}
+	return b.WithLabels(map[string]string{
+		"release": release,
+	})
+}
+
 func (b *MetadataBuilder) WithMetadata(meta *mariadbv1alpha1.Metadata) *MetadataBuilder {
 	if meta == nil {
 		return b

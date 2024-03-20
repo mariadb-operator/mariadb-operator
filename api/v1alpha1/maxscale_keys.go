@@ -43,6 +43,24 @@ func (m *MaxScale) MetricsPasswordSecretKeyRef() corev1.SecretKeySelector {
 	}
 }
 
+// MetricsConfigSecretKeyRef defines the key selector for the metrics Secret configuration
+func (m *MaxScale) MetricsConfigSecretKeyRef() corev1.SecretKeySelector {
+	return corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: fmt.Sprintf("%s-metrics-config", m.Name),
+		},
+		Key: "exporter.cnf",
+	}
+}
+
+// MetricsKey defines the key for the metrics related resources
+func (m *MaxScale) MetricsKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-metrics", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // ConfigSecretKeyRef defines the Secret key selector for the configuration
 func (m *MaxScale) ConfigSecretKeyRef() corev1.SecretKeySelector {
 	return corev1.SecretKeySelector{

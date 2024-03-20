@@ -255,15 +255,18 @@ var rootCmd = &cobra.Command{
 			Recorder:    mgr.GetEventRecorderFor("maxscale"),
 			RefResolver: refResolver,
 
-			Builder:        builder,
-			ConditionReady: conditionReady,
-			Environment:    env,
+			Builder:         builder,
+			ConditionReady:  conditionReady,
+			Environment:     env,
+			DiscoveryClient: discoveryClient,
 
-			SecretReconciler:      secretReconciler,
-			RBACReconciler:        rbacReconciler,
-			AuthReconciler:        authReconciler,
-			StatefulSetReconciler: statefulSetReconciler,
-			ServiceReconciler:     serviceReconciler,
+			SecretReconciler:         secretReconciler,
+			RBACReconciler:           rbacReconciler,
+			AuthReconciler:           authReconciler,
+			StatefulSetReconciler:    statefulSetReconciler,
+			ServiceReconciler:        serviceReconciler,
+			DeploymentReconciler:     deployReconciler,
+			ServiceMonitorReconciler: svcMonitorReconciler,
 
 			SuspendEnabled: featureMaxScaleSuspend,
 

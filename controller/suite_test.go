@@ -216,16 +216,19 @@ var _ = BeforeSuite(func() {
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorderFor("maxscale"),
 
-		Builder:        builder,
-		ConditionReady: conditionReady,
-		Environment:    env,
-		RefResolver:    refResolver,
+		Builder:         builder,
+		ConditionReady:  conditionReady,
+		Environment:     env,
+		RefResolver:     refResolver,
+		DiscoveryClient: discoveryClient,
 
-		SecretReconciler:      secretReconciler,
-		RBACReconciler:        rbacReconciler,
-		AuthReconciler:        authReconciler,
-		StatefulSetReconciler: statefulSetReconciler,
-		ServiceReconciler:     serviceReconciler,
+		SecretReconciler:         secretReconciler,
+		RBACReconciler:           rbacReconciler,
+		AuthReconciler:           authReconciler,
+		StatefulSetReconciler:    statefulSetReconciler,
+		ServiceReconciler:        serviceReconciler,
+		DeploymentReconciler:     deployReconciler,
+		ServiceMonitorReconciler: svcMonitorReconciler,
 
 		SuspendEnabled: false,
 

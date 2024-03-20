@@ -165,8 +165,7 @@ password = {{ .Password }}`)
 }
 
 func (r *MariaDBReconciler) reconcileExporterDeployment(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := mariadb.MetricsKey()
-	desiredDeploy, err := r.Builder.BuildExporterDeployment(mariadb, key)
+	desiredDeploy, err := r.Builder.BuildExporterDeployment(mariadb)
 	if err != nil {
 		return fmt.Errorf("error building exporter Deployment: %v", err)
 	}
@@ -175,13 +174,13 @@ func (r *MariaDBReconciler) reconcileExporterDeployment(ctx context.Context, mar
 
 func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := mariadb.MetricsKey()
-	metricsSelectorLabels :=
+	selectorLabels :=
 		labels.NewLabelsBuilder().
-			WithMetricsSelectorLabels(mariadb).
+			WithMetricsSelectorLabels(key).
 			Build()
 	opts := builder.ServiceOpts{
 		ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
-			Labels: metricsSelectorLabels,
+			Labels: selectorLabels,
 		},
 		Ports: []corev1.ServicePort{
 			{
@@ -189,7 +188,7 @@ func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariad
 				Port: mariadb.Spec.Metrics.Exporter.Port,
 			},
 		},
-		SelectorLabels: metricsSelectorLabels,
+		SelectorLabels: selectorLabels,
 		MariaDB:        mariadb,
 	}
 
@@ -201,8 +200,7 @@ func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariad
 }
 
 func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := mariadb.MetricsKey()
-	desiredSvcMonitor, err := r.Builder.BuildServiceMonitor(mariadb, key)
+	desiredSvcMonitor, err := r.Builder.BuildServiceMonitor(mariadb)
 	if err != nil {
 		return fmt.Errorf("error building Service Monitor: %v", err)
 	}

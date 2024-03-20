@@ -111,6 +111,58 @@ func TestDataStructuresDiff(t *testing.T) {
 	}
 }
 
+func TestMergeSlices(t *testing.T) {
+	tests := []struct {
+		name      string
+		slices    [][]string
+		wantSlice []string
+	}{
+		{
+			name: "empty",
+			slices: [][]string{
+				{},
+				nil,
+			},
+			wantSlice: []string{},
+		},
+		{
+			name: "half empty",
+			slices: [][]string{
+				{"a", "b", "c"},
+				{},
+			},
+			wantSlice: []string{"a", "b", "c"},
+		},
+		{
+			name: "full",
+			slices: [][]string{
+				{"a", "b", "c"},
+				{"d", "e"},
+			},
+			wantSlice: []string{"a", "b", "c", "d", "e"},
+		},
+		{
+			name: "multiple",
+			slices: [][]string{
+				{"a", "b", "c"},
+				{"d", "e"},
+				{"f", "g", "h"},
+				{"i"},
+			},
+			wantSlice: []string{"a", "b", "c", "d", "e", "f", "g", "h", "i"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			slices := MergeSlices(tt.slices...)
+			if !reflect.DeepEqual(slices, tt.wantSlice) {
+				t.Errorf("expecting merged slices to be:\n%v\ngot:\n%v\n", tt.wantSlice, slices)
+			}
+		})
+	}
+}
+
 func newIndex(items ...string) Index[string] {
 	return NewIndex[string](items, func(s string) string {
 		return s
