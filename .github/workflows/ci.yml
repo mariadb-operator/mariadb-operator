@@ -94,6 +94,7 @@ jobs:
       - name: Cluster
         run: |
           make cluster
+          make registry
           make install
           make install-minio
           make net
