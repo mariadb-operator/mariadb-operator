@@ -333,7 +333,6 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 
 	randomPasswordKeys := []corev1.SecretKeySelector{
 		mxs.Spec.Auth.AdminPasswordSecretKeyRef,
-		mxs.Spec.Auth.MetricsPasswordSecretKeyRef,
 		mxs.Spec.Auth.ClientPasswordSecretKeyRef,
 		mxs.Spec.Auth.ServerPasswordSecretKeyRef,
 		mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
@@ -341,6 +340,10 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 	if mxs.Spec.Auth.SyncPasswordSecretKeyRef != nil {
 		randomPasswordKeys = append(randomPasswordKeys, *mxs.Spec.Auth.SyncPasswordSecretKeyRef)
 	}
+	if mxs.AreMetricsEnabled() {
+		randomPasswordKeys = append(randomPasswordKeys, mxs.Spec.Auth.MetricsPasswordSecretKeyRef)
+	}
+
 	for _, secretKeyRef := range randomPasswordKeys {
 		randomSecretReq := &secret.RandomPasswordRequest{
 			Owner: mxs,
@@ -702,6 +705,9 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMax
 
 func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	podIndex int, podName string, client *mxsclient.Client) error {
+	if !mxs.AreMetricsEnabled() {
+		return nil
+	}
 	_, err := client.User.Get(ctx, mxs.Spec.Auth.AdminUsername)
 	if err == nil {
 		return nil
