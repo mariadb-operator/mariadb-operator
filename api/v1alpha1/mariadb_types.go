@@ -208,20 +208,12 @@ func (s *Storage) shouldUpdateVolumeClaimTemplate() bool {
 	return s.StorageClassName != "" && s.StorageClassName != ptr.Deref(s.VolumeClaimTemplate.StorageClassName, "")
 }
 
-// MariaDBMaxScaleSpec defines a MaxScale resources to be used with the current MariaDB.
+// MariaDBMaxScaleSpec defines a reduced version of MaxScale to be used with the current MariaDB.
 type MariaDBMaxScaleSpec struct {
 	// Enabled is a flag to enable a MaxScale instance to be used with the current MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
-	// ContainerTemplate defines templates to configure Container objects.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// PodTemplate defines templates to configure Pod objects.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodTemplate `json:",inline"`
 	// Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.
 	// Only MaxScale official images are supported.
 	// +optional
@@ -252,6 +244,10 @@ type MariaDBMaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Auth *MaxScaleAuth `json:"auth,omitempty"`
+	// Metrics configures metrics and how to scrape them.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Metrics *MaxScaleMetrics `json:"metrics,omitempty"`
 	// Connection provides a template to define the Connection for MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

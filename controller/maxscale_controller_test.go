@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"os"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -8,6 +9,8 @@ import (
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -103,6 +106,9 @@ var _ = Describe("MaxScale controller", func() {
 								Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 							},
 						},
+						Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+							Enabled: true,
+						},
 					},
 				},
 			}
@@ -171,6 +177,9 @@ var _ = Describe("MaxScale controller", func() {
 							HealthCheck: &mariadbv1alpha1.HealthCheck{
 								Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 							},
+						},
+						Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+							Enabled: true,
 						},
 					},
 				},
@@ -271,6 +280,35 @@ func expectMaxScaleReady(key types.NamespacedName) {
 			return false
 		}
 		return conn.IsReady()
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting to create a exporter Deployment eventually")
+	Eventually(func(g Gomega) bool {
+		var deploy appsv1.Deployment
+		if err := k8sClient.Get(testCtx, mxs.MetricsKey(), &deploy); err != nil {
+			return false
+		}
+		expectedImage := os.Getenv("RELATED_IMAGE_EXPORTER_MAXSCALE")
+		g.Expect(expectedImage).ToNot(BeEmpty())
+		By("Expecting Deployment to have exporter image")
+		g.Expect(deploy.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
+			Fields{
+				"Image": Equal(expectedImage),
+			})))
+		return deploymentReady(&deploy)
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting to create a ServiceMonitor eventually")
+	Eventually(func(g Gomega) bool {
+		var svcMonitor monitoringv1.ServiceMonitor
+		if err := k8sClient.Get(testCtx, mxs.MetricsKey(), &svcMonitor); err != nil {
+			return false
+		}
+		g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
+		g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
+		g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", mxs.MetricsKey().Name))
+		g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
+		return true
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 

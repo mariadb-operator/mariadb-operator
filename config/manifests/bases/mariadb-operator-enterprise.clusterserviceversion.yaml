@@ -1265,17 +1265,6 @@ spec:
         path: maxScale.admin.port
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
-      - description: Affinity to be used in the Pod.
-        displayName: Affinity
-        path: maxScale.affinity
-      - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is
-          scheduled in a different Node, enabling HA. Make sure you have at least
-          as many Nodes available as the replicas to not end up with unscheduled Pods.
-        displayName: Enable Anti Affinity
-        path: maxScale.affinity.enableAntiAffinity
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: maxScale.args
       - description: Auth defines the credentials required for MaxScale to connect
           to MariaDB.
         displayName: Auth
@@ -1371,9 +1360,6 @@ spec:
           sync to connect to MariaDB server. It is defaulted when HA is enabled.
         displayName: Sync Username
         path: maxScale.auth.syncUsername
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: maxScale.command
       - description: Config defines the MaxScale configuration.
         displayName: Config
         path: maxScale.config
@@ -1473,14 +1459,6 @@ spec:
         path: maxScale.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: maxScale.env
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: maxScale.envFrom
       - description: Image name to be used by the MaxScale instances. The supported
           format is `<image>:<tag>`. Only MaxScale official images are supported.
         displayName: Image
@@ -1494,55 +1472,6 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
-          the image.
-        displayName: Image Pull Secrets
-        path: maxScale.imagePullSecrets
-      - description: InitContainers to be used in the Pod.
-        displayName: Init Containers
-        path: maxScale.initContainers
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: maxScale.initContainers[0].args
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: maxScale.initContainers[0].command
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: maxScale.initContainers[0].env
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: maxScale.initContainers[0].envFrom
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: maxScale.initContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: maxScale.initContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: maxScale.initContainers[0].livenessProbe
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: maxScale.initContainers[0].readinessProbe
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: maxScale.initContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: maxScale.initContainers[0].securityContext
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: maxScale.initContainers[0].volumeMounts
       - description: Service defines templates to configure the Kubernetes Service
           object.
         displayName: Kubernetes Service
@@ -1572,9 +1501,205 @@ spec:
           If not defined, it defaults to `ClusterIP`.
         displayName: Type
         path: maxScale.kubernetesService.type
+      - description: Metrics configures metrics and how to scrape them.
+        displayName: Metrics
+        path: maxScale.metrics
+      - description: Enabled is a flag to enable Metrics
+        displayName: Enabled
+        path: maxScale.metrics.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Exporter defines the metrics exporter container.
+        displayName: Exporter
+        path: maxScale.metrics.exporter
+      - description: Affinity to be used in the Pod.
+        displayName: Affinity
+        path: maxScale.metrics.exporter.affinity
+      - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is
+          scheduled in a different Node, enabling HA. Make sure you have at least
+          as many Nodes available as the replicas to not end up with unscheduled Pods.
+        displayName: Enable Anti Affinity
+        path: maxScale.metrics.exporter.affinity.enableAntiAffinity
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: maxScale.metrics.exporter.args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: maxScale.metrics.exporter.command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: maxScale.metrics.exporter.env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: maxScale.metrics.exporter.envFrom
+      - description: 'Image name to be used as metrics exporter. The supported format
+          is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
+        displayName: Image
+        path: maxScale.metrics.exporter.image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: maxScale.metrics.exporter.imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: ImagePullSecrets is the list of pull Secrets to be used to pull
+          the image.
+        displayName: Image Pull Secrets
+        path: maxScale.metrics.exporter.imagePullSecrets
+      - description: InitContainers to be used in the Pod.
+        displayName: Init Containers
+        path: maxScale.metrics.exporter.initContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: maxScale.metrics.exporter.initContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: maxScale.metrics.exporter.initContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: maxScale.metrics.exporter.initContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: maxScale.metrics.exporter.initContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: maxScale.metrics.exporter.initContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: maxScale.metrics.exporter.initContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
-        path: maxScale.livenessProbe
+        path: maxScale.metrics.exporter.initContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: maxScale.metrics.exporter.initContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: maxScale.metrics.exporter.initContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: maxScale.metrics.exporter.initContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: maxScale.metrics.exporter.initContainers[0].volumeMounts
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: maxScale.metrics.exporter.livenessProbe
+      - description: NodeSelector to be used in the Pod.
+        displayName: Node Selector
+        path: maxScale.metrics.exporter.nodeSelector
+      - description: SecurityContext holds pod-level security attributes and common
+          container settings.
+        displayName: Pod Security Context
+        path: maxScale.metrics.exporter.podSecurityContext
+      - description: Port where the exporter will be listening for connections.
+        displayName: Port
+        path: maxScale.metrics.exporter.port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: PriorityClassName to be used in the Pod.
+        displayName: Priority Class Name
+        path: maxScale.metrics.exporter.priorityClassName
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: maxScale.metrics.exporter.readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: maxScale.metrics.exporter.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: maxScale.metrics.exporter.securityContext
+      - description: ServiceAccountName is the name of the ServiceAccount to be used
+          by the Pods.
+        displayName: Service Account Name
+        path: maxScale.metrics.exporter.serviceAccountName
+      - description: SidecarContainers to be used in the Pod.
+        displayName: Sidecar Containers
+        path: maxScale.metrics.exporter.sidecarContainers
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: maxScale.metrics.exporter.sidecarContainers[0].args
+      - description: Command to be used in the Container.
+        displayName: Command
+        path: maxScale.metrics.exporter.sidecarContainers[0].command
+      - description: Env represents the environment variables to be injected in a
+          container.
+        displayName: Env
+        path: maxScale.metrics.exporter.sidecarContainers[0].env
+      - description: EnvFrom represents the references (via ConfigMap and Secrets)
+          to environment variables to be injected in the container.
+        displayName: Env From
+        path: maxScale.metrics.exporter.sidecarContainers[0].envFrom
+      - description: Image name to be used by the MariaDB instances. The supported
+          format is `<image>:<tag>`.
+        displayName: Image
+        path: maxScale.metrics.exporter.sidecarContainers[0].image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: maxScale.metrics.exporter.sidecarContainers[0].imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: LivenessProbe to be used in the Container.
+        displayName: Liveness Probe
+        path: maxScale.metrics.exporter.sidecarContainers[0].livenessProbe
+      - description: ReadinessProbe to be used in the Container.
+        displayName: Readiness Probe
+        path: maxScale.metrics.exporter.sidecarContainers[0].readinessProbe
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: maxScale.metrics.exporter.sidecarContainers[0].resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds security configuration that will be applied
+          to a container.
+        displayName: Security Context
+        path: maxScale.metrics.exporter.sidecarContainers[0].securityContext
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: maxScale.metrics.exporter.sidecarContainers[0].volumeMounts
+      - description: Tolerations to be used in the Pod.
+        displayName: Tolerations
+        path: maxScale.metrics.exporter.tolerations
+      - description: TopologySpreadConstraints to be used in the Pod.
+        displayName: Topology Spread Constraints
+        path: maxScale.metrics.exporter.topologySpreadConstraints
+      - description: VolumeMounts to be used in the Container.
+        displayName: Volume Mounts
+        path: maxScale.metrics.exporter.volumeMounts
+      - description: Volumes to be used in the Pod.
+        displayName: Volumes
+        path: maxScale.metrics.exporter.volumes
+      - description: ServiceMonitor defines the ServiceMonior object.
+        displayName: Service Monitor
+        path: maxScale.metrics.serviceMonitor
+      - description: Interval for scraping metrics.
+        displayName: Interval
+        path: maxScale.metrics.serviceMonitor.interval
+      - description: JobLabel to add to the ServiceMonitor object.
+        displayName: Job Label
+        path: maxScale.metrics.serviceMonitor.jobLabel
+      - description: PrometheusRelease is the release label to add to the ServiceMonitor
+          object.
+        displayName: Prometheus Release
+        path: maxScale.metrics.serviceMonitor.prometheusRelease
+      - description: ScrapeTimeout defines the timeout for scraping metrics.
+        displayName: Scrape Timeout
+        path: maxScale.metrics.serviceMonitor.scrapeTimeout
       - description: Monitor monitors MariaDB server instances.
         displayName: Monitor
         path: maxScale.monitor
@@ -1605,9 +1730,6 @@ spec:
           to enable this.
         displayName: Suspend
         path: maxScale.monitor.suspend
-      - description: NodeSelector to be used in the Pod.
-        displayName: Node Selector
-        path: maxScale.nodeSelector
       - description: PodDisruptionBudget defines the budget for replica availability.
         displayName: Pod Disruption Budget
         path: maxScale.podDisruptionBudget
@@ -1617,16 +1739,6 @@ spec:
       - description: MinAvailable defines the number of minimum available Pods.
         displayName: Min Available
         path: maxScale.podDisruptionBudget.minAvailable
-      - description: SecurityContext holds pod-level security attributes and common
-          container settings.
-        displayName: Pod Security Context
-        path: maxScale.podSecurityContext
-      - description: PriorityClassName to be used in the Pod.
-        displayName: Priority Class Name
-        path: maxScale.priorityClassName
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: maxScale.readinessProbe
       - description: Replicas indicates the number of desired instances.
         displayName: Replicas
         path: maxScale.replicas
@@ -1635,19 +1747,6 @@ spec:
       - description: RequeueInterval is used to perform requeue reconcilizations.
         displayName: Requeue Interval
         path: maxScale.requeueInterval
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: maxScale.resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: maxScale.securityContext
-      - description: ServiceAccountName is the name of the ServiceAccount to be used
-          by the Pods.
-        displayName: Service Account Name
-        path: maxScale.serviceAccountName
       - description: Services define how the traffic is forwarded to the MariaDB servers.
         displayName: Services
         path: maxScale.services
@@ -1694,69 +1793,12 @@ spec:
           to enable this.
         displayName: Suspend
         path: maxScale.services[0].suspend
-      - description: SidecarContainers to be used in the Pod.
-        displayName: Sidecar Containers
-        path: maxScale.sidecarContainers
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: maxScale.sidecarContainers[0].args
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: maxScale.sidecarContainers[0].command
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: maxScale.sidecarContainers[0].env
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: maxScale.sidecarContainers[0].envFrom
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: maxScale.sidecarContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: maxScale.sidecarContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: maxScale.sidecarContainers[0].livenessProbe
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: maxScale.sidecarContainers[0].readinessProbe
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: maxScale.sidecarContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: maxScale.sidecarContainers[0].securityContext
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: maxScale.sidecarContainers[0].volumeMounts
-      - description: Tolerations to be used in the Pod.
-        displayName: Tolerations
-        path: maxScale.tolerations
-      - description: TopologySpreadConstraints to be used in the Pod.
-        displayName: Topology Spread Constraints
-        path: maxScale.topologySpreadConstraints
       - description: UpdateStrategy defines the update strategy for the StatefulSet
           object.
         displayName: Update Strategy
         path: maxScale.updateStrategy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: maxScale.volumeMounts
-      - description: Volumes to be used in the Pod.
-        displayName: Volumes
-        path: maxScale.volumes
       - description: MaxScaleRef is a reference to a MaxScale resource to be used
           with the current MariaDB. Providing this field implies delegating high availability
           tasks such as primary failover to MaxScale.
@@ -2449,6 +2491,9 @@ spec:
       - kind: Connection
         name: ""
         version: v1alpha1
+      - kind: Deployment
+        name: ""
+        version: v1
       - kind: Event
         name: ""
         version: v1

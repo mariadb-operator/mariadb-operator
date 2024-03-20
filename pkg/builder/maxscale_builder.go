@@ -20,8 +20,6 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 	mxs := mariadbv1alpha1.MaxScale{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.MaxScaleSpec{
-			ContainerTemplate: mdbmxs.ContainerTemplate,
-			PodTemplate:       mdbmxs.PodTemplate,
 			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 				ObjectReference: corev1.ObjectReference{
 					Name:      mdb.Name,
