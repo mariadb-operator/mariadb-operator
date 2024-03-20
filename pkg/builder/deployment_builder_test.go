@@ -130,3 +130,125 @@ func TestExporterImagePullSecrets(t *testing.T) {
 		})
 	}
 }
+
+func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
+	builder := newTestBuilder()
+	objMeta := metav1.ObjectMeta{
+		Name:      "maxscale-metrics-image-pull-secrets",
+		Namespace: "test",
+	}
+
+	tests := []struct {
+		name            string
+		maxscale        *mariadbv1alpha1.MaxScale
+		wantPullSecrets []corev1.LocalObjectReference
+	}{
+		{
+			name: "No Secrets",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+						Enabled: true,
+					},
+				},
+			},
+			wantPullSecrets: nil,
+		},
+		{
+			name: "Secrets in MaxScale",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "maxscale-registry",
+							},
+						},
+					},
+					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+						Enabled: true,
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "maxscale-registry",
+				},
+			},
+		},
+		{
+			name: "Secrets in MaxScale",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+						Enabled: true,
+						Exporter: mariadbv1alpha1.Exporter{
+							PodTemplate: mariadbv1alpha1.PodTemplate{
+								ImagePullSecrets: []corev1.LocalObjectReference{
+									{
+										Name: "exporter-registry",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "exporter-registry",
+				},
+			},
+		},
+		{
+			name: "Secrets in MariaDB and Exporter",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "maxscale-registry",
+							},
+						},
+					},
+					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+						Enabled: true,
+						Exporter: mariadbv1alpha1.Exporter{
+							PodTemplate: mariadbv1alpha1.PodTemplate{
+								ImagePullSecrets: []corev1.LocalObjectReference{
+									{
+										Name: "exporter-registry",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "maxscale-registry",
+				},
+				{
+					Name: "exporter-registry",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildMaxScaleExporterDeployment(tt.maxscale, &mariadbv1alpha1.MariaDB{})
+			if err != nil {
+				t.Fatalf("unexpected error building Deployment: %v", err)
+			}
+			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
+				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
+			}
+		})
+	}
+}
