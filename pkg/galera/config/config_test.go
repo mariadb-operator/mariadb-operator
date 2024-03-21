@@ -107,8 +107,8 @@ wsrep_slave_threads=1
 wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-0"
 wsrep_sst_method="rsync"
-wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
-wsrep_sst_receive_address = "10.244.0.32:4444"
+wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
+wsrep_sst_receive_address="10.244.0.32:4444"
 `,
 			wantErr: false,
 		},
@@ -154,8 +154,8 @@ wsrep_slave_threads=2
 wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 wsrep_sst_method="mariabackup"
-wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
-wsrep_sst_receive_address = "10.244.0.32:4444"
+wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
+wsrep_sst_receive_address="10.244.0.32:4444"
 wsrep_sst_auth="root:mariadb"
 `,
 			wantErr: false,
@@ -202,8 +202,8 @@ wsrep_slave_threads=1
 wsrep_node_address="2001:db8::a1"
 wsrep_node_name="mariadb-galera-1"
 wsrep_sst_method="mariabackup"
-wsrep_provider_options = "gmcast.listen_addr=tcp://[::]:4567; ist.recv_addr=[2001:db8::a1]:4568"
-wsrep_sst_receive_address = "[2001:db8::a1]:4444"
+wsrep_provider_options="gmcast.listen_addr=tcp://[::]:4567; ist.recv_addr=[2001:db8::a1]:4568"
+wsrep_sst_receive_address="[2001:db8::a1]:4444"
 wsrep_sst_auth="root:mariadb"
 `,
 			wantErr: false,
@@ -254,8 +254,8 @@ wsrep_slave_threads=1
 wsrep_node_address="2001:db8::a1"
 wsrep_node_name="mariadb-galera-1"
 wsrep_sst_method="mariabackup"
-wsrep_provider_options = "gcache.size=1G; gcs.fc_limit=128; gmcast.listen_addr=tcp://[::]:4567; ist.recv_addr=[2001:db8::a1]:4568"
-wsrep_sst_receive_address = "[2001:db8::a1]:4444"
+wsrep_provider_options="gcache.size=1G; gcs.fc_limit=128; gmcast.listen_addr=tcp://[::]:4567; ist.recv_addr=[2001:db8::a1]:4568"
+wsrep_sst_receive_address="[2001:db8::a1]:4444"
 wsrep_sst_auth="root:mariadb"
 `,
 			wantErr: false,
@@ -283,38 +283,10 @@ func TestConfigUpdate(t *testing.T) {
 	tests := []struct {
 		name      string
 		config    string
-		key       string
-		value     string
+		podEnv    *environment.PodEnvironment
 		wantBytes []byte
 		wantErr   bool
 	}{
-		{
-			name: "update non existing key",
-			config: `[mariadb]
-bind_address=*
-default_storage_engine=InnoDB
-binlog_format=row
-innodb_autoinc_lock_mode=2
-
-# Cluster configuration
-wsrep_on=ON
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
-wsrep_cluster_address="gcomm://mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local"
-wsrep_cluster_name=mariadb-operator
-wsrep_slave_threads=2
-
-# Node configuration
-wsrep_node_address="10.244.0.32"
-wsrep_node_name="mariadb-galera-1"
-wsrep_sst_method="mariabackup"
-wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
-wsrep_sst_receive_address = "10.244.0.32:4444"
-wsrep_sst_auth="root:mariadb"`,
-			key:       "foo",
-			value:     "bar",
-			wantBytes: nil,
-			wantErr:   true,
-		},
 		{
 			name: "update key",
 			config: `[mariadb]
@@ -334,11 +306,12 @@ wsrep_slave_threads=2
 wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 wsrep_sst_method="mariabackup"
-wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
-wsrep_sst_receive_address = "10.244.0.32:4444"
+wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
+wsrep_sst_receive_address="10.244.0.32:4444"
 wsrep_sst_auth="root:mariadb"`,
-			key:   WsrepNodeAddressKey,
-			value: "10.244.0.33",
+			podEnv: &environment.PodEnvironment{
+				PodIP: "10.244.0.33",
+			},
 			wantBytes: []byte(`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
@@ -356,15 +329,15 @@ wsrep_slave_threads=2
 wsrep_node_address="10.244.0.33"
 wsrep_node_name="mariadb-galera-1"
 wsrep_sst_method="mariabackup"
-wsrep_provider_options = "gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.32:4568"
-wsrep_sst_receive_address = "10.244.0.32:4444"
+wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567; ist.recv_addr=10.244.0.33:4568"
+wsrep_sst_receive_address="10.244.0.33:4444"
 wsrep_sst_auth="root:mariadb"`),
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bytes, err := UpdateConfigFile([]byte(tt.config), tt.key, tt.value)
+			bytes, err := UpdateConfig([]byte(tt.config), tt.podEnv)
 			if tt.wantErr && err == nil {
 				t.Fatal("error expected, got nil")
 			}
