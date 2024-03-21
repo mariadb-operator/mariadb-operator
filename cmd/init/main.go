@@ -94,11 +94,11 @@ var RootCmd = &cobra.Command{
 		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
 			logger.Error(err, "Error getting MariaDB")
 
-			if err := updateNodeAddress(fileManager, env); err != nil {
-				logger.Error(err, "Error upddating node address")
+			if err := updateGaleraConfig(fileManager, env); err != nil {
+				logger.Error(err, "Error updating Galera config")
 				os.Exit(1)
 			}
-			logger.Info("Updated node address")
+			logger.Info("Updated Galera config")
 			os.Exit(0)
 		}
 
@@ -152,15 +152,15 @@ func configureGalera(fm *filemanager.FileManager, env *environment.PodEnvironmen
 	return nil
 }
 
-func updateNodeAddress(fm *filemanager.FileManager, env *environment.PodEnvironment) error {
-	logger.Info("Attempting to update Galera node address in existing config")
+func updateGaleraConfig(fm *filemanager.FileManager, env *environment.PodEnvironment) error {
+	logger.Info("Updating existing Galera config")
 
 	configBytes, err := fm.ReadConfigFile(config.ConfigFileName)
 	if err != nil {
 		return fmt.Errorf("error getting existing Galera config: %v", err)
 	}
 
-	updatedBytes, err := config.UpdateConfigFile(configBytes, config.WsrepNodeAddressKey, env.PodIP)
+	updatedBytes, err := config.UpdateConfig(configBytes, env)
 	if err != nil {
 		return fmt.Errorf("error updating existing Galera config: %v", err)
 	}

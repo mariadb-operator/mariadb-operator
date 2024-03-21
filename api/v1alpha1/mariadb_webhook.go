@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/options"
+	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -155,12 +155,12 @@ func (r *MariaDB) validateGalera() error {
 			"'spec.galera.replicaThreads' must be at least 1",
 		)
 	}
-	_, exists := galera.ProviderOptions[options.WSREPOptISTRecvAddr]
+	_, exists := galera.ProviderOptions[galerakeys.WsrepOptISTRecvAddr]
 	if exists {
 		return field.Invalid(
-			field.NewPath("spec").Child("galera").Child("ProviderOptions"),
+			field.NewPath("spec").Child("galera").Child("providerOptions"),
 			galera.ProviderOptions,
-			"'spec.galera.ProviderOptions' can not contain: ist.recv_addr",
+			"'spec.galera.providerOptions' cannot contain: ist.recv_addr",
 		)
 	}
 	if galera.Recovery != nil {

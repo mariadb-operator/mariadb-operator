@@ -7,22 +7,20 @@ import (
 	"fmt"
 	"maps"
 	"net"
-	"sort"
 	"strings"
 	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
-	options "github.com/mariadb-operator/mariadb-operator/pkg/galera/options"
+	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/utils/ptr"
 )
 
 const (
-	ConfigFileName      = "0-galera.cnf"
-	WsrepNodeAddressKey = "wsrep_node_address"
-	BootstrapFileName   = recovery.BootstrapFileName
+	ConfigFileName    = "0-galera.cnf"
+	BootstrapFileName = recovery.BootstrapFileName
 )
 
 var BootstrapFile = []byte(`[galera]
@@ -61,8 +59,8 @@ wsrep_slave_threads={{ .Threads }}
 {{ .NodeAddressKey }}="{{ .NodeAddress }}"
 wsrep_node_name="{{ .Pod }}"
 wsrep_sst_method="{{ .SST }}"
-wsrep_provider_options = "{{ .ProviderOpts }}"
-wsrep_sst_receive_address = "{{ .WrappedNodeAddress }}:4444"
+{{ .ProviderOptsKey }}="{{ .ProviderOpts }}"
+{{ .SSTReceiveAddressKey }}="{{ .SSTReceiveAddress }}"
 {{- if .SSTAuth }}
 wsrep_sst_auth="root:{{ .RootPassword }}"
 {{- end }}
@@ -72,53 +70,55 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 	if err != nil {
 		return nil, fmt.Errorf("error getting cluster address: %v", err)
 	}
+	providerOptions, err := getProviderOptions(podEnv.PodIP, galera.ProviderOptions)
+	if err != nil {
+		return nil, fmt.Errorf("error getting provider options: %v", err)
+	}
+	sstReceiveAddress, err := getSSTReceiveAddress(podEnv.PodIP)
+	if err != nil {
+		return nil, fmt.Errorf("error getting SST receive address: %v", err)
+	}
 	sst, err := galera.SST.MariaDBFormat()
 	if err != nil {
 		return nil, fmt.Errorf("error getting SST: %v", err)
 	}
-	wrappedPodIP, err := c.wrapIPAddress(podEnv.PodIP)
-	if err != nil {
-		return nil, fmt.Errorf("error wrapping address: %v", err)
-	}
-	gcommListenAddress, err := c.thisHostIP(podEnv.PodIP)
-	if err != nil {
-		return nil, fmt.Errorf("error getting address: %v", err)
-	}
-	gcommListenAddress, err = c.wrapIPAddress(gcommListenAddress)
-	if err != nil {
-		return nil, fmt.Errorf("error wrapping address: %v", err)
-	}
-	providerOpts := map[string]string{
-		options.WSREPOptGmcastListAddr: fmt.Sprintf("tcp://%s:4567", gcommListenAddress),
-		options.WSREPOptISTRecvAddr:    fmt.Sprintf("%s:4568", wrappedPodIP),
-	}
-	maps.Copy(providerOpts, galera.ProviderOptions)
-	providerOptsSemColSeparated := c.mapToSemColSeparated(providerOpts)
 
 	err = tpl.Execute(buf, struct {
-		ClusterAddress     string
-		NodeAddressKey     string
-		NodeAddress        string
-		WrappedNodeAddress string
-		ProviderOpts       string
-		GaleraLibPath      string
-		Threads            int
-		Pod                string
-		SST                string
-		SSTAuth            bool
-		RootPassword       string
+		ClusterAddress string
+
+		NodeAddressKey string
+		NodeAddress    string
+
+		ProviderOptsKey string
+		ProviderOpts    string
+
+		SSTReceiveAddressKey string
+		SSTReceiveAddress    string
+
+		GaleraLibPath string
+		Threads       int
+		Pod           string
+		SST           string
+		SSTAuth       bool
+		RootPassword  string
 	}{
-		ClusterAddress:     clusterAddr,
-		NodeAddressKey:     WsrepNodeAddressKey,
-		NodeAddress:        podEnv.PodIP,
-		WrappedNodeAddress: wrappedPodIP,
-		ProviderOpts:       providerOptsSemColSeparated,
-		GaleraLibPath:      galera.GaleraLibPath,
-		Threads:            galera.ReplicaThreads,
-		Pod:                podEnv.PodName,
-		SST:                sst,
-		SSTAuth:            galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
-		RootPassword:       podEnv.MariadbRootPassword,
+		ClusterAddress: clusterAddr,
+
+		NodeAddressKey: galerakeys.WsrepNodeAddressKey,
+		NodeAddress:    podEnv.PodIP,
+
+		ProviderOptsKey: galerakeys.WsrepProviderOptionsKey,
+		ProviderOpts:    providerOptions,
+
+		SSTReceiveAddressKey: galerakeys.WsrepSSTReceiveAddressKey,
+		SSTReceiveAddress:    sstReceiveAddress,
+
+		GaleraLibPath: galera.GaleraLibPath,
+		Threads:       galera.ReplicaThreads,
+		Pod:           podEnv.PodName,
+		SST:           sst,
+		SSTAuth:       galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
+		RootPassword:  podEnv.MariadbRootPassword,
 	})
 	if err != nil {
 		return nil, err
@@ -141,7 +141,123 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
 }
 
-func (c *ConfigFile) wrapIPAddress(ip string) (string, error) {
+func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byte, error) {
+	fileScanner := bufio.NewScanner(bytes.NewReader(configBytes))
+	fileScanner.Split(bufio.ScanLines)
+
+	var updatedLines []string
+	for fileScanner.Scan() {
+		line, err := getUpdatedConfigLine(fileScanner.Text(), podEnv.PodIP)
+		if err != nil {
+			return nil, err
+		}
+		updatedLines = append(updatedLines, line)
+	}
+	if err := fileScanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading config: %v", err)
+	}
+
+	updatedConfig := []byte(strings.Join(updatedLines, "\n"))
+	return updatedConfig, nil
+}
+
+func getProviderOptions(podIP string, options map[string]string) (string, error) {
+	gcommListenAddress, err := getGcommListenAddress(podIP)
+	if err != nil {
+		return "", fmt.Errorf("error getting gcomm listden address: %v", err)
+	}
+	istReceiveAddress, err := getISTReceiveAddress(podIP)
+	if err != nil {
+		return "", fmt.Errorf("error getting IST receive address: %v", err)
+	}
+
+	wsrepOpts := map[string]string{
+		galerakeys.WsrepOptGmcastListAddr: gcommListenAddress,
+		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
+	}
+	maps.Copy(wsrepOpts, options)
+
+	providerOpts := newProviderOptions(wsrepOpts)
+	return providerOpts.marshal(), nil
+}
+
+func getGcommListenAddress(podIP string) (string, error) {
+	gcommListenAddress, err := thisHostIP(podIP)
+	if err != nil {
+		return "", fmt.Errorf("error getting address: %v", err)
+	}
+	gcommListenAddress, err = wrapIPAddress(gcommListenAddress)
+	if err != nil {
+		return "", fmt.Errorf("error wrapping address: %v", err)
+	}
+	return fmt.Sprintf("tcp://%s:4567", gcommListenAddress), nil
+}
+
+func getISTReceiveAddress(podIP string) (string, error) {
+	wrappedPodIP, err := wrapIPAddress(podIP)
+	if err != nil {
+		return "", fmt.Errorf("error wrapping address: %v", err)
+	}
+	return fmt.Sprintf("%s:4568", wrappedPodIP), nil
+}
+
+func getSSTReceiveAddress(podIP string) (string, error) {
+	wrappedPodIP, err := wrapIPAddress(podIP)
+	if err != nil {
+		return "", fmt.Errorf("error wrapping address: %v", err)
+	}
+	return fmt.Sprintf("%s:4444", wrappedPodIP), nil
+}
+
+func getUpdatedConfigLine(line string, podIP string) (string, error) {
+	if strings.HasPrefix(line, galerakeys.WsrepNodeAddressKey) {
+		kvOpt := newKvOption(galerakeys.WsrepNodeAddressKey, podIP, true)
+		return kvOpt.marshal(), nil
+	}
+
+	if strings.HasPrefix(line, galerakeys.WsrepProviderOptionsKey) {
+		var kvOpt kvOption
+		if err := kvOpt.unmarshal(line); err != nil {
+			return "", err
+		}
+		var providerOpts providerOptions
+		if err := providerOpts.unmarshal(kvOpt.value); err != nil {
+			return "", err
+		}
+
+		gcommListenAddress, err := getGcommListenAddress(podIP)
+		if err != nil {
+			return "", fmt.Errorf("error getting gcomm listden address: %v", err)
+		}
+		istReceiveAddress, err := getISTReceiveAddress(podIP)
+		if err != nil {
+			return "", fmt.Errorf("error getting IST receive address: %v", err)
+		}
+
+		wsrepOpts := map[string]string{
+			galerakeys.WsrepOptGmcastListAddr: gcommListenAddress,
+			galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
+		}
+		providerOpts.update(wsrepOpts)
+
+		updatedKvOpt := newKvOption(galerakeys.WsrepProviderOptionsKey, providerOpts.marshal(), true)
+		return updatedKvOpt.marshal(), nil
+	}
+
+	if strings.HasPrefix(line, galerakeys.WsrepSSTReceiveAddressKey) {
+		sstReceiveAddress, err := getSSTReceiveAddress(podIP)
+		if err != nil {
+			return "", err
+		}
+
+		kvOpt := newKvOption(galerakeys.WsrepSSTReceiveAddressKey, sstReceiveAddress, true)
+		return kvOpt.marshal(), nil
+	}
+
+	return line, nil
+}
+
+func wrapIPAddress(ip string) (string, error) {
 	parsedIp := net.ParseIP(ip)
 	if parsedIp == nil {
 		return "", fmt.Errorf("error in parsing ip address: %v", ip)
@@ -153,7 +269,7 @@ func (c *ConfigFile) wrapIPAddress(ip string) (string, error) {
 	return ip, nil
 }
 
-func (c *ConfigFile) thisHostIP(ip string) (string, error) {
+func thisHostIP(ip string) (string, error) {
 	parsedIp := net.ParseIP(ip)
 	if parsedIp == nil {
 		return "", fmt.Errorf("error in parsing ip address: %v", ip)
@@ -167,52 +283,6 @@ func (c *ConfigFile) thisHostIP(ip string) (string, error) {
 	}
 
 	return hostIP, nil
-}
-
-func (c *ConfigFile) mapToSemColSeparated(wsrepOpts map[string]string) string {
-	keys := make([]string, 0)
-	for key := range wsrepOpts {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	buffer := new(bytes.Buffer)
-	idx := 0
-	for _, key := range keys {
-		fmt.Fprintf(buffer, "%s=%s", key, wsrepOpts[key])
-		if idx++; idx != len(wsrepOpts) {
-			fmt.Fprintf(buffer, "; ")
-		}
-	}
-	return buffer.String()
-}
-
-func UpdateConfigFile(configBytes []byte, key, value string) ([]byte, error) {
-	fileScanner := bufio.NewScanner(bytes.NewReader(configBytes))
-	fileScanner.Split(bufio.ScanLines)
-
-	var updatedLines []string
-	matched := false
-
-	for fileScanner.Scan() {
-		line := fileScanner.Text()
-
-		if strings.HasPrefix(line, key) {
-			updatedLines = append(updatedLines, fmt.Sprintf("%s=\"%s\"", key, value))
-			matched = true
-		} else {
-			updatedLines = append(updatedLines, line)
-		}
-	}
-	if err := fileScanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading config: %v", err)
-	}
-	if !matched {
-		return nil, fmt.Errorf("config key '%s' not found", key)
-	}
-
-	updatedConfig := []byte(strings.Join(updatedLines, "\n"))
-	return updatedConfig, nil
 }
 
 func createTpl(name, t string) *template.Template {
