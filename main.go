@@ -4,4 +4,5 @@ package main
 // See:
 // - cmd/controller/main.go
 // - https://github.com/kubernetes-sigs/kubebuilder/issues/932
-func main() {}
+func main() {
+}
