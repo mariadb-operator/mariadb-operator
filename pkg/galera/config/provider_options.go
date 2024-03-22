@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -34,11 +35,15 @@ func (p *providerOptions) marshal() string {
 }
 
 func (p *providerOptions) unmarshal(text string) error {
+	str := strings.TrimSpace(text)
+	if len(str) == 0 {
+		return errors.New("empty input")
+	}
 	if p.opts == nil {
 		p.opts = make(map[string]string, 0)
 	}
 
-	opts := strings.Split(string(text), providerOptsDelimiter)
+	opts := strings.Split(str, providerOptsDelimiter)
 	for _, opt := range opts {
 		var kvOpt kvOption
 		if err := kvOpt.unmarshal(opt); err != nil {
