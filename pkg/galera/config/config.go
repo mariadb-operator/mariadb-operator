@@ -162,7 +162,7 @@ func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byt
 }
 
 func getProviderOptions(podIP string, options map[string]string) (string, error) {
-	gcommListenAddress, err := getGcommListenAddress(podIP)
+	gmcastListenAddress, err := getGmcastListenAddress(podIP)
 	if err != nil {
 		return "", fmt.Errorf("error getting gcomm listden address: %v", err)
 	}
@@ -172,7 +172,7 @@ func getProviderOptions(podIP string, options map[string]string) (string, error)
 	}
 
 	wsrepOpts := map[string]string{
-		galerakeys.WsrepOptGmcastListAddr: gcommListenAddress,
+		galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
 		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
 	}
 	maps.Copy(wsrepOpts, options)
@@ -181,16 +181,16 @@ func getProviderOptions(podIP string, options map[string]string) (string, error)
 	return providerOpts.marshal(), nil
 }
 
-func getGcommListenAddress(podIP string) (string, error) {
-	gcommListenAddress, err := thisHostIP(podIP)
+func getGmcastListenAddress(podIP string) (string, error) {
+	gmcastListenAddress, err := thisHostIP(podIP)
 	if err != nil {
 		return "", fmt.Errorf("error getting address: %v", err)
 	}
-	gcommListenAddress, err = wrapIPAddress(gcommListenAddress)
+	gmcastListenAddress, err = wrapIPAddress(gmcastListenAddress)
 	if err != nil {
 		return "", fmt.Errorf("error wrapping address: %v", err)
 	}
-	return fmt.Sprintf("tcp://%s:4567", gcommListenAddress), nil
+	return fmt.Sprintf("tcp://%s:4567", gmcastListenAddress), nil
 }
 
 func getISTReceiveAddress(podIP string) (string, error) {
@@ -225,7 +225,7 @@ func getUpdatedConfigLine(line string, podIP string) (string, error) {
 			return "", err
 		}
 
-		gcommListenAddress, err := getGcommListenAddress(podIP)
+		gmcastListenAddress, err := getGmcastListenAddress(podIP)
 		if err != nil {
 			return "", fmt.Errorf("error getting gcomm listden address: %v", err)
 		}
@@ -235,7 +235,7 @@ func getUpdatedConfigLine(line string, podIP string) (string, error) {
 		}
 
 		wsrepOpts := map[string]string{
-			galerakeys.WsrepOptGmcastListAddr: gcommListenAddress,
+			galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
 			galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
 		}
 		providerOpts.update(wsrepOpts)
