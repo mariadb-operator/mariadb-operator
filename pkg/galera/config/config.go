@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
@@ -190,7 +191,7 @@ func getGmcastListenAddress(podIP string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error wrapping address: %v", err)
 	}
-	return fmt.Sprintf("tcp://%s:4567", gmcastListenAddress), nil
+	return fmt.Sprintf("tcp://%s:%d", gmcastListenAddress, galeraresources.GaleraClusterPort), nil
 }
 
 func getISTReceiveAddress(podIP string) (string, error) {
@@ -198,7 +199,7 @@ func getISTReceiveAddress(podIP string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error wrapping address: %v", err)
 	}
-	return fmt.Sprintf("%s:4568", wrappedPodIP), nil
+	return fmt.Sprintf("%s:%d", wrappedPodIP, galeraresources.GaleraISTPort), nil
 }
 
 func getSSTReceiveAddress(podIP string) (string, error) {
@@ -206,7 +207,7 @@ func getSSTReceiveAddress(podIP string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error wrapping address: %v", err)
 	}
-	return fmt.Sprintf("%s:4444", wrappedPodIP), nil
+	return fmt.Sprintf("%s:%d", wrappedPodIP, galeraresources.GaleraSSTPort), nil
 }
 
 func getUpdatedConfigLine(line string, podIP string) (string, error) {
