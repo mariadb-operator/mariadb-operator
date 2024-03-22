@@ -1,13 +1,12 @@
 package config
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strings"
 )
 
-const providerOptsDelimiter = "; "
+const providerOptsDelimiter = ";"
 
 type providerOptions struct {
 	opts map[string]string
@@ -26,17 +25,12 @@ func (p *providerOptions) marshal() string {
 	}
 	sort.Strings(keys)
 
-	buffer := new(bytes.Buffer)
-	idx := 0
+	var opts []string
 	for _, key := range keys {
 		kvOpt := newKvOption(key, p.opts[key], false)
-
-		fmt.Fprint(buffer, kvOpt.marshal())
-		if idx++; idx != len(p.opts) {
-			fmt.Fprint(buffer, providerOptsDelimiter)
-		}
+		opts = append(opts, kvOpt.marshal())
 	}
-	return buffer.String()
+	return strings.Join(opts, providerOptsDelimiter)
 }
 
 func (p *providerOptions) unmarshal(text string) error {
@@ -44,10 +38,10 @@ func (p *providerOptions) unmarshal(text string) error {
 		p.opts = make(map[string]string, 0)
 	}
 
-	kvOpts := strings.Split(string(text), providerOptsDelimiter)
-	for _, kvo := range kvOpts {
+	opts := strings.Split(string(text), providerOptsDelimiter)
+	for _, opt := range opts {
 		var kvOpt kvOption
-		if err := kvOpt.unmarshal(kvo); err != nil {
+		if err := kvOpt.unmarshal(opt); err != nil {
 			return fmt.Errorf("error unmarshaling option: %v", err)
 		}
 
