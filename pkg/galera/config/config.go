@@ -49,77 +49,81 @@ default_storage_engine=InnoDB
 binlog_format=row
 innodb_autoinc_lock_mode=2
 
-# Cluster configuration
+# Cluster
 wsrep_on=ON
-wsrep_provider={{ .GaleraLibPath }}
 wsrep_cluster_address="{{ .ClusterAddress }}"
 wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads={{ .Threads }}
 
-# Node configuration
+# Node
 {{ .NodeAddressKey }}="{{ .NodeAddress }}"
-wsrep_node_name="{{ .Pod }}"
+wsrep_node_name="{{ .NodeName }}"
+
+# SST
 wsrep_sst_method="{{ .SST }}"
-{{ .ProviderOptsKey }}="{{ .ProviderOpts }}"
-{{ .SSTReceiveAddressKey }}="{{ .SSTReceiveAddress }}"
 {{- if .SSTAuth }}
 wsrep_sst_auth="root:{{ .RootPassword }}"
 {{- end }}
+{{ .SSTReceiveAddressKey }}="{{ .SSTReceiveAddress }}"
+
+# Provider
+wsrep_provider={{ .GaleraLibPath }}
+{{ .ProviderOptsKey }}="{{ .ProviderOpts }}"
 `)
 	buf := new(bytes.Buffer)
 	clusterAddr, err := c.clusterAddress()
 	if err != nil {
 		return nil, fmt.Errorf("error getting cluster address: %v", err)
 	}
-	providerOptions, err := getProviderOptions(podEnv.PodIP, galera.ProviderOptions)
+
+	sst, err := galera.SST.MariaDBFormat()
 	if err != nil {
-		return nil, fmt.Errorf("error getting provider options: %v", err)
+		return nil, fmt.Errorf("error getting SST: %v", err)
 	}
 	sstReceiveAddress, err := getSSTReceiveAddress(podEnv.PodIP)
 	if err != nil {
 		return nil, fmt.Errorf("error getting SST receive address: %v", err)
 	}
-	sst, err := galera.SST.MariaDBFormat()
+
+	providerOptions, err := getProviderOptions(podEnv.PodIP, galera.ProviderOptions)
 	if err != nil {
-		return nil, fmt.Errorf("error getting SST: %v", err)
+		return nil, fmt.Errorf("error getting provider options: %v", err)
 	}
 
 	err = tpl.Execute(buf, struct {
 		ClusterAddress string
+		Threads        int
 
 		NodeAddressKey string
 		NodeAddress    string
+		NodeName       string
 
-		ProviderOptsKey string
-		ProviderOpts    string
-
+		SST                  string
+		SSTAuth              bool
+		RootPassword         string
 		SSTReceiveAddressKey string
 		SSTReceiveAddress    string
 
-		GaleraLibPath string
-		Threads       int
-		Pod           string
-		SST           string
-		SSTAuth       bool
-		RootPassword  string
+		GaleraLibPath   string
+		ProviderOptsKey string
+		ProviderOpts    string
 	}{
 		ClusterAddress: clusterAddr,
+		Threads:        galera.ReplicaThreads,
 
 		NodeAddressKey: galerakeys.WsrepNodeAddressKey,
 		NodeAddress:    podEnv.PodIP,
+		NodeName:       podEnv.PodName,
 
-		ProviderOptsKey: galerakeys.WsrepProviderOptionsKey,
-		ProviderOpts:    providerOptions,
-
+		SST:                  sst,
+		SSTAuth:              galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
+		RootPassword:         podEnv.MariadbRootPassword,
 		SSTReceiveAddressKey: galerakeys.WsrepSSTReceiveAddressKey,
 		SSTReceiveAddress:    sstReceiveAddress,
 
-		GaleraLibPath: galera.GaleraLibPath,
-		Threads:       galera.ReplicaThreads,
-		Pod:           podEnv.PodName,
-		SST:           sst,
-		SSTAuth:       galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
-		RootPassword:  podEnv.MariadbRootPassword,
+		GaleraLibPath:   galera.GaleraLibPath,
+		ProviderOptsKey: galerakeys.WsrepProviderOptionsKey,
+		ProviderOpts:    providerOptions,
 	})
 	if err != nil {
 		return nil, err
@@ -182,6 +186,14 @@ func getProviderOptions(podIP string, options map[string]string) (string, error)
 	return providerOpts.marshal(), nil
 }
 
+func getSSTReceiveAddress(podIP string) (string, error) {
+	wrappedPodIP, err := wrapIPAddress(podIP)
+	if err != nil {
+		return "", fmt.Errorf("error wrapping address: %v", err)
+	}
+	return fmt.Sprintf("%s:%d", wrappedPodIP, galeraresources.GaleraSSTPort), nil
+}
+
 func getGmcastListenAddress(podIP string) (string, error) {
 	gmcastListenAddress, err := thisHostIP(podIP)
 	if err != nil {
@@ -202,17 +214,19 @@ func getISTReceiveAddress(podIP string) (string, error) {
 	return fmt.Sprintf("%s:%d", wrappedPodIP, galeraresources.GaleraISTPort), nil
 }
 
-func getSSTReceiveAddress(podIP string) (string, error) {
-	wrappedPodIP, err := wrapIPAddress(podIP)
-	if err != nil {
-		return "", fmt.Errorf("error wrapping address: %v", err)
-	}
-	return fmt.Sprintf("%s:%d", wrappedPodIP, galeraresources.GaleraSSTPort), nil
-}
-
 func getUpdatedConfigLine(line string, podIP string) (string, error) {
 	if strings.HasPrefix(line, galerakeys.WsrepNodeAddressKey) {
 		kvOpt := newKvOption(galerakeys.WsrepNodeAddressKey, podIP, true)
+		return kvOpt.marshal(), nil
+	}
+
+	if strings.HasPrefix(line, galerakeys.WsrepSSTReceiveAddressKey) {
+		sstReceiveAddress, err := getSSTReceiveAddress(podIP)
+		if err != nil {
+			return "", err
+		}
+
+		kvOpt := newKvOption(galerakeys.WsrepSSTReceiveAddressKey, sstReceiveAddress, true)
 		return kvOpt.marshal(), nil
 	}
 
@@ -243,16 +257,6 @@ func getUpdatedConfigLine(line string, podIP string) (string, error) {
 
 		updatedKvOpt := newKvOption(galerakeys.WsrepProviderOptionsKey, providerOpts.marshal(), true)
 		return updatedKvOpt.marshal(), nil
-	}
-
-	if strings.HasPrefix(line, galerakeys.WsrepSSTReceiveAddressKey) {
-		sstReceiveAddress, err := getSSTReceiveAddress(podIP)
-		if err != nil {
-			return "", err
-		}
-
-		kvOpt := newKvOption(galerakeys.WsrepSSTReceiveAddressKey, sstReceiveAddress, true)
-		return kvOpt.marshal(), nil
 	}
 
 	return line, nil
