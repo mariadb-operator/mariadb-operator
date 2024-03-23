@@ -37,7 +37,7 @@ func TestKvOptionMarshal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gotString := tt.kvOpt.marshal()
 			if tt.wantString != gotString {
-				t.Fatalf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantString, gotString)
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantString, gotString)
 			}
 		})
 	}
@@ -109,10 +109,10 @@ func TestKvOptionUnmarshal(t *testing.T) {
 			var kvOpt kvOption
 			err := kvOpt.unmarshal(tt.rawKvOpt)
 			if !tt.wantErr && err != nil {
-				t.Fatalf("error unexpected, got %v", err)
+				t.Errorf("error unexpected, got %v", err)
 			}
 			if !reflect.DeepEqual(tt.wantKvOpt, kvOpt) {
-				t.Fatalf("unexpected result:\nexpected:\n%v\ngot:\n%v\n", tt.wantKvOpt, kvOpt)
+				t.Errorf("unexpected result:\nexpected:\n%v\ngot:\n%v\n", tt.wantKvOpt, kvOpt)
 			}
 		})
 	}
