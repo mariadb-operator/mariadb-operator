@@ -615,7 +615,8 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			grants: monitorGrantOpts(monitorKey, mxs),
 		},
 	}
-	if mxs.Spec.Config.Sync != nil && mxs.Spec.Auth.SyncUsername != nil && mxs.Spec.Auth.SyncPasswordSecretKeyRef != nil {
+	if mxs.Spec.Config.Sync != nil && mxs.Spec.Auth.SyncUsername != nil && mxs.Spec.Auth.SyncPasswordSecretKeyRef != nil &&
+		mxs.Spec.Auth.SyncMaxConnections != nil {
 		syncKey := types.NamespacedName{
 			Name:      *mxs.Spec.Auth.SyncUsername,
 			Namespace: mxs.Namespace,
