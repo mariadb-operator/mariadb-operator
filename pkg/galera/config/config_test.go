@@ -305,13 +305,13 @@ wsrep_provider_options="gcache.size=1G;gcs.fc_limit=128;gmcast.listen_addr=tcp:/
 			config := NewConfigFile(tt.mariadb)
 			bytes, err := config.Marshal(tt.podEnv)
 			if tt.wantErr && err == nil {
-				t.Fatal("error expected, got nil")
+				t.Error("error expected, got nil")
 			}
 			if !tt.wantErr && err != nil {
-				t.Fatalf("error unexpected, got %v", err)
+				t.Errorf("error unexpected, got %v", err)
 			}
 			if tt.wantConfig != string(bytes) {
-				t.Fatalf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantConfig, string(bytes))
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantConfig, string(bytes))
 			}
 		})
 	}
@@ -472,13 +472,13 @@ wsrep_provider_options="gcache.size=1G;gcs.fc_limit=128;gmcast.listen_addr=tcp:/
 		t.Run(tt.name, func(t *testing.T) {
 			bytes, err := UpdateConfig([]byte(tt.config), tt.podEnv)
 			if tt.wantErr && err == nil {
-				t.Fatal("error expected, got nil")
+				t.Error("error expected, got nil")
 			}
 			if !tt.wantErr && err != nil {
-				t.Fatalf("error unexpected, got %v", err)
+				t.Errorf("error unexpected, got %v", err)
 			}
 			if !reflect.DeepEqual(tt.wantBytes, bytes) {
-				t.Fatalf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", string(tt.wantBytes), string(bytes))
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", string(tt.wantBytes), string(bytes))
 			}
 		})
 	}
