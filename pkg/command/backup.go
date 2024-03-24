@@ -8,6 +8,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	backuppkg "github.com/mariadb-operator/mariadb-operator/pkg/backup"
+	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 )
 
 type BackupOpts struct {
@@ -132,10 +133,7 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 
 func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) *Command {
-	dumpOpts := "--single-transaction --events --routines --dump-slave=2 --master-data=2 --gtid --all-databases"
-	if b.BackupOpts.DumpOpts != nil {
-		dumpOpts = strings.Join(b.BackupOpts.DumpOpts, " ")
-	}
+	args := strings.Join(b.mariadbDumpArgs(mariadb), " ")
 	cmds := []string{
 		"set -euo pipefail",
 		"echo 💾 Exporting env",
@@ -163,7 +161,7 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 		fmt.Sprintf(
 			"mariadb-dump %s %s > %s",
 			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
-			dumpOpts,
+			args,
 			b.getTargetFilePath(),
 		),
 	}
@@ -233,6 +231,24 @@ func (b *BackupCommand) newBackupFile() string {
 
 func (b *BackupCommand) getTargetFilePath() string {
 	return fmt.Sprintf("%s/$(cat '%s')", b.Path, b.TargetFilePath)
+}
+
+func (b *BackupCommand) mariadbDumpArgs(mariab *mariadbv1alpha1.MariaDB) []string {
+	args := []string{
+		"--single-transaction",
+		"--events",
+		"--routines",
+		"--dump-slave=2",
+		"--master-data=2",
+		"--gtid",
+		"--all-databases",
+	}
+	args = datastructures.MergeSlices(args, b.BackupOpts.DumpOpts)
+	// LOCK TABLES is not compatible with Galera: https://mariadb.com/kb/en/lock-tables/#limitations
+	if mariab.IsGaleraEnabled() {
+		args = append(args, "--skip-add-locks")
+	}
+	return args
 }
 
 func (b *BackupCommand) s3Args() []string {
