@@ -353,6 +353,11 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 	}
 
 	for _, secretKeyRef := range randomPasswordKeys {
+		if secretKeyRef.Name == "" || secretKeyRef.Key == "" {
+			log.FromContext(ctx).V(1).Info("Secret not initialized. Requeuing", "secret-name", secretKeyRef.Name, "secret-key", secretKeyRef.Key)
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+
 		randomSecretReq := &secret.RandomPasswordRequest{
 			Owner: mxs,
 			Key: types.NamespacedName{
