@@ -24,7 +24,7 @@ To better understand what MaxScale is capable of you may check the [product page
       - [Listeners](#listeners)
   - [`MaxScale` CR](#maxscale-cr)
   - [`MariaDB` CR](#mariadb-cr)
-  - [`MariaDB` + `MaxScale` CRs](#mariadb--maxscale-crs)
+  - [`MaxScale` embedded in `MariaDB`](#maxscale-embedded-in-mariadb)
   - [Defaults](#defaults)
   - [Server configuration](#server-configuration)
   - [Server maintenance](#server-maintenance)
@@ -223,7 +223,7 @@ spec:
 
 Refer to the [Reference](#reference) section for further detail.
 
-## `MariaDB` + `MaxScale` CRs
+##  `MaxScale` embedded in `MariaDB`
 
 To streamline the setup outlined in the [MaxScale CR](#mariadb-cr) and [MariaDB CR](#mariadb-cr) sections, you can provision a `MaxScale` to be used with `MariaDB` in just one resource:
 
@@ -246,6 +246,8 @@ spec:
     enabled: true
 ```
 This will automatically set the references between `MariaDB` and `MaxScale` and [default](#defaults) the rest of the fields.
+
+It is important to note that, this is intended for simple use cases where no further modifications are done on the `spec.maxscale` field. If you need a more fine grained configuration and perform further updates to the `MaxScale` resource, please use a dedicated `MaxScale` as described in the [MaxScale CR](#mariadb-cr) section.
 
 Refer to the [Reference](#reference) section for further detail.
 
