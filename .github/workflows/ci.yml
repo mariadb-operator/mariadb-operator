@@ -85,16 +85,9 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
-      - name: Login DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Cluster
         run: |
           make cluster
-          make registry
           make install
           make install-minio
           make net
