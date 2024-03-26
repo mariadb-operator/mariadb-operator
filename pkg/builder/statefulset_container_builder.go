@@ -426,8 +426,6 @@ func buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1al
 		Env:             tpl.Env,
 		EnvFrom:         tpl.EnvFrom,
 		VolumeMounts:    tpl.VolumeMounts,
-		LivenessProbe:   tpl.LivenessProbe,
-		ReadinessProbe:  tpl.ReadinessProbe,
 		SecurityContext: tpl.SecurityContext,
 	}
 	if tpl.Resources != nil {
@@ -445,7 +443,7 @@ func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 
 func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 	if mariadb.IsGaleraEnabled() {
-		return mariadbGaleraProbe(mariadb, "/readiness", mariadb.Spec.LivenessProbe)
+		return mariadbGaleraProbe(mariadb, "/readiness", mariadb.Spec.ReadinessProbe)
 	}
 	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe)
 }
@@ -456,14 +454,16 @@ func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1
 		setProbeThresholds(replProbe, probe)
 		return replProbe
 	}
-	if probe != nil {
+	if probe != nil && probe.Exec != nil {
 		return probe
 	}
-	return &defaultStsProbe
+	defaultProbe := defaultStsProbe.DeepCopy()
+	setProbeThresholds(defaultProbe, probe)
+	return defaultProbe
 }
 
 func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
-	mxsProbe := &corev1.Probe{
+	replProbe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{
@@ -477,8 +477,8 @@ func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *co
 		TimeoutSeconds:      5,
 		PeriodSeconds:       10,
 	}
-	setProbeThresholds(mxsProbe, probe)
-	return mxsProbe
+	setProbeThresholds(replProbe, probe)
+	return replProbe
 }
 
 func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *corev1.Probe) *corev1.Probe {
@@ -519,11 +519,21 @@ func setProbeThresholds(source, target *corev1.Probe) {
 	if target == nil {
 		return
 	}
-	source.InitialDelaySeconds = target.InitialDelaySeconds
-	source.TimeoutSeconds = target.TimeoutSeconds
-	source.PeriodSeconds = target.PeriodSeconds
-	source.SuccessThreshold = target.SuccessThreshold
-	source.FailureThreshold = target.FailureThreshold
+	if target.InitialDelaySeconds > 0 {
+		source.InitialDelaySeconds = target.InitialDelaySeconds
+	}
+	if target.TimeoutSeconds > 0 {
+		source.TimeoutSeconds = target.TimeoutSeconds
+	}
+	if target.PeriodSeconds > 0 {
+		source.PeriodSeconds = target.PeriodSeconds
+	}
+	if target.SuccessThreshold > 0 {
+		source.SuccessThreshold = target.SuccessThreshold
+	}
+	if target.FailureThreshold > 0 {
+		source.FailureThreshold = target.FailureThreshold
+	}
 }
 
 var (
