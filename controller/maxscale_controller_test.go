@@ -198,10 +198,10 @@ var _ = Describe("MaxScale controller", func() {
 		})
 	})
 
-	Context("When creating a MariaDB Galera with MaxScale with metrics", Serial, Label("enterprise"), func() {
+	Context("When creating a MariaDB with MaxScale with metrics", Serial, Label("enterprise"), func() {
 		It("Should reconcile", func() {
 			testMdbMxsKey := types.NamespacedName{
-				Name:      "mxs-galera",
+				Name:      "mxs-metrics",
 				Namespace: testNamespace,
 			}
 			testMdbMxs := mariadbv1alpha1.MariaDB{
@@ -210,36 +210,25 @@ var _ = Describe("MaxScale controller", func() {
 					Namespace: testMdbMxsKey.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-					},
-					Replicas: 3,
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("300Mi")),
 					},
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.74",
-						},
-					},
-					PrimaryService: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.75",
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.86",
 						},
 					},
 					MaxScale: &mariadbv1alpha1.MariaDBMaxScaleSpec{
-						Enabled:  true,
-						Replicas: ptr.To(int32(3)),
+						Enabled: true,
 						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 							Type: corev1.ServiceTypeLoadBalancer,
 							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.84",
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.88",
 							},
 						},
 						Connection: &mariadbv1alpha1.ConnectionTemplate{
-							SecretName: ptr.To("mxs-galera-conn"),
+							SecretName: ptr.To("mxs-metrics-conn"),
 							HealthCheck: &mariadbv1alpha1.HealthCheck{
 								Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 							},
@@ -250,7 +239,7 @@ var _ = Describe("MaxScale controller", func() {
 					},
 				},
 			}
-			By("Creating MariaDB Galera with MaxScale")
+			By("Creating MariaDB with MaxScale")
 			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
 			DeferCleanup(func() {
 				deleteMariaDB(&testMdbMxs)
