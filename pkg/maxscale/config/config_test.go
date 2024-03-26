@@ -96,6 +96,31 @@ persistdir=/var/lib/maxscale/maxscale.cnf.d/
 `,
 		},
 		{
+			name: "override query_classifier_cache_size",
+			mxs: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Config: mariadbv1alpha1.MaxScaleConfig{
+						Params: map[string]string{
+							"query_classifier_cache_size": "10MB",
+						},
+					},
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
+					},
+				},
+			},
+			wantConfig: `[maxscale]
+threads=auto
+query_classifier_cache_size=10MB
+persist_runtime_changes=true
+load_persisted_configs=true
+admin_host=0.0.0.0
+admin_port=8989
+admin_gui=true
+admin_secure_gui=false
+`,
+		},
+		{
 			name: "non overridable params",
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
