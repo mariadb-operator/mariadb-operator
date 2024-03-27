@@ -238,9 +238,6 @@ func (b *BackupCommand) mariadbDumpArgs(mariab *mariadbv1alpha1.MariaDB) []strin
 		"--single-transaction",
 		"--events",
 		"--routines",
-		"--dump-slave=2",
-		"--master-data=2",
-		"--gtid",
 		"--all-databases",
 	}
 	args = datastructures.MergeSlices(args, b.BackupOpts.DumpOpts)
