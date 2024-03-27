@@ -441,8 +441,10 @@ func deleteMaxScale(key types.NamespacedName) {
 			Namespace: mxs.GetNamespace(),
 		}
 		pvcList := &corev1.PersistentVolumeClaimList{}
-		g.Expect(k8sClient.List(testCtx, pvcList, listOpts)).To(Succeed())
-
+		err := k8sClient.List(testCtx, pvcList, listOpts)
+		if err != nil && !apierrors.IsNotFound(err) {
+			g.Expect(err).ToNot(HaveOccurred())
+		}
 		return len(pvcList.Items) == 0
 	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 }
