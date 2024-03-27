@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -246,41 +247,51 @@ func (r *MaxScaleReconciler) handleError(ctx context.Context, mxs *mariadbv1alph
 }
 
 func (r *MaxScaleReconciler) reconcileFinalizer(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	if req.mxs.IsBeingDeleted() {
+	if !req.mxs.IsBeingDeleted() {
 		if !controllerutil.ContainsFinalizer(req.mxs, maxScaleFinalizerName) {
-			return ctrl.Result{}, nil
-		}
 
-		var bundleErr *multierror.Error
-
-		sql, err := r.getPrimarySqlClient(ctx, req.mxs)
-		if err != nil {
-			bundleErr = multierror.Append(bundleErr, fmt.Errorf("error getting primary SQL client: %v", err))
-		}
-		if sql != nil {
-			if err := sql.DropMaxScaleConfig(ctx); err != nil {
-				bundleErr = multierror.Append(bundleErr, fmt.Errorf("error dropping maxscale_config table: %v", err))
+			if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
+				controllerutil.AddFinalizer(req.mxs, maxScaleFinalizerName)
+			}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error adding finalizer: %v", err)
 			}
-		}
-
-		if err := bundleErr.ErrorOrNil(); err != nil {
-			log.FromContext(ctx).Error(err, "error finalizing Maxscale")
-		}
-
-		if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
-			controllerutil.RemoveFinalizer(req.mxs, maxScaleFinalizerName)
-		}); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error removing finalizer: %v", err)
 		}
 		return ctrl.Result{}, nil
 	}
+	var bundleErr *multierror.Error
 
-	if !controllerutil.ContainsFinalizer(req.mxs, maxScaleFinalizerName) {
-		if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
-			controllerutil.AddFinalizer(req.mxs, maxScaleFinalizerName)
-		}); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error adding finalizer: %v", err)
+	deleteOpts := &client.DeleteAllOfOptions{
+		ListOptions: client.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				labels.NewLabelsBuilder().
+					WithMaxScaleSelectorLabels(req.mxs).
+					Build(),
+			),
+			Namespace: req.mxs.Namespace,
+		},
+	}
+	if err := r.DeleteAllOf(ctx, &corev1.PersistentVolumeClaim{}, deleteOpts); err != nil {
+		bundleErr = multierror.Append(bundleErr, fmt.Errorf("error deleting PVCs: %v", err))
+	}
+
+	sql, err := r.getPrimarySqlClient(ctx, req.mxs)
+	if err != nil {
+		bundleErr = multierror.Append(bundleErr, fmt.Errorf("error getting primary SQL client: %v", err))
+	}
+	if sql != nil {
+		if err := sql.DropMaxScaleConfig(ctx); err != nil {
+			bundleErr = multierror.Append(bundleErr, fmt.Errorf("error dropping maxscale_config table: %v", err))
 		}
+	}
+
+	if err := bundleErr.ErrorOrNil(); err != nil {
+		log.FromContext(ctx).Error(err, "error finalizing Maxscale")
+	}
+
+	if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
+		controllerutil.RemoveFinalizer(req.mxs, maxScaleFinalizerName)
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error removing finalizer: %v", err)
 	}
 	return ctrl.Result{}, nil
 }
