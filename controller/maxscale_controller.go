@@ -274,13 +274,15 @@ func (r *MaxScaleReconciler) reconcileFinalizer(ctx context.Context, req *reques
 		bundleErr = multierror.Append(bundleErr, fmt.Errorf("error deleting PVCs: %v", err))
 	}
 
-	sql, err := r.getPrimarySqlClient(ctx, req.mxs)
-	if err != nil {
-		bundleErr = multierror.Append(bundleErr, fmt.Errorf("error getting primary SQL client: %v", err))
-	}
-	if sql != nil {
-		if err := sql.DropMaxScaleConfig(ctx); err != nil {
-			bundleErr = multierror.Append(bundleErr, fmt.Errorf("error dropping maxscale_config table: %v", err))
+	if req.mxs.Spec.Config.Sync != nil {
+		sql, err := r.getPrimarySqlClient(ctx, req.mxs)
+		if err != nil {
+			bundleErr = multierror.Append(bundleErr, fmt.Errorf("error getting primary SQL client: %v", err))
+		}
+		if sql != nil {
+			if err := sql.DropMaxScaleConfig(ctx); err != nil {
+				bundleErr = multierror.Append(bundleErr, fmt.Errorf("error dropping maxscale_config table: %v", err))
+			}
 		}
 	}
 
