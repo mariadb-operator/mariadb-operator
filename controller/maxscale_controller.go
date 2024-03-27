@@ -36,8 +36,11 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var maxScaleFinalizerName = "maxscale.k8s.mariadb.com/finalizer"
 
 // MaxScaleReconciler reconciles a MaxScale object
 type MaxScaleReconciler struct {
@@ -107,6 +110,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	phases := []reconcilePhaseMaxScale{
+		{
+			name:      "Finalizer",
+			reconcile: r.reconcileFinalizer,
+		},
 		{
 			name:      "Spec",
 			reconcile: r.setSpecDefaults,
@@ -236,6 +243,46 @@ func (r *MaxScaleReconciler) handleError(ctx context.Context, mxs *mariadbv1alph
 	}
 
 	return errBundle.ErrorOrNil()
+}
+
+func (r *MaxScaleReconciler) reconcileFinalizer(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if req.mxs.IsBeingDeleted() {
+		if !controllerutil.ContainsFinalizer(req.mxs, maxScaleFinalizerName) {
+			return ctrl.Result{}, nil
+		}
+
+		var bundleErr *multierror.Error
+
+		sql, err := r.getPrimarySqlClient(ctx, req.mxs)
+		if err != nil {
+			bundleErr = multierror.Append(bundleErr, fmt.Errorf("error getting primary SQL client: %v", err))
+		}
+		if sql != nil {
+			if err := sql.DropMaxScaleConfig(ctx); err != nil {
+				bundleErr = multierror.Append(bundleErr, fmt.Errorf("error dropping maxscale_config table: %v", err))
+			}
+		}
+
+		if err := bundleErr.ErrorOrNil(); err != nil {
+			log.FromContext(ctx).Error(err, "error finalizing Maxscale")
+		}
+
+		if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
+			controllerutil.RemoveFinalizer(req.mxs, maxScaleFinalizerName)
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error removing finalizer: %v", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if !controllerutil.ContainsFinalizer(req.mxs, maxScaleFinalizerName) {
+		if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
+			controllerutil.AddFinalizer(req.mxs, maxScaleFinalizerName)
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error adding finalizer: %v", err)
+		}
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {

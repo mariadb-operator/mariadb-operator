@@ -727,6 +727,11 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv) {
 	}
 }
 
+// IsBeingDeleted indicates that MaxScale has been marked for deletion
+func (m *MaxScale) IsBeingDeleted() bool {
+	return !m.DeletionTimestamp.IsZero()
+}
+
 // IsReady indicates whether the Maxscale instance is ready.
 func (m *MaxScale) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)

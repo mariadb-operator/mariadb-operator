@@ -515,6 +515,10 @@ func (c *Client) TruncateMaxScaleConfig(ctx context.Context) error {
 	return c.Exec(ctx, "TRUNCATE TABLE maxscale_config")
 }
 
+func (c *Client) DropMaxScaleConfig(ctx context.Context) error {
+	return c.Exec(ctx, "DROP TABLE maxscale_config")
+}
+
 func createTpl(name, t string) *template.Template {
 	return template.Must(template.New(name).Parse(t))
 }
