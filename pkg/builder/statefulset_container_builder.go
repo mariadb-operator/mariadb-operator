@@ -133,13 +133,13 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.
 		if container.LivenessProbe != nil {
 			return container.LivenessProbe
 		}
-		return defaultAgentProbe(galera)
+		return defaultGaleraAgentProbe(galera)
 	}()
 	container.ReadinessProbe = func() *corev1.Probe {
 		if container.ReadinessProbe != nil {
 			return container.ReadinessProbe
 		}
-		return defaultAgentProbe(galera)
+		return defaultGaleraAgentProbe(galera)
 	}()
 	container.SecurityContext = func() *corev1.SecurityContext {
 		if container.SecurityContext != nil {
@@ -473,9 +473,9 @@ func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *co
 				},
 			},
 		},
-		InitialDelaySeconds: 40,
+		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
+		PeriodSeconds:       5,
 	}
 	setProbeThresholds(replProbe, probe)
 	return replProbe
@@ -549,9 +549,9 @@ var (
 		},
 		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
+		PeriodSeconds:       5,
 	}
-	defaultAgentProbe = func(galera mariadbv1alpha1.Galera) *corev1.Probe {
+	defaultGaleraAgentProbe = func(galera mariadbv1alpha1.Galera) *corev1.Probe {
 		return &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
