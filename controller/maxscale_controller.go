@@ -89,6 +89,7 @@ type reconcilePhaseMaxScale struct {
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups="",resources=pvcs,verbs=list;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;watch;create;patch
