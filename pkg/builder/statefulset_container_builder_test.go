@@ -10,7 +10,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func TestLivenessProbe(t *testing.T) {
+func TestMariadbLivenessProbe(t *testing.T) {
 	tests := []struct {
 		name      string
 		mariadb   *mariadbv1alpha1.MariaDB
@@ -340,7 +340,7 @@ func TestLivenessProbe(t *testing.T) {
 	}
 }
 
-func TestReadinessProbe(t *testing.T) {
+func TestMariadbReadinessProbe(t *testing.T) {
 	tests := []struct {
 		name      string
 		mariadb   *mariadbv1alpha1.MariaDB
@@ -663,6 +663,105 @@ func TestReadinessProbe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := mariadbReadinessProbe(tt.mariadb)
+			if !reflect.DeepEqual(tt.wantProbe, probe) {
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
+			}
+		})
+	}
+}
+
+func TestMaxScaleProbe(t *testing.T) {
+	tests := []struct {
+		name      string
+		maxScale  *mariadbv1alpha1.MaxScale
+		probe     *corev1.Probe
+		wantProbe *corev1.Probe
+	}{
+		{
+			name: "MaxScale empty",
+			maxScale: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
+					},
+				},
+			},
+			probe: &corev1.Probe{},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/",
+						Port: intstr.FromInt(8989),
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MaxScale partial",
+			maxScale: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
+					},
+				},
+			},
+			probe: &corev1.Probe{
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/",
+						Port: intstr.FromInt(8989),
+					},
+				},
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MaxScale full",
+			maxScale: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
+					},
+				},
+			},
+			probe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/custom",
+						Port: intstr.FromInt(8989),
+					},
+				},
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/custom",
+						Port: intstr.FromInt(8989),
+					},
+				},
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			probe := maxscaleProbe(tt.maxScale, tt.probe)
 			if !reflect.DeepEqual(tt.wantProbe, probe) {
 				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
 			}

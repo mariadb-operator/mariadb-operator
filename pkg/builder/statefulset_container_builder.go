@@ -499,10 +499,10 @@ func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *corev1
 }
 
 func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *corev1.Probe) *corev1.Probe {
-	if probe != nil {
+	if probe != nil && probe.ProbeHandler != (corev1.ProbeHandler{}) {
 		return probe
 	}
-	return &corev1.Probe{
+	mxsProbe := corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/",
@@ -511,8 +511,10 @@ func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *corev1.Probe) *corev1.P
 		},
 		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
+		PeriodSeconds:       5,
 	}
+	setProbeThresholds(&mxsProbe, probe)
+	return &mxsProbe
 }
 
 func setProbeThresholds(source, target *corev1.Probe) {
