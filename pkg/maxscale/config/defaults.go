@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	// Fraction of container memory limit used to calculate maximum size of query classifier cache.
+	// Value taken from https://mariadb.com/kb/en/mariadb-maxscale-6-mariadb-maxscale-configuration-guide/#query_classifier_cache_size
 	queryClassifierCacheLimitFraction = 0.15
 )
 
