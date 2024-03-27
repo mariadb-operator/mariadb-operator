@@ -454,7 +454,7 @@ func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1
 		setProbeThresholds(replProbe, probe)
 		return replProbe
 	}
-	if probe != nil && probe.Exec != nil {
+	if probe != nil && probe.ProbeHandler != (corev1.ProbeHandler{}) {
 		return probe
 	}
 	defaultProbe := defaultStsProbe.DeepCopy()
