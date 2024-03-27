@@ -111,7 +111,7 @@ func TestDataStructuresDiff(t *testing.T) {
 	}
 }
 
-func TestMergeSlices(t *testing.T) {
+func TestMerge(t *testing.T) {
 	tests := []struct {
 		name      string
 		slices    [][]string
@@ -155,9 +155,47 @@ func TestMergeSlices(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			slices := MergeSlices(tt.slices...)
+			slices := Merge(tt.slices...)
 			if !reflect.DeepEqual(slices, tt.wantSlice) {
 				t.Errorf("expecting merged slices to be:\n%v\ngot:\n%v\n", tt.wantSlice, slices)
+			}
+		})
+	}
+}
+
+func TestUnique(t *testing.T) {
+	tests := []struct {
+		name         string
+		elements     []string
+		wantElements []string
+	}{
+		{
+			name:         "empty",
+			elements:     nil,
+			wantElements: nil,
+		},
+		{
+			name:         "some repeated",
+			elements:     []string{"a", "b", "b", "c"},
+			wantElements: []string{"a", "b", "c"},
+		},
+		{
+			name:         "multiple repeated",
+			elements:     []string{"a", "b", "b", "c", "d", "d", "d", "e"},
+			wantElements: []string{"a", "b", "c", "d", "e"},
+		},
+		{
+			name:         "all different",
+			elements:     []string{"a", "b", "c", "d", "e"},
+			wantElements: []string{"a", "b", "c", "d", "e"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			elements := Unique(tt.wantElements...)
+			if !reflect.DeepEqual(elements, tt.wantElements) {
+				t.Errorf("expecting unique elements to be:\n%v\ngot:\n%v\n", tt.wantElements, elements)
 			}
 		})
 	}

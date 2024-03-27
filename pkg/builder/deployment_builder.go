@@ -134,7 +134,7 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
-			ImagePullSecrets: datastructures.MergeSlices(pullSecrets, exporter.ImagePullSecrets),
+			ImagePullSecrets: datastructures.Merge(pullSecrets, exporter.ImagePullSecrets),
 			Containers: []corev1.Container{
 				container,
 			},

@@ -100,10 +100,24 @@ func Diff[C, P any](current Index[C], previous Index[P]) DiffResult {
 	}
 }
 
-func MergeSlices[T any](slices ...[]T) []T {
+func Merge[T any](slices ...[]T) []T {
 	var result []T
 	for _, s := range slices {
 		result = append(result, s...)
 	}
+	return result
+}
+
+func Unique[T comparable](elements ...T) []T {
+	index := make(map[T]struct{}, 0)
+	var result []T
+
+	for _, e := range elements {
+		if _, found := index[e]; !found {
+			index[e] = struct{}{}
+			result = append(result, e)
+		}
+	}
+
 	return result
 }

@@ -102,13 +102,13 @@ func WithBackupLogLevel(l string) BackupOpt {
 }
 
 type BackupCommand struct {
-	*BackupOpts
+	BackupOpts
 }
 
 func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
-	opts := &BackupOpts{}
+	opts := BackupOpts{}
 	for _, setOpt := range userOpts {
-		setOpt(opts)
+		setOpt(&opts)
 	}
 	if opts.Path == "" {
 		return nil, errors.New("path not provided")
@@ -240,12 +240,12 @@ func (b *BackupCommand) mariadbDumpArgs(mariab *mariadbv1alpha1.MariaDB) []strin
 		"--routines",
 		"--all-databases",
 	}
-	args = datastructures.MergeSlices(args, b.BackupOpts.DumpOpts)
+	args = datastructures.Merge(args, b.BackupOpts.DumpOpts)
 	// LOCK TABLES is not compatible with Galera: https://mariadb.com/kb/en/lock-tables/#limitations
 	if mariab.IsGaleraEnabled() {
 		args = append(args, "--skip-add-locks")
 	}
-	return args
+	return datastructures.Unique(args...)
 }
 
 func (b *BackupCommand) s3Args() []string {
