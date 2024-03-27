@@ -443,10 +443,7 @@ func deleteMaxScale(key types.NamespacedName) {
 		pvcList := &corev1.PersistentVolumeClaimList{}
 		g.Expect(k8sClient.List(testCtx, pvcList, listOpts)).To(Succeed())
 
-		for _, pvc := range pvcList.Items {
-			g.Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
-		}
-		return true
+		return len(pvcList.Items) == 0
 	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 }
 
