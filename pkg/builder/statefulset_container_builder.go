@@ -93,8 +93,8 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 
 func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 	agent := galera.Agent
-	recovery := galera.Recovery
 
 	container := buildContainer(agent.Image, agent.ImagePullPolicy, &agent.ContainerTemplate)
 	container.Name = AgentContainerName

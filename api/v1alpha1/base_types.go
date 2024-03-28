@@ -175,6 +175,10 @@ func (a *AffinityConfig) SetDefaults(objMeta metav1.ObjectMeta) {
 
 // PodTemplate defines a template to configure Container objects.
 type PodTemplate struct {
+	// PodMetadata defines extra metadata for the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodMetadata *Metadata `json:"podMetadata,omitempty"`
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

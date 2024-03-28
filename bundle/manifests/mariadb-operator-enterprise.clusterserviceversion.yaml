@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-03-27T12:27:50Z"
+    createdAt: "2024-03-28T09:49:15Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -502,6 +502,15 @@ spec:
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: nodeSelector
+          - description: PodMetadata defines extra metadata for the Pod.
+            displayName: Pod Metadata
+            path: podMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: podMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: podMetadata.labels
           - description: SecurityContext holds pod-level security attributes and common container settings.
             displayName: Pod Security Context
             path: podSecurityContext
@@ -1559,6 +1568,15 @@ spec:
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: maxScale.metrics.exporter.nodeSelector
+          - description: PodMetadata defines extra metadata for the Pod.
+            displayName: Pod Metadata
+            path: maxScale.metrics.exporter.podMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: maxScale.metrics.exporter.podMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: maxScale.metrics.exporter.podMetadata.labels
           - description: SecurityContext holds pod-level security attributes and common container settings.
             displayName: Pod Security Context
             path: maxScale.metrics.exporter.podSecurityContext
@@ -1818,6 +1836,15 @@ spec:
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: metrics.exporter.nodeSelector
+          - description: PodMetadata defines extra metadata for the Pod.
+            displayName: Pod Metadata
+            path: metrics.exporter.podMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: metrics.exporter.podMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: metrics.exporter.podMetadata.labels
           - description: SecurityContext holds pod-level security attributes and common container settings.
             displayName: Pod Security Context
             path: metrics.exporter.podSecurityContext
@@ -1928,9 +1955,6 @@ spec:
           - description: PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
-          - description: PodAnnotations to add to the Pods metadata.
-            displayName: Pod Annotations
-            path: podAnnotations
           - description: PodDisruptionBudget defines the budget for replica availability.
             displayName: Pod Disruption Budget
             path: podDisruptionBudget
@@ -1940,6 +1964,15 @@ spec:
           - description: MinAvailable defines the number of minimum available Pods.
             displayName: Min Available
             path: podDisruptionBudget.minAvailable
+          - description: PodMetadata defines extra metadata for the Pod.
+            displayName: Pod Metadata
+            path: podMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: podMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: podMetadata.labels
           - description: SecurityContext holds pod-level security attributes and common container settings.
             displayName: Pod Security Context
             path: podSecurityContext
@@ -2735,6 +2768,15 @@ spec:
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: metrics.exporter.nodeSelector
+          - description: PodMetadata defines extra metadata for the Pod.
+            displayName: Pod Metadata
+            path: metrics.exporter.podMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: metrics.exporter.podMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: metrics.exporter.podMetadata.labels
           - description: SecurityContext holds pod-level security attributes and common container settings.
             displayName: Pod Security Context
             path: metrics.exporter.podSecurityContext
@@ -2860,6 +2902,15 @@ spec:
           - description: MinAvailable defines the number of minimum available Pods.
             displayName: Min Available
             path: podDisruptionBudget.minAvailable
+          - description: PodMetadata defines extra metadata for the Pod.
+            displayName: Pod Metadata
+            path: podMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: podMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: podMetadata.labels
           - description: SecurityContext holds pod-level security attributes and common container settings.
             displayName: Pod Security Context
             path: podSecurityContext
@@ -3141,6 +3192,15 @@ spec:
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: nodeSelector
+          - description: PodMetadata defines extra metadata for the Pod.
+            displayName: Pod Metadata
+            path: podMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: podMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: podMetadata.labels
           - description: SecurityContext holds pod-level security attributes and common container settings.
             displayName: Pod Security Context
             path: podSecurityContext
@@ -3381,6 +3441,15 @@ spec:
           - description: UserPasswordSecretKeyRef is a reference to the impersonated user's password to be used when executing the SqlJob.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
+          - description: PodMetadata defines extra metadata for the Pod.
+            displayName: Pod Metadata
+            path: podMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: podMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: podMetadata.labels
           - description: SecurityContext holds pod-level security attributes and common container settings.
             displayName: Pod Security Context
             path: podSecurityContext
@@ -4124,8 +4193,6 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
-      name: exporter
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
       name: exporter-maxscale
     - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
@@ -4136,6 +4203,8 @@ spec:
       name: mariadb
     - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
       name: maxscale
+    - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
+      name: exporter
   version: 0.0.27
   webhookdefinitions:
     - admissionReviewVersions:

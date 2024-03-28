@@ -1,9 +1,13 @@
 package builder
 
 import (
+	"reflect"
+	"testing"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -28,4 +32,13 @@ func newTestBuilder() *Builder {
 		MariadbGaleraLibPath:     "/usr/lib/galera/libgalera_smm.so",
 		WatchNamespace:           "",
 	})
+}
+
+func assertMeta(t *testing.T, objMeta *metav1.ObjectMeta, wantLabels, wantAnnotations map[string]string) {
+	if !reflect.DeepEqual(wantLabels, objMeta.Labels) {
+		t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, objMeta.Labels)
+	}
+	if !reflect.DeepEqual(wantAnnotations, objMeta.Annotations) {
+		t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, objMeta.Annotations)
+	}
 }

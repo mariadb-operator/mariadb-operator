@@ -2123,6 +2123,20 @@ spec:
                   type: string
                 description: NodeSelector to be used in the Pod.
                 type: object
+              podMetadata:
+                description: PodMetadata defines extra metadata for the Pod.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to be added to children resources.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be added to children resources.
+                    type: object
+                type: object
               podSecurityContext:
                 description: SecurityContext holds pod-level security attributes and
                   common container settings.
