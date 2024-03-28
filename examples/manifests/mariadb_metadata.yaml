@@ -7,9 +7,14 @@ spec:
   inheritMetadata:
     labels:
       database.myorg.io: mariadb
-      sidecar.istio.io/inject: "false"
     annotations:
       database.myorg.io: mariadb
+  # metadata that will be inherited ony by the Pod
+  podMetadata:
+     labels:
+        sidecar.istio.io/inject: "false"
+     annotations:
+        sidecar.istio.io/inject: "false"
 
   storage:
     size: 1Gi

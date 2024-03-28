@@ -59,7 +59,14 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
-	podTemplate, err := b.mariadbPodTemplate(mariadb, selectorLabels)
+
+	podTemplate, err := b.mariadbPodTemplate(
+		mariadb,
+		withMeta(
+			&mariadbv1alpha1.Metadata{
+				Labels: selectorLabels,
+			},
+		))
 	if err != nil {
 		return nil, fmt.Errorf("error building pod template: %v", err)
 	}
@@ -118,6 +125,7 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 }
 
 type mariadbOpts struct {
+	meta              *mariadbv1alpha1.Metadata
 	command           []string
 	args              []string
 	restartPolicy     *corev1.RestartPolicy
@@ -141,6 +149,12 @@ func newMariadbOpts(userOpts ...mariadbOpt) *mariadbOpts {
 }
 
 type mariadbOpt func(opts *mariadbOpts)
+
+func withMeta(meta *mariadbv1alpha1.Metadata) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.meta = meta
+	}
+}
 
 func withCommand(command []string) mariadbOpt {
 	return func(opts *mariadbOpts) {
@@ -190,20 +204,23 @@ func withProbes(includeProbes bool) mariadbOpt {
 	}
 }
 
-func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, labels map[string]string,
-	opts ...mariadbOpt) (*corev1.PodTemplateSpec, error) {
-	mariadbOpts := newMariadbOpts(opts...)
+func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) (*corev1.PodTemplateSpec, error) {
 	containers, err := b.mariadbContainers(mariadb, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
+	mariadbOpts := newMariadbOpts(opts...)
+	podMeta := ptr.Deref(mariadb.Spec.PodMetadata, mariadbv1alpha1.Metadata{})
+	extraMeta := ptr.Deref(mariadbOpts.meta, mariadbv1alpha1.Metadata{})
+
 	objMeta :=
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
 			WithMariaDB(mariadb).
-			WithLabels(labels).
-			WithAnnotations(mariadb.Spec.PodAnnotations).
 			WithAnnotations(mariadbHAAnnotations(mariadb)).
+			WithMetadata(&podMeta).
+			WithMetadata(&extraMeta).
 			Build()
+
 	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,

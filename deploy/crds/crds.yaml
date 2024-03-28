@@ -2114,6 +2114,20 @@ spec:
                   type: string
                 description: NodeSelector to be used in the Pod.
                 type: object
+              podMetadata:
+                description: PodMetadata defines extra metadata for the Pod.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to be added to children resources.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be added to children resources.
+                    type: object
+                type: object
               podSecurityContext:
                 description: SecurityContext holds pod-level security attributes and
                   common container settings.
@@ -17608,6 +17622,21 @@ spec:
                               type: string
                             description: NodeSelector to be used in the Pod.
                             type: object
+                          podMetadata:
+                            description: PodMetadata defines extra metadata for the
+                              Pod.
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                description: Annotations to be added to children resources.
+                                type: object
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                description: Labels to be added to children resources.
+                                type: object
+                            type: object
                           podSecurityContext:
                             description: SecurityContext holds pod-level security
                               attributes and common container settings.
@@ -23201,6 +23230,20 @@ spec:
                           type: string
                         description: NodeSelector to be used in the Pod.
                         type: object
+                      podMetadata:
+                        description: PodMetadata defines extra metadata for the Pod.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Annotations to be added to children resources.
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: Labels to be added to children resources.
+                            type: object
+                        type: object
                       podSecurityContext:
                         description: SecurityContext holds pod-level security attributes
                           and common container settings.
@@ -26590,11 +26633,6 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
-              podAnnotations:
-                additionalProperties:
-                  type: string
-                description: PodAnnotations to add to the Pods metadata.
-                type: object
               podDisruptionBudget:
                 description: PodDisruptionBudget defines the budget for replica availability.
                 properties:
@@ -26612,6 +26650,20 @@ spec:
                     description: MinAvailable defines the number of minimum available
                       Pods.
                     x-kubernetes-int-or-string: true
+                type: object
+              podMetadata:
+                description: PodMetadata defines extra metadata for the Pod.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to be added to children resources.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be added to children resources.
+                    type: object
                 type: object
               podSecurityContext:
                 description: SecurityContext holds pod-level security attributes and
@@ -35373,6 +35425,20 @@ spec:
                           type: string
                         description: NodeSelector to be used in the Pod.
                         type: object
+                      podMetadata:
+                        description: PodMetadata defines extra metadata for the Pod.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Annotations to be added to children resources.
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: Labels to be added to children resources.
+                            type: object
+                        type: object
                       podSecurityContext:
                         description: SecurityContext holds pod-level security attributes
                           and common container settings.
@@ -38748,6 +38814,20 @@ spec:
                     description: MinAvailable defines the number of minimum available
                       Pods.
                     x-kubernetes-int-or-string: true
+                type: object
+              podMetadata:
+                description: PodMetadata defines extra metadata for the Pod.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to be added to children resources.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be added to children resources.
+                    type: object
                 type: object
               podSecurityContext:
                 description: SecurityContext holds pod-level security attributes and
@@ -44442,6 +44522,20 @@ spec:
                 additionalProperties:
                   type: string
                 description: NodeSelector to be used in the Pod.
+                type: object
+              podMetadata:
+                description: PodMetadata defines extra metadata for the Pod.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to be added to children resources.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be added to children resources.
+                    type: object
                 type: object
               podSecurityContext:
                 description: SecurityContext holds pod-level security attributes and
@@ -51730,6 +51824,20 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              podMetadata:
+                description: PodMetadata defines extra metadata for the Pod.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to be added to children resources.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be added to children resources.
+                    type: object
+                type: object
               podSecurityContext:
                 description: SecurityContext holds pod-level security attributes and
                   common container settings.

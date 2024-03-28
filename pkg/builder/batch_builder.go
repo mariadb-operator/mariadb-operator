@@ -220,8 +220,7 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
-			WithLabels(extraMeta.Labels).
-			WithAnnotations(extraMeta.Annotations).
+			WithMetadata(&extraMeta).
 			Build()
 	command := command.NewBashCommand([]string{
 		filepath.Join(InitConfigPath, InitEntrypointKey),
@@ -229,7 +228,8 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 
 	podTpl, err := b.mariadbPodTemplate(
 		mariadb,
-		objMeta.Labels,
+		withMeta(mariadb.Spec.InheritMetadata),
+		withMeta(&extraMeta),
 		withCommand(command.Command),
 		withArgs(command.Args),
 		withRestartPolicy(corev1.RestartPolicyOnFailure),

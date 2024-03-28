@@ -321,10 +321,6 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
-	// PodAnnotations to add to the Pods metadata.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
 	// RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

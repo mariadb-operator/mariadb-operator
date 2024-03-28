@@ -383,6 +383,15 @@ spec:
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: nodeSelector
+      - description: PodMetadata defines extra metadata for the Pod.
+        displayName: Pod Metadata
+        path: podMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: podMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: podMetadata.labels
       - description: SecurityContext holds pod-level security attributes and common
           container settings.
         displayName: Pod Security Context
@@ -1599,6 +1608,15 @@ spec:
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: maxScale.metrics.exporter.nodeSelector
+      - description: PodMetadata defines extra metadata for the Pod.
+        displayName: Pod Metadata
+        path: maxScale.metrics.exporter.podMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: maxScale.metrics.exporter.podMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: maxScale.metrics.exporter.podMetadata.labels
       - description: SecurityContext holds pod-level security attributes and common
           container settings.
         displayName: Pod Security Context
@@ -1902,6 +1920,15 @@ spec:
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: metrics.exporter.nodeSelector
+      - description: PodMetadata defines extra metadata for the Pod.
+        displayName: Pod Metadata
+        path: metrics.exporter.podMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: metrics.exporter.podMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: metrics.exporter.podMetadata.labels
       - description: SecurityContext holds pod-level security attributes and common
           container settings.
         displayName: Pod Security Context
@@ -2025,9 +2052,6 @@ spec:
           user provided via a Secret.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
-      - description: PodAnnotations to add to the Pods metadata.
-        displayName: Pod Annotations
-        path: podAnnotations
       - description: PodDisruptionBudget defines the budget for replica availability.
         displayName: Pod Disruption Budget
         path: podDisruptionBudget
@@ -2037,6 +2061,15 @@ spec:
       - description: MinAvailable defines the number of minimum available Pods.
         displayName: Min Available
         path: podDisruptionBudget.minAvailable
+      - description: PodMetadata defines extra metadata for the Pod.
+        displayName: Pod Metadata
+        path: podMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: podMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: podMetadata.labels
       - description: SecurityContext holds pod-level security attributes and common
           container settings.
         displayName: Pod Security Context
@@ -2943,6 +2976,15 @@ spec:
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: metrics.exporter.nodeSelector
+      - description: PodMetadata defines extra metadata for the Pod.
+        displayName: Pod Metadata
+        path: metrics.exporter.podMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: metrics.exporter.podMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: metrics.exporter.podMetadata.labels
       - description: SecurityContext holds pod-level security attributes and common
           container settings.
         displayName: Pod Security Context
@@ -3087,6 +3129,15 @@ spec:
       - description: MinAvailable defines the number of minimum available Pods.
         displayName: Min Available
         path: podDisruptionBudget.minAvailable
+      - description: PodMetadata defines extra metadata for the Pod.
+        displayName: Pod Metadata
+        path: podMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: podMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: podMetadata.labels
       - description: SecurityContext holds pod-level security attributes and common
           container settings.
         displayName: Pod Security Context
@@ -3409,6 +3460,15 @@ spec:
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: nodeSelector
+      - description: PodMetadata defines extra metadata for the Pod.
+        displayName: Pod Metadata
+        path: podMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: podMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: podMetadata.labels
       - description: SecurityContext holds pod-level security attributes and common
           container settings.
         displayName: Pod Security Context
@@ -3683,6 +3743,15 @@ spec:
           password to be used when executing the SqlJob.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
+      - description: PodMetadata defines extra metadata for the Pod.
+        displayName: Pod Metadata
+        path: podMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: podMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: podMetadata.labels
       - description: SecurityContext holds pod-level security attributes and common
           container settings.
         displayName: Pod Security Context
