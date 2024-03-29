@@ -28,7 +28,7 @@ func NewRBACReconiler(client client.Client, builder *builder.Builder) *RBACRecon
 }
 
 func (r *RBACReconciler) ReconcileServiceAccount(ctx context.Context, key types.NamespacedName, owner metav1.Object,
-	opts builder.ServiceAccountOpts) (*corev1.ServiceAccount, error) {
+	meta *mariadbv1alpha1.Metadata) (*corev1.ServiceAccount, error) {
 	var existingSA corev1.ServiceAccount
 	err := r.Get(ctx, key, &existingSA)
 	if err == nil {
@@ -38,7 +38,7 @@ func (r *RBACReconciler) ReconcileServiceAccount(ctx context.Context, key types.
 		return nil, fmt.Errorf("error getting ServiceAccount: %v", err)
 	}
 
-	sa, err := r.builder.BuildServiceAccount(key, owner, opts)
+	sa, err := r.builder.BuildServiceAccount(key, owner, meta)
 	if err != nil {
 		return nil, fmt.Errorf("error building ServiceAccount: %v", err)
 	}
@@ -50,10 +50,7 @@ func (r *RBACReconciler) ReconcileServiceAccount(ctx context.Context, key types.
 
 func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := mariadb.Spec.PodTemplate.ServiceAccountKey(mariadb.ObjectMeta)
-	opts := builder.ServiceAccountOpts{
-		MariaDB: mariadb,
-	}
-	sa, err := r.ReconcileServiceAccount(ctx, key, mariadb, opts)
+	sa, err := r.ReconcileServiceAccount(ctx, key, mariadb, mariadb.Spec.InheritMetadata)
 	if err != nil {
 		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
@@ -100,7 +97,7 @@ func (r *RBACReconciler) reconcileRole(ctx context.Context, key types.Namespaced
 	if err == nil {
 		return &existingRole, nil
 	}
-	if err != nil && !apierrors.IsNotFound(err) {
+	if !apierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("error getting Role: %v", err)
 	}
 
@@ -145,7 +142,7 @@ func (r *RBACReconciler) reconcileRoleBinding(ctx context.Context, key types.Nam
 	if err == nil {
 		return nil
 	}
-	if err != nil && !apierrors.IsNotFound(err) {
+	if !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error getting RoleBinding: %v", err)
 	}
 
@@ -172,7 +169,7 @@ func (r *RBACReconciler) reconcileClusterRoleBinding(ctx context.Context, key ty
 		}
 		return nil
 	}
-	if err != nil && !apierrors.IsNotFound(err) {
+	if !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error getting ClusterRoleBinding: %v", err)
 	}
 

@@ -253,9 +253,7 @@ func (r *SqlJobReconciler) setDefaults(ctx context.Context, sqlJob *mariadbv1alp
 
 func (r *SqlJobReconciler) reconcileServiceAccount(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) error {
 	key := sqlJob.Spec.ServiceAccountKey(sqlJob.ObjectMeta)
-	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, sqlJob, builder.ServiceAccountOpts{
-		Metadata: sqlJob.Spec.InheritMetadata,
-	})
+	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, sqlJob, sqlJob.Spec.InheritMetadata)
 	return err
 }
 
