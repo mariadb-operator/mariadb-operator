@@ -2,7 +2,6 @@ package builder
 
 import (
 	"errors"
-	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
@@ -11,18 +10,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (b *Builder) BuildBackupPVC(key types.NamespacedName, storage *mariadbv1alpha1.BackupStorage,
-	mariadb *mariadbv1alpha1.MariaDB) (*corev1.PersistentVolumeClaim, error) {
-	if storage.PersistentVolumeClaim == nil {
-		return nil, fmt.Errorf("Backup spec does not have a PVC spec")
+func (b *Builder) BuildBackupPVC(key types.NamespacedName, backup *mariadbv1alpha1.Backup) (*corev1.PersistentVolumeClaim, error) {
+	if backup.Spec.Storage.PersistentVolumeClaim == nil {
+		return nil, errors.New("Backup spec does not have a PVC spec")
 	}
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(backup.Spec.InheritMetadata).
 			Build()
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: objMeta,
-		Spec:       *storage.PersistentVolumeClaim,
+		Spec:       *backup.Spec.Storage.PersistentVolumeClaim,
 	}, nil
 }
 

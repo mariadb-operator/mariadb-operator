@@ -537,6 +537,195 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 	}
 }
 
+func TestBackupJobMeta(t *testing.T) {
+	builder := newTestBuilder()
+	key := types.NamespacedName{
+		Name: "backup-job",
+	}
+	tests := []struct {
+		name        string
+		backup      *mariadbv1alpha1.Backup
+		wantJobMeta *mariadbv1alpha1.Metadata
+		wantPodMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "empty",
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Storage: mariadbv1alpha1.BackupStorage{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "inherit metadata",
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Storage: mariadbv1alpha1.BackupStorage{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "Pod meta",
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Storage: mariadbv1alpha1.BackupStorage{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "override interit metadata",
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Storage: mariadbv1alpha1.BackupStorage{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "true",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "true",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "all",
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Storage: mariadbv1alpha1.BackupStorage{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildBackupJob(key, tt.backup, &mariadbv1alpha1.MariaDB{})
+			if err != nil {
+				t.Fatalf("unexpected error building Backup Job: %v", err)
+			}
+			assertMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			assertMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+		})
+	}
+}
+
 func TestInitJobMeta(t *testing.T) {
 	builder := newTestBuilder()
 	key := types.NamespacedName{

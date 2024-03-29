@@ -210,15 +210,13 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
 	mariadbOpts := newMariadbOpts(opts...)
-	podMeta := ptr.Deref(mariadb.Spec.PodMetadata, mariadbv1alpha1.Metadata{})
-	extraMeta := ptr.Deref(mariadbOpts.meta, mariadbv1alpha1.Metadata{})
 
 	objMeta :=
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
 			WithMariaDB(mariadb).
 			WithAnnotations(mariadbHAAnnotations(mariadb)).
-			WithMetadata(&podMeta).
-			WithMetadata(&extraMeta).
+			WithMetadata(mariadb.Spec.PodMetadata).
+			WithMetadata(mariadbOpts.meta).
 			Build()
 
 	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity

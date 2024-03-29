@@ -30,7 +30,7 @@ func NewBatchReconciler(client client.Client, builder *builder.Builder) *BatchRe
 
 func (r *BatchReconciler) Reconcile(ctx context.Context, parentObj client.Object,
 	mariadb *mariadbv1alpha1.MariaDB) error {
-	if err := r.reconcileStorage(ctx, parentObj, mariadb); err != nil {
+	if err := r.reconcileStorage(ctx, parentObj); err != nil {
 		return fmt.Errorf("error reconciling storage: %v", err)
 	}
 	if err := r.reconcileBatch(ctx, parentObj, mariadb); err != nil {
@@ -39,8 +39,7 @@ func (r *BatchReconciler) Reconcile(ctx context.Context, parentObj client.Object
 	return nil
 }
 
-func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client.Object,
-	mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client.Object) error {
 	backup, ok := parentObj.(*mariadbv1alpha1.Backup)
 	if !ok {
 		return nil
@@ -55,21 +54,20 @@ func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client
 	if err == nil {
 		return nil
 	}
-	if err != nil && !apierrors.IsNotFound(err) {
+	if !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error creating PersistentVolumeClaim: %v", err)
 	}
 
-	pvc, err := r.builder.BuildBackupPVC(key, &backup.Spec.Storage, mariadb)
+	pvc, err := r.builder.BuildBackupPVC(key, backup)
 	if err != nil {
 		return fmt.Errorf("error buildinb Backup PVC: %v", err)
 	}
 	return r.Create(ctx, pvc)
 }
 
-func (r *BatchReconciler) reconcileBatch(ctx context.Context, parentObj client.Object,
-	mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *BatchReconciler) reconcileBatch(ctx context.Context, parentObj client.Object, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(parentObj)
-	desiredBatch, err := r.buildBatch(ctx, parentObj, mariadb)
+	desiredBatch, err := r.buildBatch(parentObj, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building Job: %v", err)
 	}
@@ -84,8 +82,7 @@ func (r *BatchReconciler) reconcileBatch(ctx context.Context, parentObj client.O
 	return fmt.Errorf("unable to reconcile batch object using type: '%T'", parentObj)
 }
 
-func (r *BatchReconciler) buildBatch(ctx context.Context, parentObj client.Object,
-	mariadb *mariadbv1alpha1.MariaDB) (client.Object, error) {
+func (r *BatchReconciler) buildBatch(parentObj client.Object, mariadb *mariadbv1alpha1.MariaDB) (client.Object, error) {
 	key := client.ObjectKeyFromObject(parentObj)
 	if backup, ok := parentObj.(*mariadbv1alpha1.Backup); ok {
 		if backup.Spec.Schedule != nil {
