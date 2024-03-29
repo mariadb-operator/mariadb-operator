@@ -39,7 +39,7 @@ func (f *FileSystemBackupStorage) List(ctx context.Context) ([]string, error) {
 	var fileNames []string
 	for _, e := range entries {
 		fileName := e.Name()
-		if shouldProcessBackupFile(fileName, f.logger) {
+		if shouldProcessBackupFile(fileName, nil, f.logger) {
 			fileNames = append(fileNames, fileName)
 		}
 	}
@@ -130,7 +130,11 @@ func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
 		Prefix: s.Prefix,
 	}) {
 		fileName := o.Key
-		if shouldProcessBackupFile(fileName, s.logger) {
+		prefix := nil
+		if s.Prefix != nil && s.Prefix != "" {
+			prefix := s.Prefix
+		}
+		if shouldProcessBackupFile(fileName, prefix, s.logger) {
 			fileNames = append(fileNames, fileName)
 		}
 	}
@@ -163,9 +167,17 @@ func (s *S3BackupStorage) prefixedFileName(fileName string) string {
 	return prefix + fileName
 }
 
-func shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
+func shouldProcessBackupFile(fileName string, prefix string, logger logr.Logger) bool {
+	cleanFileName := fileName
+	// remove the prefix from the fileName string,
+	// otherwise the given fileName is never valid.
+	if prefix != nil {
+		logger.V(1).Debug("removing prefix from backup file", "file", fileName)
+		cleanFileName = strings.ReplaceAll(fileName, prefix, "")
+	}
+
 	logger.V(1).Info("processing backup file", "file", fileName)
-	if IsValidBackupFile(fileName) {
+	if IsValidBackupFile(cleanFileName) {
 		return true
 	}
 	logger.V(1).Info("ignoring file", "file", fileName)
