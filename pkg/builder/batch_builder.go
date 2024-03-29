@@ -293,9 +293,14 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 
 func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
-	objMeta :=
+	jobMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(sqlJob.Spec.InheritMetadata).
+			Build()
+	podMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(sqlJob.Spec.InheritMetadata).
+			WithMetadata(sqlJob.Spec.PodMetadata).
 			Build()
 
 	sqlOpts := []command.SqlOpt{
@@ -315,11 +320,11 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 	affinity := ptr.Deref(sqlJob.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	job := &batchv1.Job{
-		ObjectMeta: objMeta,
+		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
 			BackoffLimit: &sqlJob.Spec.BackoffLimit,
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: objMeta,
+				ObjectMeta: podMeta,
 				Spec: corev1.PodSpec{
 					RestartPolicy:    sqlJob.Spec.RestartPolicy,
 					ImagePullSecrets: batchImagePullSecrets(mariadb, sqlJob.Spec.ImagePullSecrets),
