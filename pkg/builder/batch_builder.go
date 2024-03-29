@@ -34,9 +34,14 @@ var batchBackupTargetFilePath = fmt.Sprintf("%s/0-backup-target.txt", batchStora
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
-	objMeta :=
+	jobMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(backup.Spec.InheritMetadata).
+			Build()
+	podMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(backup.Spec.InheritMetadata).
+			WithMetadata(backup.Spec.PodMetadata).
 			Build()
 
 	cmdOpts := []command.BackupOpt{
@@ -65,11 +70,11 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	affinity := ptr.Deref(backup.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	job := &batchv1.Job{
-		ObjectMeta: objMeta,
+		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
 			BackoffLimit: &backup.Spec.BackoffLimit,
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: objMeta,
+				ObjectMeta: podMeta,
 				Spec: corev1.PodSpec{
 					RestartPolicy:    backup.Spec.RestartPolicy,
 					ImagePullSecrets: batchImagePullSecrets(mariadb, backup.Spec.ImagePullSecrets),
