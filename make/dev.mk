@@ -22,16 +22,17 @@ lint: golangci-lint ## Lint.
 TEST_ENV ?= $(ENV) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
 .PHONY: test
 test: envtest ginkgo ## Run tests.
-	 $(TEST_ENV) $(GINKGO) -p --timeout 20m --label-filter='!enterprise' ./pkg/... ./api/... ./controller/... 
+	 $(TEST_ENV) $(GINKGO) -p --timeout 20m --label-filter='!enterprise' --coverprofile=cover.out ./pkg/... ./api/... ./controller/... 
 
 TEST_ENT_ENV ?= $(ENV_ENT) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
 .PHONY: test-ent
 test-ent: envtest ginkgo ## Run enterprise tests.
-	 $(TEST_ENT_ENV) $(GINKGO) -p --timeout 22m ./pkg/... ./api/... ./controller/... 
+	 $(TEST_ENT_ENV) $(GINKGO) -p --timeout 22m --coverprofile=cover.out ./pkg/... ./api/... ./controller/... 
 
 .PHONY: cover
-cover: test ## Run tests and generate coverage.
+cover: ## Generate and view coverage report.
 	@go tool cover -html=cover.out -o=cover.html
+	open cover.html
 
 .PHONY: release
 release: goreleaser ## Test release locally.

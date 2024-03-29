@@ -34,3 +34,6 @@ artifacts/
 
 # Init
 /mariadb/
+
+# Coverage
+cover.*
