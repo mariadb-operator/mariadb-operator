@@ -12,17 +12,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-type ServiceAccountOpts struct {
-	MariaDB  *mariadbv1alpha1.MariaDB
-	Metadata *mariadbv1alpha1.Metadata
-}
-
 func (b *Builder) BuildServiceAccount(key types.NamespacedName, owner metav1.Object,
-	opts ServiceAccountOpts) (*corev1.ServiceAccount, error) {
+	meta *mariadbv1alpha1.Metadata) (*corev1.ServiceAccount, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(opts.MariaDB).
-			WithMetadata(opts.Metadata).
+			WithMetadata(meta).
 			Build()
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: objMeta,

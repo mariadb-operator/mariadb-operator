@@ -152,9 +152,7 @@ func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1a
 
 func (r *RestoreReconciler) reconcileServiceAccount(ctx context.Context, restore *mariadbv1alpha1.Restore) error {
 	key := restore.Spec.ServiceAccountKey(restore.ObjectMeta)
-	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, restore, builder.ServiceAccountOpts{
-		Metadata: restore.Spec.InheritMetadata,
-	})
+	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, restore, restore.Spec.InheritMetadata)
 	return err
 }
 
