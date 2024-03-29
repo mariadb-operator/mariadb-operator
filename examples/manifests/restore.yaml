@@ -8,6 +8,9 @@ spec:
   backupRef:
     name: backup
   inheritMetadata:
+    annotations:
+      database.myorg.io: mariadb
+  podMetadata:
     labels:
       sidecar.istio.io/inject: "false"
   serviceAccountName: restore
