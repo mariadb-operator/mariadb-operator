@@ -26,10 +26,10 @@ func NewConfigMapReconciler(client client.Client, builder *builder.Builder) *Con
 }
 
 type ReconcileRequest struct {
-	Mariadb *mariadbv1alpha1.MariaDB
-	Owner   metav1.Object
-	Key     types.NamespacedName
-	Data    map[string]string
+	Metadata *mariadbv1alpha1.Metadata
+	Owner    metav1.Object
+	Key      types.NamespacedName
+	Data     map[string]string
 }
 
 func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req *ReconcileRequest) error {
@@ -38,14 +38,14 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req *ReconcileReque
 	if err == nil {
 		return nil
 	}
-	if err != nil && !apierrors.IsNotFound(err) {
+	if !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error getting ConfigMap: %v", err)
 	}
 
 	opts := builder.ConfigMapOpts{
-		MariaDB: req.Mariadb,
-		Key:     req.Key,
-		Data:    req.Data,
+		Metadata: req.Metadata,
+		Key:      req.Key,
+		Data:     req.Data,
 	}
 	configMap, err := r.Builder.BuildConfigMap(opts, req.Owner)
 	if err != nil {

@@ -149,8 +149,8 @@ func (r *ReplicationReconciler) ReconcileProbeConfigMap(ctx context.Context, con
 		return nil
 	}
 	req := configmap.ReconcileRequest{
-		Mariadb: mdb,
-		Owner:   mdb,
+		Metadata: mdb.Spec.InheritMetadata,
+		Owner:    mdb,
 		Key: types.NamespacedName{
 			Name:      configMapKeyRef.Name,
 			Namespace: mdb.Namespace,

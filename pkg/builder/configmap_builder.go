@@ -12,15 +12,15 @@ import (
 )
 
 type ConfigMapOpts struct {
-	MariaDB *mariadbv1alpha1.MariaDB
-	Key     types.NamespacedName
-	Data    map[string]string
+	Metadata *mariadbv1alpha1.Metadata
+	Key      types.NamespacedName
+	Data     map[string]string
 }
 
 func (b *Builder) BuildConfigMap(opts ConfigMapOpts, owner metav1.Object) (*corev1.ConfigMap, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(opts.Key).
-			WithMariaDB(opts.MariaDB).
+			WithMetadata(opts.Metadata).
 			Build()
 	cm := &corev1.ConfigMap{
 		ObjectMeta: objMeta,

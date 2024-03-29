@@ -13,6 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -140,5 +141,6 @@ func (r *BackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&mariadbv1alpha1.Backup{}).
 		Owns(&batchv1.CronJob{}).
 		Owns(&batchv1.Job{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
 		Complete(r)
 }
