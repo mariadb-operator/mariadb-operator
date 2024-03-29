@@ -246,8 +246,8 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 	if mariadb.Spec.MyCnf != nil && mariadb.Spec.MyCnfConfigMapKeyRef != nil {
 		configMapKeyRef := *mariadb.Spec.MyCnfConfigMapKeyRef
 		req := configmap.ReconcileRequest{
-			Mariadb: mariadb,
-			Owner:   mariadb,
+			Metadata: mariadb.Spec.InheritMetadata,
+			Owner:    mariadb,
 			Key: types.NamespacedName{
 				Name:      configMapKeyRef.Name,
 				Namespace: mariadb.Namespace,

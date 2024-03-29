@@ -148,9 +148,9 @@ docker_mariadb_init "mariadbd"
 	}
 
 	req := configmap.ReconcileRequest{
-		Mariadb: mariadb,
-		Owner:   mariadb,
-		Key:     mariadb.InitKey(),
+		Metadata: mariadb.Spec.InheritMetadata,
+		Owner:    mariadb,
+		Key:      mariadb.InitKey(),
 		Data: map[string]string{
 			builder.InitLibKey:        string(entrypointBytes),
 			builder.InitEntrypointKey: buf.String(),

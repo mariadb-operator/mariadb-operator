@@ -84,7 +84,7 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err := r.reconcileServiceAccount(ctx, &sqlJob); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
-	if err := r.reconcileConfigMap(ctx, &sqlJob, mariadb); err != nil {
+	if err := r.reconcileConfigMap(ctx, &sqlJob); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling ConfigMap: %v", err)
 	}
 
@@ -142,14 +142,13 @@ func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *v1al
 	return true, ctrl.Result{}, nil
 }
 
-func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
-	mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) error {
 	key := configMapSqlJobKey(sqlJob)
 	if sqlJob.Spec.Sql != nil && sqlJob.Spec.SqlConfigMapKeyRef == nil {
 		req := configmap.ReconcileRequest{
-			Mariadb: mariadb,
-			Owner:   sqlJob,
-			Key:     key,
+			Metadata: sqlJob.Spec.InheritMetadata,
+			Owner:    sqlJob,
+			Key:      key,
 			Data: map[string]string{
 				jobConfigMapKey: *sqlJob.Spec.Sql,
 			},

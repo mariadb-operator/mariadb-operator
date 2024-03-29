@@ -34,7 +34,7 @@ func (r *RBACReconciler) ReconcileServiceAccount(ctx context.Context, key types.
 	if err == nil {
 		return &existingSA, nil
 	}
-	if err != nil && !apierrors.IsNotFound(err) {
+	if !apierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("error getting ServiceAccount: %v", err)
 	}
 
