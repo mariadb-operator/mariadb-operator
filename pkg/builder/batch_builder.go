@@ -149,10 +149,16 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 
 func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1alpha1.Restore,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
-	objMeta :=
+	jobMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(restore.Spec.InheritMetadata).
 			Build()
+	podMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(restore.Spec.InheritMetadata).
+			WithMetadata(restore.Spec.PodMetadata).
+			Build()
+
 	cmdOpts := []command.BackupOpt{
 		command.WithBackup(
 			batchStorageMountPath,
@@ -170,15 +176,15 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	if err != nil {
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.RestoreSource.Volume, restore.Spec.S3)
+	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.Volume, restore.Spec.S3)
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	job := &batchv1.Job{
-		ObjectMeta: objMeta,
+		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
 			BackoffLimit: &restore.Spec.BackoffLimit,
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: objMeta,
+				ObjectMeta: podMeta,
 				Spec: corev1.PodSpec{
 					RestartPolicy:    restore.Spec.RestartPolicy,
 					ImagePullSecrets: batchImagePullSecrets(mariadb, restore.Spec.ImagePullSecrets),
