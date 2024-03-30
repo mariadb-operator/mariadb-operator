@@ -184,7 +184,7 @@ func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariad
 			},
 		},
 		SelectorLabels: selectorLabels,
-		MariaDB:        mariadb,
+		Metadata:       mariadb.Spec.InheritMetadata,
 	}
 
 	desiredSvc, err := r.Builder.BuildService(key, mariadb, opts)
