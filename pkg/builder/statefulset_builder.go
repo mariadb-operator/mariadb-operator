@@ -52,7 +52,7 @@ const (
 func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithAnnotations(mariadbHAAnnotations(mariadb)).
 			Build()
 	selectorLabels :=
@@ -215,8 +215,8 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 
 	objMetaBuilder :=
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
-			WithMariaDB(mariadb).
 			WithAnnotations(mariadbHAAnnotations(mariadb)).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithMetadata(mariadb.Spec.PodMetadata).
 			WithMetadata(mariadbOpts.meta)
 

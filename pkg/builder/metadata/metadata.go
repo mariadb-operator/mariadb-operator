@@ -21,13 +21,6 @@ func NewMetadataBuilder(key types.NamespacedName) *MetadataBuilder {
 	}
 }
 
-func (b *MetadataBuilder) WithMariaDB(mdb *mariadbv1alpha1.MariaDB) *MetadataBuilder {
-	if mdb == nil {
-		return b
-	}
-	return b.WithMetadata(mdb.Spec.InheritMetadata)
-}
-
 func (b *MetadataBuilder) WithReleaseLabel(release string) *MetadataBuilder {
 	if release == "" {
 		return b

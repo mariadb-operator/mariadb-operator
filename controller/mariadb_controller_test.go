@@ -969,7 +969,7 @@ var _ = Describe("MariaDB Galera", func() {
 			listOpts := client.ListOptions{
 				LabelSelector: klabels.SelectorFromSet(
 					labels.NewLabelsBuilder().
-						WithMariaDB(&mdb).
+						WithMariaDBSelectorLabels(&mdb).
 						WithPVCRole(builder.StorageVolumeRole).
 						Build(),
 				),
@@ -1044,7 +1044,7 @@ func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
 		listOpts := &client.ListOptions{
 			LabelSelector: klabels.SelectorFromSet(
 				labels.NewLabelsBuilder().
-					WithMariaDB(mdb).
+					WithMariaDBSelectorLabels(mdb).
 					Build(),
 			),
 			Namespace: mdb.GetNamespace(),
