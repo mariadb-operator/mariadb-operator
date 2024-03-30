@@ -28,7 +28,7 @@ type ServiceOpts struct {
 	ExcludeSelectorLabels bool
 	Ports                 []corev1.ServicePort
 	Headless              bool
-	MariaDB               *mariadbv1alpha1.MariaDB
+	ExtraMeta             *mariadbv1alpha1.Metadata
 }
 
 func (b *Builder) BuildService(key types.NamespacedName, owner metav1.Object, opts ServiceOpts) (*corev1.Service, error) {
@@ -37,9 +37,8 @@ func (b *Builder) BuildService(key types.NamespacedName, owner metav1.Object, op
 	}
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(opts.MariaDB).
-			WithAnnotations(opts.Annotations).
-			WithLabels(opts.Labels).
+			WithMetadata(opts.ExtraMeta).
+			WithMetadata(opts.Metadata).
 			Build()
 	svc := &corev1.Service{
 		ObjectMeta: objMeta,

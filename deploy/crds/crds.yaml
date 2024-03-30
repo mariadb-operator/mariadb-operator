@@ -15542,19 +15542,9 @@ spec:
                       allocateLoadBalancerNodePorts:
                         description: AllocateLoadBalancerNodePorts Service field.
                         type: boolean
-                      annotations:
-                        additionalProperties:
-                          type: string
-                        description: Annotations to add to the Service metadata.
-                        type: object
                       externalTrafficPolicy:
                         description: ExternalTrafficPolicy Service field.
                         type: string
-                      labels:
-                        additionalProperties:
-                          type: string
-                        description: Labels to add to the Service metadata.
-                        type: object
                       loadBalancerIP:
                         description: LoadBalancerIP Service field.
                         type: string
@@ -15563,6 +15553,20 @@ spec:
                         items:
                           type: string
                         type: array
+                      metadata:
+                        description: Metadata to be added to the Service metadata.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Annotations to be added to children resources.
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: Labels to be added to children resources.
+                            type: object
+                        type: object
                       sessionAffinity:
                         description: SessionAffinity Service field.
                         type: string
@@ -26919,19 +26923,9 @@ spec:
                   allocateLoadBalancerNodePorts:
                     description: AllocateLoadBalancerNodePorts Service field.
                     type: boolean
-                  annotations:
-                    additionalProperties:
-                      type: string
-                    description: Annotations to add to the Service metadata.
-                    type: object
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
                     type: string
-                  labels:
-                    additionalProperties:
-                      type: string
-                    description: Labels to add to the Service metadata.
-                    type: object
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
                     type: string
@@ -26940,6 +26934,20 @@ spec:
                     items:
                       type: string
                     type: array
+                  metadata:
+                    description: Metadata to be added to the Service metadata.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations to be added to children resources.
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Labels to be added to children resources.
+                        type: object
+                    type: object
                   sessionAffinity:
                     description: SessionAffinity Service field.
                     type: string
@@ -27353,19 +27361,9 @@ spec:
                   allocateLoadBalancerNodePorts:
                     description: AllocateLoadBalancerNodePorts Service field.
                     type: boolean
-                  annotations:
-                    additionalProperties:
-                      type: string
-                    description: Annotations to add to the Service metadata.
-                    type: object
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
                     type: string
-                  labels:
-                    additionalProperties:
-                      type: string
-                    description: Labels to add to the Service metadata.
-                    type: object
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
                     type: string
@@ -27374,6 +27372,20 @@ spec:
                     items:
                       type: string
                     type: array
+                  metadata:
+                    description: Metadata to be added to the Service metadata.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations to be added to children resources.
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Labels to be added to children resources.
+                        type: object
+                    type: object
                   sessionAffinity:
                     description: SessionAffinity Service field.
                     type: string
@@ -27560,19 +27572,9 @@ spec:
                   allocateLoadBalancerNodePorts:
                     description: AllocateLoadBalancerNodePorts Service field.
                     type: boolean
-                  annotations:
-                    additionalProperties:
-                      type: string
-                    description: Annotations to add to the Service metadata.
-                    type: object
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
                     type: string
-                  labels:
-                    additionalProperties:
-                      type: string
-                    description: Labels to add to the Service metadata.
-                    type: object
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
                     type: string
@@ -27581,6 +27583,20 @@ spec:
                     items:
                       type: string
                     type: array
+                  metadata:
+                    description: Metadata to be added to the Service metadata.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations to be added to children resources.
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Labels to be added to children resources.
+                        type: object
+                    type: object
                   sessionAffinity:
                     description: SessionAffinity Service field.
                     type: string
@@ -33158,19 +33174,9 @@ spec:
                   allocateLoadBalancerNodePorts:
                     description: AllocateLoadBalancerNodePorts Service field.
                     type: boolean
-                  annotations:
-                    additionalProperties:
-                      type: string
-                    description: Annotations to add to the Service metadata.
-                    type: object
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
                     type: string
-                  labels:
-                    additionalProperties:
-                      type: string
-                    description: Labels to add to the Service metadata.
-                    type: object
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
                     type: string
@@ -33179,6 +33185,20 @@ spec:
                     items:
                       type: string
                     type: array
+                  metadata:
+                    description: Metadata to be added to the Service metadata.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations to be added to children resources.
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Labels to be added to children resources.
+                        type: object
+                    type: object
                   sessionAffinity:
                     description: SessionAffinity Service field.
                     type: string

@@ -34,8 +34,9 @@ spec:
 
     kubernetesService:
       type: LoadBalancer
-      annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.219
+      metadata:
+        annotations:
+          metallb.universe.tf/loadBalancerIPs: 172.18.0.219
 
     connection:
       secretName: mxs-repl-conn
@@ -60,8 +61,9 @@ spec:
 
   service:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
   connection:
     secretName: mariadb-repl-conn
     secretTemplate:
@@ -69,8 +71,9 @@ spec:
 
   primaryService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
   primaryConnection:
     secretName: mariadb-repl-conn-primary
     secretTemplate:
@@ -78,8 +81,9 @@ spec:
 
   secondaryService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
   secondaryConnection:
     secretName: mariadb-repl-conn-secondary
     secretTemplate:

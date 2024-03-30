@@ -138,8 +138,10 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 			Port: 3306,
 			Service: &mariadbv1alpha1.ServiceTemplate{
 				Type: corev1.ServiceTypeLoadBalancer,
-				Annotations: map[string]string{
-					"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.45",
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.45",
+					},
 				},
 			},
 			Metrics: &mariadbv1alpha1.MariadbMetrics{

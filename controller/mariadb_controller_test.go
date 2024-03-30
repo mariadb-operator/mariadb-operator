@@ -400,8 +400,10 @@ var _ = Describe("MariaDB replication", func() {
 					},
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
+							},
 						},
 					},
 					Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -415,8 +417,10 @@ var _ = Describe("MariaDB replication", func() {
 					},
 					PrimaryService: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
+							},
 						},
 					},
 					PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
@@ -430,8 +434,10 @@ var _ = Describe("MariaDB replication", func() {
 					},
 					SecondaryService: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
+							},
 						},
 					},
 					SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
@@ -701,8 +707,10 @@ var _ = Describe("MariaDB Galera", func() {
 					},
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
+							},
 						},
 					},
 					Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -713,8 +721,10 @@ var _ = Describe("MariaDB Galera", func() {
 					},
 					PrimaryService: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.160",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.160",
+							},
 						},
 					},
 					PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
@@ -725,8 +735,10 @@ var _ = Describe("MariaDB Galera", func() {
 					},
 					SecondaryService: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.161",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.161",
+							},
 						},
 					},
 					SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
@@ -922,8 +934,10 @@ var _ = Describe("MariaDB Galera", func() {
 					},
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
+							},
 						},
 					},
 				},

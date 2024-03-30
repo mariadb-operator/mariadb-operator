@@ -1488,21 +1488,24 @@ spec:
       - description: AllocateLoadBalancerNodePorts Service field.
         displayName: Allocate Load Balancer Node Ports
         path: maxScale.kubernetesService.allocateLoadBalancerNodePorts
-      - description: Annotations to add to the Service metadata.
-        displayName: Annotations
-        path: maxScale.kubernetesService.annotations
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: maxScale.kubernetesService.externalTrafficPolicy
-      - description: Labels to add to the Service metadata.
-        displayName: Labels
-        path: maxScale.kubernetesService.labels
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: maxScale.kubernetesService.loadBalancerIP
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: maxScale.kubernetesService.loadBalancerSourceRanges
+      - description: Metadata to be added to the Service metadata.
+        displayName: Metadata
+        path: maxScale.kubernetesService.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: maxScale.kubernetesService.metadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: maxScale.kubernetesService.metadata.labels
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: maxScale.kubernetesService.sessionAffinity
@@ -2146,21 +2149,24 @@ spec:
       - description: AllocateLoadBalancerNodePorts Service field.
         displayName: Allocate Load Balancer Node Ports
         path: primaryService.allocateLoadBalancerNodePorts
-      - description: Annotations to add to the Service metadata.
-        displayName: Annotations
-        path: primaryService.annotations
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: primaryService.externalTrafficPolicy
-      - description: Labels to add to the Service metadata.
-        displayName: Labels
-        path: primaryService.labels
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: primaryService.loadBalancerIP
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: primaryService.loadBalancerSourceRanges
+      - description: Metadata to be added to the Service metadata.
+        displayName: Metadata
+        path: primaryService.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: primaryService.metadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: primaryService.metadata.labels
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: primaryService.sessionAffinity
@@ -2327,21 +2333,24 @@ spec:
       - description: AllocateLoadBalancerNodePorts Service field.
         displayName: Allocate Load Balancer Node Ports
         path: secondaryService.allocateLoadBalancerNodePorts
-      - description: Annotations to add to the Service metadata.
-        displayName: Annotations
-        path: secondaryService.annotations
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: secondaryService.externalTrafficPolicy
-      - description: Labels to add to the Service metadata.
-        displayName: Labels
-        path: secondaryService.labels
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: secondaryService.loadBalancerIP
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: secondaryService.loadBalancerSourceRanges
+      - description: Metadata to be added to the Service metadata.
+        displayName: Metadata
+        path: secondaryService.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: secondaryService.metadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: secondaryService.metadata.labels
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: secondaryService.sessionAffinity
@@ -2359,21 +2368,24 @@ spec:
       - description: AllocateLoadBalancerNodePorts Service field.
         displayName: Allocate Load Balancer Node Ports
         path: service.allocateLoadBalancerNodePorts
-      - description: Annotations to add to the Service metadata.
-        displayName: Annotations
-        path: service.annotations
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: service.externalTrafficPolicy
-      - description: Labels to add to the Service metadata.
-        displayName: Labels
-        path: service.labels
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: service.loadBalancerIP
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: service.loadBalancerSourceRanges
+      - description: Metadata to be added to the Service metadata.
+        displayName: Metadata
+        path: service.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: service.metadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: service.metadata.labels
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: service.sessionAffinity
@@ -2845,21 +2857,24 @@ spec:
       - description: AllocateLoadBalancerNodePorts Service field.
         displayName: Allocate Load Balancer Node Ports
         path: kubernetesService.allocateLoadBalancerNodePorts
-      - description: Annotations to add to the Service metadata.
-        displayName: Annotations
-        path: kubernetesService.annotations
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: kubernetesService.externalTrafficPolicy
-      - description: Labels to add to the Service metadata.
-        displayName: Labels
-        path: kubernetesService.labels
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: kubernetesService.loadBalancerIP
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: kubernetesService.loadBalancerSourceRanges
+      - description: Metadata to be added to the Service metadata.
+        displayName: Metadata
+        path: kubernetesService.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: kubernetesService.metadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: kubernetesService.metadata.labels
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: kubernetesService.sessionAffinity

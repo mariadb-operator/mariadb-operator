@@ -1078,6 +1078,7 @@ _Appears in:_
 - [MaxScaleSpec](#maxscalespec)
 - [PodTemplate](#podtemplate)
 - [RestoreSpec](#restorespec)
+- [ServiceTemplate](#servicetemplate)
 - [SqlJobSpec](#sqljobspec)
 
 | Field | Description | Default | Validation |
@@ -1497,8 +1498,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `type` _[ServiceType](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#servicetype-v1-core)_ | Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`. | ClusterIP | Enum: [ClusterIP NodePort LoadBalancer] <br /> |
-| `labels` _object (keys:string, values:string)_ | Labels to add to the Service metadata. |  |  |
-| `annotations` _object (keys:string, values:string)_ | Annotations to add to the Service metadata. |  |  |
+| `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `loadBalancerIP` _string_ | LoadBalancerIP Service field. |  |  |
 | `loadBalancerSourceRanges` _string array_ | LoadBalancerSourceRanges Service field. |  |  |
 | `externalTrafficPolicy` _[ServiceExternalTrafficPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#serviceexternaltrafficpolicy-v1-core)_ | ExternalTrafficPolicy Service field. |  |  |
