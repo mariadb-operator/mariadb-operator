@@ -605,6 +605,7 @@ func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mari
 		return nil
 	}
 	connOpts := builder.ConnectionOpts{
+		Metadata:             mariadb.Spec.InheritMetadata,
 		MariaDB:              mariadb,
 		Key:                  key,
 		Username:             *mariadb.Spec.Username,
@@ -639,6 +640,7 @@ func (r *MariaDBReconciler) reconcileConnectionTemplate(ctx context.Context, key
 		return nil
 	}
 	connOpts := builder.ConnectionOpts{
+		Metadata:             mariadb.Spec.InheritMetadata,
 		MariaDB:              mariadb,
 		Key:                  key,
 		Username:             *mariadb.Spec.Username,
