@@ -485,12 +485,13 @@ func (r *MaxScaleReconciler) reconcilePDBWithAvailability(ctx context.Context, m
 			WithMaxScaleSelectorLabels(maxscale).
 			Build()
 	opts := builder.PodDisruptionBudgetOpts{
+		Metadata:       nil,
 		Key:            key,
 		MinAvailable:   minAvailable,
 		MaxUnavailable: maxUnavailable,
 		SelectorLabels: selectorLabels,
 	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, maxscale)
+	pdb, err := r.Builder.BuildPodDisruptionBudget(opts, maxscale)
 	if err != nil {
 		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
 	}

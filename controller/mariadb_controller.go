@@ -411,13 +411,13 @@ func (r *MariaDBReconciler) reconcileDefaultPDB(ctx context.Context, mariadb *ma
 			WithMariaDB(mariadb).
 			Build()
 	opts := builder.PodDisruptionBudgetOpts{
-		MariaDB:        mariadb,
+		Metadata:       mariadb.Spec.InheritMetadata,
 		Key:            key,
 		MinAvailable:   mariadb.Spec.PodDisruptionBudget.MinAvailable,
 		MaxUnavailable: mariadb.Spec.PodDisruptionBudget.MaxUnavailable,
 		SelectorLabels: selectorLabels,
 	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
+	pdb, err := r.Builder.BuildPodDisruptionBudget(opts, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
 	}
@@ -437,12 +437,12 @@ func (r *MariaDBReconciler) reconcileHighAvailabilityPDB(ctx context.Context, ma
 			Build()
 	minAvailable := intstr.FromString("50%")
 	opts := builder.PodDisruptionBudgetOpts{
-		MariaDB:        mariadb,
+		Metadata:       mariadb.Spec.InheritMetadata,
 		Key:            key,
 		MinAvailable:   &minAvailable,
 		SelectorLabels: selectorLabels,
 	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(&opts, mariadb)
+	pdb, err := r.Builder.BuildPodDisruptionBudget(opts, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
 	}

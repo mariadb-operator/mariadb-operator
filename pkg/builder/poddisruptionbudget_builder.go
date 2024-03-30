@@ -13,17 +13,17 @@ import (
 )
 
 type PodDisruptionBudgetOpts struct {
-	MariaDB        *mariadbv1alpha1.MariaDB
+	Metadata       *mariadbv1alpha1.Metadata
 	Key            types.NamespacedName
 	MinAvailable   *intstr.IntOrString
 	MaxUnavailable *intstr.IntOrString
 	SelectorLabels map[string]string
 }
 
-func (b *Builder) BuildPodDisruptionBudget(opts *PodDisruptionBudgetOpts, owner metav1.Object) (*policyv1.PodDisruptionBudget, error) {
+func (b *Builder) BuildPodDisruptionBudget(opts PodDisruptionBudgetOpts, owner metav1.Object) (*policyv1.PodDisruptionBudget, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(opts.Key).
-			WithMariaDB(opts.MariaDB).
+			WithMetadata(opts.Metadata).
 			Build()
 	pdb := &policyv1.PodDisruptionBudget{
 		ObjectMeta: objMeta,
