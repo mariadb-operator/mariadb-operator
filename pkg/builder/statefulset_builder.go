@@ -60,13 +60,7 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
 
-	podTemplate, err := b.mariadbPodTemplate(
-		mariadb,
-		withMeta(
-			&mariadbv1alpha1.Metadata{
-				Labels: selectorLabels,
-			},
-		))
+	podTemplate, err := b.mariadbPodTemplate(mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building pod template: %v", err)
 	}
@@ -211,9 +205,14 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 	}
 	mariadbOpts := newMariadbOpts(opts...)
 
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDBSelectorLabels(mariadb).
+			Build()
 	objMeta :=
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
 			WithMariaDB(mariadb).
+			WithLabels(selectorLabels).
 			WithAnnotations(mariadbHAAnnotations(mariadb)).
 			WithMetadata(mariadb.Spec.PodMetadata).
 			WithMetadata(mariadbOpts.meta).
