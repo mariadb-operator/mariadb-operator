@@ -15,7 +15,7 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 	mdbmxs *mariadbv1alpha1.MariaDBMaxScaleSpec) (*mariadbv1alpha1.MaxScale, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mdb).
+			WithMetadata(mdb.Spec.InheritMetadata).
 			Build()
 	mxs := mariadbv1alpha1.MaxScale{
 		ObjectMeta: objMeta,
