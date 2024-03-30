@@ -430,6 +430,16 @@ type Metadata struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
+// Add appends other metadata object to the current one.
+func (m Metadata) Add(other Metadata) {
+	for k, v := range other.Labels {
+		m.Labels[k] = v
+	}
+	for k, v := range other.Annotations {
+		m.Annotations[k] = v
+	}
+}
+
 // RestoreSource defines a source for restoring a MariaDB.
 type RestoreSource struct {
 	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.

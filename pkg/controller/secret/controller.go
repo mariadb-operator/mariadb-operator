@@ -54,8 +54,8 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, req *Ran
 	}
 
 	opts := builder.SecretOpts{
-		MariaDB: req.Mariadb,
-		Key:     req.Key,
+		Metadata: req.Mariadb.Spec.InheritMetadata,
+		Key:      req.Key,
 		Data: map[string][]byte{
 			req.SecretKey: []byte(password),
 		},
@@ -83,7 +83,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) er
 	if err == nil {
 		return nil
 	}
-	if err != nil && !apierrors.IsNotFound(err) {
+	if !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error getting ConfigMap: %v", err)
 	}
 

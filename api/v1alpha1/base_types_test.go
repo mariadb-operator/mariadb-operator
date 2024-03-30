@@ -222,4 +222,76 @@ var _ = Describe("Base types", func() {
 			),
 		)
 	})
+
+	Context("When creating a Metadata object", func() {
+		DescribeTable(
+			"Should add",
+			func(meta Metadata, others []Metadata, wantMeta Metadata) {
+				for _, o := range others {
+					meta.Add(o)
+				}
+				Expect(meta).To(BeEquivalentTo(wantMeta))
+			},
+			Entry(
+				"Empty",
+				Metadata{},
+				[]Metadata{},
+				Metadata{},
+			),
+			Entry(
+				"Add one",
+				Metadata{
+					Labels: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+				[]Metadata{},
+				Metadata{
+					Labels: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+			),
+			Entry(
+				"Add multiple",
+				Metadata{
+					Labels: map[string]string{},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+				[]Metadata{
+					{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "true",
+						},
+						Annotations: map[string]string{},
+					},
+				},
+				Metadata{
+					Labels: map[string]string{
+						"database.myorg.io":       "mariadb",
+						"sidecar.istio.io/inject": "true",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+			),
+		)
+	})
 })

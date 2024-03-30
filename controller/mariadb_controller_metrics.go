@@ -146,8 +146,8 @@ password={{ .Password }}`)
 	}
 
 	secretOpts := builder.SecretOpts{
-		MariaDB: mariadb,
-		Key:     key,
+		Metadata: mariadb.Spec.InheritMetadata,
+		Key:      key,
 		Data: map[string][]byte{
 			secretKeyRef.Key: buf.Bytes(),
 		},
