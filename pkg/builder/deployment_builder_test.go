@@ -252,3 +252,63 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 		})
 	}
 }
+
+func TestExporterDeploymentMeta(t *testing.T) {
+	builder := newTestBuilder()
+	tests := []struct {
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		wantMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "no meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deploy, err := builder.BuildExporterDeployment(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building exporter Deployment: %v", err)
+			}
+			assertMeta(t, &deploy.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+		})
+	}
+}
