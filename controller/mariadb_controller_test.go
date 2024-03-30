@@ -79,7 +79,7 @@ var _ = Describe("MariaDB controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to create a ConfigMap eventually")
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				var cm corev1.ConfigMap
 				key := types.NamespacedName{
 					Name:      testMariaDb.MyCnfConfigMapKeyRef().Name,
@@ -88,45 +88,49 @@ var _ = Describe("MariaDB controller", func() {
 				if err := k8sClient.Get(testCtx, key, &cm); err != nil {
 					return false
 				}
-				Expect(cm.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(cm.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-				Expect(cm.ObjectMeta.Annotations).NotTo(BeNil())
-				Expect(cm.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(cm.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(cm.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(cm.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(cm.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to create a StatefulSet eventually")
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				var sts appsv1.StatefulSet
 				if err := k8sClient.Get(testCtx, testMdbkey, &sts); err != nil {
 					return false
 				}
-				Expect(sts.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(sts.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(sts.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(sts.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(sts.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(sts.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting to create a Service eventually")
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				var svc corev1.Service
 				if err := k8sClient.Get(testCtx, testMdbkey, &svc); err != nil {
 					return false
 				}
-				Expect(svc.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(svc.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-				Expect(svc.ObjectMeta.Annotations).NotTo(BeNil())
-				Expect(svc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(svc.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(svc.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(svc.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(svc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting Connection to be ready eventually")
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				var conn mariadbv1alpha1.Connection
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDb), &conn); err != nil {
 					return false
 				}
-				Expect(conn.ObjectMeta.Labels).NotTo(BeNil())
-				Expect(conn.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(conn.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(conn.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(conn.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(conn.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
@@ -161,6 +165,12 @@ var _ = Describe("MariaDB controller", func() {
 					Fields{
 						"Image": Equal(expectedImage),
 					})))
+
+				g.Expect(deploy.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(deploy.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(deploy.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(deploy.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+
 				return deploymentReady(&deploy)
 			}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
 
@@ -170,6 +180,12 @@ var _ = Describe("MariaDB controller", func() {
 				if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &svcMonitor); err != nil {
 					return false
 				}
+
+				g.Expect(svcMonitor.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(svcMonitor.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(svcMonitor.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(svcMonitor.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+
 				g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
 				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
 				g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDb.MetricsKey().Name))
