@@ -22,7 +22,7 @@ func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB) (*monito
 	metrics := ptr.Deref(mariadb.Spec.Metrics, mariadbv1alpha1.MariadbMetrics{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithReleaseLabel(metrics.ServiceMonitor.PrometheusRelease).
 			Build()
 	selectorLabels :=
