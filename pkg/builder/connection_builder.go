@@ -12,6 +12,7 @@ import (
 )
 
 type ConnectionOpts struct {
+	Metadata             *mariadbv1alpha1.Metadata
 	MariaDB              *mariadbv1alpha1.MariaDB
 	MaxScale             *mariadbv1alpha1.MaxScale
 	Key                  types.NamespacedName
@@ -24,7 +25,7 @@ type ConnectionOpts struct {
 func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*mariadbv1alpha1.Connection, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(opts.Key).
-			WithMariaDB(opts.MariaDB).
+			WithMetadata(opts.Metadata).
 			Build()
 	conn := &mariadbv1alpha1.Connection{
 		ObjectMeta: objMeta,

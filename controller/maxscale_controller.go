@@ -1219,6 +1219,7 @@ func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *reque
 	}
 
 	connOpts := builder.ConnectionOpts{
+		Metadata:             nil,
 		MaxScale:             req.mxs,
 		Key:                  key,
 		Username:             req.mxs.Spec.Auth.ClientUsername,
