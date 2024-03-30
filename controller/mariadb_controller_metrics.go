@@ -95,7 +95,7 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 		Name:                 mariadb.Spec.Metrics.Username,
 		PasswordSecretKeyRef: mariadb.Spec.Metrics.PasswordSecretKeyRef,
 		MaxUserConnections:   3,
-		MariaDB:              mariadb,
+		Metadata:             mariadb.Spec.InheritMetadata,
 		MariaDBRef:           ref,
 	}
 	grantOpts := auth.GrantOpts{
@@ -105,7 +105,7 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 			Table:       "*",
 			Username:    mariadb.Spec.Metrics.Username,
 			GrantOption: false,
-			MariaDB:     mariadb,
+			Metadata:    mariadb.Spec.InheritMetadata,
 			MariaDBRef:  ref,
 		},
 		Key: key,
