@@ -138,7 +138,10 @@ func TestMariadbPodMeta(t *testing.T) {
 			},
 			extraMeta: &mariadbv1alpha1.Metadata{},
 			wantMeta: &mariadbv1alpha1.Metadata{
-				Labels:      map[string]string{},
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+				},
 				Annotations: map[string]string{},
 			},
 		},
@@ -149,7 +152,9 @@ func TestMariadbPodMeta(t *testing.T) {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
-							"sidecar.istio.io/inject": "false",
+							"app.kubernetes.io/name":     "mariadb",
+							"app.kubernetes.io/instance": "mariadb-obj",
+							"sidecar.istio.io/inject":    "false",
 						},
 						Annotations: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -160,7 +165,9 @@ func TestMariadbPodMeta(t *testing.T) {
 			extraMeta: &mariadbv1alpha1.Metadata{},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"sidecar.istio.io/inject": "false",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"sidecar.istio.io/inject":    "false",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -179,7 +186,10 @@ func TestMariadbPodMeta(t *testing.T) {
 			},
 			extraMeta: &mariadbv1alpha1.Metadata{},
 			wantMeta: &mariadbv1alpha1.Metadata{
-				Labels: map[string]string{},
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+				},
 				Annotations: map[string]string{
 					"k8s.mariadb.com/mariadb": "mariadb-obj",
 					"k8s.mariadb.com/galera":  "",
@@ -206,7 +216,9 @@ func TestMariadbPodMeta(t *testing.T) {
 			extraMeta: &mariadbv1alpha1.Metadata{},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"sidecar.istio.io/inject": "false",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"sidecar.istio.io/inject":    "false",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -228,7 +240,9 @@ func TestMariadbPodMeta(t *testing.T) {
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"sidecar.istio.io/inject": "false",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"sidecar.istio.io/inject":    "false",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -257,7 +271,9 @@ func TestMariadbPodMeta(t *testing.T) {
 			extraMeta: &mariadbv1alpha1.Metadata{},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"sidecar.istio.io/inject": "false",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"sidecar.istio.io/inject":    "false",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -285,7 +301,9 @@ func TestMariadbPodMeta(t *testing.T) {
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"sidecar.istio.io/inject": "true",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"sidecar.istio.io/inject":    "true",
 				},
 				Annotations: map[string]string{},
 			},
@@ -319,7 +337,9 @@ func TestMariadbPodMeta(t *testing.T) {
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"sidecar.istio.io/inject": "false",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"sidecar.istio.io/inject":    "false",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io":       "mariadb",
