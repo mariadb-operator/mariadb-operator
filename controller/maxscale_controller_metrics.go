@@ -46,7 +46,7 @@ func (r *MaxScaleReconciler) reconcileMetrics(ctx context.Context, req *requestM
 	if err := r.reconcileExporterDeployment(ctx, req.mxs, mdb); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.reconcileExporterService(ctx, req.mxs, mdb); err != nil {
+	if err := r.reconcileExporterService(ctx, req.mxs); err != nil {
 		return ctrl.Result{}, err
 	}
 	if err := r.reconcileServiceMonitor(ctx, req.mxs, mdb); err != nil {
@@ -109,8 +109,7 @@ func (r *MaxScaleReconciler) reconcileExporterDeployment(ctx context.Context, mx
 	return r.DeploymentReconciler.Reconcile(ctx, desiredDeploy)
 }
 
-func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
 	key := mxs.MetricsKey()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
@@ -118,7 +117,9 @@ func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *
 			Build()
 	opts := builder.ServiceOpts{
 		ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
-			Labels: selectorLabels,
+			Metadata: &mariadbv1alpha1.Metadata{
+				Labels: selectorLabels,
+			},
 		},
 		Ports: []corev1.ServicePort{
 			{
@@ -127,7 +128,7 @@ func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *
 			},
 		},
 		SelectorLabels: selectorLabels,
-		MariaDB:        mariadb,
+		ExtraMeta:      nil,
 	}
 
 	desiredSvc, err := r.Builder.BuildService(key, mxs, opts)

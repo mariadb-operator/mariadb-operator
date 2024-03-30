@@ -430,8 +430,10 @@ var _ = Describe("MaxScale webhook", func() {
 					},
 					KubernetesService: &ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": "172.18.0.214",
+						Metadata: &Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": "172.18.0.214",
+							},
 						},
 					},
 				},

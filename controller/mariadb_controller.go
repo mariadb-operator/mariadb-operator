@@ -463,7 +463,7 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 			},
 		},
 		SelectorLabels: selectorLabels,
-		MariaDB:        mariadb,
+		ExtraMeta:      mariadb.Spec.InheritMetadata,
 	}
 	if mariadb.Spec.Service != nil {
 		opts.ServiceTemplate = *mariadb.Spec.Service
@@ -513,7 +513,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 		Ports:          ports,
 		Headless:       true,
 		SelectorLabels: selectorLabels,
-		MariaDB:        mariadb,
+		ExtraMeta:      mariadb.Spec.InheritMetadata,
 	}
 	desiredSvc, err := r.Builder.BuildService(key, mariadb, opts)
 	if err != nil {
@@ -541,7 +541,7 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 			},
 		},
 		SelectorLabels: serviceLabels,
-		MariaDB:        mariadb,
+		ExtraMeta:      mariadb.Spec.InheritMetadata,
 	}
 	if mariadb.Spec.PrimaryService != nil {
 		opts.ServiceTemplate = *mariadb.Spec.PrimaryService
@@ -569,7 +569,7 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 			},
 		},
 		SelectorLabels: selectorLabels,
-		MariaDB:        mariadb,
+		ExtraMeta:      mariadb.Spec.InheritMetadata,
 	}
 	if mariadb.Spec.SecondaryService != nil {
 		opts.ServiceTemplate = *mariadb.Spec.SecondaryService
