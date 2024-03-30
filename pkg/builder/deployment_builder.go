@@ -32,7 +32,7 @@ func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB) (*ap
 	config := mariadb.MetricsConfigSecretKeyRef()
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
@@ -82,7 +82,7 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 	config := mxs.MetricsConfigSecretKeyRef()
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(nil).
 			Build()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
