@@ -30,7 +30,7 @@ func (b *Builder) BuildServiceAccount(key types.NamespacedName, owner metav1.Obj
 func (b *Builder) BuildRole(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB, rules []rbacv1.PolicyRule) (*rbacv1.Role, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	r := &rbacv1.Role{
 		ObjectMeta: objMeta,
@@ -46,7 +46,7 @@ func (b *Builder) BuildRoleBinding(key types.NamespacedName, mariadb *mariadbv1a
 	roleRef rbacv1.RoleRef) (*rbacv1.RoleBinding, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	rb := &rbacv1.RoleBinding{
 		ObjectMeta: objMeta,
@@ -70,7 +70,7 @@ func (b *Builder) BuildClusterRoleBinding(key types.NamespacedName, mariadb *mar
 	roleRef rbacv1.RoleRef) (*rbacv1.ClusterRoleBinding, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	rb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: objMeta,
