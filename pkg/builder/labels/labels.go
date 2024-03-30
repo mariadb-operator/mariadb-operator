@@ -54,11 +54,8 @@ func (b *LabelsBuilder) WithLabels(labels map[string]string) *LabelsBuilder {
 }
 
 func (b *LabelsBuilder) WithMariaDBSelectorLabels(mdb *mariadbv1alpha1.MariaDB) *LabelsBuilder {
-	b = b.WithMariaDB(mdb)
-	if mdb.Spec.InheritMetadata != nil {
-		b = b.WithLabels(mdb.Spec.InheritMetadata.Labels)
-	}
-	return b
+	return b.WithApp(appMariaDb).
+		WithInstance(mdb.Name)
 }
 
 func (b *LabelsBuilder) WithMetricsSelectorLabels(metricsKey types.NamespacedName) *LabelsBuilder {

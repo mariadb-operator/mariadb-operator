@@ -31,12 +31,12 @@ func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1
 	}
 	labels := labels.NewLabelsBuilder().
 		WithLabels(tpl.Labels).
-		WithMariaDB(mariadb).
+		WithMariaDBSelectorLabels(mariadb).
 		WithPVCRole(StorageVolumeRole).
 		Build()
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithLabels(labels).
 			WithAnnotations(tpl.Annotations).
 			Build()
