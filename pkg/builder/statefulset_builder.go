@@ -119,22 +119,24 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 }
 
 type mariadbOpts struct {
-	meta              *mariadbv1alpha1.Metadata
-	command           []string
-	args              []string
-	restartPolicy     *corev1.RestartPolicy
-	extraVolumes      []corev1.Volume
-	extraVolumeMounts []corev1.VolumeMount
-	includeGalera     bool
-	includePorts      bool
-	includeProbes     bool
+	meta                  *mariadbv1alpha1.Metadata
+	command               []string
+	args                  []string
+	restartPolicy         *corev1.RestartPolicy
+	extraVolumes          []corev1.Volume
+	extraVolumeMounts     []corev1.VolumeMount
+	includeGalera         bool
+	includePorts          bool
+	includeProbes         bool
+	includeSelectorLabels bool
 }
 
 func newMariadbOpts(userOpts ...mariadbOpt) *mariadbOpts {
 	opts := &mariadbOpts{
-		includeGalera: true,
-		includePorts:  true,
-		includeProbes: true,
+		includeGalera:         true,
+		includePorts:          true,
+		includeProbes:         true,
+		includeSelectorLabels: true,
 	}
 	for _, setOpt := range userOpts {
 		setOpt(opts)
@@ -198,6 +200,12 @@ func withProbes(includeProbes bool) mariadbOpt {
 	}
 }
 
+func withMariadbSelectorLabels(includeSelectorLabels bool) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.includeSelectorLabels = includeSelectorLabels
+	}
+}
+
 func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) (*corev1.PodTemplateSpec, error) {
 	containers, err := b.mariadbContainers(mariadb, opts...)
 	if err != nil {
@@ -205,18 +213,22 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 	}
 	mariadbOpts := newMariadbOpts(opts...)
 
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDBSelectorLabels(mariadb).
-			Build()
-	objMeta :=
+	objMetaBuilder :=
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
 			WithMariaDB(mariadb).
-			WithLabels(selectorLabels).
 			WithAnnotations(mariadbHAAnnotations(mariadb)).
 			WithMetadata(mariadb.Spec.PodMetadata).
-			WithMetadata(mariadbOpts.meta).
-			Build()
+			WithMetadata(mariadbOpts.meta)
+
+	if mariadbOpts.includeSelectorLabels {
+		selectorLabels :=
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mariadb).
+				Build()
+		objMetaBuilder = objMetaBuilder.WithLabels(selectorLabels)
+	}
+
+	objMeta := objMetaBuilder.Build()
 
 	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 	return &corev1.PodTemplateSpec{

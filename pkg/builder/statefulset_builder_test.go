@@ -126,17 +126,17 @@ func TestMariadbPodMeta(t *testing.T) {
 		Name: "mariadb-obj",
 	}
 	tests := []struct {
-		name      string
-		mariadb   *mariadbv1alpha1.MariaDB
-		extraMeta *mariadbv1alpha1.Metadata
-		wantMeta  *mariadbv1alpha1.Metadata
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		opts     []mariadbOpt
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 			},
-			extraMeta: &mariadbv1alpha1.Metadata{},
+			opts: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
@@ -162,7 +162,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			extraMeta: &mariadbv1alpha1.Metadata{},
+			opts: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
@@ -184,7 +184,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			extraMeta: &mariadbv1alpha1.Metadata{},
+			opts: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
@@ -213,7 +213,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			extraMeta: &mariadbv1alpha1.Metadata{},
+			opts: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
@@ -230,13 +230,15 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 			},
-			extraMeta: &mariadbv1alpha1.Metadata{
-				Labels: map[string]string{
-					"sidecar.istio.io/inject": "false",
-				},
-				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
-				},
+			opts: []mariadbOpt{
+				withMeta(&mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				}),
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
@@ -268,7 +270,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			extraMeta: &mariadbv1alpha1.Metadata{},
+			opts: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
@@ -294,16 +296,42 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			extraMeta: &mariadbv1alpha1.Metadata{
-				Labels: map[string]string{
-					"sidecar.istio.io/inject": "true",
-				},
+			opts: []mariadbOpt{
+				withMeta(&mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "true",
+					},
+				}),
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
 					"sidecar.istio.io/inject":    "true",
+				},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "without selector labels",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+				},
+			},
+			opts: []mariadbOpt{
+				withMariadbSelectorLabels(false),
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{},
 			},
@@ -330,10 +358,12 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			extraMeta: &mariadbv1alpha1.Metadata{
-				Annotations: map[string]string{
-					"sidecar.istio.io/inject": "false",
-				},
+			opts: []mariadbOpt{
+				withMeta(&mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+				}),
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
@@ -353,12 +383,7 @@ func TestMariadbPodMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var opts []mariadbOpt
-			if tt.extraMeta != nil {
-				opts = append(opts, withMeta(tt.extraMeta))
-			}
-
-			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, opts...)
+			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
 			if err != nil {
 				t.Fatalf("unexpected error building Pod template: %v", err)
 			}
