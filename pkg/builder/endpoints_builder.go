@@ -14,7 +14,7 @@ func (b *Builder) BuildEndpoints(key types.NamespacedName, mariadb *mariadbv1alp
 	subsets []corev1.EndpointSubset) (*corev1.Endpoints, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	endpoints := &corev1.Endpoints{
 		ObjectMeta: objMeta,
