@@ -274,6 +274,7 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 		withGalera(false),
 		withPorts(false),
 		withProbes(false),
+		withMariadbSelectorLabels(false),
 	)
 	if err != nil {
 		return nil, err

@@ -956,10 +956,7 @@ func TestInitJobMeta(t *testing.T) {
 				Annotations: map[string]string{},
 			},
 			wantPodMeta: &mariadbv1alpha1.Metadata{
-				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-				},
+				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
 		},
@@ -989,9 +986,7 @@ func TestInitJobMeta(t *testing.T) {
 			},
 			wantPodMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"sidecar.istio.io/inject":    "false",
+					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -1021,9 +1016,7 @@ func TestInitJobMeta(t *testing.T) {
 			},
 			wantPodMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"sidecar.istio.io/inject":    "false",
+					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -1054,9 +1047,7 @@ func TestInitJobMeta(t *testing.T) {
 			},
 			wantPodMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"sidecar.istio.io/inject":    "false",
+					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -1093,9 +1084,7 @@ func TestInitJobMeta(t *testing.T) {
 			},
 			wantPodMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"sidecar.istio.io/inject":    "true",
+					"sidecar.istio.io/inject": "true",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -1135,9 +1124,7 @@ func TestInitJobMeta(t *testing.T) {
 			},
 			wantPodMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"sidecar.istio.io/inject":    "false",
+					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io":       "mariadb",
