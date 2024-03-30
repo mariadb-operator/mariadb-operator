@@ -15,14 +15,14 @@ type UserOpts struct {
 	Name                 string
 	PasswordSecretKeyRef v1.SecretKeySelector
 	MaxUserConnections   int32
-	MariaDB              *mariadbv1alpha1.MariaDB
+	Metadata             *mariadbv1alpha1.Metadata
 	MariaDBRef           mariadbv1alpha1.MariaDBRef
 }
 
 func (b *Builder) BuildUser(key types.NamespacedName, owner metav1.Object, opts UserOpts) (*mariadbv1alpha1.User, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(opts.MariaDB).
+			WithMetadata(opts.Metadata).
 			Build()
 	user := &mariadbv1alpha1.User{
 		ObjectMeta: objMeta,
@@ -48,14 +48,14 @@ type GrantOpts struct {
 	Username    string
 	Host        string
 	GrantOption bool
-	MariaDB     *mariadbv1alpha1.MariaDB
+	Metadata    *mariadbv1alpha1.Metadata
 	MariaDBRef  mariadbv1alpha1.MariaDBRef
 }
 
 func (b *Builder) BuildGrant(key types.NamespacedName, owner metav1.Object, opts GrantOpts) (*mariadbv1alpha1.Grant, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(opts.MariaDB).
+			WithMetadata(opts.Metadata).
 			Build()
 	grant := &mariadbv1alpha1.Grant{
 		ObjectMeta: objMeta,
