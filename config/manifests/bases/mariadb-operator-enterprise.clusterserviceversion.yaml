@@ -608,9 +608,6 @@ spec:
       - description: SecretTemplate to be used in the Connection.
         displayName: Secret Template
         path: secretTemplate
-      - description: Annotations to be added to the Secret object.
-        displayName: Annotations
-        path: secretTemplate.annotations
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: secretTemplate.databaseKey
@@ -623,9 +620,15 @@ spec:
       - description: Key to be used in the Secret.
         displayName: Key
         path: secretTemplate.key
-      - description: Labels to be added to the Secret object.
+      - description: Metadata to be added to the Secret object.
+        displayName: Metadata
+        path: secretTemplate.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: secretTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: secretTemplate.labels
+        path: secretTemplate.metadata.labels
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: secretTemplate.passwordKey
@@ -919,9 +922,6 @@ spec:
       - description: SecretTemplate to be used in the Connection.
         displayName: Secret Template
         path: connection.secretTemplate
-      - description: Annotations to be added to the Secret object.
-        displayName: Annotations
-        path: connection.secretTemplate.annotations
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: connection.secretTemplate.databaseKey
@@ -934,9 +934,15 @@ spec:
       - description: Key to be used in the Secret.
         displayName: Key
         path: connection.secretTemplate.key
-      - description: Labels to be added to the Secret object.
+      - description: Metadata to be added to the Secret object.
+        displayName: Metadata
+        path: connection.secretTemplate.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: connection.secretTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: connection.secretTemplate.labels
+        path: connection.secretTemplate.metadata.labels
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: connection.secretTemplate.passwordKey
@@ -1432,9 +1438,6 @@ spec:
       - description: SecretTemplate to be used in the Connection.
         displayName: Secret Template
         path: maxScale.connection.secretTemplate
-      - description: Annotations to be added to the Secret object.
-        displayName: Annotations
-        path: maxScale.connection.secretTemplate.annotations
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: maxScale.connection.secretTemplate.databaseKey
@@ -1447,9 +1450,15 @@ spec:
       - description: Key to be used in the Secret.
         displayName: Key
         path: maxScale.connection.secretTemplate.key
-      - description: Labels to be added to the Secret object.
+      - description: Metadata to be added to the Secret object.
+        displayName: Metadata
+        path: maxScale.connection.secretTemplate.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: maxScale.connection.secretTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: maxScale.connection.secretTemplate.labels
+        path: maxScale.connection.secretTemplate.metadata.labels
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: maxScale.connection.secretTemplate.passwordKey
@@ -2112,9 +2121,6 @@ spec:
       - description: SecretTemplate to be used in the Connection.
         displayName: Secret Template
         path: primaryConnection.secretTemplate
-      - description: Annotations to be added to the Secret object.
-        displayName: Annotations
-        path: primaryConnection.secretTemplate.annotations
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: primaryConnection.secretTemplate.databaseKey
@@ -2127,9 +2133,15 @@ spec:
       - description: Key to be used in the Secret.
         displayName: Key
         path: primaryConnection.secretTemplate.key
-      - description: Labels to be added to the Secret object.
+      - description: Metadata to be added to the Secret object.
+        displayName: Metadata
+        path: primaryConnection.secretTemplate.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: primaryConnection.secretTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: primaryConnection.secretTemplate.labels
+        path: primaryConnection.secretTemplate.metadata.labels
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: primaryConnection.secretTemplate.passwordKey
@@ -2296,9 +2308,6 @@ spec:
       - description: SecretTemplate to be used in the Connection.
         displayName: Secret Template
         path: secondaryConnection.secretTemplate
-      - description: Annotations to be added to the Secret object.
-        displayName: Annotations
-        path: secondaryConnection.secretTemplate.annotations
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: secondaryConnection.secretTemplate.databaseKey
@@ -2311,9 +2320,15 @@ spec:
       - description: Key to be used in the Secret.
         displayName: Key
         path: secondaryConnection.secretTemplate.key
-      - description: Labels to be added to the Secret object.
+      - description: Metadata to be added to the Secret object.
+        displayName: Metadata
+        path: secondaryConnection.secretTemplate.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: secondaryConnection.secretTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: secondaryConnection.secretTemplate.labels
+        path: secondaryConnection.secretTemplate.metadata.labels
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: secondaryConnection.secretTemplate.passwordKey
@@ -2750,9 +2765,6 @@ spec:
       - description: SecretTemplate to be used in the Connection.
         displayName: Secret Template
         path: connection.secretTemplate
-      - description: Annotations to be added to the Secret object.
-        displayName: Annotations
-        path: connection.secretTemplate.annotations
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: connection.secretTemplate.databaseKey
@@ -2765,9 +2777,15 @@ spec:
       - description: Key to be used in the Secret.
         displayName: Key
         path: connection.secretTemplate.key
-      - description: Labels to be added to the Secret object.
+      - description: Metadata to be added to the Secret object.
+        displayName: Metadata
+        path: connection.secretTemplate.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: connection.secretTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: connection.secretTemplate.labels
+        path: connection.secretTemplate.metadata.labels
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: connection.secretTemplate.passwordKey

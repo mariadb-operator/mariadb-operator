@@ -52,8 +52,10 @@ var _ = Describe("Connection controller", func() {
 						ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
 							SecretName: func() *string { t := "conn-test"; return &t }(),
 							SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-								Labels: map[string]string{
-									"foo": "bar",
+								Metadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"foo": "bar",
+									},
 								},
 								Key: func() *string { k := "dsn"; return &k }(),
 							},
@@ -94,8 +96,10 @@ var _ = Describe("Connection controller", func() {
 						ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
 							SecretName: func() *string { t := "conn-test-pod-0"; return &t }(),
 							SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-								Labels: map[string]string{
-									"foo": "bar",
+								Metadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"foo": "bar",
+									},
 								},
 								Key: func() *string { k := "dsn"; return &k }(),
 							},
@@ -137,8 +141,10 @@ var _ = Describe("Connection controller", func() {
 						ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
 							SecretName: func() *string { t := "conn-test-custom-dsn"; return &t }(),
 							SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-								Labels: map[string]string{
-									"foo": "bar",
+								Metadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"foo": "bar",
+									},
 								},
 								Key: func() *string { k := "dsn"; return &k }(),
 								Format: func() *string {

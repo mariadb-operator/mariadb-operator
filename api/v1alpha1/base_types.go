@@ -39,14 +39,10 @@ type MariaDBRef struct {
 
 // SecretTemplate defines a template to customize Secret objects.
 type SecretTemplate struct {
-	// Labels to be added to the Secret object.
+	// Metadata to be added to the Secret object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Labels map[string]string `json:"labels,omitempty"`
-	// Annotations to be added to the Secret object.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Metadata *Metadata `json:"metadata,omitempty"`
 	// Key to be used in the Secret.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

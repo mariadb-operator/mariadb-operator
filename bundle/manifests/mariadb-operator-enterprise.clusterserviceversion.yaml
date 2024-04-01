@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-01T10:52:58Z"
+    createdAt: "2024-04-01T16:44:08Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -703,9 +703,6 @@ spec:
           - description: SecretTemplate to be used in the Connection.
             displayName: Secret Template
             path: secretTemplate
-          - description: Annotations to be added to the Secret object.
-            displayName: Annotations
-            path: secretTemplate.annotations
           - description: DatabaseKey to be used in the Secret.
             displayName: Database Key
             path: secretTemplate.databaseKey
@@ -718,9 +715,15 @@ spec:
           - description: Key to be used in the Secret.
             displayName: Key
             path: secretTemplate.key
-          - description: Labels to be added to the Secret object.
+          - description: Metadata to be added to the Secret object.
+            displayName: Metadata
+            path: secretTemplate.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: secretTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: secretTemplate.labels
+            path: secretTemplate.metadata.labels
           - description: PasswordKey to be used in the Secret.
             displayName: Password Key
             path: secretTemplate.passwordKey
@@ -990,9 +993,6 @@ spec:
           - description: SecretTemplate to be used in the Connection.
             displayName: Secret Template
             path: connection.secretTemplate
-          - description: Annotations to be added to the Secret object.
-            displayName: Annotations
-            path: connection.secretTemplate.annotations
           - description: DatabaseKey to be used in the Secret.
             displayName: Database Key
             path: connection.secretTemplate.databaseKey
@@ -1005,9 +1005,15 @@ spec:
           - description: Key to be used in the Secret.
             displayName: Key
             path: connection.secretTemplate.key
-          - description: Labels to be added to the Secret object.
+          - description: Metadata to be added to the Secret object.
+            displayName: Metadata
+            path: connection.secretTemplate.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: connection.secretTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: connection.secretTemplate.labels
+            path: connection.secretTemplate.metadata.labels
           - description: PasswordKey to be used in the Secret.
             displayName: Password Key
             path: connection.secretTemplate.passwordKey
@@ -1409,9 +1415,6 @@ spec:
           - description: SecretTemplate to be used in the Connection.
             displayName: Secret Template
             path: maxScale.connection.secretTemplate
-          - description: Annotations to be added to the Secret object.
-            displayName: Annotations
-            path: maxScale.connection.secretTemplate.annotations
           - description: DatabaseKey to be used in the Secret.
             displayName: Database Key
             path: maxScale.connection.secretTemplate.databaseKey
@@ -1424,9 +1427,15 @@ spec:
           - description: Key to be used in the Secret.
             displayName: Key
             path: maxScale.connection.secretTemplate.key
-          - description: Labels to be added to the Secret object.
+          - description: Metadata to be added to the Secret object.
+            displayName: Metadata
+            path: maxScale.connection.secretTemplate.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: maxScale.connection.secretTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: maxScale.connection.secretTemplate.labels
+            path: maxScale.connection.secretTemplate.metadata.labels
           - description: PasswordKey to be used in the Secret.
             displayName: Password Key
             path: maxScale.connection.secretTemplate.passwordKey
@@ -2012,9 +2021,6 @@ spec:
           - description: SecretTemplate to be used in the Connection.
             displayName: Secret Template
             path: primaryConnection.secretTemplate
-          - description: Annotations to be added to the Secret object.
-            displayName: Annotations
-            path: primaryConnection.secretTemplate.annotations
           - description: DatabaseKey to be used in the Secret.
             displayName: Database Key
             path: primaryConnection.secretTemplate.databaseKey
@@ -2027,9 +2033,15 @@ spec:
           - description: Key to be used in the Secret.
             displayName: Key
             path: primaryConnection.secretTemplate.key
-          - description: Labels to be added to the Secret object.
+          - description: Metadata to be added to the Secret object.
+            displayName: Metadata
+            path: primaryConnection.secretTemplate.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: primaryConnection.secretTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: primaryConnection.secretTemplate.labels
+            path: primaryConnection.secretTemplate.metadata.labels
           - description: PasswordKey to be used in the Secret.
             displayName: Password Key
             path: primaryConnection.secretTemplate.passwordKey
@@ -2177,9 +2189,6 @@ spec:
           - description: SecretTemplate to be used in the Connection.
             displayName: Secret Template
             path: secondaryConnection.secretTemplate
-          - description: Annotations to be added to the Secret object.
-            displayName: Annotations
-            path: secondaryConnection.secretTemplate.annotations
           - description: DatabaseKey to be used in the Secret.
             displayName: Database Key
             path: secondaryConnection.secretTemplate.databaseKey
@@ -2192,9 +2201,15 @@ spec:
           - description: Key to be used in the Secret.
             displayName: Key
             path: secondaryConnection.secretTemplate.key
-          - description: Labels to be added to the Secret object.
+          - description: Metadata to be added to the Secret object.
+            displayName: Metadata
+            path: secondaryConnection.secretTemplate.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: secondaryConnection.secretTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: secondaryConnection.secretTemplate.labels
+            path: secondaryConnection.secretTemplate.metadata.labels
           - description: PasswordKey to be used in the Secret.
             displayName: Password Key
             path: secondaryConnection.secretTemplate.passwordKey
@@ -2568,9 +2583,6 @@ spec:
           - description: SecretTemplate to be used in the Connection.
             displayName: Secret Template
             path: connection.secretTemplate
-          - description: Annotations to be added to the Secret object.
-            displayName: Annotations
-            path: connection.secretTemplate.annotations
           - description: DatabaseKey to be used in the Secret.
             displayName: Database Key
             path: connection.secretTemplate.databaseKey
@@ -2583,9 +2595,15 @@ spec:
           - description: Key to be used in the Secret.
             displayName: Key
             path: connection.secretTemplate.key
-          - description: Labels to be added to the Secret object.
+          - description: Metadata to be added to the Secret object.
+            displayName: Metadata
+            path: connection.secretTemplate.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: connection.secretTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: connection.secretTemplate.labels
+            path: connection.secretTemplate.metadata.labels
           - description: PasswordKey to be used in the Secret.
             displayName: Password Key
             path: connection.secretTemplate.passwordKey
@@ -4208,18 +4226,18 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
-      name: mariadb
-    - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
-      name: maxscale
-    - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
-      name: exporter
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
       name: exporter-maxscale
     - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
       name: exporter_maxscale
+    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
+      name: mariadb
+    - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
+      name: maxscale
+    - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
+      name: exporter
   version: 0.0.27
   webhookdefinitions:
     - admissionReviewVersions:

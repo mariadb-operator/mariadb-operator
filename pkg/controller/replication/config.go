@@ -219,8 +219,8 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		replPassword = password
 	} else {
 		req := &secret.RandomPasswordRequest{
-			Owner:   mariadb,
-			Mariadb: mariadb,
+			Owner:    mariadb,
+			Metadata: mariadb.Spec.InheritMetadata,
 			Key: types.NamespacedName{
 				Name:      replPasswordRef.Name,
 				Namespace: mariadb.Namespace,
