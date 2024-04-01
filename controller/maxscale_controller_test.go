@@ -462,7 +462,7 @@ func deleteMaxScale(key types.NamespacedName) {
 			g.Expect(err).ToNot(HaveOccurred())
 		}
 		return len(pvcList.Items) == 0
-	}, 30*time.Second, 1*time.Second).Should(BeTrue())
+	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func deletePod(podName string) error {

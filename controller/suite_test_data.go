@@ -98,6 +98,14 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 				PodSecurityContext: &corev1.PodSecurityContext{
 					RunAsUser: ptr.To(int64(0)),
 				},
+				PodMetadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+					Annotations: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+				},
 			},
 			Image:           env.RelatedMariadbImage,
 			ImagePullPolicy: corev1.PullIfNotPresent,

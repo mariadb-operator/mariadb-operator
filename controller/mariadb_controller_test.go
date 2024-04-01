@@ -108,6 +108,24 @@ var _ = Describe("MariaDB controller", func() {
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			By("Expecting Pod to have metadata")
+			Eventually(func(g Gomega) bool {
+				key := types.NamespacedName{
+					Name:      stsobj.PodName(testMariaDb.ObjectMeta, 0),
+					Namespace: testMariaDb.Namespace,
+				}
+				var pod corev1.Pod
+				if err := k8sClient.Get(testCtx, key, &pod); err != nil {
+					return false
+				}
+				g.Expect(pod.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(pod.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(pod.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
+				g.Expect(pod.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(pod.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				return true
+			}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
+
 			By("Expecting to create a Service eventually")
 			Eventually(func(g Gomega) bool {
 				var svc corev1.Service
@@ -135,20 +153,28 @@ var _ = Describe("MariaDB controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting metrics User to be ready eventually")
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				var user mariadbv1alpha1.User
 				if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &user); err != nil {
 					return false
 				}
+				g.Expect(user.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(user.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(user.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(user.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return user.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting metrics Grant to be ready eventually")
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				var grant mariadbv1alpha1.Grant
 				if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &grant); err != nil {
 					return false
 				}
+				g.Expect(grant.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(grant.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(grant.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(grant.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				return grant.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
@@ -193,6 +219,7 @@ var _ = Describe("MariaDB controller", func() {
 				return true
 			}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
 		})
+
 		It("Should bootstrap from Backup", func() {
 			By("Creating Backup")
 			backupKey := types.NamespacedName{
