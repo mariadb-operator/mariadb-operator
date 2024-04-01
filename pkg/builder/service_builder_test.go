@@ -20,7 +20,7 @@ func TestServiceMeta(t *testing.T) {
 		{
 			name: "no meta",
 			opts: ServiceOpts{
-				Metadata:              &mariadbv1alpha1.Metadata{},
+				ExtraMeta:             &mariadbv1alpha1.Metadata{},
 				ExcludeSelectorLabels: true,
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
@@ -31,7 +31,31 @@ func TestServiceMeta(t *testing.T) {
 		{
 			name: "meta",
 			opts: ServiceOpts{
-				Metadata: &mariadbv1alpha1.Metadata{
+				ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
+					Metadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": "172.18.0.20",
+						},
+					},
+				},
+				ExcludeSelectorLabels: true,
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+				Annotations: map[string]string{
+					"metallb.universe.tf/loadBalancerIPs": "172.18.0.20",
+				},
+			},
+		},
+		{
+			name: "extra meta",
+			opts: ServiceOpts{
+				ExtraMeta: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
 					},
@@ -47,6 +71,39 @@ func TestServiceMeta(t *testing.T) {
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "meta and extra meta",
+			opts: ServiceOpts{
+				ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
+					Metadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": "172.18.0.20",
+						},
+					},
+				},
+				ExtraMeta: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+				ExcludeSelectorLabels: true,
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io":                   "mariadb",
+					"metallb.universe.tf/loadBalancerIPs": "172.18.0.20",
 				},
 			},
 		},

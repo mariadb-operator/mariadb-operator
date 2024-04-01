@@ -267,14 +267,10 @@ type ServiceTemplate struct {
 	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Type corev1.ServiceType `json:"type,omitempty"`
-	// Labels to add to the Service metadata.
+	// Metadata to be added to the Service metadata.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Labels map[string]string `json:"labels,omitempty"`
-	// Annotations to add to the Service metadata.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Metadata *Metadata `json:"metadata,omitempty"`
 	// LoadBalancerIP Service field.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

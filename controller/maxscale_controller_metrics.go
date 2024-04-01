@@ -117,7 +117,9 @@ func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *
 			Build()
 	opts := builder.ServiceOpts{
 		ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
-			Labels: selectorLabels,
+			Metadata: &mariadbv1alpha1.Metadata{
+				Labels: selectorLabels,
+			},
 		},
 		Ports: []corev1.ServicePort{
 			{
@@ -126,7 +128,7 @@ func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *
 			},
 		},
 		SelectorLabels: selectorLabels,
-		Metadata:       nil,
+		ExtraMeta:      nil,
 	}
 
 	desiredSvc, err := r.Builder.BuildService(key, mxs, opts)

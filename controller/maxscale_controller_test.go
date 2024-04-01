@@ -81,14 +81,18 @@ var _ = Describe("MaxScale controller", func() {
 					},
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.54",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.54",
+							},
 						},
 					},
 					PrimaryService: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.55",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.55",
+							},
 						},
 					},
 					MaxScale: &mariadbv1alpha1.MariaDBMaxScaleSpec{
@@ -96,8 +100,10 @@ var _ = Describe("MaxScale controller", func() {
 						Replicas: ptr.To(int32(3)),
 						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 							Type: corev1.ServiceTypeLoadBalancer,
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.64",
+							Metadata: &mariadbv1alpha1.Metadata{
+								Annotations: map[string]string{
+									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.64",
+								},
 							},
 						},
 						Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -150,14 +156,18 @@ var _ = Describe("MaxScale controller", func() {
 					},
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.74",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.74",
+							},
 						},
 					},
 					PrimaryService: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.75",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.75",
+							},
 						},
 					},
 					MaxScale: &mariadbv1alpha1.MariaDBMaxScaleSpec{
@@ -165,8 +175,10 @@ var _ = Describe("MaxScale controller", func() {
 						Replicas: ptr.To(int32(3)),
 						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 							Type: corev1.ServiceTypeLoadBalancer,
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.84",
+							Metadata: &mariadbv1alpha1.Metadata{
+								Annotations: map[string]string{
+									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.84",
+								},
 							},
 						},
 						Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -215,16 +227,20 @@ var _ = Describe("MaxScale controller", func() {
 					},
 					Service: &mariadbv1alpha1.ServiceTemplate{
 						Type: corev1.ServiceTypeLoadBalancer,
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.86",
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.86",
+							},
 						},
 					},
 					MaxScale: &mariadbv1alpha1.MariaDBMaxScaleSpec{
 						Enabled: true,
 						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 							Type: corev1.ServiceTypeLoadBalancer,
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.88",
+							Metadata: &mariadbv1alpha1.Metadata{
+								Annotations: map[string]string{
+									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.88",
+								},
 							},
 						},
 						Connection: &mariadbv1alpha1.ConnectionTemplate{

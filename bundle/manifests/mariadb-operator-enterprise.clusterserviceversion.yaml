@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-03-28T09:49:15Z"
+    createdAt: "2024-04-01T10:52:58Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -1461,21 +1461,24 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: maxScale.kubernetesService.allocateLoadBalancerNodePorts
-          - description: Annotations to add to the Service metadata.
-            displayName: Annotations
-            path: maxScale.kubernetesService.annotations
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: maxScale.kubernetesService.externalTrafficPolicy
-          - description: Labels to add to the Service metadata.
-            displayName: Labels
-            path: maxScale.kubernetesService.labels
           - description: LoadBalancerIP Service field.
             displayName: Load Balancer IP
             path: maxScale.kubernetesService.loadBalancerIP
           - description: LoadBalancerSourceRanges Service field.
             displayName: Load Balancer Source Ranges
             path: maxScale.kubernetesService.loadBalancerSourceRanges
+          - description: Metadata to be added to the Service metadata.
+            displayName: Metadata
+            path: maxScale.kubernetesService.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: maxScale.kubernetesService.metadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: maxScale.kubernetesService.metadata.labels
           - description: SessionAffinity Service field.
             displayName: Session Affinity
             path: maxScale.kubernetesService.sessionAffinity
@@ -2045,21 +2048,24 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: primaryService.allocateLoadBalancerNodePorts
-          - description: Annotations to add to the Service metadata.
-            displayName: Annotations
-            path: primaryService.annotations
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: primaryService.externalTrafficPolicy
-          - description: Labels to add to the Service metadata.
-            displayName: Labels
-            path: primaryService.labels
           - description: LoadBalancerIP Service field.
             displayName: Load Balancer IP
             path: primaryService.loadBalancerIP
           - description: LoadBalancerSourceRanges Service field.
             displayName: Load Balancer Source Ranges
             path: primaryService.loadBalancerSourceRanges
+          - description: Metadata to be added to the Service metadata.
+            displayName: Metadata
+            path: primaryService.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: primaryService.metadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: primaryService.metadata.labels
           - description: SessionAffinity Service field.
             displayName: Session Affinity
             path: primaryService.sessionAffinity
@@ -2207,21 +2213,24 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: secondaryService.allocateLoadBalancerNodePorts
-          - description: Annotations to add to the Service metadata.
-            displayName: Annotations
-            path: secondaryService.annotations
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: secondaryService.externalTrafficPolicy
-          - description: Labels to add to the Service metadata.
-            displayName: Labels
-            path: secondaryService.labels
           - description: LoadBalancerIP Service field.
             displayName: Load Balancer IP
             path: secondaryService.loadBalancerIP
           - description: LoadBalancerSourceRanges Service field.
             displayName: Load Balancer Source Ranges
             path: secondaryService.loadBalancerSourceRanges
+          - description: Metadata to be added to the Service metadata.
+            displayName: Metadata
+            path: secondaryService.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: secondaryService.metadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: secondaryService.metadata.labels
           - description: SessionAffinity Service field.
             displayName: Session Affinity
             path: secondaryService.sessionAffinity
@@ -2237,21 +2246,24 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: service.allocateLoadBalancerNodePorts
-          - description: Annotations to add to the Service metadata.
-            displayName: Annotations
-            path: service.annotations
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: service.externalTrafficPolicy
-          - description: Labels to add to the Service metadata.
-            displayName: Labels
-            path: service.labels
           - description: LoadBalancerIP Service field.
             displayName: Load Balancer IP
             path: service.loadBalancerIP
           - description: LoadBalancerSourceRanges Service field.
             displayName: Load Balancer Source Ranges
             path: service.loadBalancerSourceRanges
+          - description: Metadata to be added to the Service metadata.
+            displayName: Metadata
+            path: service.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: service.metadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: service.metadata.labels
           - description: SessionAffinity Service field.
             displayName: Session Affinity
             path: service.sessionAffinity
@@ -2652,21 +2664,24 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: kubernetesService.allocateLoadBalancerNodePorts
-          - description: Annotations to add to the Service metadata.
-            displayName: Annotations
-            path: kubernetesService.annotations
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: kubernetesService.externalTrafficPolicy
-          - description: Labels to add to the Service metadata.
-            displayName: Labels
-            path: kubernetesService.labels
           - description: LoadBalancerIP Service field.
             displayName: Load Balancer IP
             path: kubernetesService.loadBalancerIP
           - description: LoadBalancerSourceRanges Service field.
             displayName: Load Balancer Source Ranges
             path: kubernetesService.loadBalancerSourceRanges
+          - description: Metadata to be added to the Service metadata.
+            displayName: Metadata
+            path: kubernetesService.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: kubernetesService.metadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: kubernetesService.metadata.labels
           - description: SessionAffinity Service field.
             displayName: Session Affinity
             path: kubernetesService.sessionAffinity
@@ -4193,18 +4208,18 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
-      name: exporter-maxscale
-    - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-      name: mariadb-operator-enterprise
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
-      name: exporter_maxscale
     - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
       name: mariadb
     - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
       name: exporter
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
+      name: exporter-maxscale
+    - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
+      name: mariadb-operator-enterprise
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
+      name: exporter_maxscale
   version: 0.0.27
   webhookdefinitions:
     - admissionReviewVersions:

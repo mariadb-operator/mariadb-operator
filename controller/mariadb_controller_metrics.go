@@ -175,8 +175,11 @@ func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariad
 			Build()
 	opts := builder.ServiceOpts{
 		ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
-			Labels: selectorLabels,
+			Metadata: &mariadbv1alpha1.Metadata{
+				Labels: selectorLabels,
+			},
 		},
+		ExtraMeta: mariadb.Spec.InheritMetadata,
 		Ports: []corev1.ServicePort{
 			{
 				Name: builder.MetricsPortName,
@@ -184,7 +187,6 @@ func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariad
 			},
 		},
 		SelectorLabels: selectorLabels,
-		Metadata:       mariadb.Spec.InheritMetadata,
 	}
 
 	desiredSvc, err := r.Builder.BuildService(key, mariadb, opts)
