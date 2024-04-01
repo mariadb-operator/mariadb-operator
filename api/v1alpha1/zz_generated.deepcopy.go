@@ -2730,19 +2730,10 @@ func (in *UserStatus) DeepCopy() *UserStatus {
 func (in *VolumeClaimTemplate) DeepCopyInto(out *VolumeClaimTemplate) {
 	*out = *in
 	in.PersistentVolumeClaimSpec.DeepCopyInto(&out.PersistentVolumeClaimSpec)
-	if in.Labels != nil {
-		in, out := &in.Labels, &out.Labels
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
-	if in.Annotations != nil {
-		in, out := &in.Annotations, &out.Annotations
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+	if in.Metadata != nil {
+		in, out := &in.Metadata, &out.Metadata
+		*out = new(Metadata)
+		(*in).DeepCopyInto(*out)
 	}
 }
 

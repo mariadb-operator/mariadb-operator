@@ -294,8 +294,9 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 	vctpl := mariadb.Spec.Storage.VolumeClaimTemplate
 
 	if !mariadb.IsEphemeralStorageEnabled() && vctpl != nil {
+		meta := ptr.Deref(vctpl.Metadata, mariadbv1alpha1.Metadata{})
 		labels := labels.NewLabelsBuilder().
-			WithLabels(vctpl.Labels).
+			WithLabels(meta.Labels).
 			WithPVCRole(StorageVolumeRole).
 			Build()
 
@@ -304,7 +305,7 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        StorageVolume,
 					Labels:      labels,
-					Annotations: vctpl.Annotations,
+					Annotations: meta.Annotations,
 				},
 				Spec: vctpl.PersistentVolumeClaimSpec,
 			},
@@ -316,8 +317,9 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 	vctpl = galera.Config.VolumeClaimTemplate
 
 	if mariadb.IsGaleraEnabled() && !reuseStorageVolume && vctpl != nil {
+		meta := ptr.Deref(vctpl.Metadata, mariadbv1alpha1.Metadata{})
 		labels := labels.NewLabelsBuilder().
-			WithLabels(vctpl.Labels).
+			WithLabels(meta.Labels).
 			WithPVCRole(ConfigVolumeRole).
 			Build()
 
@@ -325,7 +327,7 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        galeraresources.GaleraConfigVolume,
 				Labels:      labels,
-				Annotations: vctpl.Annotations,
+				Annotations: meta.Annotations,
 			},
 			Spec: vctpl.PersistentVolumeClaimSpec,
 		})
@@ -335,12 +337,13 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 
 func maxscaleVolumeClaimTemplates(maxscale *mariadbv1alpha1.MaxScale) []corev1.PersistentVolumeClaim {
 	vctpl := maxscale.Spec.Config.VolumeClaimTemplate
+	meta := ptr.Deref(vctpl.Metadata, mariadbv1alpha1.Metadata{})
 	pvcs := []corev1.PersistentVolumeClaim{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        StorageVolume,
-				Labels:      vctpl.Labels,
-				Annotations: vctpl.Annotations,
+				Labels:      meta.Labels,
+				Annotations: meta.Annotations,
 			},
 			Spec: vctpl.PersistentVolumeClaimSpec,
 		},

@@ -245,14 +245,10 @@ type VolumeClaimTemplate struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	corev1.PersistentVolumeClaimSpec `json:",inline"`
-	// Labels to be used in the PVC.
+	// Metadata to be added to the PVC metadata.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Labels map[string]string `json:"labels,omitempty"`
-	// Annotations to be used in the PVC.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Metadata *Metadata `json:"metadata,omitempty"`
 }
 
 // ServiceTemplate defines a template to customize Service objects.

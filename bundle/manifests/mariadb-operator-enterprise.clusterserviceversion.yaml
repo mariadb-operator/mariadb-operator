@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-01T16:44:08Z"
+    createdAt: "2024-04-01T17:00:43Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -1107,12 +1107,15 @@ spec:
           - description: VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB.
             displayName: Volume Claim Template
             path: galera.config.volumeClaimTemplate
-          - description: Annotations to be used in the PVC.
+          - description: Metadata to be added to the PVC metadata.
+            displayName: Metadata
+            path: galera.config.volumeClaimTemplate.metadata
+          - description: Annotations to be added to children resources.
             displayName: Annotations
-            path: galera.config.volumeClaimTemplate.annotations
-          - description: Labels to be used in the PVC.
+            path: galera.config.volumeClaimTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: galera.config.volumeClaimTemplate.labels
+            path: galera.config.volumeClaimTemplate.metadata.labels
           - description: Enabled is a flag to enable Galera.
             displayName: Enabled
             path: galera.enabled
@@ -1382,12 +1385,15 @@ spec:
           - description: VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files. It is defaulted if not provided.
             displayName: Volume Claim Template
             path: maxScale.config.volumeClaimTemplate
-          - description: Annotations to be used in the PVC.
+          - description: Metadata to be added to the PVC metadata.
+            displayName: Metadata
+            path: maxScale.config.volumeClaimTemplate.metadata
+          - description: Annotations to be added to children resources.
             displayName: Annotations
-            path: maxScale.config.volumeClaimTemplate.annotations
-          - description: Labels to be used in the PVC.
+            path: maxScale.config.volumeClaimTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: maxScale.config.volumeClaimTemplate.labels
+            path: maxScale.config.volumeClaimTemplate.metadata.labels
           - description: Connection provides a template to define the Connection for MaxScale.
             displayName: Connection
             path: maxScale.connection
@@ -2350,12 +2356,15 @@ spec:
           - description: VolumeClaimTemplate provides a template to define the PVCs.
             displayName: Volume Claim Template
             path: storage.volumeClaimTemplate
-          - description: Annotations to be used in the PVC.
+          - description: Metadata to be added to the PVC metadata.
+            displayName: Metadata
+            path: storage.volumeClaimTemplate.metadata
+          - description: Annotations to be added to children resources.
             displayName: Annotations
-            path: storage.volumeClaimTemplate.annotations
-          - description: Labels to be used in the PVC.
+            path: storage.volumeClaimTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: storage.volumeClaimTemplate.labels
+            path: storage.volumeClaimTemplate.metadata.labels
           - description: WaitForVolumeResize indicates whether to wait for the PVCs to be resized before marking the MariaDB object as ready. This will block other operations such as cluster recovery while the resize is in progress. It defaults to true.
             displayName: Wait For Volume Resize
             path: storage.waitForVolumeResize
@@ -2550,12 +2559,15 @@ spec:
           - description: VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files. It is defaulted if not provided.
             displayName: Volume Claim Template
             path: config.volumeClaimTemplate
-          - description: Annotations to be used in the PVC.
+          - description: Metadata to be added to the PVC metadata.
+            displayName: Metadata
+            path: config.volumeClaimTemplate.metadata
+          - description: Annotations to be added to children resources.
             displayName: Annotations
-            path: config.volumeClaimTemplate.annotations
-          - description: Labels to be used in the PVC.
+            path: config.volumeClaimTemplate.metadata.annotations
+          - description: Labels to be added to children resources.
             displayName: Labels
-            path: config.volumeClaimTemplate.labels
+            path: config.volumeClaimTemplate.metadata.labels
           - description: Connection provides a template to define the Connection for MaxScale.
             displayName: Connection
             path: connection
@@ -4226,18 +4238,18 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
-      name: exporter-maxscale
-    - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-      name: mariadb-operator-enterprise
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
-      name: exporter_maxscale
     - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
       name: mariadb
     - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
       name: exporter
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
+      name: exporter-maxscale
+    - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
+      name: mariadb-operator-enterprise
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
+      name: exporter_maxscale
   version: 0.0.27
   webhookdefinitions:
     - admissionReviewVersions:

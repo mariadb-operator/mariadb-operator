@@ -4729,11 +4729,6 @@ spec:
                             items:
                               type: string
                             type: array
-                          annotations:
-                            additionalProperties:
-                              type: string
-                            description: Annotations to be used in the PVC.
-                            type: object
                           dataSource:
                             description: |-
                               dataSource field can be used to specify either:
@@ -4810,10 +4805,19 @@ spec:
                             - kind
                             - name
                             type: object
-                          labels:
-                            additionalProperties:
-                              type: string
-                            description: Labels to be used in the PVC.
+                          metadata:
+                            description: Metadata to be added to the PVC metadata.
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                description: Annotations to be added to children resources.
+                                type: object
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                description: Labels to be added to children resources.
+                                type: object
                             type: object
                           resources:
                             description: |-
@@ -7000,11 +7004,6 @@ spec:
                             items:
                               type: string
                             type: array
-                          annotations:
-                            additionalProperties:
-                              type: string
-                            description: Annotations to be used in the PVC.
-                            type: object
                           dataSource:
                             description: |-
                               dataSource field can be used to specify either:
@@ -7081,10 +7080,19 @@ spec:
                             - kind
                             - name
                             type: object
-                          labels:
-                            additionalProperties:
-                              type: string
-                            description: Labels to be used in the PVC.
+                          metadata:
+                            description: Metadata to be added to the PVC metadata.
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                description: Annotations to be added to children resources.
+                                type: object
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                description: Labels to be added to children resources.
+                                type: object
                             type: object
                           resources:
                             description: |-
@@ -20165,11 +20173,6 @@ spec:
                         items:
                           type: string
                         type: array
-                      annotations:
-                        additionalProperties:
-                          type: string
-                        description: Annotations to be used in the PVC.
-                        type: object
                       dataSource:
                         description: |-
                           dataSource field can be used to specify either:
@@ -20246,10 +20249,19 @@ spec:
                         - kind
                         - name
                         type: object
-                      labels:
-                        additionalProperties:
-                          type: string
-                        description: Labels to be used in the PVC.
+                      metadata:
+                        description: Metadata to be added to the PVC metadata.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Annotations to be added to children resources.
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: Labels to be added to children resources.
+                            type: object
                         type: object
                       resources:
                         description: |-
