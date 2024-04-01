@@ -52,7 +52,7 @@ jobs:
           cache: true
 
       - name: GolangCI Lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v4
         with:
           version: ${{ env.GOLANGCI_VERSION }}
 
