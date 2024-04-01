@@ -9,7 +9,7 @@
             "dockerDashComposeVersion": "v2"
             
         },
-        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1.1.8": {
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1.1.9": {
             "version": "latest",
             "helm": "latest",
             "minikube": "none"
