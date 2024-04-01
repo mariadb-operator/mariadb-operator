@@ -106,7 +106,7 @@ func HealthyMariaDBReplica(ctx context.Context, client client.Client, mariadb *m
 	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
 			labels.NewLabelsBuilder().
-				WithMariaDB(mariadb).
+				WithMariaDBSelectorLabels(mariadb).
 				Build(),
 		),
 		Namespace: mariadb.GetNamespace(),

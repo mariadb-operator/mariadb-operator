@@ -148,7 +148,7 @@ func (r *MariaDBReconciler) getStoragePVCs(ctx context.Context, mdb *mariadbv1al
 	listOpts := client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
 			labels.NewLabelsBuilder().
-				WithMariaDB(mdb).
+				WithMariaDBSelectorLabels(mdb).
 				WithPVCRole(builder.StorageVolumeRole).
 				Build(),
 		),

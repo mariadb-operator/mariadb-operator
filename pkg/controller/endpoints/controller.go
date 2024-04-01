@@ -72,7 +72,7 @@ func (r *EndpointsReconciler) endpoints(ctx context.Context, key types.Namespace
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
 			labels.NewLabelsBuilder().
-				WithMariaDB(mariadb).
+				WithMariaDBSelectorLabels(mariadb).
 				Build(),
 		),
 		Namespace: mariadb.GetNamespace(),

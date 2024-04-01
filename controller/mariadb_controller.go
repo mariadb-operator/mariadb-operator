@@ -408,7 +408,7 @@ func (r *MariaDBReconciler) reconcileDefaultPDB(ctx context.Context, mariadb *ma
 
 	selectorLabels :=
 		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
+			WithMariaDBSelectorLabels(mariadb).
 			Build()
 	opts := builder.PodDisruptionBudgetOpts{
 		Metadata:       mariadb.Spec.InheritMetadata,
@@ -433,7 +433,7 @@ func (r *MariaDBReconciler) reconcileHighAvailabilityPDB(ctx context.Context, ma
 
 	selectorLabels :=
 		labels.NewLabelsBuilder().
-			WithMariaDB(mariadb).
+			WithMariaDBSelectorLabels(mariadb).
 			Build()
 	minAvailable := intstr.FromString("50%")
 	opts := builder.PodDisruptionBudgetOpts{

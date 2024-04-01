@@ -68,7 +68,7 @@ func (b *Builder) BuildMaxScaleServiceMonitor(mxs *mariadbv1alpha1.MaxScale,
 	metrics := ptr.Deref(mxs.Spec.Metrics, mariadbv1alpha1.MaxScaleMetrics{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMariaDB(mariadb).
+			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithReleaseLabel(metrics.ServiceMonitor.PrometheusRelease).
 			Build()
 	selectorLabels :=

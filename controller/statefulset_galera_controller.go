@@ -155,7 +155,7 @@ func (r *StatefulSetGaleraReconciler) readyClient(ctx context.Context, mariadb *
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
 			labels.NewLabelsBuilder().
-				WithMariaDB(mariadb).
+				WithMariaDBSelectorLabels(mariadb).
 				Build(),
 		),
 		Namespace: mariadb.GetNamespace(),

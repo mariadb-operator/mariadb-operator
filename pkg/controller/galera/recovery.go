@@ -212,7 +212,7 @@ func (r *GaleraReconciler) getPods(ctx context.Context, mariadb *mariadbv1alpha1
 	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
 			labels.NewLabelsBuilder().
-				WithMariaDB(mariadb).
+				WithMariaDBSelectorLabels(mariadb).
 				Build(),
 		),
 		Namespace: mariadb.GetNamespace(),

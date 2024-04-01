@@ -36,11 +36,6 @@ func (b *LabelsBuilder) WithInstance(instance string) *LabelsBuilder {
 	return b
 }
 
-func (b *LabelsBuilder) WithMariaDB(mdb *mariadbv1alpha1.MariaDB) *LabelsBuilder {
-	return b.WithApp(appMariaDb).
-		WithInstance(mdb.Name)
-}
-
 func (b *LabelsBuilder) WithStatefulSetPod(mdb *mariadbv1alpha1.MariaDB, podIndex int) *LabelsBuilder {
 	b.labels[statefulSetPodName] = statefulset.PodName(mdb.ObjectMeta, podIndex)
 	return b
