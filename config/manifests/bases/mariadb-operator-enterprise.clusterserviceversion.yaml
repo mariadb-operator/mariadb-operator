@@ -1054,12 +1054,15 @@ spec:
           MariaDB.
         displayName: Volume Claim Template
         path: galera.config.volumeClaimTemplate
-      - description: Annotations to be used in the PVC.
+      - description: Metadata to be added to the PVC metadata.
+        displayName: Metadata
+        path: galera.config.volumeClaimTemplate.metadata
+      - description: Annotations to be added to children resources.
         displayName: Annotations
-        path: galera.config.volumeClaimTemplate.annotations
-      - description: Labels to be used in the PVC.
+        path: galera.config.volumeClaimTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: galera.config.volumeClaimTemplate.labels
+        path: galera.config.volumeClaimTemplate.metadata.labels
       - description: Enabled is a flag to enable Galera.
         displayName: Enabled
         path: galera.enabled
@@ -1404,12 +1407,15 @@ spec:
           storing MaxScale runtime configuration files. It is defaulted if not provided.
         displayName: Volume Claim Template
         path: maxScale.config.volumeClaimTemplate
-      - description: Annotations to be used in the PVC.
+      - description: Metadata to be added to the PVC metadata.
+        displayName: Metadata
+        path: maxScale.config.volumeClaimTemplate.metadata
+      - description: Annotations to be added to children resources.
         displayName: Annotations
-        path: maxScale.config.volumeClaimTemplate.annotations
-      - description: Labels to be used in the PVC.
+        path: maxScale.config.volumeClaimTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: maxScale.config.volumeClaimTemplate.labels
+        path: maxScale.config.volumeClaimTemplate.metadata.labels
       - description: Connection provides a template to define the Connection for MaxScale.
         displayName: Connection
         path: maxScale.connection
@@ -2486,12 +2492,15 @@ spec:
       - description: VolumeClaimTemplate provides a template to define the PVCs.
         displayName: Volume Claim Template
         path: storage.volumeClaimTemplate
-      - description: Annotations to be used in the PVC.
+      - description: Metadata to be added to the PVC metadata.
+        displayName: Metadata
+        path: storage.volumeClaimTemplate.metadata
+      - description: Annotations to be added to children resources.
         displayName: Annotations
-        path: storage.volumeClaimTemplate.annotations
-      - description: Labels to be used in the PVC.
+        path: storage.volumeClaimTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: storage.volumeClaimTemplate.labels
+        path: storage.volumeClaimTemplate.metadata.labels
       - description: WaitForVolumeResize indicates whether to wait for the PVCs to
           be resized before marking the MariaDB object as ready. This will block other
           operations such as cluster recovery while the resize is in progress. It
@@ -2731,12 +2740,15 @@ spec:
           storing MaxScale runtime configuration files. It is defaulted if not provided.
         displayName: Volume Claim Template
         path: config.volumeClaimTemplate
-      - description: Annotations to be used in the PVC.
+      - description: Metadata to be added to the PVC metadata.
+        displayName: Metadata
+        path: config.volumeClaimTemplate.metadata
+      - description: Annotations to be added to children resources.
         displayName: Annotations
-        path: config.volumeClaimTemplate.annotations
-      - description: Labels to be used in the PVC.
+        path: config.volumeClaimTemplate.metadata.annotations
+      - description: Labels to be added to children resources.
         displayName: Labels
-        path: config.volumeClaimTemplate.labels
+        path: config.volumeClaimTemplate.metadata.labels
       - description: Connection provides a template to define the Connection for MaxScale.
         displayName: Connection
         path: connection

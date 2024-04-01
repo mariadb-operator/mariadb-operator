@@ -187,11 +187,13 @@ func TestStoragePVCMeta(t *testing.T) {
 		{
 			name: "tpl",
 			tpl: &mariadbv1alpha1.VolumeClaimTemplate{
-				Labels: map[string]string{
-					"database.myorg.io": "mariadb",
-				},
-				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+				Metadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
 				},
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{
@@ -242,8 +244,10 @@ func TestStoragePVCMeta(t *testing.T) {
 		{
 			name: "all",
 			tpl: &mariadbv1alpha1.VolumeClaimTemplate{
-				Labels: map[string]string{
-					"sidecar.istio.io/inject": "false",
+				Metadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
 				},
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{
@@ -270,8 +274,10 @@ func TestStoragePVCMeta(t *testing.T) {
 		{
 			name: "tpl override inherit meta",
 			tpl: &mariadbv1alpha1.VolumeClaimTemplate{
-				Labels: map[string]string{
-					"sidecar.istio.io/inject": "false",
+				Metadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
 				},
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{

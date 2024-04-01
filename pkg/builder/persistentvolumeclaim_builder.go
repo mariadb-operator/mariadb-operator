@@ -30,15 +30,14 @@ func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1
 		return nil, errors.New("Template must not be nil")
 	}
 	labels := labels.NewLabelsBuilder().
-		WithLabels(tpl.Labels).
 		WithMariaDBSelectorLabels(mariadb).
 		WithPVCRole(StorageVolumeRole).
 		Build()
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(tpl.Metadata).
 			WithLabels(labels).
-			WithAnnotations(tpl.Annotations).
 			Build()
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: objMeta,
