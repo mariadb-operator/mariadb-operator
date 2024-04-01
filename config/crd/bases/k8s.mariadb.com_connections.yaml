@@ -205,11 +205,6 @@ spec:
               secretTemplate:
                 description: SecretTemplate to be used in the Connection.
                 properties:
-                  annotations:
-                    additionalProperties:
-                      type: string
-                    description: Annotations to be added to the Secret object.
-                    type: object
                   databaseKey:
                     description: DatabaseKey to be used in the Secret.
                     type: string
@@ -222,10 +217,19 @@ spec:
                   key:
                     description: Key to be used in the Secret.
                     type: string
-                  labels:
-                    additionalProperties:
-                      type: string
-                    description: Labels to be added to the Secret object.
+                  metadata:
+                    description: Metadata to be added to the Secret object.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations to be added to children resources.
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Labels to be added to children resources.
+                        type: object
                     type: object
                   passwordKey:
                     description: PasswordKey to be used in the Secret.

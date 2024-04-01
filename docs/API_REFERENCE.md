@@ -1078,6 +1078,7 @@ _Appears in:_
 - [MaxScaleSpec](#maxscalespec)
 - [PodTemplate](#podtemplate)
 - [RestoreSpec](#restorespec)
+- [SecretTemplate](#secrettemplate)
 - [ServiceTemplate](#servicetemplate)
 - [SqlJobSpec](#sqljobspec)
 
@@ -1438,8 +1439,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `labels` _object (keys:string, values:string)_ | Labels to be added to the Secret object. |  |  |
-| `annotations` _object (keys:string, values:string)_ | Annotations to be added to the Secret object. |  |  |
+| `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `key` _string_ | Key to be used in the Secret. |  |  |
 | `format` _string_ | Format to be used in the Secret. |  |  |
 | `usernameKey` _string_ | UsernameKey to be used in the Secret. |  |  |

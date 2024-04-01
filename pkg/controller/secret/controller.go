@@ -37,7 +37,7 @@ func NewSecretReconciler(client client.Client, builder *builder.Builder) (*Secre
 
 type RandomPasswordRequest struct {
 	Owner     metav1.Object
-	Mariadb   *mariadbv1alpha1.MariaDB
+	Metadata  *mariadbv1alpha1.Metadata
 	Key       types.NamespacedName
 	SecretKey string
 	Data      map[string][]byte
@@ -54,8 +54,8 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, req *Ran
 	}
 
 	opts := builder.SecretOpts{
-		MariaDB: req.Mariadb,
-		Key:     req.Key,
+		Metadata: []*mariadbv1alpha1.Metadata{req.Metadata},
+		Key:      req.Key,
 		Data: map[string][]byte{
 			req.SecretKey: []byte(password),
 		},

@@ -232,12 +232,16 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		Data: map[string][]byte{
 			conn.SecretKey(): []byte(dsn),
 		},
-		Labels:      conn.Spec.SecretTemplate.Labels,
-		Annotations: conn.Spec.SecretTemplate.Annotations,
 	}
-	if refs.MariaDB != nil {
-		secretOpts.MariaDB = refs.MariaDB
+
+	var meta []*mariadbv1alpha1.Metadata
+	if conn.Spec.SecretTemplate.Metadata != nil {
+		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
 	}
+	if refs.MariaDB != nil && refs.MariaDB.Spec.InheritMetadata != nil {
+		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
+	}
+	secretOpts.Metadata = meta
 
 	if formatString := conn.Spec.SecretTemplate.Format; formatString != nil {
 		tmpl := template.Must(template.New("").Parse(*formatString))

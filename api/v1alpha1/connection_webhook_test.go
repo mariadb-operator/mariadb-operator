@@ -122,8 +122,10 @@ var _ = Describe("Connection webhook", func() {
 					ConnectionTemplate: ConnectionTemplate{
 						SecretName: func() *string { t := "test"; return &t }(),
 						SecretTemplate: &SecretTemplate{
-							Labels: map[string]string{
-								"foo": "bar",
+							Metadata: &Metadata{
+								Labels: map[string]string{
+									"foo": "bar",
+								},
 							},
 						},
 						HealthCheck: &HealthCheck{
@@ -204,7 +206,7 @@ var _ = Describe("Connection webhook", func() {
 			Entry(
 				"Updating SecretTemplate",
 				func(conn *Connection) {
-					conn.Spec.SecretTemplate.Labels = map[string]string{
+					conn.Spec.SecretTemplate.Metadata.Labels = map[string]string{
 						"foo": "foo",
 					}
 				},

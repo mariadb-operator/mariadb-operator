@@ -12,20 +12,19 @@ import (
 )
 
 type SecretOpts struct {
-	MariaDB     *mariadbv1alpha1.MariaDB
-	Key         types.NamespacedName
-	Data        map[string][]byte
-	Labels      map[string]string
-	Annotations map[string]string
+	Metadata []*mariadbv1alpha1.Metadata
+	Key      types.NamespacedName
+	Data     map[string][]byte
 }
 
 func (b *Builder) BuildSecret(opts SecretOpts, owner metav1.Object) (*corev1.Secret, error) {
-	objMeta :=
-		metadata.NewMetadataBuilder(opts.Key).
-			WithMariaDB(opts.MariaDB).
-			WithLabels(opts.Labels).
-			WithAnnotations(opts.Annotations).
-			Build()
+	objMetaBuilder :=
+		metadata.NewMetadataBuilder(opts.Key)
+	for _, meta := range opts.Metadata {
+		objMetaBuilder = objMetaBuilder.WithMetadata(meta)
+	}
+	objMeta := objMetaBuilder.Build()
+
 	secret := &corev1.Secret{
 		ObjectMeta: objMeta,
 		Data:       opts.Data,
