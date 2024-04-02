@@ -306,7 +306,7 @@ func TestExporterDeploymentMeta(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			deploy, err := builder.BuildExporterDeployment(tt.mariadb)
 			if err != nil {
-				t.Fatalf("unexpected error building exporter Deployment: %v", err)
+				t.Fatalf("unexpected error building Deployment: %v", err)
 			}
 			assertMeta(t, &deploy.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})

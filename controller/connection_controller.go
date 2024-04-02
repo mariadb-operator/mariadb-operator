@@ -235,10 +235,10 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	}
 
 	var meta []*mariadbv1alpha1.Metadata
-	if conn.Spec.SecretTemplate.Metadata != nil {
+	if refs.MariaDB != nil && refs.MariaDB.Spec.InheritMetadata != nil {
 		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
 	}
-	if refs.MariaDB != nil && refs.MariaDB.Spec.InheritMetadata != nil {
+	if conn.Spec.SecretTemplate.Metadata != nil {
 		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
 	}
 	secretOpts.Metadata = meta

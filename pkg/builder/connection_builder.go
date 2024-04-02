@@ -30,7 +30,6 @@ func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*ma
 	conn := &mariadbv1alpha1.Connection{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.ConnectionSpec{
-
 			Username:             opts.Username,
 			PasswordSecretKeyRef: opts.PasswordSecretKeyRef,
 			Database:             opts.Database,

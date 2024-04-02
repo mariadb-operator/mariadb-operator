@@ -27,7 +27,7 @@ func newTestBuilder() *Builder {
 		RelatedMariadbImage:      "mariadb:11.2.2:test",
 		RelatedMaxscaleImage:     "maxscale:test",
 		RelatedExporterImage:     "mysql-exporter:test",
-		MariadbGaleraInitImage:   "mariadb-operator:tes",
+		MariadbGaleraInitImage:   "mariadb-operator:test",
 		MariadbGaleraAgentImage:  "mariadb-operator:test",
 		MariadbGaleraLibPath:     "/usr/lib/galera/libgalera_smm.so",
 		WatchNamespace:           "",
