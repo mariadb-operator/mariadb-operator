@@ -9,7 +9,7 @@ spec:
       database.myorg.io: mariadb
     annotations:
       database.myorg.io: mariadb
-  # metadata that will be inherited ony by the Pod
+  # metadata that will be inherited only by the Pod
   podMetadata:
      labels:
         sidecar.istio.io/inject: "false"

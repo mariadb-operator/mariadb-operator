@@ -88,12 +88,13 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, key types.NamespacedName) (*appsv1.StatefulSet, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
+			WithMetadata(maxscale.Spec.InheritMetadata).
 			Build()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMaxScaleSelectorLabels(maxscale).
 			Build()
-	podTemplate, err := b.maxscalePodTemplate(maxscale, selectorLabels)
+	podTemplate, err := b.maxscalePodTemplate(maxscale)
 	if err != nil {
 		return nil, fmt.Errorf("error building pod template: %v", err)
 	}
@@ -250,14 +251,20 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 	}, nil
 }
 
-func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, labels map[string]string) (*corev1.PodTemplateSpec, error) {
+func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.PodTemplateSpec, error) {
 	containers, err := b.maxscaleContainers(mxs)
 	if err != nil {
 		return nil, fmt.Errorf("error building MaxScale containers: %v", err)
 	}
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMaxScaleSelectorLabels(mxs).
+			Build()
 	objMeta :=
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mxs)).
-			WithLabels(labels).
+			WithMetadata(mxs.Spec.InheritMetadata).
+			WithMetadata(mxs.Spec.PodMetadata).
+			WithLabels(selectorLabels).
 			Build()
 	affinity := ptr.Deref(mxs.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 	return &corev1.PodTemplateSpec{

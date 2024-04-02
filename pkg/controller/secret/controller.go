@@ -72,9 +72,10 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, req *Ran
 }
 
 type SecretRequest struct {
-	Owner metav1.Object
-	Key   types.NamespacedName
-	Data  map[string][]byte
+	Owner    metav1.Object
+	Metadata *mariadbv1alpha1.Metadata
+	Key      types.NamespacedName
+	Data     map[string][]byte
 }
 
 func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) error {
@@ -83,13 +84,14 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) er
 	if err == nil {
 		return nil
 	}
-	if err != nil && !apierrors.IsNotFound(err) {
+	if !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error getting ConfigMap: %v", err)
 	}
 
 	secretOpts := builder.SecretOpts{
-		Key:  req.Key,
-		Data: req.Data,
+		Metadata: []*mariadbv1alpha1.Metadata{req.Metadata},
+		Key:      req.Key,
+		Data:     req.Data,
 	}
 	secret, err := r.Builder.BuildSecret(secretOpts, req.Owner)
 	if err != nil {

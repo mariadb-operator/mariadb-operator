@@ -499,6 +499,10 @@ type MaxScaleSpec struct {
 	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// InheritMetadata defines the metadata to be inherited by children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
 	// Services define how the traffic is forwarded to the MariaDB servers. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

@@ -7,6 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -120,6 +121,173 @@ func TestMaxScaleImagePullSecrets(t *testing.T) {
 	}
 }
 
+func TestMariaDBStatefulSetMeta(t *testing.T) {
+	builder := newTestBuilder()
+	objMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	key := types.NamespacedName{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		wantMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "inherit meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "HA",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{},
+				Annotations: map[string]string{
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+				},
+			},
+		},
+		{
+			name: "all",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io":       "mariadb",
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sts, err := builder.BuildMariadbStatefulSet(tt.mariadb, key)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB StatefulSet: %v", err)
+			}
+			assertMeta(t, &sts.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+		})
+	}
+}
+
+func TestMaxScaleStatefulSetMeta(t *testing.T) {
+	builder := newTestBuilder()
+	objMeta := metav1.ObjectMeta{
+		Name: "maxscale-obj",
+	}
+	key := types.NamespacedName{
+		Name: "maxscale-obj",
+	}
+	tests := []struct {
+		name     string
+		maxscale *mariadbv1alpha1.MaxScale
+		wantMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "empty",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "inherit meta",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sts, err := builder.BuildMaxscaleStatefulSet(tt.maxscale, key)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale StatefulSet: %v", err)
+			}
+			assertMeta(t, &sts.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+		})
+	}
+}
+
 func TestMariadbPodMeta(t *testing.T) {
 	builder := newTestBuilder()
 	objMeta := metav1.ObjectMeta{
@@ -146,15 +314,13 @@ func TestMariadbPodMeta(t *testing.T) {
 			},
 		},
 		{
-			name: "inherit metadata",
+			name: "inherit meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
-							"app.kubernetes.io/name":     "mariadb",
-							"app.kubernetes.io/instance": "mariadb-obj",
-							"sidecar.istio.io/inject":    "false",
+							"sidecar.istio.io/inject": "false",
 						},
 						Annotations: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -283,7 +449,7 @@ func TestMariadbPodMeta(t *testing.T) {
 			},
 		},
 		{
-			name: "override Pod meta",
+			name: "extra override Pod meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -310,6 +476,40 @@ func TestMariadbPodMeta(t *testing.T) {
 					"sidecar.istio.io/inject":    "true",
 				},
 				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "Pod override inherit meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "true",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			opts: nil,
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"sidecar.istio.io/inject":    "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
 			},
 		},
 		{
@@ -385,7 +585,198 @@ func TestMariadbPodMeta(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
 			if err != nil {
-				t.Fatalf("unexpected error building Pod template: %v", err)
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+			assertMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+		})
+	}
+}
+
+func TestMaxScalePodTemplate(t *testing.T) {
+	builder := newTestBuilder()
+	objMeta := metav1.ObjectMeta{
+		Name: "maxscale-obj",
+	}
+	tests := []struct {
+		name     string
+		maxscale *mariadbv1alpha1.MaxScale
+		wantMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "empty",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "maxscale",
+					"app.kubernetes.io/instance": "maxscale-obj",
+				},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "inherit meta",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "maxscale",
+					"app.kubernetes.io/instance": "maxscale-obj",
+					"sidecar.istio.io/inject":    "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "Pod meta",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "maxscale",
+					"app.kubernetes.io/instance": "maxscale-obj",
+					"sidecar.istio.io/inject":    "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "inherit and Pod meta",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "maxscale",
+					"app.kubernetes.io/instance": "maxscale-obj",
+					"sidecar.istio.io/inject":    "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "Pod override inherit meta",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "true",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "maxscale",
+					"app.kubernetes.io/instance": "maxscale-obj",
+					"sidecar.istio.io/inject":    "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "all",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"k8s.mariadb.com": "test",
+						},
+						Annotations: map[string]string{
+							"k8s.mariadb.com": "test",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "maxscale",
+					"app.kubernetes.io/instance": "maxscale-obj",
+					"sidecar.istio.io/inject":    "false",
+					"k8s.mariadb.com":            "test",
+				},
+				Annotations: map[string]string{
+					"k8s.mariadb.com":   "test",
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podTpl, err := builder.maxscalePodTemplate(tt.maxscale)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
 			}
 			assertMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})

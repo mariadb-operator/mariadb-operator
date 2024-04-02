@@ -8,6 +8,19 @@ spec:
   imagePullSecrets:
     - name: registry # run 'make registry-secret' to generate a secret from ~/.docker/config.json
 
+  # metadata that will be inherited by all children objects
+  inheritMetadata:
+    labels:
+      database.myorg.io: maxscale
+    annotations:
+      database.myorg.io: maxscale
+  # metadata that will be inherited only by the Pod
+  podMetadata:
+     labels:
+        sidecar.istio.io/inject: "false"
+     annotations:
+        sidecar.istio.io/inject: "false"
+
   replicas: 3
 
   servers:
