@@ -1,7 +1,7 @@
 # Registry
 
 > [!NOTE]  
-> This documentation applies to `mariadb-operator` version >= v0.0.28
+> This documentation applies to `mariadb-operator` version >= v0.0.27
 
 This documentation aims to provide guidance on how to configure private registries in the `mariadb-operator` CRs.
 
