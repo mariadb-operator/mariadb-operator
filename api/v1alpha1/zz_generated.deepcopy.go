@@ -1688,6 +1688,11 @@ func (in *MaxScaleSpec) DeepCopyInto(out *MaxScaleSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.InheritMetadata != nil {
+		in, out := &in.InheritMetadata, &out.InheritMetadata
+		*out = new(Metadata)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Services != nil {
 		in, out := &in.Services, &out.Services
 		*out = make([]MaxScaleService, len(*in))

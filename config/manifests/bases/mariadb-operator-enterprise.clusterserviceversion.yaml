@@ -2835,6 +2835,16 @@ spec:
           the image.
         displayName: Image Pull Secrets
         path: imagePullSecrets
+      - description: InheritMetadata defines the metadata to be inherited by children
+          resources.
+        displayName: Inherit Metadata
+        path: inheritMetadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: inheritMetadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: inheritMetadata.labels
       - description: InitContainers to be used in the Pod.
         displayName: Init Containers
         path: initContainers

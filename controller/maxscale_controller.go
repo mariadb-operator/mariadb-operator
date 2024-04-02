@@ -387,7 +387,8 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 	}
 
 	secretReq := secret.SecretRequest{
-		Owner: mxs,
+		Owner:    mxs,
+		Metadata: req.mxs.Spec.InheritMetadata,
 		Key: types.NamespacedName{
 			Name:      secretKeyRef.Name,
 			Namespace: mxs.Namespace,
@@ -420,7 +421,8 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 		}
 
 		randomSecretReq := &secret.RandomPasswordRequest{
-			Owner: mxs,
+			Owner:    mxs,
+			Metadata: mxs.Spec.InheritMetadata,
 			Key: types.NamespacedName{
 				Name:      secretKeyRef.Name,
 				Namespace: mxs.Namespace,
@@ -437,7 +439,7 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 
 func (r *MaxScaleReconciler) reconcileServiceAccount(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	key := req.mxs.Spec.PodTemplate.ServiceAccountKey(req.mxs.ObjectMeta)
-	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, req.mxs, nil)
+	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, req.mxs, req.mxs.Spec.InheritMetadata)
 	return ctrl.Result{}, err
 }
 
@@ -485,7 +487,7 @@ func (r *MaxScaleReconciler) reconcilePDBWithAvailability(ctx context.Context, m
 			WithMaxScaleSelectorLabels(maxscale).
 			Build()
 	opts := builder.PodDisruptionBudgetOpts{
-		Metadata:       nil,
+		Metadata:       maxscale.Spec.InheritMetadata,
 		Key:            key,
 		MinAvailable:   minAvailable,
 		MaxUnavailable: maxUnavailable,
@@ -513,6 +515,7 @@ func (r *MaxScaleReconciler) reconcileInternalService(ctx context.Context, maxsc
 			Build()
 
 	opts := builder.ServiceOpts{
+		ExtraMeta:      maxscale.Spec.InheritMetadata,
 		Headless:       true,
 		SelectorLabels: selectorLabels,
 	}
@@ -542,6 +545,7 @@ func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, max
 		})
 	}
 	opts := builder.ServiceOpts{
+		ExtraMeta:      maxscale.Spec.InheritMetadata,
 		Ports:          ports,
 		SelectorLabels: selectorLabels,
 	}
@@ -604,6 +608,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 				Name:                 mxs.Spec.Auth.ClientUsername,
 				PasswordSecretKeyRef: mxs.Spec.Auth.ClientPasswordSecretKeyRef,
 				MaxUserConnections:   mxs.Spec.Auth.ClientMaxConnections,
+				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
 			grants: []auth.GrantOpts{
@@ -621,6 +626,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 						Username:    mxs.Spec.Auth.ClientUsername,
 						Host:        "%",
 						GrantOption: false,
+						Metadata:    mxs.Spec.InheritMetadata,
 						MariaDBRef:  *mxs.Spec.MariaDBRef,
 					},
 				},
@@ -632,6 +638,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 				Name:                 mxs.Spec.Auth.ServerUsername,
 				PasswordSecretKeyRef: mxs.Spec.Auth.ServerPasswordSecretKeyRef,
 				MaxUserConnections:   mxs.Spec.Auth.ServerMaxConnections,
+				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
 			grants: []auth.GrantOpts{
@@ -649,6 +656,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 						Username:    mxs.Spec.Auth.ServerUsername,
 						Host:        "%",
 						GrantOption: false,
+						Metadata:    mxs.Spec.InheritMetadata,
 						MariaDBRef:  *mxs.Spec.MariaDBRef,
 					},
 				},
@@ -666,6 +674,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 						Username:    mxs.Spec.Auth.ServerUsername,
 						Host:        "%",
 						GrantOption: false,
+						Metadata:    mxs.Spec.InheritMetadata,
 						MariaDBRef:  *mxs.Spec.MariaDBRef,
 					},
 				},
@@ -677,6 +686,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 				Name:                 mxs.Spec.Auth.MonitorUsername,
 				PasswordSecretKeyRef: mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
 				MaxUserConnections:   mxs.Spec.Auth.MonitorMaxConnections,
+				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
 			grants: monitorGrantOpts(monitorKey, mxs),
@@ -694,6 +704,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 				Name:                 *mxs.Spec.Auth.SyncUsername,
 				PasswordSecretKeyRef: *mxs.Spec.Auth.SyncPasswordSecretKeyRef,
 				MaxUserConnections:   *mxs.Spec.Auth.SyncMaxConnections,
+				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
 			grants: []auth.GrantOpts{
@@ -712,6 +723,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 						Username:    *mxs.Spec.Auth.SyncUsername,
 						Host:        "%",
 						GrantOption: false,
+						Metadata:    mxs.Spec.InheritMetadata,
 						MariaDBRef:  *mxs.Spec.MariaDBRef,
 					},
 				},
@@ -759,6 +771,7 @@ func monitorGrantOpts(key types.NamespacedName, mxs *mariadbv1alpha1.MaxScale) [
 					Username:    mxs.Spec.Auth.MonitorUsername,
 					Host:        "%",
 					GrantOption: false,
+					Metadata:    mxs.Spec.InheritMetadata,
 					MariaDBRef:  *mxs.Spec.MariaDBRef,
 				},
 			},
@@ -940,10 +953,7 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting server index: %v", err)
 	}
-	diff := ds.Diff[
-		mariadbv1alpha1.MaxScaleServer,
-		mxsclient.Data[mxsclient.ServerAttributes],
-	](currentIdx, previousIdx)
+	diff := ds.Diff(currentIdx, previousIdx)
 
 	if r.LogMaxScale {
 		log.FromContext(ctx).V(1).Info(
@@ -1052,10 +1062,7 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting service index: %v", err)
 	}
-	diff := ds.Diff[
-		mariadbv1alpha1.MaxScaleService,
-		mxsclient.Data[mxsclient.ServiceAttributes],
-	](currentIdx, previousIdx)
+	diff := ds.Diff(currentIdx, previousIdx)
 
 	if r.LogMaxScale {
 		log.FromContext(ctx).V(1).Info(
@@ -1133,10 +1140,7 @@ func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *reques
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting listener index: %v", err)
 	}
-	diff := ds.Diff[
-		mariadbv1alpha1.MaxScaleListener,
-		mxsclient.Data[mxsclient.ListenerAttributes],
-	](currentIdx, previousIdx)
+	diff := ds.Diff(currentIdx, previousIdx)
 
 	if r.LogMaxScale {
 		log.FromContext(ctx).V(1).Info(
@@ -1220,7 +1224,7 @@ func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *reque
 	}
 
 	connOpts := builder.ConnectionOpts{
-		Metadata:             nil,
+		Metadata:             req.mxs.Spec.InheritMetadata,
 		MaxScale:             req.mxs,
 		Key:                  key,
 		Username:             req.mxs.Spec.Auth.ClientUsername,

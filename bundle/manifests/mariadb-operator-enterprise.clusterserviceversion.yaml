@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-01T17:00:43Z"
+    createdAt: "2024-04-02T13:53:47Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -2648,6 +2648,15 @@ spec:
           - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
             displayName: Image Pull Secrets
             path: imagePullSecrets
+          - description: InheritMetadata defines the metadata to be inherited by children resources.
+            displayName: Inherit Metadata
+            path: inheritMetadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: inheritMetadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: inheritMetadata.labels
           - description: InitContainers to be used in the Pod.
             displayName: Init Containers
             path: initContainers

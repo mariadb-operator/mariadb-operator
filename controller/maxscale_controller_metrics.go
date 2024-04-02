@@ -88,7 +88,8 @@ maxscale_password={{ .Password }}`)
 	}
 
 	secretOpts := builder.SecretOpts{
-		Key: key,
+		Metadata: []*mariadbv1alpha1.Metadata{req.mxs.Spec.InheritMetadata},
+		Key:      key,
 		Data: map[string][]byte{
 			secretKeyRef.Key: buf.Bytes(),
 		},
@@ -128,7 +129,7 @@ func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *
 			},
 		},
 		SelectorLabels: selectorLabels,
-		ExtraMeta:      nil,
+		ExtraMeta:      mxs.Spec.InheritMetadata,
 	}
 
 	desiredSvc, err := r.Builder.BuildService(key, mxs, opts)
