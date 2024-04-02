@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestEndpointsmeta(t *testing.T) {
+func TestEndpointsMeta(t *testing.T) {
 	builder := newTestBuilder()
 	key := types.NamespacedName{
 		Name: "endpoints",
@@ -56,7 +56,7 @@ func TestEndpointsmeta(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			endpoints, err := builder.BuildEndpoints(key, tt.mariadb, subsets)
 			if err != nil {
-				t.Fatalf("unexpected error building exporter Deployment: %v", err)
+				t.Fatalf("unexpected error building Endpoints: %v", err)
 			}
 			assertMeta(t, &endpoints.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})

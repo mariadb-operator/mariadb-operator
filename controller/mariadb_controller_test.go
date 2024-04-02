@@ -196,7 +196,6 @@ var _ = Describe("MariaDB controller", func() {
 				g.Expect(deploy.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 				g.Expect(deploy.ObjectMeta.Annotations).NotTo(BeNil())
 				g.Expect(deploy.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-
 				return deploymentReady(&deploy)
 			}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
 
