@@ -5,7 +5,7 @@ IMAGE="$2"
 VERSION="$3"
 
 if [ -z "$FOLDER" ] || [ -z "$IMAGE" ] || [ -z "$VERSION" ]; then
-  echo "Usage: $0 path/examples ghcr.io/mariadb-operator/mariadb-operator v0.0.28"
+  echo "Usage: $0 path/examples ghcr.io/mariadb-operator/mariadb-operator v0.0.27"
   exit 1
 fi
 
