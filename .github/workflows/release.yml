@@ -9,9 +9,14 @@ env:
   GORELEASER_VERSION: "v1.24.0"
 
 jobs:
-  release:
-    name: Release
+  args:
+    name: Release arguments
     runs-on: ubuntu-latest
+    outputs:
+      BUILD_DATE: ${{ steps.args.outputs.BUILD_DATE }}
+      TAG: ${{ steps.args.outputs.TAG }}
+      VERSION: ${{ steps.args.outputs.VERSION }}
+      RELEASE_ARGS: ${{ steps.args.outputs.RELEASE_ARGS }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,26 +26,19 @@ jobs:
       - name: Fetch tags
         run: git fetch --force --tags
 
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        id: buildx
-
-      - name: Login to container Registry
-        uses: docker/login-action@v3
-        with:
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: ghcr.io
-
-      - name: Prepare
-        id: prep
+      - name: Args
+        id: args
         run: |
-          VERSION=sha-${GITHUB_SHA::8}
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF/refs\/tags\//}
+          function get_version() {
+            echo "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
+          }
+          TAG=${GITHUB_REF/refs\/tags\//}
+          VERSION=$(get_version "$TAG")
+          MAKE_VERSION=$(get_version $(make version))
+
+          if [ "$VERSION" != "$MAKE_VERSION" ]; then
+            echo "Tag('$TAG') with version('$VERSION') and Makefile version('$MAKE_VERSION') don't match!"
+            exit 1;
           fi
           
           RELEASE_ARGS=release
@@ -58,8 +56,33 @@ jobs:
           fi
           
           echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "RELEASE_ARGS=${RELEASE_ARGS}" >> $GITHUB_OUTPUT
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: args
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        id: buildx
+
+      - name: Login to container Registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
 
       - name: Publish multi-arch Docker image
         uses: docker/build-push-action@v5
@@ -70,7 +93,7 @@ jobs:
           file: ./Dockerfile
           platforms: linux/arm64,linux/amd64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/mariadb-operator:${{ steps.prep.outputs.VERSION }}
+            ghcr.io/${{ github.repository_owner }}/mariadb-operator:${{ needs.args.outputs.TAG }}
             ghcr.io/${{ github.repository_owner }}/mariadb-operator:latest
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
@@ -78,8 +101,23 @@ jobs:
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.url=${{ github.event.repository.html_url }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
-            org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
+            org.opencontainers.image.version=${{ needs.args.outputs.VERSION }}
+            org.opencontainers.image.created=${{ needs.args.outputs.BUILD_DATE }}
+
+  goreleaser:
+    name: Release
+    runs-on: ubuntu-latest
+    needs:
+      - args 
+      - release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch tags
+        run: git fetch --force --tags
 
       - name: Set GORELEASER_PREVIOUS_TAG
         run: echo "GORELEASER_PREVIOUS_TAG=$(git tag -l "v*" --sort=-version:refname | head -n 2 | tail -n 1)" >> $GITHUB_ENV
@@ -88,6 +126,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v5
         with:
           version: ${{ env.GORELEASER_VERSION }}
-          args: ${{ steps.prep.outputs.RELEASE_ARGS }}
+          args: ${{ needs.args.outputs.RELEASE_ARGS }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
