@@ -7,8 +7,6 @@ In certain circumstances, it could be the case that all the nodes of your cluste
 To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-operator` will regularly monitor the cluster's status to make sure it is healthy. If any issues are detected, the operator will initiate the [recovery process](#galera-cluster-recovery) to restore the cluster to a healthy state. During this process, the operator will set status conditions in the `MariaDB` and emit `Events` so you have a better understanding of the recovery progress and the underlying activities being performed. For example, you may want to know which `Pods` were out of sync to further investigate infrastructure-related issues (i.e. networking, storage...) on the nodes where these `Pods` were scheduled.
 
 ## Table of contents
-
-- [Table of contents](#table-of-contents)
 - [Components](#components)
 - [`MariaDB` configuration](#mariadb-configuration)
 - [Storage](#storage)
