@@ -23,6 +23,9 @@ BUNDLE_IMG ?= mariadb/mariadb-operator-enterprise-bundle:v$(VERSION)
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
 CATALOG_IMG ?= mariadb/mariadb-operator-enterprise-catalog:v$(VERSION)
 
+REDHAT_PROJECT_ID ?= ""
+REDHAT_API_KEY ?= ""
+
 .PHONY: scorecard-sa
 scorecard-sa: ## Create scorecard ServiceAccount.
 	$(KUBECTL) apply -f ./hack/manifests/scorecard-serviceaccount.yaml
@@ -79,13 +82,21 @@ catalog-deploy: ## Deploy catalog to a OpenShift cluster.
 catalog-undeploy: ## Undeploy catalog from a OpenShift cluster.
 	$(KUSTOMIZE) build hack/manifests/catalog	| $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
-.PHONY: preflight-operator
-preflight-operator: preflight ## Run preflight tests on the operator image.
-	$(PREFLIGHT) check container --docker-config $(DOCKER_CONFIG) $(IMG_ENT)
+.PHONY: preflight-image
+preflight-image: preflight ## Run preflight tests on the operator image.
+	$(PREFLIGHT) check container $(IMG_ENT) --docker-config $(DOCKER_CONFIG)
+
+.PHONY: preflight-image-submit
+preflight-image-submit: preflight ## Run preflight tests on the operator image and submit the results to Red Hat.
+	$(PREFLIGHT) check container $(IMG_ENT)\
+		--submit \
+		--pyxis-api-token=$(REDHAT_API_KEY) \
+		--certification-project-id=$(REDHAT_PROJECT_ID)\
+		--docker-config $(DOCKER_CONFIG) 
 
 .PHONY: preflight-bundle
-preflight-bundle: preflight ## Run preflight tests on the bundle image.
-	PFLT_INDEXIMAGE=$(CATALOG_IMG) $(PREFLIGHT) check operator --docker-config $(DOCKER_CONFIG) $(BUNDLE_IMG)
+preflight-bundle: preflight ## Run preflight tests on the bundle image and submit .
+	PFLT_INDEXIMAGE=$(CATALOG_IMG) $(PREFLIGHT) check operator $(BUNDLE_IMG) --docker-config $(DOCKER_CONFIG)
 
 .PHONY: licenses
 licenses: go-licenses ## Generate licenses folder.

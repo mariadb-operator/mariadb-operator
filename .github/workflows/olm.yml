@@ -83,7 +83,7 @@ jobs:
             org.opencontainers.image.created=${{ steps.version.outputs.BUILD_DATE }}
 
       - name: Preflight operator image
-        run: make preflight-operator
+        run: make preflight-image
 
       - name: Publish bundle image
         uses: docker/build-push-action@v5
