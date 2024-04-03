@@ -59,7 +59,7 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	docker build -f Dockerfile.bundle -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
