@@ -11,6 +11,7 @@ env:
 
 jobs:
   detect-noop:
+    name: Detect noop
     runs-on: ubuntu-latest
     outputs:
       noop: ${{ steps.noop.outputs.should_skip }}
@@ -24,6 +25,7 @@ jobs:
           concurrent_skipping: false
 
   detect-ent:
+    name: Detect enterprise
     runs-on: ubuntu-latest
     outputs:
       ent: ${{ steps.ent.outputs.ent }}
@@ -109,7 +111,7 @@ jobs:
         run: make test
 
   test-ent:
-    name: Test Enterprise
+    name: Test enterprise
     runs-on: ubuntu-latest
     needs: 
       - detect-noop
