@@ -57,7 +57,7 @@ jobs:
         with:
           push: true
           context: .
-          file: ./bundle.Dockerfile
+          file: ./Dockerfile.bundle
           tags: |
             mariadb/mariadb-operator-enterprise-bundle:v${{ steps.version.outputs.VERSION }}
             mariadb/mariadb-operator-enterprise-bundle:latest
