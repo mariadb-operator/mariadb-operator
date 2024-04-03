@@ -31,7 +31,7 @@ jobs:
           MAKE_VERSION=$(get_version $(make version))
           
           if [ "$VERSION" != "$MAKE_VERSION" ]; then
-            echo "Tag('$VERSION') and Makefile('$MAKE_VERSION') versions don't match!"
+            echo "Tag('$TAG') with version('$VERSION') and Makefile version('$MAKE_VERSION') don't match!"
             exit 1;
           fi
 
