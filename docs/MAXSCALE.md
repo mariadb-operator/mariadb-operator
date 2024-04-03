@@ -16,7 +16,6 @@ MaxScale is a sophisticated database proxy, router, and load balancer designed s
 To better understand what MaxScale is capable of you may check the [product page](https://mariadb.com/docs/server/products/mariadb-maxscale/) and the [documentation](https://mariadb.com/kb/en/maxscale/). 
 
 ## Table of contents
-  - [Table of contents](#table-of-contents)
   - [MaxScale resources](#maxscale-resources)
       - [Servers](#servers)
       - [Monitors](#monitors)
