@@ -27,7 +27,7 @@ build-ent: ## Build the enterprise binary.
 
 .PHONY: docker-build-ent
 docker-build-ent: ## Build the enterprise image.
-	docker build -f Dockerfile.ubi -t $(IMG_ENT) .
+	docker build -f Dockerfile.ent -t $(IMG_ENT) .
 
 .PHONY: docker-push-ent
 docker-push-ent: ## Push the enterprise image.
