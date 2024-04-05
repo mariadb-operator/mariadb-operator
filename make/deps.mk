@@ -211,6 +211,6 @@ ifeq (,$(shell which preflight 2>/dev/null))
 	chmod +x $(PREFLIGHT) ;\
 	}
 else
-OC = $(shell which oc)
+PREFLIGHT = $(shell which preflight)
 endif
 endif
