@@ -101,3 +101,10 @@ preflight-bundle: preflight ## Run preflight tests on the bundle image and submi
 .PHONY: licenses
 licenses: go-licenses ## Generate licenses folder.
 	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force
+
+CERTIFIED_REPO ?= "https://github.com/mariadb-operator/certified-operators"
+CERTIFIED_BRANCH ?= main
+BUNDLE_PATH ?= "operators/mariadb-operator/${VERSION}"
+.PHONY: cert-test
+cert-test: ## Run certification tests in OpenShift.
+	CERTIFIED_REPO=$(CERTIFIED_REPO) CERTIFIED_BRANCH=$(CERTIFIED_BRANCH) BUNDLE_PATH=$(BUNDLE_PATH) ./hack/certification_test.sh 
