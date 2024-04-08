@@ -37,3 +37,6 @@ artifacts/
 
 # Coverage
 cover.*
+
+# Operator pipelines
+/operator-pipelines
