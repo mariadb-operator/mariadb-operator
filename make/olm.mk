@@ -103,7 +103,7 @@ licenses: go-licenses ## Generate licenses folder.
 	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force
 
 CERTIFIED_REPO ?= "https://github.com/mariadb-operator/certified-operators"
-CERTIFIED_BRANCH ?= main
+CERTIFIED_BRANCH ?= cert-test
 BUNDLE_PATH ?= "operators/mariadb-operator/${VERSION}"
 .PHONY: cert-test
 cert-test: ## Run certification tests in OpenShift.
