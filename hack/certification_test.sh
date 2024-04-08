@@ -62,16 +62,14 @@ oc import-image redhat-marketplace-index:v"${OPENSHIFT_VERSION%.*}" \
   --confirm > /dev/null
 oc tag registry.redhat.io/redhat/redhat-marketplace-index:v"${OPENSHIFT_VERSION%.*}" redhat-marketplace-index:v"${OPENSHIFT_VERSION%.*}"
 
-oc adm policy add-scc-to-user anyuid -z pipeline
+oc apply -f operator-pipelines/ansible/roles/operator-pipeline/templates/openshift/openshift-pipelines-custom-scc.yml
+oc adm policy add-scc-to-user pipelines-custom-scc -z pipeline
 
 if [ ! -d "operator-pipelines" ]; then
   git clone https://github.com/redhat-openshift-ecosystem/operator-pipelines
 fi
 oc apply -R -f operator-pipelines/ansible/roles/operator-pipeline/templates/openshift/pipelines/operator-ci-pipeline.yml
 oc apply -R -f operator-pipelines/ansible/roles/operator-pipeline/templates/openshift/tasks
-
-oc apply -f operator-pipelines/ansible/roles/operator-pipeline/templates/openshift/openshift-pipelines-custom-scc.yml
-oc adm policy add-scc-to-user pipelines-custom-scc -z pipeline
 
 tkn pipeline start operator-ci-pipeline \
   --param git_repo_url=$CERTIFIED_REPO \
