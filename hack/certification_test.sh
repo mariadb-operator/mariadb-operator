@@ -67,19 +67,20 @@ oc adm policy add-scc-to-user anyuid -z pipeline
 if [ ! -d "operator-pipelines" ]; then
   git clone https://github.com/redhat-openshift-ecosystem/operator-pipelines
 fi
-cd operator-pipelines
-oc apply -R -f ansible/roles/operator-pipeline/templates/openshift/pipelines/operator-ci-pipeline.yml
-oc apply -R -f ansible/roles/operator-pipeline/templates/openshift/tasks
+oc apply -R -f operator-pipelines/ansible/roles/operator-pipeline/templates/openshift/pipelines/operator-ci-pipeline.yml
+oc apply -R -f operator-pipelines/ansible/roles/operator-pipeline/templates/openshift/tasks
 
-oc apply -f ansible/roles/operator-pipeline/templates/openshift/openshift-pipelines-custom-scc.yml
+oc apply -f operator-pipelines/ansible/roles/operator-pipeline/templates/openshift/openshift-pipelines-custom-scc.yml
 oc adm policy add-scc-to-user pipelines-custom-scc -z pipeline
 
 tkn pipeline start operator-ci-pipeline \
   --param git_repo_url=$CERTIFIED_REPO \
   --param git_branch=$CERTIFIED_BRANCH \
+  --param upstream_repo_name=redhat-openshift-ecosystem/certified-operators \
   --param bundle_path=$BUNDLE_PATH \
   --param env=prod \
-  --workspace name=pipeline,volumeClaimTemplateFile=templates/workspace-template.yml \
+  --workspace name=pipeline,volumeClaimTemplateFile=operator-pipelines/templates/workspace-template.yml \
+  --pod-template operator-pipelines/templates/crc-pod-template.yml \
   --showlog \
   --use-param-defaults \
   --param submit=false
