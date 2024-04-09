@@ -834,6 +834,9 @@ spec:
           as many Nodes available as the replicas to not end up with unscheduled Pods.
         displayName: Enable Anti Affinity
         path: bootstrapFrom.restoreJob.affinity.enableAntiAffinity
+      - description: Args to be used in the Container.
+        displayName: Args
+        path: bootstrapFrom.restoreJob.args
       - description: Metadata defines additional metadata for the bootstrap Jobs.
         displayName: Metadata
         path: bootstrapFrom.restoreJob.metadata
@@ -843,6 +846,11 @@ spec:
       - description: Labels to be added to children resources.
         displayName: Labels
         path: bootstrapFrom.restoreJob.metadata.labels
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: bootstrapFrom.restoreJob.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - description: S3 defines the configuration to restore backups from a S3 compatible
           storage. It has priority over Volume.
         displayName: S3

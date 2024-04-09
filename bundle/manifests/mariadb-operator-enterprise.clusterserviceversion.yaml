@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-09T09:46:43Z"
+    createdAt: "2024-04-09T16:50:32Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -918,6 +918,9 @@ spec:
           - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Enable Anti Affinity
             path: bootstrapFrom.restoreJob.affinity.enableAntiAffinity
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: bootstrapFrom.restoreJob.args
           - description: Metadata defines additional metadata for the bootstrap Jobs.
             displayName: Metadata
             path: bootstrapFrom.restoreJob.metadata
@@ -927,6 +930,11 @@ spec:
           - description: Labels to be added to children resources.
             displayName: Labels
             path: bootstrapFrom.restoreJob.metadata.labels
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: bootstrapFrom.restoreJob.resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
           - description: S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume.
             displayName: S3
             path: bootstrapFrom.s3
@@ -4252,6 +4260,8 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
+    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
+      name: mariadb
     - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
@@ -4262,8 +4272,6 @@ spec:
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
-    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
-      name: mariadb
   version: 0.0.27
   webhookdefinitions:
     - admissionReviewVersions:
