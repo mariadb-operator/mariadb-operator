@@ -9,8 +9,16 @@ spec:
   bootstrapFrom:
     backupRef:
       name: backup
+    targetRecoveryTime: 2023-12-19T09:00:00Z
     restoreJob:
       metadata:
         labels:
           sidecar.istio.io/inject: "false"
-    targetRecoveryTime: 2023-12-19T09:00:00Z
+      args:
+        - "--verbose"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          memory: 1Gi
