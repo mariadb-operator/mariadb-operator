@@ -110,20 +110,19 @@ oc delete secret kubeconfig --ignore-not-found
 oc create secret generic kubeconfig --from-file=kubeconfig=$KUBECONFIG
 
 # Import redhat catalogs
-oc import-image certified-operator-index \
+oc import-image certified-operator-index:v4.16 \
   --request-timeout=5m \
-  --from=registry.redhat.io/redhat/certified-operator-index \
+  --from=registry.redhat.io/redhat/certified-operator-index:v4.16 \
   --reference-policy local \
   --scheduled \
-  --confirm \
-  --all
+  --confirm
 
 # Install the Certification Pipeline
 if [ ! -d "operator-pipelines" ]; then
   git clone https://github.com/redhat-openshift-ecosystem/operator-pipelines
 fi
 cd operator-pipelines
-git checkout v1.0.120
+git checkout v1.0.122
 cd -
 
 # Create a new SCC
