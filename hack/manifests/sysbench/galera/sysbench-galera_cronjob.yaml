@@ -16,7 +16,7 @@ spec:
             command:
               - sysbench 
               - oltp_read_write 
-              - --tables=10 
+              - --tables=5 
               - --table_size=1000000
               - --mysql-host=maxscale-galera.default.svc.cluster.local
               - --mysql-port=3306
