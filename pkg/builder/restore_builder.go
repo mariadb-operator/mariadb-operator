@@ -20,14 +20,22 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	restoreJob := ptr.Deref(bootstrapFrom.RestoreJob, mariadbv1alpha1.BootstrapJob{})
 
 	podTpl := mariadb.Spec.PodTemplate.DeepCopy()
-	if restoreJob.Affinity != nil {
-		podTpl.Affinity = restoreJob.Affinity
+	if affinity := restoreJob.Affinity; affinity != nil {
+		podTpl.Affinity = affinity
+	}
+
+	containerTpl := mariadb.Spec.ContainerTemplate.DeepCopy()
+	if resources := restoreJob.Resources; resources != nil {
+		containerTpl.Resources = resources
+	}
+	if args := restoreJob.Args; args != nil {
+		containerTpl.Args = args
 	}
 
 	restore := &mariadbv1alpha1.Restore{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.RestoreSpec{
-			ContainerTemplate: mariadb.Spec.ContainerTemplate,
+			ContainerTemplate: *containerTpl,
 			PodTemplate:       *podTpl,
 			RestoreSource:     bootstrapFrom.RestoreSource,
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{

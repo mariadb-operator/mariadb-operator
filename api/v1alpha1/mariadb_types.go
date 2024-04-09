@@ -283,6 +283,14 @@ type BootstrapJob struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Affinity *AffinityConfig `json:"affinity,omitempty"`
+	// Resouces describes the compute resource requirements.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Args to be used in the Container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Args []string `json:"args,omitempty"`
 }
 
 // BootstrapFrom defines a source to bootstrap MariaDB from.

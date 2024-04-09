@@ -165,6 +165,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity defines policies to schedule the bootstrap Pods in Nodes. |  |  |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |  |  |
+| `args` _string array_ | Args to be used in the Container. |  |  |
 
 
 #### Connection
