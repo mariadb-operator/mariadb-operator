@@ -106,5 +106,5 @@ CERTIFIED_REPO ?= "https://github.com/mariadb-operator/certified-operators"
 CERTIFIED_BRANCH ?= cert-test
 BUNDLE_PATH ?= "operators/mariadb-operator/${VERSION}"
 .PHONY: cert-test
-cert-test: ## Run certification tests in OpenShift.
+cert-test: openshift-registry ## Run certification tests in OpenShift.
 	CERTIFIED_REPO=$(CERTIFIED_REPO) CERTIFIED_BRANCH=$(CERTIFIED_BRANCH) BUNDLE_PATH=$(BUNDLE_PATH) ./hack/certification_test.sh 
