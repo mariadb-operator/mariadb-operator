@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-03T15:30:36Z"
+    createdAt: "2024-04-09T09:26:32Z"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -4119,8 +4119,8 @@ spec:
                       - name: RELATED_IMAGE_EXPORTER
                         value: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
-                        value: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
-                      - name: MARIADB_OPERATOR_IMGE
+                        value: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+                      - name: MARIADB_OPERATOR_IMAGE
                         value: mariadb/mariadb-operator-enterprise:v0.0.27
                       - name: MARIADB_GALERA_INIT_IMAGE
                         value: mariadb/mariadb-operator-enterprise:v0.0.27
@@ -4245,18 +4245,18 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+      name: exporter-maxscale
+    - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
+      name: mariadb-operator-enterprise
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+      name: exporter_maxscale
     - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
       name: mariadb
     - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
       name: exporter
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
-      name: exporter-maxscale
-    - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-      name: mariadb-operator-enterprise
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:1e73d563d8155701f2ff6817b4701e5c0bae29767a63fed728eac423a11088a1
-      name: exporter_maxscale
   version: 0.0.27
   webhookdefinitions:
     - admissionReviewVersions:
