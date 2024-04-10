@@ -85,9 +85,9 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--events",
 				"--routines",
 				"--all-databases",
+				"--skip-add-locks",
 				"--verbose",
 				"--add-drop-table",
-				"--skip-add-locks",
 			},
 		},
 		{
@@ -116,6 +116,72 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--routines",
 				"--all-databases",
 				"--skip-add-locks",
+				"--verbose",
+				"--add-drop-table",
+			},
+		},
+		{
+			name: "Explicit databases",
+			backupCmd: &BackupCommand{
+				BackupOpts{
+					DumpOpts: []string{
+						"--databases foo bar",
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--databases foo bar",
+			},
+		},
+		{
+			name: "Explicit databases with extra args",
+			backupCmd: &BackupCommand{
+				BackupOpts{
+					DumpOpts: []string{
+						"--databases foo bar",
+						"--verbose",
+						"--add-drop-table",
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--databases foo bar",
+				"--verbose",
+				"--add-drop-table",
+			},
+		},
+		{
+			name: "All",
+			backupCmd: &BackupCommand{
+				BackupOpts{
+					DumpOpts: []string{
+						"--databases foo bar",
+						"--verbose",
+						"--add-drop-table",
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--skip-add-locks",
+				"--databases foo bar",
 				"--verbose",
 				"--add-drop-table",
 			},
