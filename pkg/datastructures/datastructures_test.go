@@ -3,6 +3,7 @@ package datastructures
 import (
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -196,6 +197,64 @@ func TestUnique(t *testing.T) {
 			elements := Unique(tt.wantElements...)
 			if !reflect.DeepEqual(elements, tt.wantElements) {
 				t.Errorf("expecting unique elements to be:\n%v\ngot:\n%v\n", tt.wantElements, elements)
+			}
+		})
+	}
+}
+
+func TestAny(t *testing.T) {
+	tests := []struct {
+		name     string
+		elements []string
+		fn       func(string) bool
+		wantBool bool
+	}{
+		{
+			name:     "empty",
+			elements: nil,
+			fn:       nil,
+			wantBool: false,
+		},
+		{
+			name: "no match",
+			elements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+			fn:       func(s string) bool { return strings.HasPrefix(s, "--databases") },
+			wantBool: false,
+		},
+		{
+			name: "single match",
+			elements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--databases foo",
+			},
+			fn:       func(s string) bool { return strings.HasPrefix(s, "--databases") },
+			wantBool: true,
+		},
+		{
+			name: "multiple match",
+			elements: []string{
+				"--single-transaction",
+				"--databases foo",
+				"--events",
+				"--routines",
+				"--databases foo",
+			},
+			fn:       func(s string) bool { return strings.HasPrefix(s, "--databases") },
+			wantBool: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotBool := Any(tt.elements, tt.fn)
+			if !reflect.DeepEqual(gotBool, tt.wantBool) {
+				t.Errorf("expecting Any returned value to be:\n%v\ngot:\n%v\n", tt.wantBool, gotBool)
 			}
 		})
 	}

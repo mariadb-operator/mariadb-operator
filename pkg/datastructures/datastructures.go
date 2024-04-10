@@ -121,3 +121,12 @@ func Unique[T comparable](elements ...T) []T {
 
 	return result
 }
+
+func Any[T any](elements []T, fn func(T) bool) bool {
+	for _, el := range elements {
+		if fn(el) {
+			return true
+		}
+	}
+	return false
+}
