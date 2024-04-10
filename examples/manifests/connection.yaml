@@ -15,11 +15,10 @@ spec:
     timeout: "5s"
   secretName: connection
   secretTemplate:
-    metadata:
-      labels:
-        k8s.mariadb.com/connection: sample
-      annotations:
-        k8s.mariadb.com/connection: sample
+    labels:
+      k8s.mariadb.com/connection: sample
+    annotations:
+      k8s.mariadb.com/connection: sample
     key: dsn
     usernameKey: username
     passwordKey: password

@@ -22,9 +22,8 @@ spec:
     
     kubernetesService:
       type: LoadBalancer
-      metadata:
-        annotations:
-          metallb.universe.tf/loadBalancerIPs: 172.18.0.229
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.229
 
     connection:
       secretName: mxs-galera-conn
@@ -35,21 +34,18 @@ spec:
 
   service:
     type: LoadBalancer
-    metadata:
-      annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.150
 
   primaryService:
     type: LoadBalancer
-    metadata:
-      annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.160
 
   secondaryService:
     type: LoadBalancer
-    metadata:
-      annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.161
 
   metrics:
     enabled: true

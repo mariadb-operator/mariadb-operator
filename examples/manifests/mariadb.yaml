@@ -23,9 +23,8 @@ spec:
 
   service:
     type: LoadBalancer
-    metadata:
-      annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.20
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: 172.18.0.20
 
   myCnf: |
     [mariadb]

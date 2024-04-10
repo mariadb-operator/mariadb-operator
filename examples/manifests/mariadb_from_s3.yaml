@@ -22,7 +22,6 @@ spec:
           name: minio-ca
           key: ca.crt
     restoreJob:
-      metadata:
-        labels:
-          sidecar.istio.io/inject: "false"
+      labels:
+        sidecar.istio.io/inject: "false"
     targetRecoveryTime: 2023-12-19T09:00:00Z

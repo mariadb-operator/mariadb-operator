@@ -10,7 +10,6 @@ spec:
     backupRef:
       name: backup-scheduled
     restoreJob:
-      metadata:
-        labels:
-          sidecar.istio.io/inject: "false"
+      labels:
+        sidecar.istio.io/inject: "false"
     targetRecoveryTime: 2023-12-28T09:00:00Z
