@@ -24,6 +24,11 @@ type RestoreSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// Database defines the logical database to be restored. If not provided, all databases available in the backup are restored.
+	// IMPORTANT: The database must previously exist.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Database string `json:"database,omitempty"`
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info

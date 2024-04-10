@@ -264,3 +264,75 @@ func TestMariadbDumpArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestMariadbArgs(t *testing.T) {
+	tests := []struct {
+		name      string
+		backupCmd *BackupCommand
+		restore   *mariadbv1alpha1.Restore
+		wantArgs  []string
+	}{
+		{
+			name:      "empty",
+			backupCmd: &BackupCommand{},
+			restore:   &mariadbv1alpha1.Restore{},
+			wantArgs:  nil,
+		},
+		{
+			name: "extra args",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					DumpOpts: []string{
+						"--verbose",
+						"--one-database db1",
+					},
+				},
+			},
+			restore: &mariadbv1alpha1.Restore{},
+			wantArgs: []string{
+				"--verbose",
+				"--one-database db1",
+			},
+		},
+		{
+			name:      "database",
+			backupCmd: &BackupCommand{},
+			restore: &mariadbv1alpha1.Restore{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					Database: "db1",
+				},
+			},
+			wantArgs: []string{
+				"--one-database db1",
+			},
+		},
+		{
+			name: "database and args",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					DumpOpts: []string{
+						"--verbose",
+					},
+				},
+			},
+			restore: &mariadbv1alpha1.Restore{
+				Spec: mariadbv1alpha1.RestoreSpec{
+					Database: "db1",
+				},
+			},
+			wantArgs: []string{
+				"--verbose",
+				"--one-database db1",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			args := tt.backupCmd.mariadbArgs(tt.restore)
+			if !reflect.DeepEqual(args, tt.wantArgs) {
+				t.Errorf("expecting args to be:\n%v\ngot:\n%v\n", tt.wantArgs, args)
+			}
+		})
+	}
+}
