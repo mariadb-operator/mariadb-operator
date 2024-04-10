@@ -1,0 +1,28 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  databases:
+    - db1
+    - db2
+    - db3
+  maxRetention: 720h # 30 days
+  storage:
+    s3:
+      bucket: backups
+      endpoint: minio.minio.svc.cluster.local:9000
+      region:  us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
