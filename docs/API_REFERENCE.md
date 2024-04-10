@@ -105,6 +105,7 @@ _Appears in:_
 | `storage` _[BackupStorage](#backupstorage)_ | Storage to be used in the Backup. |  | Required: {} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
 | `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
+| `databases` _string array_ | Databases defines the logical databases to be backed up. If not provided, all databases are backed up. |  |  |
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. | info |  |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully take a Backup. |  |  |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |

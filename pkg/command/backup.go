@@ -133,7 +133,7 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 
 func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) *Command {
-	args := strings.Join(b.mariadbDumpArgs(mariadb), " ")
+	args := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
 	cmds := []string{
 		"set -euo pipefail",
 		"echo 💾 Exporting env",
@@ -233,17 +233,27 @@ func (b *BackupCommand) getTargetFilePath() string {
 	return fmt.Sprintf("%s/$(cat '%s')", b.Path, b.TargetFilePath)
 }
 
-func (b *BackupCommand) mariadbDumpArgs(mariab *mariadbv1alpha1.MariaDB) []string {
+func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariab *mariadbv1alpha1.MariaDB) []string {
+	dumpOpts := make([]string, len(b.BackupOpts.DumpOpts))
+	copy(dumpOpts, b.BackupOpts.DumpOpts)
+
 	args := []string{
 		"--single-transaction",
 		"--events",
 		"--routines",
 	}
 
-	hasDatabases := ds.Any(b.BackupOpts.DumpOpts, func(do string) bool {
-		return strings.HasPrefix(do, "--databases")
-	})
-	if !hasDatabases {
+	hasDatabasesOpt := func(do string) bool {
+		return strings.HasPrefix(strings.TrimSpace(do), "--databases")
+	}
+	hasDatabases := ds.Any(dumpOpts, hasDatabasesOpt)
+
+	if len(backup.Spec.Databases) > 0 {
+		args = append(args, fmt.Sprintf("--databases %s", strings.Join(backup.Spec.Databases, " ")))
+		if hasDatabases {
+			dumpOpts = ds.Remove(dumpOpts, hasDatabasesOpt)
+		}
+	} else if !hasDatabases {
 		args = append(args, "--all-databases")
 	}
 
@@ -252,7 +262,7 @@ func (b *BackupCommand) mariadbDumpArgs(mariab *mariadbv1alpha1.MariaDB) []strin
 		args = append(args, "--skip-add-locks")
 	}
 
-	return ds.Unique(ds.Merge(args, b.BackupOpts.DumpOpts)...)
+	return ds.Unique(ds.Merge(args, dumpOpts)...)
 }
 
 func (b *BackupCommand) s3Args() []string {

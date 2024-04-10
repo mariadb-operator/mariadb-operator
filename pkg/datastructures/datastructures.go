@@ -130,3 +130,13 @@ func Any[T any](elements []T, fn func(T) bool) bool {
 	}
 	return false
 }
+
+func Remove[T any](elements []T, fn func(T) bool) []T {
+	var result []T
+	for _, elem := range elements {
+		if !fn(elem) {
+			result = append(result, elem)
+		}
+	}
+	return result
+}
