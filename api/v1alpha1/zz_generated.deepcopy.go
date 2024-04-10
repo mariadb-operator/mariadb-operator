@@ -130,6 +130,11 @@ func (in *BackupSpec) DeepCopyInto(out *BackupSpec) {
 		**out = **in
 	}
 	out.MaxRetention = in.MaxRetention
+	if in.Databases != nil {
+		in, out := &in.Databases, &out.Databases
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.InheritMetadata != nil {
 		in, out := &in.InheritMetadata, &out.InheritMetadata
 		*out = new(Metadata)

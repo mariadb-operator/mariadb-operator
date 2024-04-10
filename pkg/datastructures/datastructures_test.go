@@ -260,6 +260,107 @@ func TestAny(t *testing.T) {
 	}
 }
 
+func TestRemove(t *testing.T) {
+	tests := []struct {
+		name         string
+		elements     []string
+		fn           func(string) bool
+		wantElements []string
+	}{
+		{
+			name:         "empty",
+			elements:     nil,
+			fn:           nil,
+			wantElements: nil,
+		},
+		{
+			name: "no match",
+			elements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+			fn: func(s string) bool { return strings.HasPrefix(s, "--databases") },
+			wantElements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+		},
+		{
+			name: "remove first",
+			elements: []string{
+				"--databases foo",
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+			fn: func(s string) bool { return strings.HasPrefix(s, "--databases") },
+			wantElements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+		},
+		{
+			name: "remove middle",
+			elements: []string{
+				"--single-transaction",
+				"--databases foo",
+				"--events",
+				"--routines",
+			},
+			fn: func(s string) bool { return strings.HasPrefix(s, "--databases") },
+			wantElements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+		},
+		{
+			name: "remove last",
+			elements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--databases foo",
+			},
+			fn: func(s string) bool { return strings.HasPrefix(s, "--databases") },
+			wantElements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+		},
+		{
+			name: "multiple match",
+			elements: []string{
+				"--databases foo",
+				"--single-transaction",
+				"--databases foo",
+				"--events",
+				"--routines",
+				"--databases foo",
+			},
+			fn: func(s string) bool { return strings.HasPrefix(s, "--databases") },
+			wantElements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			elements := Remove(tt.elements, tt.fn)
+			if !reflect.DeepEqual(elements, tt.wantElements) {
+				t.Errorf("expecting Remove returned value to be:\n%v\ngot:\n%v\n", tt.wantElements, elements)
+			}
+		})
+	}
+}
+
 func newIndex(items ...string) Index[string] {
 	return NewIndex[string](items, func(s string) string {
 		return s

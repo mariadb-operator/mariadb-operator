@@ -11,12 +11,14 @@ func TestMariadbDumpArgs(t *testing.T) {
 	tests := []struct {
 		name      string
 		backupCmd *BackupCommand
+		backup    *mariadbv1alpha1.Backup
 		mariadb   *mariadbv1alpha1.MariaDB
 		wantArgs  []string
 	}{
 		{
-			name:      "emtpty",
+			name:      "empty",
 			backupCmd: &BackupCommand{},
+			backup:    &mariadbv1alpha1.Backup{},
 			mariadb:   &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
 				"--single-transaction",
@@ -35,6 +37,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 					},
 				},
 			},
+			backup:  &mariadbv1alpha1.Backup{},
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
 				"--single-transaction",
@@ -48,6 +51,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 		{
 			name:      "Galera",
 			backupCmd: &BackupCommand{},
+			backup:    &mariadbv1alpha1.Backup{},
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -73,6 +77,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 					},
 				},
 			},
+			backup: &mariadbv1alpha1.Backup{},
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -91,7 +96,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			},
 		},
 		{
-			name: "Duplicated args",
+			name: "duplicated args",
 			backupCmd: &BackupCommand{
 				BackupOpts{
 					DumpOpts: []string{
@@ -103,6 +108,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 					},
 				},
 			},
+			backup: &mariadbv1alpha1.Backup{},
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -121,11 +127,32 @@ func TestMariadbDumpArgs(t *testing.T) {
 			},
 		},
 		{
-			name: "Explicit databases",
+			name: "databases via args",
 			backupCmd: &BackupCommand{
 				BackupOpts{
 					DumpOpts: []string{
-						"--databases foo bar",
+						"--databases db1 db2 db3",
+					},
+				},
+			},
+			backup:  &mariadbv1alpha1.Backup{},
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--databases db1 db2 db3",
+			},
+		},
+		{
+			name:      "databases via spec.databases",
+			backupCmd: &BackupCommand{},
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Databases: []string{
+						"db1",
+						"db2",
+						"db3",
 					},
 				},
 			},
@@ -134,11 +161,63 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--single-transaction",
 				"--events",
 				"--routines",
-				"--databases foo bar",
+				"--databases db1 db2 db3",
 			},
 		},
 		{
-			name: "Explicit databases with extra args",
+			name: "override databases via args with spec.databases",
+			backupCmd: &BackupCommand{
+				BackupOpts{
+					DumpOpts: []string{
+						"--databases foo bar",
+					},
+				},
+			},
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Databases: []string{
+						"db1",
+						"db2",
+						"db3",
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--databases db1 db2 db3",
+			},
+		},
+		{
+			name: "override malformed databases via args with spec.databases",
+			backupCmd: &BackupCommand{
+				BackupOpts{
+					DumpOpts: []string{
+						"      --databases    foo bar",
+					},
+				},
+			},
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Databases: []string{
+						"db1",
+						"db2",
+						"db3",
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--databases db1 db2 db3",
+			},
+		},
+		{
+			name: "all",
 			backupCmd: &BackupCommand{
 				BackupOpts{
 					DumpOpts: []string{
@@ -148,24 +227,12 @@ func TestMariadbDumpArgs(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantArgs: []string{
-				"--single-transaction",
-				"--events",
-				"--routines",
-				"--databases foo bar",
-				"--verbose",
-				"--add-drop-table",
-			},
-		},
-		{
-			name: "All",
-			backupCmd: &BackupCommand{
-				BackupOpts{
-					DumpOpts: []string{
-						"--databases foo bar",
-						"--verbose",
-						"--add-drop-table",
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Databases: []string{
+						"db1",
+						"db2",
+						"db3",
 					},
 				},
 			},
@@ -180,8 +247,8 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--single-transaction",
 				"--events",
 				"--routines",
+				"--databases db1 db2 db3",
 				"--skip-add-locks",
-				"--databases foo bar",
 				"--verbose",
 				"--add-drop-table",
 			},
@@ -190,7 +257,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args := tt.backupCmd.mariadbDumpArgs(tt.mariadb)
+			args := tt.backupCmd.mariadbDumpArgs(tt.backup, tt.mariadb)
 			if !reflect.DeepEqual(args, tt.wantArgs) {
 				t.Errorf("expecting args to be:\n%v\ngot:\n%v\n", tt.wantArgs, args)
 			}

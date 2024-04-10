@@ -69,6 +69,10 @@ type BackupSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxRetention metav1.Duration `json:"maxRetention,omitempty" webhook:"inmutableinit"`
+	// Databases defines the logical databases to be backed up. If not provided, all databases are backed up.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Databases []string `json:"databases,omitempty"`
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
