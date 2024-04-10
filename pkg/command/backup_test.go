@@ -279,10 +279,27 @@ func TestMariadbArgs(t *testing.T) {
 			wantArgs:  nil,
 		},
 		{
-			name: "extra args",
+			name: "args",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
 					DumpOpts: []string{
+						"--verbose",
+						"--one-database db1",
+					},
+				},
+			},
+			restore: &mariadbv1alpha1.Restore{},
+			wantArgs: []string{
+				"--verbose",
+				"--one-database db1",
+			},
+		},
+		{
+			name: "duplicate args",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					DumpOpts: []string{
+						"--verbose",
 						"--verbose",
 						"--one-database db1",
 					},
