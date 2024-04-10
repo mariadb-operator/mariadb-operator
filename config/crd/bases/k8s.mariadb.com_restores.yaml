@@ -974,6 +974,11 @@ spec:
                 items:
                   type: string
                 type: array
+              database:
+                description: |-
+                  Database defines the logical database to be restored. If not provided, all databases available in the backup are restored.
+                  IMPORTANT: The database must previously exist.
+                type: string
               env:
                 description: Env represents the environment variables to be injected
                   in a container.

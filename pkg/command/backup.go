@@ -201,11 +201,9 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 	return NewCommand(nil, args)
 }
 
-func (b *BackupCommand) MariadbRestore(mariadb *mariadbv1alpha1.MariaDB) *Command {
-	dumpOpts := ""
-	if b.BackupOpts.DumpOpts != nil {
-		dumpOpts = strings.Join(b.BackupOpts.DumpOpts, " ")
-	}
+func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
+	mariadb *mariadbv1alpha1.MariaDB) *Command {
+	args := strings.Join(b.mariadbArgs(restore), " ")
 	cmds := []string{
 		"set -euo pipefail",
 		fmt.Sprintf(
@@ -215,7 +213,7 @@ func (b *BackupCommand) MariadbRestore(mariadb *mariadbv1alpha1.MariaDB) *Comman
 		fmt.Sprintf(
 			"mariadb %s %s < %s",
 			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
-			dumpOpts,
+			args,
 			b.getTargetFilePath(),
 		),
 	}
@@ -263,6 +261,17 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariab *
 	}
 
 	return ds.Unique(ds.Merge(args, dumpOpts)...)
+}
+
+func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore) []string {
+	args := make([]string, len(b.BackupOpts.DumpOpts))
+	copy(args, b.BackupOpts.DumpOpts)
+
+	if restore.Spec.Database != "" {
+		args = append(args, fmt.Sprintf("--one-database %s", restore.Spec.Database))
+	}
+
+	return ds.Unique(args...)
 }
 
 func (b *BackupCommand) s3Args() []string {

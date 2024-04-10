@@ -202,7 +202,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 					},
 					Containers: []corev1.Container{
 						jobMariadbContainer(
-							cmd.MariadbRestore(mariadb),
+							cmd.MariadbRestore(restore, mariadb),
 							volumeSources,
 							jobEnv(mariadb),
 							restore.Spec.Resources,
