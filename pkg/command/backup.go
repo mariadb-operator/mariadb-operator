@@ -8,7 +8,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	backuppkg "github.com/mariadb-operator/mariadb-operator/pkg/backup"
-	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
+	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 )
 
 type BackupOpts struct {
@@ -238,14 +238,21 @@ func (b *BackupCommand) mariadbDumpArgs(mariab *mariadbv1alpha1.MariaDB) []strin
 		"--single-transaction",
 		"--events",
 		"--routines",
-		"--all-databases",
 	}
-	args = datastructures.Merge(args, b.BackupOpts.DumpOpts)
+
+	hasDatabases := ds.Any(b.BackupOpts.DumpOpts, func(do string) bool {
+		return strings.HasPrefix(do, "--databases")
+	})
+	if !hasDatabases {
+		args = append(args, "--all-databases")
+	}
+
 	// LOCK TABLES is not compatible with Galera: https://mariadb.com/kb/en/lock-tables/#limitations
 	if mariab.IsGaleraEnabled() {
 		args = append(args, "--skip-add-locks")
 	}
-	return datastructures.Unique(args...)
+
+	return ds.Unique(ds.Merge(args, b.BackupOpts.DumpOpts)...)
 }
 
 func (b *BackupCommand) s3Args() []string {
