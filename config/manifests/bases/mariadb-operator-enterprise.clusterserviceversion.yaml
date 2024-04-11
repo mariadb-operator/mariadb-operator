@@ -301,6 +301,10 @@ spec:
       - description: Command to be used in the Container.
         displayName: Command
         path: command
+      - description: Databases defines the logical databases to be backed up. If not
+          provided, all databases are backed up.
+        displayName: Databases
+        path: databases
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
@@ -3445,6 +3449,11 @@ spec:
       - description: Command to be used in the Container.
         displayName: Command
         path: command
+      - description: 'Database defines the logical database to be restored. If not
+          provided, all databases available in the backup are restored. IMPORTANT:
+          The database must previously exist.'
+        displayName: Database
+        path: database
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
