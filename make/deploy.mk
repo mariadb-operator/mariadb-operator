@@ -150,6 +150,10 @@ install-samples: cluster-ctx  ## Install sample configuration.
 serviceaccount: cluster-ctx  ## Create long-lived ServiceAccount token for development.
 	@./hack/create_serviceaccount.sh
 
+.PHONY: serviceaccount-token
+serviceaccount-token: cluster-ctx  serviceaccount ## Create long-lived ServiceAccount token for development and display token.
+	kubectl get secret mariadb-operator -o jsonpath="{.data.token}" | base64 -d
+
 .PHONY: storageclass
 storageclass: cluster-ctx  ## Create StorageClass that allows volume expansion.
 	$(KUBECTL) apply -f ./hack/manifests/storageclass.yaml

@@ -150,6 +150,13 @@ type Bootstrap struct {
 	Seqno int    `json:"seqno"`
 }
 
+func NewBootstrap(uuid string, seqno int) *Bootstrap {
+	return &Bootstrap{
+		UUID:  uuid,
+		Seqno: seqno,
+	}
+}
+
 func (b *Bootstrap) GetUUID() string {
 	return b.UUID
 }
