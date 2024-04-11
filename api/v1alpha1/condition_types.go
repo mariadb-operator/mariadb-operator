@@ -8,7 +8,9 @@ const (
 	ConditionTypeGaleraReady string = "GaleraReady"
 	// ConditionTypeGaleraConfigured indicates that the cluster has been successfully configured.
 	ConditionTypeGaleraConfigured string = "GaleraConfigured"
-	ConditionTypeComplete         string = "Complete"
+	// ConditionTypeGaleraBootstrapped indicates that the cluster has been successfully bootstrapped.
+	ConditionTypeGaleraBootstrapped string = "GaleraBootstrapped"
+	ConditionTypeComplete           string = "Complete"
 	// ConditionTypeStorageResized indicates that the storage has been successfully resized.
 	ConditionTypeStorageResized string = "StorageResized"
 
@@ -19,6 +21,7 @@ const (
 	ConditionReasonGaleraReady         string = "GaleraReady"
 	ConditionReasonGaleraNotReady      string = "GaleraNotReady"
 	ConditionReasonGaleraConfigured    string = "GaleraConfigured"
+	ConditionReasonGaleraBootstrapped  string = "GaleraBootstrapped"
 	ConditionReasonResizingStorage     string = "ResizingStorage"
 	ConditionReasonWaitStorageResize   string = "WaitStorageResize"
 	ConditionReasonStorageResized      string = "StorageResized"

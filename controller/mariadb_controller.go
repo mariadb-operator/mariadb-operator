@@ -353,6 +353,10 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mdb *mariadbv1
 		}
 		return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			if existingRestore.IsComplete() {
+				// if mdb.IsGaleraEnabled() {
+				// 	status.GaleraRecovery = nil
+				// 	condition.SetGaleraBootstrapping(status)
+				// }
 				condition.SetRestoredBackup(status)
 			} else {
 				condition.SetRestoringBackup(status)

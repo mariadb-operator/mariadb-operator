@@ -161,7 +161,39 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 		resetErr := r.resetRecovery(ctx, mariadb, rs)
 		aggErr = multierror.Append(aggErr, resetErr)
 
-		return fmt.Errorf("error bootstrapping cluster: %v", aggErr)
+	syncTimeout := ptr.Deref(specRecovery.PodSyncTimeout, metav1.Duration{Duration: 3 * time.Minute}).Duration
+	syncContext, syncCancel := context.WithTimeout(ctx, syncTimeout)
+	defer syncCancel()
+
+	for _, key := range podKeys {
+		if key.Name == bootstrapPodKey.Name {
+			logger.Info("Restarting bootstrap Pod", "pod", key.Name)
+		} else {
+			logger.Info("Restarting Pod", "pod", key.Name)
+		}
+
+		logger.Info("Poll until Pod deleted", "pod", key.Name)
+		if err := r.pollUntilPodDeleted(syncContext, key, logger); err != nil {
+			var aggErr *multierror.Error
+			aggErr = multierror.Append(aggErr, err)
+
+			logger.Error(err, "Error restarting Pod. Resetting recovery", "pod", key.Name)
+			resetErr := r.resetRecovery(ctx, mariadb, rs)
+			aggErr = multierror.Append(aggErr, resetErr)
+
+			return fmt.Errorf("error deleting Pod '%s': %v", key.Name, aggErr)
+		}
+		logger.Info("Poll until Pod synced", "pod", key.Name)
+		if err := r.pollUntilPodSynced(syncContext, key, sqlClientSet, logger); err != nil {
+			var aggErr *multierror.Error
+			aggErr = multierror.Append(aggErr, err)
+
+			logger.Error(err, "Error waiting for Pod to be Synced. Resetting recovery", "pod", key.Name)
+			resetErr := r.resetRecovery(ctx, mariadb, rs)
+			aggErr = multierror.Append(aggErr, resetErr)
+
+			return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", key.Name, aggErr)
+		}
 	}
 
 	rs.setPodsRestarted(true)
@@ -385,6 +417,94 @@ func (r *GaleraReconciler) pollUntilPodRunning(ctx context.Context, podKey types
 	})
 }
 
+<<<<<<< HEAD
+||||||| parent of 5148a8c (Galera bootstrapped condition)
+func (r *GaleraReconciler) pollUntilPodDeleted(ctx context.Context, podKey types.NamespacedName, logger logr.Logger) error {
+	return pollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
+		var pod corev1.Pod
+		if err := r.Get(ctx, podKey, &pod); err != nil {
+			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
+		}
+		if err := r.Delete(ctx, &pod); err != nil {
+			return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
+		}
+		return nil
+	})
+}
+
+func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, podKey types.NamespacedName, sqlClientSet *sqlClientSet.ClientSet,
+	logger logr.Logger) error {
+	return pollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
+		var pod corev1.Pod
+		if err := r.Get(ctx, podKey, &pod); err != nil {
+			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
+		}
+
+		podIndex, err := statefulset.PodIndex(podKey.Name)
+		if err != nil {
+			return fmt.Errorf("error getting Pod index: %v", err)
+		}
+		sqlClient, err := sqlClientSet.ClientForIndex(ctx, *podIndex, sql.WithTimeout(5*time.Second))
+		if err != nil {
+			return fmt.Errorf("errpr getting SQL client: %v", err)
+		}
+
+		synced, err := galeraclient.IsPodSynced(ctx, sqlClient)
+		if err != nil {
+			return fmt.Errorf("error checking Pod sync: %v", err)
+		}
+		if !synced {
+			return errors.New("Pod not synced")
+		}
+		return nil
+	})
+}
+
+=======
+func (r *GaleraReconciler) pollUntilPodDeleted(ctx context.Context, podKey types.NamespacedName, logger logr.Logger) error {
+	return pollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
+		var pod corev1.Pod
+		if err := r.Get(ctx, podKey, &pod); err != nil {
+			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
+		}
+		if err := r.Delete(ctx, &pod); err != nil {
+			return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
+		}
+		return nil
+	})
+}
+
+func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, podKey types.NamespacedName, sqlClientSet *sqlClientSet.ClientSet,
+	logger logr.Logger) error {
+	return pollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
+		var pod corev1.Pod
+		if err := r.Get(ctx, podKey, &pod); err != nil {
+			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
+		}
+
+		podIndex, err := statefulset.PodIndex(podKey.Name)
+		if err != nil {
+			return fmt.Errorf("error getting Pod index: %v", err)
+		}
+		sqlClient, err := sqlClientSet.ClientForIndex(ctx, *podIndex, sql.WithTimeout(5*time.Second))
+		if err != nil {
+			return fmt.Errorf("errpr getting SQL client: %v", err)
+		}
+
+		synced, err := galeraclient.IsPodSynced(ctx, sqlClient)
+		if err != nil {
+			logger.Info("error getting Pod sync state", "pod", pod.Name, "err", err)
+			return fmt.Errorf("error checking Pod sync: %v", err)
+		}
+		if !synced {
+			logger.Info("Pod not synced", "pod", pod.Name)
+			return errors.New("Pod not synced")
+		}
+		return nil
+	})
+}
+
+>>>>>>> 5148a8c (Galera bootstrapped condition)
 func (r *GaleraReconciler) resetRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, rs *recoveryStatus) error {
 	rs.reset()
 	return r.patchRecoveryStatus(ctx, mariadb, rs)

@@ -622,6 +622,11 @@ func (m *MariaDB) IsWaitingForStorageResize() bool {
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonWaitStorageResize
 }
 
+// IsBootstrappingGalera indicates whether the Galera cluster is being bootstrapped.
+func (m *MariaDB) IsBootstrappingGalera() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeGaleraBootstrapped)
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB

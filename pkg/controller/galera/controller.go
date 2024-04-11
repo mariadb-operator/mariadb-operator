@@ -105,6 +105,9 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			condition.SetGaleraReady(&mariadb.Status)
 			condition.SetGaleraConfigured(&mariadb.Status)
+			// if mariadb.IsBootstrappingGalera() {
+			// 	conditions.SetGaleraBootstrapped(&mariadb.Status)
+			// }
 		}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Galera status: %v", err)
 		}
