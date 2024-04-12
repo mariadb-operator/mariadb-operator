@@ -18,6 +18,7 @@ spec:
   bootstrapFrom:
     s3:
       bucket: backups
+      prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
       accessKeyIdSecretKeyRef:
         name: minio
