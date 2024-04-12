@@ -69,32 +69,20 @@ func TestMariadbDumpArgs(t *testing.T) {
 			},
 		},
 		{
-			name: "Galera with extra args",
-			backupCmd: &BackupCommand{
-				BackupOpts{
-					DumpOpts: []string{
-						"--verbose",
-						"--add-drop-table",
-					},
+			name:      "ignore mysql.global_priv",
+			backupCmd: &BackupCommand{},
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					IgnoreGlobalPriv: true,
 				},
 			},
-			backup: &mariadbv1alpha1.Backup{},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-					},
-				},
-			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
 				"--single-transaction",
 				"--events",
 				"--routines",
 				"--all-databases",
-				"--skip-add-locks",
 				"--ignore-table=mysql.global_priv",
-				"--verbose",
-				"--add-drop-table",
 			},
 		},
 		{
@@ -238,6 +226,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 						"db2",
 						"db3",
 					},
+					IgnoreGlobalPriv: true,
 				},
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{
