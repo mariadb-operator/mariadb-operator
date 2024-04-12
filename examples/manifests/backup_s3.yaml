@@ -9,6 +9,7 @@ spec:
   storage:
     s3:
       bucket: backups
+      prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
       region:  us-east-1
       accessKeyIdSecretKeyRef:
