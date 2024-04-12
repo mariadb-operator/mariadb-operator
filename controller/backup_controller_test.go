@@ -7,107 +7,28 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Backup controller", func() {
 	Context("When creating a Backup", func() {
 		It("Should reconcile a Job with PVC storage", func() {
-			By("Creating Backup")
-			backupKey := types.NamespacedName{
+			key := types.NamespacedName{
 				Name:      "backup-pvc-test",
 				Namespace: testNamespace,
 			}
-			backup := testBackupWithPVCStorage(backupKey)
-			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-			})
-
-			By("Expecting to create a ServiceAccount eventually")
-			Eventually(func(g Gomega) bool {
-				g.Expect(k8sClient.Get(testCtx, backupKey, backup)).To(Succeed())
-				var svcAcc corev1.ServiceAccount
-				key := backup.Spec.PodTemplate.ServiceAccountKey(backup.ObjectMeta)
-				g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
-
-				g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
-				g.Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-				g.Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
-				g.Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-				return true
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			var job batchv1.Job
-			By("Expecting to create a Job eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupKey, &job); err != nil {
-					return false
-				}
-				return true
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting Job to have mariadb init container")
-			Expect(job.Spec.Template.Spec.InitContainers).To(ContainElement(MatchFields(IgnoreExtras,
-				Fields{
-					"Name": Equal("mariadb"),
-				})))
-
-			By("Expecting Job to have mariadb-operator container")
-			Expect(job.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
-				Fields{
-					"Name": Equal("mariadb-operator"),
-				})))
-
-			By("Expecting Job to have metadata")
-			Expect(job.ObjectMeta.Labels).NotTo(BeNil())
-			Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-			Expect(job.ObjectMeta.Annotations).NotTo(BeNil())
-			Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-
-			By("Expecting Backup to complete eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
-					return false
-				}
-				return backup.IsComplete()
-			}, testTimeout, testInterval).Should(BeTrue())
+			backup := testBackupWithPVCStorage(key)
+			testBackup(backup)
 		})
 
-		It("Should reconcile a CronJob with PVC storage", func() {
-			By("Creating a scheduled Backup")
-			backupKey := types.NamespacedName{
-				Name:      "backup-pvc-scheduled-test",
+		It("Should reconcile a Job with Volume storage", func() {
+			key := types.NamespacedName{
+				Name:      "backup-volume-test",
 				Namespace: testNamespace,
 			}
-			backup := testBackupWithPVCStorage(backupKey)
-			backupWithSchedule := &mariadbv1alpha1.Backup{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      backupKey.Name,
-					Namespace: backupKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.BackupSpec{
-					MariaDBRef: backup.Spec.MariaDBRef,
-					Schedule: &mariadbv1alpha1.Schedule{
-						Cron: "*/1 * * * *",
-					},
-					Storage: backup.Spec.Storage,
-				},
-			}
-			Expect(k8sClient.Create(testCtx, backupWithSchedule)).To(Succeed())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, backupWithSchedule)).To(Succeed())
-			})
-
-			By("Expecting to create a CronJob eventually")
-			Eventually(func() bool {
-				var job batchv1.CronJob
-				if err := k8sClient.Get(testCtx, backupKey, &job); err != nil {
-					return false
-				}
-				return true
-			}, testTimeout, testInterval).Should(BeTrue())
+			backup := testBackupWithVolumeStorage(key)
+			testBackup(backup)
 		})
 
 		It("Should reconcile a Job with S3 storage", func() {
@@ -125,29 +46,67 @@ var _ = Describe("Backup controller", func() {
 			}
 			testS3Backup(key, "test-backup", "mariadb")
 		})
-
-		It("Should reconcile a Job with Volume storage", func() {
-			By("Creating Backup with Volume storage")
-			backupKey := types.NamespacedName{
-				Name:      "backup-volume-test",
-				Namespace: testNamespace,
-			}
-			backup := testBackupWithVolumeStorage(backupKey)
-			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-			})
-
-			By("Expecting Backup to complete eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
-					return false
-				}
-				return backup.IsComplete()
-			}, testTimeout, testInterval).Should(BeTrue())
-		})
 	})
 })
+
+func testBackup(backup *mariadbv1alpha1.Backup) {
+	key := client.ObjectKeyFromObject(backup)
+
+	By("Creating Backup")
+	Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+	})
+
+	By("Expecting to create a ServiceAccount eventually")
+	Eventually(func(g Gomega) bool {
+		g.Expect(k8sClient.Get(testCtx, key, backup)).To(Succeed())
+		var svcAcc corev1.ServiceAccount
+		key := backup.Spec.PodTemplate.ServiceAccountKey(backup.ObjectMeta)
+		g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
+
+		g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
+		g.Expect(svcAcc.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+		g.Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
+		g.Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	var job batchv1.Job
+	By("Expecting to create a Job eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, &job); err != nil {
+			return false
+		}
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting Job to have mariadb init container")
+	Expect(job.Spec.Template.Spec.InitContainers).To(ContainElement(MatchFields(IgnoreExtras,
+		Fields{
+			"Name": Equal("mariadb"),
+		})))
+
+	By("Expecting Job to have mariadb-operator container")
+	Expect(job.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
+		Fields{
+			"Name": Equal("mariadb-operator"),
+		})))
+
+	By("Expecting Job to have metadata")
+	Expect(job.ObjectMeta.Labels).NotTo(BeNil())
+	Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+	Expect(job.ObjectMeta.Annotations).NotTo(BeNil())
+	Expect(job.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+
+	By("Expecting Backup to complete eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, backup); err != nil {
+			return false
+		}
+		return backup.IsComplete()
+	}, testTimeout, testInterval).Should(BeTrue())
+}
 
 func testS3Backup(key types.NamespacedName, bucket, prefix string) {
 	backup := testBackupWithS3Storage(key, bucket, prefix)

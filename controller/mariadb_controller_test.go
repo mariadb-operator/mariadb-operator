@@ -220,103 +220,69 @@ var _ = Describe("MariaDB controller", func() {
 		})
 
 		It("Should bootstrap from Backup", func() {
-			By("Creating Backup")
 			backupKey := types.NamespacedName{
-				Name:      "backup-mdb-test",
+				Name:      "backup-mdb-from-backup",
 				Namespace: testNamespace,
 			}
-			backup := mariadbv1alpha1.Backup{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      backupKey.Name,
-					Namespace: backupKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.BackupSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: testMdbkey.Name,
-						},
-						WaitForIt: true,
-					},
-					Storage: mariadbv1alpha1.BackupStorage{
-						S3: testS3WithBucket("test-mariadb", ""),
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &backup)).To(Succeed())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
-			})
+			backup := testBackupWithS3Storage(backupKey, "test-mariadb", "")
+
+			By("Creating Backup")
+			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupKey, &backup); err != nil {
+				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
 					return false
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
-			By("Creating a MariaDB bootstrapping from backup")
-			bootstrapMariaDBKey := types.NamespacedName{
+			key := types.NamespacedName{
 				Name:      "mariadb-from-backup",
 				Namespace: testNamespace,
 			}
-			bootstrapMariaDB := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      bootstrapMariaDBKey.Name,
-					Namespace: bootstrapMariaDBKey.Namespace,
+			restoreSource := mariadbv1alpha1.RestoreSource{
+				BackupRef: &corev1.LocalObjectReference{
+					Name: backupKey.Name,
 				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
-						RestoreSource: mariadbv1alpha1.RestoreSource{
-							BackupRef: &corev1.LocalObjectReference{
-								Name: backupKey.Name,
-							},
-							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
-						},
-						RestoreJob: &mariadbv1alpha1.BootstrapJob{
-							Metadata: &mariadbv1alpha1.Metadata{
-								Labels: map[string]string{
-									"sidecar.istio.io/inject": "false",
-								},
-							},
-						},
-					},
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("100Mi")),
-					},
-				},
+				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 			}
-			Expect(k8sClient.Create(testCtx, &bootstrapMariaDB)).To(Succeed())
+			testMariadbBootstrap(key, restoreSource)
+		})
+
+		It("Should bootstrap from S3", func() {
+			backupKey := types.NamespacedName{
+				Name:      "backup-mdb-from-s3",
+				Namespace: testNamespace,
+			}
+			backup := testBackupWithS3Storage(backupKey, "test-mariadb", "s3")
+
+			By("Creating Backup")
+			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+
+			By("Expecting Backup to complete eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
+					return false
+				}
+				return backup.IsComplete()
+			}, testTimeout, testInterval).Should(BeTrue())
 			DeferCleanup(func() {
-				deleteMariaDB(&bootstrapMariaDB)
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 			})
 
-			By("Expecting restore Job to eventually be completed")
-			Eventually(func(g Gomega) bool {
-				var job batchv1.Job
-				g.Expect(k8sClient.Get(testCtx, bootstrapMariaDB.RestoreKey(), &job)).To(Succeed())
-
-				g.Expect(job.ObjectMeta.Labels).NotTo(BeNil())
-				g.Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
-
-				return jobpkg.IsJobComplete(&job)
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, bootstrapMariaDBKey, &bootstrapMariaDB); err != nil {
-					return false
-				}
-				return bootstrapMariaDB.IsReady()
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB to eventually have restored backup")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, bootstrapMariaDBKey, &bootstrapMariaDB); err != nil {
-					return false
-				}
-				return bootstrapMariaDB.HasRestoredBackup()
-			}, testTimeout, testInterval).Should(BeTrue())
+			key := types.NamespacedName{
+				Name:      "mariadb-from-s3",
+				Namespace: testNamespace,
+			}
+			restoreSource := mariadbv1alpha1.RestoreSource{
+				S3:                 testS3WithBucket("test-mariadb", "s3"),
+				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+			}
+			testMariadbBootstrap(key, restoreSource)
 		})
 	})
 
@@ -1097,4 +1063,61 @@ func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
 		}
 		return true
 	}, 30*time.Second, 1*time.Second).Should(BeTrue())
+}
+
+func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
+	mdb := mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+				RestoreSource: source,
+				RestoreJob: &mariadbv1alpha1.BootstrapJob{
+					Metadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+					},
+				},
+			},
+			Storage: mariadbv1alpha1.Storage{
+				Size: ptr.To(resource.MustParse("100Mi")),
+			},
+		},
+	}
+
+	By("Creating a MariaDB bootstrapping from backup")
+	Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
+	DeferCleanup(func() {
+		deleteMariaDB(&mdb)
+	})
+
+	By("Expecting restore Job to eventually be completed")
+	Eventually(func(g Gomega) bool {
+		var job batchv1.Job
+		g.Expect(k8sClient.Get(testCtx, mdb.RestoreKey(), &job)).To(Succeed())
+
+		g.Expect(job.ObjectMeta.Labels).NotTo(BeNil())
+		g.Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
+
+		return jobpkg.IsJobComplete(&job)
+	}, testHighTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting MariaDB to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
+			return false
+		}
+		return mdb.IsReady()
+	}, testHighTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting MariaDB to eventually have restored backup")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
+			return false
+		}
+		return mdb.HasRestoredBackup()
+	}, testTimeout, testInterval).Should(BeTrue())
 }
