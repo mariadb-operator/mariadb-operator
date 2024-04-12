@@ -238,7 +238,7 @@ var _ = Describe("MariaDB controller", func() {
 						WaitForIt: true,
 					},
 					Storage: mariadbv1alpha1.BackupStorage{
-						S3: testS3WithBucket("test-mariadb"),
+						S3: testS3WithBucket("test-mariadb", ""),
 					},
 				},
 			}

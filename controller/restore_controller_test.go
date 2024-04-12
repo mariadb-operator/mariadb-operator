@@ -128,60 +128,19 @@ var _ = Describe("Restore controller", func() {
 		})
 
 		It("Should reconcile a Job with S3 storage", func() {
-			By("Creating Backup")
 			key := types.NamespacedName{
 				Name:      "restore-s3-test",
 				Namespace: testNamespace,
 			}
-			backupKey := types.NamespacedName{
-				Name:      fmt.Sprintf("%s-%s", key.Name, "backup"),
+			testS3BackupRestore(key, "test-restore", "")
+		})
+
+		It("Should reconcile a Job with S3 storage with prefix", func() {
+			key := types.NamespacedName{
+				Name:      "restore-s3-test-prefix",
 				Namespace: testNamespace,
 			}
-			bucket := "test-restore"
-			backup := testBackupWithS3Storage(backupKey, bucket)
-			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
-
-			By("Expecting Backup to complete eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
-					return false
-				}
-				return backup.IsComplete()
-			}, testTimeout, testInterval).Should(BeTrue())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-			})
-
-			By("Creating Restore")
-			restore := &mariadbv1alpha1.Restore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      key.Name,
-					Namespace: key.Namespace,
-				},
-				Spec: mariadbv1alpha1.RestoreSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: testMdbkey.Name,
-						},
-						WaitForIt: true,
-					},
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						S3: testS3WithBucket(bucket),
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
-			})
-
-			By("Expecting Restore to complete eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, key, restore); err != nil {
-					return false
-				}
-				return restore.IsComplete()
-			}, testTimeout, testInterval).Should(BeTrue())
+			testS3BackupRestore(key, "test-restore", "mariadb")
 		})
 
 		It("Should reconcile a Job with Volume storage", func() {
@@ -245,3 +204,56 @@ var _ = Describe("Restore controller", func() {
 		})
 	})
 })
+
+func testS3BackupRestore(key types.NamespacedName, bucket, prefix string) {
+	backupKey := types.NamespacedName{
+		Name:      fmt.Sprintf("%s-%s", key.Name, "backup"),
+		Namespace: testNamespace,
+	}
+	backup := testBackupWithS3Storage(backupKey, bucket, prefix)
+
+	By("Creating Backup")
+	Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+
+	By("Expecting Backup to complete eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
+			return false
+		}
+		return backup.IsComplete()
+	}, testTimeout, testInterval).Should(BeTrue())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+	})
+
+	By("Creating Restore")
+	restore := &mariadbv1alpha1.Restore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.RestoreSpec{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: corev1.ObjectReference{
+					Name: testMdbkey.Name,
+				},
+				WaitForIt: true,
+			},
+			RestoreSource: mariadbv1alpha1.RestoreSource{
+				S3: testS3WithBucket(bucket, prefix),
+			},
+		},
+	}
+	Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
+	})
+
+	By("Expecting Restore to complete eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, restore); err != nil {
+			return false
+		}
+		return restore.IsComplete()
+	}, testTimeout, testInterval).Should(BeTrue())
+}
