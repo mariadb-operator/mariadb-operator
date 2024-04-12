@@ -50,7 +50,7 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		backupTargetFile, err := backup.GetBackupTargetFile(backupFileNames, targetTime, logger.WithName("point-in-time-recovery"))
+		backupTargetFile, err := backup.GetBackupTargetFile(backupFileNames, targetTime, logger.WithName("target-recovery-time"))
 		if err != nil {
 			logger.Error(err, "error reading getting target backup")
 			os.Exit(1)
