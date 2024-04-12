@@ -84,9 +84,9 @@ var RootCmd = &cobra.Command{
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		logger.Info("pushing target backup", "file", backupTargetFile)
+		logger.Info("pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
 		if err := backupStorage.Push(ctx, backupTargetFile); err != nil {
-			logger.Error(err, "error pushing target backup", "file", backupTargetFile)
+			logger.Error(err, "error pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
 			os.Exit(1)
 		}
 
