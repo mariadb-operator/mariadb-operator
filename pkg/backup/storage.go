@@ -181,10 +181,7 @@ func (s *S3BackupStorage) Delete(ctx context.Context, fileName string) error {
 func (s *S3BackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) (bool, error) {
 	logger.V(1).Info("processing backup file", "file", fileName)
 
-	unprefixedFileName, err := s.unprefixedFilename(fileName)
-	if err != nil {
-		return false, fmt.Errorf("error getting unprefixed file: %v", err)
-	}
+	unprefixedFileName := s.unprefixedFilename(fileName)
 	if IsValidBackupFile(unprefixedFileName) {
 		return true, nil
 	}
@@ -195,23 +192,14 @@ func (s *S3BackupStorage) shouldProcessBackupFile(fileName string, logger logr.L
 
 func (s *S3BackupStorage) prefixedFileName(fileName string) string {
 	prefix := s.getPrefix()
-	if prefix == "" || strings.HasPrefix(fileName, prefix) {
+	if strings.HasPrefix(fileName, prefix) {
 		return fileName
 	}
 	return prefix + fileName
 }
 
-func (s *S3BackupStorage) unprefixedFilename(fileName string) (string, error) {
-	prefix := s.getPrefix()
-	if prefix == "" || !strings.HasPrefix(fileName, prefix) {
-		return fileName, nil
-	}
-
-	parts := strings.SplitN(fileName, prefix, 2)
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid file \"%s\" getting unprefixed file", fileName)
-	}
-	return parts[1], nil
+func (s *S3BackupStorage) unprefixedFilename(fileName string) string {
+	return strings.TrimPrefix(fileName, s.getPrefix())
 }
 
 func (s *S3BackupStorage) getPrefix() string {
