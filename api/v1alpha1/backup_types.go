@@ -73,6 +73,12 @@ type BackupSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Databases []string `json:"databases,omitempty"`
+	// IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups. If not provided, it will default to false.
+	// When backing up MariaDB instances with Galera enabled, mysql.global_priv will be ignored anyway, as it is incompatible with Galera.
+	// See: https://github.com/mariadb-operator/mariadb-operator/issues/556
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	IgnoreGlobalPriv bool `json:"ignoreGlobalPriv,omitempty"`
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info

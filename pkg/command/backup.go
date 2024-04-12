@@ -255,17 +255,17 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariab *
 		args = append(args, "--all-databases")
 	}
 
+	// LOCK TABLES is not compatible with Galera: https://mariadb.com/kb/en/lock-tables/#limitations
 	if mariab.IsGaleraEnabled() {
-		args = append(args,
-			// LOCK TABLES is not compatible with Galera: https://mariadb.com/kb/en/lock-tables/#limitations
-			"--skip-add-locks",
-			// Galera only replicates InnoDB tables and mysql.global_priv uses the MyISAM engine.
-			// Ignoring this table enables a clean restore without replicas getting restarted
-			// because the livenessProbe fails due to invalid credentials.
-			// Users and grants should be created by the entrypoint or the User and Grant CRs.
-			// See: https://galeracluster.com/library/kb/user-changes.html
-			"--ignore-table=mysql.global_priv",
-		)
+		args = append(args, "--skip-add-locks")
+	}
+	// Galera only replicates InnoDB tables and mysql.global_priv uses the MyISAM engine.
+	// Ignoring this table enables a clean restore without replicas getting restarted
+	// because the livenessProbe fails due to authentication errors.
+	// Users and grants should be created by the entrypoint or the User and Grant CRs.
+	// See: https://github.com/mariadb-operator/mariadb-operator/issues/556
+	if backup.Spec.IgnoreGlobalPriv || mariab.IsGaleraEnabled() {
+		args = append(args, "--ignore-table=mysql.global_priv")
 	}
 
 	return ds.Unique(ds.Merge(args, dumpOpts)...)

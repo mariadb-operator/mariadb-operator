@@ -33,8 +33,9 @@ var _ = Describe("Backup types", func() {
 						PodTemplate: PodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
-						MaxRetention: metav1.Duration{Duration: 30 * 24 * time.Hour},
-						BackoffLimit: 5,
+						MaxRetention:     metav1.Duration{Duration: 30 * 24 * time.Hour},
+						IgnoreGlobalPriv: false,
+						BackoffLimit:     5,
 					},
 				},
 			),
@@ -46,8 +47,9 @@ var _ = Describe("Backup types", func() {
 						PodTemplate: PodTemplate{
 							ServiceAccountName: ptr.To("backup-test"),
 						},
-						MaxRetention: metav1.Duration{Duration: 10 * 24 * time.Hour},
-						BackoffLimit: 3,
+						MaxRetention:     metav1.Duration{Duration: 10 * 24 * time.Hour},
+						IgnoreGlobalPriv: true,
+						BackoffLimit:     3,
 					},
 				},
 				&Backup{
@@ -56,8 +58,9 @@ var _ = Describe("Backup types", func() {
 						PodTemplate: PodTemplate{
 							ServiceAccountName: ptr.To("backup-test"),
 						},
-						MaxRetention: metav1.Duration{Duration: 10 * 24 * time.Hour},
-						BackoffLimit: 3,
+						MaxRetention:     metav1.Duration{Duration: 10 * 24 * time.Hour},
+						IgnoreGlobalPriv: true,
+						BackoffLimit:     3,
 					},
 				},
 			),
