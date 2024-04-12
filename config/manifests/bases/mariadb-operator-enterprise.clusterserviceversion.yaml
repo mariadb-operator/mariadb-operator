@@ -313,6 +313,12 @@ spec:
           to environment variables to be injected in the container.
         displayName: Env From
         path: envFrom
+      - description: 'IgnoreGlobalPriv indicates to ignore the mysql.global_priv in
+          backups. If not provided, it will default to false. When backing up MariaDB
+          instances with Galera enabled, mysql.global_priv will be ignored anyway,
+          as it is incompatible with Galera. See: https://github.com/mariadb-operator/mariadb-operator/issues/556'
+        displayName: Ignore Global Priv
+        path: ignoreGlobalPriv
       - description: ImagePullSecrets is the list of pull Secrets to be used to pull
           the image.
         displayName: Image Pull Secrets
