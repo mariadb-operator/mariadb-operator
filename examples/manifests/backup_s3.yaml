@@ -6,6 +6,7 @@ spec:
   mariaDbRef:
     name: mariadb
   maxRetention: 720h # 30 days
+  # ignoreGlobalPriv: true
   storage:
     s3:
       bucket: backups
