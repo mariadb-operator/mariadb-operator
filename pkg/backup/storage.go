@@ -215,10 +215,10 @@ func (s *S3BackupStorage) unprefixedFilename(fileName string) (string, error) {
 }
 
 func (s *S3BackupStorage) getPrefix() string {
-	if s.Prefix == "/" {
+	if s.Prefix == "" || s.Prefix == "/" {
 		return "" // object store doesn't use slash for root path
 	}
-	if !strings.HasSuffix("/", s.Prefix) {
+	if !strings.HasSuffix(s.Prefix, "/") {
 		return s.Prefix + "/" // ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
 	}
 	return s.Prefix
