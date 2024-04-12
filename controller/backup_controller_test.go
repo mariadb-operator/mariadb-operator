@@ -111,24 +111,19 @@ var _ = Describe("Backup controller", func() {
 		})
 
 		It("Should reconcile a Job with S3 storage", func() {
-			By("Creating Backup with S3 storage")
-			backupKey := types.NamespacedName{
+			key := types.NamespacedName{
 				Name:      "backup-s3-test",
 				Namespace: testNamespace,
 			}
-			backup := testBackupWithS3Storage(backupKey, "test-backup")
-			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-			})
+			testS3Backup(key, "test-backup", "")
+		})
 
-			By("Expecting Backup to complete eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
-					return false
-				}
-				return backup.IsComplete()
-			}, testTimeout, testInterval).Should(BeTrue())
+		It("Should reconcile a Job with S3 storage with prefix", func() {
+			key := types.NamespacedName{
+				Name:      "backup-s3-test-prefix",
+				Namespace: testNamespace,
+			}
+			testS3Backup(key, "test-backup", "mariadb")
 		})
 
 		It("Should reconcile a Job with Volume storage", func() {
@@ -153,3 +148,21 @@ var _ = Describe("Backup controller", func() {
 		})
 	})
 })
+
+func testS3Backup(key types.NamespacedName, bucket, prefix string) {
+	backup := testBackupWithS3Storage(key, bucket, prefix)
+
+	By("Creating Backup with S3 storage")
+	Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+	})
+
+	By("Expecting Backup to complete eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, backup); err != nil {
+			return false
+		}
+		return backup.IsComplete()
+	}, testTimeout, testInterval).Should(BeTrue())
+}

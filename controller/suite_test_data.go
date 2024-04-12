@@ -181,9 +181,10 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 	expectMariadbReady(ctx, k8sClient)
 }
 
-func testS3WithBucket(bucket string) *mariadbv1alpha1.S3 {
+func testS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {
 	return &mariadbv1alpha1.S3{
 		Bucket:   bucket,
+		Prefix:   prefix,
 		Endpoint: "minio.minio.svc.cluster.local:9000",
 		Region:   "us-east-1",
 		AccessKeyIdSecretKeyRef: corev1.SecretKeySelector{
@@ -251,9 +252,9 @@ func testBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup 
 	})
 }
 
-func testBackupWithS3Storage(key types.NamespacedName, bucket string) *mariadbv1alpha1.Backup {
+func testBackupWithS3Storage(key types.NamespacedName, bucket, prefix string) *mariadbv1alpha1.Backup {
 	return testBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
-		S3: testS3WithBucket(bucket),
+		S3: testS3WithBucket(bucket, prefix),
 	})
 }
 
