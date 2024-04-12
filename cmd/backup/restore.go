@@ -57,9 +57,9 @@ var restoreCommand = &cobra.Command{
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		logger.Info("pulling target backup", "file", backupTargetFile)
+		logger.Info("pulling target backup", "file", backupTargetFile, "prefix", s3Prefix)
 		if err := backupStorage.Pull(ctx, backupTargetFile); err != nil {
-			logger.Error(err, "error pulling target backup", "file", backupTargetFile)
+			logger.Error(err, "error pulling target backup", "file", backupTargetFile, "prefix", s3Prefix)
 			os.Exit(1)
 		}
 
