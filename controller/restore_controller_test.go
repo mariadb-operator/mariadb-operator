@@ -127,22 +127,6 @@ var _ = Describe("Restore controller", func() {
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
 
-		It("Should reconcile a Job with S3 storage", func() {
-			key := types.NamespacedName{
-				Name:      "restore-s3-test",
-				Namespace: testNamespace,
-			}
-			testS3BackupRestore(key, "test-restore", "")
-		})
-
-		It("Should reconcile a Job with S3 storage with prefix", func() {
-			key := types.NamespacedName{
-				Name:      "restore-s3-test-prefix",
-				Namespace: testNamespace,
-			}
-			testS3BackupRestore(key, "test-restore", "mariadb")
-		})
-
 		It("Should reconcile a Job with Volume storage", func() {
 			By("Creating Backup")
 			key := types.NamespacedName{
@@ -201,6 +185,22 @@ var _ = Describe("Restore controller", func() {
 				}
 				return restore.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
+		})
+
+		It("Should reconcile a Job with S3 storage", func() {
+			key := types.NamespacedName{
+				Name:      "restore-s3-test",
+				Namespace: testNamespace,
+			}
+			testS3BackupRestore(key, "test-restore", "")
+		})
+
+		It("Should reconcile a Job with S3 storage with prefix", func() {
+			key := types.NamespacedName{
+				Name:      "restore-s3-test-prefix",
+				Namespace: testNamespace,
+			}
+			testS3BackupRestore(key, "test-restore", "mariadb")
 		})
 	})
 })
