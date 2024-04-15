@@ -5,6 +5,14 @@
 
 This operator gives you flexibility to define the storage that will back the `/var/lib/mysql` data directoty mounted by `MariaDB`.
 
+## Table of contents
+<!-- toc -->
+- [Configuration](#configuration)
+- [Volume resize](#volume-resize)
+- [Ephemeral storage](#ephemeral-storage)
+- [Reference](#reference)
+<!-- /toc -->
+
 ## Configuration
 
 The simplest way to configure storage for your `MariaDB` is:
