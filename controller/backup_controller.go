@@ -48,10 +48,6 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if err := r.setDefaults(ctx, &backup); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error defaulting Backup: %v", err)
-	}
-
 	mariaDb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
@@ -68,6 +64,10 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, fmt.Errorf("error patching Backup: %v", err)
 		}
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	if err := r.setDefaults(ctx, &backup, mariaDb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error defaulting Backup: %v", err)
 	}
 
 	if err := r.reconcileServiceAccount(ctx, &backup); err != nil {
@@ -95,9 +95,9 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *BackupReconciler) setDefaults(ctx context.Context, backup *mariadbv1alpha1.Backup) error {
+func (r *BackupReconciler) setDefaults(ctx context.Context, backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) error {
 	return r.patch(ctx, backup, func(b *mariadbv1alpha1.Backup) {
-		backup.SetDefaults()
+		backup.SetDefaults(mariadb)
 	})
 }
 

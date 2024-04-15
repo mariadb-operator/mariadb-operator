@@ -9,6 +9,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	backuppkg "github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
+	"k8s.io/utils/ptr"
 )
 
 type BackupOpts struct {
@@ -264,7 +265,7 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariab *
 	// because the livenessProbe fails due to authentication errors.
 	// Users and grants should be created by the entrypoint or the User and Grant CRs.
 	// See: https://github.com/mariadb-operator/mariadb-operator/issues/556
-	if backup.Spec.IgnoreGlobalPriv || mariab.IsGaleraEnabled() {
+	if ptr.Deref(backup.Spec.IgnoreGlobalPriv, false) {
 		args = append(args, "--ignore-table=mysql.global_priv")
 	}
 

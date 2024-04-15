@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 // BackupStorage defines the storage for a Backup.
@@ -78,7 +79,7 @@ type BackupSpec struct {
 	// See: https://github.com/mariadb-operator/mariadb-operator/issues/556
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	IgnoreGlobalPriv bool `json:"ignoreGlobalPriv,omitempty"`
+	IgnoreGlobalPriv *bool `json:"ignoreGlobalPriv,omitempty"`
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
@@ -149,12 +150,15 @@ func (b *Backup) Validate() error {
 	return nil
 }
 
-func (b *Backup) SetDefaults() {
+func (b *Backup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.MaxRetention == (metav1.Duration{}) {
 		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
 	}
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5
+	}
+	if b.Spec.IgnoreGlobalPriv == nil {
+		b.Spec.IgnoreGlobalPriv = ptr.To(ptr.Deref(mariadb.Spec.Galera, Galera{}).Enabled)
 	}
 	b.Spec.PodTemplate.SetDefaults(b.ObjectMeta)
 }

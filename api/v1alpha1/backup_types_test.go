@@ -18,14 +18,39 @@ var _ = Describe("Backup types", func() {
 	Context("When creating a Backup object", func() {
 		DescribeTable(
 			"Should default",
-			func(backup, expected *Backup) {
-				backup.SetDefaults()
-				Expect(backup).To(BeEquivalentTo(expected))
+			func(backup *Backup, mariadb *MariaDB, expectedBackup *Backup) {
+				backup.SetDefaults(mariadb)
+				Expect(backup).To(BeEquivalentTo(expectedBackup))
 			},
 			Entry(
 				"Empty",
 				&Backup{
 					ObjectMeta: objMeta,
+				},
+				&MariaDB{},
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+						MaxRetention:     metav1.Duration{Duration: 30 * 24 * time.Hour},
+						IgnoreGlobalPriv: ptr.To(false),
+						BackoffLimit:     5,
+					},
+				},
+			),
+			Entry(
+				"Galera",
+				&Backup{
+					ObjectMeta: objMeta,
+				},
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+						},
+					},
 				},
 				&Backup{
 					ObjectMeta: objMeta,
@@ -34,7 +59,7 @@ var _ = Describe("Backup types", func() {
 							ServiceAccountName: &objMeta.Name,
 						},
 						MaxRetention:     metav1.Duration{Duration: 30 * 24 * time.Hour},
-						IgnoreGlobalPriv: false,
+						IgnoreGlobalPriv: ptr.To(true),
 						BackoffLimit:     5,
 					},
 				},
@@ -48,8 +73,15 @@ var _ = Describe("Backup types", func() {
 							ServiceAccountName: ptr.To("backup-test"),
 						},
 						MaxRetention:     metav1.Duration{Duration: 10 * 24 * time.Hour},
-						IgnoreGlobalPriv: true,
+						IgnoreGlobalPriv: ptr.To(false),
 						BackoffLimit:     3,
+					},
+				},
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+						},
 					},
 				},
 				&Backup{
@@ -59,7 +91,7 @@ var _ = Describe("Backup types", func() {
 							ServiceAccountName: ptr.To("backup-test"),
 						},
 						MaxRetention:     metav1.Duration{Duration: 10 * 24 * time.Hour},
-						IgnoreGlobalPriv: true,
+						IgnoreGlobalPriv: ptr.To(false),
 						BackoffLimit:     3,
 					},
 				},

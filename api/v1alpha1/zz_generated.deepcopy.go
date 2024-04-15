@@ -135,6 +135,11 @@ func (in *BackupSpec) DeepCopyInto(out *BackupSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.IgnoreGlobalPriv != nil {
+		in, out := &in.IgnoreGlobalPriv, &out.IgnoreGlobalPriv
+		*out = new(bool)
+		**out = **in
+	}
 	if in.InheritMetadata != nil {
 		in, out := &in.InheritMetadata, &out.InheritMetadata
 		*out = new(Metadata)

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"k8s.io/utils/ptr"
 )
 
 func TestMariadbDumpArgs(t *testing.T) {
@@ -65,7 +66,6 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--routines",
 				"--all-databases",
 				"--skip-add-locks",
-				"--ignore-table=mysql.global_priv",
 			},
 		},
 		{
@@ -73,7 +73,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			backupCmd: &BackupCommand{},
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
-					IgnoreGlobalPriv: true,
+					IgnoreGlobalPriv: ptr.To(true),
 				},
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{},
@@ -226,7 +226,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 						"db2",
 						"db3",
 					},
-					IgnoreGlobalPriv: true,
+					IgnoreGlobalPriv: ptr.To(true),
 				},
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{
