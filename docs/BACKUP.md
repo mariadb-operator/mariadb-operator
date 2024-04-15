@@ -1,12 +1,27 @@
 # Backup and Restore
 
 > [!NOTE]  
-> This documentation applies to `mariadb-operator` version >= v0.0.24
+> This documentation applies to `mariadb-operator` version >= v0.0.28
 
 `mariadb-operator` allows you to declarativaly take backups by defining `Backup` resources and later on restore them by using their `Restore` counterpart. These resources get reconciled into `Job`/`CronJob` resources that automatically perform the backup/restore operations, so you don't need to manually operate your `MariaDB`.
 
-Refer to the sections below, the [API reference](./API_REFERENCE.md) and the [example suite](../examples/) to see see how to configure the `Backup` and `Restore` resources.
- 
+## Table of contents
+<!-- toc -->
+- [Storage types](#storage-types)
+- [<code>Backup</code> CR](#backup-cr)
+    - [Scheduling](#scheduling)
+    - [Retention policy](#retention-policy)
+- [<code>Restore</code> CR](#restore-cr)
+    - [Target recovery time](#target-recovery-time)
+- [Bootstrap new <code>MariaDB</code> instances](#bootstrap-new-mariadb-instances)
+- [Backup and restore specific databases](#backup-and-restore-specific-databases)
+- [Extra arguments](#extra-arguments)
+- [Galera limitations](#galera-limitations)
+- [Migrating to a <code>MariaDB</code> with different topology](#migrating-to-a-mariadb-with-different-topology)
+- [Minio reference installation](#minio-reference-installation)
+- [Reference](#reference)
+<!-- /toc -->
+
 ## Storage types
 
 Currently, the following storage types are supported:
@@ -16,7 +31,7 @@ Currently, the following storage types are supported:
 
 Our recommendation is to store the backups externally in a [S3](../examples/manifests/backup.yaml) compatible storage. [Minio](https://github.com/minio/minio) makes this incredibly easy, take a look at our [Minio reference installation](#minio-reference-installation) to quickly spin up an instance.
 
-## `Backup`
+## `Backup` CR
 
 You can take a one-time backup of your `MariaDB` instance by declaring the following resource:
 
@@ -49,6 +64,7 @@ spec:
   storage:
     s3:
       bucket: backups
+      prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
       region:  us-east-1
       accessKeyIdSecretKeyRef:
@@ -77,10 +93,11 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
+  backupRef:
+    name: backup
   schedule:
     cron: "*/1 * * * *"
     suspend: false
-...
 ```
 
 This resource gets reconciled into a `CronJob` that periodically takes the backups.
@@ -99,13 +116,14 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
+  backupRef:
+    name: backup
   maxRetention: 720h # 30 days
-...
 ```
 
 By default, it will be set to `720h` (30 days), indicating that backups older than 30 days will be automatically deleted.
 
-## `Restore`
+## `Restore` CR
 
 You can easily restore a `Backup` in your `MariaDB` instance by creating the following resource:
 
@@ -135,6 +153,7 @@ spec:
     name: mariadb
   s3:
     bucket: backups
+    prefix: mariadb
     endpoint: minio.minio.svc.cluster.local:9000
     region:  us-east-1
     accessKeyIdSecretKeyRef:
@@ -171,9 +190,9 @@ The operator will look for the closest backup available and utilize it to restor
 
 By default, `spec.targetRecoveryTime` will be set to the current time, which means that the latest available backup will be used.
 
-#### Bootstrap new `MariaDB` instances from `Backups`
+## Bootstrap new `MariaDB` instances
 
-To minimize your Recovery Time Objective (RTO) and to switfly spin up new clusters from existing `Backups`, you can provide a `Resource` source directly in the `MariaDB` object via the `spec.bootstrapFrom` field:
+To minimize your Recovery Time Objective (RTO) and to switfly spin up new clusters from existing `Backups`, you can provide a `Restore` source directly in the `MariaDB` object via the `spec.bootstrapFrom` field:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -187,7 +206,6 @@ spec:
         storage: 1Gi
     accessModes:
       - ReadWriteOnce
-
   bootstrapFrom:
     backupRef:
       name: backup
@@ -208,10 +226,10 @@ spec:
         storage: 1Gi
     accessModes:
       - ReadWriteOnce
-
   bootstrapFrom:
     s3:
       bucket: backups
+      prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
       accessKeyIdSecretKeyRef:
         name: minio
@@ -227,7 +245,104 @@ spec:
     targetRecoveryTime: 2023-12-19T09:00:00Z
 ```
 
-Under the hood, the operator creates a `Restore` object just after the `MariaDB` resource becomes ready.
+Under the hood, the operator creates a `Restore` object just after the `MariaDB` resource becomes ready. The advantage of using `spec.bootstrapFrom` over a standalone `Restore` is that the `MariaDB` is bootstrap-aware and this will allow the operator to hold primary switchover/failover operations until the restoration is finished.
+
+## Backup and restore specific databases
+
+By default, all the logical databases are backed up when a `Backup` is created, but you may also select specific databases by providing the `databases` field:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  databases:
+    - db1
+    - db2
+    - db3
+```
+
+When it comes to restore, all the databases available in the backup will be restored, but you may also choose a single database to be restored via the  `database` field available in the `Restore` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: backup
+  databases: db1
+```
+
+There are a couple of points to consider here:
+- The referred database (`db1` in the example) must previously exist for the `Restore` to succeed.
+- The `mariadb` CLI invoked by the operator under the hood ony supports the [`--one-database`](https://mariadb.com/kb/en/mariadb-command-line-client/#-o-one-database) flag, multiple databases are not supported.
+
+## Extra arguments
+
+Not all the flags supported by `mariadb-dump` and `mariadb` have their counterpart field in the `Backup` and `Restore` CRs respectively, but you may pass extra flags by using `args`. For instance, it may be useful to set the `--verbose` flag to see how the backup and restore makes progress:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  args:
+    - --verbose
+```
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: backup
+  args:
+    - --verbose
+```
+
+## Galera limitations
+
+Galera only replicates the tables with InnoDB engine:
+- https://galeracluster.com/library/kb/user-changes.html
+
+Something that does not include `mysql.global_priv`: the table used to store users and grants. This basically means that a Galera instance with `mysql.global_priv` populated will not replicate this data to an empty Galera B. This is something to take into account when defining your backup strategy.
+
+By default, the SQL dumps generated by the `Backup` resource include `DROP TABLE` statements to make them idempotent. When they are restored in a `MariaDB` with Galera enabled, the `DROP TABLE` is propagated to the replicas, but not its data, resulting in authentication errors in the replicas. Thi is specially critical because the `livenessProbes` will fail with authentication errors, resulting in `Pods` restarting. More information can be found in the following issue:
+- https://github.com/mariadb-operator/mariadb-operator/issues/556
+
+To overcome this, `--ignore-table=mysql.global_priv` is added by default to the `Backup` resources pointing to a `MariaDB` with Galera enabled, so there is no action on your side to be done.
+
+The downside of adding `--ignore-table=mysql.global_priv` is that the users and its grants have to be managed and recreated by either:
+- MariaDB image entrypoint, by using the `spec.rootPasswordSecretKeyRef`, `spec.username` and `spec.passwordSecretKeyRef` fields.
+- The `User` and `Grant` CRs, which will be eventually reconciled by the operator.
+
+In any case, you still have control over this feature by using the `Backup`'s `spec.ignoreGlobalPriv`, which is defaulted to `true` when Galera is enabled and `false` otherwise:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  ignoreGlobalPriv: true
+```
+
+## Migrating to a `MariaDB` with different topology
 
 ## Minio reference installation
 
