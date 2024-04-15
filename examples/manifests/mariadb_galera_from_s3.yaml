@@ -37,7 +37,7 @@ spec:
         labels:
           sidecar.istio.io/inject: "false"
       args:
-        - "--verbose"
+        - --verbose
       resources:
         requests:
           cpu: 100m
