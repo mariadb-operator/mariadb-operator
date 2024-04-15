@@ -3,7 +3,7 @@
 > [!NOTE]  
 > This documentation applies to `mariadb-operator` version >= v0.0.28
 
-`mariadb-operator` allows you to declarativaly take backups by defining `Backup` resources and later on restore them by using their `Restore` counterpart. These resources get reconciled into `Job`/`CronJob` resources that automatically perform the backup/restore operations, so you don't need to manually operate your `MariaDB`.
+`mariadb-operator` allows you to declarativaly take backups by defining `Backup` resources and later on restore them by using their `Restore` counterpart. These resources get reconciled into `Job`/`CronJob` resources that automatically perform the backup/restore operations, so you don't need to manually script them.
 
 ## Table of contents
 <!-- toc -->
@@ -20,8 +20,8 @@
     - [<code>mysql.global_priv</code>](#mysqlglobal_priv)
     - [<code>LOCK TABLES</code>](#lock-tables)
 - [Migrating to a <code>MariaDB</code> with different topology](#migrating-to-a-mariadb-with-different-topology)
-    - [Migrating between standalone and replicaton](#migrating-between-standalone-and-replicaton)
-    - [Migrating from non-Galera to Galera](#migrating-from-non-galera-to-galera)
+    - [Migrating between standalone and replicated <code>MariaDBs</code>](#migrating-between-standalone-and-replicated-mariadbs)
+    - [Migrating from standalone/replicated to Galera <code>MariaDBs</code>](#migrating-from-standalonereplicated-to-galera-mariadbs)
 - [Minio reference installation](#minio-reference-installation)
 - [Reference](#reference)
 <!-- /toc -->
@@ -286,11 +286,11 @@ spec:
 
 There are a couple of points to consider here:
 - The referred database (`db1` in the example) must previously exist for the `Restore` to succeed.
-- The `mariadb` CLI invoked by the operator under the hood ony supports the [`--one-database`](https://mariadb.com/kb/en/mariadb-command-line-client/#-o-one-database) flag, restoration of multiple specific databases is not supported.
+- The `mariadb` CLI invoked by the operator under the hood only supports selecting a single database to restore via the [`--one-database`](https://mariadb.com/kb/en/mariadb-command-line-client/#-o-one-database) option, restoration of multiple specific databases is not supported.
 
 ## Extra options
 
-Not all the flags supported by `mariadb-dump` and `mariadb` have their counterpart field in the `Backup` and `Restore` CRs respectively, but you may pass extra options by using the `args` field. For instance, it may be useful to set the `--verbose` flag to see how the backup and restore makes progress:
+Not all the flags supported by `mariadb-dump` and `mariadb` have their counterpart field in the `Backup` and `Restore` CRs respectively, but you may pass extra options by using the `args` field. For example, setting the `--verbose` flag can be helpful to track the progress of backup and restore operations:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -349,7 +349,7 @@ spec:
 
 #### `LOCK TABLES` 
 
-Galera is not compatible with the `LOCK TABLES` statements:
+Galera is not compatible with the `LOCK TABLES` statement:
 - https://mariadb.com/kb/en/lock-tables/#limitations
 
 For this reason, the operator automatically adds the `--skip-add-locks` option to the `Backup` to overcome this limitation.
@@ -364,24 +364,24 @@ Although backing up and restoring data from `MariaDBs` with different topologies
 
 This should be fully compatible, no issues have been detected.
 
-#### Migrating from non-Galera to Galera `MariaDBs`
+#### Migrating from standalone/replicated to Galera `MariaDBs`
 
 There are a couple of limitations regarding the backups in Galera, please make sure you read the [Galera backup limitations](#galera-backup-limitations) section before proceeding.
 
-To overcome this limitations, the `Backup` in the non-Galera instance needs to be taken with `spec.ignoreGlobalPriv=true`:
+To overcome this limitations, the `Backup` in the standalone/replicated instance needs to be taken with `spec.ignoreGlobalPriv=true`. In the following example, we are backing up a standalone `MariaDB` (single instance):
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
-  name: backup-non-galera
+  name: backup-standalone
 spec:
   mariaDbRef:
-    name: mariadb
+    name: mariadb-standalone
   ignoreGlobalPriv: true
 ```
 
-This way, once the previous `Backup` is completed, we will be able bootstrap a new Galera instance from it:
+Once the previous `Backup` is completed, we will be able bootstrap a new Galera instance from it:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -393,7 +393,7 @@ spec:
     enabled: true
   bootstrapFrom:
     backupRef:
-      name: backup-non-galera
+      name: backup-standalone
 ``` 
 
 ## Minio reference installation
