@@ -34,13 +34,8 @@ helm-images: ## Update operator env in the Helm chart.
 		--dry-run=client -o yaml \
 		> deploy/charts/mariadb-operator/templates/configmap.yaml
 
-DOCS_IMG ?= jnorwood/helm-docs:v1.11.0
-.PHONY: helm-docs
-helm-docs: ## Generate Helm chart docs.
-	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) $(DOCS_IMG)
-
 .PHONY: helm
-helm: helm-crds helm-images helm-docs ## Generate manifests for Helm chart.
+helm: helm-crds helm-images ## Generate manifests for Helm chart.
 
 ##@ Generate - Manifests
 
@@ -71,13 +66,27 @@ manifests-bundle: manifests-crds manifests-bundle-helm manifests-bundle-helm-min
 
 ##@ Generate - Documentation
 
-.PHONY: api-docs
-api-docs: crd-ref-docs ## Generate API reference docs
+DOCS_IMG ?= jnorwood/helm-docs:v1.11.0
+.PHONY: docs-helm
+docs-helm: ## Generate Helm chart docs.
+	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) $(DOCS_IMG)
+
+.PHONY: docs-api
+docs-api: crd-ref-docs ## Generate API reference docs.
 	$(CRD_REF_DOCS) \
 		--source-path=./api/v1alpha1 \
 		--config=./hack/config/crd-ref-docs.yaml \
 		--renderer=markdown \
 		--output-path=./docs/API_REFERENCE.md
+
+PHONY: docs-toc
+docs-toc: mdtoc ## Generate table of contents in docs.
+	@for f in $$(ls docs/*.md | grep -v 'API_REFERENCE' | grep -v 'UPGRADE'); do \
+		$(MDTOC) --inplace $$f; \
+	done
+
+.PHONY: docs
+docs: docs-helm docs-api docs-toc ## Generate docs.
 
 ##@ Generate - Examples
 
@@ -107,7 +116,7 @@ examples: examples-operator examples-mariadb examples-maxscale examples-exporter
 ##@ Generate
 
 .PHONY: generate
-generate: manifests code embed-entrypoint helm manifests-bundle api-docs examples ## Generate artifacts.
+generate: manifests code embed-entrypoint helm manifests-bundle docs examples ## Generate artifacts.
 
 .PHONY: gen
 gen: generate ## Generate alias.

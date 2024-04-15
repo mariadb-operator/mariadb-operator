@@ -9,6 +9,17 @@ Our recommended HA setup for production is:
 
 Refer to the following sections for further detail.
 
+## Table of contents
+<!-- toc -->
+- [Supported HA modes](#supported-ha-modes)
+- [Kubernetes Services](#kubernetes-services)
+- [MaxScale](#maxscale)
+- [Pod Anti Affinity](#pod-anti-affinity)
+- [Pod Disruption Budgets](#pod-disruption-budgets)
+- [Dedicated Nodes](#dedicated-nodes)
+- [Reference](#reference)
+<!-- /toc -->
+
 ## Supported HA modes
 
 - **Single master HA via [SemiSync Replication](../examples/manifests/mariadb_replication.yaml)**: The primary node allows both reads and writes, while secondary nodes only allow reads.
