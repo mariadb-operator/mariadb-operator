@@ -20,6 +20,8 @@
     - [<code>mysql.global_priv</code>](#mysqlglobal_priv)
     - [<code>LOCK TABLES</code>](#lock-tables)
 - [Migrating to a <code>MariaDB</code> with different topology](#migrating-to-a-mariadb-with-different-topology)
+    - [Migrating between standalone and replicaton](#migrating-between-standalone-and-replicaton)
+    - [Migrating from non-Galera to Galera](#migrating-from-non-galera-to-galera)
 - [Minio reference installation](#minio-reference-installation)
 - [Reference](#reference)
 <!-- /toc -->
@@ -353,6 +355,46 @@ Galera is not compatible with the `LOCK TABLES` statements:
 For this reason, the operator automatically adds the `--skip-add-locks` option to the `Backup` to overcome this limitation.
 
 ## Migrating to a `MariaDB` with different topology
+
+Logical backups serve not just as a source of restoration, but also enable data mobility between `MariaDB` instances. These backups are called "logical" because they are independent from the `MariaDB` topology, as they only contain DDLs and `INSERT` statements to populate data.
+
+Although backing up and restoring data from `MariaDBs` with different topologies is possible, there are a couple of technical details that you need to be aware of in the following scenarios:
+
+#### Migrating between standalone and replicated `MariaDBs`
+
+This should be fully compatible, no issues have been detected.
+
+#### Migrating from non-Galera to Galera `MariaDBs`
+
+There are a couple of limitations regarding the backups in Galera, please make sure you read the [Galera backup limitations](#galera-backup-limitations) section before proceeding.
+
+To overcome this limitations, the `Backup` in the non-Galera instance needs to be taken with `spec.ignoreGlobalPriv=true`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-non-galera
+spec:
+  mariaDbRef:
+    name: mariadb
+  ignoreGlobalPriv: true
+```
+
+This way, once the previous `Backup` is completed, we will be able bootstrap a new Galera instance from it:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  galera:
+    enabled: true
+  bootstrapFrom:
+    backupRef:
+      name: backup-non-galera
+``` 
 
 ## Minio reference installation
 
