@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-12T14:02:19Z"
+    createdAt: "2024-04-15T10:05:37Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -440,7 +440,7 @@ spec:
           - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
             displayName: Env From
             path: envFrom
-          - description: 'IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups. If not provided, it will default to false. When backing up MariaDB instances with Galera enabled, mysql.global_priv will be ignored anyway, as it is incompatible with Galera. See: https://github.com/mariadb-operator/mariadb-operator/issues/556'
+          - description: 'IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups. If not provided, it will default to true when the referred MariaDB instance has Galera enabled and otherwise to false. See: https://github.com/mariadb-operator/mariadb-operator/issues/556'
             displayName: Ignore Global Priv
             path: ignoreGlobalPriv
           - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
