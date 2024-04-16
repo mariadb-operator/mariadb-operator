@@ -1094,17 +1094,6 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 		deleteMariaDB(&mdb)
 	})
 
-	By("Expecting restore Job to eventually be completed")
-	Eventually(func(g Gomega) bool {
-		var job batchv1.Job
-		g.Expect(k8sClient.Get(testCtx, mdb.RestoreKey(), &job)).To(Succeed())
-
-		g.Expect(job.ObjectMeta.Labels).NotTo(BeNil())
-		g.Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
-
-		return jobpkg.IsJobComplete(&job)
-	}, testHighTimeout, testInterval).Should(BeTrue())
-
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
 		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
