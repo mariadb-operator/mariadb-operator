@@ -1007,7 +1007,7 @@ func expectMariadbMaxScaleReady(mdb *mariadbv1alpha1.MariaDB, mxsKey types.Names
 	By("Creating MaxScale")
 	Expect(k8sClient.Create(testCtx, &mxs)).To(Succeed())
 	DeferCleanup(func() {
-		deleteMaxScale(mxsKey)
+		deleteMaxScale(mxsKey, true)
 	})
 
 	By("Point MariaDB to MaxScale")

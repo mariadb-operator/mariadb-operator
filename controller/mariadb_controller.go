@@ -351,7 +351,6 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mdb *mariadbv1
 		if err := r.Get(ctx, mdb.RestoreKey(), &existingRestore); err != nil {
 			return ctrl.Result{}, err
 		}
-
 		return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			if existingRestore.IsComplete() {
 				if err := r.Delete(ctx, &existingRestore); err != nil {

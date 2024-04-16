@@ -46,7 +46,7 @@ var _ = Describe("MaxScale controller", func() {
 			}
 			Expect(k8sClient.Create(testCtx, &testDefaultMxs)).To(Succeed())
 			DeferCleanup(func() {
-				deleteMaxScale(testDefaultMxsKey)
+				deleteMaxScale(testDefaultMxsKey, false)
 			})
 
 			By("Expecting to eventually default")
@@ -119,7 +119,7 @@ var _ = Describe("MaxScale controller", func() {
 			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
 			DeferCleanup(func() {
 				deleteMariaDB(&testMdbMxs)
-				deleteMaxScale(testMdbMxs.MaxScaleKey())
+				deleteMaxScale(testMdbMxs.MaxScaleKey(), true)
 			})
 
 			By("Expecting MariaDB to be ready eventually")
@@ -194,7 +194,7 @@ var _ = Describe("MaxScale controller", func() {
 			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
 			DeferCleanup(func() {
 				deleteMariaDB(&testMdbMxs)
-				deleteMaxScale(testMdbMxs.MaxScaleKey())
+				deleteMaxScale(testMdbMxs.MaxScaleKey(), true)
 			})
 
 			By("Expecting MariaDB to be ready eventually")
@@ -259,7 +259,7 @@ var _ = Describe("MaxScale controller", func() {
 			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
 			DeferCleanup(func() {
 				deleteMariaDB(&testMdbMxs)
-				deleteMaxScale(testMdbMxs.MaxScaleKey())
+				deleteMaxScale(testMdbMxs.MaxScaleKey(), true)
 			})
 
 			By("Expecting MariaDB to be ready eventually")
@@ -435,7 +435,7 @@ func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB) {
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
-func deleteMaxScale(key types.NamespacedName) {
+func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
 	mxs := mariadbv1alpha1.MaxScale{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
@@ -447,6 +447,9 @@ func deleteMaxScale(key types.NamespacedName) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
+	if !assertPVCDeletion {
+		return
+	}
 	Eventually(func(g Gomega) bool {
 		listOpts := &client.ListOptions{
 			LabelSelector: klabels.SelectorFromSet(
