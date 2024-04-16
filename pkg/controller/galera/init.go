@@ -178,12 +178,20 @@ func (r *GaleraReconciler) reconcilePVC(ctx context.Context, mariadb *mariadbv1a
 	return r.Create(ctx, pvc)
 }
 
-func (r *GaleraReconciler) deleteInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *GaleraReconciler) initCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	var job batchv1.Job
 	if err := r.Get(ctx, mariadb.InitKey(), &job); err != nil {
 		return client.IgnoreNotFound(err)
 	}
 	if err := r.Delete(ctx, &job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)}); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+
+	var cm corev1.ConfigMap
+	if err := r.Get(ctx, mariadb.InitKey(), &cm); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	if err := r.Delete(ctx, &cm); err != nil {
 		return client.IgnoreNotFound(err)
 	}
 	return nil
