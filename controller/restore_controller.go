@@ -78,9 +78,12 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
 
-	var jobErr *multierror.Error
-	err = r.BatchReconciler.Reconcile(ctx, &restore, mariaDb)
-	jobErr = multierror.Append(jobErr, err)
+	if err := r.BatchReconciler.Reconcile(ctx, &restore, mariaDb); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, client.IgnoreNotFound(err)
+		}
+		return ctrl.Result{}, fmt.Errorf("error reconciling batch: %v", err)
+	}
 
 	patcher, err := r.ConditionComplete.PatcherWithJob(ctx, err, req.NamespacedName)
 	if err != nil {
@@ -90,11 +93,11 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("error getting patcher for restore: %v", err)
 	}
 
-	err = r.patchStatus(ctx, &restore, patcher)
-	jobErr = multierror.Append(jobErr, err)
-
-	if err := jobErr.ErrorOrNil(); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
+	if err = r.patchStatus(ctx, &restore, patcher); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, client.IgnoreNotFound(err)
+		}
+		return ctrl.Result{}, fmt.Errorf("error patching restore status: %v", err)
 	}
 	return ctrl.Result{}, nil
 }
