@@ -45,14 +45,14 @@ func (b *BackupStorage) Validate() error {
 
 // BackupSpec defines the desired state of Backup
 type BackupSpec struct {
-	// ContainerTemplate defines templates to configure Container objects.
+	// JobContainerTemplate defines templates to configure Container objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// PodTemplate defines templates to configure Pod objects.
+	JobContainerTemplate `json:",inline"`
+	// JobPodTemplate defines templates to configure Pod objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodTemplate `json:",inline"`
+	JobPodTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -160,7 +160,7 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.IgnoreGlobalPriv == nil {
 		b.Spec.IgnoreGlobalPriv = ptr.To(ptr.Deref(mariadb.Spec.Galera, Galera{}).Enabled)
 	}
-	b.Spec.PodTemplate.SetDefaults(b.ObjectMeta)
+	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta)
 }
 
 func (b *Backup) Volume() (*corev1.VolumeSource, error) {

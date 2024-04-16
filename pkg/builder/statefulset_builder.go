@@ -235,7 +235,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
-			ServiceAccountName:           serviceAccount(mariadb.Spec.ServiceAccountName, mariadb.Name),
+			ServiceAccountName:           ptr.Deref(mariadb.Spec.ServiceAccountName, mariadb.Name),
 			RestartPolicy:                ptr.Deref(mariadbOpts.restartPolicy, corev1.RestartPolicyAlways),
 			InitContainers:               mariadbInitContainers(mariadb, opts...),
 			Containers:                   containers,
@@ -245,7 +245,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			Affinity:                     &affinity,
 			NodeSelector:                 mariadb.Spec.NodeSelector,
 			Tolerations:                  mariadb.Spec.Tolerations,
-			PriorityClassName:            priorityClass(mariadb.Spec.PriorityClassName),
+			PriorityClassName:            ptr.Deref(mariadb.Spec.PriorityClassName, ""),
 			TopologySpreadConstraints:    mariadb.Spec.TopologySpreadConstraints,
 		},
 	}, nil
@@ -271,7 +271,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
-			ServiceAccountName:           serviceAccount(mxs.Spec.ServiceAccountName, mxs.Name),
+			ServiceAccountName:           ptr.Deref(mxs.Spec.ServiceAccountName, mxs.Name),
 			InitContainers:               maxscaleInitContainers(mxs),
 			Containers:                   containers,
 			ImagePullSecrets:             mxs.Spec.ImagePullSecrets,
@@ -280,7 +280,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 			Affinity:                     &affinity,
 			NodeSelector:                 mxs.Spec.NodeSelector,
 			Tolerations:                  mxs.Spec.Tolerations,
-			PriorityClassName:            priorityClass(mxs.Spec.PriorityClassName),
+			PriorityClassName:            ptr.Deref(mxs.Spec.PriorityClassName, ""),
 			TopologySpreadConstraints:    mxs.Spec.TopologySpreadConstraints,
 		},
 	}, nil
@@ -488,18 +488,4 @@ func mariadbHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 		}
 	}
 	return annotations
-}
-
-func serviceAccount(svcAccount *string, defaultSvcAccount string) (serviceAccount string) {
-	if svcAccount != nil {
-		return *svcAccount
-	}
-	return defaultSvcAccount
-}
-
-func priorityClass(className *string) string {
-	if className != nil {
-		return *className
-	}
-	return ""
 }

@@ -181,7 +181,7 @@ var _ = Describe("SqlJob controller", func() {
 
 				By("Expecting to create a ServiceAccount")
 				var svcAcc corev1.ServiceAccount
-				key := sqlJob.Spec.PodTemplate.ServiceAccountKey(job.ObjectMeta)
+				key := sqlJob.Spec.JobPodTemplate.ServiceAccountKey(job.ObjectMeta)
 				Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 
 				Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())

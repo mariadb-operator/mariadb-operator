@@ -19,12 +19,14 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	bootstrapFrom := ptr.Deref(mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
 	restoreJob := ptr.Deref(bootstrapFrom.RestoreJob, mariadbv1alpha1.BootstrapJob{})
 
-	podTpl := mariadb.Spec.PodTemplate.DeepCopy()
+	podTpl := mariadbv1alpha1.JobPodTemplate{}
+	podTpl.FromPodTemplate(mariadb.Spec.PodTemplate.DeepCopy())
 	if affinity := restoreJob.Affinity; affinity != nil {
 		podTpl.Affinity = affinity
 	}
 
-	containerTpl := mariadb.Spec.ContainerTemplate.DeepCopy()
+	containerTpl := mariadbv1alpha1.JobContainerTemplate{}
+	containerTpl.FromContainerTemplate(mariadb.Spec.ContainerTemplate.DeepCopy())
 	if resources := restoreJob.Resources; resources != nil {
 		containerTpl.Resources = resources
 	}
@@ -35,9 +37,9 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	restore := &mariadbv1alpha1.Restore{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.RestoreSpec{
-			ContainerTemplate: *containerTpl,
-			PodTemplate:       *podTpl,
-			RestoreSource:     bootstrapFrom.RestoreSource,
+			JobContainerTemplate: containerTpl,
+			JobPodTemplate:       podTpl,
+			RestoreSource:        bootstrapFrom.RestoreSource,
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				ObjectReference: corev1.ObjectReference{
 					Name: mariadb.Name,

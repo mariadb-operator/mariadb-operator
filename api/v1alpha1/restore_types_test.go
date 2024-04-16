@@ -27,7 +27,7 @@ var _ = Describe("Restore types", func() {
 				&Restore{
 					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
-						PodTemplate: PodTemplate{
+						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						BackoffLimit: 5,
@@ -39,7 +39,7 @@ var _ = Describe("Restore types", func() {
 				&Restore{
 					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
-						PodTemplate: PodTemplate{
+						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("restore-test"),
 						},
 						BackoffLimit: 3,
@@ -48,7 +48,7 @@ var _ = Describe("Restore types", func() {
 				&Restore{
 					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
-						PodTemplate: PodTemplate{
+						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("restore-test"),
 						},
 						BackoffLimit: 3,

@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-15T10:05:37Z"
+    createdAt: "2024-04-16T08:08:28Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -428,18 +428,9 @@ spec:
             path: backoffLimit
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
-          - description: Command to be used in the Container.
-            displayName: Command
-            path: command
           - description: Databases defines the logical databases to be backed up. If not provided, all databases are backed up.
             displayName: Databases
             path: databases
-          - description: Env represents the environment variables to be injected in a container.
-            displayName: Env
-            path: env
-          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
-            displayName: Env From
-            path: envFrom
           - description: 'IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups. If not provided, it will default to true when the referred MariaDB instance has Galera enabled and otherwise to false. See: https://github.com/mariadb-operator/mariadb-operator/issues/556'
             displayName: Ignore Global Priv
             path: ignoreGlobalPriv
@@ -455,49 +446,6 @@ spec:
           - description: Labels to be added to children resources.
             displayName: Labels
             path: inheritMetadata.labels
-          - description: InitContainers to be used in the Pod.
-            displayName: Init Containers
-            path: initContainers
-          - description: Args to be used in the Container.
-            displayName: Args
-            path: initContainers[0].args
-          - description: Command to be used in the Container.
-            displayName: Command
-            path: initContainers[0].command
-          - description: Env represents the environment variables to be injected in a container.
-            displayName: Env
-            path: initContainers[0].env
-          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
-            displayName: Env From
-            path: initContainers[0].envFrom
-          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-            displayName: Image
-            path: initContainers[0].image
-          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-            displayName: Image Pull Policy
-            path: initContainers[0].imagePullPolicy
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-          - description: LivenessProbe to be used in the Container.
-            displayName: Liveness Probe
-            path: initContainers[0].livenessProbe
-          - description: ReadinessProbe to be used in the Container.
-            displayName: Readiness Probe
-            path: initContainers[0].readinessProbe
-          - description: Resouces describes the compute resource requirements.
-            displayName: Resources
-            path: initContainers[0].resources
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-          - description: SecurityContext holds security configuration that will be applied to a container.
-            displayName: Security Context
-            path: initContainers[0].securityContext
-          - description: VolumeMounts to be used in the Container.
-            displayName: Volume Mounts
-            path: initContainers[0].volumeMounts
-          - description: LivenessProbe to be used in the Container.
-            displayName: Liveness Probe
-            path: livenessProbe
           - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
             displayName: Log Level
             path: logLevel
@@ -528,9 +476,6 @@ spec:
           - description: PriorityClassName to be used in the Pod.
             displayName: Priority Class Name
             path: priorityClassName
-          - description: ReadinessProbe to be used in the Container.
-            displayName: Readiness Probe
-            path: readinessProbe
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: resources
@@ -554,46 +499,6 @@ spec:
           - description: ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
             displayName: Service Account Name
             path: serviceAccountName
-          - description: SidecarContainers to be used in the Pod.
-            displayName: Sidecar Containers
-            path: sidecarContainers
-          - description: Args to be used in the Container.
-            displayName: Args
-            path: sidecarContainers[0].args
-          - description: Command to be used in the Container.
-            displayName: Command
-            path: sidecarContainers[0].command
-          - description: Env represents the environment variables to be injected in a container.
-            displayName: Env
-            path: sidecarContainers[0].env
-          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
-            displayName: Env From
-            path: sidecarContainers[0].envFrom
-          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-            displayName: Image
-            path: sidecarContainers[0].image
-          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-            displayName: Image Pull Policy
-            path: sidecarContainers[0].imagePullPolicy
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-          - description: LivenessProbe to be used in the Container.
-            displayName: Liveness Probe
-            path: sidecarContainers[0].livenessProbe
-          - description: ReadinessProbe to be used in the Container.
-            displayName: Readiness Probe
-            path: sidecarContainers[0].readinessProbe
-          - description: Resouces describes the compute resource requirements.
-            displayName: Resources
-            path: sidecarContainers[0].resources
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-          - description: SecurityContext holds security configuration that will be applied to a container.
-            displayName: Security Context
-            path: sidecarContainers[0].securityContext
-          - description: VolumeMounts to be used in the Container.
-            displayName: Volume Mounts
-            path: sidecarContainers[0].volumeMounts
           - description: Storage to be used in the Backup.
             displayName: Storage
             path: storage
@@ -641,15 +546,6 @@ spec:
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
-          - description: TopologySpreadConstraints to be used in the Pod.
-            displayName: Topology Spread Constraints
-            path: topologySpreadConstraints
-          - description: VolumeMounts to be used in the Container.
-            displayName: Volume Mounts
-            path: volumeMounts
-          - description: Volumes to be used in the Pod.
-            displayName: Volumes
-            path: volumes
         statusDescriptors:
           - description: Conditions for the Backup object.
             displayName: Conditions
@@ -3189,18 +3085,9 @@ spec:
           - description: BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
             displayName: Backup Ref
             path: backupRef
-          - description: Command to be used in the Container.
-            displayName: Command
-            path: command
           - description: 'Database defines the logical database to be restored. If not provided, all databases available in the backup are restored. IMPORTANT: The database must previously exist.'
             displayName: Database
             path: database
-          - description: Env represents the environment variables to be injected in a container.
-            displayName: Env
-            path: env
-          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
-            displayName: Env From
-            path: envFrom
           - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
             displayName: Image Pull Secrets
             path: imagePullSecrets
@@ -3213,49 +3100,6 @@ spec:
           - description: Labels to be added to children resources.
             displayName: Labels
             path: inheritMetadata.labels
-          - description: InitContainers to be used in the Pod.
-            displayName: Init Containers
-            path: initContainers
-          - description: Args to be used in the Container.
-            displayName: Args
-            path: initContainers[0].args
-          - description: Command to be used in the Container.
-            displayName: Command
-            path: initContainers[0].command
-          - description: Env represents the environment variables to be injected in a container.
-            displayName: Env
-            path: initContainers[0].env
-          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
-            displayName: Env From
-            path: initContainers[0].envFrom
-          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-            displayName: Image
-            path: initContainers[0].image
-          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-            displayName: Image Pull Policy
-            path: initContainers[0].imagePullPolicy
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-          - description: LivenessProbe to be used in the Container.
-            displayName: Liveness Probe
-            path: initContainers[0].livenessProbe
-          - description: ReadinessProbe to be used in the Container.
-            displayName: Readiness Probe
-            path: initContainers[0].readinessProbe
-          - description: Resouces describes the compute resource requirements.
-            displayName: Resources
-            path: initContainers[0].resources
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-          - description: SecurityContext holds security configuration that will be applied to a container.
-            displayName: Security Context
-            path: initContainers[0].securityContext
-          - description: VolumeMounts to be used in the Container.
-            displayName: Volume Mounts
-            path: initContainers[0].volumeMounts
-          - description: LivenessProbe to be used in the Container.
-            displayName: Liveness Probe
-            path: livenessProbe
           - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
             displayName: Log Level
             path: logLevel
@@ -3283,9 +3127,6 @@ spec:
           - description: PriorityClassName to be used in the Pod.
             displayName: Priority Class Name
             path: priorityClassName
-          - description: ReadinessProbe to be used in the Container.
-            displayName: Readiness Probe
-            path: readinessProbe
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: resources
@@ -3335,64 +3176,15 @@ spec:
           - description: ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
             displayName: Service Account Name
             path: serviceAccountName
-          - description: SidecarContainers to be used in the Pod.
-            displayName: Sidecar Containers
-            path: sidecarContainers
-          - description: Args to be used in the Container.
-            displayName: Args
-            path: sidecarContainers[0].args
-          - description: Command to be used in the Container.
-            displayName: Command
-            path: sidecarContainers[0].command
-          - description: Env represents the environment variables to be injected in a container.
-            displayName: Env
-            path: sidecarContainers[0].env
-          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
-            displayName: Env From
-            path: sidecarContainers[0].envFrom
-          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-            displayName: Image
-            path: sidecarContainers[0].image
-          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-            displayName: Image Pull Policy
-            path: sidecarContainers[0].imagePullPolicy
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-          - description: LivenessProbe to be used in the Container.
-            displayName: Liveness Probe
-            path: sidecarContainers[0].livenessProbe
-          - description: ReadinessProbe to be used in the Container.
-            displayName: Readiness Probe
-            path: sidecarContainers[0].readinessProbe
-          - description: Resouces describes the compute resource requirements.
-            displayName: Resources
-            path: sidecarContainers[0].resources
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-          - description: SecurityContext holds security configuration that will be applied to a container.
-            displayName: Security Context
-            path: sidecarContainers[0].securityContext
-          - description: VolumeMounts to be used in the Container.
-            displayName: Volume Mounts
-            path: sidecarContainers[0].volumeMounts
           - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective. It is used to determine the closest restoration source in time.
             displayName: Target Recovery Time
             path: targetRecoveryTime
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
-          - description: TopologySpreadConstraints to be used in the Pod.
-            displayName: Topology Spread Constraints
-            path: topologySpreadConstraints
           - description: Volume is a Kubernetes Volume object that contains a backup.
             displayName: Volume
             path: volume
-          - description: VolumeMounts to be used in the Container.
-            displayName: Volume Mounts
-            path: volumeMounts
-          - description: Volumes to be used in the Pod.
-            displayName: Volumes
-            path: volumes
         statusDescriptors:
           - description: Conditions for the Restore object.
             displayName: Conditions
@@ -3435,21 +3227,12 @@ spec:
             path: backoffLimit
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
-          - description: Command to be used in the Container.
-            displayName: Command
-            path: command
           - description: Username to be used when executing the SqlJob.
             displayName: Database
             path: database
           - description: DependsOn defines dependencies with other SqlJob objectecs.
             displayName: Depends On
             path: dependsOn
-          - description: Env represents the environment variables to be injected in a container.
-            displayName: Env
-            path: env
-          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
-            displayName: Env From
-            path: envFrom
           - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
             displayName: Image Pull Secrets
             path: imagePullSecrets
@@ -3462,49 +3245,6 @@ spec:
           - description: Labels to be added to children resources.
             displayName: Labels
             path: inheritMetadata.labels
-          - description: InitContainers to be used in the Pod.
-            displayName: Init Containers
-            path: initContainers
-          - description: Args to be used in the Container.
-            displayName: Args
-            path: initContainers[0].args
-          - description: Command to be used in the Container.
-            displayName: Command
-            path: initContainers[0].command
-          - description: Env represents the environment variables to be injected in a container.
-            displayName: Env
-            path: initContainers[0].env
-          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
-            displayName: Env From
-            path: initContainers[0].envFrom
-          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-            displayName: Image
-            path: initContainers[0].image
-          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-            displayName: Image Pull Policy
-            path: initContainers[0].imagePullPolicy
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-          - description: LivenessProbe to be used in the Container.
-            displayName: Liveness Probe
-            path: initContainers[0].livenessProbe
-          - description: ReadinessProbe to be used in the Container.
-            displayName: Readiness Probe
-            path: initContainers[0].readinessProbe
-          - description: Resouces describes the compute resource requirements.
-            displayName: Resources
-            path: initContainers[0].resources
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-          - description: SecurityContext holds security configuration that will be applied to a container.
-            displayName: Security Context
-            path: initContainers[0].securityContext
-          - description: VolumeMounts to be used in the Container.
-            displayName: Volume Mounts
-            path: initContainers[0].volumeMounts
-          - description: LivenessProbe to be used in the Container.
-            displayName: Liveness Probe
-            path: livenessProbe
           - description: MariaDBRef is a reference to a MariaDB object.
             displayName: Maria DBRef
             path: mariaDbRef
@@ -3532,9 +3272,6 @@ spec:
           - description: PriorityClassName to be used in the Pod.
             displayName: Priority Class Name
             path: priorityClassName
-          - description: ReadinessProbe to be used in the Container.
-            displayName: Readiness Probe
-            path: readinessProbe
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: resources
@@ -3558,46 +3295,6 @@ spec:
           - description: ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
             displayName: Service Account Name
             path: serviceAccountName
-          - description: SidecarContainers to be used in the Pod.
-            displayName: Sidecar Containers
-            path: sidecarContainers
-          - description: Args to be used in the Container.
-            displayName: Args
-            path: sidecarContainers[0].args
-          - description: Command to be used in the Container.
-            displayName: Command
-            path: sidecarContainers[0].command
-          - description: Env represents the environment variables to be injected in a container.
-            displayName: Env
-            path: sidecarContainers[0].env
-          - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
-            displayName: Env From
-            path: sidecarContainers[0].envFrom
-          - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-            displayName: Image
-            path: sidecarContainers[0].image
-          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-            displayName: Image Pull Policy
-            path: sidecarContainers[0].imagePullPolicy
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-          - description: LivenessProbe to be used in the Container.
-            displayName: Liveness Probe
-            path: sidecarContainers[0].livenessProbe
-          - description: ReadinessProbe to be used in the Container.
-            displayName: Readiness Probe
-            path: sidecarContainers[0].readinessProbe
-          - description: Resouces describes the compute resource requirements.
-            displayName: Resources
-            path: sidecarContainers[0].resources
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-          - description: SecurityContext holds security configuration that will be applied to a container.
-            displayName: Security Context
-            path: sidecarContainers[0].securityContext
-          - description: VolumeMounts to be used in the Container.
-            displayName: Volume Mounts
-            path: sidecarContainers[0].volumeMounts
           - description: Sql is the script to be executed by the SqlJob.
             displayName: Sql
             path: sql
@@ -3607,18 +3304,9 @@ spec:
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
-          - description: TopologySpreadConstraints to be used in the Pod.
-            displayName: Topology Spread Constraints
-            path: topologySpreadConstraints
           - description: Username to be impersonated when executing the SqlJob.
             displayName: Username
             path: username
-          - description: VolumeMounts to be used in the Container.
-            displayName: Volume Mounts
-            path: volumeMounts
-          - description: Volumes to be used in the Pod.
-            displayName: Volumes
-            path: volumes
         statusDescriptors:
           - description: Conditions for the SqlJob object.
             displayName: Conditions

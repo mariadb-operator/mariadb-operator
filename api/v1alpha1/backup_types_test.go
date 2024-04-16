@@ -31,7 +31,7 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
-						PodTemplate: PodTemplate{
+						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						MaxRetention:     metav1.Duration{Duration: 30 * 24 * time.Hour},
@@ -55,7 +55,7 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
-						PodTemplate: PodTemplate{
+						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						MaxRetention:     metav1.Duration{Duration: 30 * 24 * time.Hour},
@@ -69,7 +69,7 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
-						PodTemplate: PodTemplate{
+						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("backup-test"),
 						},
 						MaxRetention:     metav1.Duration{Duration: 10 * 24 * time.Hour},
@@ -87,7 +87,7 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
-						PodTemplate: PodTemplate{
+						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("backup-test"),
 						},
 						MaxRetention:     metav1.Duration{Duration: 10 * 24 * time.Hour},
