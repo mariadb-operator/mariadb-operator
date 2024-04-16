@@ -83,7 +83,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []corev1.LocalObjectReference{
 							{
 								Name: "backup-registry",
@@ -115,7 +115,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []corev1.LocalObjectReference{
 							{
 								Name: "backup-registry",
@@ -240,7 +240,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []corev1.LocalObjectReference{
 							{
 								Name: "restore-registry",
@@ -272,7 +272,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []corev1.LocalObjectReference{
 							{
 								Name: "restore-registry",
@@ -452,7 +452,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 			sqlJob: &mariadbv1alpha1.SqlJob{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []corev1.LocalObjectReference{
 							{
 								Name: "sqljob-registry",
@@ -484,7 +484,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 			sqlJob: &mariadbv1alpha1.SqlJob{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []corev1.LocalObjectReference{
 							{
 								Name: "sqljob-registry",
@@ -607,7 +607,7 @@ func TestBackupJobMeta(t *testing.T) {
 					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -647,7 +647,7 @@ func TestBackupJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -688,7 +688,7 @@ func TestBackupJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -805,7 +805,7 @@ func TestRestoreJobMeta(t *testing.T) {
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -848,7 +848,7 @@ func TestRestoreJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -892,7 +892,7 @@ func TestRestoreJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -1210,7 +1210,7 @@ func TestSqlJobMeta(t *testing.T) {
 			sqlJob: &mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -1248,7 +1248,7 @@ func TestSqlJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -1287,7 +1287,7 @@ func TestSqlJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",

@@ -8,14 +8,14 @@ import (
 
 // RestoreSpec defines the desired state of restore
 type RestoreSpec struct {
-	// ContainerTemplate defines templates to configure Container objects.
+	// JobContainerTemplate defines templates to configure Container objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// PodTemplate defines templates to configure Pod objects.
+	JobContainerTemplate `json:",inline"`
+	// JobPodTemplate defines templates to configure Pod objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodTemplate `json:",inline"`
+	JobPodTemplate `json:",inline"`
 	// RestoreSource defines a source for restoring a MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -92,7 +92,7 @@ func (b *Restore) SetDefaults() {
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5
 	}
-	b.Spec.PodTemplate.SetDefaults(b.ObjectMeta)
+	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta)
 }
 
 // +kubebuilder:object:root=true

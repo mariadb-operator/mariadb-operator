@@ -32,7 +32,7 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
-						ContainerTemplate: ContainerTemplate{
+						JobContainerTemplate: JobContainerTemplate{
 							Resources: &corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
@@ -60,7 +60,7 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
-						ContainerTemplate: ContainerTemplate{
+						JobContainerTemplate: JobContainerTemplate{
 							Resources: &corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
@@ -98,7 +98,7 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
-						ContainerTemplate: ContainerTemplate{
+						JobContainerTemplate: JobContainerTemplate{
 							Resources: &corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
@@ -131,7 +131,7 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
-						ContainerTemplate: ContainerTemplate{
+						JobContainerTemplate: JobContainerTemplate{
 							Resources: &corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
@@ -167,7 +167,7 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
-						ContainerTemplate: ContainerTemplate{
+						JobContainerTemplate: JobContainerTemplate{
 							Resources: &corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
@@ -210,7 +210,7 @@ var _ = Describe("Backup webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: BackupSpec{
-					ContainerTemplate: ContainerTemplate{
+					JobContainerTemplate: JobContainerTemplate{
 						Resources: &corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),

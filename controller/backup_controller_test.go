@@ -62,7 +62,7 @@ func testBackup(backup *mariadbv1alpha1.Backup) {
 	Eventually(func(g Gomega) bool {
 		g.Expect(k8sClient.Get(testCtx, key, backup)).To(Succeed())
 		var svcAcc corev1.ServiceAccount
-		key := backup.Spec.PodTemplate.ServiceAccountKey(backup.ObjectMeta)
+		key := backup.Spec.JobPodTemplate.ServiceAccountKey(backup.ObjectMeta)
 		g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 
 		g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())

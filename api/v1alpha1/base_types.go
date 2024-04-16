@@ -113,6 +113,35 @@ type ContainerTemplate struct {
 	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
 }
 
+// JobContainerTemplate defines a template to configure Container objects that run in a Job.
+type JobContainerTemplate struct {
+	// Args to be used in the Container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Args []string `json:"args,omitempty"`
+	// Resouces describes the compute resource requirements.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// SecurityContext holds security configuration that will be applied to a container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+}
+
+// FromContainerTemplate sets the ContainerTemplate fields in the current JobContainerTemplate.
+func (j *JobContainerTemplate) FromContainerTemplate(ctpl *ContainerTemplate) {
+	if j.Args == nil {
+		j.Args = ctpl.Args
+	}
+	if j.Resources == nil {
+		j.Resources = ctpl.Resources
+	}
+	if j.SecurityContext == nil {
+		j.SecurityContext = ctpl.SecurityContext
+	}
+}
+
 // Container object definition.
 type Container struct {
 	// ContainerTemplate defines a template to configure Container objects.
@@ -233,6 +262,88 @@ func (p *PodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
 
 // ServiceAccountKey defines the key for the ServiceAccount object.
 func (p *PodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
+		Namespace: objMeta.Namespace,
+	}
+}
+
+// JobPodTemplate defines a template to configure Container objects that run in a Job.
+type JobPodTemplate struct {
+	// PodMetadata defines extra metadata for the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodMetadata *Metadata `json:"podMetadata,omitempty"`
+	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	// SecurityContext holds pod-level security attributes and common container settings.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutableinit"`
+	// Affinity to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Affinity *AffinityConfig `json:"affinity,omitempty"`
+	// NodeSelector to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// Tolerations to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// PriorityClassName to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PriorityClassName *string `json:"priorityClassName,omitempty" webhook:"inmutable"`
+}
+
+// FromPodTemplate sets the PodTemplate fields in the current JobPodTemplate.
+func (j *JobPodTemplate) FromPodTemplate(ptpl *PodTemplate) {
+	if j.PodMetadata == nil {
+		j.PodMetadata = ptpl.PodMetadata
+	}
+	if j.ImagePullSecrets == nil {
+		j.ImagePullSecrets = ptpl.ImagePullSecrets
+	}
+	if j.PodSecurityContext == nil {
+		j.PodSecurityContext = ptpl.PodSecurityContext
+	}
+	if j.ServiceAccountName == nil {
+		j.ServiceAccountName = ptpl.ServiceAccountName
+	}
+	if j.Affinity == nil {
+		j.Affinity = ptpl.Affinity
+	}
+	if j.NodeSelector == nil {
+		j.NodeSelector = ptpl.NodeSelector
+	}
+	if j.Tolerations == nil {
+		j.Tolerations = ptpl.Tolerations
+	}
+	if j.PriorityClassName == nil {
+		j.PriorityClassName = ptpl.PriorityClassName
+	}
+}
+
+// SetDefaults sets reasonable defaults.
+func (p *JobPodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
+	if p.ServiceAccountName == nil {
+		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
+	}
+	if p.Affinity != nil {
+		p.Affinity.SetDefaults(objMeta)
+	}
+}
+
+// ServiceAccountKey defines the key for the ServiceAccount object.
+func (p *JobPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
 		Namespace: objMeta.Namespace,

@@ -47,7 +47,7 @@ var _ = Describe("Restore controller", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: mariadbv1alpha1.RestoreSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+					JobContainerTemplate: mariadbv1alpha1.JobContainerTemplate{
 						Args: []string{"--verbose"},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -81,7 +81,7 @@ var _ = Describe("Restore controller", func() {
 			Eventually(func(g Gomega) bool {
 				g.Expect(k8sClient.Get(testCtx, key, restore)).To(Succeed())
 				var svcAcc corev1.ServiceAccount
-				key := restore.Spec.PodTemplate.ServiceAccountKey(restore.ObjectMeta)
+				key := restore.Spec.JobPodTemplate.ServiceAccountKey(restore.ObjectMeta)
 				g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 
 				g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())

@@ -8,14 +8,14 @@ import (
 
 // SqlJobSpec defines the desired state of SqlJob
 type SqlJobSpec struct {
-	// ContainerTemplate defines templates to configure Container objects.
+	// JobContainerTemplate defines templates to configure Container objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// PodTemplate defines templates to configure Pod objects.
+	JobContainerTemplate `json:",inline"`
+	// JobPodTemplate defines templates to configure Pod objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodTemplate `json:",inline"`
+	JobPodTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -104,7 +104,7 @@ func (s *SqlJob) IsComplete() bool {
 }
 
 func (s *SqlJob) SetDefaults() {
-	s.Spec.PodTemplate.SetDefaults(s.ObjectMeta)
+	s.Spec.JobPodTemplate.SetDefaults(s.ObjectMeta)
 }
 
 //+kubebuilder:object:root=true

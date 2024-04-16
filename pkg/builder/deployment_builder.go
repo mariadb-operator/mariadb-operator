@@ -152,7 +152,7 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 			Affinity:                  &affinity,
 			NodeSelector:              exporter.NodeSelector,
 			Tolerations:               exporter.Tolerations,
-			PriorityClassName:         priorityClass(exporter.PriorityClassName),
+			PriorityClassName:         ptr.Deref(exporter.PriorityClassName, ""),
 			TopologySpreadConstraints: exporter.TopologySpreadConstraints,
 		},
 	}, nil
