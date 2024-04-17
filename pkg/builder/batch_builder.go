@@ -228,8 +228,9 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 }
 
 func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
-	meta *mariadbv1alpha1.Metadata) (*batchv1.Job, error) {
-	extraMeta := ptr.Deref(meta, mariadbv1alpha1.Metadata{})
+	mariadbInitJob *mariadbv1alpha1.Job) (*batchv1.Job, error) {
+	initJob := ptr.Deref(mariadbInitJob, mariadbv1alpha1.Job{})
+	extraMeta := ptr.Deref(initJob.Metadata, mariadbv1alpha1.Metadata{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
@@ -246,6 +247,8 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 		withCommand(command.Command),
 		withArgs(command.Args),
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
+		withResources(initJob.Resources),
+		withAffinity(initJob.Affinity),
 		withExtraVolumes([]corev1.Volume{
 			{
 				Name: StorageVolume,

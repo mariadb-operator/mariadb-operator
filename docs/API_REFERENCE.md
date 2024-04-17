@@ -31,8 +31,8 @@ AffinityConfig defines policies to schedule Pods in Nodes.
 
 _Appears in:_
 - [BackupSpec](#backupspec)
-- [BootstrapJob](#bootstrapjob)
 - [Exporter](#exporter)
+- [Job](#job)
 - [JobPodTemplate](#jobpodtemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
@@ -139,26 +139,7 @@ _Appears in:_
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
 | `volume` _[VolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumesource-v1-core)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
-| `restoreJob` _[BootstrapJob](#bootstrapjob)_ | RestoreJob defines additional properties for the Job used to perform the Restore. |  |  |
-
-
-#### BootstrapJob
-
-
-
-BootstrapJob defines a Job used to bootstrap MariaDB.
-
-
-
-_Appears in:_
-- [BootstrapFrom](#bootstrapfrom)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity defines policies to schedule the bootstrap Pods in Nodes. |  |  |
-| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |  |  |
-| `args` _string array_ | Args to be used in the Container. |  |  |
+| `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the Job used to perform the Restore. |  |  |
 
 
 #### Connection
@@ -408,7 +389,7 @@ _Appears in:_
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
 | `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |  |  |
-| `initJob` _[Metadata](#metadata)_ | InitJob defines metadata to the passed to the initialization Job. |  |  |
+| `initJob` _[Job](#job)_ | InitJob defines metadata to the passed to the initialization Job. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Galera. |  |  |
 
@@ -524,7 +505,7 @@ _Appears in:_
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
 | `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |  |  |
-| `initJob` _[Metadata](#metadata)_ | InitJob defines metadata to the passed to the initialization Job. |  |  |
+| `initJob` _[Job](#job)_ | InitJob defines metadata to the passed to the initialization Job. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
 
 
@@ -602,6 +583,27 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to perform health checks. |  |  |
 | `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RetryInterval is the intervañ used to perform health check retries. |  |  |
+
+
+#### Job
+
+
+
+Job defines a Job used to be used with MariaDB.
+
+
+
+_Appears in:_
+- [BootstrapFrom](#bootstrapfrom)
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |  |  |
+| `args` _string array_ | Args to be used in the Container. |  |  |
 
 
 #### JobContainerTemplate
@@ -1105,10 +1107,8 @@ Metadata defines the metadata to added to resources.
 
 _Appears in:_
 - [BackupSpec](#backupspec)
-- [BootstrapJob](#bootstrapjob)
 - [Exporter](#exporter)
-- [Galera](#galera)
-- [GaleraSpec](#galeraspec)
+- [Job](#job)
 - [JobPodTemplate](#jobpodtemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
