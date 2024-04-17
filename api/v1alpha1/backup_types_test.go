@@ -15,6 +15,10 @@ var _ = Describe("Backup types", func() {
 		Name:      "backup-obj",
 		Namespace: testNamespace,
 	}
+	mdbObjMeta := metav1.ObjectMeta{
+		Name:      "mdb-backup-obj",
+		Namespace: testNamespace,
+	}
 	Context("When creating a Backup object", func() {
 		DescribeTable(
 			"Should default",
@@ -27,7 +31,9 @@ var _ = Describe("Backup types", func() {
 				&Backup{
 					ObjectMeta: objMeta,
 				},
-				&MariaDB{},
+				&MariaDB{
+					ObjectMeta: mdbObjMeta,
+				},
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
@@ -46,6 +52,7 @@ var _ = Describe("Backup types", func() {
 					ObjectMeta: objMeta,
 				},
 				&MariaDB{
+					ObjectMeta: mdbObjMeta,
 					Spec: MariaDBSpec{
 						Galera: &Galera{
 							Enabled: true,
@@ -65,12 +72,65 @@ var _ = Describe("Backup types", func() {
 				},
 			),
 			Entry(
+				"Anti affinity",
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						JobPodTemplate: JobPodTemplate{
+							Affinity: &AffinityConfig{
+								EnableAntiAffinity: ptr.To(true),
+							},
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: mdbObjMeta,
+				},
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						JobPodTemplate: JobPodTemplate{
+							ServiceAccountName: &objMeta.Name,
+							Affinity: &AffinityConfig{
+								EnableAntiAffinity: ptr.To(true),
+								Affinity: corev1.Affinity{
+									PodAntiAffinity: &corev1.PodAntiAffinity{
+										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+											{
+												LabelSelector: &metav1.LabelSelector{
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app.kubernetes.io/instance",
+															Operator: metav1.LabelSelectorOpIn,
+															Values: []string{
+																mdbObjMeta.Name,
+															},
+														},
+													},
+												},
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+						MaxRetention:     metav1.Duration{Duration: 30 * 24 * time.Hour},
+						IgnoreGlobalPriv: ptr.To(false),
+						BackoffLimit:     5,
+					},
+				},
+			),
+			Entry(
 				"Full",
 				&Backup{
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("backup-test"),
+							Affinity: &AffinityConfig{
+								EnableAntiAffinity: ptr.To(true),
+							},
 						},
 						MaxRetention:     metav1.Duration{Duration: 10 * 24 * time.Hour},
 						IgnoreGlobalPriv: ptr.To(false),
@@ -78,6 +138,7 @@ var _ = Describe("Backup types", func() {
 					},
 				},
 				&MariaDB{
+					ObjectMeta: mdbObjMeta,
 					Spec: MariaDBSpec{
 						Galera: &Galera{
 							Enabled: true,
@@ -89,6 +150,29 @@ var _ = Describe("Backup types", func() {
 					Spec: BackupSpec{
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("backup-test"),
+							Affinity: &AffinityConfig{
+								EnableAntiAffinity: ptr.To(true),
+								Affinity: corev1.Affinity{
+									PodAntiAffinity: &corev1.PodAntiAffinity{
+										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+											{
+												LabelSelector: &metav1.LabelSelector{
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app.kubernetes.io/instance",
+															Operator: metav1.LabelSelectorOpIn,
+															Values: []string{
+																mdbObjMeta.Name,
+															},
+														},
+													},
+												},
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
 						},
 						MaxRetention:     metav1.Duration{Duration: 10 * 24 * time.Hour},
 						IgnoreGlobalPriv: ptr.To(false),

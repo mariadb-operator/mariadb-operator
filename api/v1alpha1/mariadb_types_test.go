@@ -377,6 +377,86 @@ var _ = Describe("MariaDB types", func() {
 				env,
 			),
 			Entry(
+				"metrics with anti-affinity",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Metrics: &MariadbMetrics{
+							Enabled: true,
+							Exporter: Exporter{
+								PodTemplate: PodTemplate{
+									Affinity: &AffinityConfig{
+										EnableAntiAffinity: ptr.To(true),
+									},
+								},
+							},
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-obj-root",
+							},
+							Key: "password",
+						},
+						Port: 3306,
+						Metrics: &MariadbMetrics{
+							Enabled: true,
+							Exporter: Exporter{
+								Image: env.RelatedExporterImage,
+								Port:  9104,
+								PodTemplate: PodTemplate{
+									Affinity: &AffinityConfig{
+										EnableAntiAffinity: ptr.To(true),
+										Affinity: corev1.Affinity{
+											PodAntiAffinity: &corev1.PodAntiAffinity{
+												RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+													{
+														LabelSelector: &metav1.LabelSelector{
+															MatchExpressions: []metav1.LabelSelectorRequirement{
+																{
+																	Key:      "app.kubernetes.io/instance",
+																	Operator: metav1.LabelSelectorOpIn,
+																	Values: []string{
+																		objMeta.Name,
+																	},
+																},
+															},
+														},
+														TopologyKey: "kubernetes.io/hostname",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							Username: "mariadb-obj-metrics",
+							PasswordSecretKeyRef: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-metrics-password",
+								},
+								Key: "password",
+							},
+						},
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+					},
+				},
+				env,
+			),
+			Entry(
 				"MaxScale",
 				&MariaDB{
 					ObjectMeta: objMeta,
