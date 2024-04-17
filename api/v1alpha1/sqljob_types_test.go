@@ -8,33 +8,33 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("Restore types", func() {
+var _ = Describe("SqlJob types", func() {
 	objMeta := metav1.ObjectMeta{
-		Name:      "restore-obj",
+		Name:      "sqljob-obj",
 		Namespace: testNamespace,
 	}
 	mdbObjMeta := metav1.ObjectMeta{
-		Name:      "mdb-restore-obj",
+		Name:      "mdb-sqljob-obj",
 		Namespace: testNamespace,
 	}
-	Context("When creating a Restore object", func() {
+	Context("When creating a SqlJob object", func() {
 		DescribeTable(
 			"Should default",
-			func(restore *Restore, mariadb *MariaDB, expectedRestore *Restore) {
-				restore.SetDefaults(mariadb)
-				Expect(restore).To(BeEquivalentTo(expectedRestore))
+			func(sqlJob *SqlJob, mariadb *MariaDB, expectedSqlJob *SqlJob) {
+				sqlJob.SetDefaults(mariadb)
+				Expect(sqlJob).To(BeEquivalentTo(expectedSqlJob))
 			},
 			Entry(
 				"Empty",
-				&Restore{
+				&SqlJob{
 					ObjectMeta: objMeta,
 				},
 				&MariaDB{
 					ObjectMeta: mdbObjMeta,
 				},
-				&Restore{
+				&SqlJob{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
+					Spec: SqlJobSpec{
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -44,9 +44,9 @@ var _ = Describe("Restore types", func() {
 			),
 			Entry(
 				"Anti affinity",
-				&Restore{
+				&SqlJob{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
+					Spec: SqlJobSpec{
 						JobPodTemplate: JobPodTemplate{
 							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
@@ -57,9 +57,9 @@ var _ = Describe("Restore types", func() {
 				&MariaDB{
 					ObjectMeta: mdbObjMeta,
 				},
-				&Restore{
+				&SqlJob{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
+					Spec: SqlJobSpec{
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 							Affinity: &AffinityConfig{
@@ -92,11 +92,11 @@ var _ = Describe("Restore types", func() {
 			),
 			Entry(
 				"Full",
-				&Restore{
+				&SqlJob{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
+					Spec: SqlJobSpec{
 						JobPodTemplate: JobPodTemplate{
-							ServiceAccountName: ptr.To("restore-test"),
+							ServiceAccountName: ptr.To("sqljob-test"),
 							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
 							},
@@ -107,11 +107,11 @@ var _ = Describe("Restore types", func() {
 				&MariaDB{
 					ObjectMeta: mdbObjMeta,
 				},
-				&Restore{
+				&SqlJob{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
+					Spec: SqlJobSpec{
 						JobPodTemplate: JobPodTemplate{
-							ServiceAccountName: ptr.To("restore-test"),
+							ServiceAccountName: ptr.To("sqljob-test"),
 							Affinity: &AffinityConfig{
 								EnableAntiAffinity: ptr.To(true),
 								Affinity: corev1.Affinity{
