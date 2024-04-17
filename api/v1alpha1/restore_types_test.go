@@ -15,15 +15,16 @@ var _ = Describe("Restore types", func() {
 	Context("When creating a Restore object", func() {
 		DescribeTable(
 			"Should default",
-			func(backup, expected *Restore) {
-				backup.SetDefaults()
-				Expect(backup).To(BeEquivalentTo(expected))
+			func(restore *Restore, mariadb *MariaDB, expectedRestore *Restore) {
+				restore.SetDefaults(mariadb)
+				Expect(restore).To(BeEquivalentTo(expectedRestore))
 			},
 			Entry(
 				"Empty",
 				&Restore{
 					ObjectMeta: objMeta,
 				},
+				&MariaDB{},
 				&Restore{
 					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
@@ -45,6 +46,7 @@ var _ = Describe("Restore types", func() {
 						BackoffLimit: 3,
 					},
 				},
+				&MariaDB{},
 				&Restore{
 					ObjectMeta: objMeta,
 					Spec: RestoreSpec{

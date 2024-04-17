@@ -686,9 +686,11 @@ var _ = Describe("MariaDB Galera", func() {
 									},
 								},
 							},
-							InitJob: &mariadbv1alpha1.Metadata{
-								Labels: map[string]string{
-									"sidecar.istio.io/inject": "false",
+							InitJob: &mariadbv1alpha1.Job{
+								Metadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"sidecar.istio.io/inject": "false",
+									},
 								},
 							},
 						},
@@ -1074,7 +1076,7 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
 				RestoreSource: source,
-				RestoreJob: &mariadbv1alpha1.BootstrapJob{
+				RestoreJob: &mariadbv1alpha1.Job{
 					Metadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",

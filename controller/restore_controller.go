@@ -45,12 +45,12 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariaDb, err := r.RefResolver.MariaDB(ctx, &restore.Spec.MariaDBRef, restore.Namespace)
+	mariadb, err := r.RefResolver.MariaDB(ctx, &restore.Spec.MariaDBRef, restore.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
-		err = r.patchStatus(ctx, &restore, r.ConditionComplete.PatcherRefResolver(err, mariaDb))
+		err = r.patchStatus(ctx, &restore, r.ConditionComplete.PatcherRefResolver(err, mariadb))
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
@@ -60,7 +60,7 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// because we would be creating a deadlock when bootstrapping from backup
 	// TODO: add a IsBootstrapping() method to MariaDB?
 
-	if err := r.setDefaults(ctx, &restore); err != nil {
+	if err := r.setDefaults(ctx, &restore, mariadb); err != nil {
 		var sourceErr *multierror.Error
 		sourceErr = multierror.Append(sourceErr, err)
 
@@ -78,7 +78,7 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
 
-	if err := r.BatchReconciler.Reconcile(ctx, &restore, mariaDb); err != nil {
+	if err := r.BatchReconciler.Reconcile(ctx, &restore, mariadb); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
@@ -102,9 +102,10 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1alpha1.Restore) error {
+func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1alpha1.Restore,
+	mariadb *mariadbv1alpha1.MariaDB) error {
 	if err := r.patch(ctx, restore, func(r *mariadbv1alpha1.Restore) error {
-		restore.SetDefaults()
+		restore.SetDefaults(mariadb)
 		r.Spec.RestoreSource.SetDefaults()
 		return nil
 	}); err != nil {

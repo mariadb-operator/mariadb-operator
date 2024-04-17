@@ -103,8 +103,8 @@ func (s *SqlJob) IsComplete() bool {
 	return meta.IsStatusConditionTrue(s.Status.Conditions, ConditionTypeComplete)
 }
 
-func (s *SqlJob) SetDefaults() {
-	s.Spec.JobPodTemplate.SetDefaults(s.ObjectMeta)
+func (s *SqlJob) SetDefaults(mariadb *MariaDB) {
+	s.Spec.JobPodTemplate.SetDefaults(s.ObjectMeta, mariadb.ObjectMeta)
 }
 
 //+kubebuilder:object:root=true

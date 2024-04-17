@@ -160,7 +160,7 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.IgnoreGlobalPriv == nil {
 		b.Spec.IgnoreGlobalPriv = ptr.To(ptr.Deref(mariadb.Spec.Galera, Galera{}).Enabled)
 	}
-	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta)
+	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
 }
 
 func (b *Backup) Volume() (*corev1.VolumeSource, error) {

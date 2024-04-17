@@ -159,6 +159,33 @@ type Container struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
+// Job defines a Job used to be used with MariaDB.
+type Job struct {
+	// Metadata defines additional metadata for the bootstrap Jobs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Metadata *Metadata `json:"metadata,omitempty"`
+	// Affinity to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Affinity *AffinityConfig `json:"affinity,omitempty"`
+	// Resouces describes the compute resource requirements.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Args to be used in the Container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Args []string `json:"args,omitempty"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (j *Job) SetDefaults(mariadbObjMeta metav1.ObjectMeta) {
+	if j.Affinity != nil {
+		j.Affinity.SetDefaults(mariadbObjMeta)
+	}
+}
+
 // AffinityConfig defines policies to schedule Pods in Nodes.
 type AffinityConfig struct {
 	// Affinity to be used in the Pod.
@@ -173,7 +200,7 @@ type AffinityConfig struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (a *AffinityConfig) SetDefaults(objMeta metav1.ObjectMeta) {
+func (a *AffinityConfig) SetDefaults(mariadbObjMeta metav1.ObjectMeta) {
 	if ptr.Deref(a.EnableAntiAffinity, false) && reflect.ValueOf(a.Affinity).IsZero() {
 		a.Affinity = corev1.Affinity{
 			PodAntiAffinity: &corev1.PodAntiAffinity{
@@ -185,7 +212,7 @@ func (a *AffinityConfig) SetDefaults(objMeta metav1.ObjectMeta) {
 									Key:      "app.kubernetes.io/instance",
 									Operator: metav1.LabelSelectorOpIn,
 									Values: []string{
-										objMeta.Name,
+										mariadbObjMeta.Name,
 									},
 								},
 							},
@@ -333,12 +360,12 @@ func (j *JobPodTemplate) FromPodTemplate(ptpl *PodTemplate) {
 }
 
 // SetDefaults sets reasonable defaults.
-func (p *JobPodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
+func (p *JobPodTemplate) SetDefaults(objMeta, mariadbObjMeta metav1.ObjectMeta) {
 	if p.ServiceAccountName == nil {
 		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
 	}
 	if p.Affinity != nil {
-		p.Affinity.SetDefaults(objMeta)
+		p.Affinity.SetDefaults(mariadbObjMeta)
 	}
 }
 

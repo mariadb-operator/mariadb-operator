@@ -17,22 +17,16 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	bootstrapFrom := ptr.Deref(mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
-	restoreJob := ptr.Deref(bootstrapFrom.RestoreJob, mariadbv1alpha1.BootstrapJob{})
+	restoreJob := ptr.Deref(bootstrapFrom.RestoreJob, mariadbv1alpha1.Job{})
 
 	podTpl := mariadbv1alpha1.JobPodTemplate{}
 	podTpl.FromPodTemplate(mariadb.Spec.PodTemplate.DeepCopy())
-	if affinity := restoreJob.Affinity; affinity != nil {
-		podTpl.Affinity = affinity
-	}
+	podTpl.Affinity = restoreJob.Affinity
 
 	containerTpl := mariadbv1alpha1.JobContainerTemplate{}
 	containerTpl.FromContainerTemplate(mariadb.Spec.ContainerTemplate.DeepCopy())
-	if resources := restoreJob.Resources; resources != nil {
-		containerTpl.Resources = resources
-	}
-	if args := restoreJob.Args; args != nil {
-		containerTpl.Args = args
-	}
+	containerTpl.Resources = restoreJob.Resources
+	containerTpl.Args = restoreJob.Args
 
 	restore := &mariadbv1alpha1.Restore{
 		ObjectMeta: objMeta,

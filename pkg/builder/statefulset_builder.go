@@ -8,6 +8,7 @@ import (
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	annotation "github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	mdbptr "github.com/mariadb-operator/mariadb-operator/pkg/ptr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -124,6 +125,8 @@ type mariadbOpts struct {
 	command               []string
 	args                  []string
 	restartPolicy         *corev1.RestartPolicy
+	resources             *corev1.ResourceRequirements
+	affinity              *mariadbv1alpha1.AffinityConfig
 	extraVolumes          []corev1.Volume
 	extraVolumeMounts     []corev1.VolumeMount
 	includeGalera         bool
@@ -168,6 +171,18 @@ func withArgs(args []string) mariadbOpt {
 func withRestartPolicy(restartPolicy corev1.RestartPolicy) mariadbOpt {
 	return func(opts *mariadbOpts) {
 		opts.restartPolicy = &restartPolicy
+	}
+}
+
+func withResources(resources *corev1.ResourceRequirements) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.resources = resources
+	}
+}
+
+func withAffinity(affinity *mariadbv1alpha1.AffinityConfig) mariadbOpt {
+	return func(opts *mariadbOpts) {
+		opts.affinity = affinity
 	}
 }
 
@@ -230,7 +245,14 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		WithAnnotations(mariadbHAAnnotations(mariadb)).
 		Build()
 
-	affinity := ptr.Deref(mariadb.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
+	affinity := mdbptr.Deref(
+		[]*mariadbv1alpha1.AffinityConfig{
+			mariadbOpts.affinity,
+			mariadb.Spec.Affinity,
+		},
+		mariadbv1alpha1.AffinityConfig{},
+	).Affinity
+
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{

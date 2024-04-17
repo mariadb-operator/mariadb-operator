@@ -54,10 +54,6 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if err := r.setDefaults(ctx, &sqlJob); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error defaulting SqlJob: %v", err)
-	}
-
 	ok, result, err := r.waitForDependencies(ctx, &sqlJob)
 	if !ok {
 		return result, err
@@ -79,6 +75,10 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, fmt.Errorf("error patching SqlJob: %v", err)
 		}
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	if err := r.setDefaults(ctx, &sqlJob, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error defaulting SqlJob: %v", err)
 	}
 
 	if err := r.reconcileServiceAccount(ctx, &sqlJob); err != nil {
@@ -245,9 +245,10 @@ func (r *SqlJobReconciler) reconcileCronJob(ctx context.Context, sqlJob *mariadb
 	return nil
 }
 
-func (r *SqlJobReconciler) setDefaults(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) error {
+func (r *SqlJobReconciler) setDefaults(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
+	mariadb *mariadbv1alpha1.MariaDB) error {
 	return r.patch(ctx, sqlJob, func(s *mariadbv1alpha1.SqlJob) {
-		s.SetDefaults()
+		s.SetDefaults(mariadb)
 	})
 }
 

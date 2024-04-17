@@ -320,6 +320,10 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
 	if ptr.Deref(g.Recovery, GaleraRecovery{}).Enabled {
 		g.Recovery.SetDefaults(mdb)
 	}
+
+	if g.InitJob != nil {
+		g.InitJob.SetDefaults(mdb.ObjectMeta)
+	}
 }
 
 // GaleraSpec is the Galera desired state specification.
@@ -369,7 +373,7 @@ type GaleraSpec struct {
 	// InitJob defines metadata to the passed to the initialization Job.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	InitJob *Metadata `json:"initJob,omitempty"`
+	InitJob *Job `json:"initJob,omitempty"`
 	// GaleraConfig defines storage options for the Galera configuration files.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

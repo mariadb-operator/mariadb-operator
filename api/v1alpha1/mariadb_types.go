@@ -273,26 +273,6 @@ type MariaDBMaxScaleSpec struct {
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
 }
 
-// BootstrapJob defines a Job used to bootstrap MariaDB.
-type BootstrapJob struct {
-	// Metadata defines additional metadata for the bootstrap Jobs.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Metadata *Metadata `json:"metadata,omitempty"`
-	// Affinity defines policies to schedule the bootstrap Pods in Nodes.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Affinity *AffinityConfig `json:"affinity,omitempty"`
-	// Resouces describes the compute resource requirements.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Args to be used in the Container.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Args []string `json:"args,omitempty"`
-}
-
 // BootstrapFrom defines a source to bootstrap MariaDB from.
 type BootstrapFrom struct {
 	// RestoreSource indicates where the initial data to bootstrap MariaDB with is located.
@@ -302,7 +282,7 @@ type BootstrapFrom struct {
 	// RestoreJob defines additional properties for the Job used to perform the Restore.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	RestoreJob *BootstrapJob `json:"restoreJob,omitempty"`
+	RestoreJob *Job `json:"restoreJob,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
@@ -522,6 +502,9 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 		}
 		if m.Spec.Metrics.Exporter.Port == 0 {
 			m.Spec.Metrics.Exporter.Port = 9104
+		}
+		if m.Spec.Metrics.Exporter.Affinity != nil {
+			m.Spec.Metrics.Exporter.Affinity.SetDefaults(m.ObjectMeta)
 		}
 		if m.Spec.Metrics.Username == "" {
 			m.Spec.Metrics.Username = m.MetricsKey().Name
