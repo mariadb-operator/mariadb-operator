@@ -12,6 +12,42 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+var (
+	MariadbContainerName = "mariadb"
+	MariadbPortName      = "mariadb"
+
+	MaxScaleContainerName = "maxscale"
+	MaxScaleAdminPortName = "admin"
+
+	InitContainerName  = "init"
+	AgentContainerName = "agent"
+
+	defaultProbe = corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			Exec: &corev1.ExecAction{
+				Command: []string{
+					"bash",
+					"-c",
+					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+				},
+			},
+		},
+		InitialDelaySeconds: 20,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+	}
+	defaultGaleraAgentProbe = func(galera mariadbv1alpha1.Galera) *corev1.Probe {
+		return &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/health",
+					Port: intstr.FromInt(int(galera.Agent.Port)),
+				},
+			},
+		}
+	}
+)
+
 func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) ([]corev1.Container, error) {
 	mariadbOpts := newMariadbOpts(opts...)
 	mariadbContainer := buildContainer(mariadb.Spec.Image, mariadb.Spec.ImagePullPolicy, &mariadb.Spec.ContainerTemplate)
@@ -457,7 +493,7 @@ func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1
 	if probe != nil && probe.ProbeHandler != (corev1.ProbeHandler{}) {
 		return probe
 	}
-	defaultProbe := defaultStsProbe.DeepCopy()
+	defaultProbe := defaultProbe.DeepCopy()
 	setProbeThresholds(defaultProbe, probe)
 	return defaultProbe
 }
@@ -537,30 +573,3 @@ func setProbeThresholds(source, target *corev1.Probe) {
 		source.FailureThreshold = target.FailureThreshold
 	}
 }
-
-var (
-	defaultStsProbe = corev1.Probe{
-		ProbeHandler: corev1.ProbeHandler{
-			Exec: &corev1.ExecAction{
-				Command: []string{
-					"bash",
-					"-c",
-					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-				},
-			},
-		},
-		InitialDelaySeconds: 20,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-	}
-	defaultGaleraAgentProbe = func(galera mariadbv1alpha1.Galera) *corev1.Probe {
-		return &corev1.Probe{
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Path: "/health",
-					Port: intstr.FromInt(int(galera.Agent.Port)),
-				},
-			},
-		}
-	}
-)
