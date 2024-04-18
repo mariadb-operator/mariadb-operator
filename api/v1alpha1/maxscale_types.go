@@ -720,6 +720,9 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv) {
 		if m.Spec.Metrics.Exporter.Port == 0 {
 			m.Spec.Metrics.Exporter.Port = 9105
 		}
+		if m.Spec.Metrics.Exporter.Affinity != nil {
+			m.Spec.Metrics.Exporter.Affinity.SetDefaults(m.ObjectMeta.Name)
+		}
 	}
 
 	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
