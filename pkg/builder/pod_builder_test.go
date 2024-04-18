@@ -1,10 +1,14 @@
 package builder
 
 import (
+	"reflect"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 func TestMariadbPodMeta(t *testing.T) {
@@ -302,10 +306,7 @@ func TestMariadbPodMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
-			if err != nil {
-				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-			}
+			podTpl := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
 			assertMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
@@ -493,11 +494,41 @@ func TestMaxScalePodMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.maxscalePodTemplate(tt.maxscale)
-			if err != nil {
-				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
-			}
+			podTpl := builder.maxscalePodTemplate(tt.maxscale)
 			assertMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
+	}
+}
+
+func TestMariadbPodBuilder(t *testing.T) {
+	builder := newTestBuilder()
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-mariadb-builder",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Storage: mariadbv1alpha1.Storage{
+				Size: ptr.To(resource.MustParse("300Mi")),
+			},
+		},
+	}
+	opts := []mariadbOpt{
+		withAffinity(&mariadbv1alpha1.AffinityConfig{
+			EnableAntiAffinity: ptr.To(true),
+			Affinity:           corev1.Affinity{},
+		}),
+		withResources(&corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				"cpu": resource.MustParse("100m"),
+			},
+		}),
+	}
+
+	podTpl := builder.mariadbPodTemplate(mariadb, opts...)
+	if podTpl.Spec.Affinity == nil {
+		t.Error("expected affinity to have been set")
+	}
+	if reflect.ValueOf(podTpl.Spec.Containers[0].Resources).IsZero() {
+		t.Error("expected resources to have been set")
 	}
 }

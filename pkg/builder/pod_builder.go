@@ -1,8 +1,6 @@
 package builder
 
 import (
-	"fmt"
-
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -114,11 +112,8 @@ func withMariadbSelectorLabels(includeSelectorLabels bool) mariadbOpt {
 	}
 }
 
-func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) (*corev1.PodTemplateSpec, error) {
-	containers, err := b.mariadbContainers(mariadb, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
-	}
+func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) *corev1.PodTemplateSpec {
+	containers := b.mariadbContainers(mariadb, opts...)
 	mariadbOpts := newMariadbOpts(opts...)
 
 	objMetaBuilder :=
@@ -162,14 +157,11 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			PriorityClassName:            ptr.Deref(mariadb.Spec.PriorityClassName, ""),
 			TopologySpreadConstraints:    mariadb.Spec.TopologySpreadConstraints,
 		},
-	}, nil
+	}
 }
 
-func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.PodTemplateSpec, error) {
-	containers, err := b.maxscaleContainers(mxs)
-	if err != nil {
-		return nil, fmt.Errorf("error building MaxScale containers: %v", err)
-	}
+func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) *corev1.PodTemplateSpec {
+	containers := b.maxscaleContainers(mxs)
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMaxScaleSelectorLabels(mxs).
@@ -197,5 +189,5 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 			PriorityClassName:            ptr.Deref(mxs.Spec.PriorityClassName, ""),
 			TopologySpreadConstraints:    mxs.Spec.TopologySpreadConstraints,
 		},
-	}, nil
+	}
 }

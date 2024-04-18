@@ -48,9 +48,9 @@ var (
 	}
 )
 
-func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) ([]corev1.Container, error) {
+func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.Container {
 	mariadbOpts := newMariadbOpts(opts...)
-	mariadbContainer := buildContainer(mariadb.Spec.Image, mariadb.Spec.ImagePullPolicy, &mariadb.Spec.ContainerTemplate)
+	mariadbContainer := buildContainer(mariadb.Spec.Image, mariadb.Spec.ImagePullPolicy, &mariadb.Spec.ContainerTemplate, opts...)
 	mariadbContainer.Name = MariadbContainerName
 	mariadbContainer.Env = mariadbEnv(mariadb)
 	mariadbContainer.VolumeMounts = mariadbVolumeMounts(mariadb, opts...)
@@ -92,10 +92,10 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 		}
 	}
 
-	return containers, nil
+	return containers
 }
 
-func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Container, error) {
+func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) []corev1.Container {
 	tpl := mxs.Spec.ContainerTemplate
 
 	container := buildContainer(mxs.Spec.Image, mxs.Spec.ImagePullPolicy, &tpl)
@@ -124,7 +124,7 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	container.LivenessProbe = maxscaleProbe(mxs, mxs.Spec.LivenessProbe)
 	container.ReadinessProbe = maxscaleProbe(mxs, mxs.Spec.ReadinessProbe)
 
-	return []corev1.Container{container}, nil
+	return []corev1.Container{container}
 }
 
 func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
@@ -453,7 +453,9 @@ func mariadbPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 	return ports
 }
 
-func buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1alpha1.ContainerTemplate) corev1.Container {
+func buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1alpha1.ContainerTemplate,
+	opts ...mariadbOpt) corev1.Container {
+	mariadbOpts := newMariadbOpts(opts...)
 	container := corev1.Container{
 		Image:           image,
 		ImagePullPolicy: pullPolicy,
@@ -464,7 +466,9 @@ func buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1al
 		VolumeMounts:    tpl.VolumeMounts,
 		SecurityContext: tpl.SecurityContext,
 	}
-	if tpl.Resources != nil {
+	if mariadbOpts.resources != nil {
+		container.Resources = *mariadbOpts.resources
+	} else if tpl.Resources != nil {
 		container.Resources = *tpl.Resources
 	}
 	return container
