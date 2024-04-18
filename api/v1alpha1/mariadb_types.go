@@ -504,7 +504,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 			m.Spec.Metrics.Exporter.Port = 9104
 		}
 		if m.Spec.Metrics.Exporter.Affinity != nil {
-			m.Spec.Metrics.Exporter.Affinity.SetDefaults(m.ObjectMeta)
+			m.Spec.Metrics.Exporter.Affinity.SetDefaults(m.ObjectMeta.Name)
 		}
 		if m.Spec.Metrics.Username == "" {
 			m.Spec.Metrics.Username = m.MetricsKey().Name

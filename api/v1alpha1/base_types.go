@@ -182,7 +182,7 @@ type Job struct {
 // SetDefaults sets reasonable defaults.
 func (j *Job) SetDefaults(mariadbObjMeta metav1.ObjectMeta) {
 	if j.Affinity != nil {
-		j.Affinity.SetDefaults(mariadbObjMeta)
+		j.Affinity.SetDefaults(mariadbObjMeta.Name)
 	}
 }
 
@@ -200,7 +200,7 @@ type AffinityConfig struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (a *AffinityConfig) SetDefaults(mariadbObjMeta metav1.ObjectMeta) {
+func (a *AffinityConfig) SetDefaults(antiAffinityInstances ...string) {
 	if ptr.Deref(a.AntiAffinityEnabled, false) && reflect.ValueOf(a.Affinity).IsZero() {
 		a.Affinity = corev1.Affinity{
 			PodAntiAffinity: &corev1.PodAntiAffinity{
@@ -211,9 +211,7 @@ func (a *AffinityConfig) SetDefaults(mariadbObjMeta metav1.ObjectMeta) {
 								{
 									Key:      "app.kubernetes.io/instance",
 									Operator: metav1.LabelSelectorOpIn,
-									Values: []string{
-										mariadbObjMeta.Name,
-									},
+									Values:   antiAffinityInstances,
 								},
 							},
 						},
@@ -283,7 +281,7 @@ func (p *PodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
 		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
 	}
 	if p.Affinity != nil {
-		p.Affinity.SetDefaults(objMeta)
+		p.Affinity.SetDefaults(objMeta.Name)
 	}
 }
 
@@ -365,7 +363,7 @@ func (p *JobPodTemplate) SetDefaults(objMeta, mariadbObjMeta metav1.ObjectMeta) 
 		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
 	}
 	if p.Affinity != nil {
-		p.Affinity.SetDefaults(mariadbObjMeta)
+		p.Affinity.SetDefaults(mariadbObjMeta.Name)
 	}
 }
 
