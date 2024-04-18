@@ -70,8 +70,19 @@ spec:
     initContainer:
       image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.27
     initJob:
-      labels:
-        sidecar.istio.io/inject: "false"
+      metadata:
+        labels:
+          sidecar.istio.io/inject: "false"
+      args:
+        - "--verbose"
+      affinity:
+        enableAntiAffinity: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          memory: 1Gi
     config:
       reuseStorageVolume: false
       volumeClaimTemplate:

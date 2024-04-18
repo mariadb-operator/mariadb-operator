@@ -16,6 +16,8 @@ spec:
           sidecar.istio.io/inject: "false"
       args:
         - "--verbose"
+      affinity:
+        enableAntiAffinity: true
       resources:
         requests:
           cpu: 100m
