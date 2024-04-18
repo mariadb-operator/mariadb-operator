@@ -200,6 +200,13 @@ var _ = Describe("MaxScale types", func() {
 						},
 						Metrics: &MaxScaleMetrics{
 							Enabled: true,
+							Exporter: Exporter{
+								PodTemplate: PodTemplate{
+									Affinity: &AffinityConfig{
+										AntiAffinityEnabled: ptr.To(true),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -353,6 +360,31 @@ var _ = Describe("MaxScale types", func() {
 							Exporter: Exporter{
 								Image: "mariadb/maxscale-prometheus-exporter-ubi:latest",
 								Port:  9105,
+								PodTemplate: PodTemplate{
+									Affinity: &AffinityConfig{
+										AntiAffinityEnabled: ptr.To(true),
+										Affinity: corev1.Affinity{
+											PodAntiAffinity: &corev1.PodAntiAffinity{
+												RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+													{
+														LabelSelector: &metav1.LabelSelector{
+															MatchExpressions: []metav1.LabelSelectorRequirement{
+																{
+																	Key:      "app.kubernetes.io/instance",
+																	Operator: metav1.LabelSelectorOpIn,
+																	Values: []string{
+																		objMeta.Name,
+																	},
+																},
+															},
+														},
+														TopologyKey: "kubernetes.io/hostname",
+													},
+												},
+											},
+										},
+									},
+								},
 							},
 						},
 					},
