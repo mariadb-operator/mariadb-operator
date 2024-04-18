@@ -49,7 +49,7 @@ var _ = Describe("Restore types", func() {
 					Spec: RestoreSpec{
 						JobPodTemplate: JobPodTemplate{
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 							},
 						},
 					},
@@ -63,7 +63,7 @@ var _ = Describe("Restore types", func() {
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -98,7 +98,7 @@ var _ = Describe("Restore types", func() {
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("restore-test"),
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 							},
 						},
 						BackoffLimit: 3,
@@ -113,7 +113,7 @@ var _ = Describe("Restore types", func() {
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("restore-test"),
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{

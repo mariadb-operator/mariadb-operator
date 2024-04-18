@@ -514,8 +514,8 @@ func TestMariadbPodBuilder(t *testing.T) {
 	}
 	opts := []mariadbOpt{
 		withAffinity(&mariadbv1alpha1.AffinityConfig{
-			EnableAntiAffinity: ptr.To(true),
-			Affinity:           corev1.Affinity{},
+			AntiAffinityEnabled: ptr.To(true),
+			Affinity:            corev1.Affinity{},
 		}),
 		withResources(&corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{

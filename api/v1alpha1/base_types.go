@@ -192,16 +192,16 @@ type AffinityConfig struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	corev1.Affinity `json:",inline"`
-	// EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.
+	// AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.
 	// Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	EnableAntiAffinity *bool `json:"enableAntiAffinity,omitempty" webhook:"inmutable"`
+	AntiAffinityEnabled *bool `json:"antiAffinityEnabled,omitempty" webhook:"inmutable"`
 }
 
 // SetDefaults sets reasonable defaults.
 func (a *AffinityConfig) SetDefaults(mariadbObjMeta metav1.ObjectMeta) {
-	if ptr.Deref(a.EnableAntiAffinity, false) && reflect.ValueOf(a.Affinity).IsZero() {
+	if ptr.Deref(a.AntiAffinityEnabled, false) && reflect.ValueOf(a.Affinity).IsZero() {
 		a.Affinity = corev1.Affinity{
 			PodAntiAffinity: &corev1.PodAntiAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{

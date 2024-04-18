@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-16T08:08:28Z"
+    createdAt: "2024-04-18T14:35:43Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -417,9 +417,9 @@ spec:
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: affinity
-          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
-            displayName: Enable Anti Affinity
-            path: affinity.enableAntiAffinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: affinity.antiAffinityEnabled
           - description: Args to be used in the Container.
             displayName: Args
             path: args
@@ -799,9 +799,9 @@ spec:
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: affinity
-          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
-            displayName: Enable Anti Affinity
-            path: affinity.enableAntiAffinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: affinity.antiAffinityEnabled
           - description: Args to be used in the Container.
             displayName: Args
             path: args
@@ -814,12 +814,12 @@ spec:
           - description: RestoreJob defines additional properties for the Job used to perform the Restore.
             displayName: Restore Job
             path: bootstrapFrom.restoreJob
-          - description: Affinity defines policies to schedule the bootstrap Pods in Nodes.
+          - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: bootstrapFrom.restoreJob.affinity
-          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
-            displayName: Enable Anti Affinity
-            path: bootstrapFrom.restoreJob.affinity.enableAntiAffinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: bootstrapFrom.restoreJob.affinity.antiAffinityEnabled
           - description: Args to be used in the Container.
             displayName: Args
             path: bootstrapFrom.restoreJob.args
@@ -1082,12 +1082,29 @@ spec:
           - description: InitJob defines metadata to the passed to the initialization Job.
             displayName: Init Job
             path: galera.initJob
+          - description: Affinity to be used in the Pod.
+            displayName: Affinity
+            path: galera.initJob.affinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: galera.initJob.affinity.antiAffinityEnabled
+          - description: Args to be used in the Container.
+            displayName: Args
+            path: galera.initJob.args
+          - description: Metadata defines additional metadata for the bootstrap Jobs.
+            displayName: Metadata
+            path: galera.initJob.metadata
           - description: Annotations to be added to children resources.
             displayName: Annotations
-            path: galera.initJob.annotations
+            path: galera.initJob.metadata.annotations
           - description: Labels to be added to children resources.
             displayName: Labels
-            path: galera.initJob.labels
+            path: galera.initJob.metadata.labels
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: galera.initJob.resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
           - description: Primary is the Galera configuration for the primary node.
             displayName: Primary
             path: galera.primary
@@ -1429,9 +1446,9 @@ spec:
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: maxScale.metrics.exporter.affinity
-          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
-            displayName: Enable Anti Affinity
-            path: maxScale.metrics.exporter.affinity.enableAntiAffinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: maxScale.metrics.exporter.affinity.antiAffinityEnabled
           - description: Args to be used in the Container.
             displayName: Args
             path: maxScale.metrics.exporter.args
@@ -1697,9 +1714,9 @@ spec:
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: metrics.exporter.affinity
-          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
-            displayName: Enable Anti Affinity
-            path: metrics.exporter.affinity.enableAntiAffinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: metrics.exporter.affinity.antiAffinityEnabled
           - description: Args to be used in the Container.
             displayName: Args
             path: metrics.exporter.args
@@ -2379,9 +2396,9 @@ spec:
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: affinity
-          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
-            displayName: Enable Anti Affinity
-            path: affinity.enableAntiAffinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: affinity.antiAffinityEnabled
           - description: Args to be used in the Container.
             displayName: Args
             path: args
@@ -2665,9 +2682,9 @@ spec:
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: metrics.exporter.affinity
-          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
-            displayName: Enable Anti Affinity
-            path: metrics.exporter.affinity.enableAntiAffinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: metrics.exporter.affinity.antiAffinityEnabled
           - description: Args to be used in the Container.
             displayName: Args
             path: metrics.exporter.args
@@ -3071,9 +3088,9 @@ spec:
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: affinity
-          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
-            displayName: Enable Anti Affinity
-            path: affinity.enableAntiAffinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: affinity.antiAffinityEnabled
           - description: Args to be used in the Container.
             displayName: Args
             path: args
@@ -3216,9 +3233,9 @@ spec:
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: affinity
-          - description: EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
-            displayName: Enable Anti Affinity
-            path: affinity.enableAntiAffinity
+          - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+            displayName: Anti Affinity Enabled
+            path: affinity.antiAffinityEnabled
           - description: Args to be used in the Container.
             displayName: Args
             path: args

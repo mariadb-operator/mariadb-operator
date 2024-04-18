@@ -386,7 +386,7 @@ var _ = Describe("MariaDB types", func() {
 							Exporter: Exporter{
 								PodTemplate: PodTemplate{
 									Affinity: &AffinityConfig{
-										EnableAntiAffinity: ptr.To(true),
+										AntiAffinityEnabled: ptr.To(true),
 									},
 								},
 							},
@@ -415,7 +415,7 @@ var _ = Describe("MariaDB types", func() {
 								Port:  9104,
 								PodTemplate: PodTemplate{
 									Affinity: &AffinityConfig{
-										EnableAntiAffinity: ptr.To(true),
+										AntiAffinityEnabled: ptr.To(true),
 										Affinity: corev1.Affinity{
 											PodAntiAffinity: &corev1.PodAntiAffinity{
 												RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -686,7 +686,7 @@ var _ = Describe("MariaDB types", func() {
 					Spec: MariaDBSpec{
 						PodTemplate: PodTemplate{
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 							},
 						},
 					},
@@ -711,7 +711,7 @@ var _ = Describe("MariaDB types", func() {
 						PodTemplate: PodTemplate{
 							ServiceAccountName: &objMeta.Name,
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -796,7 +796,7 @@ var _ = Describe("MariaDB types", func() {
 						PodTemplate: PodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -889,7 +889,7 @@ var _ = Describe("MariaDB types", func() {
 						PodTemplate: PodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{

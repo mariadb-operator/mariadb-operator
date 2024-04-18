@@ -78,7 +78,7 @@ var _ = Describe("Backup types", func() {
 					Spec: BackupSpec{
 						JobPodTemplate: JobPodTemplate{
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 							},
 						},
 					},
@@ -92,7 +92,7 @@ var _ = Describe("Backup types", func() {
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -129,7 +129,7 @@ var _ = Describe("Backup types", func() {
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("backup-test"),
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 							},
 						},
 						MaxRetention:     metav1.Duration{Duration: 10 * 24 * time.Hour},
@@ -151,7 +151,7 @@ var _ = Describe("Backup types", func() {
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("backup-test"),
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
