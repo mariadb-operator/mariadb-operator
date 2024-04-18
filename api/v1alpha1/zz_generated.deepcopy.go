@@ -41,8 +41,8 @@ import (
 func (in *AffinityConfig) DeepCopyInto(out *AffinityConfig) {
 	*out = *in
 	in.Affinity.DeepCopyInto(&out.Affinity)
-	if in.EnableAntiAffinity != nil {
-		in, out := &in.EnableAntiAffinity, &out.EnableAntiAffinity
+	if in.AntiAffinityEnabled != nil {
+		in, out := &in.AntiAffinityEnabled, &out.AntiAffinityEnabled
 		*out = new(bool)
 		**out = **in
 	}

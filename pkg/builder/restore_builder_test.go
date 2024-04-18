@@ -78,8 +78,8 @@ func TestBuildRestore(t *testing.T) {
 			BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
 				RestoreJob: &mariadbv1alpha1.Job{
 					Affinity: &mariadbv1alpha1.AffinityConfig{
-						EnableAntiAffinity: ptr.To(true),
-						Affinity:           corev1.Affinity{},
+						AntiAffinityEnabled: ptr.To(true),
+						Affinity:            corev1.Affinity{},
 					},
 					Resources: &corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{

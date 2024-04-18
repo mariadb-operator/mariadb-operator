@@ -45,7 +45,7 @@ _Appears in:_
 | `nodeAffinity` _[NodeAffinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#nodeaffinity-v1-core)_ | Describes node affinity scheduling rules for the pod. |  |  |
 | `podAffinity` _[PodAffinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podaffinity-v1-core)_ | Describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s)). |  |  |
 | `podAntiAffinity` _[PodAntiAffinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podantiaffinity-v1-core)_ | Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s)). |  |  |
-| `enableAntiAffinity` _boolean_ | EnableAntiAffinity configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.<br />Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods. |  |  |
+| `antiAffinityEnabled` _boolean_ | AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.<br />Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods. |  |  |
 
 
 #### Backup

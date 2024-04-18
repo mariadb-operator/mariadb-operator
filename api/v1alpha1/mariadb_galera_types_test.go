@@ -256,7 +256,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 						InitJob: &Job{
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 							},
 						},
 					},
@@ -305,7 +305,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 						InitJob: &Job{
 							Affinity: &AffinityConfig{
-								EnableAntiAffinity: ptr.To(true),
+								AntiAffinityEnabled: ptr.To(true),
 								Affinity: corev1.Affinity{
 									PodAntiAffinity: &corev1.PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
