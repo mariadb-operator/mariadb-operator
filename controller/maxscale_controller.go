@@ -306,7 +306,7 @@ func (r *MaxScaleReconciler) setSpecDefaults(ctx context.Context, req *requestMa
 		}
 	}
 	if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
-		mxs.SetDefaults(r.Environment)
+		mxs.SetDefaults(r.Environment, nil)
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error setting defaults: %v", err)
 	}
@@ -353,7 +353,7 @@ func (r *MaxScaleReconciler) setMariadbDefaults(ctx context.Context, req *reques
 		if mxs.Spec.Monitor.Params == nil {
 			mxs.Spec.Monitor.Params = monitorParams
 		}
-		mxs.SetDefaults(r.Environment)
+		mxs.SetDefaults(r.Environment, mdb)
 	})
 }
 

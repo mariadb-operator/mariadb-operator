@@ -659,7 +659,7 @@ type MaxScale struct {
 }
 
 // SetDefaults sets default values.
-func (m *MaxScale) SetDefaults(env *environment.OperatorEnv) {
+func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMaxscaleImage
 	}
@@ -713,6 +713,8 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv) {
 	m.Spec.Config.SetDefaults(m)
 	m.Spec.Auth.SetDefaults(m)
 
+	antiAffinityInstances := m.getAntiAffinityInstances(mariadb)
+
 	if m.AreMetricsEnabled() {
 		if m.Spec.Metrics.Exporter.Image == "" {
 			m.Spec.Metrics.Exporter.Image = env.RelatedExporterMaxscaleImage
@@ -721,17 +723,28 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv) {
 			m.Spec.Metrics.Exporter.Port = 9105
 		}
 		if m.Spec.Metrics.Exporter.Affinity != nil {
-			m.Spec.Metrics.Exporter.Affinity.SetDefaults(m.ObjectMeta.Name)
+			m.Spec.Metrics.Exporter.Affinity.SetDefaults(antiAffinityInstances...)
 		}
 	}
 
-	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
+	if m.Spec.Affinity != nil {
+		m.Spec.Affinity.SetDefaults(antiAffinityInstances...)
+	}
 
+	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
 	if m.Spec.PodTemplate.PodSecurityContext == nil {
 		m.Spec.PodTemplate.PodSecurityContext = &corev1.PodSecurityContext{
 			FSGroup: ptr.To(int64(996)),
 		}
 	}
+}
+
+func (m *MaxScale) getAntiAffinityInstances(mariadb *MariaDB) []string {
+	instances := []string{m.ObjectMeta.Name}
+	if mariadb != nil {
+		instances = append(instances, mariadb.ObjectMeta.Name)
+	}
+	return instances
 }
 
 // IsBeingDeleted indicates that MaxScale has been marked for deletion

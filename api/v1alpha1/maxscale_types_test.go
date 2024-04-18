@@ -23,11 +23,18 @@ var _ = Describe("MaxScale types", func() {
 		RelatedMariadbImage:          "mariadb/maxscale:23.08",
 		RelatedExporterMaxscaleImage: "mariadb/maxscale-prometheus-exporter-ubi:latest",
 	}
+	mariadbObjMeta := metav1.ObjectMeta{
+		Name:      "mdb-maxscale-obj",
+		Namespace: "mdb-maxscale-obj",
+	}
+	mariadb := &MariaDB{
+		ObjectMeta: mariadbObjMeta,
+	}
 	Context("When creating a MaxScale object", func() {
 		DescribeTable(
 			"Should default",
 			func(mxs, expected *MaxScale, env *environment.OperatorEnv) {
-				mxs.SetDefaults(env)
+				mxs.SetDefaults(env, mariadb)
 				Expect(mxs).To(BeEquivalentTo(expected))
 			},
 			Entry(
@@ -151,6 +158,11 @@ var _ = Describe("MaxScale types", func() {
 				&MaxScale{
 					ObjectMeta: objMeta,
 					Spec: MaxScaleSpec{
+						PodTemplate: PodTemplate{
+							Affinity: &AffinityConfig{
+								AntiAffinityEnabled: ptr.To(true),
+							},
+						},
 						Replicas: 3,
 						Servers: []MaxScaleServer{
 							{
@@ -217,6 +229,30 @@ var _ = Describe("MaxScale types", func() {
 							ServiceAccountName: &objMeta.Name,
 							PodSecurityContext: &corev1.PodSecurityContext{
 								FSGroup: ptr.To(int64(996)),
+							},
+							Affinity: &AffinityConfig{
+								AntiAffinityEnabled: ptr.To(true),
+								Affinity: corev1.Affinity{
+									PodAntiAffinity: &corev1.PodAntiAffinity{
+										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+											{
+												LabelSelector: &metav1.LabelSelector{
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app.kubernetes.io/instance",
+															Operator: metav1.LabelSelectorOpIn,
+															Values: []string{
+																objMeta.Name,
+																mariadbObjMeta.Name,
+															},
+														},
+													},
+												},
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
 							},
 						},
 						Image:           env.RelatedMaxscaleImage,
@@ -374,6 +410,7 @@ var _ = Describe("MaxScale types", func() {
 																	Operator: metav1.LabelSelectorOpIn,
 																	Values: []string{
 																		objMeta.Name,
+																		mariadbObjMeta.Name,
 																	},
 																},
 															},
