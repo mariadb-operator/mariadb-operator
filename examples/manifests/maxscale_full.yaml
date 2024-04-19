@@ -164,7 +164,7 @@ spec:
     timeoutSeconds: 5
 
   affinity:
-    enableAntiAffinity: true
+    antiAffinityEnabled: true
 
   tolerations:
     - key: "k8s.mariadb.com/ha"

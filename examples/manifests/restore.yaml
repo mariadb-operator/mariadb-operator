@@ -24,4 +24,4 @@ spec:
       cpu: 300m
       memory: 512Mi
   affinity:
-    enableAntiAffinity: true
+    antiAffinityEnabled: true
