@@ -199,7 +199,7 @@ type MaxScaleService struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Listener MaxScaleListener `json:"listener"`
-	// Params defines extra parameters to pass to the monitor.
+	// Params defines extra parameters to pass to the service.
 	// Any parameter supported by MaxScale may be specified here. See reference:
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
 	// Router specific parameter are also suported:
