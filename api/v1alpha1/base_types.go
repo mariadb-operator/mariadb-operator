@@ -485,7 +485,7 @@ type ConnectionTemplate struct {
 
 // SQLTemplate defines a template to customize SQL objects.
 type SQLTemplate struct {
-	// RequeueInterval is used to perform requeue reconcilizations.
+	// RequeueInterval is used to perform requeue reconciliations.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
@@ -520,7 +520,7 @@ type S3 struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Region string `json:"region" webhook:"inmutable"`
-	// Prefix allows backups to be placed under a specific prefix in the bucket. A trailing slash '/' is added if not provided.
+	// Prefix indicates a folder/subfolder in the bucket. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Prefix string `json:"prefix" webhook:"inmutable"`

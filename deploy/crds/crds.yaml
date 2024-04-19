@@ -1733,9 +1733,9 @@ spec:
                         description: Endpoint is the S3 API endpoint without scheme.
                         type: string
                       prefix:
-                        description: Prefix allows backups to be placed under a specific
-                          prefix in the bucket. A trailing slash '/' is added if not
-                          provided.
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
                         type: string
                       region:
                         description: Region is the S3 region name to use.
@@ -4078,7 +4078,7 @@ spec:
                 maxLength: 80
                 type: string
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
               retryInterval:
                 description: RetryInterval is the interval used to perform retries.
@@ -4302,7 +4302,7 @@ spec:
                 minItems: 1
                 type: array
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
               retryInterval:
                 description: RetryInterval is the interval used to perform retries.
@@ -6383,9 +6383,9 @@ spec:
                         description: Endpoint is the S3 API endpoint without scheme.
                         type: string
                       prefix:
-                        description: Prefix allows backups to be placed under a specific
-                          prefix in the bucket. A trailing slash '/' is added if not
-                          provided.
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
                         type: string
                       region:
                         description: Region is the S3 region name to use.
@@ -18305,7 +18305,7 @@ spec:
                     format: int32
                     type: integer
                   requeueInterval:
-                    description: RequeueInterval is used to perform requeue reconcilizations.
+                    description: RequeueInterval is used to perform requeue reconciliations.
                     type: string
                   services:
                     description: Services define how the traffic is forwarded to the
@@ -36572,7 +36572,7 @@ spec:
                 format: int32
                 type: integer
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                   If not defined, it defaults to 10s.
                 type: string
               resources:
@@ -41163,8 +41163,9 @@ spec:
                     description: Endpoint is the S3 API endpoint without scheme.
                     type: string
                   prefix:
-                    description: Prefix allows backups to be placed under a specific
-                      prefix in the bucket. A trailing slash '/' is added if not provided.
+                    description: 'Prefix indicates a folder/subfolder in the bucket.
+                      For example: mariadb/ or mariadb/backups. A trailing slash ''/''
+                      is added if not provided.'
                     type: string
                   region:
                     description: Region is the S3 region name to use.
@@ -45036,7 +45037,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
               retryInterval:
                 description: RetryInterval is the interval used to perform retries.

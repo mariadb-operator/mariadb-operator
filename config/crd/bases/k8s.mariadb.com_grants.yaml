@@ -135,7 +135,7 @@ spec:
                 minItems: 1
                 type: array
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
               retryInterval:
                 description: RetryInterval is the interval used to perform retries.
