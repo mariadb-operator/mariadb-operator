@@ -574,7 +574,7 @@ spec:
           - description: Interval used to perform health checks.
             displayName: Interval
             path: healthCheck.interval
-          - description: RetryInterval is the intervañ used to perform health check retries.
+          - description: RetryInterval is the interval used to perform health check retries.
             displayName: Retry Interval
             path: healthCheck.retryInterval
           - description: Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host.
@@ -890,7 +890,7 @@ spec:
           - description: Interval used to perform health checks.
             displayName: Interval
             path: connection.healthCheck.interval
-          - description: RetryInterval is the intervañ used to perform health check retries.
+          - description: RetryInterval is the interval used to perform health check retries.
             displayName: Retry Interval
             path: connection.healthCheck.retryInterval
           - description: Params to be used in the Connection.
@@ -1335,7 +1335,7 @@ spec:
           - description: Interval used to perform health checks.
             displayName: Interval
             path: maxScale.connection.healthCheck.interval
-          - description: RetryInterval is the intervañ used to perform health check retries.
+          - description: RetryInterval is the interval used to perform health check retries.
             displayName: Retry Interval
             path: maxScale.connection.healthCheck.retryInterval
           - description: Params to be used in the Connection.
@@ -1971,7 +1971,7 @@ spec:
           - description: Interval used to perform health checks.
             displayName: Interval
             path: primaryConnection.healthCheck.interval
-          - description: RetryInterval is the intervañ used to perform health check retries.
+          - description: RetryInterval is the interval used to perform health check retries.
             displayName: Retry Interval
             path: primaryConnection.healthCheck.retryInterval
           - description: Params to be used in the Connection.
@@ -2139,7 +2139,7 @@ spec:
           - description: Interval used to perform health checks.
             displayName: Interval
             path: secondaryConnection.healthCheck.interval
-          - description: RetryInterval is the intervañ used to perform health check retries.
+          - description: RetryInterval is the interval used to perform health check retries.
             displayName: Retry Interval
             path: secondaryConnection.healthCheck.retryInterval
           - description: Params to be used in the Connection.
@@ -2539,7 +2539,7 @@ spec:
           - description: Interval used to perform health checks.
             displayName: Interval
             path: connection.healthCheck.interval
-          - description: RetryInterval is the intervañ used to perform health check retries.
+          - description: RetryInterval is the interval used to perform health check retries.
             displayName: Retry Interval
             path: connection.healthCheck.retryInterval
           - description: Params to be used in the Connection.

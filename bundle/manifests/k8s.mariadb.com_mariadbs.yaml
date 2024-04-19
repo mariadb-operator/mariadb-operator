@@ -3768,7 +3768,7 @@ spec:
                         description: Interval used to perform health checks.
                         type: string
                       retryInterval:
-                        description: RetryInterval is the intervañ used to perform
+                        description: RetryInterval is the interval used to perform
                           health check retries.
                         type: string
                     type: object
@@ -8241,7 +8241,7 @@ spec:
                             description: Interval used to perform health checks.
                             type: string
                           retryInterval:
-                            description: RetryInterval is the intervañ used to perform
+                            description: RetryInterval is the interval used to perform
                               health check retries.
                             type: string
                         type: object
@@ -19690,7 +19690,7 @@ spec:
                         description: Interval used to perform health checks.
                         type: string
                       retryInterval:
-                        description: RetryInterval is the intervañ used to perform
+                        description: RetryInterval is the interval used to perform
                           health check retries.
                         type: string
                     type: object
@@ -20132,7 +20132,7 @@ spec:
                         description: Interval used to perform health checks.
                         type: string
                       retryInterval:
-                        description: RetryInterval is the intervañ used to perform
+                        description: RetryInterval is the interval used to perform
                           health check retries.
                         type: string
                     type: object
