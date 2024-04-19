@@ -8500,7 +8500,7 @@ spec:
                 format: int32
                 type: integer
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                   If not defined, it defaults to 10s.
                 type: string
               resources:
