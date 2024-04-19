@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("Base types", func() {
@@ -219,6 +221,148 @@ var _ = Describe("Base types", func() {
 				},
 				true,
 				false,
+			),
+		)
+	})
+
+	Context("When creating an Affinity object", func() {
+		DescribeTable(
+			"Should default",
+			func(
+				affinity *AffinityConfig,
+				antiAffinityInstances []string,
+				wantAffinity *AffinityConfig,
+			) {
+				affinity.SetDefaults(antiAffinityInstances...)
+				Expect(affinity).To(BeEquivalentTo(wantAffinity))
+			},
+			Entry(
+				"Empty",
+				&AffinityConfig{},
+				[]string{"mariadb", "maxscale"},
+				&AffinityConfig{},
+			),
+			Entry(
+				"Anti-affinity disabled",
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(false),
+				},
+				[]string{"mariadb", "maxscale"},
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(false),
+				},
+			),
+			Entry(
+				"Already defaulted",
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+					Affinity: corev1.Affinity{
+						PodAntiAffinity: &corev1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app.kubernetes.io/instance",
+												Operator: metav1.LabelSelectorOpIn,
+												Values:   []string{"mariadb", "maxscale"},
+											},
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+					},
+				},
+				[]string{"mariadb", "maxscale"},
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+					Affinity: corev1.Affinity{
+						PodAntiAffinity: &corev1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app.kubernetes.io/instance",
+												Operator: metav1.LabelSelectorOpIn,
+												Values:   []string{"mariadb", "maxscale"},
+											},
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+					},
+				},
+			),
+			Entry(
+				"No instances",
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+				},
+				nil,
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+				},
+			),
+			Entry(
+				"Single instance",
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+				},
+				[]string{"mariadb"},
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+					Affinity: corev1.Affinity{
+						PodAntiAffinity: &corev1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app.kubernetes.io/instance",
+												Operator: metav1.LabelSelectorOpIn,
+												Values:   []string{"mariadb"},
+											},
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+					},
+				},
+			),
+			Entry(
+				"Multiple instances",
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+				},
+				[]string{"mariadb", "maxscale"},
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+					Affinity: corev1.Affinity{
+						PodAntiAffinity: &corev1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app.kubernetes.io/instance",
+												Operator: metav1.LabelSelectorOpIn,
+												Values:   []string{"mariadb", "maxscale"},
+											},
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+					},
+				},
 			),
 		)
 	})
