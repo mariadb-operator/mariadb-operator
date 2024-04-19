@@ -24,6 +24,8 @@ spec:
           cpu: 300m
           memory: 512Mi
       port: 9104
+      affinity:
+        antiAffinityEnabled: true
     serviceMonitor:
       prometheusRelease: kube-prometheus-stack
       jobLabel: mariadb-monitoring
