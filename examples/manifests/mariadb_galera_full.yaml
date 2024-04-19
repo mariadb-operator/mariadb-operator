@@ -76,7 +76,7 @@ spec:
       args:
         - "--verbose"
       affinity:
-        enableAntiAffinity: true
+        antiAffinityEnabled: true
       resources:
         requests:
           cpu: 100m
@@ -123,7 +123,7 @@ spec:
       key: dsn
 
   affinity:
-    enableAntiAffinity: true
+    antiAffinityEnabled: true
 
   tolerations:
     - key: "k8s.mariadb.com/ha"

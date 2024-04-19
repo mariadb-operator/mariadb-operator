@@ -17,7 +17,7 @@ spec:
       args:
         - "--verbose"
       affinity:
-        enableAntiAffinity: true
+        antiAffinityEnabled: true
       resources:
         requests:
           cpu: 100m
