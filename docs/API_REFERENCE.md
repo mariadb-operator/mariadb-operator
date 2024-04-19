@@ -389,7 +389,7 @@ _Appears in:_
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
 | `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |  |  |
-| `initJob` _[Job](#job)_ | InitJob defines metadata to the passed to the initialization Job. |  |  |
+| `initJob` _[Job](#job)_ | InitJob defines additional properties for the Job used to perform the initialization. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Galera. |  |  |
 
@@ -466,23 +466,6 @@ _Appears in:_
 | `podSyncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.<br />Once this timeout is reached, the Pod is restarted. |  |  |
 
 
-#### GaleraRecoveryBootstrap
-
-
-
-GaleraRecoveryBootstrap indicates when and in which Pod the cluster bootstrap process has been performed.
-
-
-
-_Appears in:_
-- [GaleraRecoveryStatus](#galerarecoverystatus)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `time` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta)_ |  |  |  |
-| `pod` _string_ |  |  |  |
-
-
 #### GaleraSpec
 
 
@@ -505,7 +488,7 @@ _Appears in:_
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
 | `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |  |  |
-| `initJob` _[Job](#job)_ | InitJob defines metadata to the passed to the initialization Job. |  |  |
+| `initJob` _[Job](#job)_ | InitJob defines additional properties for the Job used to perform the initialization. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
 
 
@@ -1064,7 +1047,7 @@ _Appears in:_
 | `name` _string_ | Name is the identifier of the MaxScale service. |  | Required: {} <br /> |
 | `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |  | Enum: [readwritesplit readconnroute] <br />Required: {} <br /> |
 | `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |  | Required: {} <br /> |
-| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.<br />Router specific parameter are also suported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration. |  |  |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the service.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.<br />Router specific parameter are also suported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration. |  |  |
 
 
 #### MaxScaleSpec

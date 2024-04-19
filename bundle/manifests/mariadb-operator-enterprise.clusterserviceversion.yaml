@@ -1079,7 +1079,7 @@ spec:
           - description: VolumeMounts to be used in the Container.
             displayName: Volume Mounts
             path: galera.initContainer.volumeMounts
-          - description: InitJob defines metadata to the passed to the initialization Job.
+          - description: InitJob defines additional properties for the Job used to perform the initialization.
             displayName: Init Job
             path: galera.initJob
           - description: Affinity to be used in the Pod.
@@ -1713,7 +1713,7 @@ spec:
           - description: Name is the identifier of the MaxScale service.
             displayName: Name
             path: maxScale.services[0].name
-          - description: 'Params defines extra parameters to pass to the monitor. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1. Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration. https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
+          - description: 'Params defines extra parameters to pass to the service. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1. Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration. https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
             displayName: Params
             path: maxScale.services[0].params
           - description: Router is the type of router to use.
@@ -3034,7 +3034,7 @@ spec:
           - description: Name is the identifier of the MaxScale service.
             displayName: Name
             path: services[0].name
-          - description: 'Params defines extra parameters to pass to the monitor. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1. Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration. https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
+          - description: 'Params defines extra parameters to pass to the service. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1. Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration. https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
             displayName: Params
             path: services[0].params
           - description: Router is the type of router to use.
