@@ -201,7 +201,7 @@ type AffinityConfig struct {
 
 // SetDefaults sets reasonable defaults.
 func (a *AffinityConfig) SetDefaults(antiAffinityInstances ...string) {
-	if ptr.Deref(a.AntiAffinityEnabled, false) && reflect.ValueOf(a.Affinity).IsZero() {
+	if ptr.Deref(a.AntiAffinityEnabled, false) && reflect.ValueOf(a.Affinity).IsZero() && len(antiAffinityInstances) > 0 {
 		a.Affinity = corev1.Affinity{
 			PodAntiAffinity: &corev1.PodAntiAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
