@@ -449,7 +449,7 @@ type HealthCheck struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Interval *metav1.Duration `json:"interval,omitempty"`
-	// RetryInterval is the intervañ used to perform health check retries.
+	// RetryInterval is the interval used to perform health check retries.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
