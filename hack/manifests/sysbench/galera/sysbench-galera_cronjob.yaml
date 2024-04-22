@@ -20,7 +20,7 @@ spec:
               - --table_size=1000000
               - --mysql-host=maxscale-galera.default.svc.cluster.local
               - --mysql-port=3306
-              - --mysql-user=maxscale-client
+              - --mysql-user=maxscale-galera-client
               - --mysql-password=MaxScale11!
               - --mysql-db=sbtest
               - --time=300 
