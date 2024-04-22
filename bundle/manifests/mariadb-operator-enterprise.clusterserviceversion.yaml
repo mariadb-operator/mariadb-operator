@@ -42,6 +42,7 @@ metadata:
                 },
                 "bucket": "backups",
                 "endpoint": "minio.minio.svc.cluster.local:9000",
+                "prefix": "mariadb",
                 "secretAccessKeySecretKeyRef": {
                   "key": "secret-access-key",
                   "name": "minio"
@@ -143,9 +144,6 @@ metadata:
             "name": "mariadb"
           },
           "spec": {
-            "affinity": {
-              "enableAntiAffinity": true
-            },
             "connection": {
               "secretName": "mariadb-repl-conn",
               "secretTemplate": {
@@ -160,9 +158,6 @@ metadata:
               "enabled": true
             },
             "myCnf": "[mariadb]\nbind-address=*\ndefault_storage_engine=InnoDB\nbinlog_format=row\ninnodb_autoinc_lock_mode=2\nmax_allowed_packet=256M\n",
-            "podDisruptionBudget": {
-              "maxUnavailable": "33%"
-            },
             "primaryConnection": {
               "secretName": "mariadb-repl-conn-primary",
               "secretTemplate": {
@@ -187,9 +182,6 @@ metadata:
             },
             "storage": {
               "size": "1Gi"
-            },
-            "updateStrategy": {
-              "type": "RollingUpdate"
             },
             "username": "mariadb"
           }

@@ -33,15 +33,6 @@ spec:
     secretTemplate:
       key: dsn
 
-  affinity:
-    enableAntiAffinity: true
-
-  podDisruptionBudget:
-    maxUnavailable: 33%
-
-  updateStrategy:
-    type: RollingUpdate
-
   myCnf: |
     [mariadb]
     bind-address=*
