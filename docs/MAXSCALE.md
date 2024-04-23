@@ -30,7 +30,7 @@ To better understand what MaxScale is capable of you may check the [product page
 - [Server maintenance](#server-maintenance)
 - [Configuration](#configuration)
 - [Authentication](#authentication)
-- [Kubernetes <code>Service</code>](#kubernetes-service)
+- [Kubernetes <code>Services</code>](#kubernetes-services)
 - [Connection](#connection)
 - [High availability](#high-availability)
 - [Suspend resources](#suspend-resources)
@@ -434,7 +434,7 @@ spec:
 
 As you could see, you are also able to limit the number of connections for each component/actor. Bear in mind that, when running in [high availability](#high-availability), you may need to increase this number, as more MaxScale instances implies more connections.
 
-## Kubernetes `Service`
+## Kubernetes `Services`
 
 To enable your applications to communicate with MaxScale, a Kubernetes `Service` is provisioned with all the ports specified in the MaxScale listeners. You have the flexibility to provide a template to customize this `Service`:
 
@@ -480,6 +480,8 @@ spec:
     app.kubernetes.io/name: maxscale
   type: LoadBalancer
 ```
+
+There is also another Kubernetes `Service` to access the GUI, please refer to the [MaxScale GUI](#maxscale-gui) section for further detail.
 
 ## Connection
 
@@ -599,9 +601,14 @@ spec:
   admin:
     port: 8989
     guiEnabled: true
+  guiKubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.231
 ```
 
-The GUI is exposed via the [Kubernetes Service](#kubernetes-service) in the same port as the [MaxScale API](#maxscale-api). Once you access, you will need to enter the [MaxScale API](#maxscale-api) credentials configured by `mariadb-operator` in a `Secret`. See the [Authentication](#authentication) section for more details.
+The GUI is exposed via a dedicated Kubernetes `Service` in the same port as the [MaxScale API](#maxscale-api). Once you access, you will need to enter the [MaxScale API](#maxscale-api) credentials configured by `mariadb-operator` in a `Secret`. See the [Authentication](#authentication) section for more details.
 
 ![MaxScale GUI](https://mariadb-operator.github.io/mariadb-operator/assets/maxscale-gui.png)
 
