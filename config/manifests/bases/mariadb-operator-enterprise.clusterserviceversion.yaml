@@ -1408,6 +1408,38 @@ spec:
         path: maxScale.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: GuiKubernetesService define a template for a Kubernetes Service
+          object to connect to MaxScale's GUI.
+        displayName: Gui Kubernetes Service
+        path: maxScale.guiKubernetesService
+      - description: AllocateLoadBalancerNodePorts Service field.
+        displayName: Allocate Load Balancer Node Ports
+        path: maxScale.guiKubernetesService.allocateLoadBalancerNodePorts
+      - description: ExternalTrafficPolicy Service field.
+        displayName: External Traffic Policy
+        path: maxScale.guiKubernetesService.externalTrafficPolicy
+      - description: LoadBalancerIP Service field.
+        displayName: Load Balancer IP
+        path: maxScale.guiKubernetesService.loadBalancerIP
+      - description: LoadBalancerSourceRanges Service field.
+        displayName: Load Balancer Source Ranges
+        path: maxScale.guiKubernetesService.loadBalancerSourceRanges
+      - description: Metadata to be added to the Service metadata.
+        displayName: Metadata
+        path: maxScale.guiKubernetesService.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: maxScale.guiKubernetesService.metadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: maxScale.guiKubernetesService.metadata.labels
+      - description: SessionAffinity Service field.
+        displayName: Session Affinity
+        path: maxScale.guiKubernetesService.sessionAffinity
+      - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
+          If not defined, it defaults to `ClusterIP`.
+        displayName: Type
+        path: maxScale.guiKubernetesService.type
       - description: Image name to be used by the MaxScale instances. The supported
           format is `<image>:<tag>`. Only MaxScale official images are supported.
         displayName: Image
@@ -1421,8 +1453,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Service defines templates to configure the Kubernetes Service
-          object.
+      - description: KubernetesService defines a template for a Kubernetes Service
+          object to connect to MaxScale.
         displayName: Kubernetes Service
         path: maxScale.kubernetesService
       - description: AllocateLoadBalancerNodePorts Service field.
@@ -2743,6 +2775,38 @@ spec:
           to environment variables to be injected in the container.
         displayName: Env From
         path: envFrom
+      - description: GuiKubernetesService defines a template for a Kubernetes Service
+          object to connect to MaxScale's GUI.
+        displayName: Gui Kubernetes Service
+        path: guiKubernetesService
+      - description: AllocateLoadBalancerNodePorts Service field.
+        displayName: Allocate Load Balancer Node Ports
+        path: guiKubernetesService.allocateLoadBalancerNodePorts
+      - description: ExternalTrafficPolicy Service field.
+        displayName: External Traffic Policy
+        path: guiKubernetesService.externalTrafficPolicy
+      - description: LoadBalancerIP Service field.
+        displayName: Load Balancer IP
+        path: guiKubernetesService.loadBalancerIP
+      - description: LoadBalancerSourceRanges Service field.
+        displayName: Load Balancer Source Ranges
+        path: guiKubernetesService.loadBalancerSourceRanges
+      - description: Metadata to be added to the Service metadata.
+        displayName: Metadata
+        path: guiKubernetesService.metadata
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: guiKubernetesService.metadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: guiKubernetesService.metadata.labels
+      - description: SessionAffinity Service field.
+        displayName: Session Affinity
+        path: guiKubernetesService.sessionAffinity
+      - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
+          If not defined, it defaults to `ClusterIP`.
+        displayName: Type
+        path: guiKubernetesService.type
       - description: Image name to be used by the MaxScale instances. The supported
           format is `<image>:<tag>`. Only MaxScale official images are supported.
         displayName: Image
@@ -2815,8 +2879,8 @@ spec:
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: initContainers[0].volumeMounts
-      - description: Service defines templates to configure the Kubernetes Service
-          object.
+      - description: KubernetesService defines a template for a Kubernetes Service
+          object to connect to MaxScale.
         displayName: Kubernetes Service
         path: kubernetesService
       - description: AllocateLoadBalancerNodePorts Service field.

@@ -504,7 +504,10 @@ func (r *MaxScaleReconciler) reconcileService(ctx context.Context, req *requestM
 	if err := r.reconcileInternalService(ctx, req.mxs); err != nil {
 		return ctrl.Result{}, err
 	}
-	return ctrl.Result{}, r.reconcileKubernetesService(ctx, req.mxs)
+	if err := r.reconcileKubernetesService(ctx, req.mxs); err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, r.reconcileGuiKubernetesService(ctx, req.mxs)
 }
 
 func (r *MaxScaleReconciler) reconcileInternalService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) error {
@@ -555,7 +558,39 @@ func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, max
 
 	desiredSvc, err := r.Builder.BuildService(key, maxscale, opts)
 	if err != nil {
-		return fmt.Errorf("error building exporter Service: %v", err)
+		return fmt.Errorf("error building Service: %v", err)
+	}
+	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
+func (r *MaxScaleReconciler) reconcileGuiKubernetesService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) error {
+	if !ptr.Deref(maxscale.Spec.Admin.GuiEnabled, false) {
+		return nil
+	}
+	key := maxscale.GuiServiceKey()
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMaxScaleSelectorLabels(maxscale).
+			Build()
+	ports := []corev1.ServicePort{
+		{
+			Name: "admin",
+			Port: int32(maxscale.Spec.Admin.Port),
+		},
+	}
+	opts := builder.ServiceOpts{
+		ExtraMeta:      maxscale.Spec.InheritMetadata,
+		Ports:          ports,
+		SelectorLabels: selectorLabels,
+	}
+	if maxscale.Spec.GuiKubernetesService != nil {
+		opts.ServiceTemplate = *maxscale.Spec.GuiKubernetesService
+	}
+	opts.SessionAffinity = ptr.To(corev1.ServiceAffinityClientIP)
+
+	desiredSvc, err := r.Builder.BuildService(key, maxscale, opts)
+	if err != nil {
+		return fmt.Errorf("error building GUI Service: %v", err)
 	}
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }

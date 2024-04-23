@@ -106,6 +106,14 @@ var _ = Describe("MaxScale controller", func() {
 								},
 							},
 						},
+						GuiKubernetesService: &mariadbv1alpha1.ServiceTemplate{
+							Type: corev1.ServiceTypeLoadBalancer,
+							Metadata: &mariadbv1alpha1.Metadata{
+								Annotations: map[string]string{
+									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.230",
+								},
+							},
+						},
 						Connection: &mariadbv1alpha1.ConnectionTemplate{
 							SecretName: ptr.To("mxs-repl-conn"),
 							HealthCheck: &mariadbv1alpha1.HealthCheck{
@@ -178,6 +186,14 @@ var _ = Describe("MaxScale controller", func() {
 							Metadata: &mariadbv1alpha1.Metadata{
 								Annotations: map[string]string{
 									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.84",
+								},
+							},
+						},
+						GuiKubernetesService: &mariadbv1alpha1.ServiceTemplate{
+							Type: corev1.ServiceTypeLoadBalancer,
+							Metadata: &mariadbv1alpha1.Metadata{
+								Annotations: map[string]string{
+									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.231",
 								},
 							},
 						},
@@ -343,6 +359,10 @@ func expectMaxScaleReady(key types.NamespacedName) {
 	By("Expecting to create a Service")
 	var svc corev1.Service
 	Expect(k8sClient.Get(testCtx, key, &svc)).To(Succeed())
+
+	By("Expecting to create a GUI Service")
+	var guiSvc corev1.Service
+	Expect(k8sClient.Get(testCtx, mxs.GuiServiceKey(), &guiSvc)).To(Succeed())
 
 	By("Expecting Connection to be ready eventually")
 	Eventually(func() bool {

@@ -15,6 +15,14 @@ func (m *MaxScale) InternalServiceKey() types.NamespacedName {
 	}
 }
 
+// GuiServiceKey defines the key for the GUI Service
+func (m *MaxScale) GuiServiceKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-gui", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // ConnectionKey defines the key for the Connection
 func (m *MaxScale) ConnectionKey() types.NamespacedName {
 	return types.NamespacedName{

@@ -263,10 +263,14 @@ type MariaDBMaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
-	// Service defines templates to configure the Kubernetes Service object.
+	// KubernetesService defines a template for a Kubernetes Service object to connect to MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	KubernetesService *ServiceTemplate `json:"kubernetesService,omitempty"`
+	// GuiKubernetesService define a template for a Kubernetes Service object to connect to MaxScale's GUI.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	GuiKubernetesService *ServiceTemplate `json:"guiKubernetesService,omitempty"`
 	// RequeueInterval is used to perform requeue reconcilizations.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

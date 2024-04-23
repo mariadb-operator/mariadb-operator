@@ -110,8 +110,13 @@ host-maxscale-galera: ## Add maxscale-galera hosts to /etc/hosts.
 	@./hack/add_host.sh 228 mariadb-galera-maxscale-3.mariadb-galera-maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 229 mariadb-galera-maxscale.default.svc.cluster.local
 
+.PHONY: host-maxscale-gui
+host-maxscale-gui: ## Add maxscale GUI hosts to /etc/hosts.
+	@./hack/add_host.sh 230 maxscale-repl-gui.default.svc.cluster.local
+	@./hack/add_host.sh 231 maxscale-galera-gui.default.svc.cluster.local
+
 .PHONY: host
-host: host-mariadb host-mariadb-repl host-mariadb-galera host-monitoring host-minio host-maxscale-repl host-maxscale-galera ## Configure hosts for local development.
+host: host-mariadb host-mariadb-repl host-mariadb-galera host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui ## Configure hosts for local development.
 
 .PHONY: host-test
 host-test: host host-mdb-test host-mxs-repl-test host-mxs-galera-test host-mxs-metrics-test ## Configure hosts for local tests.

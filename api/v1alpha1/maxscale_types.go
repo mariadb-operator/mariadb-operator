@@ -543,10 +543,14 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
-	// Service defines templates to configure the Kubernetes Service object.
+	// KubernetesService defines a template for a Kubernetes Service object to connect to MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	KubernetesService *ServiceTemplate `json:"kubernetesService,omitempty"`
+	// GuiKubernetesService defines a template for a Kubernetes Service object to connect to MaxScale's GUI.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	GuiKubernetesService *ServiceTemplate `json:"guiKubernetesService,omitempty"`
 	// RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

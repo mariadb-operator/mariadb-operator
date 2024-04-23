@@ -371,7 +371,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-18T18:03:00Z"
+    createdAt: "2024-04-23T08:51:57Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -1391,6 +1391,36 @@ spec:
             path: maxScale.enabled
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: GuiKubernetesService define a template for a Kubernetes Service object to connect to MaxScale's GUI.
+            displayName: Gui Kubernetes Service
+            path: maxScale.guiKubernetesService
+          - description: AllocateLoadBalancerNodePorts Service field.
+            displayName: Allocate Load Balancer Node Ports
+            path: maxScale.guiKubernetesService.allocateLoadBalancerNodePorts
+          - description: ExternalTrafficPolicy Service field.
+            displayName: External Traffic Policy
+            path: maxScale.guiKubernetesService.externalTrafficPolicy
+          - description: LoadBalancerIP Service field.
+            displayName: Load Balancer IP
+            path: maxScale.guiKubernetesService.loadBalancerIP
+          - description: LoadBalancerSourceRanges Service field.
+            displayName: Load Balancer Source Ranges
+            path: maxScale.guiKubernetesService.loadBalancerSourceRanges
+          - description: Metadata to be added to the Service metadata.
+            displayName: Metadata
+            path: maxScale.guiKubernetesService.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: maxScale.guiKubernetesService.metadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: maxScale.guiKubernetesService.metadata.labels
+          - description: SessionAffinity Service field.
+            displayName: Session Affinity
+            path: maxScale.guiKubernetesService.sessionAffinity
+          - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+            displayName: Type
+            path: maxScale.guiKubernetesService.type
           - description: Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported.
             displayName: Image
             path: maxScale.image
@@ -1402,7 +1432,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Service defines templates to configure the Kubernetes Service object.
+          - description: KubernetesService defines a template for a Kubernetes Service object to connect to MaxScale.
             displayName: Kubernetes Service
             path: maxScale.kubernetesService
           - description: AllocateLoadBalancerNodePorts Service field.
@@ -2566,6 +2596,36 @@ spec:
           - description: EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
             displayName: Env From
             path: envFrom
+          - description: GuiKubernetesService defines a template for a Kubernetes Service object to connect to MaxScale's GUI.
+            displayName: Gui Kubernetes Service
+            path: guiKubernetesService
+          - description: AllocateLoadBalancerNodePorts Service field.
+            displayName: Allocate Load Balancer Node Ports
+            path: guiKubernetesService.allocateLoadBalancerNodePorts
+          - description: ExternalTrafficPolicy Service field.
+            displayName: External Traffic Policy
+            path: guiKubernetesService.externalTrafficPolicy
+          - description: LoadBalancerIP Service field.
+            displayName: Load Balancer IP
+            path: guiKubernetesService.loadBalancerIP
+          - description: LoadBalancerSourceRanges Service field.
+            displayName: Load Balancer Source Ranges
+            path: guiKubernetesService.loadBalancerSourceRanges
+          - description: Metadata to be added to the Service metadata.
+            displayName: Metadata
+            path: guiKubernetesService.metadata
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: guiKubernetesService.metadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: guiKubernetesService.metadata.labels
+          - description: SessionAffinity Service field.
+            displayName: Session Affinity
+            path: guiKubernetesService.sessionAffinity
+          - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`.
+            displayName: Type
+            path: guiKubernetesService.type
           - description: Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`. Only MaxScale official images are supported.
             displayName: Image
             path: image
@@ -2629,7 +2689,7 @@ spec:
           - description: VolumeMounts to be used in the Container.
             displayName: Volume Mounts
             path: initContainers[0].volumeMounts
-          - description: Service defines templates to configure the Kubernetes Service object.
+          - description: KubernetesService defines a template for a Kubernetes Service object to connect to MaxScale.
             displayName: Kubernetes Service
             path: kubernetesService
           - description: AllocateLoadBalancerNodePorts Service field.
@@ -3974,18 +4034,18 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
-      name: mariadb
-    - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
-      name: maxscale
-    - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
-      name: exporter
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter-maxscale
     - image: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
+    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
+      name: mariadb
+    - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
+      name: maxscale
+    - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
+      name: exporter
   version: 0.0.27
   webhookdefinitions:
     - admissionReviewVersions:
