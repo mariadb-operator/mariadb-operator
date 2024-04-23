@@ -1232,6 +1232,11 @@ func (in *MariaDBMaxScaleSpec) DeepCopyInto(out *MariaDBMaxScaleSpec) {
 		*out = new(ServiceTemplate)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.GuiKubernetesService != nil {
+		in, out := &in.GuiKubernetesService, &out.GuiKubernetesService
+		*out = new(ServiceTemplate)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.RequeueInterval != nil {
 		in, out := &in.RequeueInterval, &out.RequeueInterval
 		*out = new(metav1.Duration)
@@ -1835,6 +1840,11 @@ func (in *MaxScaleSpec) DeepCopyInto(out *MaxScaleSpec) {
 	}
 	if in.KubernetesService != nil {
 		in, out := &in.KubernetesService, &out.KubernetesService
+		*out = new(ServiceTemplate)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.GuiKubernetesService != nil {
+		in, out := &in.GuiKubernetesService, &out.GuiKubernetesService
 		*out = new(ServiceTemplate)
 		(*in).DeepCopyInto(*out)
 	}
