@@ -13905,7 +13905,7 @@ spec:
                     format: int32
                     type: integer
                   requeueInterval:
-                    description: RequeueInterval is used to perform requeue reconcilizations.
+                    description: RequeueInterval is used to perform requeue reconciliations.
                     type: string
                   services:
                     description: Services define how the traffic is forwarded to the

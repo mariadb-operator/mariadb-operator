@@ -551,7 +551,7 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GuiKubernetesService *ServiceTemplate `json:"guiKubernetesService,omitempty"`
-	// RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s.
+	// RequeueInterval is used to perform requeue reconciliations. If not defined, it defaults to 10s.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`

@@ -271,7 +271,7 @@ type MariaDBMaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GuiKubernetesService *ServiceTemplate `json:"guiKubernetesService,omitempty"`
-	// RequeueInterval is used to perform requeue reconcilizations.
+	// RequeueInterval is used to perform requeue reconciliations.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
