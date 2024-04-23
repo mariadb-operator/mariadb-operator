@@ -1684,7 +1684,7 @@ spec:
             path: maxScale.replicas
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:podCount
-          - description: RequeueInterval is used to perform requeue reconcilizations.
+          - description: RequeueInterval is used to perform requeue reconciliations.
             displayName: Requeue Interval
             path: maxScale.requeueInterval
           - description: Services define how the traffic is forwarded to the MariaDB servers.
@@ -2971,7 +2971,7 @@ spec:
             path: replicas
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:podCount
-          - description: RequeueInterval is used to perform requeue reconcilizations. If not defined, it defaults to 10s.
+          - description: RequeueInterval is used to perform requeue reconciliations. If not defined, it defaults to 10s.
             displayName: Requeue Interval
             path: requeueInterval
           - description: Resouces describes the compute resource requirements.
