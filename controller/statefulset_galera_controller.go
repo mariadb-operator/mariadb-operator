@@ -123,17 +123,19 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta 
 		return false, nil
 	}
 
-	clientCtx, cancelClient := context.WithTimeout(ctx, 5*time.Second)
-	defer cancelClient()
-
 	clientSet := sqlClientSet.NewClientSet(mdb, r.RefResolver)
 	defer clientSet.Close()
+
+	clientCtx, cancelClient := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelClient()
 	client, err := r.readyClient(clientCtx, mdb, clientSet)
 	if err != nil {
 		return false, fmt.Errorf("error getting ready client: %v", err)
 	}
 
-	size, err := client.GaleraClusterSize(clientCtx)
+	clusterSizeCtx, clusterSizeCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer clusterSizeCancel()
+	size, err := client.GaleraClusterSize(clusterSizeCtx)
 	if err != nil {
 		return false, fmt.Errorf("error getting Galera cluster size: %v", err)
 	}
