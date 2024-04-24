@@ -191,3 +191,138 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) *corev1.Pod
 		},
 	}
 }
+
+func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.Volume {
+	mariadbOpts := newMariadbOpts(opts...)
+	volumes := []corev1.Volume{
+		mariadbConfigVolume(mariadb),
+	}
+	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
+		volumes = append(volumes, corev1.Volume{
+			Name: ProbesVolume,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: mariadb.ReplConfigMapKeyRef().Name,
+					},
+					DefaultMode: ptr.To(int32(0777)),
+				},
+			},
+		})
+	}
+	if mariadb.IsGaleraEnabled() {
+		volumes = append(volumes, corev1.Volume{
+			Name: ServiceAccountVolume,
+			VolumeSource: corev1.VolumeSource{
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+								Path: "token",
+							},
+						},
+						{
+							ConfigMap: &corev1.ConfigMapProjection{
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "ca.crt",
+										Path: "ca.crt",
+									},
+								},
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "kube-root-ca.crt",
+								},
+							},
+						},
+						{
+							DownwardAPI: &corev1.DownwardAPIProjection{
+								Items: []corev1.DownwardAPIVolumeFile{
+									{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+										Path: "namespace",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+	}
+	if mariadb.IsEphemeralStorageEnabled() {
+		volumes = append(volumes, corev1.Volume{
+			Name: StorageVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+	}
+	if mariadb.Spec.Volumes != nil {
+		volumes = append(volumes, mariadb.Spec.Volumes...)
+	}
+	if mariadbOpts.extraVolumes != nil {
+		volumes = append(volumes, mariadbOpts.extraVolumes...)
+	}
+	return volumes
+}
+
+func mariadbConfigVolume(mariadb *mariadbv1alpha1.MariaDB) corev1.Volume {
+	defaultConfigMapKeyRef := mariadb.DefaultConfigMapKeyRef()
+	projections := []corev1.VolumeProjection{
+		{
+			ConfigMap: &corev1.ConfigMapProjection{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: defaultConfigMapKeyRef.Name,
+				},
+				Items: []corev1.KeyToPath{
+					{
+						Key:  defaultConfigMapKeyRef.Key,
+						Path: defaultConfigMapKeyRef.Key,
+					},
+				},
+			},
+		},
+	}
+	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		projections = append(projections, corev1.VolumeProjection{
+			ConfigMap: &corev1.ConfigMapProjection{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: mariadb.Spec.MyCnfConfigMapKeyRef.Name,
+				},
+				Items: []corev1.KeyToPath{
+					{
+						Key:  mariadb.Spec.MyCnfConfigMapKeyRef.Key,
+						Path: mariadb.Spec.MyCnfConfigMapKeyRef.Key,
+					},
+				},
+			},
+		})
+	}
+	return corev1.Volume{
+		Name: ConfigVolume,
+		VolumeSource: corev1.VolumeSource{
+			Projected: &corev1.ProjectedVolumeSource{
+				Sources: projections,
+			},
+		},
+	}
+}
+
+func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
+	volumes := []corev1.Volume{
+		{
+			Name: ConfigVolume,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: maxscale.ConfigSecretKeyRef().Name,
+				},
+			},
+		},
+	}
+	if maxscale.Spec.Volumes != nil {
+		volumes = append(volumes, maxscale.Spec.Volumes...)
+	}
+	return volumes
+}

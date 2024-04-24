@@ -243,6 +243,24 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 }
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	defaultConfigMapKeyRef := mariadb.DefaultConfigMapKeyRef()
+	req := configmap.ReconcileRequest{
+		Metadata: mariadb.Spec.InheritMetadata,
+		Owner:    mariadb,
+		Key: types.NamespacedName{
+			Name:      defaultConfigMapKeyRef.Name,
+			Namespace: mariadb.Namespace,
+		},
+		Data: map[string]string{
+			defaultConfigMapKeyRef.Key: `[mariadb]
+skip-name-resolve
+`,
+		},
+	}
+	if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if mariadb.Spec.MyCnf != nil && mariadb.Spec.MyCnfConfigMapKeyRef != nil {
 		configMapKeyRef := *mariadb.Spec.MyCnfConfigMapKeyRef
 		req := configmap.ReconcileRequest{
@@ -260,6 +278,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 			return ctrl.Result{}, err
 		}
 	}
+
 	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		configMapKeyRef := mariadb.ReplConfigMapKeyRef()
 		if err := r.ReplicationReconciler.ReconcileProbeConfigMap(ctx, configMapKeyRef, mariadb); err != nil {
