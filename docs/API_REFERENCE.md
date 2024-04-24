@@ -549,7 +549,7 @@ _Appears in:_
 | `database` _string_ | Database to use in the Grant. | * |  |
 | `table` _string_ | Table to use in the Grant. | * |  |
 | `username` _string_ | Username to use in the Grant. |  | Required: {} <br /> |
-| `host` _string_ | Host to use in the Grant. |  |  |
+| `host` _string_ | Host to use in the Grant. It can be localhost, an IP or '%'. |  |  |
 | `grantOption` _boolean_ | GrantOption to use in the Grant. | false |  |
 
 

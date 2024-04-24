@@ -36,7 +36,7 @@ type GrantSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Username string `json:"username" webhook:"inmutable"`
-	// Host to use in the Grant.
+	// Host to use in the Grant. It can be localhost, an IP or '%'.
 	// +optional
 	// +kubebuilder:MaxLength=255
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

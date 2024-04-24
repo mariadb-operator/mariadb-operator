@@ -4243,7 +4243,8 @@ spec:
                 description: GrantOption to use in the Grant.
                 type: boolean
               host:
-                description: Host to use in the Grant.
+                description: Host to use in the Grant. It can be localhost, an IP
+                  or '%'.
                 type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.

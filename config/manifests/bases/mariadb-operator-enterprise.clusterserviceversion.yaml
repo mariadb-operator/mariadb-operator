@@ -604,7 +604,7 @@ spec:
       - description: GrantOption to use in the Grant.
         displayName: Grant Option
         path: grantOption
-      - description: Host to use in the Grant.
+      - description: Host to use in the Grant. It can be localhost, an IP or '%'.
         displayName: Host
         path: host
       - description: MariaDBRef is a reference to a MariaDB object.
