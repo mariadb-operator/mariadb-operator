@@ -35,7 +35,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		log.FromContext(ctx).V(1).Info("error getting MaxScale primary Pod", "err", mxsErr)
 	}
 	var initJob *batchv1.Job
-	if mdb.IsGaleraEnabled() {
+	if mdb.IsGaleraEnabled() && !mdb.HasGaleraConfiguredCondition() {
 		var err error
 		initJob, err = r.getInitJob(ctx, mdb)
 		if err != nil {
