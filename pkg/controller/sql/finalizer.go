@@ -3,6 +3,7 @@ package sql
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
@@ -16,14 +17,24 @@ type SqlFinalizer struct {
 	RefResolver *refresolver.RefResolver
 
 	WrappedFinalizer WrappedFinalizer
+
+	SqlOptions
 }
 
-func NewSqlFinalizer(client client.Client, wf WrappedFinalizer) Finalizer {
-	return &SqlFinalizer{
+func NewSqlFinalizer(client client.Client, wf WrappedFinalizer, opts ...SqlOpt) Finalizer {
+	finalizer := &SqlFinalizer{
 		Client:           client,
 		RefResolver:      refresolver.New(client),
 		WrappedFinalizer: wf,
+		SqlOptions: SqlOptions{
+			RequeueInterval: 30 * time.Second,
+			LogSql:          false,
+		},
 	}
+	for _, setOpt := range opts {
+		setOpt(&finalizer.SqlOptions)
+	}
+	return finalizer
 }
 
 func (tf *SqlFinalizer) AddFinalizer(ctx context.Context) error {
@@ -52,7 +63,7 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
 	}
 
-	if result, err := waitForMariaDB(ctx, tf.Client, resource, mariadb); !result.IsZero() || err != nil {
+	if result, err := waitForMariaDB(ctx, tf.Client, mariadb, tf.LogSql); !result.IsZero() || err != nil {
 		return result, err
 	}
 

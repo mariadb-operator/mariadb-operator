@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -18,18 +17,18 @@ import (
 // UserReconciler reconciles a User object
 type UserReconciler struct {
 	client.Client
-	RefResolver     *refresolver.RefResolver
-	ConditionReady  *condition.Ready
-	RequeueInterval time.Duration
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *condition.Ready
+	SqlOpts        []sql.SqlOpt
 }
 
 func NewUserReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
-	requeueInterval time.Duration) *UserReconciler {
+	sqlOpts ...sql.SqlOpt) *UserReconciler {
 	return &UserReconciler{
-		Client:          client,
-		RefResolver:     refResolver,
-		ConditionReady:  conditionReady,
-		RequeueInterval: requeueInterval,
+		Client:         client,
+		RefResolver:    refResolver,
+		ConditionReady: conditionReady,
+		SqlOpts:        sqlOpts,
 	}
 }
 
@@ -47,8 +46,8 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	wr := newWrapperUserReconciler(r.Client, r.RefResolver, &user)
 	wf := newWrappedUserFinalizer(r.Client, &user)
-	tf := sql.NewSqlFinalizer(r.Client, wf)
-	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.RequeueInterval)
+	tf := sql.NewSqlFinalizer(r.Client, wf, r.SqlOpts...)
+	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.SqlOpts...)
 
 	result, err := tr.Reconcile(ctx, &user)
 	if err != nil {
