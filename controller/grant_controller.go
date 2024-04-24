@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -28,18 +27,18 @@ const (
 // GrantReconciler reconciles a Grant object
 type GrantReconciler struct {
 	client.Client
-	RefResolver     *refresolver.RefResolver
-	ConditionReady  *condition.Ready
-	RequeueInterval time.Duration
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *condition.Ready
+	SqlOpts        []sql.SqlOpt
 }
 
 func NewGrantReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
-	requeueInterval time.Duration) *GrantReconciler {
+	sqlOpts ...sql.SqlOpt) *GrantReconciler {
 	return &GrantReconciler{
-		Client:          client,
-		RefResolver:     refResolver,
-		ConditionReady:  conditionReady,
-		RequeueInterval: requeueInterval,
+		Client:         client,
+		RefResolver:    refResolver,
+		ConditionReady: conditionReady,
+		SqlOpts:        sqlOpts,
 	}
 }
 
@@ -57,8 +56,8 @@ func (r *GrantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	wr := newWrappedGrantReconciler(r.Client, *r.RefResolver, &grant)
 	wf := newWrappedGrantFinalizer(r.Client, &grant)
-	tf := sql.NewSqlFinalizer(r.Client, wf)
-	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.RequeueInterval)
+	tf := sql.NewSqlFinalizer(r.Client, wf, r.SqlOpts...)
+	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.SqlOpts...)
 
 	result, err := tr.Reconcile(ctx, &grant)
 	if err != nil {

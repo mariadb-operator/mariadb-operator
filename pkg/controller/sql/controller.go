@@ -17,6 +17,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+type SqlOptions struct {
+	RequeueInterval time.Duration
+	LogSql          bool
+}
+
+type SqlOpt func(*SqlOptions)
+
+func WithRequeueInterval(interval time.Duration) SqlOpt {
+	return func(opts *SqlOptions) {
+		opts.RequeueInterval = interval
+	}
+}
+
+func WithLogSql(logSql bool) SqlOpt {
+	return func(opts *SqlOptions) {
+		opts.LogSql = logSql
+	}
+}
+
 type SqlReconciler struct {
 	Client         client.Client
 	RefResolver    *refresolver.RefResolver
@@ -24,19 +43,27 @@ type SqlReconciler struct {
 
 	WrappedReconciler WrappedReconciler
 	Finalizer         Finalizer
-	RequeueInterval   time.Duration
+
+	SqlOptions
 }
 
 func NewSqlReconciler(client client.Client, cr *condition.Ready, wr WrappedReconciler, f Finalizer,
-	requeueInterval time.Duration) Reconciler {
-	return &SqlReconciler{
+	opts ...SqlOpt) Reconciler {
+	reconciler := &SqlReconciler{
 		Client:            client,
 		RefResolver:       refresolver.New(client),
 		ConditionReady:    cr,
 		WrappedReconciler: wr,
 		Finalizer:         f,
-		RequeueInterval:   requeueInterval,
+		SqlOptions: SqlOptions{
+			RequeueInterval: 30 * time.Second,
+			LogSql:          false,
+		},
 	}
+	for _, setOpt := range opts {
+		setOpt(&reconciler.SqlOptions)
+	}
+	return reconciler
 }
 
 func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.Result, error) {
@@ -58,7 +85,7 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", errBundle)
 	}
 
-	if result, err := waitForMariaDB(ctx, r.Client, resource, mariadb); !result.IsZero() || err != nil {
+	if result, err := waitForMariaDB(ctx, r.Client, mariadb, r.LogSql); !result.IsZero() || err != nil {
 		var errBundle *multierror.Error
 
 		if err != nil {
@@ -113,7 +140,9 @@ func (r *SqlReconciler) retryResult(ctx context.Context, resource Resource, err 
 		return ctrl.Result{RequeueAfter: resource.RetryInterval().Duration}, nil
 	}
 	if err != nil {
-		log.FromContext(ctx).V(1).Info("Error reconciling SQL resource", "err", err)
+		if r.LogSql {
+			log.FromContext(ctx).V(1).Info("Error reconciling SQL resource", "err", err)
+		}
 		return ctrl.Result{Requeue: true}, nil
 	}
 	return ctrl.Result{}, nil
@@ -125,18 +154,22 @@ func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource, er
 		return ctrl.Result{Requeue: true}, nil
 	}
 	if resource.RequeueInterval() != nil {
-		log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
+		if r.LogSql {
+			log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
+		}
 		return ctrl.Result{RequeueAfter: resource.RequeueInterval().Duration}, nil
 	}
 	if r.RequeueInterval > 0 {
-		log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
+		if r.LogSql {
+			log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
+		}
 		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 	}
 	return ctrl.Result{}, nil
 }
 
-func waitForMariaDB(ctx context.Context, client client.Client, resource Resource,
-	mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+func waitForMariaDB(ctx context.Context, client client.Client, mdb *mariadbv1alpha1.MariaDB,
+	logSql bool) (ctrl.Result, error) {
 	healthy, err := health.IsStatefulSetHealthy(
 		ctx,
 		client,
@@ -149,7 +182,9 @@ func waitForMariaDB(ctx context.Context, client client.Client, resource Resource
 		return ctrl.Result{}, err
 	}
 	if !healthy {
-		log.FromContext(ctx).V(1).Info("MariaDB unhealthy. Requeuing SQL resource")
+		if logSql {
+			log.FromContext(ctx).V(1).Info("MariaDB unhealthy. Requeuing SQL resource")
+		}
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil

@@ -26,6 +26,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/servicemonitor"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -51,6 +52,7 @@ var (
 	logTimeEncoder    string
 	logDev            bool
 	logMaxScale       bool
+	logSql            bool
 	leaderElect       bool
 	requeueConnection time.Duration
 	requeueSql        time.Duration
@@ -73,6 +75,7 @@ func init() {
 		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
 	rootCmd.Flags().BoolVar(&logMaxScale, "log-maxscale", false, "Enable MaxScale API request logs.")
+	rootCmd.Flags().BoolVar(&logSql, "log-sql", false, "Enable SQL resource logs.")
 	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 30*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
@@ -300,18 +303,24 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create controller", "controller", "restore")
 			os.Exit(1)
 		}
-		if err = controller.NewUserReconciler(client, refResolver, conditionReady, requeueSql).SetupWithManager(mgr); err != nil {
+
+		sqlOpts := []sql.SqlOpt{
+			sql.WithRequeueInterval(requeueSql),
+			sql.WithLogSql(logSql),
+		}
+		if err = controller.NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
-		if err = controller.NewGrantReconciler(client, refResolver, conditionReady, requeueSql).SetupWithManager(mgr); err != nil {
+		if err = controller.NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Grant")
 			os.Exit(1)
 		}
-		if err = controller.NewDatabaseReconciler(client, refResolver, conditionReady, requeueSql).SetupWithManager(mgr); err != nil {
+		if err = controller.NewDatabaseReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Database")
 			os.Exit(1)
 		}
+
 		if err = (&controller.ConnectionReconciler{
 			Client:          client,
 			Scheme:          scheme,

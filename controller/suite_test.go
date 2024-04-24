@@ -21,6 +21,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/servicemonitor"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
@@ -259,13 +260,15 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewUserReconciler(client, refResolver, conditionReady, 5*time.Second).SetupWithManager(k8sManager)
+	sqlOpts := []sql.SqlOpt{
+		sql.WithRequeueInterval(30 * time.Second),
+		sql.WithLogSql(false),
+	}
+	err = NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
-
-	err = NewGrantReconciler(client, refResolver, conditionReady, 5*time.Second).SetupWithManager(k8sManager)
+	err = NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
-
-	err = NewDatabaseReconciler(client, refResolver, conditionReady, 5*time.Second).SetupWithManager(k8sManager)
+	err = NewDatabaseReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ConnectionReconciler{
