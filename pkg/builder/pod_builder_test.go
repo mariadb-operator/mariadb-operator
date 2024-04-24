@@ -532,3 +532,53 @@ func TestMariadbPodBuilder(t *testing.T) {
 		t.Error("expected resources to have been set")
 	}
 }
+
+func TestMariadbConfigVolume(t *testing.T) {
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-mariadb-builder",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Storage: mariadbv1alpha1.Storage{
+				Size: ptr.To(resource.MustParse("300Mi")),
+			},
+		},
+	}
+
+	volume := mariadbConfigVolume(mariadb)
+	if volume.Projected == nil {
+		t.Fatal("expected volume to be projected")
+	}
+	expectedSources := 1
+	if len(volume.Projected.Sources) != expectedSources {
+		t.Fatalf("expecting to have %d sources, got: %d", expectedSources, len(volume.Projected.Sources))
+	}
+	expectedKey := "0-default.cnf"
+	if volume.Projected.Sources[0].ConfigMap.Items[0].Key != expectedKey {
+		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
+	}
+
+	mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: "test",
+		},
+		Key: "my.cnf",
+	}
+
+	volume = mariadbConfigVolume(mariadb)
+	if volume.Projected == nil {
+		t.Fatal("expected volume to be projected")
+	}
+	expectedSources = 2
+	if len(volume.Projected.Sources) != expectedSources {
+		t.Fatalf("expecting to have %d sources, got: %d", expectedSources, len(volume.Projected.Sources))
+	}
+	expectedKey = "0-default.cnf"
+	if volume.Projected.Sources[0].ConfigMap.Items[0].Key != expectedKey {
+		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
+	}
+	expectedKey = "my.cnf"
+	if volume.Projected.Sources[1].ConfigMap.Items[0].Key != expectedKey {
+		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
+	}
+}

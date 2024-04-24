@@ -78,11 +78,31 @@ var _ = Describe("MariaDB controller", func() {
 				return true
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Expecting to create a ConfigMap eventually")
+			By("Expecting to create a default ConfigMap eventually")
 			Eventually(func(g Gomega) bool {
 				var cm corev1.ConfigMap
 				key := types.NamespacedName{
-					Name:      testMariaDb.MyCnfConfigMapKeyRef().Name,
+					Name:      testMariaDb.DefaultConfigMapKeyRef().Name,
+					Namespace: testMariaDb.Namespace,
+				}
+				if err := k8sClient.Get(testCtx, key, &cm); err != nil {
+					return false
+				}
+				g.Expect(cm.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(cm.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(cm.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(cm.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting to create a ConfigMap eventually")
+			Eventually(func(g Gomega) bool {
+				if testMariaDb.Spec.MyCnfConfigMapKeyRef == nil {
+					return false
+				}
+				var cm corev1.ConfigMap
+				key := types.NamespacedName{
+					Name:      testMariaDb.Spec.MyCnfConfigMapKeyRef.Name,
 					Namespace: testMariaDb.Namespace,
 				}
 				if err := k8sClient.Get(testCtx, key, &cm); err != nil {
