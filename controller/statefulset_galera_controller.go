@@ -101,7 +101,13 @@ func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Co
 }
 
 func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta metav1.ObjectMeta, logger logr.Logger) (bool, error) {
-	mdb, err := r.RefResolver.MariaDBFromAnnotation(ctx, stsObjMeta)
+	// Kubenetes requests should not determine whether MariaDB is healthy or not.
+	// For example: control-plane down should not trigger a cluster recovery.
+	// Thus, an independent context is used so the pollUntilHealthyWithTimeout logic is not affected.
+	kubeCtx, kubeCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer kubeCancel()
+
+	mdb, err := r.RefResolver.MariaDBFromAnnotation(kubeCtx, stsObjMeta)
 	if err != nil {
 		return false, fmt.Errorf("error getting MariaDB: %v", err)
 	}
@@ -114,29 +120,27 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta 
 		Namespace: stsObjMeta.Namespace,
 	}
 	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, key, &sts); err != nil {
-		return false, fmt.Errorf("error getting StatefulSet: %v", err)
-	}
-	logger.V(1).Info("StatefulSet ready replicas", "replicas", sts.Status.ReadyReplicas)
-	if sts.Status.ReadyReplicas == 0 {
-		return false, nil
+	if r.Get(kubeCtx, key, &sts) == nil {
+		if sts.Status.ReadyReplicas == 0 {
+			logger.V(1).Info("No StatefulSet ready replicas. Galera cluster unhealthy")
+			return false, nil
+		}
 	}
 
 	clientSet := sqlClientSet.NewClientSet(mdb, r.RefResolver)
 	defer clientSet.Close()
 
-	clientCtx, cancelClient := context.WithTimeout(ctx, 5*time.Second)
-	defer cancelClient()
-	client, err := r.readyClient(clientCtx, mdb, clientSet)
+	// SQL requests to MariaDB should use the context passed by pollUntilHealthyWithTimeout and return the error unwrapped, as it is.
+	// This way pollUntilHealthyWithTimeout is able to detect whether MariaDB is unhealthy via wait.Interrupted.
+	client, err := r.readyClient(ctx, mdb, clientSet)
 	if err != nil {
-		return false, fmt.Errorf("error getting ready client: %v", err)
+		logger.V(1).Info("Error getting ready client", "err", err)
+		return false, err
 	}
-
-	clusterSizeCtx, clusterSizeCancel := context.WithTimeout(ctx, 5*time.Second)
-	defer clusterSizeCancel()
-	size, err := client.GaleraClusterSize(clusterSizeCtx)
+	size, err := client.GaleraClusterSize(ctx)
 	if err != nil {
-		return false, fmt.Errorf("error getting Galera cluster size: %v", err)
+		logger.V(1).Info("Error getting Galera cluster size", "err", err)
+		return false, err
 	}
 
 	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
