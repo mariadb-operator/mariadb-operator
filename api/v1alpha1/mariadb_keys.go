@@ -27,6 +27,16 @@ func (m *MariaDB) PasswordSecretKeyRef() corev1.SecretKeySelector {
 	}
 }
 
+// DefaultConfigMapKeyRef defines the key selector for the default my.cnf ConfigMap.
+func (m *MariaDB) DefaultConfigMapKeyRef() corev1.ConfigMapKeySelector {
+	return corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: fmt.Sprintf("%s-config-default", m.Name),
+		},
+		Key: "0-default.cnf",
+	}
+}
+
 // MyCnfConfigMapKeyRef defines the key selector for the my.cnf ConfigMap.
 func (m *MariaDB) MyCnfConfigMapKeyRef() corev1.ConfigMapKeySelector {
 	return corev1.ConfigMapKeySelector{
