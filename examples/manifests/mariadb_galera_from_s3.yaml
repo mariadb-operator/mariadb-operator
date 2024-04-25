@@ -1,7 +1,7 @@
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb-galera
+  name: mariadb-galera-from-s3
 spec:
   rootPasswordSecretKeyRef:
     name: mariadb
@@ -44,7 +44,6 @@ spec:
           memory: 128Mi
         limits:
           memory: 1Gi
-
 
   service:
     type: LoadBalancer
