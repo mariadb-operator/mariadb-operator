@@ -49,6 +49,7 @@ rules:
   - persistentvolumeclaims
   verbs:
   - create
+  - delete
   - list
   - patch
   - watch
@@ -61,13 +62,6 @@ rules:
   - get
   - list
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - pvcs
-  verbs:
-  - delete
-  - list
 - apiGroups:
   - ""
   resources:
