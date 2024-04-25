@@ -4,14 +4,16 @@ metadata:
   name: grant
 spec:
   mariaDbRef:
-    name: mariadb
+    name: mariadb-galera
   privileges:
     - "SELECT"
     - "INSERT"
     - "UPDATE"
+    # - "ALL PRIVILEGES"
   database: "*"
   table: "*"
   username: user
   grantOption: true
   host: "%"
+  requeueInterval: 30s
   retryInterval: 5s
