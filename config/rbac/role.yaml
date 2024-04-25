@@ -49,7 +49,7 @@ rules:
   - persistentvolumeclaims
   verbs:
   - create
-  - delete
+  - deletecollection
   - list
   - patch
   - watch
