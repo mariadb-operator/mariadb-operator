@@ -33,7 +33,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, desiredSvc *corev1.Se
 	}
 
 	patch := client.MergeFrom(existingSvc.DeepCopy())
-	existingSvc.Spec.Ports = desiredSvc.Spec.Ports
+	updateServicePorts(&existingSvc, desiredSvc)
 	existingSvc.Spec.AllocateLoadBalancerNodePorts = desiredSvc.Spec.AllocateLoadBalancerNodePorts
 	existingSvc.Spec.Selector = desiredSvc.Spec.Selector
 	existingSvc.Spec.Type = desiredSvc.Spec.Type
@@ -52,4 +52,35 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, desiredSvc *corev1.Se
 	}
 
 	return r.Patch(ctx, &existingSvc, patch)
+}
+
+// updateServicePorts updates the ports of an existing service based on desired service ports.
+// If the existing service has no ports, it assigns the desired service's ports to it.
+// If the existing service has ports, it compares them with the desired service ports and performs necessary updates.
+func updateServicePorts(existingSvc, desiredSvc *corev1.Service) {
+	if existingSvc == nil || desiredSvc == nil {
+		return
+	}
+
+	if len(existingSvc.Spec.Ports) == 0 {
+		existingSvc.Spec.Ports = desiredSvc.Spec.Ports
+		return
+	}
+
+	existingPorts := make(map[int32]bool)
+	for _, port := range existingSvc.Spec.Ports {
+		existingPorts[port.Port] = true
+	}
+
+	for _, desiredPort := range desiredSvc.Spec.Ports {
+		if !existingPorts[desiredPort.Port] {
+			existingSvc.Spec.Ports = append(existingSvc.Spec.Ports, desiredPort)
+		}
+	}
+
+	if desiredSvc.Spec.Type != corev1.ServiceTypeNodePort {
+		for i := range existingSvc.Spec.Ports {
+			existingSvc.Spec.Ports[i].NodePort = 0
+		}
+	}
 }
