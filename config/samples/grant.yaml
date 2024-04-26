@@ -4,7 +4,7 @@ metadata:
   name: grant
 spec:
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb
   privileges:
     - "SELECT"
     - "INSERT"
