@@ -34,7 +34,7 @@ kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 - In case you are manually applying manifests, get a copy of your resources, as the CRD upgrade will wipe out fields that are no longer supported:
 ```bash
 kubectl get mariadb mariadb -o yaml > mariadb.yaml
-kubectl get mariadb mariadb -o yaml > maxscale.yaml
+kubectl get maxscale maxscale -o yaml > maxscale.yaml
 kubectl get backup backup -o yaml > backup.yaml
 kubectl get restore restore -o yaml > restore.yaml
 kubectl get restore sqljob -o yaml > sqljob.yaml
