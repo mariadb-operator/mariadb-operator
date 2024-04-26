@@ -78,7 +78,7 @@ func updateServicePorts(existingSvc, desiredSvc *corev1.Service) {
 		}
 	}
 
-	if desiredSvc.Spec.Type != corev1.ServiceTypeNodePort {
+	if desiredSvc.Spec.Type != corev1.ServiceTypeNodePort && desiredSvc.Spec.Type != corev1.ServiceTypeLoadBalancer {
 		for i := range existingSvc.Spec.Ports {
 			existingSvc.Spec.Ports[i].NodePort = 0
 		}
