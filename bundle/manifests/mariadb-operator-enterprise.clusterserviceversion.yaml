@@ -132,6 +132,7 @@ metadata:
               "INSERT",
               "UPDATE"
             ],
+            "requeueInterval": "30s",
             "retryInterval": "5s",
             "table": "*",
             "username": "user"
@@ -361,7 +362,7 @@ metadata:
             "maxUserConnections": 20,
             "passwordSecretKeyRef": {
               "key": "password",
-              "name": "user"
+              "name": "mariadb"
             },
             "retryInterval": "5s"
           }
@@ -371,7 +372,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:181c471bae75418cbefd54fb7d65fe5ac8e341136509e203fc148f216308b713
-    createdAt: "2024-04-24T10:34:10Z"
+    createdAt: "2024-04-26T12:54:49Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -3487,6 +3488,7 @@ spec:
                 - persistentvolumeclaims
               verbs:
                 - create
+                - deletecollection
                 - list
                 - patch
                 - watch
@@ -3499,13 +3501,6 @@ spec:
                 - get
                 - list
                 - watch
-            - apiGroups:
-                - ""
-              resources:
-                - pvcs
-              verbs:
-                - delete
-                - list
             - apiGroups:
                 - ""
               resources:
@@ -3902,7 +3897,7 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
+                        value: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:edc26ab2cddec2a444e5b49bdfa97132efce167e9d0eef47d49d25394c5f8631
                       - name: RELATED_IMAGE_MAXSCALE
                         value: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
                       - name: RELATED_IMAGE_EXPORTER
@@ -4034,8 +4029,6 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:45269c911cdefc16a1c14c092580ed4e3afb85c4c6801283681d9c0ac1f1fad7
-      name: mariadb
     - image: mariadb/maxscale@sha256:f2ce262fe7764e16da2b01bdf2fb2fc777bb66f688ec4c8ef37d50de2995ce12
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
@@ -4046,6 +4039,8 @@ spec:
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
+    - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:edc26ab2cddec2a444e5b49bdfa97132efce167e9d0eef47d49d25394c5f8631
+      name: mariadb
   version: 0.0.27
   webhookdefinitions:
     - admissionReviewVersions:
