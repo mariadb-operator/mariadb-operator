@@ -831,7 +831,7 @@ func TestRestoreJobMeta(t *testing.T) {
 			},
 		},
 		{
-			name: "override interit metadata",
+			name: "override inherit metadata",
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
