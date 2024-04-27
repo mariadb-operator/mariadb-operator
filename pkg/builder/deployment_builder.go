@@ -38,12 +38,13 @@ func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB) (*ap
 		labels.NewLabelsBuilder().
 			WithMetricsSelectorLabels(key).
 			Build()
+	exporter := ptr.Deref(mariadb.Spec.Metrics, mariadbv1alpha1.MariadbMetrics{}).Exporter
 	podObjMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(exporter.PodMetadata).
 			WithLabels(selectorLabels).
 			Build()
-	exporter := ptr.Deref(mariadb.Spec.Metrics, mariadbv1alpha1.MariadbMetrics{}).Exporter
 
 	podTemplate, err := b.exporterPodTemplate(
 		podObjMeta,

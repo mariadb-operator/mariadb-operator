@@ -255,28 +255,41 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 
 func TestExporterDeploymentMeta(t *testing.T) {
 	builder := newTestBuilder()
+	mdbObjMeta := metav1.ObjectMeta{
+		Name: "test",
+	}
 	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *mariadbv1alpha1.Metadata
+		name           string
+		mariadb        *mariadbv1alpha1.MariaDB
+		wantDeployMeta *mariadbv1alpha1.Metadata
+		wantPodMeta    *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantDeployMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "test-metrics",
+					"app.kubernetes.io/name":     "exporter",
+				},
 				Annotations: map[string]string{},
 			},
 		},
 		{
-			name: "meta",
+			name: "inherit meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
@@ -291,12 +304,108 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantDeployMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "test-metrics",
+					"app.kubernetes.io/name":     "exporter",
+					"database.myorg.io":          "mariadb",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "pod meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+						Exporter: mariadbv1alpha1.Exporter{
+							PodTemplate: mariadbv1alpha1.PodTemplate{
+								PodMetadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"database.myorg.io": "pod",
+									},
+									Annotations: map[string]string{
+										"database.myorg.io": "pod",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantDeployMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "test-metrics",
+					"app.kubernetes.io/name":     "exporter",
+					"database.myorg.io":          "pod",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "pod",
+				},
+			},
+		},
+		{
+			name: "all",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+						Exporter: mariadbv1alpha1.Exporter{
+							PodTemplate: mariadbv1alpha1.PodTemplate{
+								PodMetadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"database.myorg.io": "pod",
+									},
+									Annotations: map[string]string{
+										"database.myorg.io": "pod",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantDeployMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "test-metrics",
+					"app.kubernetes.io/name":     "exporter",
+					"database.myorg.io":          "pod",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "pod",
 				},
 			},
 		},
@@ -308,7 +417,8 @@ func TestExporterDeploymentMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Deployment: %v", err)
 			}
-			assertMeta(t, &deploy.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertMeta(t, &deploy.ObjectMeta, tt.wantDeployMeta.Labels, tt.wantDeployMeta.Annotations)
+			assertMeta(t, &deploy.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
 }
