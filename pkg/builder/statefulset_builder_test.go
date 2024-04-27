@@ -223,7 +223,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building MariaDB StatefulSet: %v", err)
 			}
-			assertMeta(t, &sts.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &sts.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }
@@ -283,7 +283,7 @@ func TestMaxScaleStatefulSetMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building MaxScale StatefulSet: %v", err)
 			}
-			assertMeta(t, &sts.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &sts.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }

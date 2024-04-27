@@ -53,7 +53,7 @@ func TestUserMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building User: %v", err)
 			}
-			assertMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }
@@ -104,7 +104,7 @@ func TestGrantMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Grant: %v", err)
 			}
-			assertMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }

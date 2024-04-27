@@ -60,7 +60,7 @@ func TestServiceMonitorMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building ServiceMonitor: %v", err)
 			}
-			assertMeta(t, &svcMonitor.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &svcMonitor.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }

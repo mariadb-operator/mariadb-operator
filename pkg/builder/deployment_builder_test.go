@@ -417,8 +417,8 @@ func TestExporterDeploymentMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Deployment: %v", err)
 			}
-			assertMeta(t, &deploy.ObjectMeta, tt.wantDeployMeta.Labels, tt.wantDeployMeta.Annotations)
-			assertMeta(t, &deploy.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+			assertObjectMeta(t, &deploy.ObjectMeta, tt.wantDeployMeta.Labels, tt.wantDeployMeta.Annotations)
+			assertObjectMeta(t, &deploy.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
 }

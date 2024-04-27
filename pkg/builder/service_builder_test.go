@@ -114,7 +114,7 @@ func TestServiceMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Service: %v", err)
 			}
-			assertMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }

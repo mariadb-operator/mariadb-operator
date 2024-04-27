@@ -136,7 +136,7 @@ func TestBackupPVCMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Backup PVC: %v", err)
 			}
-			assertMeta(t, &pvc.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &pvc.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }
@@ -319,7 +319,7 @@ func TestStoragePVCMeta(t *testing.T) {
 				t.Errorf("expect error to not have occurred, got: %v", err)
 			}
 			if pvc != nil {
-				assertMeta(t, &pvc.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+				assertObjectMeta(t, &pvc.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 			}
 		})
 	}
