@@ -17,14 +17,19 @@ func TestRestoreMeta(t *testing.T) {
 		Name: "restore",
 	}
 	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *mariadbv1alpha1.Metadata
+		name            string
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantRestoreMeta *mariadbv1alpha1.Metadata
+		wantPodMeta     *mariadbv1alpha1.Metadata
 	}{
 		{
 			name:    "no meta",
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantRestoreMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -43,12 +48,94 @@ func TestRestoreMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantRestoreMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "pod meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						RestoreJob: &mariadbv1alpha1.Job{
+							Metadata: &mariadbv1alpha1.Metadata{
+								Labels: map[string]string{
+									"database.myorg.io": "job",
+								},
+								Annotations: map[string]string{
+									"database.myorg.io": "job",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantRestoreMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "job",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "job",
+				},
+			},
+		},
+		{
+			name: "all",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						RestoreJob: &mariadbv1alpha1.Job{
+							Metadata: &mariadbv1alpha1.Metadata{
+								Labels: map[string]string{
+									"database.myorg.io": "job",
+								},
+								Annotations: map[string]string{
+									"database.myorg.io": "job",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantRestoreMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "job",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "job",
 				},
 			},
 		},
@@ -60,7 +147,9 @@ func TestRestoreMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Restore: %v", err)
 			}
-			assertMeta(t, &restore.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &restore.ObjectMeta, tt.wantRestoreMeta.Labels, tt.wantRestoreMeta.Annotations)
+			meta := ptr.Deref(restore.Spec.PodMetadata, mariadbv1alpha1.Metadata{})
+			assertMeta(t, &meta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
 }

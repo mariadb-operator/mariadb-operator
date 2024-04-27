@@ -554,6 +554,26 @@ type Metadata struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
+// MergeMetadata merges multiple Metadta instances into one
+func MergeMetadata(metas ...*Metadata) *Metadata {
+	meta := Metadata{
+		Labels:      map[string]string{},
+		Annotations: map[string]string{},
+	}
+	for _, m := range metas {
+		if m == nil {
+			continue
+		}
+		for k, v := range m.Labels {
+			meta.Labels[k] = v
+		}
+		for k, v := range m.Annotations {
+			meta.Annotations[k] = v
+		}
+	}
+	return &meta
+}
+
 // RestoreSource defines a source for restoring a MariaDB.
 type RestoreSource struct {
 	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.

@@ -56,7 +56,7 @@ func TestMaxScaleMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building MaxScale: %v", err)
 			}
-			assertMeta(t, &mxs.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &mxs.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }

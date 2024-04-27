@@ -22,7 +22,10 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	podTpl := mariadbv1alpha1.JobPodTemplate{}
 	podTpl.FromPodTemplate(mariadb.Spec.PodTemplate.DeepCopy())
 	podTpl.Affinity = restoreJob.Affinity
-	podTpl.PodMetadata = restoreJob.Metadata
+	podTpl.PodMetadata = mariadbv1alpha1.MergeMetadata(
+		mariadb.Spec.InheritMetadata,
+		restoreJob.Metadata,
+	)
 
 	containerTpl := mariadbv1alpha1.JobContainerTemplate{}
 	containerTpl.FromContainerTemplate(mariadb.Spec.ContainerTemplate.DeepCopy())
