@@ -22,7 +22,15 @@ func TestRestoreMeta(t *testing.T) {
 		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
-			name: "no meta",
+			name:    "no meta",
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "inherit meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -44,23 +52,15 @@ func TestRestoreMeta(t *testing.T) {
 				},
 			},
 		},
-		{
-			name:    "meta",
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantMeta: &mariadbv1alpha1.Metadata{
-				Labels:      map[string]string{},
-				Annotations: map[string]string{},
-			},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			configMap, err := builder.BuildRestore(tt.mariadb, key)
+			restore, err := builder.BuildRestore(tt.mariadb, key)
 			if err != nil {
 				t.Fatalf("unexpected error building Restore: %v", err)
 			}
-			assertMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertMeta(t, &restore.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }
