@@ -35,21 +35,17 @@ func (r *MaxScaleReconciler) reconcileMetrics(ctx context.Context, req *requestM
 	if !req.mxs.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
-	mdb, err := r.RefResolver.MariaDB(ctx, req.mxs.Spec.MariaDBRef, req.mxs.Namespace)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mdb)
-	}
 
 	if err := r.reconcileExporterConfig(ctx, req); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.reconcileExporterDeployment(ctx, req.mxs, mdb); err != nil {
+	if err := r.reconcileExporterDeployment(ctx, req.mxs); err != nil {
 		return ctrl.Result{}, err
 	}
 	if err := r.reconcileExporterService(ctx, req.mxs); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.reconcileServiceMonitor(ctx, req.mxs, mdb); err != nil {
+	if err := r.reconcileServiceMonitor(ctx, req.mxs); err != nil {
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
@@ -101,9 +97,8 @@ maxscale_password={{ .Password }}`)
 	return r.Create(ctx, secret)
 }
 
-func (r *MaxScaleReconciler) reconcileExporterDeployment(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	mariadb *mariadbv1alpha1.MariaDB) error {
-	desiredDeploy, err := r.Builder.BuildMaxScaleExporterDeployment(mxs, mariadb)
+func (r *MaxScaleReconciler) reconcileExporterDeployment(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
+	desiredDeploy, err := r.Builder.BuildMaxScaleExporterDeployment(mxs)
 	if err != nil {
 		return fmt.Errorf("error building exporter Deployment: %v", err)
 	}
@@ -139,9 +134,8 @@ func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
-func (r *MaxScaleReconciler) reconcileServiceMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	mariadb *mariadbv1alpha1.MariaDB) error {
-	desiredSvcMonitor, err := r.Builder.BuildMaxScaleServiceMonitor(mxs, mariadb)
+func (r *MaxScaleReconciler) reconcileServiceMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
+	desiredSvcMonitor, err := r.Builder.BuildMaxScaleServiceMonitor(mxs)
 	if err != nil {
 		return fmt.Errorf("error building Service Monitor: %v", err)
 	}
