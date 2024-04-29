@@ -116,7 +116,7 @@ func (m *maxScaleAPI) updateMonitorState(ctx context.Context) error {
 }
 
 func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.MonitorAttributes, error) {
-	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.MonitorPasswordSecretKeyRef, m.mxs.Namespace)
+	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.MonitorPasswordSecretKeyRef.SecretKeySelector, m.mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting monitor password: %v", err)
 	}
@@ -169,7 +169,7 @@ func (m *maxScaleAPI) updateServiceState(ctx context.Context, svc *mariadbv1alph
 }
 
 func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService) (*mxsclient.ServiceAttributes, error) {
-	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.ServerPasswordSecretKeyRef, m.mxs.Namespace)
+	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.ServerPasswordSecretKeyRef.SecretKeySelector, m.mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting server password: %v", err)
 	}
@@ -241,7 +241,7 @@ func (m *maxScaleAPI) patchMaxScaleConfigSync(ctx context.Context) error {
 	if m.mxs.Spec.Auth.SyncUsername == nil || m.mxs.Spec.Auth.SyncPasswordSecretKeyRef == nil {
 		return errors.New("'Config sync credentials must be set")
 	}
-	password, err := m.refResolver.SecretKeyRef(ctx, *m.mxs.Spec.Auth.SyncPasswordSecretKeyRef, m.mxs.Namespace)
+	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.SyncPasswordSecretKeyRef.SecretKeySelector, m.mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting sync password: %v", err)
 	}
@@ -292,7 +292,7 @@ func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *mariad
 
 func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	apiUrl string) (*mxsclient.Client, error) {
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef, mxs.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef.SecretKeySelector, mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting admin password: %v", err)
 	}

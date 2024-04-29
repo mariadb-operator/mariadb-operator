@@ -40,17 +40,26 @@ type RandomPasswordRequest struct {
 	Metadata  *mariadbv1alpha1.Metadata
 	Key       types.NamespacedName
 	SecretKey string
-	Data      map[string][]byte
+	Generate  bool
 }
 
-func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, req *RandomPasswordRequest) (string, error) {
+func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req RandomPasswordRequest) (string, error) {
 	var existingSecret corev1.Secret
-	if err := r.Get(ctx, req.Key, &existingSecret); err == nil {
+	err := r.Get(ctx, req.Key, &existingSecret)
+
+	if err == nil {
 		return string(existingSecret.Data[req.SecretKey]), nil
 	}
+	if !req.Generate {
+		return "", fmt.Errorf("error reconciling password Secret: %v", err)
+	}
+	if !apierrors.IsNotFound(err) {
+		return "", fmt.Errorf("error reconciling password Secret: %v", err)
+	}
+
 	password, err := r.generator.Generate(16, 4, 2, false, false)
 	if err != nil {
-		return "", fmt.Errorf("error generating replication password: %v", err)
+		return "", fmt.Errorf("error generating password Secret: %v", err)
 	}
 
 	opts := builder.SecretOpts{
@@ -62,10 +71,10 @@ func (r *SecretReconciler) ReconcileRandomPassword(ctx context.Context, req *Ran
 	}
 	secret, err := r.Builder.BuildSecret(opts, req.Owner)
 	if err != nil {
-		return "", fmt.Errorf("error building replication password Secret: %v", err)
+		return "", fmt.Errorf("error building password Secret: %v", err)
 	}
 	if err := r.Create(ctx, secret); err != nil {
-		return "", fmt.Errorf("error creating replication password Secret: %v", err)
+		return "", fmt.Errorf("error creating password Secret: %v", err)
 	}
 
 	return password, nil
@@ -81,11 +90,12 @@ type SecretRequest struct {
 func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) error {
 	var existingSecret corev1.Secret
 	err := r.Get(ctx, req.Key, &existingSecret)
+
 	if err == nil {
 		return nil
 	}
 	if !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error getting ConfigMap: %v", err)
+		return fmt.Errorf("error reconciling Secret: %v", err)
 	}
 
 	secretOpts := builder.SecretOpts{

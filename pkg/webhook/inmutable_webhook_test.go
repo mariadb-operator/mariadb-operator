@@ -365,17 +365,20 @@ func TestInmutableInitWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{},
+					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{},
 				},
 			},
 			new: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "mariadb-root",
+					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-root",
+							},
+							Key: "password",
 						},
-						Key: "password",
+						Generate: true,
 					},
 				},
 			},
@@ -386,22 +389,26 @@ func TestInmutableInitWebhook(t *testing.T) {
 			old: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "mariadb-root",
+					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-root",
+							},
+							Key: "password",
 						},
-						Key: "password",
 					},
 				},
 			},
 			new: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "mariadb-root",
+					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "mariadb-root",
+							},
+							Key: "another-password",
 						},
-						Key: "another-password",
 					},
 				},
 			},

@@ -316,7 +316,7 @@ type MaxScaleAuth struct {
 	// AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admin REST API. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AdminPasswordSecretKeyRef corev1.SecretKeySelector `json:"adminPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	AdminPasswordSecretKeyRef GeneratedSecretKeyRef `json:"adminPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -328,7 +328,7 @@ type MaxScaleAuth struct {
 	// MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MetricsPasswordSecretKeyRef corev1.SecretKeySelector `json:"metricsPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	MetricsPasswordSecretKeyRef GeneratedSecretKeyRef `json:"metricsPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -336,7 +336,7 @@ type MaxScaleAuth struct {
 	// ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ClientPasswordSecretKeyRef corev1.SecretKeySelector `json:"clientPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	ClientPasswordSecretKeyRef GeneratedSecretKeyRef `json:"clientPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// ClientMaxConnections defines the maximum number of connections that the client can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -350,7 +350,7 @@ type MaxScaleAuth struct {
 	// ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ServerPasswordSecretKeyRef corev1.SecretKeySelector `json:"serverPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	ServerPasswordSecretKeyRef GeneratedSecretKeyRef `json:"serverPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// ServerMaxConnections defines the maximum number of connections that the server can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -364,7 +364,7 @@ type MaxScaleAuth struct {
 	// MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MonitorPasswordSecretKeyRef corev1.SecretKeySelector `json:"monitorPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	MonitorPasswordSecretKeyRef GeneratedSecretKeyRef `json:"monitorPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// MonitorMaxConnections defines the maximum number of connections that the monitor can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -378,7 +378,7 @@ type MaxScaleAuth struct {
 	// SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SyncPasswordSecretKeyRef *corev1.SecretKeySelector `json:"syncPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	SyncPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"syncPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// SyncMaxConnections defines the maximum number of connections that the sync can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -395,7 +395,7 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	if m.AdminUsername == "" {
 		m.AdminUsername = "mariadb-operator"
 	}
-	if m.AdminPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+	if m.AdminPasswordSecretKeyRef == (GeneratedSecretKeyRef{}) {
 		m.AdminPasswordSecretKeyRef = mxs.AdminPasswordSecretKeyRef()
 	}
 	if m.DeleteDefaultAdmin == nil {
@@ -407,7 +407,7 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 		if m.MetricsUsername == "" {
 			m.MetricsUsername = "metrics"
 		}
-		if m.MetricsPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+		if m.MetricsPasswordSecretKeyRef == (GeneratedSecretKeyRef{}) {
 			m.MetricsPasswordSecretKeyRef = mxs.MetricsPasswordSecretKeyRef()
 		}
 	}
@@ -415,7 +415,7 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	if m.ClientUsername == "" {
 		m.ClientUsername = mxs.AuthClientUserKey().Name
 	}
-	if m.ClientPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+	if m.ClientPasswordSecretKeyRef == (GeneratedSecretKeyRef{}) {
 		m.ClientPasswordSecretKeyRef = mxs.AuthClientPasswordSecretKeyRef()
 	}
 	if m.ClientMaxConnections == 0 {
@@ -425,7 +425,7 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	if m.ServerUsername == "" {
 		m.ServerUsername = mxs.AuthServerUserKey().Name
 	}
-	if m.ServerPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+	if m.ServerPasswordSecretKeyRef == (GeneratedSecretKeyRef{}) {
 		m.ServerPasswordSecretKeyRef = mxs.AuthServerPasswordSecretKeyRef()
 	}
 	if m.ServerMaxConnections == 0 {
@@ -435,7 +435,7 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	if m.MonitorUsername == "" {
 		m.MonitorUsername = mxs.AuthMonitorUserKey().Name
 	}
-	if m.MonitorPasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+	if m.MonitorPasswordSecretKeyRef == (GeneratedSecretKeyRef{}) {
 		m.MonitorPasswordSecretKeyRef = mxs.AuthMonitorPasswordSecretKeyRef()
 	}
 	if m.MonitorMaxConnections == 0 {

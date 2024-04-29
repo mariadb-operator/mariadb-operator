@@ -302,7 +302,7 @@ func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alp
 		return nil, errors.New("primary server not found in spec")
 	}
 
-	password, err := r.RefResolver.SecretKeyRef(ctx, *mxs.Spec.Auth.SyncPasswordSecretKeyRef, mxs.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.SyncPasswordSecretKeyRef.SecretKeySelector, mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting sync password: %v", err)
 	}
