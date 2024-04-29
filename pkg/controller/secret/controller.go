@@ -35,7 +35,7 @@ func NewSecretReconciler(client client.Client, builder *builder.Builder) (*Secre
 	}, nil
 }
 
-type RandomPasswordRequest struct {
+type PasswordRequest struct {
 	Owner     metav1.Object
 	Metadata  *mariadbv1alpha1.Metadata
 	Key       types.NamespacedName
@@ -43,7 +43,7 @@ type RandomPasswordRequest struct {
 	Generate  bool
 }
 
-func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req RandomPasswordRequest) (string, error) {
+func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req PasswordRequest) (string, error) {
 	var existingSecret corev1.Secret
 	err := r.Get(ctx, req.Key, &existingSecret)
 
