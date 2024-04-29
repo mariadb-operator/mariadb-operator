@@ -19,9 +19,10 @@ type UserSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// PasswordSecretKeyRef is a reference to the password to be used by the User.
-	// +kubebuilder:validation:Required
+	// If not provided, the account will be locked and the password will expire.
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
+	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
 	// MaxUserConnections defines the maximum number of connections that the User can establish.
 	// +optional
 	// +kubebuilder:default=10

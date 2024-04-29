@@ -162,15 +162,19 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 
 func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client) error {
 	if mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
-		password, err := r.refResolver.SecretKeyRef(ctx, *mariadb.Spec.PasswordSecretKeyRef, mariadb.Namespace)
-		if err != nil {
-			return fmt.Errorf("error getting password: %v", err)
+		var createUserOpts []sqlClient.CreateUserOpt
+
+		if mariadb.Spec.PasswordSecretKeyRef != nil {
+			password, err := r.refResolver.SecretKeyRef(ctx, *mariadb.Spec.PasswordSecretKeyRef, mariadb.Namespace)
+			if err != nil {
+				return fmt.Errorf("error getting password: %v", err)
+			}
+
+			createUserOpts = append(createUserOpts, sqlClient.WithIdentifiedBy(password))
 		}
-		userOpts := sqlClient.CreateUserOpts{
-			IdentifiedBy: password,
-		}
+
 		accountName := formatAccountName(*mariadb.Spec.Username, "%")
-		if err := client.CreateUser(ctx, accountName, userOpts); err != nil {
+		if err := client.CreateUser(ctx, accountName, createUserOpts...); err != nil {
 			return fmt.Errorf("error creating user: %v", err)
 		}
 
@@ -244,10 +248,7 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 			return fmt.Errorf("error altering replication user: %v", err)
 		}
 	} else {
-		userOpts := sqlClient.CreateUserOpts{
-			IdentifiedBy: replPassword,
-		}
-		if err := client.CreateUser(ctx, accountName, userOpts); err != nil {
+		if err := client.CreateUser(ctx, accountName, sqlClient.WithIdentifiedBy(replPassword)); err != nil {
 			return fmt.Errorf("error creating replication user: %v", err)
 		}
 	}

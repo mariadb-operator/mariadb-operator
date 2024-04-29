@@ -641,7 +641,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			key: clientKey,
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ClientUsername,
-				PasswordSecretKeyRef: mxs.Spec.Auth.ClientPasswordSecretKeyRef,
+				PasswordSecretKeyRef: &mxs.Spec.Auth.ClientPasswordSecretKeyRef,
 				MaxUserConnections:   mxs.Spec.Auth.ClientMaxConnections,
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
@@ -671,7 +671,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			key: serverKey,
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ServerUsername,
-				PasswordSecretKeyRef: mxs.Spec.Auth.ServerPasswordSecretKeyRef,
+				PasswordSecretKeyRef: &mxs.Spec.Auth.ServerPasswordSecretKeyRef,
 				MaxUserConnections:   mxs.Spec.Auth.ServerMaxConnections,
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
@@ -719,7 +719,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			key: monitorKey,
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.MonitorUsername,
-				PasswordSecretKeyRef: mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
+				PasswordSecretKeyRef: &mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
 				MaxUserConnections:   mxs.Spec.Auth.MonitorMaxConnections,
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
@@ -737,7 +737,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			key: syncKey,
 			user: builder.UserOpts{
 				Name:                 *mxs.Spec.Auth.SyncUsername,
-				PasswordSecretKeyRef: *mxs.Spec.Auth.SyncPasswordSecretKeyRef,
+				PasswordSecretKeyRef: mxs.Spec.Auth.SyncPasswordSecretKeyRef,
 				MaxUserConnections:   *mxs.Spec.Auth.SyncMaxConnections,
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,

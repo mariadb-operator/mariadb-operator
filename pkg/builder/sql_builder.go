@@ -13,7 +13,7 @@ import (
 
 type UserOpts struct {
 	Name                 string
-	PasswordSecretKeyRef v1.SecretKeySelector
+	PasswordSecretKeyRef *v1.SecretKeySelector
 	MaxUserConnections   int32
 	Metadata             *mariadbv1alpha1.Metadata
 	MariaDBRef           mariadbv1alpha1.MariaDBRef

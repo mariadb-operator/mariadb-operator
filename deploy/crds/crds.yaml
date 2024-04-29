@@ -44934,8 +44934,9 @@ spec:
                 maxLength: 80
                 type: string
               passwordSecretKeyRef:
-                description: PasswordSecretKeyRef is a reference to the password to
-                  be used by the User.
+                description: |-
+                  PasswordSecretKeyRef is a reference to the password to be used by the User.
+                  If not provided, the account will be locked and the password will expire.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -44962,7 +44963,6 @@ spec:
                 type: string
             required:
             - mariaDbRef
-            - passwordSecretKeyRef
             type: object
           status:
             description: UserStatus defines the observed state of User
