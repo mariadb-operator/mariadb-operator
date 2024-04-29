@@ -12193,9 +12193,8 @@ spec:
                         properties:
                           generate:
                             default: false
-                            description: |-
-                              Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                              It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
                             type: boolean
                           key:
                             description: The key of the secret to select from.  Must
@@ -12233,9 +12232,8 @@ spec:
                         properties:
                           generate:
                             default: false
-                            description: |-
-                              Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                              It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
                             type: boolean
                           key:
                             description: The key of the secret to select from.  Must
@@ -12276,9 +12274,8 @@ spec:
                         properties:
                           generate:
                             default: false
-                            description: |-
-                              Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                              It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
                             type: boolean
                           key:
                             description: The key of the secret to select from.  Must
@@ -12316,9 +12313,8 @@ spec:
                         properties:
                           generate:
                             default: false
-                            description: |-
-                              Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                              It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
                             type: boolean
                           key:
                             description: The key of the secret to select from.  Must
@@ -12357,9 +12353,8 @@ spec:
                         properties:
                           generate:
                             default: false
-                            description: |-
-                              Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                              It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
                             type: boolean
                           key:
                             description: The key of the secret to select from.  Must
@@ -12397,9 +12392,8 @@ spec:
                         properties:
                           generate:
                             default: false
-                            description: |-
-                              Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                              It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
                             type: boolean
                           key:
                             description: The key of the secret to select from.  Must
@@ -23813,9 +23807,8 @@ spec:
                     properties:
                       generate:
                         default: false
-                        description: |-
-                          Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                          It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
                         type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
@@ -23894,9 +23887,8 @@ spec:
                 properties:
                   generate:
                     default: false
-                    description: |-
-                      Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                      It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                    description: Generate indicates whether the Secret should be generated
+                      if the Secret referenced is not present.
                     type: boolean
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -24452,9 +24444,8 @@ spec:
                         properties:
                           generate:
                             default: false
-                            description: |-
-                              Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                              It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
                             type: boolean
                           key:
                             description: The key of the secret to select from.  Must
@@ -24560,9 +24551,8 @@ spec:
                 properties:
                   generate:
                     default: false
-                    description: |-
-                      Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                      It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                    description: Generate indicates whether the Secret should be generated
+                      if the Secret referenced is not present.
                     type: boolean
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -29026,9 +29016,8 @@ spec:
                     properties:
                       generate:
                         default: false
-                        description: |-
-                          Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                          It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
                         type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
@@ -29066,9 +29055,8 @@ spec:
                     properties:
                       generate:
                         default: false
-                        description: |-
-                          Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                          It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
                         type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
@@ -29109,9 +29097,8 @@ spec:
                     properties:
                       generate:
                         default: false
-                        description: |-
-                          Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                          It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
                         type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
@@ -29149,9 +29136,8 @@ spec:
                     properties:
                       generate:
                         default: false
-                        description: |-
-                          Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                          It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
                         type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
@@ -29189,9 +29175,8 @@ spec:
                     properties:
                       generate:
                         default: false
-                        description: |-
-                          Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                          It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
                         type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
@@ -29229,9 +29214,8 @@ spec:
                     properties:
                       generate:
                         default: false
-                        description: |-
-                          Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-                          It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
                         type: boolean
                       key:
                         description: The key of the secret to select from.  Must be

@@ -528,7 +528,7 @@ _Appears in:_
 | `name` _string_ | Name of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br />TODO: Add other useful fields. apiVersion, kind, uid? |  |  |
 | `key` _string_ | The key of the secret to select from.  Must be a valid secret key. |  |  |
 | `optional` _boolean_ | Specify whether the Secret or its key must be defined |  |  |
-| `generate` _boolean_ | Generate indicates whether the Secret should be generated if the Secret referenced is not present.<br />It defaults to false, meaning that if the Secret referenced is not present, an error will be returned. | false |  |
+| `generate` _boolean_ | Generate indicates whether the Secret should be generated if the Secret referenced is not present. | false |  |
 
 
 #### Grant
