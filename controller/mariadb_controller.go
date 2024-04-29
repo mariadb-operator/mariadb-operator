@@ -169,6 +169,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.MaxScaleReconciler.Reconcile,
 		},
 		{
+			Name:      "SQL",
+			Reconcile: r.reconcileSQL,
+		},
+		{
 			Name:      "Metrics",
 			Reconcile: r.reconcileMetrics,
 		},
@@ -675,6 +679,54 @@ func (r *MariaDBReconciler) reconcileConnectionTemplate(ctx context.Context, key
 		return fmt.Errorf("erro building Connection: %v", err)
 	}
 	return r.Create(ctx, conn)
+}
+
+func (r *MariaDBReconciler) reconcileSQL(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !mariadb.IsReady() {
+		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing SQL resources")
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	userKey := mariadb.MariadbSysUserKey()
+	userOpts := builder.UserOpts{
+		MariaDBRef: mariadbv1alpha1.MariaDBRef{
+			ObjectReference: corev1.ObjectReference{
+				Name: mariadb.Name,
+			},
+		},
+		Metadata:             mariadb.Spec.InheritMetadata,
+		MaxUserConnections:   20,
+		Name:                 "mariadb.sys",
+		Host:                 "localhost",
+		PasswordSecretKeyRef: nil,
+	}
+	grantKey := mariadb.MariadbSysGrantKey()
+	grantOpts := []auth.GrantOpts{
+		{
+			Key: grantKey,
+			GrantOpts: builder.GrantOpts{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: mariadb.Name,
+					},
+				},
+				Metadata: mariadb.Spec.InheritMetadata,
+				Privileges: []string{
+					"SELECT",
+					"UPDATE",
+					"DELETE",
+				},
+				Database: "mysql",
+				Table:    "global_priv",
+				Username: "mariadb.sys",
+				Host:     "localhost",
+			},
+		},
+	}
+	if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, userKey, mariadb, userOpts, grantOpts...); !result.IsZero() || err != nil {
+		return result, err
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {

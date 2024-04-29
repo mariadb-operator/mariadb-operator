@@ -44,6 +44,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 	}
 
 	if !mariadb.IsReady() {
+		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing metrics")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
