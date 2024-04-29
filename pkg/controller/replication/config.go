@@ -217,28 +217,19 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 	replPasswordRef := newReplPasswordRef(mariadb)
 	var replPassword string
 
-	if mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
-		password, err := r.refResolver.SecretKeyRef(ctx, replPasswordRef.SecretKeySelector, mariadb.Namespace)
-		if err != nil {
-			return fmt.Errorf("error getting replication password: %v", err)
-		}
-		replPassword = password
-	} else {
-		req := secret.PasswordRequest{
-			Owner:    mariadb,
-			Metadata: mariadb.Spec.InheritMetadata,
-			Key: types.NamespacedName{
-				Name:      replPasswordRef.Name,
-				Namespace: mariadb.Namespace,
-			},
-			SecretKey: replPasswordRef.Key,
-			Generate:  replPasswordRef.Generate,
-		}
-		password, err := r.secretReconciler.ReconcilePassword(ctx, req)
-		if err != nil {
-			return fmt.Errorf("error reconciling replication passsword: %v", err)
-		}
-		replPassword = password
+	req := secret.PasswordRequest{
+		Owner:    mariadb,
+		Metadata: mariadb.Spec.InheritMetadata,
+		Key: types.NamespacedName{
+			Name:      replPasswordRef.Name,
+			Namespace: mariadb.Namespace,
+		},
+		SecretKey: replPasswordRef.Key,
+		Generate:  replPasswordRef.Generate,
+	}
+	replPassword, err := r.secretReconciler.ReconcilePassword(ctx, req)
+	if err != nil {
+		return fmt.Errorf("error reconciling replication passsword: %v", err)
 	}
 
 	accountName := formatAccountName(opts.username, "%")
