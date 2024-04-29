@@ -117,35 +117,47 @@ var _ = Describe("MaxScale types", func() {
 						},
 						Auth: MaxScaleAuth{
 							AdminUsername: "mariadb-operator",
-							AdminPasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-admin",
+							AdminPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-admin",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 							DeleteDefaultAdmin: ptr.To(true),
 							ClientUsername:     "maxscale-obj-client",
-							ClientPasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-client",
+							ClientPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-client",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 							ClientMaxConnections: 30,
 							ServerUsername:       "maxscale-obj-server",
-							ServerPasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-server",
+							ServerPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-server",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 							ServerMaxConnections: 30,
 							MonitorUsername:      "maxscale-obj-monitor",
-							MonitorPasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-monitor",
+							MonitorPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-monitor",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 							MonitorMaxConnections: 30,
 						},
@@ -324,51 +336,69 @@ var _ = Describe("MaxScale types", func() {
 						},
 						Auth: MaxScaleAuth{
 							AdminUsername: "mariadb-operator",
-							AdminPasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-admin",
+							AdminPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-admin",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 							DeleteDefaultAdmin: ptr.To(true),
 							MetricsUsername:    "metrics",
-							MetricsPasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-metrics",
+							MetricsPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-metrics",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 							ClientUsername: "maxscale-obj-client",
-							ClientPasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-client",
+							ClientPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-client",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 							ClientMaxConnections: 90,
 							ServerUsername:       "maxscale-obj-server",
-							ServerPasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-server",
+							ServerPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-server",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 							ServerMaxConnections: 90,
 							MonitorUsername:      "maxscale-obj-monitor",
-							MonitorPasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-monitor",
+							MonitorPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-monitor",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 							MonitorMaxConnections: 90,
 							SyncUsername:          ptr.To("maxscale-obj-sync"),
-							SyncPasswordSecretKeyRef: ptr.To(corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "maxscale-obj-sync",
+							SyncPasswordSecretKeyRef: &GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-sync",
+									},
+									Key: "password",
 								},
-								Key: "password",
-							}),
+								Generate: true,
+							},
 							SyncMaxConnections: ptr.To(int32(90)),
 						},
 						Servers: []MaxScaleServer{

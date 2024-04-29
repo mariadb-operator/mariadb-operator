@@ -401,7 +401,7 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 		return ctrl.Result{}, fmt.Errorf("error reconciling config Secret: %v", err)
 	}
 
-	randomPasswordKeys := []corev1.SecretKeySelector{
+	randomPasswordKeys := []mariadbv1alpha1.GeneratedSecretKeyRef{
 		mxs.Spec.Auth.AdminPasswordSecretKeyRef,
 		mxs.Spec.Auth.ClientPasswordSecretKeyRef,
 		mxs.Spec.Auth.ServerPasswordSecretKeyRef,
@@ -420,7 +420,7 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 
-		randomSecretReq := &secret.RandomPasswordRequest{
+		randomSecretReq := secret.RandomPasswordRequest{
 			Owner:    mxs,
 			Metadata: mxs.Spec.InheritMetadata,
 			Key: types.NamespacedName{
@@ -428,8 +428,9 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 				Namespace: mxs.Namespace,
 			},
 			SecretKey: secretKeyRef.Key,
+			Generate:  secretKeyRef.Generate,
 		}
-		if _, err := r.SecretReconciler.ReconcileRandomPassword(ctx, randomSecretReq); err != nil {
+		if _, err := r.SecretReconciler.ReconcilePassword(ctx, randomSecretReq); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling password: %v", err)
 		}
 	}
@@ -641,7 +642,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			key: clientKey,
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ClientUsername,
-				PasswordSecretKeyRef: &mxs.Spec.Auth.ClientPasswordSecretKeyRef,
+				PasswordSecretKeyRef: &mxs.Spec.Auth.ClientPasswordSecretKeyRef.SecretKeySelector,
 				MaxUserConnections:   mxs.Spec.Auth.ClientMaxConnections,
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
@@ -671,7 +672,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			key: serverKey,
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ServerUsername,
-				PasswordSecretKeyRef: &mxs.Spec.Auth.ServerPasswordSecretKeyRef,
+				PasswordSecretKeyRef: &mxs.Spec.Auth.ServerPasswordSecretKeyRef.SecretKeySelector,
 				MaxUserConnections:   mxs.Spec.Auth.ServerMaxConnections,
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
@@ -719,7 +720,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			key: monitorKey,
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.MonitorUsername,
-				PasswordSecretKeyRef: &mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
+				PasswordSecretKeyRef: &mxs.Spec.Auth.MonitorPasswordSecretKeyRef.SecretKeySelector,
 				MaxUserConnections:   mxs.Spec.Auth.MonitorMaxConnections,
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
@@ -737,7 +738,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			key: syncKey,
 			user: builder.UserOpts{
 				Name:                 *mxs.Spec.Auth.SyncUsername,
-				PasswordSecretKeyRef: mxs.Spec.Auth.SyncPasswordSecretKeyRef,
+				PasswordSecretKeyRef: &mxs.Spec.Auth.SyncPasswordSecretKeyRef.SecretKeySelector,
 				MaxUserConnections:   *mxs.Spec.Auth.SyncMaxConnections,
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
@@ -844,7 +845,7 @@ func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *maria
 	}
 	mxsApi := newMaxScaleAPI(mxs, defaultClient, r.RefResolver)
 
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef, mxs.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef.SecretKeySelector, mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting admin password: %v", err)
 	}
@@ -870,7 +871,7 @@ func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs
 	}
 	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.MetricsPasswordSecretKeyRef, mxs.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector, mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting metrics admin password: %v", err)
 	}
@@ -1263,7 +1264,7 @@ func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *reque
 		MaxScale:             req.mxs,
 		Key:                  key,
 		Username:             req.mxs.Spec.Auth.ClientUsername,
-		PasswordSecretKeyRef: req.mxs.Spec.Auth.ClientPasswordSecretKeyRef,
+		PasswordSecretKeyRef: req.mxs.Spec.Auth.ClientPasswordSecretKeyRef.SecretKeySelector,
 		Template:             req.mxs.Spec.Connection,
 	}
 	conn, err := r.Builder.BuildConnection(connOpts, req.mxs)

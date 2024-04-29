@@ -165,7 +165,7 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 		var createUserOpts []sqlClient.CreateUserOpt
 
 		if mariadb.Spec.PasswordSecretKeyRef != nil {
-			password, err := r.refResolver.SecretKeyRef(ctx, *mariadb.Spec.PasswordSecretKeyRef, mariadb.Namespace)
+			password, err := r.refResolver.SecretKeyRef(ctx, mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 			if err != nil {
 				return fmt.Errorf("error getting password: %v", err)
 			}
@@ -222,7 +222,7 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		}
 		replPassword = password
 	} else {
-		req := &secret.RandomPasswordRequest{
+		req := secret.RandomPasswordRequest{
 			Owner:    mariadb,
 			Metadata: mariadb.Spec.InheritMetadata,
 			Key: types.NamespacedName{
@@ -231,7 +231,7 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 			},
 			SecretKey: replPasswordRef.secretKey,
 		}
-		password, err := r.secretReconciler.ReconcileRandomPassword(ctx, req)
+		password, err := r.secretReconciler.ReconcilePassword(ctx, req)
 		if err != nil {
 			return fmt.Errorf("error reconciling replication passsword: %v", err)
 		}

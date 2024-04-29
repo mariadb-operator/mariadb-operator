@@ -117,18 +117,22 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 					"k8s.mariadb.com/test": "test",
 				},
 			},
-			RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: testPwdKey.Name,
+			RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
 				},
-				Key: testPwdSecretKey,
 			},
 			Username: &testUser,
-			PasswordSecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: testPwdKey.Name,
+			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
 				},
-				Key: testPwdSecretKey,
 			},
 			Database: &testDatabase,
 			Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -138,11 +142,11 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 				},
 			},
 			MyCnf: ptr.To(`[mariadb]
-			bind-address=*
-			default_storage_engine=InnoDB
-			binlog_format=row
-			innodb_autoinc_lock_mode=2
-			max_allowed_packet=256M`),
+bind-address=*
+default_storage_engine=InnoDB
+binlog_format=row
+innodb_autoinc_lock_mode=2
+max_allowed_packet=256M`),
 			Port: 3306,
 			Service: &mariadbv1alpha1.ServiceTemplate{
 				Type: corev1.ServiceTypeLoadBalancer,
@@ -165,11 +169,13 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 					ScrapeTimeout:     "10s",
 				},
 				Username: "monitoring",
-				PasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testPwdKey.Name,
+				PasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
 					},
-					Key: testPwdSecretKey,
 				},
 			},
 			Storage: mariadbv1alpha1.Storage{

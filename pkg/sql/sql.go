@@ -100,7 +100,7 @@ func NewClient(clientOpts ...Opt) (*Client, error) {
 
 func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver,
 	clientOpts ...Opt) (*Client, error) {
-	password, err := refResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef, mariadb.Namespace)
+	password, err := refResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error reading root password secret: %v", err)
 	}

@@ -78,7 +78,7 @@ func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 		{
 			Name: batchPasswordEnv,
 			ValueFrom: &v1.EnvVarSource{
-				SecretKeyRef: &mariadb.Spec.RootPasswordSecretKeyRef,
+				SecretKeyRef: &mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector,
 			},
 		},
 	}

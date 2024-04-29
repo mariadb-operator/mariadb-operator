@@ -62,7 +62,7 @@ func (r *MaxScaleReconciler) reconcileExporterConfig(ctx context.Context, req *r
 		return nil
 	}
 
-	password, err := r.RefResolver.SecretKeyRef(ctx, req.mxs.Spec.Auth.MetricsPasswordSecretKeyRef, req.mxs.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, req.mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector, req.mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting metrics password Secret: %v", err)
 	}

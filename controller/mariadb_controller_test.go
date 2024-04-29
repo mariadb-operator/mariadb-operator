@@ -402,11 +402,13 @@ var _ = Describe("MariaDB replication", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Username: &testUser,
-					PasswordSecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
+					PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testPwdKey.Name,
+							},
+							Key: testPwdSecretKey,
 						},
-						Key: testPwdSecretKey,
 					},
 					Database: &testDatabase,
 					MyCnf: func() *string {
@@ -693,11 +695,13 @@ var _ = Describe("MariaDB Galera", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Username: &testUser,
-					PasswordSecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
+					PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testPwdKey.Name,
+							},
+							Key: testPwdSecretKey,
 						},
-						Key: testPwdSecretKey,
 					},
 					Database: &testDatabase,
 					MyCnf: ptr.To(`[mariadb]
