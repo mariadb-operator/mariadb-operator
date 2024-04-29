@@ -32,7 +32,7 @@ var _ = Describe("Grant controller", func() {
 						},
 						WaitForIt: true,
 					},
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
+					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
@@ -161,7 +161,7 @@ var _ = Describe("Grant controller", func() {
 						},
 						WaitForIt: true,
 					},
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
+					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},

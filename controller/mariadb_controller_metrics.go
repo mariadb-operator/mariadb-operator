@@ -93,7 +93,7 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 	}
 	userOpts := builder.UserOpts{
 		Name:                 mariadb.Spec.Metrics.Username,
-		PasswordSecretKeyRef: mariadb.Spec.Metrics.PasswordSecretKeyRef,
+		PasswordSecretKeyRef: &mariadb.Spec.Metrics.PasswordSecretKeyRef,
 		MaxUserConnections:   3,
 		Metadata:             mariadb.Spec.InheritMetadata,
 		MariaDBRef:           ref,

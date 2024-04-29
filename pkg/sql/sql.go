@@ -223,13 +223,35 @@ type CreateUserOpts struct {
 	MaxUserConnections int32
 }
 
-func (c *Client) CreateUser(ctx context.Context, accountName string, opts CreateUserOpts) error {
+type CreateUserOpt func(*CreateUserOpts)
+
+func WithIdentifiedBy(password string) CreateUserOpt {
+	return func(cuo *CreateUserOpts) {
+		cuo.IdentifiedBy = password
+	}
+}
+
+func WithMaxUserConnections(maxConns int32) CreateUserOpt {
+	return func(cuo *CreateUserOpts) {
+		cuo.MaxUserConnections = maxConns
+	}
+}
+
+func (c *Client) CreateUser(ctx context.Context, accountName string, createUserOpts ...CreateUserOpt) error {
+	opts := CreateUserOpts{}
+	for _, setOpt := range createUserOpts {
+		setOpt(&opts)
+	}
+
 	query := fmt.Sprintf("CREATE USER IF NOT EXISTS %s ", accountName)
 	if opts.IdentifiedBy != "" {
 		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
 	}
-	if opts.MaxUserConnections != 0 {
+	if opts.MaxUserConnections > 0 {
 		query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", opts.MaxUserConnections)
+	}
+	if opts.IdentifiedBy == "" {
+		query += "ACCOUNT LOCK PASSWORD EXPIRE "
 	}
 	query += ";"
 
