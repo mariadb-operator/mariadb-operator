@@ -656,7 +656,6 @@ type GeneratedSecretKeyRef struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	corev1.SecretKeySelector `json:",inline"`
 	// Generate indicates whether the Secret should be generated if the Secret referenced is not present.
-	// It defaults to false, meaning that if the Secret referenced is not present, an error will be returned.
 	// +optional
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
