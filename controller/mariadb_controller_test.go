@@ -172,6 +172,32 @@ var _ = Describe("MariaDB controller", func() {
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			By("Expecting mariadb.sys User to be ready eventually")
+			Eventually(func(g Gomega) bool {
+				var user mariadbv1alpha1.User
+				if err := k8sClient.Get(testCtx, testMariaDb.MariadbSysUserKey(), &user); err != nil {
+					return false
+				}
+				g.Expect(user.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(user.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(user.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(user.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				return user.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting mariadb.sys Grant to be ready eventually")
+			Eventually(func(g Gomega) bool {
+				var grant mariadbv1alpha1.Grant
+				if err := k8sClient.Get(testCtx, testMariaDb.MariadbSysGrantKey(), &grant); err != nil {
+					return false
+				}
+				g.Expect(grant.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(grant.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(grant.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(grant.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				return grant.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
 			By("Expecting metrics User to be ready eventually")
 			Eventually(func(g Gomega) bool {
 				var user mariadbv1alpha1.User
