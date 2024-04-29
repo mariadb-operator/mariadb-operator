@@ -161,3 +161,19 @@ func (m *MariaDB) PVCKey(name string, index int) types.NamespacedName {
 		Namespace: m.Namespace,
 	}
 }
+
+// MariadbSysUserKey defines the key for the 'mariadb.sys' User resource.
+func (m *MariaDB) MariadbSysUserKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-mariadb-sys", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// MariadbSysGrantKey defines the key for the 'mariadb.sys' Grant resource.
+func (m *MariaDB) MariadbSysGrantKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-mariadb-sys-global-priv", m.Name),
+		Namespace: m.Namespace,
+	}
+}
