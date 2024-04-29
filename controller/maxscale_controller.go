@@ -420,7 +420,7 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 
-		randomSecretReq := secret.RandomPasswordRequest{
+		randomSecretReq := secret.PasswordRequest{
 			Owner:    mxs,
 			Metadata: mxs.Spec.InheritMetadata,
 			Key: types.NamespacedName{

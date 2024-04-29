@@ -212,7 +212,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if !mariadb.IsRootPasswordEmpty() {
 		secretKeyRef := mariadb.Spec.RootPasswordSecretKeyRef
-		req := secret.RandomPasswordRequest{
+		req := secret.PasswordRequest{
 			Owner:    mariadb,
 			Metadata: mariadb.Spec.InheritMetadata,
 			Key: types.NamespacedName{
@@ -230,7 +230,7 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 
 	if mariadb.IsInitialDataEnabled() && mariadb.Spec.PasswordSecretKeyRef != nil {
 		secretKeyRef := *mariadb.Spec.PasswordSecretKeyRef
-		req := secret.RandomPasswordRequest{
+		req := secret.PasswordRequest{
 			Owner:    mariadb,
 			Metadata: mariadb.Spec.InheritMetadata,
 			Key: types.NamespacedName{

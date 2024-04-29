@@ -71,7 +71,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 
 func (r *MariaDBReconciler) reconcileMetricsPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	secretKeyRef := mariadb.Spec.Metrics.PasswordSecretKeyRef
-	req := secret.RandomPasswordRequest{
+	req := secret.PasswordRequest{
 		Owner:    mariadb,
 		Metadata: mariadb.Spec.InheritMetadata,
 		Key: types.NamespacedName{
