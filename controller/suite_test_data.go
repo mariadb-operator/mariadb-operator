@@ -31,7 +31,7 @@ var (
 		Namespace: testNamespace,
 	}
 	testPwdKey = types.NamespacedName{
-		Name:      "passsword",
+		Name:      "password",
 		Namespace: testNamespace,
 	}
 	testPwdSecretKey = "passsword"
