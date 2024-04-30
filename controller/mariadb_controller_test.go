@@ -332,6 +332,86 @@ var _ = Describe("MariaDB controller", func() {
 		})
 	})
 
+	Context("When creating a MariaDB with generated passwords", func() {
+		It("Should reconcile", func() {
+			mdbKey := types.NamespacedName{
+				Name:      "mariadb-generate",
+				Namespace: testNamespace,
+			}
+			rootPasswordKey := types.NamespacedName{
+				Name:      "mariadb-root-generate",
+				Namespace: testNamespace,
+			}
+			metricsKey := types.NamespacedName{
+				Name:      "mariadb-metrics-generate",
+				Namespace: testNamespace,
+			}
+
+			mdb := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      mdbKey.Name,
+					Namespace: mdbKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: rootPasswordKey.Name,
+							},
+							Key: testPwdSecretKey,
+						},
+						Generate: true,
+					},
+					Username: ptr.To("user"),
+					PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testPwdKey.Name,
+							},
+							Key: testPwdSecretKey,
+						},
+						Generate: false,
+					},
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+						PasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: metricsKey.Name,
+								},
+								Key: testPwdSecretKey,
+							},
+							Generate: true,
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			}
+
+			By("Creating MariaDB")
+			Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&mdb)
+			})
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, mdbKey, &mdb); err != nil {
+					return false
+				}
+				return mdb.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting to create a root Secret eventually")
+			expectSecretToExist(rootPasswordKey, testPwdSecretKey)
+
+			By("Expecting to create a metrics Secret eventually")
+			expectSecretToExist(metricsKey, testPwdSecretKey)
+		})
+	})
+
 	Context("When updating a MariaDB", func() {
 		It("Should reconcile", func() {
 			By("Creating MariaDB")
@@ -1095,6 +1175,21 @@ func deploymentReady(deploy *appsv1.Deployment) bool {
 	return false
 }
 
+func expectSecretToExist(key types.NamespacedName, secretKey string) {
+	Eventually(func(g Gomega) bool {
+		var secret corev1.Secret
+		key := types.NamespacedName{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		}
+		if err := k8sClient.Get(testCtx, key, &secret); err != nil {
+			return false
+		}
+		Expect(secret.Data[secretKey]).ToNot(BeEmpty())
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+}
+
 func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
 	Expect(k8sClient.Delete(testCtx, mdb)).To(Succeed())
 
@@ -1117,11 +1212,11 @@ func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
 	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 }
 
-func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
+func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
+			Name:      mdbKey.Name,
+			Namespace: mdbKey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
@@ -1148,7 +1243,7 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
+		if err := k8sClient.Get(testCtx, mdbKey, &mdb); err != nil {
 			return false
 		}
 		return mdb.IsReady()
@@ -1156,7 +1251,7 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 
 	By("Expecting MariaDB to eventually have restored backup")
 	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
+		if err := k8sClient.Get(testCtx, mdbKey, &mdb); err != nil {
 			return false
 		}
 		return mdb.HasRestoredBackup()
