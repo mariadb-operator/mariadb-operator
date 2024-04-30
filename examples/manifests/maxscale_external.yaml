@@ -68,6 +68,7 @@ spec:
       timeout: 10s
 
   auth:
+    generate: false
     adminUsername: mariadb-operator
     adminPasswordSecretKeyRef:
       name: maxscale
