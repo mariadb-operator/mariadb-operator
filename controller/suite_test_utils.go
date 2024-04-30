@@ -56,17 +56,6 @@ var (
 	}
 )
 
-func expectMariadbReady(ctx context.Context, k8sClient client.Client) {
-	var mdb mariadbv1alpha1.MariaDB
-	By("Expecting MariaDB to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(ctx, testMdbkey, &mdb); err != nil {
-			return false
-		}
-		return mdb.IsReady()
-	}, testHighTimeout, testInterval).Should(BeTrue())
-}
-
 func createTestData(ctx context.Context, k8sClient client.Client, env environment.OperatorEnv) {
 	var testCidrPrefix, err = docker.GetKindCidrPrefix()
 	Expect(testCidrPrefix).ShouldNot(Equal(""))
@@ -184,7 +173,33 @@ max_allowed_packet=256M`),
 		},
 	}
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
-	expectMariadbReady(ctx, k8sClient)
+	expectMariadbReady(ctx, k8sClient, testMdbkey)
+}
+
+func expectMariadbReady(ctx context.Context, k8sClient client.Client, key types.NamespacedName) {
+	var mdb mariadbv1alpha1.MariaDB
+	By("Expecting MariaDB to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
+			return false
+		}
+		return mdb.IsReady()
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func expectSecretToExist(ctx context.Context, k8sClient client.Client, key types.NamespacedName, secretKey string) {
+	Eventually(func(g Gomega) bool {
+		var secret corev1.Secret
+		key := types.NamespacedName{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		}
+		if err := k8sClient.Get(ctx, key, &secret); err != nil {
+			return false
+		}
+		Expect(secret.Data[secretKey]).ToNot(BeEmpty())
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func testS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {

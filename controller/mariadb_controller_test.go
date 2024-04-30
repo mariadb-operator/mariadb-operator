@@ -397,18 +397,13 @@ var _ = Describe("MariaDB controller", func() {
 			})
 
 			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, mdbKey, &mdb); err != nil {
-					return false
-				}
-				return mdb.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
+			expectMariadbReady(testCtx, k8sClient, mdbKey)
 
 			By("Expecting to create a root Secret eventually")
-			expectSecretToExist(rootPasswordKey, testPwdSecretKey)
+			expectSecretToExist(testCtx, k8sClient, rootPasswordKey, testPwdSecretKey)
 
 			By("Expecting to create a metrics Secret eventually")
-			expectSecretToExist(metricsKey, testPwdSecretKey)
+			expectSecretToExist(testCtx, k8sClient, metricsKey, testPwdSecretKey)
 		})
 	})
 
@@ -1173,21 +1168,6 @@ func deploymentReady(deploy *appsv1.Deployment) bool {
 		}
 	}
 	return false
-}
-
-func expectSecretToExist(key types.NamespacedName, secretKey string) {
-	Eventually(func(g Gomega) bool {
-		var secret corev1.Secret
-		key := types.NamespacedName{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-		}
-		if err := k8sClient.Get(testCtx, key, &secret); err != nil {
-			return false
-		}
-		Expect(secret.Data[secretKey]).ToNot(BeEmpty())
-		return true
-	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {

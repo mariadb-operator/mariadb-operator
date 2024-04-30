@@ -86,7 +86,7 @@ var _ = BeforeSuite(func() {
 		Expect(k8sClient).NotTo(BeNil())
 
 		By("Waiting for MariaDB")
-		expectMariadbReady(testCtx, k8sClient)
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
 		return
 	}
 
