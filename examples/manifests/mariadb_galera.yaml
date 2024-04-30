@@ -6,6 +6,7 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
+    generate: true
 
   storage:
     size: 1Gi

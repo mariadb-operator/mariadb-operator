@@ -59,10 +59,6 @@ spec:
 
   auth:
     generate: true
-    adminUsername: mariadb-operator
-    adminPasswordSecretKeyRef:
-      name: maxscale
-      key: password
 
   kubernetesService:
     type: LoadBalancer

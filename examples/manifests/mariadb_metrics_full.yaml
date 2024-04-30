@@ -35,3 +35,4 @@ spec:
     passwordSecretKeyRef:
       name: mariadb
       key: password
+      generate: true

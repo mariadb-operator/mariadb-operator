@@ -6,11 +6,13 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
+    generate: true
 
   username: mariadb
   passwordSecretKeyRef:
     name: mariadb
     key: password
+    generate: true
   database: mariadb
 
   image: mariadb:10.11.7
