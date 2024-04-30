@@ -1216,6 +1216,10 @@ spec:
           password to call the admin REST API. It is defaulted if not provided.
         displayName: Admin Password Secret Key Ref
         path: maxScale.auth.adminPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.adminPasswordSecretKeyRef.generate
       - description: AdminUsername is an admin username to call the admin REST API.
           It is defaulted if not provided.
         displayName: Admin Username
@@ -1232,6 +1236,10 @@ spec:
           to connect to MaxScale. It is defaulted if not provided.
         displayName: Client Password Secret Key Ref
         path: maxScale.auth.clientPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.clientPasswordSecretKeyRef.generate
       - description: ClientUsername is the user to connect to MaxScale. It is defaulted
           if not provided.
         displayName: Client Username
@@ -1249,6 +1257,10 @@ spec:
           password to call the admib REST API. It is defaulted if metrics are enabled.
         displayName: Metrics Password Secret Key Ref
         path: maxScale.auth.metricsPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.metricsPasswordSecretKeyRef.generate
       - description: MetricsUsername is an metrics username to call the REST API.
           It is defaulted if metrics are enabled.
         displayName: Metrics Username
@@ -1266,6 +1278,10 @@ spec:
           not provided.
         displayName: Monitor Password Secret Key Ref
         path: maxScale.auth.monitorPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.monitorPasswordSecretKeyRef.generate
       - description: MonitorUsername is the user used by MaxScale monitor to connect
           to MariaDB server. It is defaulted if not provided.
         displayName: Monitor Username
@@ -1282,6 +1298,10 @@ spec:
           used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
         displayName: Server Password Secret Key Ref
         path: maxScale.auth.serverPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.serverPasswordSecretKeyRef.generate
       - description: ServerUsername is the user used by MaxScale to connect to MariaDB
           server. It is defaulted if not provided.
         displayName: Server Username
@@ -1299,6 +1319,10 @@ spec:
           HA is enabled.
         displayName: Sync Password Secret Key Ref
         path: maxScale.auth.syncPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.syncPasswordSecretKeyRef.generate
       - description: MonitoSyncUsernamerUsername is the user used by MaxScale config
           sync to connect to MariaDB server. It is defaulted when HA is enabled.
         displayName: Sync Username
@@ -1993,6 +2017,10 @@ spec:
           user used by the exporter.
         displayName: Password Secret Key Ref
         path: metrics.passwordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: metrics.passwordSecretKeyRef.generate
       - description: ServiceMonitor defines the ServiceMonior object.
         displayName: Service Monitor
         path: metrics.serviceMonitor
@@ -2027,6 +2055,10 @@ spec:
           user provided via a Secret.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: passwordSecretKeyRef.generate
       - description: PodDisruptionBudget defines the budget for replica availability.
         displayName: Pod Disruption Budget
         path: podDisruptionBudget
@@ -2210,6 +2242,10 @@ spec:
           use as password for the replication user.
         displayName: Repl Password Secret Key Ref
         path: replication.replica.replPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: replication.replica.replPasswordSecretKeyRef.generate
       - description: SyncTimeout defines the timeout for a replica to be synced with
           the primary when performing a primary switchover. If the timeout is reached,
           the replica GTID will be reset and the switchover will continue.
@@ -2242,6 +2278,10 @@ spec:
         path: rootPasswordSecretKeyRef
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: rootPasswordSecretKeyRef.generate
       - description: SecondaryConnection defines templates to configure the secondary
           Connection object.
         displayName: Secondary Connection
@@ -2578,6 +2618,10 @@ spec:
           password to call the admin REST API. It is defaulted if not provided.
         displayName: Admin Password Secret Key Ref
         path: auth.adminPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.adminPasswordSecretKeyRef.generate
       - description: AdminUsername is an admin username to call the admin REST API.
           It is defaulted if not provided.
         displayName: Admin Username
@@ -2594,6 +2638,10 @@ spec:
           to connect to MaxScale. It is defaulted if not provided.
         displayName: Client Password Secret Key Ref
         path: auth.clientPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.clientPasswordSecretKeyRef.generate
       - description: ClientUsername is the user to connect to MaxScale. It is defaulted
           if not provided.
         displayName: Client Username
@@ -2611,6 +2659,10 @@ spec:
           password to call the admib REST API. It is defaulted if metrics are enabled.
         displayName: Metrics Password Secret Key Ref
         path: auth.metricsPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.metricsPasswordSecretKeyRef.generate
       - description: MetricsUsername is an metrics username to call the REST API.
           It is defaulted if metrics are enabled.
         displayName: Metrics Username
@@ -2628,6 +2680,10 @@ spec:
           not provided.
         displayName: Monitor Password Secret Key Ref
         path: auth.monitorPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.monitorPasswordSecretKeyRef.generate
       - description: MonitorUsername is the user used by MaxScale monitor to connect
           to MariaDB server. It is defaulted if not provided.
         displayName: Monitor Username
@@ -2644,6 +2700,10 @@ spec:
           used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
         displayName: Server Password Secret Key Ref
         path: auth.serverPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.serverPasswordSecretKeyRef.generate
       - description: ServerUsername is the user used by MaxScale to connect to MariaDB
           server. It is defaulted if not provided.
         displayName: Server Username
@@ -2661,6 +2721,10 @@ spec:
           HA is enabled.
         displayName: Sync Password Secret Key Ref
         path: auth.syncPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.syncPasswordSecretKeyRef.generate
       - description: MonitoSyncUsernamerUsername is the user used by MaxScale config
           sync to connect to MariaDB server. It is defaulted when HA is enabled.
         displayName: Sync Username
@@ -3709,7 +3773,8 @@ spec:
         displayName: Name
         path: name
       - description: PasswordSecretKeyRef is a reference to the password to be used
-          by the User.
+          by the User. If not provided, the account will be locked and the password
+          will expire.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
       - description: RequeueInterval is used to perform requeue reconciliations.

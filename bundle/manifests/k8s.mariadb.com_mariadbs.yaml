@@ -7791,6 +7791,11 @@ spec:
                           to the admin password to call the admin REST API. It is
                           defaulted if not provided.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -7825,6 +7830,11 @@ spec:
                           to the password to connect to MaxScale. It is defaulted
                           if not provided.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -7862,6 +7872,11 @@ spec:
                           to the metrics password to call the admib REST API. It is
                           defaulted if metrics are enabled.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -7896,6 +7911,11 @@ spec:
                           to the password used by MaxScale monitor to connect to MariaDB
                           server. It is defaulted if not provided.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -7931,6 +7951,11 @@ spec:
                           to the password used by MaxScale to connect to MariaDB server.
                           It is defaulted if not provided.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -7965,6 +7990,11 @@ spec:
                           to the password used by MaxScale config to connect to MariaDB
                           server. It is defaulted when HA is enabled.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -19375,6 +19405,11 @@ spec:
                     description: PasswordSecretKeyRef is a reference to the password
                       of the monitoring user used by the exporter.
                     properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
                           a valid secret key.
@@ -19450,6 +19485,11 @@ spec:
                 description: PasswordSecretKeyRef is a reference to the password of
                   the initial user provided via a Secret.
                 properties:
+                  generate:
+                    default: false
+                    description: Generate indicates whether the Secret should be generated
+                      if the Secret referenced is not present.
+                    type: boolean
                   key:
                     description: The key of the secret to select from.  Must be a
                       valid secret key.
@@ -20002,6 +20042,11 @@ spec:
                         description: ReplPasswordSecretKeyRef provides a reference
                           to the Secret to use as password for the replication user.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -20104,6 +20149,11 @@ spec:
                 description: RootPasswordSecretKeyRef is a reference to a Secret key
                   containing the root password.
                 properties:
+                  generate:
+                    default: false
+                    description: Generate indicates whether the Secret should be generated
+                      if the Secret referenced is not present.
+                    type: boolean
                   key:
                     description: The key of the secret to select from.  Must be a
                       valid secret key.
