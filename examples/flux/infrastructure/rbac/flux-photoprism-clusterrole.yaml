@@ -64,6 +64,8 @@ rules:
   resources:
   - sealedsecrets
   verbs:
+  - create
   - list
   - get
   - patch
+  - update
