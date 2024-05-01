@@ -9,13 +9,15 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: mariadb-operator
-      version: "0.27.0"
+      version: "0.27.0" # TODO: bump chart when published
   interval: 1h0m0s
   values:
     image:
       repository: ghcr.io/mariadb-operator/mariadb-operator
       pullPolicy: IfNotPresent
       tag: v0.0.28 # TODO: default to appVersion
+    extraEnv: # TODO: remove when chart bumped
+      RELATED_IMAGE_EXPORTER_MAXSCALE: mariadb/maxscale-prometheus-exporter-ubi:latest
     metrics:
       enabled: true
       serviceMonitor:
