@@ -2,5 +2,6 @@
 
 ```bash
 make cluster
+export GITHUB_TOKEN=<my-token>
 make example-flux
 ``` 
