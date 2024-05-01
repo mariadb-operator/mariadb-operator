@@ -17,7 +17,8 @@ spec:
       pullPolicy: IfNotPresent
       tag: v0.0.28 # TODO: default to appVersion
     extraEnv: # TODO: remove when chart bumped
-      RELATED_IMAGE_EXPORTER_MAXSCALE: mariadb/maxscale-prometheus-exporter-ubi:latest
+      - name: RELATED_IMAGE_EXPORTER_MAXSCALE
+        value: mariadb/maxscale-prometheus-exporter-ubi:latest
     metrics:
       enabled: true
       serviceMonitor:
