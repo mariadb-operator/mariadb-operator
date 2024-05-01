@@ -109,7 +109,7 @@ helm-chart-version: yq ## Get helm chart version.
 
 ##@ Install
 
-PROMETHEUS_VERSION ?= "55.5.0"
+PROMETHEUS_VERSION ?= "58.3.1"
 
 .PHONY: install-prometheus-crds
 install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs.
@@ -117,22 +117,22 @@ install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs.
 
 .PHONY: install-prometheus
 install-prometheus: cluster-ctx ## Install kube-prometheus-stack helm chart.
-	@./hack/install_prometheus.sh
+	@PROMETHEUS_VERSION=$(PROMETHEUS_VERSION) ./hack/install_prometheus.sh
 
-CERT_MANAGER_VERSION ?= "v1.9.1"
+CERT_MANAGER_VERSION ?= "v1.14.5"
 .PHONY: install-cert-manager
 install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
-	@./hack/install_cert_manager.sh
+	@CERT_MANAGER_VERSION=$(CERT_MANAGER_VERSION) ./hack/install_cert_manager.sh
 
-METALLB_VERSION ?= "0.13.9"
+METALLB_VERSION ?= "0.14.5"
 .PHONY: install-metallb
 install-metallb: cluster-ctx ## Install metallb helm chart.
-	@./hack/install_metallb.sh
+	@METALLB_VERSION=$(METALLB_VERSION) ./hack/install_metallb.sh
 
-MINIO_VERSION ?= "5.0.14"
+MINIO_VERSION ?= "5.2.0"
 .PHONY: install-minio
 install-minio: cluster-ctx cert-minio ## Install minio helm chart.
-	@./hack/install_minio.sh
+	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
 
 .PHONY: install-crds
 install-crds: cluster-ctx manifests kustomize ## Install CRDs.
