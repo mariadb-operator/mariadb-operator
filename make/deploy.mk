@@ -203,7 +203,7 @@ GITHUB_BRANCH ?= main
 
 .PHONY: example-flux
 example-flux: flux ## Install flux example.
-	flux bootstrap github \
+	$(FLUX) bootstrap github \
 		--owner=$(GITHUB_USER) \
 		--repository=$(GITHUB_REPOSITORY)\
 		--branch=$(GITHUB_BRANCH) \
