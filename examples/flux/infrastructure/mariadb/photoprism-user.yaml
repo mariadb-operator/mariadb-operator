@@ -4,7 +4,7 @@ metadata:
   name: photoprism
 spec:
   mariaDbRef:
-    name: mariadb
+    name: mariadb-galera
   passwordSecretKeyRef:
     name: photoprism
     key: password
