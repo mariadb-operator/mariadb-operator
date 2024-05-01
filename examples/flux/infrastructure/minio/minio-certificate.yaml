@@ -1,0 +1,20 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: minio
+spec:
+  secretName: minio-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  commonName: minio.minio.svc.cluster.local"
+  isCA: false
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+    - minio
+    - minio.minio
+    - minio.minio.svc.cluster.local
+  issuerRef:
+    name: ca
+    kind: ClusterIssuer
