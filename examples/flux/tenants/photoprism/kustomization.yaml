@@ -6,4 +6,4 @@ resources:
   - photoprism-connection.yaml
   - photoprism-helmrelease.yaml
   - photoprism-namespace.yaml
-  - photoprism-secret.yaml
+  - photoprism-sealedsecret.yaml
