@@ -6,7 +6,7 @@ spec:
   mariaDbRef:
     name: mariadb
   privileges:
-    - "ALL"
+    - "ALL PRIVILEGES"
   database: "*"
   table: "*"
   username: photoprism
