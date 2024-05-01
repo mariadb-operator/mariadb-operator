@@ -199,7 +199,7 @@ sysbench-galera: ## Run sysbench tests for Galera.
 
 GITHUB_USER := mariadb-operator
 GITHUB_REPOSITORY := mariadb-operator
-GITHUB_BRANCH ?= release-v0.0.28 # TODO: deploy main
+GITHUB_BRANCH ?= main
 
 .PHONY: example-flux
 example-flux: flux ## Install flux example.
