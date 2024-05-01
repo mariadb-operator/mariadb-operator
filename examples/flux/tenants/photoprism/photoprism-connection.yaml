@@ -3,9 +3,9 @@ kind: Connection
 metadata:
   name: connection
 spec:
-  mariaDbRef:
-    name: mariadb-galera
-    namespace: mariadb
+  maxScaleRef:
+    name: maxscale-galera
+    namespace: maxscale
   username: photoprism
   passwordSecretKeyRef:
     name: photoprism
