@@ -342,10 +342,6 @@ var _ = Describe("MariaDB controller", func() {
 				Name:      "mariadb-root-generate",
 				Namespace: testNamespace,
 			}
-			metricsKey := types.NamespacedName{
-				Name:      "mariadb-metrics-generate",
-				Namespace: testNamespace,
-			}
 
 			mdb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -370,19 +366,7 @@ var _ = Describe("MariaDB controller", func() {
 							},
 							Key: testPwdSecretKey,
 						},
-						Generate: false,
-					},
-					Metrics: &mariadbv1alpha1.MariadbMetrics{
-						Enabled: true,
-						PasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-							SecretKeySelector: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: metricsKey.Name,
-								},
-								Key: testPwdSecretKey,
-							},
-							Generate: true,
-						},
+						Generate: true,
 					},
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("300Mi")),
@@ -402,8 +386,8 @@ var _ = Describe("MariaDB controller", func() {
 			By("Expecting to create a root Secret eventually")
 			expectSecretToExist(testCtx, k8sClient, rootPasswordKey, testPwdSecretKey)
 
-			By("Expecting to create a metrics Secret eventually")
-			expectSecretToExist(testCtx, k8sClient, metricsKey, testPwdSecretKey)
+			By("Expecting to create a password Secret eventually")
+			expectSecretToExist(testCtx, k8sClient, testPwdKey, testPwdSecretKey)
 		})
 	})
 
