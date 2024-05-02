@@ -2,6 +2,29 @@ apiVersion: v1
 entries:
   mariadb-operator:
   - apiVersion: v2
+    appVersion: v0.0.28
+    created: "2024-05-02T13:01:08.719264289Z"
+    description: Run and operate MariaDB in a cloud native way
+    digest: 6f8fda0ded70aadf8cf2729b22d7ff5db7b3d216f0e007d847ed4ed3b1746117
+    home: https://github.com/mariadb-operator/mariadb-operator
+    icon: https://mariadb-operator.github.io/mariadb-operator/assets/mariadb_profile.svg
+    keywords:
+    - mariadb
+    - mysql
+    - operator
+    - mariadb-operator
+    - database
+    - maxscale
+    kubeVersion: '>= 1.16.0-0'
+    maintainers:
+    - email: mariadb-operator@proton.me
+      name: mmontes11
+    name: mariadb-operator
+    type: application
+    urls:
+    - https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.28.0/mariadb-operator-0.28.0.tgz
+    version: 0.28.0
+  - apiVersion: v2
     appVersion: v0.0.27
     created: "2024-03-08T13:40:02.075271787Z"
     description: Run and operate MariaDB in a cloud native way
@@ -802,4 +825,4 @@ entries:
     urls:
     - https://github.com/mmontes11/mariadb-operator/releases/download/helm-chart-0.2.0/mariadb-operator-0.2.0.tgz
     version: 0.2.0
-generated: "2024-03-08T13:40:02.075529909Z"
+generated: "2024-05-02T13:01:08.719587945Z"
