@@ -42,8 +42,8 @@ jobs:
           fi
           
           RELEASE_ARGS=release
-          RELEASE_HEADER_TMPL=docs/releases/RELEASE_${VERSION}_HEADER.md.gotmpl
-          RELEASE_FOOTER_TMPL=docs/releases/RELEASE_${VERSION}_FOOTER.md.gotmpl
+          RELEASE_HEADER_TMPL=docs/releases/RELEASE_${TAG}_HEADER.md.gotmpl
+          RELEASE_FOOTER_TMPL=docs/releases/RELEASE_${TAG}_FOOTER.md.gotmpl
           if [ -f "${RELEASE_HEADER_TMPL}" ]; then
             RELEASE_ARGS="${RELEASE_ARGS} --release-header-tmpl=${RELEASE_HEADER_TMPL}"
           else
