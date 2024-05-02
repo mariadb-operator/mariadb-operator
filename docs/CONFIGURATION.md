@@ -3,7 +3,7 @@
 > [!NOTE]  
 > This documentation applies to `mariadb-operator` version >= v0.0.28
 
-This documentation aims to provide guidance on several configuration aspects across all the `mariadb-operator` CRs. 
+This documentation aims to provide guidance on various configuration aspects across many `mariadb-operator` CRs. 
 
 ## Table of contents
 <!-- toc -->
@@ -26,7 +26,7 @@ spec:
     key: root-password
 ``` 
 
-By default, fields like `rootPasswordSecretKeyRef` are optional and defaulted by the operator, resulting in random password generation by the operator if left empty:
+By default, fields like `rootPasswordSecretKeyRef` are optional and defaulted by the operator, resulting in random password generation by the operator if not provided:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
