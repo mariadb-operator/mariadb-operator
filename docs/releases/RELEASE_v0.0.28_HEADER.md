@@ -1,6 +1,6 @@
-📣 Announcing the release of `{{ .ProjectName }}`🦭 __[v0.0.28](https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.28)__ ! A version fully loaded of new features, enhancements and bug fixes. Check out the detailed list below.
+Announcing the release of `{{ .ProjectName }}`🦭 __[v0.0.28](https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.28)__ ! A version fully loaded of new features, enhancements and bug fixes. Check out the detailed list below.
 
-🛠️ Before upgrading, be sure to consult the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.28.md)__.
+Before upgrading, be sure to consult the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.28.md)__.
 
 ### Backups
 - Refactor S3 storage engine to properly support prefixes: https://github.com/mariadb-operator/mariadb-operator/pull/554
@@ -67,6 +67,8 @@ Refer to the [registry documentation](https://github.com/mariadb-operator/mariad
 
 The CRD bundle size has been reduced a 18%: https://github.com/mariadb-operator/mariadb-operator/pull/561
 
-🤝 We value your feedback! If you encounter any issues or have suggestions, please [open an issue on GitHub](https://github.com/mariadb-operator/mariadb-operator/issues/new/choose). Your input is crucial to improve `{{ .ProjectName }}`🦭.
+---
 
-👥 Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.
+We value your feedback! If you encounter any issues or have suggestions, please [open an issue on GitHub](https://github.com/mariadb-operator/mariadb-operator/issues/new/choose). Your input is crucial to improve `{{ .ProjectName }}`🦭.
+
+Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.
