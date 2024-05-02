@@ -1,6 +1,6 @@
-Announcing the release of `mariadb-operator`🦭 __[v0.0.28](https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.28)__ ! A version fully loaded of new features, enhancements and bug fixes. Check out the detailed list below.
+📣 Announcing the release of `{{ .ProjectName }}`🦭 __[v0.0.28](https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.28)__ ! A version fully loaded of new features, enhancements and bug fixes. Check out the detailed list below.
 
-Before upgrading, be sure to consult the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.28.md)__.
+🛠️ Before upgrading, be sure to consult the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.28.md)__.
 
 ### Backups
 - Refactor S3 storage engine to properly support prefixes: https://github.com/mariadb-operator/mariadb-operator/pull/554
@@ -13,7 +13,7 @@ Refer to the [backup documentation](https://github.com/mariadb-operator/mariadb-
 
 ### Galera
 - Support for IPv6: https://github.com/mariadb-operator/mariadb-operator/pull/461
-- Ability to pass extra options to `wsrep_provider_options` via `proviverOptions` support: https://github.com/mariadb-operator/mariadb-operator/pull/461
+- Ability to pass extra options to `wsrep_provider_options` via `proviverOptions`: https://github.com/mariadb-operator/mariadb-operator/pull/461
 - Support for `clusterMonitorInterval` in cluster recovery: https://github.com/mariadb-operator/mariadb-operator/pull/445
 - Decouple cluster recovery from control plane where possible: https://github.com/mariadb-operator/mariadb-operator/pull/584
 - Update Galera config when `MariaDB` request fails: https://github.com/mariadb-operator/mariadb-operator/pull/487
@@ -66,3 +66,7 @@ Refer to the [registry documentation](https://github.com/mariadb-operator/mariad
 ### CRD size
 
 The CRD bundle size has been reduced a 18%: https://github.com/mariadb-operator/mariadb-operator/pull/561
+
+🤝 We value your feedback! If you encounter any issues or have suggestions, please [open an issue on GitHub](https://github.com/mariadb-operator/mariadb-operator/issues/new/choose). Your input is crucial to improve `{{ .ProjectName }}`🦭.
+
+👥 Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.
