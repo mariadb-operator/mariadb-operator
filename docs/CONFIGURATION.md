@@ -26,7 +26,7 @@ spec:
     key: root-password
 ``` 
 
-By default, fields like `rootPasswordSecretKeyRef` are optional and defaulted by the operator, resulting in random password generation by the operator if not provided:
+By default, fields like `rootPasswordSecretKeyRef` are optional and defaulted by the operator, resulting in random password generation if not provided:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -55,12 +55,12 @@ spec:
 ``` 
 
 This way, we are telling the operator that we are expecting a `Secret` to be available eventually, enabling the use of GitOps tools to seed the password:
-- [sealed-secrets](https://github.com/bitnami-labs/sealed-secrets): The `Secret` is reconciled from a `SealedSecret`, which is de-encrypted by the sealed-secrets controller.
+- [sealed-secrets](https://github.com/bitnami-labs/sealed-secrets): The `Secret` is reconciled from a `SealedSecret`, which is decrypted by the sealed-secrets controller.
 - [external-secrets](https://github.com/external-secrets/external-secrets): The `Secret` is reconciled fom an `ExternalSecret`, which is read by the external-secrets controller from an external secrets source (Vault, AWS Secrets Manager ...).
 
 ## Probes
 
-Kubernetes probes serve as an inversion of control mechanism, enabling the application to communicate its health status to Kubernetes. This enables Kubernetes to take appropriate actions, such as restarting or stop sending traffic to `Pods`, when the application is unhealthy.
+Kubernetes probes serve as an inversion of control mechanism, enabling the application to communicate its health status to Kubernetes. This enables Kubernetes to take appropriate actions when the application is unhealthy, such as restarting or stop sending traffic to `Pods`.
 
 > [!IMPORTANT]  
 > Make sure you check the [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) if you are unfamiliar with Kubernetes probes.
@@ -84,4 +84,4 @@ spec:
     timeoutSeconds: 5
 ```
 
-There isn't a universally correct default value for these thresholds, so we recommend determining your own based on factors like the compute resources, network, storage, and other aspects of the environment where your `MariaDB` and `MaxScale` instances are running.
+There isn't an universally correct default value for these thresholds, so we recommend determining your own based on factors like the compute resources, network, storage, and other aspects of the environment where your `MariaDB` and `MaxScale` instances are running.
