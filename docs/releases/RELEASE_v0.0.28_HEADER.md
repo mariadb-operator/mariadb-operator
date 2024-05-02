@@ -6,8 +6,8 @@ Before upgrading, be sure to consult the __[UPGRADE GUIDE](https://github.com/ma
 - Refactor S3 storage engine to properly support prefixes: https://github.com/mariadb-operator/mariadb-operator/pull/554
 - Support for backing up and restoring specific logical databases: https://github.com/mariadb-operator/mariadb-operator/pull/553
 - Avoid adding `LOCK TABLES` statements to backups when Galera is enabled: https://github.com/mariadb-operator/mariadb-operator/pull/494
-- Ignoring `mysql.global_priv` by default when Galera is enabled: https://github.com/mariadb-operator/mariadb-operator/pull/545
 - Support for `ignoreGlobalPriv` in `Backup` resource: https://github.com/mariadb-operator/mariadb-operator/pull/557
+- Ignoring `mysql.global_priv` by default when Galera is enabled: https://github.com/mariadb-operator/mariadb-operator/pull/545
 
 Refer to the [backup documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md) for further detail.
 
@@ -40,7 +40,7 @@ Refer to the [metadata documentation](https://github.com/mariadb-operator/mariad
 ### Anti-Affinity
 - `Job` and metrics `Pods` anti-affinity rules relative to `MariaDB`: https://github.com/mariadb-operator/mariadb-operator/pull/566
 - `MaxScale` anti-affinity rules relative to `MariaDB`: https://github.com/mariadb-operator/mariadb-operator/pull/568
-- Ability to specify `affinity` to initial `Restore` Job: https://github.com/mariadb-operator/mariadb-operator/pull/448
+- Ability to specify `affinity` to initial `Restore` `Job`: https://github.com/mariadb-operator/mariadb-operator/pull/448
 - Fix metrics selector to avoid clashing with `MariaDB`: https://github.com/mariadb-operator/mariadb-operator/pull/446
 
 Refer to the [HA documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HA.md#pod-anti-affinity) for further detail.
@@ -53,13 +53,13 @@ Refer to the [configuration documentation](https://github.com/mariadb-operator/m
 
 ### Probes
 
-Ability to specify probe thresholds: https://github.com/mariadb-operator/mariadb-operator/pull/509
+Ability to partially define probes in order to configure thresholds: https://github.com/mariadb-operator/mariadb-operator/pull/509
 
 Refer to the [configuration documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/CONFIGURATION.md#probes) for further detail.
 
 ### Private registries
 
-Support for private registries in all CRDs via `imagePullSecrets`: https://github.com/mariadb-operator/mariadb-operator/pull/459
+Support for private registries in all CRs via `imagePullSecrets`: https://github.com/mariadb-operator/mariadb-operator/pull/459
 
 Refer to the [registry documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/REGISTRY.md) for further detail.
 
