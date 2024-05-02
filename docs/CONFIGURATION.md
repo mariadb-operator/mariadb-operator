@@ -40,7 +40,7 @@ spec:
     generate: true
 ``` 
 
-An user may choose to explicitly provide a `Secret` reference via `rootPasswordSecretKeyRef` and opt-out fron random password generation by either not providing the `generate` field or setting it to `false`: 
+You may choose to explicitly provide a `Secret` reference via `rootPasswordSecretKeyRef` and opt-out fron random password generation by either not providing the `generate` field or setting it to `false`: 
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -65,7 +65,7 @@ Kubernetes probes serve as an inversion of control mechanism, enabling the appli
 > [!IMPORTANT]  
 > Make sure you check the [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) if you are unfamiliar with Kubernetes probes.
 
-Fine tunning of Kubernetes probes for databases running in Kubernetes is critical, you may do so by tweaking the following fields:
+Fine tunning of probes for databases running in Kubernetes is critical, you may do so by tweaking the following fields:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
