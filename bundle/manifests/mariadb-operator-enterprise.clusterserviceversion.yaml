@@ -376,8 +376,8 @@ metadata:
     capabilities: Auto Pilot
     categories: Database
     certified: "true"
-    containerImage: mariadb/mariadb-operator-enterprise@sha256:557e729463fb9555e2c616461fa5b8d23cc41592b986f5bcc64aaed76b3733a3
-    createdAt: "2024-05-02T14:49:57Z"
+    containerImage: mariadb/mariadb-operator-enterprise@sha256:6aea22a24100368cd269ebd46980e6c3051d260549604f6a29b1198500ad0e1b
+    createdAt: "2024-05-06T13:04:24Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -393,7 +393,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: mariadb-operator-enterprise.v0.0.28
+  name: mariadb-operator-enterprise.v0.0.29-dev
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -3959,11 +3959,11 @@ spec:
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
                         value: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
                       - name: MARIADB_OPERATOR_IMAGE
-                        value: mariadb/mariadb-operator-enterprise:v0.0.28
+                        value: mariadb/mariadb-operator-enterprise:v0.0.29-dev
                       - name: MARIADB_GALERA_INIT_IMAGE
-                        value: mariadb/mariadb-operator-enterprise:v0.0.28
+                        value: mariadb/mariadb-operator-enterprise:v0.0.29-dev
                       - name: MARIADB_GALERA_AGENT_IMAGE
-                        value: mariadb/mariadb-operator-enterprise:v0.0.28
+                        value: mariadb/mariadb-operator-enterprise:v0.0.29-dev
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib/galera/libgalera_enterprise_smm.so
                       - name: WATCH_NAMESPACE
@@ -3980,7 +3980,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: mariadb/mariadb-operator-enterprise@sha256:557e729463fb9555e2c616461fa5b8d23cc41592b986f5bcc64aaed76b3733a3
+                    image: mariadb/mariadb-operator-enterprise@sha256:6aea22a24100368cd269ebd46980e6c3051d260549604f6a29b1198500ad0e1b
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -4084,6 +4084,10 @@ spec:
     name: MariaDB Corporation
   relatedImages:
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+      name: exporter-maxscale
+    - image: mariadb/mariadb-operator-enterprise@sha256:6aea22a24100368cd269ebd46980e6c3051d260549604f6a29b1198500ad0e1b
+      name: mariadb-operator-enterprise
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
     - image: us-central1-docker.pkg.dev/mariadb-es-docker-registry/enterprise-docker/enterprise-server@sha256:edc26ab2cddec2a444e5b49bdfa97132efce167e9d0eef47d49d25394c5f8631
       name: mariadb
@@ -4091,11 +4095,7 @@ spec:
       name: maxscale
     - image: prom/mysqld-exporter@sha256:7211a617ec657701ca819aa0ba28e1d5750f5bf2c1391b755cc4a48cc360b0fa
       name: exporter
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
-      name: exporter-maxscale
-    - image: mariadb/mariadb-operator-enterprise@sha256:557e729463fb9555e2c616461fa5b8d23cc41592b986f5bcc64aaed76b3733a3
-      name: mariadb-operator-enterprise
-  version: 0.0.28
+  version: 0.0.29-dev
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
