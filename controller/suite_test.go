@@ -117,7 +117,7 @@ var _ = BeforeSuite(func() {
 
 	env, err := environment.GetOperatorEnv(testCtx)
 	Expect(err).ToNot(HaveOccurred())
-	discoveryClient, err := discovery.NewDiscoveryClient()
+	discovery, err := discovery.NewDiscovery()
 	Expect(err).ToNot(HaveOccurred())
 
 	builder := builder.NewBuilder(scheme, env)
@@ -190,11 +190,11 @@ var _ = BeforeSuite(func() {
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorderFor("mariadb"),
 
-		Environment:     env,
-		Builder:         builder,
-		RefResolver:     refResolver,
-		ConditionReady:  conditionReady,
-		DiscoveryClient: discoveryClient,
+		Environment:    env,
+		Builder:        builder,
+		RefResolver:    refResolver,
+		ConditionReady: conditionReady,
+		Discovery:      discovery,
 
 		ConfigMapReconciler:      configMapReconciler,
 		SecretReconciler:         secretReconciler,
@@ -217,11 +217,11 @@ var _ = BeforeSuite(func() {
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorderFor("maxscale"),
 
-		Builder:         builder,
-		ConditionReady:  conditionReady,
-		Environment:     env,
-		RefResolver:     refResolver,
-		DiscoveryClient: discoveryClient,
+		Builder:        builder,
+		ConditionReady: conditionReady,
+		Environment:    env,
+		RefResolver:    refResolver,
+		Discovery:      discovery,
 
 		SecretReconciler:         secretReconciler,
 		RBACReconciler:           rbacReconciler,

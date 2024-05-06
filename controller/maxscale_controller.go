@@ -49,11 +49,11 @@ type MaxScaleReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 
-	Builder         *builder.Builder
-	ConditionReady  *condition.Ready
-	Environment     *environment.OperatorEnv
-	RefResolver     *refresolver.RefResolver
-	DiscoveryClient *discovery.DiscoveryClient
+	Builder        *builder.Builder
+	ConditionReady *condition.Ready
+	Environment    *environment.OperatorEnv
+	RefResolver    *refresolver.RefResolver
+	Discovery      *discovery.Discovery
 
 	SecretReconciler         *secret.SecretReconciler
 	RBACReconciler           *rbac.RBACReconciler

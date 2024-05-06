@@ -21,7 +21,7 @@ func (r *MaxScaleReconciler) reconcileMetrics(ctx context.Context, req *requestM
 		return ctrl.Result{}, nil
 	}
 
-	exist, err := r.DiscoveryClient.ServiceMonitorExist()
+	exist, err := r.Discovery.ServiceMonitorExist()
 	if err != nil {
 		return ctrl.Result{}, err
 	}

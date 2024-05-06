@@ -1,39 +1,50 @@
 package discovery
 
 import (
+	"errors"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-type DiscoveryClient struct {
-	discovery.DiscoveryClient
+type Discovery struct {
+	client discovery.DiscoveryInterface
 }
 
-func NewDiscoveryClient() (*DiscoveryClient, error) {
+func NewDiscovery() (*Discovery, error) {
 	config, err := ctrl.GetConfig()
 	if err != nil {
 		return nil, err
 	}
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+	client, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		return nil, err
 	}
-	return &DiscoveryClient{
-		DiscoveryClient: *discoveryClient,
+	return &Discovery{
+		client: client,
 	}, nil
 }
 
-func (c *DiscoveryClient) ServiceMonitorExist() (bool, error) {
+func NewDiscoveryWithClient(client discovery.DiscoveryInterface) (*Discovery, error) {
+	if client == nil {
+		return nil, errors.New("client should not be nil")
+	}
+	return &Discovery{
+		client: client,
+	}, nil
+}
+
+func (c *Discovery) ServiceMonitorExist() (bool, error) {
 	return c.resourceExist("monitoring.coreos.com/v1", "servicemonitors")
 }
 
-func (c *DiscoveryClient) SecurityContextConstrainstsExist() (bool, error) {
+func (c *Discovery) SecurityContextConstrainstsExist() (bool, error) {
 	return c.resourceExist("security.openshift.io/v1", "securitycontextconstraints")
 }
 
-func (c *DiscoveryClient) resourceExist(groupVersion, kind string) (bool, error) {
-	apiResourceList, err := c.DiscoveryClient.ServerResourcesForGroupVersion(groupVersion)
+func (c *Discovery) resourceExist(groupVersion, kind string) (bool, error) {
+	apiResourceList, err := c.client.ServerResourcesForGroupVersion(groupVersion)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return false, nil
