@@ -32,7 +32,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, nil
 	}
 
-	exist, err := r.DiscoveryClient.ServiceMonitorExist()
+	exist, err := r.Discovery.ServiceMonitorExist()
 	if err != nil {
 		return ctrl.Result{}, err
 	}

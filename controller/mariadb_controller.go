@@ -49,11 +49,11 @@ type MariaDBReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 
-	Builder         *builder.Builder
-	RefResolver     *refresolver.RefResolver
-	ConditionReady  *condition.Ready
-	Environment     *environment.OperatorEnv
-	DiscoveryClient *discovery.DiscoveryClient
+	Builder        *builder.Builder
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *condition.Ready
+	Environment    *environment.OperatorEnv
+	Discovery      *discovery.Discovery
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
