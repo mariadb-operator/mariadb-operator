@@ -147,7 +147,7 @@ var rootCmd = &cobra.Command{
 		galeraRecorder := mgr.GetEventRecorderFor("galera")
 		replRecorder := mgr.GetEventRecorderFor("replication")
 
-		discoveryClient, err := discovery.NewDiscoveryClient(restConfig)
+		discoveryClient, err := discovery.NewDiscoveryClient()
 		if err != nil {
 			setupLog.Error(err, "Error getting discovery client")
 			os.Exit(1)

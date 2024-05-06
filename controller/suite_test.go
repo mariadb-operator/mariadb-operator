@@ -117,7 +117,7 @@ var _ = BeforeSuite(func() {
 
 	env, err := environment.GetOperatorEnv(testCtx)
 	Expect(err).ToNot(HaveOccurred())
-	discoveryClient, err := discovery.NewDiscoveryClient(cfg)
+	discoveryClient, err := discovery.NewDiscoveryClient()
 	Expect(err).ToNot(HaveOccurred())
 
 	builder := builder.NewBuilder(scheme, env)
