@@ -116,7 +116,11 @@ examples: examples-operator examples-mariadb examples-maxscale examples-exporter
 ##@ Generate
 
 .PHONY: generate
-generate: manifests code embed-entrypoint helm manifests-bundle docs examples ## Generate artifacts.
+ifneq ($(findstring -dev,$(VERSION)),)
+generate: manifests code embed-entrypoint
+else
+generate: manifests code embed-entrypoint helm manifests-bundle docs examples
+endif
 
 .PHONY: gen
 gen: generate ## Generate alias.
