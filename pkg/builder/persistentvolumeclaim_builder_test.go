@@ -11,7 +11,7 @@ import (
 )
 
 func TestInvalidBackupPVC(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "invalid-backup-pvc",
 	}
@@ -61,7 +61,7 @@ func TestInvalidBackupPVC(t *testing.T) {
 }
 
 func TestBackupPVCMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "backup-pvc",
 	}
@@ -142,7 +142,7 @@ func TestBackupPVCMeta(t *testing.T) {
 }
 
 func TestStoragePVCMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "backup-pvc",
 	}

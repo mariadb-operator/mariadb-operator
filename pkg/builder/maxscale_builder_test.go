@@ -8,7 +8,7 @@ import (
 )
 
 func TestMaxScaleMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "maxscale",
 	}

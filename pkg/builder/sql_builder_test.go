@@ -8,7 +8,7 @@ import (
 )
 
 func TestUserMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "user",
 	}
@@ -59,7 +59,7 @@ func TestUserMeta(t *testing.T) {
 }
 
 func TestGrantMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "grant",
 	}

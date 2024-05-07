@@ -12,7 +12,7 @@ import (
 )
 
 func TestMariadbImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "mariadb-image-pull-secrets",
 		Namespace: "test",
@@ -67,7 +67,7 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 }
 
 func TestMaxScaleImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "maxscale-image-pull-secrets",
 		Namespace: "test",
@@ -122,7 +122,7 @@ func TestMaxScaleImagePullSecrets(t *testing.T) {
 }
 
 func TestMariaDBStatefulSetMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
@@ -229,7 +229,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 }
 
 func TestMaxScaleStatefulSetMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name: "maxscale-obj",
 	}

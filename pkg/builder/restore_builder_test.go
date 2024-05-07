@@ -12,7 +12,7 @@ import (
 )
 
 func TestRestoreMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "restore",
 	}
@@ -155,7 +155,7 @@ func TestRestoreMeta(t *testing.T) {
 }
 
 func TestBuildRestore(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-restore-builder",

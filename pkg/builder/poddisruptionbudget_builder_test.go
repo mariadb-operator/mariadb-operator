@@ -7,7 +7,7 @@ import (
 )
 
 func TestPodDisruptionBudgetMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	tests := []struct {
 		name     string
 		opts     PodDisruptionBudgetOpts
