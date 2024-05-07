@@ -69,6 +69,31 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	volumes, volumeSources := jobBatchStorageVolume(volume, backup.Spec.Storage.S3)
 	affinity := ptr.Deref(backup.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
+	mariadbContainer, err := b.jobMariadbContainer(
+		cmd.MariadbDump(backup, mariadb),
+		volumeSources,
+		jobEnv(mariadb),
+		backup.Spec.Resources,
+		mariadb,
+		backup.Spec.SecurityContext,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	operatorContainer, err := b.jobMariadbOperatorContainer(
+		cmd.MariadbOperatorBackup(),
+		volumeSources,
+		jobS3Env(backup.Spec.Storage.S3),
+		backup.Spec.Resources,
+		mariadb,
+		b.env,
+		backup.Spec.SecurityContext,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
@@ -76,30 +101,11 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: podMeta,
 				Spec: corev1.PodSpec{
-					RestartPolicy:    backup.Spec.RestartPolicy,
-					ImagePullSecrets: batchImagePullSecrets(mariadb, backup.Spec.ImagePullSecrets),
-					Volumes:          volumes,
-					InitContainers: []corev1.Container{
-						jobMariadbContainer(
-							cmd.MariadbDump(backup, mariadb),
-							volumeSources,
-							jobEnv(mariadb),
-							backup.Spec.Resources,
-							mariadb,
-							backup.Spec.SecurityContext,
-						),
-					},
-					Containers: []corev1.Container{
-						jobMariadbOperatorContainer(
-							cmd.MariadbOperatorBackup(),
-							volumeSources,
-							jobS3Env(backup.Spec.Storage.S3),
-							backup.Spec.Resources,
-							mariadb,
-							b.env,
-							backup.Spec.SecurityContext,
-						),
-					},
+					RestartPolicy:      backup.Spec.RestartPolicy,
+					ImagePullSecrets:   batchImagePullSecrets(mariadb, backup.Spec.ImagePullSecrets),
+					Volumes:            volumes,
+					InitContainers:     []corev1.Container{*mariadbContainer},
+					Containers:         []corev1.Container{*operatorContainer},
 					Affinity:           &affinity,
 					NodeSelector:       backup.Spec.NodeSelector,
 					Tolerations:        backup.Spec.Tolerations,
@@ -180,6 +186,31 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.Volume, restore.Spec.S3)
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
+	operatorContainer, err := b.jobMariadbOperatorContainer(
+		cmd.MariadbOperatorRestore(),
+		volumeSources,
+		jobS3Env(restore.Spec.S3),
+		restore.Spec.Resources,
+		mariadb,
+		b.env,
+		restore.Spec.SecurityContext,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	mariadbContainer, err := b.jobMariadbContainer(
+		cmd.MariadbRestore(restore, mariadb),
+		volumeSources,
+		jobEnv(mariadb),
+		restore.Spec.Resources,
+		mariadb,
+		restore.Spec.SecurityContext,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
@@ -187,30 +218,11 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: podMeta,
 				Spec: corev1.PodSpec{
-					RestartPolicy:    restore.Spec.RestartPolicy,
-					ImagePullSecrets: batchImagePullSecrets(mariadb, restore.Spec.ImagePullSecrets),
-					Volumes:          volumes,
-					InitContainers: []corev1.Container{
-						jobMariadbOperatorContainer(
-							cmd.MariadbOperatorRestore(),
-							volumeSources,
-							jobS3Env(restore.Spec.S3),
-							restore.Spec.Resources,
-							mariadb,
-							b.env,
-							restore.Spec.SecurityContext,
-						),
-					},
-					Containers: []corev1.Container{
-						jobMariadbContainer(
-							cmd.MariadbRestore(restore, mariadb),
-							volumeSources,
-							jobEnv(mariadb),
-							restore.Spec.Resources,
-							mariadb,
-							restore.Spec.SecurityContext,
-						),
-					},
+					RestartPolicy:      restore.Spec.RestartPolicy,
+					ImagePullSecrets:   batchImagePullSecrets(mariadb, restore.Spec.ImagePullSecrets),
+					Volumes:            volumes,
+					InitContainers:     []corev1.Container{*operatorContainer},
+					Containers:         []corev1.Container{*mariadbContainer},
 					Affinity:           &affinity,
 					NodeSelector:       restore.Spec.NodeSelector,
 					Tolerations:        restore.Spec.Tolerations,
@@ -325,6 +337,18 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 	volumes, volumeMounts := sqlJobvolumes(sqlJob)
 	affinity := ptr.Deref(sqlJob.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
+	container, err := b.jobMariadbContainer(
+		cmd.ExecCommand(mariadb),
+		volumeMounts,
+		sqlJobEnv(sqlJob),
+		sqlJob.Spec.Resources,
+		mariadb,
+		sqlJob.Spec.SecurityContext,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
@@ -332,19 +356,10 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: podMeta,
 				Spec: corev1.PodSpec{
-					RestartPolicy:    sqlJob.Spec.RestartPolicy,
-					ImagePullSecrets: batchImagePullSecrets(mariadb, sqlJob.Spec.ImagePullSecrets),
-					Volumes:          volumes,
-					Containers: []corev1.Container{
-						jobMariadbContainer(
-							cmd.ExecCommand(mariadb),
-							volumeMounts,
-							sqlJobEnv(sqlJob),
-							sqlJob.Spec.Resources,
-							mariadb,
-							sqlJob.Spec.SecurityContext,
-						),
-					},
+					RestartPolicy:      sqlJob.Spec.RestartPolicy,
+					ImagePullSecrets:   batchImagePullSecrets(mariadb, sqlJob.Spec.ImagePullSecrets),
+					Volumes:            volumes,
+					Containers:         []corev1.Container{*container},
 					Affinity:           &affinity,
 					NodeSelector:       sqlJob.Spec.NodeSelector,
 					Tolerations:        sqlJob.Spec.Tolerations,

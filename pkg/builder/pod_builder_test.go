@@ -497,7 +497,11 @@ func TestMaxScalePodMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podTpl := builder.maxscalePodTemplate(tt.maxscale)
+			podTpl, err := builder.maxscalePodTemplate(tt.maxscale)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+			}
+
 			assertObjectMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}

@@ -8,8 +8,13 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []corev1.VolumeMount, env []v1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, securityContext *corev1.SecurityContext) corev1.Container {
+func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []corev1.VolumeMount, env []v1.EnvVar,
+	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB,
+	securityContext *corev1.SecurityContext) (*corev1.Container, error) {
+	sc, err := b.buildContainerSecurityContext(securityContext)
+	if err != nil {
+		return nil, err
+	}
 
 	container := corev1.Container{
 		Name:            name,
@@ -19,23 +24,26 @@ func jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []co
 		Args:            cmd.Args,
 		Env:             env,
 		VolumeMounts:    volumeMounts,
-		SecurityContext: securityContext,
+		SecurityContext: sc,
 	}
 	if resources != nil {
 		container.Resources = *resources
 	}
-	return container
+	return &container, nil
 }
 
-func jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
+func (b *Builder) jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
 	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, env *environment.OperatorEnv,
-	securityContext *corev1.SecurityContext) corev1.Container {
-	return jobContainer("mariadb-operator", cmd, env.MariadbOperatorImage, volumeMounts, envVar, resources, mariadb, securityContext)
+	securityContext *corev1.SecurityContext) (*corev1.Container, error) {
+
+	return b.jobContainer("mariadb-operator", cmd, env.MariadbOperatorImage, volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
-func jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, securityContext *corev1.SecurityContext) corev1.Container {
-	return jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb, securityContext)
+func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
+	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB,
+	securityContext *corev1.SecurityContext) (*corev1.Container, error) {
+
+	return b.jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
 func jobBatchStorageVolume(volumeSource *corev1.VolumeSource, s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
