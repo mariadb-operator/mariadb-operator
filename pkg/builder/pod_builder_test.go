@@ -306,7 +306,10 @@ func TestMariadbPodMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podTpl := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
+			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
 			assertObjectMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
@@ -524,7 +527,10 @@ func TestMariadbPodBuilder(t *testing.T) {
 		}),
 	}
 
-	podTpl := builder.mariadbPodTemplate(mariadb, opts...)
+	podTpl, err := builder.mariadbPodTemplate(mariadb, opts...)
+	if err != nil {
+		t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+	}
 	if podTpl.Spec.Affinity == nil {
 		t.Error("expected affinity to have been set")
 	}

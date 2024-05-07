@@ -4,8 +4,6 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	fakeDiscovery "k8s.io/client-go/discovery/fake"
-	fakeClient "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestDiscoveryServiceMonitors(t *testing.T) {
@@ -21,17 +19,15 @@ func TestDiscoverySecurityContextConstraints(t *testing.T) {
 }
 
 func testDiscovery(t *testing.T, name, group, kind string, discoveryFn func(d *Discovery) (bool, error)) {
-	resources := []*metav1.APIResourceList{
-		{
-			GroupVersion: group,
-			APIResources: []metav1.APIResource{
-				{
-					Name: kind,
-				},
+	resource := &metav1.APIResourceList{
+		GroupVersion: group,
+		APIResources: []metav1.APIResource{
+			{
+				Name: kind,
 			},
 		},
 	}
-	discovery, err := newFakeDiscovery(resources)
+	discovery, err := NewFakeDiscovery(resource)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -44,7 +40,7 @@ func testDiscovery(t *testing.T, name, group, kind string, discoveryFn func(d *D
 		t.Errorf("expected to have discovered '%s'", name)
 	}
 
-	discovery, err = newFakeDiscovery(nil)
+	discovery, err = NewFakeDiscovery()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -56,11 +52,4 @@ func testDiscovery(t *testing.T, name, group, kind string, discoveryFn func(d *D
 	if exists {
 		t.Errorf("expected to not have discovered '%s'", name)
 	}
-}
-
-func newFakeDiscovery(resources []*metav1.APIResourceList) (*Discovery, error) {
-	client := fakeClient.NewSimpleClientset()
-	fakeDiscovery := client.Discovery().(*fakeDiscovery.FakeDiscovery)
-	fakeDiscovery.Resources = resources
-	return NewDiscoveryWithClient(fakeDiscovery)
 }
