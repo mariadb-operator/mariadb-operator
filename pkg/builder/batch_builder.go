@@ -240,7 +240,7 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 		filepath.Join(InitConfigPath, InitEntrypointKey),
 	})
 
-	podTpl := b.mariadbPodTemplate(
+	podTpl, err := b.mariadbPodTemplate(
 		mariadb,
 		withMeta(mariadb.Spec.InheritMetadata),
 		withMeta(&extraMeta),
@@ -281,6 +281,9 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 		withProbes(false),
 		withMariadbSelectorLabels(false),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
+	}
 
 	job := &batchv1.Job{
 		ObjectMeta: objMeta,

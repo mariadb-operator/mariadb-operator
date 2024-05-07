@@ -48,7 +48,7 @@ var (
 	}
 )
 
-func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.Container {
+func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) ([]corev1.Container, error) {
 	mariadbOpts := newMariadbOpts(opts...)
 	mariadbContainer := buildContainer(mariadb.Spec.Image, mariadb.Spec.ImagePullPolicy, &mariadb.Spec.ContainerTemplate, opts...)
 	mariadbContainer.Name = MariadbContainerName
@@ -76,7 +76,11 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	containers = append(containers, mariadbContainer)
 
 	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGalera {
-		containers = append(containers, b.galeraAgentContainer(mariadb))
+		agentContainer, err := b.galeraAgentContainer(mariadb)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, *agentContainer)
 	}
 	if mariadb.Spec.SidecarContainers != nil {
 		for index, container := range mariadb.Spec.SidecarContainers {
@@ -92,7 +96,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 		}
 	}
 
-	return containers
+	return containers, nil
 }
 
 func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) []corev1.Container {
@@ -127,7 +131,7 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) []corev1.Con
 	return []corev1.Container{container}
 }
 
-func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.Container {
+func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 	agent := galera.Agent
@@ -177,17 +181,19 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) corev1.
 		}
 		return defaultGaleraAgentProbe(galera)
 	}()
-	container.SecurityContext = func() *corev1.SecurityContext {
-		if container.SecurityContext != nil {
-			return container.SecurityContext
-		}
-		runAsUser := int64(0)
-		return &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
-		}
-	}()
 
-	return container
+	defaultSc := corev1.SecurityContext{
+		RunAsUser: ptr.To(int64(999)), // mysql user that owns /var/lib/mysql
+	}
+	sc := ptr.Deref(container.SecurityContext, defaultSc)
+
+	securityContext, err := b.buildContainerSecurityContext(&sc)
+	if err != nil {
+		return nil, err
+	}
+	container.SecurityContext = securityContext
+
+	return &container, nil
 }
 
 func mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.Container {

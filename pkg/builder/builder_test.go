@@ -13,13 +13,13 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-func newTestBuilder(t *testing.T) *Builder {
+func newTestBuilder(t *testing.T, opts ...BuilderOption) *Builder {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 
-	builder, err := NewBuilder(scheme, &environment.OperatorEnv{
+	env := &environment.OperatorEnv{
 		MariadbOperatorName:      "mariadb-operator",
 		MariadbOperatorNamespace: "test",
 		MariadbOperatorSAPath:    "/var/run/secrets/kubernetes.io/serviceaccount/token",
@@ -31,7 +31,8 @@ func newTestBuilder(t *testing.T) *Builder {
 		MariadbGaleraAgentImage:  "mariadb-operator:test",
 		MariadbGaleraLibPath:     "/usr/lib/galera/libgalera_smm.so",
 		WatchNamespace:           "",
-	})
+	}
+	builder, err := NewBuilder(scheme, env, opts...)
 	if err != nil {
 		t.Fatalf("unexpected error creating builder: %v", err)
 	}
