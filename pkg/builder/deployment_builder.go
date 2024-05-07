@@ -126,7 +126,7 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale)
 
 func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *mariadbv1alpha1.Exporter, args []string,
 	pullSecrets []corev1.LocalObjectReference, configSecretName string) (*corev1.PodTemplateSpec, error) {
-	container, err := exporterContainer(exporter, args)
+	container, err := b.exporterContainer(exporter, args)
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter container: %v", err)
 	}
@@ -159,9 +159,13 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 	}, nil
 }
 
-func exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) (corev1.Container, error) {
+func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) (corev1.Container, error) {
 	tpl := exporter.ContainerTemplate
-	container := buildContainer(exporter.Image, exporter.ImagePullPolicy, &tpl)
+	container, err := b.buildContainer(exporter.Image, exporter.ImagePullPolicy, &tpl)
+	if err != nil {
+		return corev1.Container{}, err
+	}
+
 	container.Name = "exporter"
 	container.Args = args
 	if len(tpl.Args) > 0 {
@@ -192,7 +196,7 @@ func exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) (corev
 	container.LivenessProbe = probe
 	container.ReadinessProbe = probe
 
-	return container, nil
+	return *container, nil
 }
 
 func exporterConfigFile(fileName string) string {

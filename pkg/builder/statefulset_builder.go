@@ -83,7 +83,10 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 		labels.NewLabelsBuilder().
 			WithMaxScaleSelectorLabels(maxscale).
 			Build()
-	podTemplate := b.maxscalePodTemplate(maxscale)
+	podTemplate, err := b.maxscalePodTemplate(maxscale)
+	if err != nil {
+		return nil, err
+	}
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: objMeta,
