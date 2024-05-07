@@ -12,7 +12,7 @@ import (
 )
 
 func TestMariadbPodMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
@@ -313,7 +313,7 @@ func TestMariadbPodMeta(t *testing.T) {
 }
 
 func TestMaxScalePodMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name: "maxscale-obj",
 	}
@@ -501,7 +501,7 @@ func TestMaxScalePodMeta(t *testing.T) {
 }
 
 func TestMariadbPodBuilder(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-mariadb-builder",

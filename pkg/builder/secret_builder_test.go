@@ -8,7 +8,7 @@ import (
 )
 
 func TestSecretBuilder(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	tests := []struct {
 		name     string
 		opts     SecretOpts

@@ -8,7 +8,7 @@ import (
 )
 
 func TestServiceMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "service",
 	}

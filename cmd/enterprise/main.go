@@ -160,11 +160,14 @@ var rootCmd = &cobra.Command{
 
 		discovery, err := discovery.NewDiscovery()
 		if err != nil {
-			setupLog.Error(err, "Error getting discovery")
+			setupLog.Error(err, "Error creating discovery")
 			os.Exit(1)
 		}
-
-		builder := builder.NewBuilder(scheme, env)
+		builder, err := builder.NewBuilder(scheme, env)
+		if err != nil {
+			setupLog.Error(err, "Error creating builder")
+			os.Exit(1)
+		}
 		refResolver := refresolver.New(client)
 
 		conditionReady := condition.NewReady()
