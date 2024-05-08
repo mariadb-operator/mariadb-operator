@@ -130,6 +130,12 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter container: %v", err)
 	}
+
+	securityContext, err := b.buildPodSecurityContext(exporter.PodSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+
 	affinity := ptr.Deref(exporter.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	return &corev1.PodTemplateSpec{
@@ -149,7 +155,7 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 					},
 				},
 			},
-			SecurityContext:           exporter.PodSecurityContext,
+			SecurityContext:           securityContext,
 			Affinity:                  &affinity,
 			NodeSelector:              exporter.NodeSelector,
 			Tolerations:               exporter.Tolerations,
