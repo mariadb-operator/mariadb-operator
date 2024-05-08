@@ -200,11 +200,9 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 		return defaultGaleraAgentProbe(galera)
 	}()
 
-	defaultSc := corev1.SecurityContext{
-		RunAsUser: ptr.To(int64(mysqlUser)),
-	}
-	sc := ptr.Deref(container.SecurityContext, defaultSc)
-
+	sc := ptr.Deref(container.SecurityContext, corev1.SecurityContext{
+		RunAsUser: ptr.To(mysqlUser),
+	})
 	securityContext, err := b.buildContainerSecurityContext(&sc)
 	if err != nil {
 		return nil, err
