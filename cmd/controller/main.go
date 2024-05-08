@@ -152,7 +152,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Error creating discovery")
 			os.Exit(1)
 		}
-		builder, err := builder.NewBuilder(scheme, env)
+		builder, err := builder.NewBuilder(scheme, env, builder.WithDiscovery(discovery))
 		if err != nil {
 			setupLog.Error(err, "Error creating builder")
 			os.Exit(1)
