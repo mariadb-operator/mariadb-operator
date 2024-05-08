@@ -30,7 +30,7 @@ func TestJobContainerSecurityContext(t *testing.T) {
 	}
 
 	securityContext = &corev1.SecurityContext{
-		RunAsUser: ptr.To(int64(999)),
+		RunAsUser: ptr.To(int64(mysqlUser)),
 	}
 	container, err = builder.jobContainer("mariadb", cmd, image, volumeMounts, envVar, resources, mariadb, securityContext)
 	if err != nil {

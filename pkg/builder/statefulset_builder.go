@@ -46,6 +46,8 @@ const (
 
 	ServiceAccountVolume    = "serviceaccount"
 	ServiceAccountMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
+
+	mysqlUser = 999 // mysql user that owns /var/lib/mysql
 )
 
 func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {

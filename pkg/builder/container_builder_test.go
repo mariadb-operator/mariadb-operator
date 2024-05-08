@@ -785,7 +785,7 @@ func TestContainerSecurityContext(t *testing.T) {
 
 	tpl = &mariadbv1alpha1.ContainerTemplate{
 		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: ptr.To(int64(999)),
+			RunAsUser: ptr.To(int64(mysqlUser)),
 		},
 	}
 	container, err = builder.buildContainer("mariadb:10.6", corev1.PullIfNotPresent, tpl)
