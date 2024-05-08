@@ -486,6 +486,18 @@ func maxscaleVolumeMounts(maxscale *mariadbv1alpha1.MaxScale) []corev1.VolumeMou
 			Name:      ConfigVolume,
 			MountPath: MaxscaleConfigMountPath,
 		},
+		{
+			Name:      RunVolume,
+			MountPath: MaxScaleRunMountPath,
+		},
+		{
+			Name:      LogVolume,
+			MountPath: MaxScaleLogMountPath,
+		},
+		{
+			Name:      CacheVolume,
+			MountPath: MaxScaleCacheMountPath,
+		},
 	}
 	if maxscale.Spec.VolumeMounts != nil {
 		volumeMounts = append(volumeMounts, maxscale.Spec.VolumeMounts...)

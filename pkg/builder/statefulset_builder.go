@@ -27,6 +27,15 @@ const (
 	MaxscaleConfigMountPath = "/etc/config"
 	ConfigVolumeRole        = "config"
 
+	RunVolume            = "run"
+	MaxScaleRunMountPath = "/var/run/maxscale"
+
+	LogVolume            = "log"
+	MaxScaleLogMountPath = "/var/log/maxscale"
+
+	CacheVolume            = "cache"
+	MaxScaleCacheMountPath = "/var/cache/maxscale"
+
 	InitVolume        = "init"
 	InitConfigPath    = "/init"
 	InitLibKey        = "lib.sh"
