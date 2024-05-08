@@ -94,6 +94,11 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		return nil, err
 	}
 
+	securityContext, err := b.buildPodSecurityContext(backup.Spec.PodSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
@@ -109,7 +114,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 					Affinity:           &affinity,
 					NodeSelector:       backup.Spec.NodeSelector,
 					Tolerations:        backup.Spec.Tolerations,
-					SecurityContext:    backup.Spec.PodSecurityContext,
+					SecurityContext:    securityContext,
 					ServiceAccountName: ptr.Deref(backup.Spec.ServiceAccountName, "default"),
 					PriorityClassName:  ptr.Deref(backup.Spec.PriorityClassName, ""),
 				},
@@ -211,6 +216,11 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		return nil, err
 	}
 
+	securityContext, err := b.buildPodSecurityContext(restore.Spec.PodSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
@@ -226,7 +236,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 					Affinity:           &affinity,
 					NodeSelector:       restore.Spec.NodeSelector,
 					Tolerations:        restore.Spec.Tolerations,
-					SecurityContext:    restore.Spec.PodSecurityContext,
+					SecurityContext:    securityContext,
 					ServiceAccountName: ptr.Deref(restore.Spec.ServiceAccountName, "default"),
 					PriorityClassName:  ptr.Deref(restore.Spec.PriorityClassName, ""),
 				},
@@ -349,6 +359,11 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		return nil, err
 	}
 
+	securityContext, err := b.buildPodSecurityContext(sqlJob.Spec.PodSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
@@ -363,7 +378,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 					Affinity:           &affinity,
 					NodeSelector:       sqlJob.Spec.NodeSelector,
 					Tolerations:        sqlJob.Spec.Tolerations,
-					SecurityContext:    sqlJob.Spec.PodSecurityContext,
+					SecurityContext:    securityContext,
 					ServiceAccountName: ptr.Deref(sqlJob.Spec.ServiceAccountName, "default"),
 					PriorityClassName:  ptr.Deref(sqlJob.Spec.PriorityClassName, ""),
 				},

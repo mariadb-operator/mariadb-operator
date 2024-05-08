@@ -142,6 +142,11 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		return nil, err
 	}
 
+	securityContext, err := b.buildPodSecurityContext(mariadb.Spec.PodSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+
 	affinity := mdbptr.Deref(
 		[]*mariadbv1alpha1.AffinityConfig{
 			mariadbOpts.affinity,
@@ -160,7 +165,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			Containers:                   containers,
 			ImagePullSecrets:             mariadb.Spec.ImagePullSecrets,
 			Volumes:                      mariadbVolumes(mariadb, opts...),
-			SecurityContext:              mariadb.Spec.PodSecurityContext,
+			SecurityContext:              securityContext,
 			Affinity:                     &affinity,
 			NodeSelector:                 mariadb.Spec.NodeSelector,
 			Tolerations:                  mariadb.Spec.Tolerations,
@@ -191,6 +196,12 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 	if err != nil {
 		return nil, err
 	}
+
+	securityContext, err := b.buildPodSecurityContext(mxs.Spec.PodSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+
 	affinity := ptr.Deref(mxs.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	return &corev1.PodTemplateSpec{
@@ -202,7 +213,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 			Containers:                   containers,
 			ImagePullSecrets:             mxs.Spec.ImagePullSecrets,
 			Volumes:                      maxscaleVolumes(mxs),
-			SecurityContext:              mxs.Spec.PodSecurityContext,
+			SecurityContext:              securityContext,
 			Affinity:                     &affinity,
 			NodeSelector:                 mxs.Spec.NodeSelector,
 			Tolerations:                  mxs.Spec.Tolerations,
