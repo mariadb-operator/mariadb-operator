@@ -48,3 +48,6 @@ buckets:
     purge: false
     versioning: false
     objectlocking: false
+
+securityContext:
+  enabled: false
