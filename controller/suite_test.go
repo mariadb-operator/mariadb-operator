@@ -119,7 +119,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	discovery, err := discovery.NewDiscovery()
 	Expect(err).ToNot(HaveOccurred())
-	builder, err := builder.NewBuilder(scheme, env)
+	builder, err := builder.NewBuilder(scheme, env, builder.WithDiscovery(discovery))
 	Expect(err).ToNot(HaveOccurred())
 	refResolver := refresolver.New(client)
 
