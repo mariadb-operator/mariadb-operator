@@ -13,7 +13,7 @@ func TestBuildContainerSecurityContext(t *testing.T) {
 	builder := newTestBuilder(t)
 
 	sc, err := builder.buildContainerSecurityContext(&corev1.SecurityContext{
-		RunAsUser: ptr.To(int64(mysqlUser)),
+		RunAsUser: ptr.To(mysqlUser),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error building SecurityContext: %v", err)
@@ -37,7 +37,7 @@ func TestBuildContainerSecurityContext(t *testing.T) {
 	builder = newTestBuilder(t, WithDiscovery(discovery))
 
 	sc, err = builder.buildContainerSecurityContext(&corev1.SecurityContext{
-		RunAsUser: ptr.To(int64(mysqlUser)),
+		RunAsUser: ptr.To(mysqlUser),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error building SecurityContext: %v", err)
@@ -51,7 +51,7 @@ func TestBuildPodSecurityContext(t *testing.T) {
 	builder := newTestBuilder(t)
 
 	sc, err := builder.buildPodSecurityContext(&corev1.PodSecurityContext{
-		RunAsUser: ptr.To(int64(mysqlUser)),
+		RunAsUser: ptr.To(mysqlUser),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error building PodSecurityContext: %v", err)
@@ -75,7 +75,7 @@ func TestBuildPodSecurityContext(t *testing.T) {
 	builder = newTestBuilder(t, WithDiscovery(discovery))
 
 	sc, err = builder.buildPodSecurityContext(&corev1.PodSecurityContext{
-		RunAsUser: ptr.To(int64(mysqlUser)),
+		RunAsUser: ptr.To(mysqlUser),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error building PodSecurityContext: %v", err)
