@@ -201,7 +201,7 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 	}()
 
 	defaultSc := corev1.SecurityContext{
-		RunAsUser: ptr.To(int64(999)), // mysql user that owns /var/lib/mysql
+		RunAsUser: ptr.To(int64(mysqlUser)),
 	}
 	sc := ptr.Deref(container.SecurityContext, defaultSc)
 
