@@ -736,11 +736,6 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 	}
 
 	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
-	if m.Spec.PodTemplate.PodSecurityContext == nil {
-		m.Spec.PodTemplate.PodSecurityContext = &corev1.PodSecurityContext{
-			FSGroup: ptr.To(int64(996)),
-		}
-	}
 }
 
 func (m *MaxScale) getAntiAffinityInstances(mariadb *MariaDB) []string {
