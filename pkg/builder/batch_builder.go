@@ -94,7 +94,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		return nil, err
 	}
 
-	securityContext, err := b.buildPodSecurityContext(backup.Spec.PodSecurityContext)
+	securityContext, err := b.buildPodSecurityContextWithUserGroup(backup.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		return nil, err
 	}
 
-	securityContext, err := b.buildPodSecurityContext(restore.Spec.PodSecurityContext)
+	securityContext, err := b.buildPodSecurityContextWithUserGroup(restore.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
 	if err != nil {
 		return nil, err
 	}

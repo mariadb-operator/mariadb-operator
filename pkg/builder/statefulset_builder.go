@@ -47,8 +47,10 @@ const (
 	ServiceAccountVolume    = "serviceaccount"
 	ServiceAccountMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
 
-	mysqlUser    = int64(999) // mysql user that owns /var/lib/mysql
-	maxscaleUser = int64(999) // maxscale user that owns /var/lib/maxscale
+	mysqlUser     = int64(999)
+	mysqlGroup    = int64(999)
+	maxscaleUser  = int64(999)
+	maxscaleGroup = int64(999)
 )
 
 func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {

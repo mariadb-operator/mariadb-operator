@@ -84,3 +84,61 @@ func TestBuildPodSecurityContext(t *testing.T) {
 		t.Error("PodSecurityContext must be nil")
 	}
 }
+
+func TestBuildPodSecurityContextWithUserGroup(t *testing.T) {
+	builder := newTestBuilder(t)
+
+	sc, err := builder.buildPodSecurityContextWithUserGroup(&corev1.PodSecurityContext{
+		RunAsUser: ptr.To(mysqlUser),
+	}, mysqlUser, mysqlGroup)
+	if err != nil {
+		t.Fatalf("unexpected error building PodSecurityContext: %v", err)
+	}
+	if sc == nil {
+		t.Error("PodSecurityContext must be non nil")
+	}
+
+	sc, err = builder.buildPodSecurityContextWithUserGroup(nil, mysqlUser, mysqlGroup)
+	if err != nil {
+		t.Fatalf("unexpected error building PodSecurityContext: %v", err)
+	}
+	if sc == nil {
+		t.Fatal("PodSecurityContext must be non nil")
+	}
+	runAsUser := ptr.Deref(sc.RunAsUser, 0)
+	if runAsUser != mysqlUser {
+		t.Errorf("expected to run as mysql user, got user: %d", runAsUser)
+	}
+	runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
+	if runAsGroup != mysqlGroup {
+		t.Errorf("expected to run as mysql group, got group: %d", runAsGroup)
+	}
+	fsGroup := ptr.Deref(sc.FSGroup, 0)
+	if fsGroup != mysqlGroup {
+		t.Errorf("expected to run as mysql fsGroup, got fsGroup: %d", fsGroup)
+	}
+
+	resource := &metav1.APIResourceList{
+		GroupVersion: "security.openshift.io/v1",
+		APIResources: []metav1.APIResource{
+			{
+				Name: "securitycontextconstraints",
+			},
+		},
+	}
+	discovery, err := discovery.NewFakeDiscovery(resource)
+	if err != nil {
+		t.Fatalf("unexpected error getting discovery: %v", err)
+	}
+	builder = newTestBuilder(t, WithDiscovery(discovery))
+
+	sc, err = builder.buildPodSecurityContextWithUserGroup(&corev1.PodSecurityContext{
+		RunAsUser: ptr.To(mysqlUser),
+	}, mysqlUser, mysqlGroup)
+	if err != nil {
+		t.Fatalf("unexpected error building PodSecurityContext: %v", err)
+	}
+	if sc != nil {
+		t.Error("PodSecurityContext must be nil")
+	}
+}
