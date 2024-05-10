@@ -46,13 +46,13 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG_ENT)
 	$(YQ) e -i '.spec.template.spec.containers[0].env[0].value = "$(RELATED_IMAGE_MARIADB_ENT)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[1].value = "$(RELATED_IMAGE_MAXSCALE)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[2].value = "$(RELATED_IMAGE_EXPORTER)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[3].value = "$(RELATED_IMAGE_EXPORTER_MAXSCALE)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[1].value = "$(RELATED_IMAGE_MAXSCALE_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[2].value = "$(RELATED_IMAGE_EXPORTER_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[3].value = "$(RELATED_IMAGE_EXPORTER_MAXSCALE_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[4].value = "$(IMG_ENT)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[5].value = "$(MARIADB_GALERA_ENT_INIT_IMAGE)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[6].value = "$(MARIADB_GALERA_ENT_AGENT_IMAGE)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[7].value = "$(MARIADB_GALERA_ENT_LIB_PATH)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[5].value = "$(MARIADB_GALERA_INIT_IMAGE_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[6].value = "$(MARIADB_GALERA_AGENT_IMAGE_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[7].value = "$(MARIADB_GALERA_LIB_PATH_ENT)"' config/manager/manager.yaml
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(YQ) e -i '.metadata.annotations.containerImage = (.spec.relatedImages[] | select(.name == "mariadb-operator-enterprise").image)' bundle/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
 	$(MAKE) bundle-validate
