@@ -59,8 +59,7 @@ func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB) (*monito
 	return serviceMonitor, nil
 }
 
-func (b *Builder) BuildMaxScaleServiceMonitor(mxs *mariadbv1alpha1.MaxScale,
-	mariadb *mariadbv1alpha1.MariaDB) (*monitoringv1.ServiceMonitor, error) {
+func (b *Builder) BuildMaxScaleServiceMonitor(mxs *mariadbv1alpha1.MaxScale) (*monitoringv1.ServiceMonitor, error) {
 	if !mxs.AreMetricsEnabled() {
 		return nil, errors.New("MaxScale instance does not specify Metrics")
 	}

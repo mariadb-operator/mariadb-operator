@@ -4,7 +4,8 @@ set -eo pipefail
 
 CONFIG="$( dirname "${BASH_SOURCE[0]}" )"/config
 if [ -z "$PROMETHEUS_VERSION" ]; then 
-  PROMETHEUS_VERSION="55.5.0"
+  echo "PROMETHEUS_VERSION environment variable is mandatory"
+  exit 1
 fi
 
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts

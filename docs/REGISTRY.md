@@ -5,6 +5,13 @@
 
 This documentation aims to provide guidance on how to configure private registries in the `mariadb-operator` CRs.
 
+## Table of contents
+<!-- toc -->
+- [Credentials](#credentials)
+- [<code>MariaDB</code>](#mariadb)
+- [<code>MaxScale</code>](#maxscale)
+- [<code>Backup</code>, <code>Restore</code> and <code>SqlJob</code>](#backup-restore-and-sqljob)
+<!-- /toc -->
 
 ## Credentials
 
@@ -74,8 +81,21 @@ spec:
 
 ## `Backup`, `Restore` and `SqlJob`
 
-The batch `Job` resources will inherit the `imagePullSecrets` from the referred `MariaDB`, as they also make used of its `image`. However, you are also able to provide dedicated `imagePullSecrets` for these resources:
+The batch `Job` resources will inherit the `imagePullSecrets` from the referred `MariaDB`, as they also make use of its `image`. However, you are also able to provide dedicated `imagePullSecrets` for these resources:
 
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  ...
+  image: docker.mariadb.com/enterprise-server:10.6
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: registry
+```
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
@@ -86,5 +106,7 @@ spec:
   mariaDbRef:
     name: mariadb
   imagePullSecrets:
-    - name: registry
+    - name: backup-registry
 ```
+
+When the resources from the above examples are created, a `Job` with both `registry` and `backup-registry` `imagePullSecrets` will be reconciled.

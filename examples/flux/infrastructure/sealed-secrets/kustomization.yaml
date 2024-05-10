@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: sealed-secrets
+resources:
+  - sealed-secrets-helmrelease.yaml
+  - sealed-secrets-helmrepository.yaml
+  - sealed-secrets-key-secret.yaml
+  - sealed-secrets-namespace.yaml

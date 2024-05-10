@@ -6,4 +6,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: mariadb/mariadb-operator-enterprise
-  newTag: v0.0.27
+  newTag: v0.0.29-dev

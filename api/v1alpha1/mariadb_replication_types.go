@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -121,7 +120,7 @@ type ReplicaReplication struct {
 	// ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ReplPasswordSecretKeyRef *corev1.SecretKeySelector `json:"replPasswordSecretKeyRef,omitempty"`
+	ReplPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"replPasswordSecretKeyRef,omitempty"`
 	// ConnectionTimeout to be used when the replica connects to the primary.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

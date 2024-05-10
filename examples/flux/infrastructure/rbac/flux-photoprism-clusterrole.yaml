@@ -59,3 +59,13 @@ rules:
   - patch
   - update
   - delete
+- apiGroups:
+  - bitnami.com
+  resources:
+  - sealedsecrets
+  verbs:
+  - create
+  - list
+  - get
+  - patch
+  - update

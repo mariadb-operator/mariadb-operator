@@ -15,10 +15,11 @@ spec:
     timeout: "5s"
   secretName: connection
   secretTemplate:
-    labels:
-      k8s.mariadb.com/connection: sample
-    annotations:
-      k8s.mariadb.com/connection: sample
+    metadata:
+      labels:
+        k8s.mariadb.com/connection: sample
+      annotations:
+        k8s.mariadb.com/connection: sample
     key: dsn
     format: mysql://{{ .Username }}:{{ .Password }}@{{ .Host }}:{{ .Port }}/{{ .Database }}{{ .Params }}
     usernameKey: username

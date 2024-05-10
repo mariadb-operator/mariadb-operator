@@ -80,7 +80,7 @@ type MariadbMetrics struct {
 	// PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	PasswordSecretKeyRef GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 }
 
 // Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB.
@@ -271,7 +271,7 @@ type MariaDBMaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GuiKubernetesService *ServiceTemplate `json:"guiKubernetesService,omitempty"`
-	// RequeueInterval is used to perform requeue reconcilizations.
+	// RequeueInterval is used to perform requeue reconciliations.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
@@ -316,7 +316,7 @@ type MariaDBSpec struct {
 	// RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	RootPasswordSecretKeyRef corev1.SecretKeySelector `json:"rootPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	RootPasswordSecretKeyRef GeneratedSecretKeyRef `json:"rootPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// RootEmptyPassword indicates if the root password should be empty.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -332,7 +332,7 @@ type MariaDBSpec struct {
 	// PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	PasswordSecretKeyRef *GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// MyCnf allows to specify the my.cnf file mounted by Mariadb.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -485,7 +485,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 	if m.Spec.RootEmptyPassword == nil {
 		m.Spec.RootEmptyPassword = ptr.To(false)
 	}
-	if m.Spec.RootPasswordSecretKeyRef == (corev1.SecretKeySelector{}) && !m.IsRootPasswordEmpty() {
+	if m.Spec.RootPasswordSecretKeyRef == (GeneratedSecretKeyRef{}) && !m.IsRootPasswordEmpty() {
 		m.Spec.RootPasswordSecretKeyRef = m.RootPasswordSecretKeyRef()
 	}
 
@@ -513,7 +513,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 		if m.Spec.Metrics.Username == "" {
 			m.Spec.Metrics.Username = m.MetricsKey().Name
 		}
-		if m.Spec.Metrics.PasswordSecretKeyRef == (corev1.SecretKeySelector{}) {
+		if m.Spec.Metrics.PasswordSecretKeyRef == (GeneratedSecretKeyRef{}) {
 			m.Spec.Metrics.PasswordSecretKeyRef = m.MetricsPasswordSecretKeyRef()
 		}
 	}
@@ -572,7 +572,7 @@ func (m *MariaDB) IsRootPasswordEmpty() bool {
 
 // IsRootPasswordDefined indicates whether the MariaDB instance has a root password defined
 func (m *MariaDB) IsRootPasswordDefined() bool {
-	return m.Spec.RootPasswordSecretKeyRef != (corev1.SecretKeySelector{})
+	return m.Spec.RootPasswordSecretKeyRef != (GeneratedSecretKeyRef{})
 }
 
 // IsEphemeralStorageEnabled indicates whether the MariaDB instance has ephemeral storage enabled

@@ -29,7 +29,7 @@ var _ = Describe("User controller", func() {
 						},
 						WaitForIt: true,
 					},
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
+					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},

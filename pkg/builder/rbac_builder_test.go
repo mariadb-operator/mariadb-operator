@@ -10,7 +10,7 @@ import (
 )
 
 func TestServiceAccountMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "sa",
 	}
@@ -54,13 +54,13 @@ func TestServiceAccountMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building ServiceAccunt: %v", err)
 			}
-			assertMeta(t, &sa.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &sa.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }
 
 func TestRoleMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "role",
 	}
@@ -110,13 +110,13 @@ func TestRoleMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Role: %v", err)
 			}
-			assertMeta(t, &role.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &role.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }
 
 func TestRoleBindingMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "rolebinding",
 	}
@@ -167,13 +167,13 @@ func TestRoleBindingMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building RoleBinding: %v", err)
 			}
-			assertMeta(t, &role.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &role.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }
 
 func TestClusterRoleBindingMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "clusterrolebinding",
 	}
@@ -224,7 +224,7 @@ func TestClusterRoleBindingMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building ClusterRoleBinding: %v", err)
 			}
-			assertMeta(t, &role.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &role.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }

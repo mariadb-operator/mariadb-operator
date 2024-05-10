@@ -3,7 +3,16 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+    generate: true
+
   username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+    generate: true
   database: mariadb
 
   storage:
@@ -32,15 +41,6 @@ spec:
     secretName: mariadb-repl-conn-secondary
     secretTemplate:
       key: dsn
-
-  affinity:
-    enableAntiAffinity: true
-
-  podDisruptionBudget:
-    maxUnavailable: 33%
-
-  updateStrategy:
-    type: RollingUpdate
 
   myCnf: |
     [mariadb]

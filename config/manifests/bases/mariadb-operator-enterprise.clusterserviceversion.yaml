@@ -399,8 +399,8 @@ spec:
       - description: Endpoint is the S3 API endpoint without scheme.
         displayName: Endpoint
         path: storage.s3.endpoint
-      - description: Prefix allows backups to be placed under a specific prefix in
-          the bucket. A trailing slash '/' is added if not provided.
+      - description: 'Prefix indicates a folder/subfolder in the bucket. For example:
+          mariadb/ or mariadb/backups. A trailing slash ''/'' is added if not provided.'
         displayName: Prefix
         path: storage.s3.prefix
       - description: Region is the S3 region name to use.
@@ -464,7 +464,7 @@ spec:
       - description: Interval used to perform health checks.
         displayName: Interval
         path: healthCheck.interval
-      - description: RetryInterval is the intervañ used to perform health check retries.
+      - description: RetryInterval is the interval used to perform health check retries.
         displayName: Retry Interval
         path: healthCheck.retryInterval
       - description: Host to connect to. If not provided, it defaults to the MariaDB
@@ -575,7 +575,7 @@ spec:
       - description: Name overrides the default Database name provided by metadata.name.
         displayName: Name
         path: name
-      - description: RequeueInterval is used to perform requeue reconcilizations.
+      - description: RequeueInterval is used to perform requeue reconciliations.
         displayName: Requeue Interval
         path: requeueInterval
       - description: RetryInterval is the interval used to perform retries.
@@ -617,7 +617,7 @@ spec:
       - description: Privileges to use in the Grant.
         displayName: Privileges
         path: privileges
-      - description: RequeueInterval is used to perform requeue reconcilizations.
+      - description: RequeueInterval is used to perform requeue reconciliations.
         displayName: Requeue Interval
         path: requeueInterval
       - description: RetryInterval is the interval used to perform retries.
@@ -758,8 +758,8 @@ spec:
       - description: Endpoint is the S3 API endpoint without scheme.
         displayName: Endpoint
         path: bootstrapFrom.s3.endpoint
-      - description: Prefix allows backups to be placed under a specific prefix in
-          the bucket. A trailing slash '/' is added if not provided.
+      - description: 'Prefix indicates a folder/subfolder in the bucket. For example:
+          mariadb/ or mariadb/backups. A trailing slash ''/'' is added if not provided.'
         displayName: Prefix
         path: bootstrapFrom.s3.prefix
       - description: Region is the S3 region name to use.
@@ -809,7 +809,7 @@ spec:
       - description: Interval used to perform health checks.
         displayName: Interval
         path: connection.healthCheck.interval
-      - description: RetryInterval is the intervañ used to perform health check retries.
+      - description: RetryInterval is the interval used to perform health check retries.
         displayName: Retry Interval
         path: connection.healthCheck.retryInterval
       - description: Params to be used in the Connection.
@@ -1023,8 +1023,8 @@ spec:
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: galera.initContainer.volumeMounts
-      - description: InitJob defines metadata to the passed to the initialization
-          Job.
+      - description: InitJob defines additional properties for the Job used to perform
+          the initialization.
         displayName: Init Job
         path: galera.initJob
       - description: Affinity to be used in the Pod.
@@ -1216,6 +1216,10 @@ spec:
           password to call the admin REST API. It is defaulted if not provided.
         displayName: Admin Password Secret Key Ref
         path: maxScale.auth.adminPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.adminPasswordSecretKeyRef.generate
       - description: AdminUsername is an admin username to call the admin REST API.
           It is defaulted if not provided.
         displayName: Admin Username
@@ -1232,6 +1236,10 @@ spec:
           to connect to MaxScale. It is defaulted if not provided.
         displayName: Client Password Secret Key Ref
         path: maxScale.auth.clientPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.clientPasswordSecretKeyRef.generate
       - description: ClientUsername is the user to connect to MaxScale. It is defaulted
           if not provided.
         displayName: Client Username
@@ -1249,6 +1257,10 @@ spec:
           password to call the admib REST API. It is defaulted if metrics are enabled.
         displayName: Metrics Password Secret Key Ref
         path: maxScale.auth.metricsPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.metricsPasswordSecretKeyRef.generate
       - description: MetricsUsername is an metrics username to call the REST API.
           It is defaulted if metrics are enabled.
         displayName: Metrics Username
@@ -1266,6 +1278,10 @@ spec:
           not provided.
         displayName: Monitor Password Secret Key Ref
         path: maxScale.auth.monitorPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.monitorPasswordSecretKeyRef.generate
       - description: MonitorUsername is the user used by MaxScale monitor to connect
           to MariaDB server. It is defaulted if not provided.
         displayName: Monitor Username
@@ -1282,6 +1298,10 @@ spec:
           used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
         displayName: Server Password Secret Key Ref
         path: maxScale.auth.serverPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.serverPasswordSecretKeyRef.generate
       - description: ServerUsername is the user used by MaxScale to connect to MariaDB
           server. It is defaulted if not provided.
         displayName: Server Username
@@ -1299,6 +1319,10 @@ spec:
           HA is enabled.
         displayName: Sync Password Secret Key Ref
         path: maxScale.auth.syncPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: maxScale.auth.syncPasswordSecretKeyRef.generate
       - description: MonitoSyncUsernamerUsername is the user used by MaxScale config
           sync to connect to MariaDB server. It is defaulted when HA is enabled.
         displayName: Sync Username
@@ -1350,7 +1374,7 @@ spec:
       - description: Interval used to perform health checks.
         displayName: Interval
         path: maxScale.connection.healthCheck.interval
-      - description: RetryInterval is the intervañ used to perform health check retries.
+      - description: RetryInterval is the interval used to perform health check retries.
         displayName: Retry Interval
         path: maxScale.connection.healthCheck.retryInterval
       - description: Params to be used in the Connection.
@@ -1737,7 +1761,7 @@ spec:
         path: maxScale.replicas
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podCount
-      - description: RequeueInterval is used to perform requeue reconcilizations.
+      - description: RequeueInterval is used to perform requeue reconciliations.
         displayName: Requeue Interval
         path: maxScale.requeueInterval
       - description: Services define how the traffic is forwarded to the MariaDB servers.
@@ -1772,7 +1796,7 @@ spec:
       - description: Name is the identifier of the MaxScale service.
         displayName: Name
         path: maxScale.services[0].name
-      - description: 'Params defines extra parameters to pass to the monitor. Any
+      - description: 'Params defines extra parameters to pass to the service. Any
           parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
           Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.
           https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
@@ -1993,6 +2017,10 @@ spec:
           user used by the exporter.
         displayName: Password Secret Key Ref
         path: metrics.passwordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: metrics.passwordSecretKeyRef.generate
       - description: ServiceMonitor defines the ServiceMonior object.
         displayName: Service Monitor
         path: metrics.serviceMonitor
@@ -2027,6 +2055,10 @@ spec:
           user provided via a Secret.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: passwordSecretKeyRef.generate
       - description: PodDisruptionBudget defines the budget for replica availability.
         displayName: Pod Disruption Budget
         path: podDisruptionBudget
@@ -2065,7 +2097,7 @@ spec:
       - description: Interval used to perform health checks.
         displayName: Interval
         path: primaryConnection.healthCheck.interval
-      - description: RetryInterval is the intervañ used to perform health check retries.
+      - description: RetryInterval is the interval used to perform health check retries.
         displayName: Retry Interval
         path: primaryConnection.healthCheck.retryInterval
       - description: Params to be used in the Connection.
@@ -2210,6 +2242,10 @@ spec:
           use as password for the replication user.
         displayName: Repl Password Secret Key Ref
         path: replication.replica.replPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: replication.replica.replPasswordSecretKeyRef.generate
       - description: SyncTimeout defines the timeout for a replica to be synced with
           the primary when performing a primary switchover. If the timeout is reached,
           the replica GTID will be reset and the switchover will continue.
@@ -2242,6 +2278,10 @@ spec:
         path: rootPasswordSecretKeyRef
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: rootPasswordSecretKeyRef.generate
       - description: SecondaryConnection defines templates to configure the secondary
           Connection object.
         displayName: Secondary Connection
@@ -2252,7 +2292,7 @@ spec:
       - description: Interval used to perform health checks.
         displayName: Interval
         path: secondaryConnection.healthCheck.interval
-      - description: RetryInterval is the intervañ used to perform health check retries.
+      - description: RetryInterval is the interval used to perform health check retries.
         displayName: Retry Interval
         path: secondaryConnection.healthCheck.retryInterval
       - description: Params to be used in the Connection.
@@ -2578,6 +2618,10 @@ spec:
           password to call the admin REST API. It is defaulted if not provided.
         displayName: Admin Password Secret Key Ref
         path: auth.adminPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.adminPasswordSecretKeyRef.generate
       - description: AdminUsername is an admin username to call the admin REST API.
           It is defaulted if not provided.
         displayName: Admin Username
@@ -2594,6 +2638,10 @@ spec:
           to connect to MaxScale. It is defaulted if not provided.
         displayName: Client Password Secret Key Ref
         path: auth.clientPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.clientPasswordSecretKeyRef.generate
       - description: ClientUsername is the user to connect to MaxScale. It is defaulted
           if not provided.
         displayName: Client Username
@@ -2611,6 +2659,10 @@ spec:
           password to call the admib REST API. It is defaulted if metrics are enabled.
         displayName: Metrics Password Secret Key Ref
         path: auth.metricsPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.metricsPasswordSecretKeyRef.generate
       - description: MetricsUsername is an metrics username to call the REST API.
           It is defaulted if metrics are enabled.
         displayName: Metrics Username
@@ -2628,6 +2680,10 @@ spec:
           not provided.
         displayName: Monitor Password Secret Key Ref
         path: auth.monitorPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.monitorPasswordSecretKeyRef.generate
       - description: MonitorUsername is the user used by MaxScale monitor to connect
           to MariaDB server. It is defaulted if not provided.
         displayName: Monitor Username
@@ -2644,6 +2700,10 @@ spec:
           used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
         displayName: Server Password Secret Key Ref
         path: auth.serverPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.serverPasswordSecretKeyRef.generate
       - description: ServerUsername is the user used by MaxScale to connect to MariaDB
           server. It is defaulted if not provided.
         displayName: Server Username
@@ -2661,6 +2721,10 @@ spec:
           HA is enabled.
         displayName: Sync Password Secret Key Ref
         path: auth.syncPasswordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: auth.syncPasswordSecretKeyRef.generate
       - description: MonitoSyncUsernamerUsername is the user used by MaxScale config
           sync to connect to MariaDB server. It is defaulted when HA is enabled.
         displayName: Sync Username
@@ -2715,7 +2779,7 @@ spec:
       - description: Interval used to perform health checks.
         displayName: Interval
         path: connection.healthCheck.interval
-      - description: RetryInterval is the intervañ used to perform health check retries.
+      - description: RetryInterval is the interval used to perform health check retries.
         displayName: Retry Interval
         path: connection.healthCheck.retryInterval
       - description: Params to be used in the Connection.
@@ -3197,8 +3261,8 @@ spec:
         path: replicas
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podCount
-      - description: RequeueInterval is used to perform requeue reconcilizations.
-          If not defined, it defaults to 10s.
+      - description: RequeueInterval is used to perform requeue reconciliations. If
+          not defined, it defaults to 10s.
         displayName: Requeue Interval
         path: requeueInterval
       - description: Resouces describes the compute resource requirements.
@@ -3274,7 +3338,7 @@ spec:
       - description: Name is the identifier of the MaxScale service.
         displayName: Name
         path: services[0].name
-      - description: 'Params defines extra parameters to pass to the monitor. Any
+      - description: 'Params defines extra parameters to pass to the service. Any
           parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
           Router specific parameter are also suported: https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.
           https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
@@ -3488,8 +3552,8 @@ spec:
       - description: Endpoint is the S3 API endpoint without scheme.
         displayName: Endpoint
         path: s3.endpoint
-      - description: Prefix allows backups to be placed under a specific prefix in
-          the bucket. A trailing slash '/' is added if not provided.
+      - description: 'Prefix indicates a folder/subfolder in the bucket. For example:
+          mariadb/ or mariadb/backups. A trailing slash ''/'' is added if not provided.'
         displayName: Prefix
         path: s3.prefix
       - description: Region is the S3 region name to use.
@@ -3709,10 +3773,11 @@ spec:
         displayName: Name
         path: name
       - description: PasswordSecretKeyRef is a reference to the password to be used
-          by the User.
+          by the User. If not provided, the account will be locked and the password
+          will expire.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
-      - description: RequeueInterval is used to perform requeue reconcilizations.
+      - description: RequeueInterval is used to perform requeue reconciliations.
         displayName: Requeue Interval
         path: requeueInterval
       - description: RetryInterval is the interval used to perform retries.

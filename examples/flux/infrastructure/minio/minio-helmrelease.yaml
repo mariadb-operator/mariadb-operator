@@ -1,0 +1,49 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: minio
+spec:
+  chart:
+    spec:
+      chart: minio
+      sourceRef:
+        kind: HelmRepository
+        name: minio
+      version: "5.2.0"
+  interval: 1h0m0s
+  values:
+    minioAPIPort: "9000"
+    minioConsolePort: "9001"
+
+    mode: standalone
+
+    rootUser: root
+    rootPassword: Minio11!
+
+    persistence:
+      size: 5Gi
+
+    resources:
+      requests:
+        memory: 512Mi
+
+    tls:
+      enabled: true
+      certSecret: minio-tls
+      publicCrt: tls.crt
+      privateKey: tls.key
+
+    users:
+      - accessKey: console
+        secretKey: Minio11!
+        policy: consoleAdmin
+      - accessKey: mariadb-operator
+        secretKey: Minio11!
+        policy: readwrite
+
+    buckets:
+      - name: backups
+        policy: none
+        purge: false
+        versioning: false
+        objectlocking: false

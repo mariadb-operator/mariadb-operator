@@ -13,7 +13,8 @@ import (
 
 type UserOpts struct {
 	Name                 string
-	PasswordSecretKeyRef v1.SecretKeySelector
+	Host                 string
+	PasswordSecretKeyRef *v1.SecretKeySelector
 	MaxUserConnections   int32
 	Metadata             *mariadbv1alpha1.Metadata
 	MariaDBRef           mariadbv1alpha1.MariaDBRef
@@ -29,6 +30,7 @@ func (b *Builder) BuildUser(key types.NamespacedName, owner metav1.Object, opts 
 		Spec: mariadbv1alpha1.UserSpec{
 			MariaDBRef:           opts.MariaDBRef,
 			Name:                 opts.Name,
+			Host:                 opts.Host,
 			PasswordSecretKeyRef: opts.PasswordSecretKeyRef,
 		},
 	}

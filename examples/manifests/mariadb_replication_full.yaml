@@ -6,7 +6,13 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
+    generate: true
+
   username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+    generate: true
   database: mariadb
   
   storage:
@@ -34,8 +40,9 @@ spec:
 
     kubernetesService:
       type: LoadBalancer
-      annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.219
+      metadata:
+        annotations:
+          metallb.universe.tf/loadBalancerIPs: 172.18.0.219
 
     connection:
       secretName: mxs-repl-conn
@@ -50,8 +57,9 @@ spec:
       waitPoint: AfterSync
       gtid: CurrentPos
       replPasswordSecretKeyRef:
-        name: mariadb
+        name: mariadb-replication
         key: password
+        generate: true
       connectionTimeout: 10s
       connectionRetries: 10
       syncTimeout: 10s
@@ -60,8 +68,9 @@ spec:
 
   service:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
   connection:
     secretName: mariadb-repl-conn
     secretTemplate:
@@ -69,8 +78,9 @@ spec:
 
   primaryService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
   primaryConnection:
     secretName: mariadb-repl-conn-primary
     secretTemplate:
@@ -78,15 +88,16 @@ spec:
 
   secondaryService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
   secondaryConnection:
     secretName: mariadb-repl-conn-secondary
     secretTemplate:
       key: dsn
 
   affinity:
-    enableAntiAffinity: true
+    antiAffinityEnabled: true
 
   tolerations:
     - key: "k8s.mariadb.com/ha"
@@ -113,6 +124,16 @@ spec:
       memory: 128Mi
     limits:
       memory: 1Gi
+
+  livenessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+
+  readinessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
 
   metrics:
     enabled: true

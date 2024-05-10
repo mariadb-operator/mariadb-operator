@@ -32,7 +32,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, nil
 	}
 
-	exist, err := r.DiscoveryClient.ServiceMonitorExist()
+	exist, err := r.Discovery.ServiceMonitorExist()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -44,6 +44,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 	}
 
 	if !mariadb.IsReady() {
+		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing metrics")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
@@ -70,7 +71,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 
 func (r *MariaDBReconciler) reconcileMetricsPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	secretKeyRef := mariadb.Spec.Metrics.PasswordSecretKeyRef
-	req := &secret.RandomPasswordRequest{
+	req := secret.PasswordRequest{
 		Owner:    mariadb,
 		Metadata: mariadb.Spec.InheritMetadata,
 		Key: types.NamespacedName{
@@ -78,8 +79,9 @@ func (r *MariaDBReconciler) reconcileMetricsPassword(ctx context.Context, mariad
 			Namespace: mariadb.Namespace,
 		},
 		SecretKey: secretKeyRef.Key,
+		Generate:  secretKeyRef.Generate,
 	}
-	_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, req)
+	_, err := r.SecretReconciler.ReconcilePassword(ctx, req)
 	return err
 }
 
@@ -93,7 +95,7 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 	}
 	userOpts := builder.UserOpts{
 		Name:                 mariadb.Spec.Metrics.Username,
-		PasswordSecretKeyRef: mariadb.Spec.Metrics.PasswordSecretKeyRef,
+		PasswordSecretKeyRef: &mariadb.Spec.Metrics.PasswordSecretKeyRef.SecretKeySelector,
 		MaxUserConnections:   3,
 		Metadata:             mariadb.Spec.InheritMetadata,
 		MariaDBRef:           ref,
@@ -124,7 +126,7 @@ func (r *MariaDBReconciler) reconcileExporterConfig(ctx context.Context, mariadb
 		return nil
 	}
 
-	password, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.Metrics.PasswordSecretKeyRef, mariadb.Namespace)
+	password, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.Metrics.PasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting metrics password Secret: %v", err)
 	}

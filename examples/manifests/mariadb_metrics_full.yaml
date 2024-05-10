@@ -8,8 +8,9 @@ spec:
 
   service:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.20
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.20
 
   metrics:
     enabled: true
@@ -23,6 +24,8 @@ spec:
           cpu: 300m
           memory: 512Mi
       port: 9104
+      affinity:
+        antiAffinityEnabled: true
     serviceMonitor:
       prometheusRelease: kube-prometheus-stack
       jobLabel: mariadb-monitoring
@@ -32,3 +35,4 @@ spec:
     passwordSecretKeyRef:
       name: mariadb
       key: password
+      generate: true

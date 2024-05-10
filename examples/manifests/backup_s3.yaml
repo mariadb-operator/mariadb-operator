@@ -6,9 +6,11 @@ spec:
   mariaDbRef:
     name: mariadb
   maxRetention: 720h # 30 days
+  # ignoreGlobalPriv: true
   storage:
     s3:
       bucket: backups
+      prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
       region:  us-east-1
       accessKeyIdSecretKeyRef:

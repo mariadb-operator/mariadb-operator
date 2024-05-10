@@ -108,7 +108,7 @@ func (rs *recoveryStatus) setBootstrapping(pod string) {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
-	rs.inner.Bootstrap = &mariadbv1alpha1.GaleraRecoveryBootstrap{
+	rs.inner.Bootstrap = &mariadbv1alpha1.GaleraBootstrapStatus{
 		Time: ptr.To(metav1.NewTime(time.Now())),
 		Pod:  &pod,
 	}

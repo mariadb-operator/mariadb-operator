@@ -31,7 +31,7 @@ var (
 		Namespace: testNamespace,
 	}
 	testPwdKey = types.NamespacedName{
-		Name:      "passsword",
+		Name:      "password",
 		Namespace: testNamespace,
 	}
 	testPwdSecretKey = "passsword"
@@ -55,17 +55,6 @@ var (
 		Namespace: testNamespace,
 	}
 )
-
-func expectMariadbReady(ctx context.Context, k8sClient client.Client) {
-	var mdb mariadbv1alpha1.MariaDB
-	By("Expecting MariaDB to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(ctx, testMdbkey, &mdb); err != nil {
-			return false
-		}
-		return mdb.IsReady()
-	}, testHighTimeout, testInterval).Should(BeTrue())
-}
 
 func createTestData(ctx context.Context, k8sClient client.Client, env environment.OperatorEnv) {
 	var testCidrPrefix, err = docker.GetKindCidrPrefix()
@@ -117,18 +106,22 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 					"k8s.mariadb.com/test": "test",
 				},
 			},
-			RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: testPwdKey.Name,
+			RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
 				},
-				Key: testPwdSecretKey,
 			},
 			Username: &testUser,
-			PasswordSecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: testPwdKey.Name,
+			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
 				},
-				Key: testPwdSecretKey,
 			},
 			Database: &testDatabase,
 			Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -138,11 +131,11 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 				},
 			},
 			MyCnf: ptr.To(`[mariadb]
-			bind-address=*
-			default_storage_engine=InnoDB
-			binlog_format=row
-			innodb_autoinc_lock_mode=2
-			max_allowed_packet=256M`),
+bind-address=*
+default_storage_engine=InnoDB
+binlog_format=row
+innodb_autoinc_lock_mode=2
+max_allowed_packet=256M`),
 			Port: 3306,
 			Service: &mariadbv1alpha1.ServiceTemplate{
 				Type: corev1.ServiceTypeLoadBalancer,
@@ -165,11 +158,13 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 					ScrapeTimeout:     "10s",
 				},
 				Username: "monitoring",
-				PasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testPwdKey.Name,
+				PasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
 					},
-					Key: testPwdSecretKey,
 				},
 			},
 			Storage: mariadbv1alpha1.Storage{
@@ -178,7 +173,33 @@ func createTestData(ctx context.Context, k8sClient client.Client, env environmen
 		},
 	}
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
-	expectMariadbReady(ctx, k8sClient)
+	expectMariadbReady(ctx, k8sClient, testMdbkey)
+}
+
+func expectMariadbReady(ctx context.Context, k8sClient client.Client, key types.NamespacedName) {
+	var mdb mariadbv1alpha1.MariaDB
+	By("Expecting MariaDB to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
+			return false
+		}
+		return mdb.IsReady()
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func expectSecretToExist(ctx context.Context, k8sClient client.Client, key types.NamespacedName, secretKey string) {
+	Eventually(func(g Gomega) bool {
+		var secret corev1.Secret
+		key := types.NamespacedName{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		}
+		if err := k8sClient.Get(ctx, key, &secret); err != nil {
+			return false
+		}
+		Expect(secret.Data[secretKey]).ToNot(BeEmpty())
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func testS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {

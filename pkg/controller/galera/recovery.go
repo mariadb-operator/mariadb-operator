@@ -123,7 +123,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, rs *recoveryStatus,
 	agentClientSet *agentClientSet, sqlClientSet *sqlClientSet.ClientSet, logger logr.Logger) error {
 	statusRecovery := ptr.Deref(mariadb.Status.GaleraRecovery, mariadbv1alpha1.GaleraRecoveryStatus{})
-	bootstrap := ptr.Deref(statusRecovery.Bootstrap, mariadbv1alpha1.GaleraRecoveryBootstrap{})
+	bootstrap := ptr.Deref(statusRecovery.Bootstrap, mariadbv1alpha1.GaleraBootstrapStatus{})
 
 	if bootstrap.Pod == nil {
 		return errors.New("Unable to recover Pods. Cluster hasn't been bootstrapped")

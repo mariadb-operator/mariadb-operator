@@ -6,7 +6,13 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
+    generate: true
+
   username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+    generate: true
   database: mariadb
 
   storage:
@@ -34,8 +40,9 @@ spec:
 
     kubernetesService:
       type: LoadBalancer
-      annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.229
+      metadata:
+        annotations:
+          metallb.universe.tf/loadBalancerIPs: 172.18.0.229
 
     connection:
       secretName: mxs-galera-conn
@@ -53,7 +60,7 @@ spec:
     providerOptions:
       gcs.fc_limit: '64'
     agent:
-      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.27
+      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.28
       port: 5555
       kubernetesAuth:
         enabled: true
@@ -67,10 +74,21 @@ spec:
       podRecoveryTimeout: 3m
       podSyncTimeout: 3m
     initContainer:
-      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.27
+      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.28
     initJob:
-      labels:
-        sidecar.istio.io/inject: "false"
+      metadata:
+        labels:
+          sidecar.istio.io/inject: "false"
+      args:
+        - "--verbose"
+      affinity:
+        antiAffinityEnabled: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          memory: 1Gi
     config:
       reuseStorageVolume: false
       volumeClaimTemplate:
@@ -82,8 +100,9 @@ spec:
 
   service:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
   connection:
     secretName: mariadb-galera-conn
     secretTemplate:
@@ -91,8 +110,9 @@ spec:
 
   primaryService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.160
   primaryConnection:
     secretName: mariadb-galera-conn-primary
     secretTemplate:
@@ -100,15 +120,16 @@ spec:
 
   secondaryService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.161
   secondaryConnection:
     secretName: mariadb-galera-conn-secondary
     secretTemplate:
       key: dsn
 
   affinity:
-    enableAntiAffinity: true
+    antiAffinityEnabled: true
 
   tolerations:
     - key: "k8s.mariadb.com/ha"
@@ -135,6 +156,16 @@ spec:
       memory: 128Mi
     limits:
       memory: 1Gi
+
+  livenessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+
+  readinessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
 
   metrics:
     enabled: true

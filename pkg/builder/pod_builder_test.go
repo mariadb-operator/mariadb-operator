@@ -12,7 +12,7 @@ import (
 )
 
 func TestMariadbPodMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
@@ -306,14 +306,17 @@ func TestMariadbPodMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podTpl := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
-			assertMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+			assertObjectMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }
 
 func TestMaxScalePodMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name: "maxscale-obj",
 	}
@@ -494,14 +497,18 @@ func TestMaxScalePodMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podTpl := builder.maxscalePodTemplate(tt.maxscale)
-			assertMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			podTpl, err := builder.maxscalePodTemplate(tt.maxscale)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+			}
+
+			assertObjectMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }
 
 func TestMariadbPodBuilder(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-mariadb-builder",
@@ -524,7 +531,10 @@ func TestMariadbPodBuilder(t *testing.T) {
 		}),
 	}
 
-	podTpl := builder.mariadbPodTemplate(mariadb, opts...)
+	podTpl, err := builder.mariadbPodTemplate(mariadb, opts...)
+	if err != nil {
+		t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+	}
 	if podTpl.Spec.Affinity == nil {
 		t.Error("expected affinity to have been set")
 	}

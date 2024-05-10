@@ -4,9 +4,9 @@ metadata:
   name: photoprism
 spec:
   mariaDbRef:
-    name: mariadb
+    name: mariadb-galera
   privileges:
-    - "ALL"
+    - "ALL PRIVILEGES"
   database: "*"
   table: "*"
   username: photoprism

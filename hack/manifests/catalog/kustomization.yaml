@@ -7,4 +7,4 @@ configurations:
 images:
 - name: catalog
   newName: mariadb/mariadb-operator-enterprise-catalog
-  newTag: v0.0.23
+  newTag: v0.0.28

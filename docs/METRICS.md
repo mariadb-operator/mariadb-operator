@@ -5,6 +5,17 @@
 
 `mariadb-operator` is able to provision MariaDB instances and automatically configure [Prometheus](https://github.com/prometheus/prometheus) to scrape their metrics so they can be used later on to build [Grafana dashboards](#grafana-dashboards) or trigger Alertmanager alerts.
 
+## Table of contents
+<!-- toc -->
+- [Operator metrics](#operator-metrics)
+- [Exporter](#exporter)
+- [<code>ServiceMonitor</code>](#servicemonitor)
+- [Configuration](#configuration)
+- [Prometheus reference installation](#prometheus-reference-installation)
+- [Grafana dashboards](#grafana-dashboards)
+- [Reference](#reference)
+<!-- /toc -->
+
 ## Operator metrics
 
 In order to expose the operator internal metrics, please refer to the [recommended installation](../README.md#recommended-installation) flavour.
@@ -87,15 +98,15 @@ make install-prometheus
 To visualize MariaDB metrics, our [Prometheus reference installation](#prometheus-reference-installation) has some interesting Grafana dashboards [configured](../hack/config/kube-prometheus-stack.yaml) that make use of the metrics configured by `mariadb-operator`. They are all available on [grafana.com](https://grafana.com/grafana/dashboards/):
 
 
-##### [MySQL Overview](https://grafana.com/grafana/dashboards/7362-mysql-overview/)
+__[MySQL Overview](https://grafana.com/grafana/dashboards/7362-mysql-overview/)__
 
-##### [MySQL Exporter Quickstart and Dashboard](https://grafana.com/grafana/dashboards/14057-mysql/)
-
-
-##### [MySQL Replication](https://grafana.com/grafana/dashboards/7371-mysql-replication/)
+__[MySQL Exporter Quickstart and Dashboard](https://grafana.com/grafana/dashboards/14057-mysql/)__
 
 
-##### [Galera/MariaDB - Overview](https://grafana.com/grafana/dashboards/13106-galera-mariadb-overview/)
+__[MySQL Replication](https://grafana.com/grafana/dashboards/7371-mysql-replication/)__
+
+
+__[Galera/MariaDB - Overview](https://grafana.com/grafana/dashboards/13106-galera-mariadb-overview/)__
 
 ## Reference
 - [API reference](./API_REFERENCE.md)

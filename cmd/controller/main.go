@@ -147,13 +147,16 @@ var rootCmd = &cobra.Command{
 		galeraRecorder := mgr.GetEventRecorderFor("galera")
 		replRecorder := mgr.GetEventRecorderFor("replication")
 
-		discoveryClient, err := discovery.NewDiscoveryClient(restConfig)
+		discovery, err := discovery.NewDiscovery()
 		if err != nil {
-			setupLog.Error(err, "Error getting discovery client")
+			setupLog.Error(err, "Error creating discovery")
 			os.Exit(1)
 		}
-
-		builder := builder.NewBuilder(scheme, env)
+		builder, err := builder.NewBuilder(scheme, env, builder.WithDiscovery(discovery))
+		if err != nil {
+			setupLog.Error(err, "Error creating builder")
+			os.Exit(1)
+		}
 		refResolver := refresolver.New(client)
 
 		conditionReady := condition.NewReady()
@@ -229,11 +232,11 @@ var rootCmd = &cobra.Command{
 			Scheme:   scheme,
 			Recorder: mgr.GetEventRecorderFor("mariadb"),
 
-			Environment:     env,
-			Builder:         builder,
-			RefResolver:     refResolver,
-			ConditionReady:  conditionReady,
-			DiscoveryClient: discoveryClient,
+			Environment:    env,
+			Builder:        builder,
+			RefResolver:    refResolver,
+			ConditionReady: conditionReady,
+			Discovery:      discovery,
 
 			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,
@@ -258,10 +261,10 @@ var rootCmd = &cobra.Command{
 			Recorder:    mgr.GetEventRecorderFor("maxscale"),
 			RefResolver: refResolver,
 
-			Builder:         builder,
-			ConditionReady:  conditionReady,
-			Environment:     env,
-			DiscoveryClient: discoveryClient,
+			Builder:        builder,
+			ConditionReady: conditionReady,
+			Environment:    env,
+			Discovery:      discovery,
 
 			SecretReconciler:         secretReconciler,
 			RBACReconciler:           rbacReconciler,

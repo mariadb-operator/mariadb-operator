@@ -59,15 +59,18 @@ spec:
 
   auth:
     generate: true
-    adminUsername: mariadb-operator
-    adminPasswordSecretKeyRef:
-      name: maxscale
-      key: password
 
   kubernetesService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+
+  guiKubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.230
 
   connection:
     secretName: mxs-repl-conn

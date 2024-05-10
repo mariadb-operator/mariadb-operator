@@ -366,4 +366,106 @@ var _ = Describe("Base types", func() {
 			),
 		)
 	})
+
+	Context("When merging multiple Metadata instances", func() {
+		DescribeTable(
+			"Should succeed",
+			func(
+				metas []*Metadata,
+				wantMeta *Metadata,
+			) {
+				gotMeta := MergeMetadata(metas...)
+				Expect(wantMeta).To(BeEquivalentTo(gotMeta))
+			},
+			Entry(
+				"empty",
+				[]*Metadata{},
+				&Metadata{
+					Labels:      map[string]string{},
+					Annotations: map[string]string{},
+				},
+			),
+			Entry(
+				"single",
+				[]*Metadata{
+					{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+				&Metadata{
+					Labels: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+			),
+			Entry(
+				"multiple",
+				[]*Metadata{
+					{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+					},
+				},
+				&Metadata{
+					Labels: map[string]string{
+						"database.myorg.io":       "mariadb",
+						"sidecar.istio.io/inject": "false",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io":       "mariadb",
+						"sidecar.istio.io/inject": "false",
+					},
+				},
+			),
+			Entry(
+				"override",
+				[]*Metadata{
+					{
+						Labels: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					{
+						Labels: map[string]string{
+							"database.myorg.io": "mydb",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mydb",
+						},
+					},
+				},
+				&Metadata{
+					Labels: map[string]string{
+						"database.myorg.io": "mydb",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mydb",
+					},
+				},
+			),
+		)
+	})
 })

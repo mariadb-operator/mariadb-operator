@@ -40,11 +40,14 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						Storage: Storage{
@@ -62,11 +65,13 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image: "mariadb:lts",
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "root",
+								},
+								Key: "pwd",
 							},
-							Key: "pwd",
 						},
 						Port: 3307,
 						Storage: Storage{
@@ -84,11 +89,13 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             "mariadb:lts",
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "root",
+								},
+								Key: "pwd",
 							},
-							Key: "pwd",
 						},
 						Port: 3307,
 						Storage: Storage{
@@ -151,11 +158,14 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						MyCnf: ptr.To(`
@@ -210,11 +220,14 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						MyCnf: ptr.To(`
@@ -257,20 +270,26 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port:     3306,
 						Username: ptr.To("user"),
 						Database: ptr.To("test"),
-						PasswordSecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-password",
+						PasswordSecretKeyRef: &GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-password",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Storage: Storage{
 							Ephemeral:           ptr.To(false),
@@ -288,11 +307,13 @@ var _ = Describe("MariaDB types", func() {
 					Spec: MariaDBSpec{
 						Username: ptr.To("user"),
 						Database: ptr.To("test"),
-						PasswordSecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "user-password",
+						PasswordSecretKeyRef: &GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "user-password",
+								},
+								Key: "pwd",
 							},
-							Key: "pwd",
 						},
 					},
 				},
@@ -304,20 +325,25 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port:     3306,
 						Username: ptr.To("user"),
 						Database: ptr.To("test"),
-						PasswordSecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "user-password",
+						PasswordSecretKeyRef: &GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "user-password",
+								},
+								Key: "pwd",
 							},
-							Key: "pwd",
 						},
 						Storage: Storage{
 							Ephemeral:           ptr.To(false),
@@ -346,11 +372,14 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						Metrics: &MariadbMetrics{
@@ -360,11 +389,14 @@ var _ = Describe("MariaDB types", func() {
 								Port:  9104,
 							},
 							Username: "mariadb-obj-metrics",
-							PasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "mariadb-obj-metrics-password",
+							PasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "mariadb-obj-metrics-password",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 						},
 						Storage: Storage{
@@ -401,11 +433,14 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						Metrics: &MariadbMetrics{
@@ -440,11 +475,14 @@ var _ = Describe("MariaDB types", func() {
 								},
 							},
 							Username: "mariadb-obj-metrics",
-							PasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "mariadb-obj-metrics-password",
+							PasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "mariadb-obj-metrics-password",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 						},
 						Storage: Storage{
@@ -486,11 +524,14 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						MaxScaleRef: &corev1.ObjectReference{
@@ -542,11 +583,14 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						Storage: Storage{
@@ -580,11 +624,14 @@ var _ = Describe("MariaDB types", func() {
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						Storage: Storage{
@@ -616,11 +663,14 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						Storage: Storage{
@@ -665,11 +715,14 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						Storage: Storage{
@@ -696,11 +749,14 @@ var _ = Describe("MariaDB types", func() {
 					Spec: MariaDBSpec{
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "mariadb-obj-root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
 							},
-							Key: "password",
+							Generate: true,
 						},
 						Port: 3306,
 						Storage: Storage{
@@ -744,20 +800,24 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						Image: "mariadb:lts",
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "root",
+								},
+								Key: "pwd",
 							},
-							Key: "pwd",
 						},
 						Port:     3307,
 						Username: ptr.To("user"),
 						Database: ptr.To("test"),
-						PasswordSecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "user-password",
+						PasswordSecretKeyRef: &GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "user-password",
+								},
+								Key: "pwd",
 							},
-							Key: "pwd",
 						},
 						MyCnf: ptr.To(`
 						[mariadb]
@@ -826,20 +886,24 @@ var _ = Describe("MariaDB types", func() {
 					Spec: MariaDBSpec{
 						Image:             "mariadb:lts",
 						RootEmptyPassword: ptr.To(false),
-						RootPasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "root",
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "root",
+								},
+								Key: "pwd",
 							},
-							Key: "pwd",
 						},
 						Port:     3307,
 						Username: ptr.To("user"),
 						Database: ptr.To("test"),
-						PasswordSecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "user-password",
+						PasswordSecretKeyRef: &GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "user-password",
+								},
+								Key: "pwd",
 							},
-							Key: "pwd",
 						},
 						MyCnf: ptr.To(`
 						[mariadb]
@@ -862,11 +926,14 @@ var _ = Describe("MariaDB types", func() {
 								Port:  9104,
 							},
 							Username: "mariadb-obj-metrics",
-							PasswordSecretKeyRef: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "mariadb-obj-metrics-password",
+							PasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "mariadb-obj-metrics-password",
+									},
+									Key: "password",
 								},
-								Key: "password",
+								Generate: true,
 							},
 						},
 						Storage: Storage{

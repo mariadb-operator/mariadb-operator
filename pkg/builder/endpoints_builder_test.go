@@ -9,7 +9,7 @@ import (
 )
 
 func TestEndpointsMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "endpoints",
 	}
@@ -58,7 +58,7 @@ func TestEndpointsMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Endpoints: %v", err)
 			}
-			assertMeta(t, &endpoints.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &endpoints.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }

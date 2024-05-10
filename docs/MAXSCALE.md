@@ -16,29 +16,31 @@ MaxScale is a sophisticated database proxy, router, and load balancer designed s
 To better understand what MaxScale is capable of you may check the [product page](https://mariadb.com/docs/server/products/mariadb-maxscale/) and the [documentation](https://mariadb.com/kb/en/maxscale/). 
 
 ## Table of contents
-  - [MaxScale resources](#maxscale-resources)
-      - [Servers](#servers)
-      - [Monitors](#monitors)
-      - [Services](#services)
-      - [Listeners](#listeners)
-  - [`MaxScale` CR](#maxscale-cr)
-  - [`MariaDB` CR](#mariadb-cr)
-  - [`MaxScale` embedded in `MariaDB`](#maxscale-embedded-in-mariadb)
-  - [Defaults](#defaults)
-  - [Server configuration](#server-configuration)
-  - [Server maintenance](#server-maintenance)
-  - [Configuration](#configuration)
-  - [Authentication](#authentication)
-  - [Kubernetes `Service`](#kubernetes-service)
-  - [Connection](#connection)
-  - [High availability](#high-availability)
-  - [Suspend resources](#suspend-resources)
-  - [MaxScale GUI](#maxscale-gui)
-  - [MaxScale API](#maxscale-api)
-  - [Troubleshooting](#troubleshooting)
-    - [Common errors](#common-errors)
-      - [Permission denied writing `/var/lib/maxscale`](#permission-denied-writing-varlibmaxscale)
-  - [Reference](#reference)
+<!-- toc -->
+- [MaxScale resources](#maxscale-resources)
+    - [Servers](#servers)
+    - [Monitors](#monitors)
+    - [Services](#services)
+    - [Listeners](#listeners)
+- [<code>MaxScale</code> CR](#maxscale-cr)
+- [<code>MariaDB</code> CR](#mariadb-cr)
+- [<code>MaxScale</code> embedded in <code>MariaDB</code>](#maxscale-embedded-in-mariadb)
+- [Defaults](#defaults)
+- [Server configuration](#server-configuration)
+- [Server maintenance](#server-maintenance)
+- [Configuration](#configuration)
+- [Authentication](#authentication)
+- [Kubernetes <code>Services</code>](#kubernetes-services)
+- [Connection](#connection)
+- [High availability](#high-availability)
+- [Suspend resources](#suspend-resources)
+- [MaxScale GUI](#maxscale-gui)
+- [MaxScale API](#maxscale-api)
+- [Troubleshooting](#troubleshooting)
+  - [Common errors](#common-errors)
+    - [Permission denied writing <code>/var/lib/maxscale</code>](#permission-denied-writing-varlibmaxscale)
+- [Reference](#reference)
+<!-- /toc -->
 
 ## MaxScale resources
 
@@ -135,8 +137,9 @@ spec:
 
   kubernetesService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.224
 ```
 
 As you can see, the [MaxScale resources](#maxscale-resources) we previously mentioned have a counterpart resource in the `MaxScale` CR. 
@@ -194,8 +197,9 @@ spec:
 
   kubernetesService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.214
 ```
 
 You also need to set a reference in the `MariaDB` resource to make it `MaxScale`-aware. This is explained in the [MariaDB CR](#mariadb-cr) section.
@@ -238,8 +242,9 @@ spec:
 
     kubernetesService:
       type: LoadBalancer
-      annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.229
+      metadata:
+        annotations:
+          metallb.universe.tf/loadBalancerIPs: 172.18.0.229
 
   galera:
     enabled: true
@@ -432,7 +437,7 @@ spec:
 
 As you could see, you are also able to limit the number of connections for each component/actor. Bear in mind that, when running in [high availability](#high-availability), you may need to increase this number, as more MaxScale instances implies more connections.
 
-## Kubernetes `Service`
+## Kubernetes `Services`
 
 To enable your applications to communicate with MaxScale, a Kubernetes `Service` is provisioned with all the ports specified in the MaxScale listeners. You have the flexibility to provide a template to customize this `Service`:
 
@@ -445,8 +450,9 @@ spec:
 ...
   kubernetesService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.224
 ```
 
 This results in the reconciliation of the following `Service`:
@@ -478,6 +484,8 @@ spec:
     app.kubernetes.io/name: maxscale
   type: LoadBalancer
 ```
+
+There is also another Kubernetes `Service` to access the GUI, please refer to the [MaxScale GUI](#maxscale-gui) section for further detail.
 
 ## Connection
 
@@ -597,9 +605,15 @@ spec:
   admin:
     port: 8989
     guiEnabled: true
+  guiKubernetesService:
+    type: LoadBalancer
+    metadata:
+      metadata:
+        annotations:
+          metallb.universe.tf/loadBalancerIPs: 172.18.0.231
 ```
 
-The GUI is exposed via the [Kubernetes Service](#kubernetes-service) in the same port as the [MaxScale API](#maxscale-api). Once you access, you will need to enter the [MaxScale API](#maxscale-api) credentials configured by `mariadb-operator` in a `Secret`. See the [Authentication](#authentication) section for more details.
+The GUI is exposed via a dedicated Kubernetes `Service` in the same port as the [MaxScale API](#maxscale-api). Once you access, you will need to enter the [MaxScale API](#maxscale-api) credentials configured by `mariadb-operator` in a `Secret`. See the [Authentication](#authentication) section for more details.
 
 ![MaxScale GUI](https://mariadb-operator.github.io/mariadb-operator/assets/maxscale-gui.png)
 

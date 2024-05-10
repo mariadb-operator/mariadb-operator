@@ -1733,9 +1733,9 @@ spec:
                         description: Endpoint is the S3 API endpoint without scheme.
                         type: string
                       prefix:
-                        description: Prefix allows backups to be placed under a specific
-                          prefix in the bucket. A trailing slash '/' is added if not
-                          provided.
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
                         type: string
                       region:
                         description: Region is the S3 region name to use.
@@ -3684,7 +3684,7 @@ spec:
                     description: Interval used to perform health checks.
                     type: string
                   retryInterval:
-                    description: RetryInterval is the intervañ used to perform health
+                    description: RetryInterval is the interval used to perform health
                       check retries.
                     type: string
                 type: object
@@ -4078,7 +4078,7 @@ spec:
                 maxLength: 80
                 type: string
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
               retryInterval:
                 description: RetryInterval is the interval used to perform retries.
@@ -4302,7 +4302,7 @@ spec:
                 minItems: 1
                 type: array
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
               retryInterval:
                 description: RetryInterval is the interval used to perform retries.
@@ -6383,9 +6383,9 @@ spec:
                         description: Endpoint is the S3 API endpoint without scheme.
                         type: string
                       prefix:
-                        description: Prefix allows backups to be placed under a specific
-                          prefix in the bucket. A trailing slash '/' is added if not
-                          provided.
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
                         type: string
                       region:
                         description: Region is the S3 region name to use.
@@ -8168,7 +8168,7 @@ spec:
                         description: Interval used to perform health checks.
                         type: string
                       retryInterval:
-                        description: RetryInterval is the intervañ used to perform
+                        description: RetryInterval is the interval used to perform
                           health check retries.
                         type: string
                     type: object
@@ -10153,8 +10153,8 @@ spec:
                     - image
                     type: object
                   initJob:
-                    description: InitJob defines metadata to the passed to the initialization
-                      Job.
+                    description: InitJob defines additional properties for the Job
+                      used to perform the initialization.
                     properties:
                       affinity:
                         description: Affinity to be used in the Pod.
@@ -12191,6 +12191,11 @@ spec:
                           to the admin password to call the admin REST API. It is
                           defaulted if not provided.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -12225,6 +12230,11 @@ spec:
                           to the password to connect to MaxScale. It is defaulted
                           if not provided.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -12262,6 +12272,11 @@ spec:
                           to the metrics password to call the admib REST API. It is
                           defaulted if metrics are enabled.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -12296,6 +12311,11 @@ spec:
                           to the password used by MaxScale monitor to connect to MariaDB
                           server. It is defaulted if not provided.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -12331,6 +12351,11 @@ spec:
                           to the password used by MaxScale to connect to MariaDB server.
                           It is defaulted if not provided.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -12365,6 +12390,11 @@ spec:
                           to the password used by MaxScale config to connect to MariaDB
                           server. It is defaulted when HA is enabled.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -12641,7 +12671,7 @@ spec:
                             description: Interval used to perform health checks.
                             type: string
                           retryInterval:
-                            description: RetryInterval is the intervañ used to perform
+                            description: RetryInterval is the interval used to perform
                               health check retries.
                             type: string
                         type: object
@@ -18275,7 +18305,7 @@ spec:
                     format: int32
                     type: integer
                   requeueInterval:
-                    description: RequeueInterval is used to perform requeue reconcilizations.
+                    description: RequeueInterval is used to perform requeue reconciliations.
                     type: string
                   services:
                     description: Services define how the traffic is forwarded to the
@@ -18323,7 +18353,7 @@ spec:
                           additionalProperties:
                             type: string
                           description: |-
-                            Params defines extra parameters to pass to the monitor.
+                            Params defines extra parameters to pass to the service.
                             Any parameter supported by MaxScale may be specified here. See reference:
                             https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
                             Router specific parameter are also suported:
@@ -23775,6 +23805,11 @@ spec:
                     description: PasswordSecretKeyRef is a reference to the password
                       of the monitoring user used by the exporter.
                     properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
                           a valid secret key.
@@ -23850,6 +23885,11 @@ spec:
                 description: PasswordSecretKeyRef is a reference to the password of
                   the initial user provided via a Secret.
                 properties:
+                  generate:
+                    default: false
+                    description: Generate indicates whether the Secret should be generated
+                      if the Secret referenced is not present.
+                    type: boolean
                   key:
                     description: The key of the secret to select from.  Must be a
                       valid secret key.
@@ -24090,7 +24130,7 @@ spec:
                         description: Interval used to perform health checks.
                         type: string
                       retryInterval:
-                        description: RetryInterval is the intervañ used to perform
+                        description: RetryInterval is the interval used to perform
                           health check retries.
                         type: string
                     type: object
@@ -24402,6 +24442,11 @@ spec:
                         description: ReplPasswordSecretKeyRef provides a reference
                           to the Secret to use as password for the replication user.
                         properties:
+                          generate:
+                            default: false
+                            description: Generate indicates whether the Secret should
+                              be generated if the Secret referenced is not present.
+                            type: boolean
                           key:
                             description: The key of the secret to select from.  Must
                               be a valid secret key.
@@ -24504,6 +24549,11 @@ spec:
                 description: RootPasswordSecretKeyRef is a reference to a Secret key
                   containing the root password.
                 properties:
+                  generate:
+                    default: false
+                    description: Generate indicates whether the Secret should be generated
+                      if the Secret referenced is not present.
+                    type: boolean
                   key:
                     description: The key of the secret to select from.  Must be a
                       valid secret key.
@@ -24532,7 +24582,7 @@ spec:
                         description: Interval used to perform health checks.
                         type: string
                       retryInterval:
-                        description: RetryInterval is the intervañ used to perform
+                        description: RetryInterval is the interval used to perform
                           health check retries.
                         type: string
                     type: object
@@ -28964,6 +29014,11 @@ spec:
                       to the admin password to call the admin REST API. It is defaulted
                       if not provided.
                     properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
                           a valid secret key.
@@ -28998,6 +29053,11 @@ spec:
                       to the password to connect to MaxScale. It is defaulted if not
                       provided.
                     properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
                           a valid secret key.
@@ -29035,6 +29095,11 @@ spec:
                       to the metrics password to call the admib REST API. It is defaulted
                       if metrics are enabled.
                     properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
                           a valid secret key.
@@ -29069,6 +29134,11 @@ spec:
                       to the password used by MaxScale monitor to connect to MariaDB
                       server. It is defaulted if not provided.
                     properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
                           a valid secret key.
@@ -29103,6 +29173,11 @@ spec:
                       to the password used by MaxScale to connect to MariaDB server.
                       It is defaulted if not provided.
                     properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
                           a valid secret key.
@@ -29137,6 +29212,11 @@ spec:
                       to the password used by MaxScale config to connect to MariaDB
                       server. It is defaulted when HA is enabled.
                     properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
                       key:
                         description: The key of the secret to select from.  Must be
                           a valid secret key.
@@ -29418,7 +29498,7 @@ spec:
                         description: Interval used to perform health checks.
                         type: string
                       retryInterval:
-                        description: RetryInterval is the intervañ used to perform
+                        description: RetryInterval is the interval used to perform
                           health check retries.
                         type: string
                     type: object
@@ -36492,7 +36572,7 @@ spec:
                 format: int32
                 type: integer
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                   If not defined, it defaults to 10s.
                 type: string
               resources:
@@ -36806,7 +36886,7 @@ spec:
                       additionalProperties:
                         type: string
                       description: |-
-                        Params defines extra parameters to pass to the monitor.
+                        Params defines extra parameters to pass to the service.
                         Any parameter supported by MaxScale may be specified here. See reference:
                         https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
                         Router specific parameter are also suported:
@@ -41083,8 +41163,9 @@ spec:
                     description: Endpoint is the S3 API endpoint without scheme.
                     type: string
                   prefix:
-                    description: Prefix allows backups to be placed under a specific
-                      prefix in the bucket. A trailing slash '/' is added if not provided.
+                    description: 'Prefix indicates a folder/subfolder in the bucket.
+                      For example: mariadb/ or mariadb/backups. A trailing slash ''/''
+                      is added if not provided.'
                     type: string
                   region:
                     description: Region is the S3 region name to use.
@@ -44934,8 +45015,9 @@ spec:
                 maxLength: 80
                 type: string
               passwordSecretKeyRef:
-                description: PasswordSecretKeyRef is a reference to the password to
-                  be used by the User.
+                description: |-
+                  PasswordSecretKeyRef is a reference to the password to be used by the User.
+                  If not provided, the account will be locked and the password will expire.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -44955,14 +45037,13 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               requeueInterval:
-                description: RequeueInterval is used to perform requeue reconcilizations.
+                description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
               retryInterval:
                 description: RetryInterval is the interval used to perform retries.
                 type: string
             required:
             - mariaDbRef
-            - passwordSecretKeyRef
             type: object
           status:
             description: UserStatus defines the observed state of User

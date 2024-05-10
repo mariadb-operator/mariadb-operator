@@ -8,7 +8,7 @@ import (
 )
 
 func TestConfigMapMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	tests := []struct {
 		name     string
 		opts     ConfigMapOpts
@@ -64,7 +64,7 @@ func TestConfigMapMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building ConfigMap: %v", err)
 			}
-			assertMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }

@@ -8,5 +8,12 @@ spec:
 
   kubernetesService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+
+  guiKubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.231

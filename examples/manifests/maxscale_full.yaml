@@ -100,7 +100,7 @@ spec:
       timeout: 10s
 
   auth:
-    generate: true
+    generate: false
     adminUsername: mariadb-operator
     adminPasswordSecretKeyRef:
       name: maxscale
@@ -138,8 +138,15 @@ spec:
 
   kubernetesService:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+
+  guiKubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.231
 
   connection:
     secretName: mxs-galera-conn
@@ -152,8 +159,18 @@ spec:
     limits:
       memory: 1Gi
 
+  livenessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+
+  readinessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+
   affinity:
-    enableAntiAffinity: true
+    antiAffinityEnabled: true
 
   tolerations:
     - key: "k8s.mariadb.com/ha"

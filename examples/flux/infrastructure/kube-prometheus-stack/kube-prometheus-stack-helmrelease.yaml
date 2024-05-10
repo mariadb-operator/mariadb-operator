@@ -9,7 +9,7 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: prometheus
-      version: "55.5.0"
+      version: "58.3.1"
   interval: 1h0m0s
   values:
     grafana:

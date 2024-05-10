@@ -49,7 +49,10 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
-	podTemplate := b.mariadbPodTemplate(mariadb)
+	podTemplate, err := b.mariadbPodTemplate(mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
+	}
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: objMeta,
@@ -80,7 +83,10 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 		labels.NewLabelsBuilder().
 			WithMaxScaleSelectorLabels(maxscale).
 			Build()
-	podTemplate := b.maxscalePodTemplate(maxscale)
+	podTemplate, err := b.maxscalePodTemplate(maxscale)
+	if err != nil {
+		return nil, err
+	}
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: objMeta,

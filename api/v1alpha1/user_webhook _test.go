@@ -28,7 +28,7 @@ var _ = Describe("User webhook", Ordered, func() {
 						},
 						WaitForIt: true,
 					},
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
+					PasswordSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "user-mariadb-webhook-root",
 						},

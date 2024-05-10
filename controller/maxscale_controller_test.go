@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -120,6 +121,18 @@ var _ = Describe("MaxScale controller", func() {
 								Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 							},
 						},
+						Auth: &mariadbv1alpha1.MaxScaleAuth{
+							Generate: ptr.To(true),
+							AdminPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: testPwdKey.Name,
+									},
+									Key: testPwdSecretKey,
+								},
+								Generate: false,
+							},
+						},
 					},
 				},
 			}
@@ -201,6 +214,18 @@ var _ = Describe("MaxScale controller", func() {
 							SecretName: ptr.To("mxs-galera-conn"),
 							HealthCheck: &mariadbv1alpha1.HealthCheck{
 								Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+							},
+						},
+						Auth: &mariadbv1alpha1.MaxScaleAuth{
+							Generate: ptr.To(true),
+							AdminPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: testPwdKey.Name,
+									},
+									Key: testPwdSecretKey,
+								},
+								Generate: false,
 							},
 						},
 					},
@@ -372,6 +397,50 @@ func expectMaxScaleReady(key types.NamespacedName) {
 		}
 		return conn.IsReady()
 	}, testTimeout, testInterval).Should(BeTrue())
+
+	type secretRef struct {
+		name        string
+		keySelector corev1.SecretKeySelector
+	}
+	secretKeyRefs := []secretRef{
+		{
+			name:        "admin",
+			keySelector: mxs.Spec.Auth.AdminPasswordSecretKeyRef.SecretKeySelector,
+		},
+		{
+			name:        "client",
+			keySelector: mxs.Spec.Auth.ClientPasswordSecretKeyRef.SecretKeySelector,
+		},
+		{
+			name:        "server",
+			keySelector: mxs.Spec.Auth.ServerPasswordSecretKeyRef.SecretKeySelector,
+		},
+		{
+			name:        "monitor",
+			keySelector: mxs.Spec.Auth.MonitorPasswordSecretKeyRef.SecretKeySelector,
+		},
+	}
+	if mxs.IsHAEnabled() {
+		secretKeyRefs = append(secretKeyRefs, secretRef{
+			name:        "sync",
+			keySelector: mxs.Spec.Auth.SyncPasswordSecretKeyRef.SecretKeySelector,
+		})
+	}
+	if mxs.AreMetricsEnabled() {
+		secretKeyRefs = append(secretKeyRefs, secretRef{
+			name:        "metrics",
+			keySelector: mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector,
+		})
+	}
+
+	for _, secretKeyRef := range secretKeyRefs {
+		By(fmt.Sprintf("Expecting to create a '%s' Secret eventually", secretKeyRef.name))
+		key := types.NamespacedName{
+			Name:      secretKeyRef.keySelector.Name,
+			Namespace: mxs.Namespace,
+		}
+		expectSecretToExist(testCtx, k8sClient, key, secretKeyRef.keySelector.Key)
+	}
 }
 
 func expectMetricsReady(key types.NamespacedName) {

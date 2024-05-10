@@ -6,11 +6,13 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
+    generate: true
 
   username: mariadb
   passwordSecretKeyRef:
     name: mariadb
     key: password
+    generate: true
   database: mariadb
 
   image: mariadb:10.11.7
@@ -79,7 +81,7 @@ spec:
         - -c
         - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
     initialDelaySeconds: 20
-    periodSeconds: 10
+    periodSeconds: 5
     timeoutSeconds: 5
 
   readinessProbe:
@@ -89,7 +91,7 @@ spec:
         - -c
         - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
     initialDelaySeconds: 20
-    periodSeconds: 10
+    periodSeconds: 5
     timeoutSeconds: 5
 
   podDisruptionBudget:
@@ -100,8 +102,9 @@ spec:
 
   service:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.20
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.20
     externalTrafficPolicy: Cluster
     sessionAffinity: None
 

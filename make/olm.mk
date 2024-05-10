@@ -74,7 +74,7 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
 .PHONY: catalog-deploy
-catalog-deploy: ## Deploy catalog to a OpenShift cluster.
+catalog-deploy: openshift-registry ## Deploy catalog to a OpenShift cluster.
 	cd hack/manifests/catalog && $(KUSTOMIZE) edit set image catalog=$(CATALOG_IMG)
 	$(KUSTOMIZE) build hack/manifests/catalog	| $(KUBECTL) apply -f -
 

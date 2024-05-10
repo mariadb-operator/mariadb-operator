@@ -370,7 +370,7 @@ type GaleraSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	InitContainer Container `json:"initContainer,omitempty"`
-	// InitJob defines metadata to the passed to the initialization Job.
+	// InitJob defines additional properties for the Job used to perform the initialization.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	InitJob *Job `json:"initJob,omitempty"`
@@ -380,8 +380,8 @@ type GaleraSpec struct {
 	Config GaleraConfig `json:"config,omitempty"`
 }
 
-// GaleraRecoveryBootstrap indicates when and in which Pod the cluster bootstrap process has been performed.
-type GaleraRecoveryBootstrap struct {
+// GaleraBootstrapStatus indicates when and in which Pod the cluster bootstrap process has been performed.
+type GaleraBootstrapStatus struct {
 	Time *metav1.Time `json:"time,omitempty"`
 	Pod  *string      `json:"pod,omitempty"`
 }
@@ -393,7 +393,7 @@ type GaleraRecoveryStatus struct {
 	// State is a per Pod representation of the sequence recovery process.
 	Recovered map[string]*recovery.Bootstrap `json:"recovered,omitempty"`
 	// Bootstrap indicates when and in which Pod the cluster bootstrap process has been performed.
-	Bootstrap *GaleraRecoveryBootstrap `json:"bootstrap,omitempty"`
+	Bootstrap *GaleraBootstrapStatus `json:"bootstrap,omitempty"`
 	// PodsRestarted that the Pods have been restarted after the cluster bootstrap.
 	PodsRestarted *bool `json:"podsRestarted,omitempty"`
 }

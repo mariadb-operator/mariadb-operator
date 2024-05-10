@@ -38,12 +38,13 @@ func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB) (*ap
 		labels.NewLabelsBuilder().
 			WithMetricsSelectorLabels(key).
 			Build()
+	exporter := ptr.Deref(mariadb.Spec.Metrics, mariadbv1alpha1.MariadbMetrics{}).Exporter
 	podObjMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(exporter.PodMetadata).
 			WithLabels(selectorLabels).
 			Build()
-	exporter := ptr.Deref(mariadb.Spec.Metrics, mariadbv1alpha1.MariadbMetrics{}).Exporter
 
 	podTemplate, err := b.exporterPodTemplate(
 		podObjMeta,
@@ -73,8 +74,7 @@ func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB) (*ap
 	return deployment, nil
 }
 
-func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
-	mariadb *mariadbv1alpha1.MariaDB) (*appsv1.Deployment, error) {
+func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale) (*appsv1.Deployment, error) {
 	if !mxs.AreMetricsEnabled() {
 		return nil, errors.New("MaxScale instance does not specify Metrics")
 	}
@@ -82,18 +82,19 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 	config := mxs.MetricsConfigSecretKeyRef()
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMetadata(nil).
+			WithMetadata(mxs.Spec.InheritMetadata).
 			Build()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMetricsSelectorLabels(key).
 			Build()
+	exporter := ptr.Deref(mxs.Spec.Metrics, mariadbv1alpha1.MaxScaleMetrics{}).Exporter
 	podObjMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(mxs.Spec.InheritMetadata).
+			WithMetadata(exporter.PodMetadata).
 			WithLabels(selectorLabels).
 			Build()
-	exporter := ptr.Deref(mxs.Spec.Metrics, mariadbv1alpha1.MaxScaleMetrics{}).Exporter
 
 	podTemplate, err := b.exporterPodTemplate(
 		podObjMeta,
@@ -125,10 +126,16 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 
 func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *mariadbv1alpha1.Exporter, args []string,
 	pullSecrets []corev1.LocalObjectReference, configSecretName string) (*corev1.PodTemplateSpec, error) {
-	container, err := exporterContainer(exporter, args)
+	container, err := b.exporterContainer(exporter, args)
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter container: %v", err)
 	}
+
+	securityContext, err := b.buildPodSecurityContext(exporter.PodSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+
 	affinity := ptr.Deref(exporter.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	return &corev1.PodTemplateSpec{
@@ -148,7 +155,7 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 					},
 				},
 			},
-			SecurityContext:           exporter.PodSecurityContext,
+			SecurityContext:           securityContext,
 			Affinity:                  &affinity,
 			NodeSelector:              exporter.NodeSelector,
 			Tolerations:               exporter.Tolerations,
@@ -158,9 +165,13 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 	}, nil
 }
 
-func exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) (corev1.Container, error) {
+func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) (corev1.Container, error) {
 	tpl := exporter.ContainerTemplate
-	container := buildContainer(exporter.Image, exporter.ImagePullPolicy, &tpl)
+	container, err := b.buildContainer(exporter.Image, exporter.ImagePullPolicy, &tpl)
+	if err != nil {
+		return corev1.Container{}, err
+	}
+
 	container.Name = "exporter"
 	container.Args = args
 	if len(tpl.Args) > 0 {
@@ -191,7 +202,7 @@ func exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) (corev
 	container.LivenessProbe = probe
 	container.ReadinessProbe = probe
 
-	return container, nil
+	return *container, nil
 }
 
 func exporterConfigFile(fileName string) string {

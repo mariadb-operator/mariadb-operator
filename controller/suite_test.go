@@ -86,7 +86,7 @@ var _ = BeforeSuite(func() {
 		Expect(k8sClient).NotTo(BeNil())
 
 		By("Waiting for MariaDB")
-		expectMariadbReady(testCtx, k8sClient)
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
 		return
 	}
 
@@ -117,10 +117,10 @@ var _ = BeforeSuite(func() {
 
 	env, err := environment.GetOperatorEnv(testCtx)
 	Expect(err).ToNot(HaveOccurred())
-	discoveryClient, err := discovery.NewDiscoveryClient(cfg)
+	discovery, err := discovery.NewDiscovery()
 	Expect(err).ToNot(HaveOccurred())
-
-	builder := builder.NewBuilder(scheme, env)
+	builder, err := builder.NewBuilder(scheme, env, builder.WithDiscovery(discovery))
+	Expect(err).ToNot(HaveOccurred())
 	refResolver := refresolver.New(client)
 
 	conditionReady := condition.NewReady()
@@ -190,11 +190,11 @@ var _ = BeforeSuite(func() {
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorderFor("mariadb"),
 
-		Environment:     env,
-		Builder:         builder,
-		RefResolver:     refResolver,
-		ConditionReady:  conditionReady,
-		DiscoveryClient: discoveryClient,
+		Environment:    env,
+		Builder:        builder,
+		RefResolver:    refResolver,
+		ConditionReady: conditionReady,
+		Discovery:      discovery,
 
 		ConfigMapReconciler:      configMapReconciler,
 		SecretReconciler:         secretReconciler,
@@ -217,11 +217,11 @@ var _ = BeforeSuite(func() {
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorderFor("maxscale"),
 
-		Builder:         builder,
-		ConditionReady:  conditionReady,
-		Environment:     env,
-		RefResolver:     refResolver,
-		DiscoveryClient: discoveryClient,
+		Builder:        builder,
+		ConditionReady: conditionReady,
+		Environment:    env,
+		RefResolver:    refResolver,
+		Discovery:      discovery,
 
 		SecretReconciler:         secretReconciler,
 		RBACReconciler:           rbacReconciler,

@@ -12,7 +12,7 @@ import (
 )
 
 func TestBackupJobImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "backup-image-pull-secrets",
 		Namespace: "test",
@@ -169,7 +169,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 }
 
 func TestRestoreJobImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "restore-image-pull-secrets",
 		Namespace: "test",
@@ -326,7 +326,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 }
 
 func TestInitJobImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "init-image-pull-secrets",
 		Namespace: "test",
@@ -381,7 +381,7 @@ func TestInitJobImagePullSecrets(t *testing.T) {
 }
 
 func TestSqlJobImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "sqljob-image-pull-secrets",
 		Namespace: "test",
@@ -538,7 +538,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 }
 
 func TestBackupJobMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "backup-job",
 	}
@@ -720,14 +720,14 @@ func TestBackupJobMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Backup Job: %v", err)
 			}
-			assertMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
 }
 
 func TestRestoreJobMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "restore-job",
 	}
@@ -831,7 +831,7 @@ func TestRestoreJobMeta(t *testing.T) {
 			},
 		},
 		{
-			name: "override interit metadata",
+			name: "override inherit metadata",
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
@@ -924,14 +924,14 @@ func TestRestoreJobMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building Restore Job: %v", err)
 			}
-			assertMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
 }
 
 func TestInitJobMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "init-obj",
 	}
@@ -1146,14 +1146,14 @@ func TestInitJobMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building init Job: %v", err)
 			}
-			assertMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
 }
 
 func TestSqlJobMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "sql-job",
 	}
@@ -1325,8 +1325,8 @@ func TestSqlJobMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building SqlJob Job: %v", err)
 			}
-			assertMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
 }

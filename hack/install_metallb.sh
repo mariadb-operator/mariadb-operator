@@ -4,7 +4,8 @@ set -eo pipefail
 
 CURDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 if [ -z "$METALLB_VERSION" ]; then
-  METALLB_VERSION="0.13.9"
+  echo "METALLB_VERSION environment variable is mandatory"
+  exit 1
 fi
 
 helm repo add metallb https://metallb.github.io/metallb

@@ -7,8 +7,9 @@ In certain circumstances, it could be the case that all the nodes of your cluste
 To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-operator` will regularly monitor the cluster's status to make sure it is healthy. If any issues are detected, the operator will initiate the [recovery process](#galera-cluster-recovery) to restore the cluster to a healthy state. During this process, the operator will set status conditions in the `MariaDB` and emit `Events` so you have a better understanding of the recovery progress and the underlying activities being performed. For example, you may want to know which `Pods` were out of sync to further investigate infrastructure-related issues (i.e. networking, storage...) on the nodes where these `Pods` were scheduled.
 
 ## Table of contents
+<!-- toc -->
 - [Components](#components)
-- [`MariaDB` configuration](#mariadb-configuration)
+- [<code>MariaDB</code> configuration](#mariadb-configuration)
 - [Storage](#storage)
 - [Galera cluster recovery](#galera-cluster-recovery)
 - [Wsrep provider](#wsrep-provider)
@@ -22,6 +23,7 @@ To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-ope
     - [Galera cluster bootstrap timed out](#galera-cluster-bootstrap-timed-out)
   - [GitHub Issues](#github-issues)
 - [Reference](#reference)
+<!-- /toc -->
 
 ## Components
 
@@ -50,7 +52,7 @@ spec:
 
 This relies on sensible defaults set by the operator, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other [example](../examples/manifests/mariadb_galera.yaml), so you have fine-grained control over the Galera configuration.
 
-Refer to the [API reference](./API_REFERENCE.md) to better understand the purpose of each field.
+Refer to the [reference](#reference) section to better understand the purpose of each field.
 
 ## Storage
 
@@ -89,6 +91,7 @@ spec:
     recovery:
       enabled: true
       minClusterSize: 50%
+      clusterMonitorInterval: 10s
       clusterHealthyTimeout: 30s
       clusterBootstrapTimeout: 10m
       podRecoveryTimeout: 3m
@@ -98,13 +101,15 @@ spec:
 The `minClusterSize` field indicates the minimum cluster size (either absolut number or percentage) for the operator to consider the cluster healthy. If the cluster is unhealthy for more than the period defined in `clusterHealthyTimeout`, a cluster recovery process is initiated by the operator. The process is explained in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html) and consists of the following steps:
 
 - Recover the sequence number from the `grastate.dat` on each node.
-- Put the nodes in recovery mode and restart them to obtain the sequence number. This step is skipped if we have already valid sequence numbers from the previous step.
+- Put the nodes in recovery mode and restart them to obtain the sequence number. This step is skipped if we have already obtained a valid sequence number in the previous step.
 - Mark the node with highest sequence (bootstrap node) as safe to bootstrap.
 - Bootstrap a new cluster in the bootstrap node.
 - Wait until the bootstrap node becomes ready.
 - Restart the rest of the nodes one by one so they can join the new cluster.
 
-Please refer to the [API reference](./API_REFERENCE.md) for further detail.
+The operator monitors the Galera cluster health periodically and performs the cluster recovery described above if needed. You are able to tune the monitoring interval via the `clusterMonitorInterval` field.
+
+Refer to the [reference](#reference) section to better understand the purpose of each field.
 
 ## Wsrep provider
 
@@ -221,7 +226,7 @@ The aim of this section is showing you how to diagnose your Galera cluster when 
 
 - Inspect `MariaDB` status conditions.
 ```bash
- kubectl get mariadb mariadb-galera -o jsonpath="{.status}"
+kubectl get mariadb mariadb-galera -o jsonpath="{.status}"
 {"conditions":[{"lastTransitionTime":"2023-08-05T14:58:57Z","message":"Galera not ready","reason":"GaleraNotReady","status":"False","type":"Ready"},{"lastTransitionTime":"2023-08-05T14:58:57Z","message":"Galera not ready","reason":"GaleraNotReady","status":"False","type":"GaleraReady"},{"lastTransitionTime":"2023-08-03T19:21:16Z","message":"Galera configured","reason":"GaleraConfigured","status":"True","type":"GaleraConfigured"}],"currentPrimary":"All","galeraRecovery":{"bootstrap":{"pod":"mariadb-galera-1","time":"2023-08-05T14:59:18Z"},"recovered":{"mariadb-galera-0":{"seqno":17,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9"},"mariadb-galera-1":{"seqno":17,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9"},"mariadb-galera-2":{"seqno":16,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9"}},"state":{"mariadb-galera-0":{"safeToBootstrap":false,"seqno":-1,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9","version":"2.1"},"mariadb-galera-1":{"safeToBootstrap":false,"seqno":-1,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9","version":"2.1"},"mariadb-galera-2":{"safeToBootstrap":false,"seqno":-1,"uuid":"6ea235ec-3232-11ee-8152-4af03d2c43a9","version":"2.1"}}}}
 ```
 - Make sure network connectivity is fine by checking that you have an `Endpoint` per `Pod` in your Galera cluster.
@@ -399,8 +404,8 @@ Increase this timeout if you consider that your Galera cluster may take longer t
 
 ### GitHub Issues
 
-Here it is a list of GitHub issues reported by `mariadb-operator` users which might shed some light in your investigation:
-- https://github.com/mariadb-operator/mariadb-operator/issues?q=is%3Aclosed+label%3Agalera-troubleshoot+
+Here it is a list of Galera-related issues reported by `mariadb-operator` users which might shed some light in your investigation:
+- https://github.com/mariadb-operator/mariadb-operator/issues?q=label%3Agalera+
 
 ## Reference
 - [API reference](./API_REFERENCE.md)

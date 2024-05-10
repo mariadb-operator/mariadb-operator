@@ -172,6 +172,32 @@ var _ = Describe("MariaDB controller", func() {
 				return conn.IsReady()
 			}, testTimeout, testInterval).Should(BeTrue())
 
+			By("Expecting mariadb.sys User to be ready eventually")
+			Eventually(func(g Gomega) bool {
+				var user mariadbv1alpha1.User
+				if err := k8sClient.Get(testCtx, testMariaDb.MariadbSysUserKey(), &user); err != nil {
+					return false
+				}
+				g.Expect(user.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(user.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(user.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(user.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				return user.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting mariadb.sys Grant to be ready eventually")
+			Eventually(func(g Gomega) bool {
+				var grant mariadbv1alpha1.Grant
+				if err := k8sClient.Get(testCtx, testMariaDb.MariadbSysGrantKey(), &grant); err != nil {
+					return false
+				}
+				g.Expect(grant.ObjectMeta.Labels).NotTo(BeNil())
+				g.Expect(grant.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				g.Expect(grant.ObjectMeta.Annotations).NotTo(BeNil())
+				g.Expect(grant.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+				return grant.IsReady()
+			}, testTimeout, testInterval).Should(BeTrue())
+
 			By("Expecting metrics User to be ready eventually")
 			Eventually(func(g Gomega) bool {
 				var user mariadbv1alpha1.User
@@ -306,6 +332,65 @@ var _ = Describe("MariaDB controller", func() {
 		})
 	})
 
+	Context("When creating a MariaDB with generated passwords", func() {
+		It("Should reconcile", func() {
+			mdbKey := types.NamespacedName{
+				Name:      "mariadb-generate",
+				Namespace: testNamespace,
+			}
+			rootPasswordKey := types.NamespacedName{
+				Name:      "mariadb-root-generate",
+				Namespace: testNamespace,
+			}
+
+			mdb := mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      mdbKey.Name,
+					Namespace: mdbKey.Namespace,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: rootPasswordKey.Name,
+							},
+							Key: testPwdSecretKey,
+						},
+						Generate: true,
+					},
+					Username: ptr.To("user"),
+					PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testPwdKey.Name,
+							},
+							Key: testPwdSecretKey,
+						},
+						Generate: true,
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			}
+
+			By("Creating MariaDB")
+			Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
+			DeferCleanup(func() {
+				deleteMariaDB(&mdb)
+			})
+
+			By("Expecting MariaDB to be ready eventually")
+			expectMariadbReady(testCtx, k8sClient, mdbKey)
+
+			By("Expecting to create a root Secret eventually")
+			expectSecretToExist(testCtx, k8sClient, rootPasswordKey, testPwdSecretKey)
+
+			By("Expecting to create a password Secret eventually")
+			expectSecretToExist(testCtx, k8sClient, testPwdKey, testPwdSecretKey)
+		})
+	})
+
 	Context("When updating a MariaDB", func() {
 		It("Should reconcile", func() {
 			By("Creating MariaDB")
@@ -376,11 +461,13 @@ var _ = Describe("MariaDB replication", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Username: &testUser,
-					PasswordSecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
+					PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testPwdKey.Name,
+							},
+							Key: testPwdSecretKey,
 						},
-						Key: testPwdSecretKey,
 					},
 					Database: &testDatabase,
 					MyCnf: func() *string {
@@ -667,11 +754,13 @@ var _ = Describe("MariaDB Galera", func() {
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Username: &testUser,
-					PasswordSecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
+					PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testPwdKey.Name,
+							},
+							Key: testPwdSecretKey,
 						},
-						Key: testPwdSecretKey,
 					},
 					Database: &testDatabase,
 					MyCnf: ptr.To(`[mariadb]
@@ -1087,11 +1176,11 @@ func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
 	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 }
 
-func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
+func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
+			Name:      mdbKey.Name,
+			Namespace: mdbKey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
@@ -1118,7 +1207,7 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
+		if err := k8sClient.Get(testCtx, mdbKey, &mdb); err != nil {
 			return false
 		}
 		return mdb.IsReady()
@@ -1126,7 +1215,7 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 
 	By("Expecting MariaDB to eventually have restored backup")
 	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
+		if err := k8sClient.Get(testCtx, mdbKey, &mdb); err != nil {
 			return false
 		}
 		return mdb.HasRestoredBackup()

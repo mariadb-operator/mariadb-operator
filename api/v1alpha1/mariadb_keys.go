@@ -8,22 +8,28 @@ import (
 )
 
 // RootPasswordSecretKeyRef defines the key selector for the root password Secret.
-func (m *MariaDB) RootPasswordSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-root", m.Name),
+func (m *MariaDB) RootPasswordSecretKeyRef() GeneratedSecretKeyRef {
+	return GeneratedSecretKeyRef{
+		SecretKeySelector: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: fmt.Sprintf("%s-root", m.Name),
+			},
+			Key: "password",
 		},
-		Key: "password",
+		Generate: true,
 	}
 }
 
 // PasswordSecretKeyRef defines the key selector for the initial user password Secret.
-func (m *MariaDB) PasswordSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-password", m.Name),
+func (m *MariaDB) PasswordSecretKeyRef() GeneratedSecretKeyRef {
+	return GeneratedSecretKeyRef{
+		SecretKeySelector: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: fmt.Sprintf("%s-password", m.Name),
+			},
+			Key: "password",
 		},
-		Key: "password",
+		Generate: true,
 	}
 }
 
@@ -117,22 +123,28 @@ func (m *MariaDB) MaxScaleKey() types.NamespacedName {
 }
 
 // MetricsPasswordSecretKeyRef defines the key selector for for the password to be used by the metrics user
-func (m *MariaDB) MetricsPasswordSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-metrics-password", m.Name),
+func (m *MariaDB) MetricsPasswordSecretKeyRef() GeneratedSecretKeyRef {
+	return GeneratedSecretKeyRef{
+		SecretKeySelector: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: fmt.Sprintf("%s-metrics-password", m.Name),
+			},
+			Key: "password",
 		},
-		Key: "password",
+		Generate: true,
 	}
 }
 
 // MetricsConfigSecretKeyRef defines the key selector for the metrics Secret configuration
-func (m *MariaDB) MetricsConfigSecretKeyRef() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: fmt.Sprintf("%s-metrics-config", m.Name),
+func (m *MariaDB) MetricsConfigSecretKeyRef() GeneratedSecretKeyRef {
+	return GeneratedSecretKeyRef{
+		SecretKeySelector: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: fmt.Sprintf("%s-metrics-config", m.Name),
+			},
+			Key: "exporter.cnf",
 		},
-		Key: "exporter.cnf",
+		Generate: true,
 	}
 }
 
@@ -158,6 +170,22 @@ func (m *MariaDB) InitKey() types.NamespacedName {
 func (m *MariaDB) PVCKey(name string, index int) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-%s-%d", name, m.Name, index),
+		Namespace: m.Namespace,
+	}
+}
+
+// MariadbSysUserKey defines the key for the 'mariadb.sys' User resource.
+func (m *MariaDB) MariadbSysUserKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-mariadb-sys", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// MariadbSysGrantKey defines the key for the 'mariadb.sys' Grant resource.
+func (m *MariaDB) MariadbSysGrantKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-mariadb-sys-global-priv", m.Name),
 		Namespace: m.Namespace,
 	}
 }

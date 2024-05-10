@@ -49,11 +49,11 @@ type MariaDBReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 
-	Builder         *builder.Builder
-	RefResolver     *refresolver.RefResolver
-	ConditionReady  *condition.Ready
-	Environment     *environment.OperatorEnv
-	DiscoveryClient *discovery.DiscoveryClient
+	Builder        *builder.Builder
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *condition.Ready
+	Environment    *environment.OperatorEnv
+	Discovery      *discovery.Discovery
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
@@ -81,7 +81,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=maxscale;restores;connections;users;grants,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=endpoints,verbs=create;patch;get;list;watch
@@ -169,6 +169,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.MaxScaleReconciler.Reconcile,
 		},
 		{
+			Name:      "SQL",
+			Reconcile: r.reconcileSQL,
+		},
+		{
 			Name:      "Metrics",
 			Reconcile: r.reconcileMetrics,
 		},
@@ -208,7 +212,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if !mariadb.IsRootPasswordEmpty() {
 		secretKeyRef := mariadb.Spec.RootPasswordSecretKeyRef
-		req := &secret.RandomPasswordRequest{
+		req := secret.PasswordRequest{
 			Owner:    mariadb,
 			Metadata: mariadb.Spec.InheritMetadata,
 			Key: types.NamespacedName{
@@ -216,8 +220,9 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 				Namespace: mariadb.Namespace,
 			},
 			SecretKey: secretKeyRef.Key,
+			Generate:  secretKeyRef.Generate,
 		}
-		_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, req)
+		_, err := r.SecretReconciler.ReconcilePassword(ctx, req)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -225,7 +230,7 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 
 	if mariadb.IsInitialDataEnabled() && mariadb.Spec.PasswordSecretKeyRef != nil {
 		secretKeyRef := *mariadb.Spec.PasswordSecretKeyRef
-		req := &secret.RandomPasswordRequest{
+		req := secret.PasswordRequest{
 			Owner:    mariadb,
 			Metadata: mariadb.Spec.InheritMetadata,
 			Key: types.NamespacedName{
@@ -233,8 +238,9 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 				Namespace: mariadb.Namespace,
 			},
 			SecretKey: secretKeyRef.Key,
+			Generate:  secretKeyRef.Generate,
 		}
-		_, err := r.SecretReconciler.ReconcileRandomPassword(ctx, req)
+		_, err := r.SecretReconciler.ReconcilePassword(ctx, req)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -631,7 +637,7 @@ func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mari
 		MariaDB:              mariadb,
 		Key:                  key,
 		Username:             *mariadb.Spec.Username,
-		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
+		PasswordSecretKeyRef: mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
 		Database:             mariadb.Spec.Database,
 		Template:             mariadb.Spec.Connection,
 	}
@@ -666,7 +672,7 @@ func (r *MariaDBReconciler) reconcileConnectionTemplate(ctx context.Context, key
 		MariaDB:              mariadb,
 		Key:                  key,
 		Username:             *mariadb.Spec.Username,
-		PasswordSecretKeyRef: *mariadb.Spec.PasswordSecretKeyRef,
+		PasswordSecretKeyRef: mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
 		Database:             mariadb.Spec.Database,
 		Template:             connTpl,
 	}
@@ -675,6 +681,54 @@ func (r *MariaDBReconciler) reconcileConnectionTemplate(ctx context.Context, key
 		return fmt.Errorf("erro building Connection: %v", err)
 	}
 	return r.Create(ctx, conn)
+}
+
+func (r *MariaDBReconciler) reconcileSQL(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !mariadb.IsReady() {
+		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing SQL resources")
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	userKey := mariadb.MariadbSysUserKey()
+	userOpts := builder.UserOpts{
+		MariaDBRef: mariadbv1alpha1.MariaDBRef{
+			ObjectReference: corev1.ObjectReference{
+				Name: mariadb.Name,
+			},
+		},
+		Metadata:             mariadb.Spec.InheritMetadata,
+		MaxUserConnections:   20,
+		Name:                 "mariadb.sys",
+		Host:                 "localhost",
+		PasswordSecretKeyRef: nil,
+	}
+	grantKey := mariadb.MariadbSysGrantKey()
+	grantOpts := []auth.GrantOpts{
+		{
+			Key: grantKey,
+			GrantOpts: builder.GrantOpts{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: mariadb.Name,
+					},
+				},
+				Metadata: mariadb.Spec.InheritMetadata,
+				Privileges: []string{
+					"SELECT",
+					"UPDATE",
+					"DELETE",
+				},
+				Database: "mysql",
+				Table:    "global_priv",
+				Username: "mariadb.sys",
+				Host:     "localhost",
+			},
+		},
+	}
+	if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, userKey, mariadb, userOpts, grantOpts...); !result.IsZero() || err != nil {
+		return result, err
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {

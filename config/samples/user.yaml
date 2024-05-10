@@ -8,7 +8,7 @@ spec:
   mariaDbRef:
     name: mariadb
   passwordSecretKeyRef:
-    name: user
+    name: mariadb
     key: password
   # This field is immutable and defaults to 10
   maxUserConnections: 20

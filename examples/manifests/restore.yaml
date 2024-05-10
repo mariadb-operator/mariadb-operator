@@ -15,7 +15,7 @@ spec:
       sidecar.istio.io/inject: "false"
   serviceAccountName: restore
   args:
-    - "--verbose"
+    - --verbose
   resources:
     requests:
       cpu: 100m
@@ -23,3 +23,5 @@ spec:
     limits:
       cpu: 300m
       memory: 512Mi
+  affinity:
+    antiAffinityEnabled: true

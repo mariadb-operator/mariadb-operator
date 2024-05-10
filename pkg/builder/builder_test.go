@@ -13,13 +13,13 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-func newTestBuilder() *Builder {
+func newTestBuilder(t *testing.T, opts ...BuilderOption) *Builder {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 
-	return NewBuilder(scheme, &environment.OperatorEnv{
+	env := &environment.OperatorEnv{
 		MariadbOperatorName:      "mariadb-operator",
 		MariadbOperatorNamespace: "test",
 		MariadbOperatorSAPath:    "/var/run/secrets/kubernetes.io/serviceaccount/token",
@@ -31,14 +31,35 @@ func newTestBuilder() *Builder {
 		MariadbGaleraAgentImage:  "mariadb-operator:test",
 		MariadbGaleraLibPath:     "/usr/lib/galera/libgalera_smm.so",
 		WatchNamespace:           "",
-	})
+	}
+	builder, err := NewBuilder(scheme, env, opts...)
+	if err != nil {
+		t.Fatalf("unexpected error creating builder: %v", err)
+	}
+
+	return builder
 }
 
-func assertMeta(t *testing.T, objMeta *metav1.ObjectMeta, wantLabels, wantAnnotations map[string]string) {
+func assertObjectMeta(t *testing.T, objMeta *metav1.ObjectMeta, wantLabels, wantAnnotations map[string]string) {
+	if objMeta == nil {
+		t.Fatal("expecting object metadata to not be nil")
+	}
 	if !reflect.DeepEqual(wantLabels, objMeta.Labels) {
 		t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, objMeta.Labels)
 	}
 	if !reflect.DeepEqual(wantAnnotations, objMeta.Annotations) {
 		t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, objMeta.Annotations)
+	}
+}
+
+func assertMeta(t *testing.T, meta *mariadbv1alpha1.Metadata, wantLabels, wantAnnotations map[string]string) {
+	if meta == nil {
+		t.Fatal("expecting metadata to not be nil")
+	}
+	if !reflect.DeepEqual(wantLabels, meta.Labels) {
+		t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, meta.Labels)
+	}
+	if !reflect.DeepEqual(wantAnnotations, meta.Annotations) {
+		t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, meta.Annotations)
 	}
 }

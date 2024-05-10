@@ -7,7 +7,7 @@ import (
 )
 
 func TestServiceMonitorMeta(t *testing.T) {
-	builder := newTestBuilder()
+	builder := newTestBuilder(t)
 	tests := []struct {
 		name     string
 		mariadb  *mariadbv1alpha1.MariaDB
@@ -60,7 +60,7 @@ func TestServiceMonitorMeta(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building ServiceMonitor: %v", err)
 			}
-			assertMeta(t, &svcMonitor.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &svcMonitor.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
 }

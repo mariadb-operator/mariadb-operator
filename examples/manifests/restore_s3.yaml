@@ -8,6 +8,7 @@ spec:
   targetRecoveryTime: 2023-12-19T09:00:00Z
   s3:
     bucket: backups
+    prefix: mariadb
     endpoint: minio.minio.svc.cluster.local:9000
     region:  us-east-1
     accessKeyIdSecretKeyRef:

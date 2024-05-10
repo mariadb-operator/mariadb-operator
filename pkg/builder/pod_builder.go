@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"fmt"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -112,8 +114,11 @@ func withMariadbSelectorLabels(includeSelectorLabels bool) mariadbOpt {
 	}
 }
 
-func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) *corev1.PodTemplateSpec {
-	containers := b.mariadbContainers(mariadb, opts...)
+func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) (*corev1.PodTemplateSpec, error) {
+	containers, err := b.mariadbContainers(mariadb, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
+	}
 	mariadbOpts := newMariadbOpts(opts...)
 
 	objMetaBuilder :=
@@ -132,6 +137,16 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		WithAnnotations(mariadbHAAnnotations(mariadb)).
 		Build()
 
+	initContainers, err := b.mariadbInitContainers(mariadb, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	securityContext, err := b.buildPodSecurityContext(mariadb.Spec.PodSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+
 	affinity := mdbptr.Deref(
 		[]*mariadbv1alpha1.AffinityConfig{
 			mariadbOpts.affinity,
@@ -146,22 +161,26 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			AutomountServiceAccountToken: ptr.To(false),
 			ServiceAccountName:           ptr.Deref(mariadb.Spec.ServiceAccountName, mariadb.Name),
 			RestartPolicy:                ptr.Deref(mariadbOpts.restartPolicy, corev1.RestartPolicyAlways),
-			InitContainers:               mariadbInitContainers(mariadb, opts...),
+			InitContainers:               initContainers,
 			Containers:                   containers,
 			ImagePullSecrets:             mariadb.Spec.ImagePullSecrets,
 			Volumes:                      mariadbVolumes(mariadb, opts...),
-			SecurityContext:              mariadb.Spec.PodSecurityContext,
+			SecurityContext:              securityContext,
 			Affinity:                     &affinity,
 			NodeSelector:                 mariadb.Spec.NodeSelector,
 			Tolerations:                  mariadb.Spec.Tolerations,
 			PriorityClassName:            ptr.Deref(mariadb.Spec.PriorityClassName, ""),
 			TopologySpreadConstraints:    mariadb.Spec.TopologySpreadConstraints,
 		},
-	}
+	}, nil
 }
 
-func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) *corev1.PodTemplateSpec {
-	containers := b.maxscaleContainers(mxs)
+func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.PodTemplateSpec, error) {
+	containers, err := b.maxscaleContainers(mxs)
+	if err != nil {
+		return nil, err
+	}
+
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMaxScaleSelectorLabels(mxs).
@@ -172,24 +191,36 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) *corev1.Pod
 			WithMetadata(mxs.Spec.PodMetadata).
 			WithLabels(selectorLabels).
 			Build()
+
+	initContainers, err := b.maxscaleInitContainers(mxs)
+	if err != nil {
+		return nil, err
+	}
+
+	securityContext, err := b.buildPodSecurityContext(mxs.Spec.PodSecurityContext)
+	if err != nil {
+		return nil, err
+	}
+
 	affinity := ptr.Deref(mxs.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
+
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
 			ServiceAccountName:           ptr.Deref(mxs.Spec.ServiceAccountName, mxs.Name),
-			InitContainers:               maxscaleInitContainers(mxs),
+			InitContainers:               initContainers,
 			Containers:                   containers,
 			ImagePullSecrets:             mxs.Spec.ImagePullSecrets,
 			Volumes:                      maxscaleVolumes(mxs),
-			SecurityContext:              mxs.Spec.PodSecurityContext,
+			SecurityContext:              securityContext,
 			Affinity:                     &affinity,
 			NodeSelector:                 mxs.Spec.NodeSelector,
 			Tolerations:                  mxs.Spec.Tolerations,
 			PriorityClassName:            ptr.Deref(mxs.Spec.PriorityClassName, ""),
 			TopologySpreadConstraints:    mxs.Spec.TopologySpreadConstraints,
 		},
-	}
+	}, nil
 }
 
 func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.Volume {

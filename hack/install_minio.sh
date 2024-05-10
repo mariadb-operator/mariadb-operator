@@ -4,7 +4,8 @@ set -eo pipefail
 
 CONFIG="$( dirname "${BASH_SOURCE[0]}" )"/config
 if [ -z "$MINIO_VERSION" ]; then 
-  MINIO_VERSION="5.0.14"
+  echo "MINIO_VERSION environment variable is mandatory"
+  exit 1
 fi
 
 helm repo add minio https://charts.min.io/
