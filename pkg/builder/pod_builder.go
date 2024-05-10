@@ -142,10 +142,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		return nil, err
 	}
 
-	sc := ptr.Deref(mariadb.Spec.PodSecurityContext, corev1.PodSecurityContext{
-		FSGroup: ptr.To(mysqlUser),
-	})
-	securityContext, err := b.buildPodSecurityContext(&sc)
+	securityContext, err := b.buildPodSecurityContextWithUserGroup(mariadb.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -200,10 +197,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 		return nil, err
 	}
 
-	sc := ptr.Deref(mxs.Spec.PodSecurityContext, corev1.PodSecurityContext{
-		FSGroup: ptr.To(maxscaleUser),
-	})
-	securityContext, err := b.buildPodSecurityContext(&sc)
+	securityContext, err := b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleUser, maxscaleGroup)
 	if err != nil {
 		return nil, err
 	}
