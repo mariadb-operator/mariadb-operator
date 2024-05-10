@@ -49,8 +49,8 @@ const (
 
 	mysqlUser     = int64(999)
 	mysqlGroup    = int64(999)
-	maxscaleUser  = int64(999)
-	maxscaleGroup = int64(999)
+	maxscaleUser  = int64(998)
+	maxscaleGroup = int64(996)
 )
 
 func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {

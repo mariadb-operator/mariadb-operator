@@ -117,15 +117,13 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 
 	container.Name = MaxScaleContainerName
 	container.Command = []string{
-		"bash",
-		"-c",
+		"maxscale",
 	}
 	container.Args = []string{
-		"maxscale",
 		"--config",
 		fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
 		"-dU",
-		"$(id -u)",
+		"maxscale",
 		"-l",
 		"stdout",
 	}
