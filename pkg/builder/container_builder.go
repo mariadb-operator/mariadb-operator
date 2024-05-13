@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -114,19 +115,11 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	if err != nil {
 		return nil, err
 	}
+	command := b.maxscaleCommand(mxs)
 
 	container.Name = MaxScaleContainerName
-	container.Command = []string{
-		"maxscale",
-	}
-	container.Args = []string{
-		"--config",
-		fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
-		"-dU",
-		"maxscale",
-		"-l",
-		"stdout",
-	}
+	container.Command = command.Command
+	container.Args = command.Args
 	if len(tpl.Args) > 0 {
 		container.Args = append(container.Args, tpl.Args...)
 	}
@@ -141,6 +134,35 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	container.ReadinessProbe = maxscaleProbe(mxs, mxs.Spec.ReadinessProbe)
 
 	return []corev1.Container{*container}, nil
+}
+
+func (b *Builder) maxscaleCommand(mxs *mariadbv1alpha1.MaxScale) *command.Command {
+	if b.discovery.IsEnterprise() {
+		return command.NewBashCommand(
+			[]string{
+				"maxscale",
+				"--config",
+				fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
+				"-dU",
+				"$(id -u)",
+				"-l",
+				"stdout",
+			},
+		)
+	}
+	return command.NewCommand(
+		[]string{
+			"maxscale",
+		},
+		[]string{
+			"--config",
+			fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
+			"-dU",
+			"maxscale",
+			"-l",
+			"stdout",
+		},
+	)
 }
 
 func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
