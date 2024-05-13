@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -120,10 +121,17 @@ var _ = BeforeSuite(func() {
 
 	env, err := environment.GetOperatorEnv(testCtx)
 	Expect(err).ToNot(HaveOccurred())
-	discovery, err := discovery.NewDiscovery()
+
+	var disc *discovery.Discovery
+	if os.Getenv("ENTERPRISE") != "" {
+		disc, err = discovery.NewDiscoveryEnterprise()
+	} else {
+		disc, err = discovery.NewDiscovery()
+	}
 	Expect(err).ToNot(HaveOccurred())
-	Expect(discovery.LogInfo(testLogger)).To(Succeed())
-	builder := builder.NewBuilder(scheme, env, discovery)
+	Expect(disc.LogInfo(testLogger)).To(Succeed())
+
+	builder := builder.NewBuilder(scheme, env, disc)
 	refResolver := refresolver.New(client)
 
 	conditionReady := condition.NewReady()
@@ -197,7 +205,7 @@ var _ = BeforeSuite(func() {
 		Builder:        builder,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
-		Discovery:      discovery,
+		Discovery:      disc,
 
 		ConfigMapReconciler:      configMapReconciler,
 		SecretReconciler:         secretReconciler,
@@ -224,7 +232,7 @@ var _ = BeforeSuite(func() {
 		ConditionReady: conditionReady,
 		Environment:    env,
 		RefResolver:    refResolver,
-		Discovery:      discovery,
+		Discovery:      disc,
 
 		SecretReconciler:         secretReconciler,
 		RBACReconciler:           rbacReconciler,
