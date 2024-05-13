@@ -820,7 +820,7 @@ func TestMaxScaleCommand(t *testing.T) {
 		[]string{
 			fmt.Sprintf(
 				"maxscale --config %s -dU $(id -u) -l stdout",
-				mxs.ConfigSecretKeyRef().Key,
+				fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
 			),
 		},
 	)
