@@ -237,6 +237,7 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariab *
 	copy(dumpOpts, b.BackupOpts.DumpOpts)
 
 	args := []string{
+		"--no-defaults",
 		"--single-transaction",
 		"--events",
 		"--routines",

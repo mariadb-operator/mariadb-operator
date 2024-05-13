@@ -22,6 +22,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			backup:    &mariadbv1alpha1.Backup{},
 			mariadb:   &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
@@ -41,6 +42,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			backup:  &mariadbv1alpha1.Backup{},
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
@@ -61,6 +63,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 				},
 			},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
@@ -78,6 +81,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
@@ -108,6 +112,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 				},
 			},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
@@ -130,6 +135,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			backup:  &mariadbv1alpha1.Backup{},
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
@@ -150,6 +156,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
@@ -176,6 +183,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
@@ -202,6 +210,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
@@ -237,6 +246,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 				},
 			},
 			wantArgs: []string{
+				"--no-defaults",
 				"--single-transaction",
 				"--events",
 				"--routines",
