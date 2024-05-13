@@ -147,13 +147,10 @@ func (b *Builder) maxscaleCommand(mxs *mariadbv1alpha1.MaxScale) (*command.Comma
 	if sccExists && b.discovery.IsEnterprise() {
 		return command.NewBashCommand(
 			[]string{
-				"maxscale",
-				"--config",
-				fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
-				"-dU",
-				"$(id -u)",
-				"-l",
-				"stdout",
+				fmt.Sprintf(
+					"maxscale --config %s -dU $(id -u) -l stdout",
+					mxs.ConfigSecretKeyRef().Key,
+				),
 			},
 		), nil
 	}

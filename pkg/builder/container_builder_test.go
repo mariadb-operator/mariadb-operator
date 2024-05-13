@@ -818,13 +818,10 @@ func TestMaxScaleCommand(t *testing.T) {
 
 	expectedCmd = command.NewBashCommand(
 		[]string{
-			"maxscale",
-			"--config",
-			fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
-			"-dU",
-			"$(id -u)",
-			"-l",
-			"stdout",
+			fmt.Sprintf(
+				"maxscale --config %s -dU $(id -u) -l stdout",
+				mxs.ConfigSecretKeyRef().Key,
+			),
 		},
 	)
 	cmd, err = builder.maxscaleCommand(&mxs)
