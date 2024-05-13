@@ -1,4 +1,4 @@
-FROM golang:1.22.2-alpine3.18 AS builder
+FROM golang:1.22.3-alpine3.18 AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
