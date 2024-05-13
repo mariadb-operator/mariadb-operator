@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +14,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-func newTestBuilder(t *testing.T, opts ...BuilderOption) *Builder {
+func newTestBuilder(discovery *discovery.Discovery) *Builder {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
@@ -32,12 +33,17 @@ func newTestBuilder(t *testing.T, opts ...BuilderOption) *Builder {
 		MariadbGaleraLibPath:     "/usr/lib/galera/libgalera_smm.so",
 		WatchNamespace:           "",
 	}
-	builder, err := NewBuilder(scheme, env, opts...)
-	if err != nil {
-		t.Fatalf("unexpected error creating builder: %v", err)
-	}
+	builder := NewBuilder(scheme, env, discovery)
 
 	return builder
+}
+
+func newDefaultTestBuilder(t *testing.T) *Builder {
+	discovery, err := discovery.NewDiscovery()
+	if err != nil {
+		t.Fatalf("unexpected error creating discovery: %v", err)
+	}
+	return newTestBuilder(discovery)
 }
 
 func assertObjectMeta(t *testing.T, objMeta *metav1.ObjectMeta, wantLabels, wantAnnotations map[string]string) {

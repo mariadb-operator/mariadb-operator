@@ -10,7 +10,7 @@ import (
 )
 
 func TestServiceAccountMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "sa",
 	}
@@ -60,7 +60,7 @@ func TestServiceAccountMeta(t *testing.T) {
 }
 
 func TestRoleMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "role",
 	}
@@ -116,7 +116,7 @@ func TestRoleMeta(t *testing.T) {
 }
 
 func TestRoleBindingMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "rolebinding",
 	}
@@ -173,7 +173,7 @@ func TestRoleBindingMeta(t *testing.T) {
 }
 
 func TestClusterRoleBindingMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "clusterrolebinding",
 	}

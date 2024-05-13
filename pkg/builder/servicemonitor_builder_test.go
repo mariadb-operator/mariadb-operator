@@ -7,7 +7,7 @@ import (
 )
 
 func TestServiceMonitorMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	tests := []struct {
 		name     string
 		mariadb  *mariadbv1alpha1.MariaDB
