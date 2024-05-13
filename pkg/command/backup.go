@@ -166,7 +166,7 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 			b.getTargetFilePath(),
 		),
 	}
-	return NewBashMultiCommand(cmds)
+	return NewBashCommand(cmds)
 }
 
 func (b *BackupCommand) MariadbOperatorBackup() *Command {
@@ -218,7 +218,7 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 			b.getTargetFilePath(),
 		),
 	}
-	return NewBashMultiCommand(cmds)
+	return NewBashCommand(cmds)
 }
 
 func (b *BackupCommand) newBackupFile() string {

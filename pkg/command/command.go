@@ -29,13 +29,6 @@ func NewCommand(cmd, args []string) *Command {
 func NewBashCommand(args []string) *Command {
 	return &Command{
 		Command: []string{"bash", "-c"},
-		Args:    args,
-	}
-}
-
-func NewBashMultiCommand(args []string) *Command {
-	return &Command{
-		Command: []string{"bash", "-c"},
 		Args:    []string{strings.Join(args, ";")},
 	}
 }
