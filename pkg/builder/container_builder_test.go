@@ -794,7 +794,10 @@ func TestMaxScaleCommand(t *testing.T) {
 			"stdout",
 		},
 	)
-	cmd := builder.maxscaleCommand(&mxs)
+	cmd, err := builder.maxscaleCommand(&mxs)
+	if err != nil {
+		t.Fatalf("unexpected error getting MaxScale command: %v", err)
+	}
 	if !reflect.DeepEqual(cmd, expectedCmd) {
 		t.Error("unexpected MaxScale command")
 	}
@@ -816,7 +819,10 @@ func TestMaxScaleCommand(t *testing.T) {
 			"stdout",
 		},
 	)
-	cmd = builder.maxscaleCommand(&mxs)
+	cmd, err = builder.maxscaleCommand(&mxs)
+	if err != nil {
+		t.Fatalf("unexpected error getting MaxScale enterprise command: %v", err)
+	}
 	if !reflect.DeepEqual(cmd, expectedCmd) {
 		t.Error("unexpected MaxScale enterprise command")
 	}

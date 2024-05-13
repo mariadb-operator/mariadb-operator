@@ -115,7 +115,10 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	if err != nil {
 		return nil, err
 	}
-	command := b.maxscaleCommand(mxs)
+	command, err := b.maxscaleCommand(mxs)
+	if err != nil {
+		return nil, err
+	}
 
 	container.Name = MaxScaleContainerName
 	container.Command = command.Command
@@ -136,8 +139,12 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	return []corev1.Container{*container}, nil
 }
 
-func (b *Builder) maxscaleCommand(mxs *mariadbv1alpha1.MaxScale) *command.Command {
-	if b.discovery.IsEnterprise() {
+func (b *Builder) maxscaleCommand(mxs *mariadbv1alpha1.MaxScale) (*command.Command, error) {
+	sccExists, err := b.discovery.SecurityContextConstrainstsExist()
+	if err != nil {
+		return nil, err
+	}
+	if sccExists && b.discovery.IsEnterprise() {
 		return command.NewBashCommand(
 			[]string{
 				"maxscale",
@@ -148,7 +155,7 @@ func (b *Builder) maxscaleCommand(mxs *mariadbv1alpha1.MaxScale) *command.Comman
 				"-l",
 				"stdout",
 			},
-		)
+		), nil
 	}
 	return command.NewCommand(
 		[]string{
@@ -162,7 +169,7 @@ func (b *Builder) maxscaleCommand(mxs *mariadbv1alpha1.MaxScale) *command.Comman
 			"-l",
 			"stdout",
 		},
-	)
+	), nil
 }
 
 func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
