@@ -82,6 +82,9 @@ catalog-deploy: openshift-registry ## Deploy catalog to a OpenShift cluster.
 catalog-undeploy: ## Undeploy catalog from a OpenShift cluster.
 	$(KUSTOMIZE) build hack/manifests/catalog	| $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
+.PHONY: openshift-deploy
+openshift-deploy: docker-build-ent docker-push-ent bundle bundle-build bundle-push catalog-build catalog-push catalog-deploy ## Build, push and deploy images needed to test in Openshift.
+
 .PHONY: preflight-image
 preflight-image: preflight ## Run preflight tests on the operator image.
 	$(PREFLIGHT) check container $(IMG_ENT) --docker-config $(DOCKER_CONFIG)
