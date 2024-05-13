@@ -12,7 +12,7 @@ import (
 )
 
 func TestJobContainerSecurityContext(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	cmd := command.NewCommand([]string{"mariadbd"}, []string{})
 	image := "mariadb:10.6"
 	volumeMounts := []corev1.VolumeMount{}
@@ -51,11 +51,11 @@ func TestJobContainerSecurityContext(t *testing.T) {
 			},
 		},
 	}
-	discovery, err := discovery.NewFakeDiscovery(resource)
+	discovery, err := discovery.NewFakeDiscovery(false, resource)
 	if err != nil {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
-	builder = newTestBuilder(t, WithDiscovery(discovery))
+	builder = newTestBuilder(discovery)
 
 	container, err = builder.jobContainer("mariadb", cmd, image, volumeMounts, envVar, resources, mariadb, securityContext)
 	if err != nil {

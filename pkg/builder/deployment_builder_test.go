@@ -10,7 +10,7 @@ import (
 )
 
 func TestExporterImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "mariadb-metrics-image-pull-secrets",
 		Namespace: "test",
@@ -132,7 +132,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 }
 
 func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "maxscale-metrics-image-pull-secrets",
 		Namespace: "test",
@@ -254,7 +254,7 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 }
 
 func TestExporterDeploymentMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	mdbObjMeta := metav1.ObjectMeta{
 		Name: "test",
 	}
@@ -424,7 +424,7 @@ func TestExporterDeploymentMeta(t *testing.T) {
 }
 
 func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	mxsObjMeta := metav1.ObjectMeta{
 		Name: "test",
 	}

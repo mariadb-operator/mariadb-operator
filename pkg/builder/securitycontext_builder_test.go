@@ -10,7 +10,7 @@ import (
 )
 
 func TestBuildContainerSecurityContext(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 
 	sc, err := builder.buildContainerSecurityContext(&corev1.SecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
@@ -30,11 +30,11 @@ func TestBuildContainerSecurityContext(t *testing.T) {
 			},
 		},
 	}
-	discovery, err := discovery.NewFakeDiscovery(resource)
+	discovery, err := discovery.NewFakeDiscovery(false, resource)
 	if err != nil {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
-	builder = newTestBuilder(t, WithDiscovery(discovery))
+	builder = newTestBuilder(discovery)
 
 	sc, err = builder.buildContainerSecurityContext(&corev1.SecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
@@ -48,7 +48,7 @@ func TestBuildContainerSecurityContext(t *testing.T) {
 }
 
 func TestBuildPodSecurityContext(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 
 	sc, err := builder.buildPodSecurityContext(&corev1.PodSecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
@@ -68,11 +68,11 @@ func TestBuildPodSecurityContext(t *testing.T) {
 			},
 		},
 	}
-	discovery, err := discovery.NewFakeDiscovery(resource)
+	discovery, err := discovery.NewFakeDiscovery(false, resource)
 	if err != nil {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
-	builder = newTestBuilder(t, WithDiscovery(discovery))
+	builder = newTestBuilder(discovery)
 
 	sc, err = builder.buildPodSecurityContext(&corev1.PodSecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
@@ -86,7 +86,7 @@ func TestBuildPodSecurityContext(t *testing.T) {
 }
 
 func TestBuildPodSecurityContextWithUserGroup(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 
 	sc, err := builder.buildPodSecurityContextWithUserGroup(&corev1.PodSecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
@@ -126,11 +126,11 @@ func TestBuildPodSecurityContextWithUserGroup(t *testing.T) {
 			},
 		},
 	}
-	discovery, err := discovery.NewFakeDiscovery(resource)
+	discovery, err := discovery.NewFakeDiscovery(false, resource)
 	if err != nil {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
-	builder = newTestBuilder(t, WithDiscovery(discovery))
+	builder = newTestBuilder(discovery)
 
 	sc, err = builder.buildPodSecurityContextWithUserGroup(&corev1.PodSecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
