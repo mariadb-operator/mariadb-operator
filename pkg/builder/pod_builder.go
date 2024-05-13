@@ -196,12 +196,10 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 	if err != nil {
 		return nil, err
 	}
-
-	securityContext, err := b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleUser, maxscaleGroup)
+	securityContext, err := b.maxscalePodSecurityContext(mxs)
 	if err != nil {
 		return nil, err
 	}
-
 	affinity := ptr.Deref(mxs.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	return &corev1.PodTemplateSpec{
@@ -221,6 +219,13 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 			TopologySpreadConstraints:    mxs.Spec.TopologySpreadConstraints,
 		},
 	}, nil
+}
+
+func (b *Builder) maxscalePodSecurityContext(mxs *mariadbv1alpha1.MaxScale) (*corev1.PodSecurityContext, error) {
+	if b.discovery.IsEnterprise() {
+		return b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleEnterpriseUser, maxscaleEnterpriseGroup)
+	}
+	return b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleUser, maxscaleGroup)
 }
 
 func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.Volume {

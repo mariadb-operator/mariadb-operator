@@ -52,7 +52,7 @@ func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) *Command {
 			s.SqlFile,
 		),
 	}
-	return NewBashCommand(cmds)
+	return NewBashMultiCommand(cmds)
 }
 
 func NewSqlCommand(userOpts ...SqlOpt) (*SqlCommand, error) {

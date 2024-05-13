@@ -1,10 +1,12 @@
 package builder
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -768,6 +770,55 @@ func TestMaxScaleProbe(t *testing.T) {
 				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
 			}
 		})
+	}
+}
+
+func TestMaxScaleCommand(t *testing.T) {
+	mxs := mariadbv1alpha1.MaxScale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-maxscale-command",
+		},
+	}
+	builder := newDefaultTestBuilder(t)
+
+	expectedCmd := command.NewCommand(
+		[]string{
+			"maxscale",
+		},
+		[]string{
+			"--config",
+			fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
+			"-dU",
+			"maxscale",
+			"-l",
+			"stdout",
+		},
+	)
+	cmd := builder.maxscaleCommand(&mxs)
+	if !reflect.DeepEqual(cmd, expectedCmd) {
+		t.Error("unexpected MaxScale command")
+	}
+
+	d, err := discovery.NewDiscoveryEnterprise()
+	if err != nil {
+		t.Fatalf("unexpected error building discovery: %v", err)
+	}
+	builder = newTestBuilder(d)
+
+	expectedCmd = command.NewBashCommand(
+		[]string{
+			"maxscale",
+			"--config",
+			fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
+			"-dU",
+			"$(id -u)",
+			"-l",
+			"stdout",
+		},
+	)
+	cmd = builder.maxscaleCommand(&mxs)
+	if !reflect.DeepEqual(cmd, expectedCmd) {
+		t.Error("unexpected MaxScale enterprise command")
 	}
 }
 
