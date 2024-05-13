@@ -376,8 +376,8 @@ metadata:
     capabilities: Auto Pilot
     categories: Database
     certified: "true"
-    containerImage: mariadb/mariadb-operator-enterprise@sha256:976b436171e99f02179b406d75382606c8bd4f1cc9702e7f77a44b2336a0106d
-    createdAt: "2024-05-13T12:30:30Z"
+    containerImage: mariadb/mariadb-operator-enterprise@sha256:bed6d3495c775a10e70e4edf60f8cf821bc771e3f3e83171113ae919c2f9b11a
+    createdAt: "2024-05-13T14:24:11Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -3980,7 +3980,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: mariadb/mariadb-operator-enterprise@sha256:976b436171e99f02179b406d75382606c8bd4f1cc9702e7f77a44b2336a0106d
+                    image: mariadb/mariadb-operator-enterprise@sha256:bed6d3495c775a10e70e4edf60f8cf821bc771e3f3e83171113ae919c2f9b11a
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -4083,9 +4083,11 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
+    - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
+      name: exporter
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter-maxscale
-    - image: mariadb/mariadb-operator-enterprise@sha256:976b436171e99f02179b406d75382606c8bd4f1cc9702e7f77a44b2336a0106d
+    - image: mariadb/mariadb-operator-enterprise@sha256:bed6d3495c775a10e70e4edf60f8cf821bc771e3f3e83171113ae919c2f9b11a
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
@@ -4093,8 +4095,6 @@ spec:
       name: mariadb
     - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
       name: maxscale
-    - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
-      name: exporter
   version: 0.0.29-dev
   webhookdefinitions:
     - admissionReviewVersions:

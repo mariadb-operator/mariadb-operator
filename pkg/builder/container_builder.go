@@ -149,7 +149,7 @@ func (b *Builder) maxscaleCommand(mxs *mariadbv1alpha1.MaxScale) (*command.Comma
 			[]string{
 				fmt.Sprintf(
 					"maxscale --config %s -dU $(id -u) -l stdout",
-					mxs.ConfigSecretKeyRef().Key,
+					fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
 				),
 			},
 		), nil
