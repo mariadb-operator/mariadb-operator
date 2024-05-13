@@ -377,7 +377,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:976b436171e99f02179b406d75382606c8bd4f1cc9702e7f77a44b2336a0106d
-    createdAt: "2024-05-10T11:09:43Z"
+    createdAt: "2024-05-13T12:30:30Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4083,18 +4083,18 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadbmmontes/enterprise-server@sha256:fdcc91ad81a0678b04f6d030bb2dfc712ebf0a1b92dc932fc4d1f45fa18eeaea
-      name: mariadb
-    - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
-      name: maxscale
-    - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
-      name: exporter
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter-maxscale
     - image: mariadb/mariadb-operator-enterprise@sha256:976b436171e99f02179b406d75382606c8bd4f1cc9702e7f77a44b2336a0106d
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
+    - image: mariadbmmontes/enterprise-server@sha256:fdcc91ad81a0678b04f6d030bb2dfc712ebf0a1b92dc932fc4d1f45fa18eeaea
+      name: mariadb
+    - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
+      name: maxscale
+    - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
+      name: exporter
   version: 0.0.29-dev
   webhookdefinitions:
     - admissionReviewVersions:

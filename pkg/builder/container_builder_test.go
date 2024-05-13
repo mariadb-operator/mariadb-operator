@@ -802,9 +802,17 @@ func TestMaxScaleCommand(t *testing.T) {
 		t.Error("unexpected MaxScale command")
 	}
 
-	d, err := discovery.NewDiscoveryEnterprise()
+	resource := &metav1.APIResourceList{
+		GroupVersion: "security.openshift.io/v1",
+		APIResources: []metav1.APIResource{
+			{
+				Name: "securitycontextconstraints",
+			},
+		},
+	}
+	d, err := discovery.NewFakeDiscovery(true, resource)
 	if err != nil {
-		t.Fatalf("unexpected error building discovery: %v", err)
+		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
 	builder = newTestBuilder(d)
 
