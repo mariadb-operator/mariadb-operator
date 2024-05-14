@@ -113,9 +113,12 @@ webhook:
     secretAnnotations: {}
     # -- Labels to be added to webhook TLS secret.
     secretLabels: {}
-    # -- Path where the CA certificate will be mounted.
-    caPath: /tmp/k8s-webhook-server/certificate-authority
-    # -- Path where the certificate will be mounted.
+    ca:
+      # -- Path that contains the full CA trust chain.
+      path: ""
+      # -- File under 'ca.path' that contains the full CA trust chain.
+      key: ""
+    # -- Path where the certificate will be mounted. 'tls.crt' and 'tls.key' certificates files should be under this path.
     path: /tmp/k8s-webhook-server/serving-certs
   # -- Port to be used by the webhook server
   port: 9443
