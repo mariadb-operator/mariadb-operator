@@ -685,48 +685,28 @@ helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set 
 
 #### Permission denied writing `/var/lib/maxscale`
 
-This error occurs when the container does not have enough privileges for writing in `/var/lib/maxscale`:
+This error occurs when the user that runs the container does not have enough privileges to write in `/var/lib/maxscale`:
 
 ```bash
 Failed to create directory '/var/lib/maxscale/maxscale.cnf.d': 13, Permission denied
 ```
 
-To mitigate this, the following defaults are set by the operator:
+To mitigate this, by default, the operator sets the following `securityContext` in the `MaxScale`'s `StatefulSet`:
 
 ```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MaxScale
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: maxscale-galera
 spec:
-...
-podSecurityContext:
-  fsGroup: 996
+  securityContext:
+    fsGroup: 996
+    runAsGroup: 996
+    runAsNonRoot: true
+    runAsUser: 998
 ```
 
-This enables the `CSIDriver` and the kubelet to recursively set the ownership ofr the `/var/lib/maxscale` folder to the group `996`, which is the one expected by MaxScale. It is important to note that not all the `CSIDrivers` implementations support this feature, see the [CSIDriver documentation](https://kubernetes-csi.github.io/docs/support-fsgroup.html) and refer to this [comment](https://github.com/mariadb-operator/mariadb-operator/issues/381#issuecomment-1974828673) for further information.
-
-As an alternative, you can setup an initContainer to perform a `chown`: 
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MaxScale
-metadata:
-  name: maxscale-galera
-spec:
-...
-initContainers:
-- name: volume-hack
-  image: busybox
-  command:
-  - /bin/sh
-  - -c
-  - chown -R 998:996 /var/lib/maxscale
-  resources: {}
-  volumeMounts:
-  - name: storage
-    mountPath: /var/lib/maxscale
-```
+This enables the `CSIDriver` and the kubelet to recursively set the ownership ofr the `/var/lib/maxscale` folder to the group `996`, which is the one expected by MaxScale. It is important to note that not all the `CSIDrivers` implementations support this feature, see the [CSIDriver documentation](https://kubernetes-csi.github.io/docs/support-fsgroup.html) for further information.
 
 ## Reference
 - [API reference](./API_REFERENCE.md)
