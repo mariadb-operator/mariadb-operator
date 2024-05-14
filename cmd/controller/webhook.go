@@ -127,17 +127,15 @@ func waitForCerts(dnsName string, at time.Time, timeout time.Duration) error {
 	defer cancel()
 	for {
 		setupLog.Info("Validating certs")
-		err := checkCerts(dnsName, at)
-		if err == nil {
-			return nil
-		}
-		if err != nil {
+		if err := checkCerts(dnsName, at); err != nil {
 			setupLog.V(1).Info("Invalid certs. Retrying...", "error", err)
-			<-time.After(time.Second * 10)
+			<-time.After(time.Second * 5)
+			continue
 		}
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
+		return nil
 	}
 }
 
