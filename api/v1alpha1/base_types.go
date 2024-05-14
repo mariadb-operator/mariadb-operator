@@ -33,7 +33,7 @@ type MariaDBRef struct {
 	// WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
 	// +optional
 	// +kubebuilder:default=true
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	WaitForIt bool `json:"waitForIt"`
 }
 
@@ -195,7 +195,7 @@ type AffinityConfig struct {
 	// AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.
 	// Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	AntiAffinityEnabled *bool `json:"antiAffinityEnabled,omitempty" webhook:"inmutable"`
 }
 
@@ -417,7 +417,7 @@ type ServiceTemplate struct {
 	SessionAffinity *corev1.ServiceAffinity `json:"sessionAffinity,omitempty"`
 	// AllocateLoadBalancerNodePorts Service field.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	AllocateLoadBalancerNodePorts *bool `json:"allocateLoadBalancerNodePorts,omitempty"`
 }
 
@@ -640,7 +640,7 @@ type Schedule struct {
 	// Suspend defines whether the schedule is active or not.
 	// +optional
 	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Suspend bool `json:"suspend"`
 }
 
@@ -658,6 +658,6 @@ type GeneratedSecretKeyRef struct {
 	// Generate indicates whether the Secret should be generated if the Secret referenced is not present.
 	// +optional
 	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Generate bool `json:"generate,omitempty"`
 }

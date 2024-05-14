@@ -44,7 +44,7 @@ type GrantSpec struct {
 	// GrantOption to use in the Grant.
 	// +optional
 	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	GrantOption bool `json:"grantOption,omitempty" webhook:"inmutable"`
 }
 

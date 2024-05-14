@@ -78,7 +78,7 @@ type BackupSpec struct {
 	// If not provided, it will default to true when the referred MariaDB instance has Galera enabled and otherwise to false.
 	// See: https://github.com/mariadb-operator/mariadb-operator/issues/556
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	IgnoreGlobalPriv *bool `json:"ignoreGlobalPriv,omitempty"`
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional

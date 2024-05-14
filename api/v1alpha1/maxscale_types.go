@@ -38,7 +38,7 @@ type MaxScaleServer struct {
 	Protocol string `json:"protocol,omitempty"`
 	// Maintenance indicates whether the server is in maintenance mode.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Maintenance bool `json:"maintenance,omitempty"`
 	// Params defines extra parameters to pass to the server.
 	// Any parameter supported by MaxScale may be specified here. See reference:
@@ -62,7 +62,7 @@ func (m *MaxScaleServer) SetDefaults() {
 type SuspendTemplate struct {
 	// Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Suspend bool `json:"suspend,omitempty"`
 }
 
@@ -223,7 +223,7 @@ type MaxScaleAdmin struct {
 	Port int32 `json:"port"`
 	// GuiEnabled indicates whether the admin GUI should be enabled.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	GuiEnabled *bool `json:"guiEnabled,omitempty"`
 }
 
@@ -307,7 +307,7 @@ type MaxScaleAuth struct {
 	// Generate  defies whether the operator should generate users and grants for MaxScale to work.
 	// It only supports MariaDBs specified via spec.mariaDbRef.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Generate *bool `json:"generate,omitempty" webhook:"inmutableinit"`
 	// AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
 	// +optional
@@ -319,7 +319,7 @@ type MaxScaleAuth struct {
 	AdminPasswordSecretKeyRef GeneratedSecretKeyRef `json:"adminPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	DeleteDefaultAdmin *bool `json:"deleteDefaultAdmin,omitempty" webhook:"inmutableinit"`
 	// MetricsUsername is an metrics username to call the REST API. It is defaulted if metrics are enabled.
 	// +optional

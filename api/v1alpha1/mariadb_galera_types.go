@@ -247,7 +247,7 @@ type GaleraConfig struct {
 	// ReuseStorageVolume indicates that storage volume used by MariaDB should be reused to store the Galera configuration files.
 	// It defaults to false, which implies that a dedicated volume for the Galera configuration files is provisioned.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	ReuseStorageVolume *bool `json:"reuseStorageVolume,omitempty" webhook:"inmutableinit"`
 	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB.
 	// +optional
@@ -340,7 +340,7 @@ type GaleraSpec struct {
 	SST SST `json:"sst,omitempty"`
 	// AvailableWhenDonor indicates whether a donor node should be responding to queries. It defaults to false.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	AvailableWhenDonor *bool `json:"availableWhenDonor,omitempty"`
 	// GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided.
 	// More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.

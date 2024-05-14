@@ -377,7 +377,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:e18889df596726aa3b6786c35ada45547b5462400efe76949d8c228631bc8594
-    createdAt: "2024-05-14T20:05:28Z"
+    createdAt: "2024-05-14T20:25:26Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -426,6 +426,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: args
@@ -440,6 +442,8 @@ spec:
           - description: 'IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups. If not provided, it will default to true when the referred MariaDB instance has Galera enabled and otherwise to false. See: https://github.com/mariadb-operator/mariadb-operator/issues/556'
             displayName: Ignore Global Priv
             path: ignoreGlobalPriv
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
             displayName: Image Pull Secrets
             path: imagePullSecrets
@@ -461,6 +465,8 @@ spec:
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job. It defaults to 30 days.
             displayName: Max Retention
             path: maxRetention
@@ -499,6 +505,8 @@ spec:
           - description: Suspend defines whether the schedule is active or not.
             displayName: Suspend
             path: schedule.suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: SecurityContext holds security configuration that will be applied to a container.
             displayName: Security Context
             path: securityContext
@@ -595,6 +603,8 @@ spec:
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided.
             displayName: Max Scale Ref
             path: maxScaleRef
@@ -680,6 +690,8 @@ spec:
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Name overrides the default Database name provided by metadata.name.
             displayName: Name
             path: name
@@ -711,6 +723,8 @@ spec:
           - description: GrantOption to use in the Grant.
             displayName: Grant Option
             path: grantOption
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Host to use in the Grant. It can be localhost, an IP or '%'.
             displayName: Host
             path: host
@@ -720,6 +734,8 @@ spec:
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Privileges to use in the Grant.
             displayName: Privileges
             path: privileges
@@ -808,6 +824,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: args
@@ -826,6 +844,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: bootstrapFrom.restoreJob.affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: bootstrapFrom.restoreJob.args
@@ -1019,12 +1039,16 @@ spec:
           - description: AvailableWhenDonor indicates whether a donor node should be responding to queries. It defaults to false.
             displayName: Available When Donor
             path: galera.availableWhenDonor
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: GaleraConfig defines storage options for the Galera configuration files.
             displayName: Config
             path: galera.config
           - description: ReuseStorageVolume indicates that storage volume used by MariaDB should be reused to store the Galera configuration files. It defaults to false, which implies that a dedicated volume for the Galera configuration files is provisioned.
             displayName: Reuse Storage Volume
             path: galera.config.reuseStorageVolume
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB.
             displayName: Volume Claim Template
             path: galera.config.volumeClaimTemplate
@@ -1094,6 +1118,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: galera.initJob.affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: galera.initJob.args
@@ -1232,6 +1258,8 @@ spec:
           - description: GuiEnabled indicates whether the admin GUI should be enabled.
             displayName: Gui Enabled
             path: maxScale.admin.guiEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Port where the admin REST API and GUI will be exposed.
             displayName: Port
             path: maxScale.admin.port
@@ -1246,6 +1274,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: maxScale.auth.adminPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
             displayName: Admin Username
             path: maxScale.auth.adminUsername
@@ -1260,21 +1290,29 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: maxScale.auth.clientPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
             displayName: Client Username
             path: maxScale.auth.clientUsername
           - description: DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true.
             displayName: Delete Default Admin
             path: maxScale.auth.deleteDefaultAdmin
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Generate  defies whether the operator should generate users and grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
             displayName: Generate
             path: maxScale.auth.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
             displayName: Metrics Password Secret Key Ref
             path: maxScale.auth.metricsPasswordSecretKeyRef
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: maxScale.auth.metricsPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MetricsUsername is an metrics username to call the REST API. It is defaulted if metrics are enabled.
             displayName: Metrics Username
             path: maxScale.auth.metricsUsername
@@ -1289,6 +1327,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: maxScale.auth.monitorPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
             displayName: Monitor Username
             path: maxScale.auth.monitorUsername
@@ -1303,6 +1343,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: maxScale.auth.serverPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
             displayName: Server Username
             path: maxScale.auth.serverUsername
@@ -1317,6 +1359,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: maxScale.auth.syncPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled.
             displayName: Sync Username
             path: maxScale.auth.syncUsername
@@ -1421,6 +1465,8 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: maxScale.guiKubernetesService.allocateLoadBalancerNodePorts
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: maxScale.guiKubernetesService.externalTrafficPolicy
@@ -1462,6 +1508,8 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: maxScale.kubernetesService.allocateLoadBalancerNodePorts
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: maxScale.kubernetesService.externalTrafficPolicy
@@ -1503,6 +1551,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: maxScale.metrics.exporter.affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: maxScale.metrics.exporter.args
@@ -1694,6 +1744,8 @@ spec:
           - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
             displayName: Suspend
             path: maxScale.monitor.suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: PodDisruptionBudget defines the budget for replica availability.
             displayName: Pod Disruption Budget
             path: maxScale.podDisruptionBudget
@@ -1734,6 +1786,8 @@ spec:
           - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
             displayName: Suspend
             path: maxScale.services[0].listener.suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Name is the identifier of the MaxScale service.
             displayName: Name
             path: maxScale.services[0].name
@@ -1746,6 +1800,8 @@ spec:
           - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
             displayName: Suspend
             path: maxScale.services[0].suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: UpdateStrategy defines the update strategy for the StatefulSet object.
             displayName: Update Strategy
             path: maxScale.updateStrategy
@@ -1771,6 +1827,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: metrics.exporter.affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: metrics.exporter.args
@@ -1932,6 +1990,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: metrics.passwordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ServiceMonitor defines the ServiceMonior object.
             displayName: Service Monitor
             path: metrics.serviceMonitor
@@ -1965,6 +2025,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: passwordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: PodDisruptionBudget defines the budget for replica availability.
             displayName: Pod Disruption Budget
             path: podDisruptionBudget
@@ -2058,6 +2120,8 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: primaryService.allocateLoadBalancerNodePorts
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: primaryService.externalTrafficPolicy
@@ -2137,6 +2201,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: replication.replica.replPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover. If the timeout is reached, the replica GTID will be reset and the switchover will continue.
             displayName: Sync Timeout
             path: replication.replica.syncTimeout
@@ -2166,6 +2232,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: rootPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: SecondaryConnection defines templates to configure the secondary Connection object.
             displayName: Secondary Connection
             path: secondaryConnection
@@ -2232,6 +2300,8 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: secondaryService.allocateLoadBalancerNodePorts
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: secondaryService.externalTrafficPolicy
@@ -2265,6 +2335,8 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: service.allocateLoadBalancerNodePorts
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: service.externalTrafficPolicy
@@ -2456,6 +2528,8 @@ spec:
           - description: GuiEnabled indicates whether the admin GUI should be enabled.
             displayName: Gui Enabled
             path: admin.guiEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Port where the admin REST API and GUI will be exposed.
             displayName: Port
             path: admin.port
@@ -2467,6 +2541,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: args
@@ -2479,6 +2555,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: auth.adminPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
             displayName: Admin Username
             path: auth.adminUsername
@@ -2493,21 +2571,29 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: auth.clientPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
             displayName: Client Username
             path: auth.clientUsername
           - description: DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true.
             displayName: Delete Default Admin
             path: auth.deleteDefaultAdmin
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Generate  defies whether the operator should generate users and grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
             displayName: Generate
             path: auth.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
             displayName: Metrics Password Secret Key Ref
             path: auth.metricsPasswordSecretKeyRef
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: auth.metricsPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MetricsUsername is an metrics username to call the REST API. It is defaulted if metrics are enabled.
             displayName: Metrics Username
             path: auth.metricsUsername
@@ -2522,6 +2608,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: auth.monitorPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
             displayName: Monitor Username
             path: auth.monitorUsername
@@ -2536,6 +2624,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: auth.serverPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
             displayName: Server Username
             path: auth.serverUsername
@@ -2550,6 +2640,8 @@ spec:
           - description: Generate indicates whether the Secret should be generated if the Secret referenced is not present.
             displayName: Generate
             path: auth.syncPasswordSecretKeyRef.generate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled.
             displayName: Sync Username
             path: auth.syncUsername
@@ -2658,6 +2750,8 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: guiKubernetesService.allocateLoadBalancerNodePorts
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: guiKubernetesService.externalTrafficPolicy
@@ -2751,6 +2845,8 @@ spec:
           - description: AllocateLoadBalancerNodePorts Service field.
             displayName: Allocate Load Balancer Node Ports
             path: kubernetesService.allocateLoadBalancerNodePorts
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: ExternalTrafficPolicy Service field.
             displayName: External Traffic Policy
             path: kubernetesService.externalTrafficPolicy
@@ -2784,6 +2880,8 @@ spec:
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Metrics configures metrics and how to scrape them.
             displayName: Metrics
             path: metrics
@@ -2801,6 +2899,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: metrics.exporter.affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: metrics.exporter.args
@@ -2992,6 +3092,8 @@ spec:
           - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
             displayName: Suspend
             path: monitor.suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: nodeSelector
@@ -3047,6 +3149,8 @@ spec:
           - description: Maintenance indicates whether the server is in maintenance mode.
             displayName: Maintenance
             path: servers[0].maintenance
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Name is the identifier of the MariaDB server.
             displayName: Name
             path: servers[0].name
@@ -3087,6 +3191,8 @@ spec:
           - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
             displayName: Suspend
             path: services[0].listener.suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Name is the identifier of the MaxScale service.
             displayName: Name
             path: services[0].name
@@ -3099,6 +3205,8 @@ spec:
           - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
             displayName: Suspend
             path: services[0].suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: SidecarContainers to be used in the Pod.
             displayName: Sidecar Containers
             path: sidecarContainers
@@ -3207,6 +3315,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: args
@@ -3242,6 +3352,8 @@ spec:
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: nodeSelector
@@ -3352,6 +3464,8 @@ spec:
           - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA. Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
             displayName: Anti Affinity Enabled
             path: affinity.antiAffinityEnabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: Args to be used in the Container.
             displayName: Args
             path: args
@@ -3384,6 +3498,8 @@ spec:
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: nodeSelector
@@ -3422,6 +3538,8 @@ spec:
           - description: Suspend defines whether the schedule is active or not.
             displayName: Suspend
             path: schedule.suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: SecurityContext holds security configuration that will be applied to a container.
             displayName: Security Context
             path: securityContext
@@ -3465,6 +3583,8 @@ spec:
           - description: WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
             displayName: Wait For It
             path: mariaDbRef.waitForIt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
           - description: MaxUserConnections defines the maximum number of connections that the User can establish.
             displayName: Max User Connections
             path: maxUserConnections
