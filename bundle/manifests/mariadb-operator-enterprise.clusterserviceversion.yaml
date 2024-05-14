@@ -377,7 +377,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:e18889df596726aa3b6786c35ada45547b5462400efe76949d8c228631bc8594
-    createdAt: "2024-05-13T14:36:48Z"
+    createdAt: "2024-05-14T20:05:28Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -2348,6 +2348,8 @@ spec:
           - description: Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.
             displayName: Size
             path: storage.size
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
           - description: StorageClassName to be used to provision the PVCS. It superseeds the 'StorageClassName' specified in 'VolumeClaimTemplate'. If not provided, the default 'StorageClass' configured in the cluster is used.
             displayName: Storage Class Name
             path: storage.storageClassName
@@ -3951,7 +3953,7 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: mariadbmmontes/enterprise-server@sha256:fdcc91ad81a0678b04f6d030bb2dfc712ebf0a1b92dc932fc4d1f45fa18eeaea
+                        value: mariadbmmontes/enterprise-server@sha256:346ac9bcd8284d7389af6b92f9433c416cb4a4a24261f9a1d54b4d041c02d065
                       - name: RELATED_IMAGE_MAXSCALE
                         value: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
                       - name: RELATED_IMAGE_EXPORTER
@@ -4083,18 +4085,18 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
+    - image: mariadb/mariadb-operator-enterprise@sha256:e18889df596726aa3b6786c35ada45547b5462400efe76949d8c228631bc8594
+      name: mariadb-operator-enterprise
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+      name: exporter_maxscale
+    - image: mariadbmmontes/enterprise-server@sha256:346ac9bcd8284d7389af6b92f9433c416cb4a4a24261f9a1d54b4d041c02d065
+      name: mariadb
     - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
       name: maxscale
     - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
       name: exporter
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter-maxscale
-    - image: mariadb/mariadb-operator-enterprise@sha256:e18889df596726aa3b6786c35ada45547b5462400efe76949d8c228631bc8594
-      name: mariadb-operator-enterprise
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
-      name: exporter_maxscale
-    - image: mariadbmmontes/enterprise-server@sha256:fdcc91ad81a0678b04f6d030bb2dfc712ebf0a1b92dc932fc4d1f45fa18eeaea
-      name: mariadb
   version: 0.0.29-dev
   webhookdefinitions:
     - admissionReviewVersions:

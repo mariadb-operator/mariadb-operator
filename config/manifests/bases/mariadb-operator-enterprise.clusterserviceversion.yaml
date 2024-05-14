@@ -2481,6 +2481,8 @@ spec:
           in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.
         displayName: Size
         path: storage.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       - description: StorageClassName to be used to provision the PVCS. It superseeds
           the 'StorageClassName' specified in 'VolumeClaimTemplate'. If not provided,
           the default 'StorageClass' configured in the cluster is used.
