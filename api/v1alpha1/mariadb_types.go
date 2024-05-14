@@ -91,7 +91,7 @@ type Storage struct {
 	Ephemeral *bool `json:"ephemeral,omitempty" webhook:"inmutableinit"`
 	// Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:text"}
 	Size *resource.Quantity `json:"size,omitempty"`
 	// StorageClassName to be used to provision the PVCS. It superseeds the 'StorageClassName' specified in 'VolumeClaimTemplate'.
 	// If not provided, the default 'StorageClass' configured in the cluster is used.
