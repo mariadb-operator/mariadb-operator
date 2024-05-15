@@ -11,25 +11,10 @@ metadata:
             "name": "backup"
           },
           "spec": {
-            "args": [
-              "--single-transaction",
-              "--all-databases"
-            ],
-            "logLevel": "info",
             "mariaDbRef": {
               "name": "mariadb"
             },
             "maxRetention": "720h",
-            "resources": {
-              "limits": {
-                "cpu": "300m",
-                "memory": "512Mi"
-              },
-              "requests": {
-                "cpu": "100m",
-                "memory": "128Mi"
-              }
-            },
             "schedule": {
               "cron": "*/1 * * * *",
               "suspend": false
@@ -66,15 +51,8 @@ metadata:
           },
           "spec": {
             "database": "mariadb",
-            "healthCheck": {
-              "interval": "10s",
-              "retryInterval": "3s"
-            },
             "mariaDbRef": {
               "name": "mariadb"
-            },
-            "params": {
-              "parseTime": "true"
             },
             "passwordSecretKeyRef": {
               "key": "password",
@@ -82,20 +60,8 @@ metadata:
             },
             "secretName": "connection",
             "secretTemplate": {
-              "annotations": {
-                "k8s.mariadb.com/connection": "sample"
-              },
-              "databaseKey": "database",
-              "hostKey": "host",
-              "key": "dsn",
-              "labels": {
-                "k8s.mariadb.com/connection": "sample"
-              },
-              "passwordKey": "password",
-              "portKey": "port",
-              "usernameKey": "username"
+              "key": "dsn"
             },
-            "serviceName": "mariadb",
             "username": "mariadb"
           }
         },
@@ -103,7 +69,7 @@ metadata:
           "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "Database",
           "metadata": {
-            "name": "data-test"
+            "name": "database"
           },
           "spec": {
             "characterSet": "utf8",
@@ -111,7 +77,7 @@ metadata:
             "mariaDbRef": {
               "name": "mariadb"
             },
-            "retryInterval": "5s"
+            "name": "my-logical-database"
           }
         },
         {
@@ -132,10 +98,8 @@ metadata:
               "INSERT",
               "UPDATE"
             ],
-            "requeueInterval": "30s",
-            "retryInterval": "5s",
             "table": "*",
-            "username": "user"
+            "username": "my-user"
           }
         },
         {
@@ -318,16 +282,6 @@ metadata:
             "mariaDbRef": {
               "name": "mariadb"
             },
-            "resources": {
-              "limits": {
-                "cpu": "300m",
-                "memory": "512Mi"
-              },
-              "requests": {
-                "cpu": "100m",
-                "memory": "128Mi"
-              }
-            },
             "targetRecoveryTime": "2023-12-19T09:00:00Z"
           }
         },
@@ -335,18 +289,10 @@ metadata:
           "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "SqlJob",
           "metadata": {
-            "name": "03-stars"
+            "name": "sqljob"
           },
           "spec": {
             "database": "mariadb",
-            "dependsOn": [
-              {
-                "name": "01-users"
-              },
-              {
-                "name": "02-repos"
-              }
-            ],
             "mariaDbRef": {
               "name": "mariadb"
             },
@@ -358,7 +304,7 @@ metadata:
               "cron": "*/1 * * * *",
               "suspend": false
             },
-            "sql": "CREATE TABLE IF NOT EXISTS stars (\n  id bigint PRIMARY KEY AUTO_INCREMENT,\n  user_id bigint NOT NULL,\n  repo_id bigint NOT NULL,\n  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,\n  FOREIGN KEY (repo_id) REFERENCES repos(id) ON DELETE CASCADE,\n  UNIQUE KEY (user_id, repo_id)\n);\nINSERT INTO stars(user_id, repo_id) \n  VALUES((SELECT id FROM users ORDER BY RAND() LIMIT 1), (SELECT id FROM repos ORDER BY RAND() LIMIT 1))\n  ON DUPLICATE KEY UPDATE id=id;\nDELETE FROM stars WHERE id = (SELECT id FROM stars ORDER BY RAND() LIMIT 1);\nSELECT r.name AS repo, COUNT(*) AS stars\nFROM stars s\nJOIN repos r\nON s.repo_id = r.id\nGROUP BY r.id\nORDER BY stars DESC;",
+            "sql": "CREATE TABLE IF NOT EXISTS orders (\n  id bigint PRIMARY KEY AUTO_INCREMENT,\n  customer_id INT,\n  order_date DATE,\n  total_amount_cents INT\n);\nINSERT INTO orders (customer_id, order_date, total_amount_cents) VALUES\n  (101, '2024-05-15', 5000),\n  (102, '2024-05-14', 7525),\n  (103, '2024-05-13', 10050),\n  (104, '2024-05-12', 2575);",
             "username": "mariadb"
           }
         },
@@ -374,11 +320,11 @@ metadata:
               "name": "mariadb"
             },
             "maxUserConnections": 20,
+            "name": "my-user",
             "passwordSecretKeyRef": {
               "key": "password",
               "name": "mariadb"
-            },
-            "retryInterval": "5s"
+            }
           }
         }
       ]
@@ -386,7 +332,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:e18889df596726aa3b6786c35ada45547b5462400efe76949d8c228631bc8594
-    createdAt: "2024-05-15T11:17:51Z"
+    createdAt: "2024-05-15T18:09:24Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4214,8 +4160,6 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadbmmontes/enterprise-server@sha256:346ac9bcd8284d7389af6b92f9433c416cb4a4a24261f9a1d54b4d041c02d065
-      name: mariadb
     - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
       name: maxscale
     - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
@@ -4226,6 +4170,8 @@ spec:
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
+    - image: mariadbmmontes/enterprise-server@sha256:346ac9bcd8284d7389af6b92f9433c416cb4a4a24261f9a1d54b4d041c02d065
+      name: mariadb
   version: 0.0.29-dev
   webhookdefinitions:
     - admissionReviewVersions:

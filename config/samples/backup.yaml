@@ -25,14 +25,3 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
-  args:
-    - --single-transaction
-    - --all-databases
-  logLevel: info
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 512Mi

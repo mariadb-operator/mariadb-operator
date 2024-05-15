@@ -3,14 +3,11 @@ kind: User
 metadata:
   name: user
 spec:
-  # If you want the user to be created with a different name than the resource name
-  # name: user-custom
+  name: my-user
   mariaDbRef:
     name: mariadb
   passwordSecretKeyRef:
     name: mariadb
     key: password
-  # This field is immutable and defaults to 10
   maxUserConnections: 20
   host: "%"
-  retryInterval: 5s
