@@ -4,8 +4,8 @@ metadata:
   name: mariadb
 spec:
   rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
+    name: mariadb-root
+    key: password
     generate: true
 
   username: mariadb
@@ -26,19 +26,19 @@ spec:
   service:
     type: ClusterIP
   connection:
-    secretName: mariadb-repl-conn
+    secretName: mariadb-conn
     secretTemplate:
       key: dsn
   primaryService:
     type: ClusterIP
   primaryConnection:
-    secretName: mariadb-repl-conn-primary
+    secretName: mariadb-conn-primary
     secretTemplate:
       key: dsn
   secondaryService:
     type: ClusterIP
   secondaryConnection:
-    secretName: mariadb-repl-conn-secondary
+    secretName: mariadb-conn-secondary
     secretTemplate:
       key: dsn
 
@@ -51,4 +51,8 @@ spec:
     max_allowed_packet=256M
 
   metrics:
+    passwordSecretKeyRef:
+      name: mariadb-metrics
+      key: password
+      generate: true
     enabled: true
