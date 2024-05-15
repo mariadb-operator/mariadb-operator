@@ -1,10 +1,10 @@
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
-  name: data-test
+  name: database
 spec:
   # If you want the database to be created with a different name than the resource name
-  # name: data-custom
+  # name: my-logical-database
   mariaDbRef:
     name: mariadb
   characterSet: utf8
