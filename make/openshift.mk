@@ -1,4 +1,4 @@
-##@ OLM
+##@ OpenShift
 
 ifneq ($(origin CHANNELS), undefined)
 BUNDLE_CHANNELS := --channels=$(CHANNELS)
@@ -82,9 +82,6 @@ catalog-deploy: openshift-registry ## Deploy catalog to a OpenShift cluster.
 catalog-undeploy: ## Undeploy catalog from a OpenShift cluster.
 	$(KUSTOMIZE) build hack/manifests/catalog	| $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
-.PHONY: openshift-deploy
-openshift-deploy: docker-build-ent docker-push-ent bundle bundle-build bundle-push catalog-build catalog-push catalog-deploy ## Build, push and deploy images needed to test in Openshift.
-
 .PHONY: preflight-image
 preflight-image: preflight ## Run preflight tests on the operator image.
 	$(PREFLIGHT) check container $(IMG_ENT) --docker-config $(DOCKER_CONFIG)
@@ -105,9 +102,42 @@ preflight-bundle: preflight ## Run preflight tests on the bundle image and submi
 licenses: go-licenses ## Generate licenses folder.
 	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force
 
+.PHONY: openshift-ctx
+openshift-ctx: oc ## Sets OpenShift context.
+	$(OC) config use-context crc-admin
+
+OCP_REGISTRY_URL ?= https://index.docker.io/v1/
+.PHONY: openshift-registry
+openshift-registry-add: oc jq ## Add catalog registry in OpenShift global config.
+	$(OC) extract secret/pull-secret -n openshift-config --confirm
+	@cat .dockerconfigjson | $(JQ) -c \
+		--argjson registryauth '$(shell cat $(DOCKER_CONFIG) | $(JQ) '.auths["$(OCP_REGISTRY_URL)"]')' '.auths["$(OCP_REGISTRY_URL)"] |= . + $$registryauth' \
+		> .new_dockerconfigjson 
+	$(OC) set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=.new_dockerconfigjson 
+	@rm .dockerconfigjson .new_dockerconfigjson 
+
+.PHONY: openshift-registry
+openshift-registry: ## Setup registries in OpenShift global config.
+	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=https://index.docker.io/v1/
+	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=us-central1-docker.pkg.dev
+
 CERTIFIED_REPO ?= "https://github.com/mariadb-operator/certified-operators"
 CERTIFIED_BRANCH ?= cert-test
 BUNDLE_PATH ?= "operators/mariadb-operator/${VERSION}"
-.PHONY: cert-test
-cert-test: openshift-registry ## Run certification tests in OpenShift.
+.PHONY: openshift-cert-test
+openshift-cert-test: openshift-ctx openshift-registry ## Run certification tests.
 	CERTIFIED_REPO=$(CERTIFIED_REPO) CERTIFIED_BRANCH=$(CERTIFIED_BRANCH) BUNDLE_PATH=$(BUNDLE_PATH) ./hack/certification_test.sh 
+
+.PHONY: openshift-config
+openshift-config: openshift-ctx ## Install common configuration.
+	$(OC) apply -f examples/manifests/config
+
+.PHONY: openshift-minio
+openshift-minio: openshift-ctx openshift-config cert-minio ## Deploy minio.
+	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
+
+.PHONY: openshift-catalog
+openshift-catalog: docker-build-ent docker-push-ent bundle bundle-build bundle-push catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy images needed for the catalog.
+
+.PHONY: openshift-deploy
+openshift-deploy: openshift-registry openshift-minio openshift-catalog ## Deploy dependencies to test mariadb-operator.
