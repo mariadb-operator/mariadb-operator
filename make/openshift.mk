@@ -130,11 +130,14 @@ openshift-cert-test: openshift-ctx openshift-registry ## Run certification tests
 
 .PHONY: openshift-config
 openshift-config: openshift-ctx ## Install common configuration.
-	$(OC) apply -f examples/manifests/config
+	$(OC) apply -f examples/manifests/config 
 
 .PHONY: openshift-minio
 openshift-minio: openshift-ctx openshift-config cert-minio ## Deploy minio.
 	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
+	$(OC) create secret generic minio-ca \
+		--from-file=ca.crt=$(CA_DIR)/tls.crt \
+		--dry-run=client -o yaml -n openshift-operators | $(OC) apply -f -
 
 .PHONY: openshift-catalog
 openshift-catalog: docker-build-ent docker-push-ent bundle bundle-build bundle-push catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy images needed for the catalog.
