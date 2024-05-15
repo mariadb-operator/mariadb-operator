@@ -146,7 +146,7 @@ metadata:
           },
           "spec": {
             "connection": {
-              "secretName": "mariadb-repl-conn",
+              "secretName": "mariadb-conn",
               "secretTemplate": {
                 "key": "dsn"
               }
@@ -156,7 +156,12 @@ metadata:
               "enabled": true
             },
             "metrics": {
-              "enabled": true
+              "enabled": true,
+              "passwordSecretKeyRef": {
+                "generate": true,
+                "key": "password",
+                "name": "mariadb-metrics"
+              }
             },
             "myCnf": "[mariadb]\nbind-address=*\ndefault_storage_engine=InnoDB\nbinlog_format=row\ninnodb_autoinc_lock_mode=2\nmax_allowed_packet=256M\n",
             "passwordSecretKeyRef": {
@@ -165,7 +170,7 @@ metadata:
               "name": "mariadb"
             },
             "primaryConnection": {
-              "secretName": "mariadb-repl-conn-primary",
+              "secretName": "mariadb-conn-primary",
               "secretTemplate": {
                 "key": "dsn"
               }
@@ -176,11 +181,11 @@ metadata:
             "replicas": 3,
             "rootPasswordSecretKeyRef": {
               "generate": true,
-              "key": "root-password",
-              "name": "mariadb"
+              "key": "password",
+              "name": "mariadb-root"
             },
             "secondaryConnection": {
-              "secretName": "mariadb-repl-conn-secondary",
+              "secretName": "mariadb-conn-secondary",
               "secretTemplate": {
                 "key": "dsn"
               }
@@ -201,7 +206,7 @@ metadata:
           "apiVersion": "k8s.mariadb.com/v1alpha1",
           "kind": "MaxScale",
           "metadata": {
-            "name": "maxscale-galera"
+            "name": "maxscale"
           },
           "spec": {
             "admin": {
@@ -209,6 +214,12 @@ metadata:
               "port": 8989
             },
             "auth": {
+              "adminPasswordSecretKeyRef": {
+                "generate": true,
+                "key": "password",
+                "name": "maxscale-admin"
+              },
+              "adminUsername": "mariadb-operator",
               "generate": true
             },
             "config": {
@@ -220,24 +231,22 @@ metadata:
             },
             "connection": {
               "port": 3306,
-              "secretName": "mxs-galera-conn"
+              "secretName": "maxscale-conn",
+              "secretTemplate": {
+                "key": "dsn"
+              }
             },
             "guiKubernetesService": {
-              "metadata": {
-                "annotations": {
-                  "metallb.universe.tf/loadBalancerIPs": "172.18.0.231"
-                }
-              },
-              "type": "LoadBalancer"
+              "type": "ClusterIP"
             },
             "kubernetesService": {
-              "annotations": {
-                "metallb.universe.tf/loadBalancerIPs": "172.18.0.224"
-              },
-              "type": "LoadBalancer"
+              "type": "ClusterIP"
             },
             "mariaDbRef": {
-              "name": "mariadb-galera"
+              "name": "mariadb"
+            },
+            "metrics": {
+              "enabled": true
             },
             "monitor": {
               "cooperativeMonitoring": "majority_of_all",
@@ -377,7 +386,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:e18889df596726aa3b6786c35ada45547b5462400efe76949d8c228631bc8594
-    createdAt: "2024-05-14T20:25:26Z"
+    createdAt: "2024-05-15T11:17:51Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4205,10 +4214,6 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadb/mariadb-operator-enterprise@sha256:e18889df596726aa3b6786c35ada45547b5462400efe76949d8c228631bc8594
-      name: mariadb-operator-enterprise
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
-      name: exporter_maxscale
     - image: mariadbmmontes/enterprise-server@sha256:346ac9bcd8284d7389af6b92f9433c416cb4a4a24261f9a1d54b4d041c02d065
       name: mariadb
     - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
@@ -4217,6 +4222,10 @@ spec:
       name: exporter
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter-maxscale
+    - image: mariadb/mariadb-operator-enterprise@sha256:e18889df596726aa3b6786c35ada45547b5462400efe76949d8c228631bc8594
+      name: mariadb-operator-enterprise
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+      name: exporter_maxscale
   version: 0.0.29-dev
   webhookdefinitions:
     - admissionReviewVersions:

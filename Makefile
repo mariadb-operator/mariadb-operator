@@ -94,5 +94,5 @@ include make/deps.mk
 include make/dev.mk
 include make/gen.mk
 include make/net.mk
-include make/olm.mk
+include make/openshift.mk
 include make/pki.mk
