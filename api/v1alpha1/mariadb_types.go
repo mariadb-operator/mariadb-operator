@@ -317,19 +317,19 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RootPasswordSecretKeyRef GeneratedSecretKeyRef `json:"rootPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
-	// RootEmptyPassword indicates if the root password should be empty.
+	// RootEmptyPassword indicates if the root password should be empty. Don't use this feature in production, it is only intended for development and test environments.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch", "urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RootEmptyPassword *bool `json:"rootEmptyPassword,omitempty" webhook:"inmutableinit"`
 	// Database is the database to be created on bootstrap.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Database *string `json:"database,omitempty" webhook:"inmutable"`
-	// Username is the username of the user to be created on bootstrap.
+	// Username is the username of the initial user created on bootstrap.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Username *string `json:"username,omitempty" webhook:"inmutable"`
-	// PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret.
+	// PasswordSecretKeyRef is a Secret reference to the password of the initial user created on bootstrap.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordSecretKeyRef *GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
@@ -354,7 +354,7 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Metrics *MariadbMetrics `json:"metrics,omitempty"`
-	// Replication configures high availability via replication.
+	// Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Replication *Replication `json:"replication,omitempty"`
