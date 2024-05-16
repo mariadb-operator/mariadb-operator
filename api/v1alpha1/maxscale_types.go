@@ -526,7 +526,7 @@ type MaxScaleSpec struct {
 	Admin MaxScaleAdmin `json:"admin,omitempty"`
 	// Config defines the MaxScale configuration.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Config MaxScaleConfig `json:"config,omitempty"`
 	// Auth defines the credentials required for MaxScale to connect to MariaDB.
 	// +optional

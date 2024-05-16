@@ -332,7 +332,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:6af51442fcc461ceed75ce08fb37eedd714fbb3fe245ca371479aeba334538b7
-    createdAt: "2024-05-16T11:05:42Z"
+    createdAt: "2024-05-16T11:25:38Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -1034,6 +1034,8 @@ spec:
           - description: GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
             displayName: Agent
             path: galera.agent
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Args to be used in the Container.
             displayName: Args
             path: galera.agent.args
@@ -1109,9 +1111,12 @@ spec:
             path: galera.availableWhenDonor
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: GaleraConfig defines storage options for the Galera configuration files.
             displayName: Config
             path: galera.config
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: ReuseStorageVolume indicates that storage volume used by MariaDB should be reused to store the Galera configuration files. It defaults to false, which implies that a dedicated volume for the Galera configuration files is provisioned.
             displayName: Reuse Storage Volume
             path: galera.config.reuseStorageVolume
@@ -1139,9 +1144,13 @@ spec:
           - description: 'GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided. More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.'
             displayName: Galera Lib Path
             path: galera.galeraLibPath
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: InitContainer is an init container that co-operates with mariadb-operator.
             displayName: Init Container
             path: galera.initContainer
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Args to be used in the Container.
             displayName: Args
             path: galera.initContainer.args
@@ -1199,6 +1208,8 @@ spec:
           - description: InitJob defines additional properties for the Job used to perform the initialization.
             displayName: Init Job
             path: galera.initJob
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Affinity to be used in the Pod.
             displayName: Affinity
             path: galera.initJob.affinity
@@ -1233,6 +1244,8 @@ spec:
           - description: Primary is the Galera configuration for the primary node.
             displayName: Primary
             path: galera.primary
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
             displayName: Automatic Failover
             path: galera.primary.automaticFailover
@@ -1244,9 +1257,13 @@ spec:
           - description: 'ProviderOptions is map of Galera configuration parameters. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options.'
             displayName: Provider Options
             path: galera.providerOptions
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: 'GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html.'
             displayName: Recovery
             path: galera.recovery
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: ClusterBootstrapTimeout is the time limit for bootstrapping a cluster. Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted.
             displayName: Cluster Bootstrap Timeout
             path: galera.recovery.clusterBootstrapTimeout
@@ -1273,9 +1290,13 @@ spec:
           - description: 'ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.'
             displayName: Replica Threads
             path: galera.replicaThreads
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: 'SST is the Snapshot State Transfer used when new Pods join the cluster. More info: https://galeracluster.com/library/documentation/sst.html.'
             displayName: SST
             path: galera.sst
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. Only MariaDB official images are supported.
             displayName: Image
             path: image
@@ -2593,6 +2614,8 @@ spec:
           - description: Primary is the replication configuration for the primary node.
             displayName: Primary
             path: replication.primary
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
             displayName: Automatic Failover
             path: replication.primary.automaticFailover
@@ -2606,9 +2629,12 @@ spec:
             path: replication.probesEnabled
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: ReplicaReplication is the replication configuration for the replica nodes.
             displayName: Replica
             path: replication.replica
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: ConnectionRetries to be used when the replica connects to the primary.
             displayName: Connection Retries
             path: replication.replica.connectionRetries
@@ -2639,6 +2665,7 @@ spec:
             path: replication.syncBinlog
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: resources
@@ -3196,6 +3223,8 @@ spec:
           - description: Config defines the MaxScale configuration.
             displayName: Config
             path: config
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: 'Params is a key value pair of parameters to be used in the MaxScale static configuration file. Any parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#global-settings.'
             displayName: Params
             path: config.params
@@ -5022,10 +5051,6 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadbmmontes/enterprise-server@sha256:346ac9bcd8284d7389af6b92f9433c416cb4a4a24261f9a1d54b4d041c02d065
-      name: mariadb
-    - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
-      name: maxscale
     - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
       name: exporter
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
@@ -5034,6 +5059,10 @@ spec:
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
+    - image: mariadbmmontes/enterprise-server@sha256:346ac9bcd8284d7389af6b92f9433c416cb4a4a24261f9a1d54b4d041c02d065
+      name: mariadb
+    - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
+      name: maxscale
   version: 0.0.29-dev
   webhookdefinitions:
     - admissionReviewVersions:

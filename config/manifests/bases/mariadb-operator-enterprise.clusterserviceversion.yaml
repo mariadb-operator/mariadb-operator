@@ -995,6 +995,8 @@ spec:
       - description: GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
         displayName: Agent
         path: galera.agent
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: galera.agent.args
@@ -1080,10 +1082,13 @@ spec:
         path: galera.availableWhenDonor
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: GaleraConfig defines storage options for the Galera configuration
           files.
         displayName: Config
         path: galera.config
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReuseStorageVolume indicates that storage volume used by MariaDB
           should be reused to store the Galera configuration files. It defaults to
           false, which implies that a dedicated volume for the Galera configuration
@@ -1117,9 +1122,13 @@ spec:
           provider plugin. It is defaulted if not provided. More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.'
         displayName: Galera Lib Path
         path: galera.galeraLibPath
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: InitContainer is an init container that co-operates with mariadb-operator.
         displayName: Init Container
         path: galera.initContainer
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: galera.initContainer.args
@@ -1183,6 +1192,8 @@ spec:
           the initialization.
         displayName: Init Job
         path: galera.initJob
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: galera.initJob.affinity
@@ -1219,6 +1230,8 @@ spec:
       - description: Primary is the Galera configuration for the primary node.
         displayName: Primary
         path: galera.primary
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AutomaticFailover indicates whether the operator should automatically
           update PodIndex to perform an automatic primary failover.
         displayName: Automatic Failover
@@ -1233,10 +1246,14 @@ spec:
           info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options.'
         displayName: Provider Options
         path: galera.providerOptions
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'GaleraRecovery is the recovery process performed by the operator
           whenever the Galera cluster is not healthy. More info: https://galeracluster.com/library/documentation/crash-recovery.html.'
         displayName: Recovery
         path: galera.recovery
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ClusterBootstrapTimeout is the time limit for bootstrapping a
           cluster. Once this timeout is reached, the Galera recovery state is reset
           and a new cluster bootstrap will be attempted.
@@ -1277,10 +1294,14 @@ spec:
           Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.'
         displayName: Replica Threads
         path: galera.replicaThreads
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'SST is the Snapshot State Transfer used when new Pods join the
           cluster. More info: https://galeracluster.com/library/documentation/sst.html.'
         displayName: SST
         path: galera.sst
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`. Only MariaDB official images are supported.
         displayName: Image
@@ -2737,6 +2758,8 @@ spec:
       - description: Primary is the replication configuration for the primary node.
         displayName: Primary
         path: replication.primary
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AutomaticFailover indicates whether the operator should automatically
           update PodIndex to perform an automatic primary failover.
         displayName: Automatic Failover
@@ -2754,10 +2777,13 @@ spec:
         path: replication.probesEnabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReplicaReplication is the replication configuration for the replica
           nodes.
         displayName: Replica
         path: replication.replica
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ConnectionRetries to be used when the replica connects to the
           primary.
         displayName: Connection Retries
@@ -2798,6 +2824,7 @@ spec:
         path: replication.syncBinlog
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: resources
@@ -3419,6 +3446,8 @@ spec:
       - description: Config defines the MaxScale configuration.
         displayName: Config
         path: config
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'Params is a key value pair of parameters to be used in the MaxScale
           static configuration file. Any parameter supported by MaxScale may be specified
           here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#global-settings.'
