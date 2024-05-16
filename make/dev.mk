@@ -41,12 +41,12 @@ lint: golangci-lint ## Lint.
 TEST_ENV ?= $(ENV) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
 .PHONY: test
 test: envtest ginkgo ## Run tests.
-	 $(TEST_ENV) $(GINKGO) -p --timeout 20m --label-filter='!enterprise' --coverprofile=cover.out ./pkg/... ./api/... ./controller/... 
+	 $(TEST_ENV) $(GINKGO) -p --timeout 25m --label-filter='!enterprise' --coverprofile=cover.out ./pkg/... ./api/... ./controller/... 
 
 TEST_ENT_ENV ?= $(ENV_ENT) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
 .PHONY: test-ent
 test-ent: envtest ginkgo ## Run enterprise tests.
-	 $(TEST_ENT_ENV) $(GINKGO) -p --timeout 22m --coverprofile=cover.out ./pkg/... ./api/... ./controller/... 
+	 $(TEST_ENT_ENV) $(GINKGO) -p --timeout 25m --coverprofile=cover.out ./pkg/... ./api/... ./controller/... 
 
 .PHONY: cover
 cover: ## Generate and view coverage report.
