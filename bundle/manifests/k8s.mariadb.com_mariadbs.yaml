@@ -8384,7 +8384,7 @@ spec:
                   image:
                     description: |-
                       Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.
-                      Only MaxScale official images are supported.
+                      Only MariaDB official images are supported.
                     type: string
                   imagePullPolicy:
                     description: ImagePullPolicy is the image pull policy. One of

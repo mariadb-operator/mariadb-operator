@@ -280,7 +280,7 @@ func (g *GaleraConfig) SetDefaults() {
 type Galera struct {
 	// GaleraSpec is the Galera desired state specification.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GaleraSpec `json:",inline"`
 	// Enabled is a flag to enable Galera.
 	// +optional

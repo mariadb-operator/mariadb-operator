@@ -180,7 +180,7 @@ func (r *ReplicaReplication) Validate() error {
 type Replication struct {
 	// ReplicationSpec is the Replication desired state specification.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ReplicationSpec `json:",inline"`
 	// Enabled is a flag to enable Replication.
 	// +optional

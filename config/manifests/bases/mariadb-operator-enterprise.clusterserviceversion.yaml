@@ -284,6 +284,8 @@ spec:
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -294,12 +296,15 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: BackoffLimit defines the maximum number of attempts to successfully
           take a Backup.
         displayName: Backoff Limit
         path: backoffLimit
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Databases defines the logical databases to be backed up. If not
           provided, all databases are backed up.
         displayName: Databases
@@ -311,6 +316,7 @@ spec:
         path: ignoreGlobalPriv
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ImagePullSecrets is the list of pull Secrets to be used to pull
           the image.
         displayName: Image Pull Secrets
@@ -319,6 +325,8 @@ spec:
           resources.
         displayName: Inherit Metadata
         path: inheritMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: inheritMetadata.annotations
@@ -328,6 +336,8 @@ spec:
       - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
         displayName: Log Level
         path: logLevel
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MariaDBRef is a reference to a MariaDB object.
         displayName: Maria DBRef
         path: mariaDbRef
@@ -337,6 +347,7 @@ spec:
         path: mariaDbRef.waitForIt
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MaxRetention defines the retention policy for backups. Old backups
           will be cleaned up by the Backup Job. It defaults to 30 days.
         displayName: Max Retention
@@ -344,9 +355,13 @@ spec:
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: nodeSelector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PodMetadata defines extra metadata for the Pod.
         displayName: Pod Metadata
         path: podMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: podMetadata.annotations
@@ -357,9 +372,13 @@ spec:
           container settings.
         displayName: Pod Security Context
         path: podSecurityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PriorityClassName to be used in the Pod.
         displayName: Priority Class Name
         path: priorityClassName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: resources
@@ -368,6 +387,8 @@ spec:
       - description: RestartPolicy to be added to the Backup Pod.
         displayName: Restart Policy
         path: restartPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Schedule defines when the Backup will be taken.
         displayName: Schedule
         path: schedule
@@ -379,14 +400,19 @@ spec:
         path: schedule.suspend
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SecurityContext holds security configuration that will be applied
           to a container.
         displayName: Security Context
         path: securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceAccountName is the name of the ServiceAccount to be used
           by the Pods.
         displayName: Service Account Name
         path: serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Storage to be used in the Backup.
         displayName: Storage
         path: storage
@@ -422,6 +448,8 @@ spec:
           the S3 session token.
         displayName: Session Token Secret Key Ref
         path: storage.s3.sessionTokenSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: TLS provides the configuration required to establish TLS connections
           with S3.
         displayName: TLS
@@ -443,6 +471,8 @@ spec:
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       statusDescriptors:
       - description: Conditions for the Backup object.
         displayName: Conditions
@@ -469,6 +499,8 @@ spec:
       - description: HealthCheck to be used in the Connection.
         displayName: Health Check
         path: healthCheck
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval used to perform health checks.
         displayName: Interval
         path: healthCheck.interval
@@ -492,6 +524,7 @@ spec:
         path: mariaDbRef.waitForIt
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MaxScaleRef is a reference to the MaxScale to connect to. Either
           MariaDBRef or MaxScaleRef must be provided.
         displayName: Max Scale Ref
@@ -499,6 +532,8 @@ spec:
       - description: Params to be used in the Connection.
         displayName: Params
         path: params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PasswordSecretKeyRef is a reference to the password to use for
           configuring the Connection.
         displayName: Password Secret Key Ref
@@ -519,18 +554,26 @@ spec:
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: secretTemplate.databaseKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Format to be used in the Secret.
         displayName: Format
         path: secretTemplate.format
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: HostKey to be used in the Secret.
         displayName: Host Key
         path: secretTemplate.hostKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Key to be used in the Secret.
         displayName: Key
         path: secretTemplate.key
       - description: Metadata to be added to the Secret object.
         displayName: Metadata
         path: secretTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: secretTemplate.metadata.annotations
@@ -540,15 +583,23 @@ spec:
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: secretTemplate.passwordKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PortKey to be used in the Secret.
         displayName: Port Key
         path: secretTemplate.portKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: UsernameKey to be used in the Secret.
         displayName: Username Key
         path: secretTemplate.usernameKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceName to be used in the Connection.
         displayName: Service Name
         path: serviceName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Username to use for configuring the Connection.
         displayName: Username
         path: username
@@ -584,6 +635,7 @@ spec:
         path: mariaDbRef.waitForIt
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Name overrides the default Database name provided by metadata.name.
         displayName: Name
         path: name
@@ -630,6 +682,7 @@ spec:
         path: mariaDbRef.waitForIt
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Privileges to use in the Grant.
         displayName: Privileges
         path: privileges
@@ -716,6 +769,8 @@ spec:
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -726,6 +781,8 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: BootstrapFrom defines a source to bootstrap from.
         displayName: Bootstrap From
         path: bootstrapFrom
@@ -737,9 +794,13 @@ spec:
           perform the Restore.
         displayName: Restore Job
         path: bootstrapFrom.restoreJob
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: bootstrapFrom.restoreJob.affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -750,9 +811,13 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: bootstrapFrom.restoreJob.args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata defines additional metadata for the bootstrap Jobs.
         displayName: Metadata
         path: bootstrapFrom.restoreJob.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: bootstrapFrom.restoreJob.metadata.annotations
@@ -793,6 +858,8 @@ spec:
           the S3 session token.
         displayName: Session Token Secret Key Ref
         path: bootstrapFrom.s3.sessionTokenSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: TLS provides the configuration required to establish TLS connections
           with S3.
         displayName: TLS
@@ -816,9 +883,13 @@ spec:
       - description: Volume is a Kubernetes Volume object that contains a backup.
         displayName: Volume
         path: bootstrapFrom.volume
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Connection defines templates to configure the general Connection
           object.
         displayName: Connection
@@ -826,6 +897,8 @@ spec:
       - description: HealthCheck to be used in the Connection.
         displayName: Health Check
         path: connection.healthCheck
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval used to perform health checks.
         displayName: Interval
         path: connection.healthCheck.interval
@@ -835,6 +908,8 @@ spec:
       - description: Params to be used in the Connection.
         displayName: Params
         path: connection.params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port to connect to. If not provided, it defaults to the MariaDB
           port or to the first MaxScale listener.
         displayName: Port
@@ -851,18 +926,26 @@ spec:
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: connection.secretTemplate.databaseKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Format to be used in the Secret.
         displayName: Format
         path: connection.secretTemplate.format
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: HostKey to be used in the Secret.
         displayName: Host Key
         path: connection.secretTemplate.hostKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Key to be used in the Secret.
         displayName: Key
         path: connection.secretTemplate.key
       - description: Metadata to be added to the Secret object.
         displayName: Metadata
         path: connection.secretTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: connection.secretTemplate.metadata.annotations
@@ -872,26 +955,40 @@ spec:
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: connection.secretTemplate.passwordKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PortKey to be used in the Secret.
         displayName: Port Key
         path: connection.secretTemplate.portKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: UsernameKey to be used in the Secret.
         displayName: Username Key
         path: connection.secretTemplate.usernameKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceName to be used in the Connection.
         displayName: Service Name
         path: connection.serviceName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Database is the database to be created on bootstrap.
         displayName: Database
         path: database
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Replication configures high availability via Galera.
         displayName: Galera
         path: galera
@@ -901,17 +998,25 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: galera.agent.args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: galera.agent.command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: galera.agent.env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: galera.agent.envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: GracefulShutdownTimeout is the time we give to the agent container
           in order to gracefully terminate in-flight requests.
         displayName: Graceful Shutdown Timeout
@@ -943,12 +1048,16 @@ spec:
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: galera.agent.livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port where the agent will be listening for connections.
         displayName: Port
         path: galera.agent.port
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: galera.agent.readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: galera.agent.resources
@@ -958,9 +1067,13 @@ spec:
           to a container.
         displayName: Security Context
         path: galera.agent.securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: galera.agent.volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AvailableWhenDonor indicates whether a donor node should be responding
           to queries. It defaults to false.
         displayName: Available When Donor
@@ -987,6 +1100,8 @@ spec:
       - description: Metadata to be added to the PVC metadata.
         displayName: Metadata
         path: galera.config.volumeClaimTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: galera.config.volumeClaimTemplate.metadata.annotations
@@ -1008,17 +1123,25 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: galera.initContainer.args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: galera.initContainer.command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: galera.initContainer.env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: galera.initContainer.envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -1029,12 +1152,17 @@ spec:
         path: galera.initContainer.imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: galera.initContainer.livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: galera.initContainer.readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: galera.initContainer.resources
@@ -1044,9 +1172,13 @@ spec:
           to a container.
         displayName: Security Context
         path: galera.initContainer.securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: galera.initContainer.volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: InitJob defines additional properties for the Job used to perform
           the initialization.
         displayName: Init Job
@@ -1054,6 +1186,8 @@ spec:
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: galera.initJob.affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -1064,9 +1198,13 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: galera.initJob.args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata defines additional metadata for the bootstrap Jobs.
         displayName: Metadata
         path: galera.initJob.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: galera.initJob.metadata.annotations
@@ -1164,6 +1302,8 @@ spec:
           resources.
         displayName: Inherit Metadata
         path: inheritMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: inheritMetadata.annotations
@@ -1173,20 +1313,30 @@ spec:
       - description: InitContainers to be used in the Pod.
         displayName: Init Containers
         path: initContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: initContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: initContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: initContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: initContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -1197,12 +1347,17 @@ spec:
         path: initContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: initContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: initContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: initContainers[0].resources
@@ -1212,12 +1367,18 @@ spec:
           to a container.
         displayName: Security Context
         path: initContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: initContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MaxScale is the MaxScale specification that defines the MaxScale
           resource to be used with the current MariaDB. When enabling this field,
           MaxScaleRef is automatically set.
@@ -1226,6 +1387,8 @@ spec:
       - description: Admin configures the admin REST API and GUI.
         displayName: Admin
         path: maxScale.admin
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: GuiEnabled indicates whether the admin GUI should be enabled.
         displayName: Gui Enabled
         path: maxScale.admin.guiEnabled
@@ -1240,10 +1403,14 @@ spec:
           to MariaDB.
         displayName: Auth
         path: maxScale.auth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AdminPasswordSecretKeyRef is Secret key reference to the admin
           password to call the admin REST API. It is defaulted if not provided.
         displayName: Admin Password Secret Key Ref
         path: maxScale.auth.adminPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -1254,6 +1421,8 @@ spec:
           It is defaulted if not provided.
         displayName: Admin Username
         path: maxScale.auth.adminUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ClientMaxConnections defines the maximum number of connections
           that the client can establish. If HA is enabled, make sure to increase this
           value, as more MaxScale replicas implies more connections. It defaults to
@@ -1262,10 +1431,13 @@ spec:
         path: maxScale.auth.clientMaxConnections
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ClientPasswordSecretKeyRef is Secret key reference to the password
           to connect to MaxScale. It is defaulted if not provided.
         displayName: Client Password Secret Key Ref
         path: maxScale.auth.clientPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -1276,6 +1448,8 @@ spec:
           if not provided.
         displayName: Client Username
         path: maxScale.auth.clientUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: DeleteDefaultAdmin determines whether the default admin user
           should be deleted after the initial configuration. If not provided, it defaults
           to true.
@@ -1283,6 +1457,7 @@ spec:
         path: maxScale.auth.deleteDefaultAdmin
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate  defies whether the operator should generate users and
           grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
         displayName: Generate
@@ -1293,6 +1468,8 @@ spec:
           password to call the admib REST API. It is defaulted if metrics are enabled.
         displayName: Metrics Password Secret Key Ref
         path: maxScale.auth.metricsPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -1303,6 +1480,8 @@ spec:
           It is defaulted if metrics are enabled.
         displayName: Metrics Username
         path: maxScale.auth.metricsUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MonitorMaxConnections defines the maximum number of connections
           that the monitor can establish. If HA is enabled, make sure to increase
           this value, as more MaxScale replicas implies more connections. It defaults
@@ -1311,11 +1490,14 @@ spec:
         path: maxScale.auth.monitorMaxConnections
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MonitorPasswordSecretKeyRef is Secret key reference to the password
           used by MaxScale monitor to connect to MariaDB server. It is defaulted if
           not provided.
         displayName: Monitor Password Secret Key Ref
         path: maxScale.auth.monitorPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -1326,6 +1508,8 @@ spec:
           to MariaDB server. It is defaulted if not provided.
         displayName: Monitor Username
         path: maxScale.auth.monitorUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServerMaxConnections defines the maximum number of connections
           that the server can establish. If HA is enabled, make sure to increase this
           value, as more MaxScale replicas implies more connections. It defaults to
@@ -1334,10 +1518,13 @@ spec:
         path: maxScale.auth.serverMaxConnections
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServerPasswordSecretKeyRef is Secret key reference to the password
           used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
         displayName: Server Password Secret Key Ref
         path: maxScale.auth.serverPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -1348,6 +1535,8 @@ spec:
           server. It is defaulted if not provided.
         displayName: Server Username
         path: maxScale.auth.serverUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SyncMaxConnections defines the maximum number of connections
           that the sync can establish. If HA is enabled, make sure to increase this
           value, as more MaxScale replicas implies more connections. It defaults to
@@ -1356,11 +1545,14 @@ spec:
         path: maxScale.auth.syncMaxConnections
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SyncPasswordSecretKeyRef is Secret key reference to the password
           used by MaxScale config to connect to MariaDB server. It is defaulted when
           HA is enabled.
         displayName: Sync Password Secret Key Ref
         path: maxScale.auth.syncPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -1371,9 +1563,13 @@ spec:
           sync to connect to MariaDB server. It is defaulted when HA is enabled.
         displayName: Sync Username
         path: maxScale.auth.syncUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Config defines the MaxScale configuration.
         displayName: Config
         path: maxScale.config
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'Params is a key value pair of parameters to be used in the MaxScale
           static configuration file. Any parameter supported by MaxScale may be specified
           here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#global-settings.'
@@ -1383,6 +1579,8 @@ spec:
           It is defaulted when HA is enabled.
         displayName: Sync
         path: maxScale.config.sync
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Database is the MariaDB logical database where the 'maxscale_config'
           table will be created in order to persist and synchronize config changes.
           If not provided, it defaults to 'mysql'.
@@ -1400,9 +1598,13 @@ spec:
           storing MaxScale runtime configuration files. It is defaulted if not provided.
         displayName: Volume Claim Template
         path: maxScale.config.volumeClaimTemplate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the PVC metadata.
         displayName: Metadata
         path: maxScale.config.volumeClaimTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: maxScale.config.volumeClaimTemplate.metadata.annotations
@@ -1415,6 +1617,8 @@ spec:
       - description: HealthCheck to be used in the Connection.
         displayName: Health Check
         path: maxScale.connection.healthCheck
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval used to perform health checks.
         displayName: Interval
         path: maxScale.connection.healthCheck.interval
@@ -1424,6 +1628,8 @@ spec:
       - description: Params to be used in the Connection.
         displayName: Params
         path: maxScale.connection.params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port to connect to. If not provided, it defaults to the MariaDB
           port or to the first MaxScale listener.
         displayName: Port
@@ -1440,18 +1646,26 @@ spec:
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: maxScale.connection.secretTemplate.databaseKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Format to be used in the Secret.
         displayName: Format
         path: maxScale.connection.secretTemplate.format
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: HostKey to be used in the Secret.
         displayName: Host Key
         path: maxScale.connection.secretTemplate.hostKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Key to be used in the Secret.
         displayName: Key
         path: maxScale.connection.secretTemplate.key
       - description: Metadata to be added to the Secret object.
         displayName: Metadata
         path: maxScale.connection.secretTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: maxScale.connection.secretTemplate.metadata.annotations
@@ -1461,15 +1675,23 @@ spec:
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: maxScale.connection.secretTemplate.passwordKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PortKey to be used in the Secret.
         displayName: Port Key
         path: maxScale.connection.secretTemplate.portKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: UsernameKey to be used in the Secret.
         displayName: Username Key
         path: maxScale.connection.secretTemplate.usernameKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceName to be used in the Connection.
         displayName: Service Name
         path: maxScale.connection.serviceName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Enabled is a flag to enable a MaxScale instance to be used with
           the current MariaDB.
         displayName: Enabled
@@ -1480,23 +1702,34 @@ spec:
           object to connect to MaxScale's GUI.
         displayName: Gui Kubernetes Service
         path: maxScale.guiKubernetesService
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AllocateLoadBalancerNodePorts Service field.
         displayName: Allocate Load Balancer Node Ports
         path: maxScale.guiKubernetesService.allocateLoadBalancerNodePorts
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: maxScale.guiKubernetesService.externalTrafficPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: maxScale.guiKubernetesService.loadBalancerIP
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: maxScale.guiKubernetesService.loadBalancerSourceRanges
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the Service metadata.
         displayName: Metadata
         path: maxScale.guiKubernetesService.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: maxScale.guiKubernetesService.metadata.annotations
@@ -1506,12 +1739,14 @@ spec:
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: maxScale.guiKubernetesService.sessionAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
           If not defined, it defaults to `ClusterIP`.
         displayName: Type
         path: maxScale.guiKubernetesService.type
       - description: Image name to be used by the MaxScale instances. The supported
-          format is `<image>:<tag>`. Only MaxScale official images are supported.
+          format is `<image>:<tag>`. Only MariaDB official images are supported.
         displayName: Image
         path: maxScale.image
         x-descriptors:
@@ -1527,23 +1762,34 @@ spec:
           object to connect to MaxScale.
         displayName: Kubernetes Service
         path: maxScale.kubernetesService
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AllocateLoadBalancerNodePorts Service field.
         displayName: Allocate Load Balancer Node Ports
         path: maxScale.kubernetesService.allocateLoadBalancerNodePorts
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: maxScale.kubernetesService.externalTrafficPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: maxScale.kubernetesService.loadBalancerIP
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: maxScale.kubernetesService.loadBalancerSourceRanges
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the Service metadata.
         displayName: Metadata
         path: maxScale.kubernetesService.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: maxScale.kubernetesService.metadata.annotations
@@ -1553,6 +1799,8 @@ spec:
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: maxScale.kubernetesService.sessionAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
           If not defined, it defaults to `ClusterIP`.
         displayName: Type
@@ -1568,9 +1816,13 @@ spec:
       - description: Exporter defines the metrics exporter container.
         displayName: Exporter
         path: maxScale.metrics.exporter
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: maxScale.metrics.exporter.affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -1581,17 +1833,25 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: maxScale.metrics.exporter.args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: maxScale.metrics.exporter.command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: maxScale.metrics.exporter.env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: maxScale.metrics.exporter.envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'Image name to be used as metrics exporter. The supported format
           is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
         displayName: Image
@@ -1609,20 +1869,30 @@ spec:
       - description: InitContainers to be used in the Pod.
         displayName: Init Containers
         path: maxScale.metrics.exporter.initContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: maxScale.metrics.exporter.initContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: maxScale.metrics.exporter.initContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: maxScale.metrics.exporter.initContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: maxScale.metrics.exporter.initContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -1633,12 +1903,17 @@ spec:
         path: maxScale.metrics.exporter.initContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: maxScale.metrics.exporter.initContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: maxScale.metrics.exporter.initContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: maxScale.metrics.exporter.initContainers[0].resources
@@ -1648,18 +1923,28 @@ spec:
           to a container.
         displayName: Security Context
         path: maxScale.metrics.exporter.initContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: maxScale.metrics.exporter.initContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: maxScale.metrics.exporter.livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: maxScale.metrics.exporter.nodeSelector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PodMetadata defines extra metadata for the Pod.
         displayName: Pod Metadata
         path: maxScale.metrics.exporter.podMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: maxScale.metrics.exporter.podMetadata.annotations
@@ -1670,6 +1955,8 @@ spec:
           container settings.
         displayName: Pod Security Context
         path: maxScale.metrics.exporter.podSecurityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port where the exporter will be listening for connections.
         displayName: Port
         path: maxScale.metrics.exporter.port
@@ -1678,9 +1965,13 @@ spec:
       - description: PriorityClassName to be used in the Pod.
         displayName: Priority Class Name
         path: maxScale.metrics.exporter.priorityClassName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: maxScale.metrics.exporter.readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: maxScale.metrics.exporter.resources
@@ -1690,27 +1981,41 @@ spec:
           to a container.
         displayName: Security Context
         path: maxScale.metrics.exporter.securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceAccountName is the name of the ServiceAccount to be used
           by the Pods.
         displayName: Service Account Name
         path: maxScale.metrics.exporter.serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SidecarContainers to be used in the Pod.
         displayName: Sidecar Containers
         path: maxScale.metrics.exporter.sidecarContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: maxScale.metrics.exporter.sidecarContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: maxScale.metrics.exporter.sidecarContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: maxScale.metrics.exporter.sidecarContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: maxScale.metrics.exporter.sidecarContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -1721,12 +2026,17 @@ spec:
         path: maxScale.metrics.exporter.sidecarContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: maxScale.metrics.exporter.sidecarContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: maxScale.metrics.exporter.sidecarContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: maxScale.metrics.exporter.sidecarContainers[0].resources
@@ -1736,24 +2046,38 @@ spec:
           to a container.
         displayName: Security Context
         path: maxScale.metrics.exporter.sidecarContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: maxScale.metrics.exporter.sidecarContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: maxScale.metrics.exporter.tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: TopologySpreadConstraints to be used in the Pod.
         displayName: Topology Spread Constraints
         path: maxScale.metrics.exporter.topologySpreadConstraints
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: maxScale.metrics.exporter.volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Volumes to be used in the Pod.
         displayName: Volumes
         path: maxScale.metrics.exporter.volumes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceMonitor defines the ServiceMonior object.
         displayName: Service Monitor
         path: maxScale.metrics.serviceMonitor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval for scraping metrics.
         displayName: Interval
         path: maxScale.metrics.serviceMonitor.interval
@@ -1770,14 +2094,20 @@ spec:
       - description: Monitor monitors MariaDB server instances.
         displayName: Monitor
         path: maxScale.monitor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: CooperativeMonitoring enables coordination between multiple MaxScale
           instances running monitors. It is defaulted when HA is enabled.
         displayName: Cooperative Monitoring
         path: maxScale.monitor.cooperativeMonitoring
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval used to monitor MariaDB servers. It is defaulted if
           not provided.
         displayName: Interval
         path: maxScale.monitor.interval
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Module is the module to use to monitor MariaDB servers. It is
           mandatory when no MariaDB reference is provided.
         displayName: Module
@@ -1792,6 +2122,8 @@ spec:
           https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.'
         displayName: Params
         path: maxScale.monitor.params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Suspend indicates whether the current resource should be suspended
           or not. Feature flag --feature-maxscale-suspend is required in the controller
           to enable this.
@@ -1802,6 +2134,8 @@ spec:
       - description: PodDisruptionBudget defines the budget for replica availability.
         displayName: Pod Disruption Budget
         path: maxScale.podDisruptionBudget
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MaxUnavailable defines the number of maximum unavailable Pods.
         displayName: Max Unavailable
         path: maxScale.podDisruptionBudget.maxUnavailable
@@ -1816,6 +2150,8 @@ spec:
       - description: RequeueInterval is used to perform requeue reconciliations.
         displayName: Requeue Interval
         path: maxScale.requeueInterval
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Services define how the traffic is forwarded to the MariaDB servers.
         displayName: Services
         path: maxScale.services
@@ -1831,6 +2167,8 @@ spec:
           parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1.'
         displayName: Params
         path: maxScale.services[0].listener.params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port is the network port where the MaxScale server will listen.
         displayName: Port
         path: maxScale.services[0].listener.port
@@ -1840,6 +2178,8 @@ spec:
           the client. If not provided, it defaults to MariaDBProtocol.
         displayName: Protocol
         path: maxScale.services[0].listener.protocol
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Suspend indicates whether the current resource should be suspended
           or not. Feature flag --feature-maxscale-suspend is required in the controller
           to enable this.
@@ -1856,6 +2196,8 @@ spec:
           https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
         displayName: Params
         path: maxScale.services[0].params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Router is the type of router to use.
         displayName: Router
         path: maxScale.services[0].router
@@ -1872,6 +2214,7 @@ spec:
         path: maxScale.updateStrategy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MaxScaleRef is a reference to a MaxScale resource to be used
           with the current MariaDB. Providing this field implies delegating high availability
           tasks such as primary failover to MaxScale.
@@ -1888,9 +2231,13 @@ spec:
       - description: Exporter defines the metrics exporter container.
         displayName: Exporter
         path: metrics.exporter
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: metrics.exporter.affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -1901,17 +2248,25 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: metrics.exporter.args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: metrics.exporter.command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: metrics.exporter.env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: metrics.exporter.envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'Image name to be used as metrics exporter. The supported format
           is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
         displayName: Image
@@ -1929,20 +2284,30 @@ spec:
       - description: InitContainers to be used in the Pod.
         displayName: Init Containers
         path: metrics.exporter.initContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: metrics.exporter.initContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: metrics.exporter.initContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: metrics.exporter.initContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: metrics.exporter.initContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -1953,12 +2318,17 @@ spec:
         path: metrics.exporter.initContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: metrics.exporter.initContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: metrics.exporter.initContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: metrics.exporter.initContainers[0].resources
@@ -1968,18 +2338,28 @@ spec:
           to a container.
         displayName: Security Context
         path: metrics.exporter.initContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: metrics.exporter.initContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: metrics.exporter.livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: metrics.exporter.nodeSelector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PodMetadata defines extra metadata for the Pod.
         displayName: Pod Metadata
         path: metrics.exporter.podMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: metrics.exporter.podMetadata.annotations
@@ -1990,6 +2370,8 @@ spec:
           container settings.
         displayName: Pod Security Context
         path: metrics.exporter.podSecurityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port where the exporter will be listening for connections.
         displayName: Port
         path: metrics.exporter.port
@@ -1998,9 +2380,13 @@ spec:
       - description: PriorityClassName to be used in the Pod.
         displayName: Priority Class Name
         path: metrics.exporter.priorityClassName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: metrics.exporter.readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: metrics.exporter.resources
@@ -2010,27 +2396,41 @@ spec:
           to a container.
         displayName: Security Context
         path: metrics.exporter.securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceAccountName is the name of the ServiceAccount to be used
           by the Pods.
         displayName: Service Account Name
         path: metrics.exporter.serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SidecarContainers to be used in the Pod.
         displayName: Sidecar Containers
         path: metrics.exporter.sidecarContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: metrics.exporter.sidecarContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: metrics.exporter.sidecarContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: metrics.exporter.sidecarContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: metrics.exporter.sidecarContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -2041,12 +2441,17 @@ spec:
         path: metrics.exporter.sidecarContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: metrics.exporter.sidecarContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: metrics.exporter.sidecarContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: metrics.exporter.sidecarContainers[0].resources
@@ -2056,25 +2461,39 @@ spec:
           to a container.
         displayName: Security Context
         path: metrics.exporter.sidecarContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: metrics.exporter.sidecarContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: metrics.exporter.tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: TopologySpreadConstraints to be used in the Pod.
         displayName: Topology Spread Constraints
         path: metrics.exporter.topologySpreadConstraints
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: metrics.exporter.volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Volumes to be used in the Pod.
         displayName: Volumes
         path: metrics.exporter.volumes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PasswordSecretKeyRef is a reference to the password of the monitoring
           user used by the exporter.
         displayName: Password Secret Key Ref
         path: metrics.passwordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -2084,6 +2503,8 @@ spec:
       - description: ServiceMonitor defines the ServiceMonior object.
         displayName: Service Monitor
         path: metrics.serviceMonitor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval for scraping metrics.
         displayName: Interval
         path: metrics.serviceMonitor.interval
@@ -2100,6 +2521,8 @@ spec:
       - description: Username is the username of the monitoring user used by the exporter.
         displayName: Username
         path: metrics.username
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MyCnf allows to specify the my.cnf file mounted by Mariadb.
         displayName: My Cnf
         path: myCnf
@@ -2108,13 +2531,19 @@ spec:
           to a ConfigMap with the contents of the MyCnf field.
         displayName: My Cnf Config Map Key Ref
         path: myCnfConfigMapKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: nodeSelector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PasswordSecretKeyRef is a reference to the password of the initial
           user provided via a Secret.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -2124,6 +2553,8 @@ spec:
       - description: PodDisruptionBudget defines the budget for replica availability.
         displayName: Pod Disruption Budget
         path: podDisruptionBudget
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MaxUnavailable defines the number of maximum unavailable Pods.
         displayName: Max Unavailable
         path: podDisruptionBudget.maxUnavailable
@@ -2133,6 +2564,8 @@ spec:
       - description: PodMetadata defines extra metadata for the Pod.
         displayName: Pod Metadata
         path: podMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: podMetadata.annotations
@@ -2143,6 +2576,8 @@ spec:
           container settings.
         displayName: Pod Security Context
         path: podSecurityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port where the instances will be listening for connections.
         displayName: Port
         path: port
@@ -2156,6 +2591,8 @@ spec:
       - description: HealthCheck to be used in the Connection.
         displayName: Health Check
         path: primaryConnection.healthCheck
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval used to perform health checks.
         displayName: Interval
         path: primaryConnection.healthCheck.interval
@@ -2165,6 +2602,8 @@ spec:
       - description: Params to be used in the Connection.
         displayName: Params
         path: primaryConnection.params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port to connect to. If not provided, it defaults to the MariaDB
           port or to the first MaxScale listener.
         displayName: Port
@@ -2181,18 +2620,26 @@ spec:
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: primaryConnection.secretTemplate.databaseKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Format to be used in the Secret.
         displayName: Format
         path: primaryConnection.secretTemplate.format
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: HostKey to be used in the Secret.
         displayName: Host Key
         path: primaryConnection.secretTemplate.hostKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Key to be used in the Secret.
         displayName: Key
         path: primaryConnection.secretTemplate.key
       - description: Metadata to be added to the Secret object.
         displayName: Metadata
         path: primaryConnection.secretTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: primaryConnection.secretTemplate.metadata.annotations
@@ -2202,15 +2649,23 @@ spec:
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: primaryConnection.secretTemplate.passwordKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PortKey to be used in the Secret.
         displayName: Port Key
         path: primaryConnection.secretTemplate.portKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: UsernameKey to be used in the Secret.
         displayName: Username Key
         path: primaryConnection.secretTemplate.usernameKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceName to be used in the Connection.
         displayName: Service Name
         path: primaryConnection.serviceName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PrimaryService defines templates to configure the primary Service
           object.
         displayName: Primary Service
@@ -2220,18 +2675,27 @@ spec:
         path: primaryService.allocateLoadBalancerNodePorts
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: primaryService.externalTrafficPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: primaryService.loadBalancerIP
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: primaryService.loadBalancerSourceRanges
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the Service metadata.
         displayName: Metadata
         path: primaryService.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: primaryService.metadata.annotations
@@ -2241,6 +2705,8 @@ spec:
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: primaryService.sessionAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
           If not defined, it defaults to `ClusterIP`.
         displayName: Type
@@ -2248,9 +2714,13 @@ spec:
       - description: PriorityClassName to be used in the Pod.
         displayName: Priority Class Name
         path: priorityClassName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Replicas indicates the number of desired instances.
         displayName: Replicas
         path: replicas
@@ -2357,6 +2827,8 @@ spec:
       - description: HealthCheck to be used in the Connection.
         displayName: Health Check
         path: secondaryConnection.healthCheck
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval used to perform health checks.
         displayName: Interval
         path: secondaryConnection.healthCheck.interval
@@ -2366,6 +2838,8 @@ spec:
       - description: Params to be used in the Connection.
         displayName: Params
         path: secondaryConnection.params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port to connect to. If not provided, it defaults to the MariaDB
           port or to the first MaxScale listener.
         displayName: Port
@@ -2382,18 +2856,26 @@ spec:
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: secondaryConnection.secretTemplate.databaseKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Format to be used in the Secret.
         displayName: Format
         path: secondaryConnection.secretTemplate.format
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: HostKey to be used in the Secret.
         displayName: Host Key
         path: secondaryConnection.secretTemplate.hostKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Key to be used in the Secret.
         displayName: Key
         path: secondaryConnection.secretTemplate.key
       - description: Metadata to be added to the Secret object.
         displayName: Metadata
         path: secondaryConnection.secretTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: secondaryConnection.secretTemplate.metadata.annotations
@@ -2403,15 +2885,23 @@ spec:
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: secondaryConnection.secretTemplate.passwordKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PortKey to be used in the Secret.
         displayName: Port Key
         path: secondaryConnection.secretTemplate.portKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: UsernameKey to be used in the Secret.
         displayName: Username Key
         path: secondaryConnection.secretTemplate.usernameKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceName to be used in the Connection.
         displayName: Service Name
         path: secondaryConnection.serviceName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SecondaryService defines templates to configure the secondary
           Service object.
         displayName: Secondary Service
@@ -2421,18 +2911,27 @@ spec:
         path: secondaryService.allocateLoadBalancerNodePorts
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: secondaryService.externalTrafficPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: secondaryService.loadBalancerIP
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: secondaryService.loadBalancerSourceRanges
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the Service metadata.
         displayName: Metadata
         path: secondaryService.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: secondaryService.metadata.annotations
@@ -2442,6 +2941,8 @@ spec:
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: secondaryService.sessionAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
           If not defined, it defaults to `ClusterIP`.
         displayName: Type
@@ -2450,6 +2951,8 @@ spec:
           to a container.
         displayName: Security Context
         path: securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Service defines templates to configure the general Service object.
         displayName: Service
         path: service
@@ -2458,18 +2961,27 @@ spec:
         path: service.allocateLoadBalancerNodePorts
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: service.externalTrafficPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: service.loadBalancerIP
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: service.loadBalancerSourceRanges
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the Service metadata.
         displayName: Metadata
         path: service.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: service.metadata.annotations
@@ -2479,6 +2991,8 @@ spec:
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: service.sessionAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
           If not defined, it defaults to `ClusterIP`.
         displayName: Type
@@ -2487,23 +3001,35 @@ spec:
           by the Pods.
         displayName: Service Account Name
         path: serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SidecarContainers to be used in the Pod.
         displayName: Sidecar Containers
         path: sidecarContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: sidecarContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: sidecarContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: sidecarContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: sidecarContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -2514,12 +3040,17 @@ spec:
         path: sidecarContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: sidecarContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: sidecarContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: sidecarContainers[0].resources
@@ -2529,9 +3060,13 @@ spec:
           to a container.
         displayName: Security Context
         path: sidecarContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: sidecarContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Storage defines the storage options to be used for provisioning
           the PVCs mounted by MariaDB.
         displayName: Storage
@@ -2542,6 +3077,7 @@ spec:
         path: storage.ephemeral
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ResizeInUseVolumes indicates whether the PVCs can be resized.
           The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true'
           to allow resizing. It defaults to true.
@@ -2549,6 +3085,7 @@ spec:
         path: storage.resizeInUseVolumes
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Size of the PVCs to be mounted by MariaDB. Required if not provided
           in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.
         displayName: Size
@@ -2563,9 +3100,13 @@ spec:
       - description: VolumeClaimTemplate provides a template to define the PVCs.
         displayName: Volume Claim Template
         path: storage.volumeClaimTemplate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the PVC metadata.
         displayName: Metadata
         path: storage.volumeClaimTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: storage.volumeClaimTemplate.metadata.annotations
@@ -2580,27 +3121,39 @@ spec:
         path: storage.waitForVolumeResize
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: TopologySpreadConstraints to be used in the Pod.
         displayName: Topology Spread Constraints
         path: topologySpreadConstraints
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PodDisruptionBudget defines the update strategy for the StatefulSet
           object.
         displayName: Update Strategy
         path: updateStrategy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Username is the username of the user to be created on bootstrap.
         displayName: Username
         path: username
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Volumes to be used in the Pod.
         displayName: Volumes
         path: volumes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       statusDescriptors:
       - description: Conditions for the Mariadb object.
         displayName: Conditions
@@ -2678,6 +3231,8 @@ spec:
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -2688,14 +3243,20 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Auth defines the credentials required for MaxScale to connect
           to MariaDB.
         displayName: Auth
         path: auth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AdminPasswordSecretKeyRef is Secret key reference to the admin
           password to call the admin REST API. It is defaulted if not provided.
         displayName: Admin Password Secret Key Ref
         path: auth.adminPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -2706,6 +3267,8 @@ spec:
           It is defaulted if not provided.
         displayName: Admin Username
         path: auth.adminUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ClientMaxConnections defines the maximum number of connections
           that the client can establish. If HA is enabled, make sure to increase this
           value, as more MaxScale replicas implies more connections. It defaults to
@@ -2714,10 +3277,13 @@ spec:
         path: auth.clientMaxConnections
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ClientPasswordSecretKeyRef is Secret key reference to the password
           to connect to MaxScale. It is defaulted if not provided.
         displayName: Client Password Secret Key Ref
         path: auth.clientPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -2728,6 +3294,8 @@ spec:
           if not provided.
         displayName: Client Username
         path: auth.clientUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: DeleteDefaultAdmin determines whether the default admin user
           should be deleted after the initial configuration. If not provided, it defaults
           to true.
@@ -2735,6 +3303,7 @@ spec:
         path: auth.deleteDefaultAdmin
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate  defies whether the operator should generate users and
           grants for MaxScale to work. It only supports MariaDBs specified via spec.mariaDbRef.
         displayName: Generate
@@ -2745,6 +3314,8 @@ spec:
           password to call the admib REST API. It is defaulted if metrics are enabled.
         displayName: Metrics Password Secret Key Ref
         path: auth.metricsPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -2755,6 +3326,8 @@ spec:
           It is defaulted if metrics are enabled.
         displayName: Metrics Username
         path: auth.metricsUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MonitorMaxConnections defines the maximum number of connections
           that the monitor can establish. If HA is enabled, make sure to increase
           this value, as more MaxScale replicas implies more connections. It defaults
@@ -2763,11 +3336,14 @@ spec:
         path: auth.monitorMaxConnections
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MonitorPasswordSecretKeyRef is Secret key reference to the password
           used by MaxScale monitor to connect to MariaDB server. It is defaulted if
           not provided.
         displayName: Monitor Password Secret Key Ref
         path: auth.monitorPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -2778,6 +3354,8 @@ spec:
           to MariaDB server. It is defaulted if not provided.
         displayName: Monitor Username
         path: auth.monitorUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServerMaxConnections defines the maximum number of connections
           that the server can establish. If HA is enabled, make sure to increase this
           value, as more MaxScale replicas implies more connections. It defaults to
@@ -2786,10 +3364,13 @@ spec:
         path: auth.serverMaxConnections
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServerPasswordSecretKeyRef is Secret key reference to the password
           used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
         displayName: Server Password Secret Key Ref
         path: auth.serverPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -2800,6 +3381,8 @@ spec:
           server. It is defaulted if not provided.
         displayName: Server Username
         path: auth.serverUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SyncMaxConnections defines the maximum number of connections
           that the sync can establish. If HA is enabled, make sure to increase this
           value, as more MaxScale replicas implies more connections. It defaults to
@@ -2808,11 +3391,14 @@ spec:
         path: auth.syncMaxConnections
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SyncPasswordSecretKeyRef is Secret key reference to the password
           used by MaxScale config to connect to MariaDB server. It is defaulted when
           HA is enabled.
         displayName: Sync Password Secret Key Ref
         path: auth.syncPasswordSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Generate indicates whether the Secret should be generated if
           the Secret referenced is not present.
         displayName: Generate
@@ -2823,9 +3409,13 @@ spec:
           sync to connect to MariaDB server. It is defaulted when HA is enabled.
         displayName: Sync Username
         path: auth.syncUsername
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Config defines the MaxScale configuration.
         displayName: Config
         path: config
@@ -2838,6 +3428,8 @@ spec:
           It is defaulted when HA is enabled.
         displayName: Sync
         path: config.sync
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Database is the MariaDB logical database where the 'maxscale_config'
           table will be created in order to persist and synchronize config changes.
           If not provided, it defaults to 'mysql'.
@@ -2855,9 +3447,13 @@ spec:
           storing MaxScale runtime configuration files. It is defaulted if not provided.
         displayName: Volume Claim Template
         path: config.volumeClaimTemplate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the PVC metadata.
         displayName: Metadata
         path: config.volumeClaimTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: config.volumeClaimTemplate.metadata.annotations
@@ -2870,6 +3466,8 @@ spec:
       - description: HealthCheck to be used in the Connection.
         displayName: Health Check
         path: connection.healthCheck
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval used to perform health checks.
         displayName: Interval
         path: connection.healthCheck.interval
@@ -2879,6 +3477,8 @@ spec:
       - description: Params to be used in the Connection.
         displayName: Params
         path: connection.params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port to connect to. If not provided, it defaults to the MariaDB
           port or to the first MaxScale listener.
         displayName: Port
@@ -2895,18 +3495,26 @@ spec:
       - description: DatabaseKey to be used in the Secret.
         displayName: Database Key
         path: connection.secretTemplate.databaseKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Format to be used in the Secret.
         displayName: Format
         path: connection.secretTemplate.format
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: HostKey to be used in the Secret.
         displayName: Host Key
         path: connection.secretTemplate.hostKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Key to be used in the Secret.
         displayName: Key
         path: connection.secretTemplate.key
       - description: Metadata to be added to the Secret object.
         displayName: Metadata
         path: connection.secretTemplate.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: connection.secretTemplate.metadata.annotations
@@ -2916,23 +3524,35 @@ spec:
       - description: PasswordKey to be used in the Secret.
         displayName: Password Key
         path: connection.secretTemplate.passwordKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PortKey to be used in the Secret.
         displayName: Port Key
         path: connection.secretTemplate.portKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: UsernameKey to be used in the Secret.
         displayName: Username Key
         path: connection.secretTemplate.usernameKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceName to be used in the Connection.
         displayName: Service Name
         path: connection.serviceName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: GuiKubernetesService defines a template for a Kubernetes Service
           object to connect to MaxScale's GUI.
         displayName: Gui Kubernetes Service
@@ -2942,18 +3562,27 @@ spec:
         path: guiKubernetesService.allocateLoadBalancerNodePorts
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: guiKubernetesService.externalTrafficPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: guiKubernetesService.loadBalancerIP
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: guiKubernetesService.loadBalancerSourceRanges
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the Service metadata.
         displayName: Metadata
         path: guiKubernetesService.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: guiKubernetesService.metadata.annotations
@@ -2963,6 +3592,8 @@ spec:
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: guiKubernetesService.sessionAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
           If not defined, it defaults to `ClusterIP`.
         displayName: Type
@@ -2988,6 +3619,8 @@ spec:
           resources.
         displayName: Inherit Metadata
         path: inheritMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: inheritMetadata.annotations
@@ -2997,20 +3630,30 @@ spec:
       - description: InitContainers to be used in the Pod.
         displayName: Init Containers
         path: initContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: initContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: initContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: initContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: initContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -3021,12 +3664,17 @@ spec:
         path: initContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: initContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: initContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: initContainers[0].resources
@@ -3036,9 +3684,13 @@ spec:
           to a container.
         displayName: Security Context
         path: initContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: initContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: KubernetesService defines a template for a Kubernetes Service
           object to connect to MaxScale.
         displayName: Kubernetes Service
@@ -3048,18 +3700,27 @@ spec:
         path: kubernetesService.allocateLoadBalancerNodePorts
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ExternalTrafficPolicy Service field.
         displayName: External Traffic Policy
         path: kubernetesService.externalTrafficPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerIP Service field.
         displayName: Load Balancer IP
         path: kubernetesService.loadBalancerIP
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LoadBalancerSourceRanges Service field.
         displayName: Load Balancer Source Ranges
         path: kubernetesService.loadBalancerSourceRanges
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata to be added to the Service metadata.
         displayName: Metadata
         path: kubernetesService.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: kubernetesService.metadata.annotations
@@ -3069,6 +3730,8 @@ spec:
       - description: SessionAffinity Service field.
         displayName: Session Affinity
         path: kubernetesService.sessionAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`.
           If not defined, it defaults to `ClusterIP`.
         displayName: Type
@@ -3076,6 +3739,8 @@ spec:
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MariaDBRef is a reference to the MariaDB that MaxScale points
           to. It is used to initialize the servers field.
         displayName: Maria DBRef
@@ -3086,6 +3751,7 @@ spec:
         path: mariaDbRef.waitForIt
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metrics configures metrics and how to scrape them.
         displayName: Metrics
         path: metrics
@@ -3097,9 +3763,13 @@ spec:
       - description: Exporter defines the metrics exporter container.
         displayName: Exporter
         path: metrics.exporter
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: metrics.exporter.affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -3110,17 +3780,25 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: metrics.exporter.args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: metrics.exporter.command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: metrics.exporter.env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: metrics.exporter.envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'Image name to be used as metrics exporter. The supported format
           is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
         displayName: Image
@@ -3138,20 +3816,30 @@ spec:
       - description: InitContainers to be used in the Pod.
         displayName: Init Containers
         path: metrics.exporter.initContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: metrics.exporter.initContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: metrics.exporter.initContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: metrics.exporter.initContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: metrics.exporter.initContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -3162,12 +3850,17 @@ spec:
         path: metrics.exporter.initContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: metrics.exporter.initContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: metrics.exporter.initContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: metrics.exporter.initContainers[0].resources
@@ -3177,18 +3870,28 @@ spec:
           to a container.
         displayName: Security Context
         path: metrics.exporter.initContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: metrics.exporter.initContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: metrics.exporter.livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: metrics.exporter.nodeSelector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PodMetadata defines extra metadata for the Pod.
         displayName: Pod Metadata
         path: metrics.exporter.podMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: metrics.exporter.podMetadata.annotations
@@ -3199,6 +3902,8 @@ spec:
           container settings.
         displayName: Pod Security Context
         path: metrics.exporter.podSecurityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port where the exporter will be listening for connections.
         displayName: Port
         path: metrics.exporter.port
@@ -3207,9 +3912,13 @@ spec:
       - description: PriorityClassName to be used in the Pod.
         displayName: Priority Class Name
         path: metrics.exporter.priorityClassName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: metrics.exporter.readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: metrics.exporter.resources
@@ -3219,27 +3928,41 @@ spec:
           to a container.
         displayName: Security Context
         path: metrics.exporter.securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceAccountName is the name of the ServiceAccount to be used
           by the Pods.
         displayName: Service Account Name
         path: metrics.exporter.serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SidecarContainers to be used in the Pod.
         displayName: Sidecar Containers
         path: metrics.exporter.sidecarContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: metrics.exporter.sidecarContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: metrics.exporter.sidecarContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: metrics.exporter.sidecarContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: metrics.exporter.sidecarContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -3250,12 +3973,17 @@ spec:
         path: metrics.exporter.sidecarContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: metrics.exporter.sidecarContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: metrics.exporter.sidecarContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: metrics.exporter.sidecarContainers[0].resources
@@ -3265,24 +3993,38 @@ spec:
           to a container.
         displayName: Security Context
         path: metrics.exporter.sidecarContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: metrics.exporter.sidecarContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: metrics.exporter.tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: TopologySpreadConstraints to be used in the Pod.
         displayName: Topology Spread Constraints
         path: metrics.exporter.topologySpreadConstraints
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: metrics.exporter.volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Volumes to be used in the Pod.
         displayName: Volumes
         path: metrics.exporter.volumes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceMonitor defines the ServiceMonior object.
         displayName: Service Monitor
         path: metrics.serviceMonitor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval for scraping metrics.
         displayName: Interval
         path: metrics.serviceMonitor.interval
@@ -3300,14 +4042,20 @@ spec:
           'spec.mariaDbRef' is not provided.
         displayName: Monitor
         path: monitor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: CooperativeMonitoring enables coordination between multiple MaxScale
           instances running monitors. It is defaulted when HA is enabled.
         displayName: Cooperative Monitoring
         path: monitor.cooperativeMonitoring
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Interval used to monitor MariaDB servers. It is defaulted if
           not provided.
         displayName: Interval
         path: monitor.interval
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Module is the module to use to monitor MariaDB servers. It is
           mandatory when no MariaDB reference is provided.
         displayName: Module
@@ -3322,6 +4070,8 @@ spec:
           https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.'
         displayName: Params
         path: monitor.params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Suspend indicates whether the current resource should be suspended
           or not. Feature flag --feature-maxscale-suspend is required in the controller
           to enable this.
@@ -3332,9 +4082,13 @@ spec:
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: nodeSelector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PodDisruptionBudget defines the budget for replica availability.
         displayName: Pod Disruption Budget
         path: podDisruptionBudget
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MaxUnavailable defines the number of maximum unavailable Pods.
         displayName: Max Unavailable
         path: podDisruptionBudget.maxUnavailable
@@ -3344,6 +4098,8 @@ spec:
       - description: PodMetadata defines extra metadata for the Pod.
         displayName: Pod Metadata
         path: podMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: podMetadata.annotations
@@ -3354,12 +4110,18 @@ spec:
           container settings.
         displayName: Pod Security Context
         path: podSecurityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PriorityClassName to be used in the Pod.
         displayName: Priority Class Name
         path: priorityClassName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Replicas indicates the number of desired instances.
         displayName: Replicas
         path: replicas
@@ -3369,6 +4131,8 @@ spec:
           not defined, it defaults to 10s.
         displayName: Requeue Interval
         path: requeueInterval
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: resources
@@ -3378,10 +4142,14 @@ spec:
           to a container.
         displayName: Security Context
         path: securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Servers are the MariaDB servers to forward traffic to. It is
           required if 'spec.mariaDbRef' is not provided.
         displayName: Servers
         path: servers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Address is the network address of the MariaDB server.
         displayName: Address
         path: servers[0].address
@@ -3411,6 +4179,8 @@ spec:
           by the Pods.
         displayName: Service Account Name
         path: serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Services define how the traffic is forwarded to the MariaDB servers.
           It is defaulted if not provided.
         displayName: Services
@@ -3427,6 +4197,8 @@ spec:
           parameter supported by MaxScale may be specified here. See reference: https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1.'
         displayName: Params
         path: services[0].listener.params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Port is the network port where the MaxScale server will listen.
         displayName: Port
         path: services[0].listener.port
@@ -3436,6 +4208,8 @@ spec:
           the client. If not provided, it defaults to MariaDBProtocol.
         displayName: Protocol
         path: services[0].listener.protocol
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Suspend indicates whether the current resource should be suspended
           or not. Feature flag --feature-maxscale-suspend is required in the controller
           to enable this.
@@ -3452,6 +4226,8 @@ spec:
           https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.'
         displayName: Params
         path: services[0].params
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Router is the type of router to use.
         displayName: Router
         path: services[0].router
@@ -3465,20 +4241,30 @@ spec:
       - description: SidecarContainers to be used in the Pod.
         displayName: Sidecar Containers
         path: sidecarContainers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Args to be used in the Container.
         displayName: Args
         path: sidecarContainers[0].args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Command to be used in the Container.
         displayName: Command
         path: sidecarContainers[0].command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Env represents the environment variables to be injected in a
           container.
         displayName: Env
         path: sidecarContainers[0].env
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: EnvFrom represents the references (via ConfigMap and Secrets)
           to environment variables to be injected in the container.
         displayName: Env From
         path: sidecarContainers[0].envFrom
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Image name to be used by the MariaDB instances. The supported
           format is `<image>:<tag>`.
         displayName: Image
@@ -3489,12 +4275,17 @@ spec:
         path: sidecarContainers[0].imagePullPolicy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: LivenessProbe to be used in the Container.
         displayName: Liveness Probe
         path: sidecarContainers[0].livenessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ReadinessProbe to be used in the Container.
         displayName: Readiness Probe
         path: sidecarContainers[0].readinessProbe
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: sidecarContainers[0].resources
@@ -3504,27 +4295,40 @@ spec:
           to a container.
         displayName: Security Context
         path: sidecarContainers[0].securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: sidecarContainers[0].volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: TopologySpreadConstraints to be used in the Pod.
         displayName: Topology Spread Constraints
         path: topologySpreadConstraints
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: UpdateStrategy defines the update strategy for the StatefulSet
           object.
         displayName: Update Strategy
         path: updateStrategy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: volumeMounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Volumes to be used in the Pod.
         displayName: Volumes
         path: volumes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       statusDescriptors:
       - description: Conditions for the MaxScale object.
         displayName: Conditions
@@ -3574,6 +4378,8 @@ spec:
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -3584,12 +4390,15 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: BackoffLimit defines the maximum number of attempts to successfully
           perform a Backup.
         displayName: Backoff Limit
         path: backoffLimit
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: BackupRef is a reference to a Backup object. It has priority
           over S3 and Volume.
         displayName: Backup Ref
@@ -3607,6 +4416,8 @@ spec:
           resources.
         displayName: Inherit Metadata
         path: inheritMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: inheritMetadata.annotations
@@ -3616,6 +4427,8 @@ spec:
       - description: LogLevel to be used n the Backup Job. It defaults to 'info'.
         displayName: Log Level
         path: logLevel
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MariaDBRef is a reference to a MariaDB object.
         displayName: Maria DBRef
         path: mariaDbRef
@@ -3625,12 +4438,17 @@ spec:
         path: mariaDbRef.waitForIt
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: nodeSelector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PodMetadata defines extra metadata for the Pod.
         displayName: Pod Metadata
         path: podMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: podMetadata.annotations
@@ -3641,9 +4459,13 @@ spec:
           container settings.
         displayName: Pod Security Context
         path: podSecurityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PriorityClassName to be used in the Pod.
         displayName: Priority Class Name
         path: priorityClassName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: resources
@@ -3652,6 +4474,8 @@ spec:
       - description: RestartPolicy to be added to the Backup Job.
         displayName: Restart Policy
         path: restartPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: S3 defines the configuration to restore backups from a S3 compatible
           storage. It has priority over Volume.
         displayName: S3
@@ -3681,6 +4505,8 @@ spec:
           the S3 session token.
         displayName: Session Token Secret Key Ref
         path: s3.sessionTokenSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: TLS provides the configuration required to establish TLS connections
           with S3.
         displayName: TLS
@@ -3700,10 +4526,14 @@ spec:
           to a container.
         displayName: Security Context
         path: securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceAccountName is the name of the ServiceAccount to be used
           by the Pods.
         displayName: Service Account Name
         path: serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and
           time that defines the point in time recovery objective. It is used to determine
           the closest restoration source in time.
@@ -3712,9 +4542,13 @@ spec:
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Volume is a Kubernetes Volume object that contains a backup.
         displayName: Volume
         path: volume
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       statusDescriptors:
       - description: Conditions for the Restore object.
         displayName: Conditions
@@ -3747,6 +4581,8 @@ spec:
       - description: Affinity to be used in the Pod.
         displayName: Affinity
         path: affinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
           scheduled in a different Node, enabling HA. Make sure you have at least
           as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -3757,12 +4593,15 @@ spec:
       - description: Args to be used in the Container.
         displayName: Args
         path: args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: BackoffLimit defines the maximum number of attempts to successfully
           execute a SqlJob.
         displayName: Backoff Limit
         path: backoffLimit
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Username to be used when executing the SqlJob.
         displayName: Database
         path: database
@@ -3777,6 +4616,8 @@ spec:
           resources.
         displayName: Inherit Metadata
         path: inheritMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: inheritMetadata.annotations
@@ -3792,9 +4633,12 @@ spec:
         path: mariaDbRef.waitForIt
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: nodeSelector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: UserPasswordSecretKeyRef is a reference to the impersonated user's
           password to be used when executing the SqlJob.
         displayName: Password Secret Key Ref
@@ -3802,6 +4646,8 @@ spec:
       - description: PodMetadata defines extra metadata for the Pod.
         displayName: Pod Metadata
         path: podMetadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Annotations to be added to children resources.
         displayName: Annotations
         path: podMetadata.annotations
@@ -3812,9 +4658,13 @@ spec:
           container settings.
         displayName: Pod Security Context
         path: podSecurityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PriorityClassName to be used in the Pod.
         displayName: Priority Class Name
         path: priorityClassName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: resources
@@ -3823,6 +4673,8 @@ spec:
       - description: RestartPolicy to be added to the SqlJob Pod.
         displayName: Restart Policy
         path: restartPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Schedule defines when the SqlJob will be executed.
         displayName: Schedule
         path: schedule
@@ -3834,14 +4686,19 @@ spec:
         path: schedule.suspend
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SecurityContext holds security configuration that will be applied
           to a container.
         displayName: Security Context
         path: securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceAccountName is the name of the ServiceAccount to be used
           by the Pods.
         displayName: Service Account Name
         path: serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Sql is the script to be executed by the SqlJob.
         displayName: Sql
         path: sql
@@ -3850,9 +4707,13 @@ spec:
           field.
         displayName: Sql Config Map Key Ref
         path: sqlConfigMapKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Username to be impersonated when executing the SqlJob.
         displayName: Username
         path: username
@@ -3885,6 +4746,7 @@ spec:
         path: mariaDbRef.waitForIt
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: MaxUserConnections defines the maximum number of connections
           that the User can establish.
         displayName: Max User Connections

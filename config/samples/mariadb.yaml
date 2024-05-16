@@ -23,6 +23,27 @@ spec:
   galera:
     enabled: true
 
+  # imagePullSecrets:
+  #   - name: mariadb-customer-token 
+
+  # bootstrapFrom:
+  #   s3:
+  #     bucket: backups
+  #     prefix: mariadb
+  #     endpoint: minio.minio.svc.cluster.local:9000
+  #     accessKeyIdSecretKeyRef:
+  #       name: minio
+  #       key: access-key-id
+  #     secretAccessKeySecretKeyRef:
+  #       name: minio
+  #       key: secret-access-key
+  #     tls:
+  #       enabled: true
+  #       caSecretKeyRef:
+  #         name: minio-ca
+  #         key: ca.crt
+  #   targetRecoveryTime: 2023-12-19T09:00:00Z
+
   service:
     type: ClusterIP
   connection:
