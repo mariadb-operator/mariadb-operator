@@ -289,6 +289,52 @@ type BootstrapFrom struct {
 	RestoreJob *Job `json:"restoreJob,omitempty"`
 }
 
+// UpdateType defines the type of update for a MariaDB resource.
+type UpdateType string
+
+const (
+	// RollingUpdateUpdateType indicates that update will be
+	// applied to all Pods in the StatefulSet with respect to the StatefulSet
+	// ordering constraints. When a scale operation is performed with this
+	// strategy, new Pods will be created from the specification version indicated
+	// by the StatefulSet's updateRevision.
+	RollingUpdateUpdateType UpdateType = "RollingUpdate"
+	// OnDeleteUpdateType triggers the legacy behavior. Version
+	// tracking and ordered rolling restarts are disabled. Pods are recreated
+	// from the StatefulSetSpec when they are manually deleted. When a scale
+	// operation is performed with this strategy,specification version indicated
+	// by the StatefulSet's currentRevision.
+	OnDeleteUpdateType UpdateType = "OnDelete"
+)
+
+// Updates defines how updates are performed to a MariaDB resource.
+type Updates struct {
+	// Enabled is a flag to indicate whether the updates are enabled. It is set to true by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled *bool `json:"enabled,omitempty"`
+	// Type defines the type of updates. One of `RollingUpdate` or `OnDelete`. If not defined, it defaults to `RollingUpdate`.
+	// +optional
+	// +kubebuilder:default=RollingUpdate
+	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Type UpdateType `json:"imagePullPolicy,omitempty"`
+	// RollingUpdate defines parameters for the RollingUpdate type.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	RollingUpdate *appsv1.RollingUpdateStatefulSetStrategy `json:"rollingUpdate,omitempty"`
+}
+
+// SetDefaults set reasonable defaults.
+func (u *Updates) SetDefaults() {
+	if u.Enabled == nil {
+		u.Enabled = ptr.To(true)
+	}
+	if u.Type == "" {
+		u.Type = RollingUpdateUpdateType
+	}
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
