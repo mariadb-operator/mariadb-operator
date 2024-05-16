@@ -32,22 +32,22 @@ type RestoreSpec struct {
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	LogLevel string `json:"logLevel,omitempty"`
 	// BackoffLimit defines the maximum number of attempts to successfully perform a Backup.
 	// +optional
 	// +kubebuilder:default=5
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// RestartPolicy to be added to the Backup Job.
 	// +optional
 	// +kubebuilder:default=OnFailure
 	// +kubebuilder:validation:Enum=Always;OnFailure;Never
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
 }
 

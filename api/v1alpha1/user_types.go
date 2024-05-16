@@ -12,7 +12,7 @@ import (
 type UserSpec struct {
 	// SQLTemplate defines templates to configure SQL objects.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SQLTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required

@@ -67,19 +67,19 @@ type MariadbMetrics struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// Exporter defines the metrics exporter container.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Exporter Exporter `json:"exporter"`
 	// ServiceMonitor defines the ServiceMonior object.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
 	// Username is the username of the monitoring user used by the exporter.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Username string `json:"username,omitempty" webhook:"inmutableinit"`
 	// PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordSecretKeyRef GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 }
 
@@ -87,7 +87,7 @@ type MariadbMetrics struct {
 type Storage struct {
 	// Ephemeral indicates whether to use ephemeral storage in the PVCs. It is only compatible with non HA MariaDBs.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Ephemeral *bool `json:"ephemeral,omitempty" webhook:"inmutableinit"`
 	// Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.
 	// +optional
@@ -101,16 +101,16 @@ type Storage struct {
 	// ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing.
 	// It defaults to true.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ResizeInUseVolumes *bool `json:"resizeInUseVolumes,omitempty"`
 	// WaitForVolumeResize indicates whether to wait for the PVCs to be resized before marking the MariaDB object as ready. This will block other operations such as cluster recovery while the resize is in progress.
 	// It defaults to true.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	WaitForVolumeResize *bool `json:"waitForVolumeResize,omitempty"`
 	// VolumeClaimTemplate provides a template to define the PVCs.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
 }
 
@@ -214,7 +214,7 @@ type MariaDBMaxScaleSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
 	// Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.
-	// Only MaxScale official images are supported.
+	// Only MariaDB official images are supported.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Image string `json:"image,omitempty"`
@@ -229,19 +229,19 @@ type MariaDBMaxScaleSpec struct {
 	Services []MaxScaleService `json:"services,omitempty"`
 	// Monitor monitors MariaDB server instances.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Monitor *MaxScaleMonitor `json:"monitor,omitempty"`
 	// Admin configures the admin REST API and GUI.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Admin *MaxScaleAdmin `json:"admin,omitempty"`
 	// Config defines the MaxScale configuration.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Config *MaxScaleConfig `json:"config,omitempty"`
 	// Auth defines the credentials required for MaxScale to connect to MariaDB.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Auth *MaxScaleAuth `json:"auth,omitempty"`
 	// Metrics configures metrics and how to scrape them.
 	// +optional
@@ -257,23 +257,23 @@ type MariaDBMaxScaleSpec struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 	// PodDisruptionBudget defines the budget for replica availability.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
 	// UpdateStrategy defines the update strategy for the StatefulSet object.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
 	// KubernetesService defines a template for a Kubernetes Service object to connect to MaxScale.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	KubernetesService *ServiceTemplate `json:"kubernetesService,omitempty"`
 	// GuiKubernetesService define a template for a Kubernetes Service object to connect to MaxScale's GUI.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GuiKubernetesService *ServiceTemplate `json:"guiKubernetesService,omitempty"`
 	// RequeueInterval is used to perform requeue reconciliations.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
 }
 
@@ -285,7 +285,7 @@ type BootstrapFrom struct {
 	RestoreSource `json:",inline"`
 	// RestoreJob defines additional properties for the Job used to perform the Restore.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RestoreJob *Job `json:"restoreJob,omitempty"`
 }
 
@@ -311,7 +311,7 @@ type MariaDBSpec struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
 	// RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
 	// +optional
@@ -323,15 +323,15 @@ type MariaDBSpec struct {
 	RootEmptyPassword *bool `json:"rootEmptyPassword,omitempty" webhook:"inmutableinit"`
 	// Database is the database to be created on bootstrap.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Database *string `json:"database,omitempty" webhook:"inmutable"`
 	// Username is the username of the user to be created on bootstrap.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Username *string `json:"username,omitempty" webhook:"inmutable"`
 	// PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordSecretKeyRef *GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// MyCnf allows to specify the my.cnf file mounted by Mariadb.
 	// +optional
@@ -340,7 +340,7 @@ type MariaDBSpec struct {
 	// MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.
 	// If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
 	// BootstrapFrom defines a source to bootstrap from.
 	// +optional
@@ -383,11 +383,11 @@ type MariaDBSpec struct {
 	Port int32 `json:"port,omitempty"`
 	// PodDisruptionBudget defines the budget for replica availability.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
 	// PodDisruptionBudget defines the update strategy for the StatefulSet object.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
 	// Service defines templates to configure the general Service object.
 	// +optional
