@@ -190,7 +190,7 @@ func (j *Job) SetDefaults(mariadbObjMeta metav1.ObjectMeta) {
 type AffinityConfig struct {
 	// Affinity to be used in the Pod.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	corev1.Affinity `json:",inline"`
 	// AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.
 	// Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
@@ -487,11 +487,11 @@ type ConnectionTemplate struct {
 type SQLTemplate struct {
 	// RequeueInterval is used to perform requeue reconciliations.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
 	// RetryInterval is the interval used to perform retries.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
 }
 
@@ -586,7 +586,7 @@ type RestoreSource struct {
 	S3 *S3 `json:"s3,omitempty" webhook:"inmutableinit"`
 	// Volume is a Kubernetes Volume object that contains a backup.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Volume *corev1.VolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
 	// TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.
 	// It is used to determine the closest restoration source in time.

@@ -62,7 +62,7 @@ func (m *MaxScaleServer) SetDefaults() {
 type SuspendTemplate struct {
 	// Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Suspend bool `json:"suspend,omitempty"`
 }
 
@@ -100,7 +100,7 @@ const (
 type MaxScaleMonitor struct {
 	// SuspendTemplate defines how a resource can be suspended.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the monitor. It is defaulted if not provided.
 	// +optional
@@ -147,7 +147,7 @@ func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
 type MaxScaleListener struct {
 	// SuspendTemplate defines how a resource can be suspended.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the listener. It is defaulted if not provided
 	// +optional
@@ -193,7 +193,7 @@ const (
 type MaxScaleService struct {
 	// SuspendTemplate defines how a resource can be suspended.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the MaxScale service.
 	// +kubebuilder:validation:Required

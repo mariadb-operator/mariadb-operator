@@ -19482,8 +19482,8 @@ spec:
                 description: NodeSelector to be used in the Pod.
                 type: object
               passwordSecretKeyRef:
-                description: PasswordSecretKeyRef is a reference to the password of
-                  the initial user provided via a Secret.
+                description: PasswordSecretKeyRef is a Secret reference to the password
+                  of the initial user created on bootstrap.
                 properties:
                   generate:
                     default: false
@@ -19994,6 +19994,8 @@ spec:
                 type: integer
               replication:
                 description: Replication configures high availability via replication.
+                  This feature is still in alpha, use Galera if you are looking for
+                  a more production-ready HA.
                 properties:
                   enabled:
                     description: Enabled is a flag to enable Replication.
@@ -20143,7 +20145,8 @@ spec:
                 type: object
               rootEmptyPassword:
                 description: RootEmptyPassword indicates if the root password should
-                  be empty.
+                  be empty. Don't use this feature in production, it is only intended
+                  for development and test environments.
                 type: boolean
               rootPasswordSecretKeyRef:
                 description: RootPasswordSecretKeyRef is a reference to a Secret key
@@ -21757,8 +21760,8 @@ spec:
                     type: string
                 type: object
               username:
-                description: Username is the username of the user to be created on
-                  bootstrap.
+                description: Username is the username of the initial user created
+                  on bootstrap.
                 type: string
               volumeMounts:
                 description: VolumeMounts to be used in the Container.

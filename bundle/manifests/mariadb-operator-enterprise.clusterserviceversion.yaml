@@ -332,7 +332,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:6af51442fcc461ceed75ce08fb37eedd714fbb3fe245ca371479aeba334538b7
-    createdAt: "2024-05-16T11:25:38Z"
+    createdAt: "2024-05-16T15:24:20Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -687,7 +687,7 @@ spec:
           - description: CharacterSet to use in the Database.
             displayName: Character Set
             path: characterSet
-          - description: CharacterSet to use in the Database.
+          - description: Collate to use in the Database.
             displayName: Collate
             path: collate
           - description: MariaDBRef is a reference to a MariaDB object.
@@ -705,9 +705,13 @@ spec:
           - description: RequeueInterval is used to perform requeue reconciliations.
             displayName: Requeue Interval
             path: requeueInterval
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: RetryInterval is the interval used to perform retries.
             displayName: Retry Interval
             path: retryInterval
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
         statusDescriptors:
           - description: Conditions for the Database object.
             displayName: Conditions
@@ -750,9 +754,13 @@ spec:
           - description: RequeueInterval is used to perform requeue reconciliations.
             displayName: Requeue Interval
             path: requeueInterval
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: RetryInterval is the interval used to perform retries.
             displayName: Retry Interval
             path: retryInterval
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Table to use in the Grant.
             displayName: Table
             path: table
@@ -926,8 +934,6 @@ spec:
           - description: Volume is a Kubernetes Volume object that contains a backup.
             displayName: Volume
             path: bootstrapFrom.volume
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Command to be used in the Container.
             displayName: Command
             path: command
@@ -2054,6 +2060,7 @@ spec:
             path: maxScale.monitor.suspend
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: PodDisruptionBudget defines the budget for replica availability.
             displayName: Pod Disruption Budget
             path: maxScale.podDisruptionBudget
@@ -2104,6 +2111,7 @@ spec:
             path: maxScale.services[0].listener.suspend
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Name is the identifier of the MaxScale service.
             displayName: Name
             path: maxScale.services[0].name
@@ -2120,6 +2128,7 @@ spec:
             path: maxScale.services[0].suspend
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: UpdateStrategy defines the update strategy for the StatefulSet object.
             displayName: Update Strategy
             path: maxScale.updateStrategy
@@ -2422,7 +2431,7 @@ spec:
             path: nodeSelector
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: PasswordSecretKeyRef is a reference to the password of the initial user provided via a Secret.
+          - description: PasswordSecretKeyRef is a Secret reference to the password of the initial user created on bootstrap.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
             x-descriptors:
@@ -2603,7 +2612,7 @@ spec:
             path: replicas
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:podCount
-          - description: Replication configures high availability via replication.
+          - description: Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA.
             displayName: Replication
             path: replication
           - description: Enabled is a flag to enable Replication.
@@ -2671,10 +2680,11 @@ spec:
             path: resources
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-          - description: RootEmptyPassword indicates if the root password should be empty.
+          - description: RootEmptyPassword indicates if the root password should be empty. Don't use this feature in production, it is only intended for development and test environments.
             displayName: Root Empty Password
             path: rootEmptyPassword
             x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
               - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: RootPasswordSecretKeyRef is a reference to a Secret key containing the root password.
             displayName: Root Password Secret Key Ref
@@ -2982,7 +2992,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:updateStrategy
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Username is the username of the user to be created on bootstrap.
+          - description: Username is the username of the initial user created on bootstrap.
             displayName: Username
             path: username
             x-descriptors:
@@ -3828,6 +3838,7 @@ spec:
             path: monitor.suspend
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: NodeSelector to be used in the Pod.
             displayName: Node Selector
             path: nodeSelector
@@ -3951,6 +3962,7 @@ spec:
             path: services[0].listener.suspend
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Name is the identifier of the MaxScale service.
             displayName: Name
             path: services[0].name
@@ -3967,6 +3979,7 @@ spec:
             path: services[0].suspend
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: SidecarContainers to be used in the Pod.
             displayName: Sidecar Containers
             path: sidecarContainers
@@ -4246,8 +4259,6 @@ spec:
           - description: Volume is a Kubernetes Volume object that contains a backup.
             displayName: Volume
             path: volume
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:advanced
         statusDescriptors:
           - description: Conditions for the Restore object.
             displayName: Conditions
@@ -4445,9 +4456,13 @@ spec:
           - description: RequeueInterval is used to perform requeue reconciliations.
             displayName: Requeue Interval
             path: requeueInterval
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: RetryInterval is the interval used to perform retries.
             displayName: Retry Interval
             path: retryInterval
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
         statusDescriptors:
           - description: Conditions for the User object.
             displayName: Conditions
@@ -5051,10 +5066,6 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
-      name: exporter
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
-      name: exporter-maxscale
     - image: mariadb/mariadb-operator-enterprise@sha256:6af51442fcc461ceed75ce08fb37eedd714fbb3fe245ca371479aeba334538b7
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
@@ -5063,6 +5074,10 @@ spec:
       name: mariadb
     - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
       name: maxscale
+    - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
+      name: exporter
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+      name: exporter-maxscale
   version: 0.0.29-dev
   webhookdefinitions:
     - admissionReviewVersions:

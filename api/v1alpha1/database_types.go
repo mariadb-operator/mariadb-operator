@@ -9,7 +9,7 @@ import (
 type DatabaseSpec struct {
 	// SQLTemplate defines templates to configure SQL objects.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SQLTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
@@ -20,7 +20,7 @@ type DatabaseSpec struct {
 	// +kubebuilder:default=utf8
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CharacterSet string `json:"characterSet,omitempty" webhook:"inmutable"`
-	// CharacterSet to use in the Database.
+	// Collate to use in the Database.
 	// +optional
 	// +kubebuilder:default=utf8_general_ci
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
