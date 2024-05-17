@@ -655,6 +655,11 @@ func (m *MariaDB) IsWaitingForStorageResize() bool {
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonWaitStorageResize
 }
 
+// HasPendingUpdate indicates that MariaDB has a pending update.
+func (m *MariaDB) HasPendingUpdate() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeUpdated)
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB
