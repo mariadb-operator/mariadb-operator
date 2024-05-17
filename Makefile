@@ -66,7 +66,7 @@ MARIADB_GALERA_INIT_IMAGE_ENT ?= $(IMG_ENT)
 MARIADB_GALERA_AGENT_IMAGE ?= $(IMG)
 MARIADB_GALERA_AGENT_IMAGE_ENT ?= $(IMG_ENT)
 MARIADB_GALERA_LIB_PATH ?= /usr/lib/galera/libgalera_smm.so
-MARIADB_GALERA_LIB_PATH_ENT ?= /usr/lib64/galera/libgalera_enterprise_smm.so
+MARIADB_GALERA_LIB_PATH_ENT ?= /usr/lib64/galera/libgalera_smm.so
 
 # docker
 MARIADB_DOCKER_COMMIT_HASH ?= d7a950d41e9347ac94ad2d2f28469bff74858db7
