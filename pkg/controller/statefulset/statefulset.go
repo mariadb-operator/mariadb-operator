@@ -13,13 +13,17 @@ type StatefulSetReconciler struct {
 	client.Client
 }
 
+type StatefulSetUpdateFn func(existingSts, desiredSts *appsv1.StatefulSet) (bool, error)
+
 func NewStatefulSetReconciler(client client.Client) *StatefulSetReconciler {
 	return &StatefulSetReconciler{
 		Client: client,
 	}
 }
 
-func (r *StatefulSetReconciler) Reconcile(ctx context.Context, desiredSts *appsv1.StatefulSet) error {
+func (r *StatefulSetReconciler) ReconcileWithUpdateFn(ctx context.Context, desiredSts *appsv1.StatefulSet,
+	shouldUpdateFn StatefulSetUpdateFn) error {
+
 	key := client.ObjectKeyFromObject(desiredSts)
 	var existingSts appsv1.StatefulSet
 	if err := r.Get(ctx, key, &existingSts); err != nil {
@@ -32,8 +36,22 @@ func (r *StatefulSetReconciler) Reconcile(ctx context.Context, desiredSts *appsv
 		return nil
 	}
 
+	shouldUpdate, err := shouldUpdateFn(&existingSts, desiredSts)
+	if err != nil {
+		return fmt.Errorf("error checking StatefulSet update: %v", err)
+	}
+	if !shouldUpdate {
+		return nil
+	}
+
 	patch := client.MergeFrom(existingSts.DeepCopy())
 	existingSts.Spec.Template = desiredSts.Spec.Template
 	existingSts.Spec.Replicas = desiredSts.Spec.Replicas
 	return r.Patch(ctx, &existingSts, patch)
+}
+
+func (r *StatefulSetReconciler) Reconcile(ctx context.Context, desiredSts *appsv1.StatefulSet) error {
+	return r.ReconcileWithUpdateFn(ctx, desiredSts, func(existingSts, desiredSts *appsv1.StatefulSet) (bool, error) {
+		return true, nil
+	})
 }
