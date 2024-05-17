@@ -58,7 +58,7 @@ spec:
             - name: MARIADB_GALERA_AGENT_IMAGE
               value: mariadb/mariadb-operator-enterprise:v0.0.29-dev
             - name: MARIADB_GALERA_LIB_PATH
-              value: /usr/lib64/galera/libgalera_enterprise_smm.so
+              value: /usr/lib64/galera/libgalera_smm.so
             - name: WATCH_NAMESPACE
               valueFrom:
                 fieldRef:
