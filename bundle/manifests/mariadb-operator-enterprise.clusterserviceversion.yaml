@@ -332,7 +332,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:6af51442fcc461ceed75ce08fb37eedd714fbb3fe245ca371479aeba334538b7
-    createdAt: "2024-05-16T15:24:20Z"
+    createdAt: "2024-05-17T16:37:59Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4934,7 +4934,7 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: mariadbmmontes/enterprise-server@sha256:346ac9bcd8284d7389af6b92f9433c416cb4a4a24261f9a1d54b4d041c02d065
+                        value: mariadbmmontes/enterprise-server@sha256:7196d7a97e0a368919cf8d905da533690158d20c606a692e336f09fd5c6d2fdf
                       - name: RELATED_IMAGE_MAXSCALE
                         value: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
                       - name: RELATED_IMAGE_EXPORTER
@@ -4948,7 +4948,7 @@ spec:
                       - name: MARIADB_GALERA_AGENT_IMAGE
                         value: mariadb/mariadb-operator-enterprise:v0.0.29-dev
                       - name: MARIADB_GALERA_LIB_PATH
-                        value: /usr/lib64/galera/libgalera_enterprise_smm.so
+                        value: /usr/lib64/galera/libgalera_smm.so
                       - name: WATCH_NAMESPACE
                         valueFrom:
                           fieldRef:
@@ -5066,18 +5066,18 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
+    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+      name: exporter-maxscale
     - image: mariadb/mariadb-operator-enterprise@sha256:6af51442fcc461ceed75ce08fb37eedd714fbb3fe245ca371479aeba334538b7
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
-    - image: mariadbmmontes/enterprise-server@sha256:346ac9bcd8284d7389af6b92f9433c416cb4a4a24261f9a1d54b4d041c02d065
+    - image: mariadbmmontes/enterprise-server@sha256:7196d7a97e0a368919cf8d905da533690158d20c606a692e336f09fd5c6d2fdf
       name: mariadb
     - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
       name: maxscale
     - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
       name: exporter
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
-      name: exporter-maxscale
   version: 0.0.29-dev
   webhookdefinitions:
     - admissionReviewVersions:
