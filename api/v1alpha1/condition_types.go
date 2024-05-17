@@ -11,6 +11,8 @@ const (
 	ConditionTypeComplete         string = "Complete"
 	// ConditionTypeStorageResized indicates that the storage has been successfully resized.
 	ConditionTypeStorageResized string = "StorageResized"
+	// ConditionTypeUpdated indicates that an update has been successfully completed.
+	ConditionTypeUpdated string = "Updated"
 
 	ConditionReasonStatefulSetNotReady string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady    string = "StatefulSetReady"
@@ -24,6 +26,8 @@ const (
 	ConditionReasonStorageResized      string = "StorageResized"
 	ConditionReasonInitializing        string = "Initializing"
 	ConditionReasonInitialized         string = "Initialized"
+	ConditionReasonPendingUpdate       string = "PendingUpdate"
+	ConditionReasonUpdated             string = "Updated"
 
 	ConditionReasonMaxScaleNotReady string = "MaxScaleNotReady"
 	ConditionReasonMaxScaleReady    string = "MaxScaleReady"

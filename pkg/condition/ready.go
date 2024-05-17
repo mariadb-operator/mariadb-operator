@@ -72,6 +72,33 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 	})
 }
 
+func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1alpha1.MariaDB) {
+	if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonStatefulSetNotReady,
+			Message: "Not ready",
+		})
+		return
+	}
+	if mdb.HasPendingUpdate() {
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionTrue,
+			Reason:  mariadbv1alpha1.ConditionReasonPendingUpdate,
+			Message: "Pending update",
+		})
+		return
+	}
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionTrue,
+		Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
+		Message: "Running",
+	})
+}
+
 func SetReadyWithInitJob(c Conditioner, job *batchv1.Job) {
 	if jobpkg.IsJobComplete(job) {
 		c.SetCondition(metav1.Condition{

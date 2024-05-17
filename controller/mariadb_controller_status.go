@@ -63,7 +63,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
 			return nil
 		}
-		condition.SetReadyWithStatefulSet(&mdb.Status, &sts)
+		condition.SetReadyWithMariaDB(&mdb.Status, &sts, mdb)
 		return nil
 	})
 }
