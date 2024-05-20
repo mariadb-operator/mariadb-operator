@@ -46,6 +46,7 @@ func (r *StatefulSetReconciler) ReconcileWithUpdateFn(ctx context.Context, desir
 
 	patch := client.MergeFrom(existingSts.DeepCopy())
 	existingSts.Spec.Template = desiredSts.Spec.Template
+	existingSts.Spec.UpdateStrategy = desiredSts.Spec.UpdateStrategy
 	existingSts.Spec.Replicas = desiredSts.Spec.Replicas
 	return r.Patch(ctx, &existingSts, patch)
 }
