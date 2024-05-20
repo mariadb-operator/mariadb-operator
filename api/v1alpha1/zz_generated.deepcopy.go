@@ -1363,11 +1363,7 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(PodDisruptionBudget)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Updates != nil {
-		in, out := &in.Updates, &out.Updates
-		*out = new(Updates)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Updates.DeepCopyInto(&out.Updates)
 	if in.Service != nil {
 		in, out := &in.Service, &out.Service
 		*out = new(ServiceTemplate)
