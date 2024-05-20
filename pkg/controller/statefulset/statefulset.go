@@ -3,9 +3,11 @@ package statefulset
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,7 +42,7 @@ func (r *StatefulSetReconciler) ReconcileWithUpdateFn(ctx context.Context, desir
 	if err != nil {
 		return fmt.Errorf("error checking StatefulSet update: %v", err)
 	}
-	if !shouldUpdate {
+	if !shouldUpdate || !StatefulSetHasChanged(&existingSts, desiredSts) {
 		return nil
 	}
 
@@ -55,4 +57,11 @@ func (r *StatefulSetReconciler) Reconcile(ctx context.Context, desiredSts *appsv
 	return r.ReconcileWithUpdateFn(ctx, desiredSts, func(existingSts, desiredSts *appsv1.StatefulSet) (bool, error) {
 		return true, nil
 	})
+}
+
+func StatefulSetHasChanged(existingSts, desiredSts *appsv1.StatefulSet) bool {
+	return existingSts == nil || desiredSts == nil ||
+		!reflect.DeepEqual(existingSts.Spec.Template, desiredSts.Spec.Template) ||
+		!reflect.DeepEqual(existingSts.Spec.UpdateStrategy, desiredSts.Spec.UpdateStrategy) ||
+		ptr.Deref(existingSts.Spec.Replicas, int32(0)) != ptr.Deref(desiredSts.Spec.Replicas, int32(0))
 }
