@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"errors"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -66,11 +65,6 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
-
-	updateStrategy, err := mariadbUpdateStrategy(mariadb)
-	if err != nil {
-		return nil, fmt.Errorf("error building MariaDB update strategy: %v", err)
-	}
 	podTemplate, err := b.mariadbPodTemplate(mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
@@ -82,7 +76,7 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 			ServiceName:         mariadb.InternalServiceKey().Name,
 			Replicas:            &mariadb.Spec.Replicas,
 			PodManagementPolicy: appsv1.ParallelPodManagement,
-			UpdateStrategy:      *updateStrategy,
+			UpdateStrategy:      mariadbUpdateStrategy(mariadb),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -130,24 +124,22 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 	return sts, nil
 }
 
-func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSetUpdateStrategy, error) {
-	if mdb.Spec.Updates == nil {
-		return nil, errors.New("'spec.updates' must be set")
-	}
-	updates := *mdb.Spec.Updates
-
-	switch updates.Type {
+func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) appsv1.StatefulSetUpdateStrategy {
+	switch mdb.Spec.Updates.Type {
 	case mariadbv1alpha1.RollingUpdateUpdateType:
-		return &appsv1.StatefulSetUpdateStrategy{
+		return appsv1.StatefulSetUpdateStrategy{
 			Type:          appsv1.RollingUpdateStatefulSetStrategyType,
-			RollingUpdate: updates.RollingUpdate,
-		}, nil
+			RollingUpdate: mdb.Spec.Updates.RollingUpdate,
+		}
 	case mariadbv1alpha1.OnDeleteUpdateType:
-		return &appsv1.StatefulSetUpdateStrategy{
+		return appsv1.StatefulSetUpdateStrategy{
 			Type: appsv1.OnDeleteStatefulSetStrategyType,
-		}, nil
+		}
 	default:
-		return nil, fmt.Errorf("unsupported updates type: %v", updates.Type)
+		return appsv1.StatefulSetUpdateStrategy{
+			Type:          appsv1.RollingUpdateStatefulSetStrategyType,
+			RollingUpdate: mdb.Spec.Updates.RollingUpdate,
+		}
 	}
 }
 

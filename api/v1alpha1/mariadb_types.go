@@ -434,7 +434,7 @@ type MariaDBSpec struct {
 	// Updates defines how updates a MariaDB resource is updated.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Updates *Updates `json:"updates,omitempty"`
+	Updates Updates `json:"updates,omitempty"`
 	// Service defines templates to configure the general Service object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -574,8 +574,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 		m.Spec.Galera.SetDefaults(m, env)
 	}
 
-	if m.Spec.Updates == nil {
-		m.Spec.Updates = &Updates{}
+	if m.Spec.Updates == (Updates{}) {
 		m.Spec.Updates.SetDefaults()
 	}
 
