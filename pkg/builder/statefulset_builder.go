@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"errors"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -65,6 +66,11 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
+
+	updateStrategy, err := mariadbUpdateStrategy(mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error building MariaDB update strategy: %v", err)
+	}
 	podTemplate, err := b.mariadbPodTemplate(mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
@@ -76,7 +82,7 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 			ServiceName:         mariadb.InternalServiceKey().Name,
 			Replicas:            &mariadb.Spec.Replicas,
 			PodManagementPolicy: appsv1.ParallelPodManagement,
-			UpdateStrategy:      statefulSetUpdateStrategy(mariadb.Spec.UpdateStrategy),
+			UpdateStrategy:      *updateStrategy,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -122,6 +128,27 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 		return nil, fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
 	return sts, nil
+}
+
+func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSetUpdateStrategy, error) {
+	if mdb.Spec.Updates == nil {
+		return nil, errors.New("'spec.updates' must be set")
+	}
+	updates := *mdb.Spec.Updates
+
+	switch updates.Type {
+	case mariadbv1alpha1.RollingUpdateUpdateType:
+		return &appsv1.StatefulSetUpdateStrategy{
+			Type:          appsv1.RollingUpdateStatefulSetStrategyType,
+			RollingUpdate: updates.RollingUpdate,
+		}, nil
+	case mariadbv1alpha1.OnDeleteUpdateType:
+		return &appsv1.StatefulSetUpdateStrategy{
+			Type: appsv1.OnDeleteStatefulSetStrategyType,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported updates type: %v", updates.Type)
+	}
 }
 
 func statefulSetUpdateStrategy(strategy *appsv1.StatefulSetUpdateStrategy) appsv1.StatefulSetUpdateStrategy {

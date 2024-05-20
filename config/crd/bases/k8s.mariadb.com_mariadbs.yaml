@@ -21723,13 +21723,16 @@ spec:
                   - whenUnsatisfiable
                   type: object
                 type: array
-              updateStrategy:
-                description: PodDisruptionBudget defines the update strategy for the
-                  StatefulSet object.
+              updates:
+                description: Updates defines how updates a MariaDB resource is updated.
                 properties:
+                  enabled:
+                    description: Enabled is a flag to indicate whether the updates
+                      are enabled. It is set to true by default.
+                    type: boolean
                   rollingUpdate:
-                    description: RollingUpdate is used to communicate parameters when
-                      Type is RollingUpdateStatefulSetStrategyType.
+                    description: RollingUpdate defines parameters for the RollingUpdate
+                      type.
                     properties:
                       maxUnavailable:
                         anyOf:
@@ -21754,9 +21757,12 @@ spec:
                         type: integer
                     type: object
                   type:
-                    description: |-
-                      Type indicates the type of the StatefulSetUpdateStrategy.
-                      Default is RollingUpdate.
+                    default: RollingUpdate
+                    description: Type defines the type of updates. One of `RollingUpdate`
+                      or `OnDelete`. If not defined, it defaults to `RollingUpdate`.
+                    enum:
+                    - RollingUpdate
+                    - OnDelete
                     type: string
                 type: object
               username:
