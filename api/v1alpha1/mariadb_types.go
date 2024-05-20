@@ -307,7 +307,7 @@ const (
 	OnDeleteUpdateType UpdateType = "OnDelete"
 )
 
-// Updates defines how updates a MariaDB resource is updated.
+// Updates defines how a MariaDB resource is updated.
 type Updates struct {
 	// Enabled is a flag to indicate whether the updates are enabled. It is set to true by default.
 	// +optional
@@ -325,7 +325,7 @@ type Updates struct {
 	RollingUpdate *appsv1.RollingUpdateStatefulSetStrategy `json:"rollingUpdate,omitempty"`
 }
 
-// SetDefaults set reasonable defaults.
+// SetDefaults sets reasonable defaults.
 func (u *Updates) SetDefaults() {
 	if u.Enabled == nil {
 		u.Enabled = ptr.To(true)
@@ -431,7 +431,7 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
-	// Updates defines how updates a MariaDB resource is updated.
+	// Updates defines how a MariaDB resource is updated.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Updates Updates `json:"updates,omitempty"`

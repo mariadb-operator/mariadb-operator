@@ -20,7 +20,7 @@ var _ = Describe("MariaDB types", func() {
 	env := &environment.OperatorEnv{
 		RelatedMariadbImage: "mariadb:11.0.3",
 	}
-	Context("When creating a MariaDB object", func() {
+	Context("When creating a MariaDB object", Focus, func() {
 		DescribeTable(
 			"Should default",
 			func(mdb, expected *MariaDB, env *environment.OperatorEnv) {
@@ -54,6 +54,10 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -103,6 +107,10 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -130,6 +138,10 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -186,6 +198,10 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -249,6 +265,10 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -295,6 +315,10 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -350,6 +374,10 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -403,6 +431,10 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -490,6 +522,10 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -558,6 +594,10 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -612,6 +652,10 @@ var _ = Describe("MariaDB types", func() {
 									StorageClassName: ptr.To("my-class"),
 								},
 							},
+						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -693,6 +737,52 @@ var _ = Describe("MariaDB types", func() {
 								},
 							},
 						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
+						},
+					},
+				},
+				env,
+			),
+			Entry(
+				"updates",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Updates: Updates{
+							Enabled: ptr.To(false),
+							Type:    OnDeleteUpdateType,
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						Updates: Updates{
+							Enabled: ptr.To(false),
+							Type:    OnDeleteUpdateType,
+						},
 					},
 				},
 				env,
@@ -727,6 +817,10 @@ var _ = Describe("MariaDB types", func() {
 						Port: 3306,
 						Storage: Storage{
 							Ephemeral: ptr.To(true),
+						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -763,6 +857,10 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						Updates: Updates{
+							Enabled: ptr.To(true),
+							Type:    RollingUpdateUpdateType,
 						},
 						PodTemplate: PodTemplate{
 							ServiceAccountName: &objMeta.Name,
@@ -852,6 +950,10 @@ var _ = Describe("MariaDB types", func() {
 									StorageClassName: ptr.To("my-class"),
 								},
 							},
+						},
+						Updates: Updates{
+							Enabled: ptr.To(false),
+							Type:    OnDeleteUpdateType,
 						},
 						PodTemplate: PodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
@@ -952,6 +1054,10 @@ var _ = Describe("MariaDB types", func() {
 									StorageClassName: ptr.To("my-class"),
 								},
 							},
+						},
+						Updates: Updates{
+							Enabled: ptr.To(false),
+							Type:    OnDeleteUpdateType,
 						},
 						PodTemplate: PodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),

@@ -59,9 +59,9 @@ func (r *StatefulSetReconciler) Reconcile(ctx context.Context, desiredSts *appsv
 	})
 }
 
-func StatefulSetHasChanged(existingSts, desiredSts *appsv1.StatefulSet) bool {
-	return existingSts == nil || desiredSts == nil ||
-		!reflect.DeepEqual(existingSts.Spec.Template, desiredSts.Spec.Template) ||
-		!reflect.DeepEqual(existingSts.Spec.UpdateStrategy, desiredSts.Spec.UpdateStrategy) ||
-		ptr.Deref(existingSts.Spec.Replicas, int32(0)) != ptr.Deref(desiredSts.Spec.Replicas, int32(0))
+func StatefulSetHasChanged(sts, otherSts *appsv1.StatefulSet) bool {
+	return sts == nil || otherSts == nil ||
+		!reflect.DeepEqual(sts.Spec.Template, otherSts.Spec.Template) ||
+		!reflect.DeepEqual(sts.Spec.UpdateStrategy, otherSts.Spec.UpdateStrategy) ||
+		ptr.Deref(sts.Spec.Replicas, int32(0)) != ptr.Deref(otherSts.Spec.Replicas, int32(0))
 }

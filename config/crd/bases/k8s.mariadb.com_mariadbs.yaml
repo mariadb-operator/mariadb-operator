@@ -21724,7 +21724,7 @@ spec:
                   type: object
                 type: array
               updates:
-                description: Updates defines how updates a MariaDB resource is updated.
+                description: Updates defines how a MariaDB resource is updated.
                 properties:
                   enabled:
                     description: Enabled is a flag to indicate whether the updates
