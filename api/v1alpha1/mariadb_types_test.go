@@ -20,7 +20,7 @@ var _ = Describe("MariaDB types", func() {
 	env := &environment.OperatorEnv{
 		RelatedMariadbImage: "mariadb:11.0.3",
 	}
-	Context("When creating a MariaDB object", Focus, func() {
+	Context("When creating a MariaDB object", func() {
 		DescribeTable(
 			"Should default",
 			func(mdb, expected *MariaDB, env *environment.OperatorEnv) {
