@@ -313,7 +313,39 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
-	return ctrl.Result{}, r.StatefulSetReconciler.Reconcile(ctx, desiredSts)
+	return ctrl.Result{}, r.StatefulSetReconciler.ReconcileWithUpdateFn(ctx, desiredSts, r.shouldUpdateStatefulSetFn(mariadb))
+}
+
+func (r *MariaDBReconciler) shouldUpdateStatefulSetFn(mariadb *mariadbv1alpha1.MariaDB) statefulset.StatefulSetUpdateFn {
+	return func(ctx context.Context, existingSts, desiredSts *appsv1.StatefulSet) (bool, error) {
+		updatesEnabled := ptr.Deref(mariadb.Spec.Updates.Enabled, false)
+		// TODO: store podSpec from desiredSts and compare with existing desiredSts
+		stsHasChanged := statefulset.StatefulSetHasChanged(existingSts, desiredSts)
+
+		if updatesEnabled {
+			if mariadb.HasPendingUpdate() {
+				if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+					condition.SetUpdated(status)
+					return nil
+				}); err != nil {
+					return false, err
+				}
+			}
+			return stsHasChanged, nil
+		}
+
+		// TODO: stsHasChanged always true after Kubernetes defaults
+		if stsHasChanged && !mariadb.HasPendingUpdate() {
+			if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+				condition.SetPendingUpdate(status)
+				return nil
+			}); err != nil {
+				return false, err
+			}
+		}
+
+		return false, nil
+	}
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
