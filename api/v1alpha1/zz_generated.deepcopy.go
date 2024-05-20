@@ -1363,9 +1363,9 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(PodDisruptionBudget)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.UpdateStrategy != nil {
-		in, out := &in.UpdateStrategy, &out.UpdateStrategy
-		*out = new(appsv1.StatefulSetUpdateStrategy)
+	if in.Updates != nil {
+		in, out := &in.Updates, &out.Updates
+		*out = new(Updates)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Service != nil {

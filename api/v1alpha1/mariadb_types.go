@@ -307,7 +307,7 @@ const (
 	OnDeleteUpdateType UpdateType = "OnDelete"
 )
 
-// Updates defines how updates are performed to a MariaDB resource.
+// Updates defines how updates a MariaDB resource is updated.
 type Updates struct {
 	// Enabled is a flag to indicate whether the updates are enabled. It is set to true by default.
 	// +optional
@@ -318,7 +318,7 @@ type Updates struct {
 	// +kubebuilder:default=RollingUpdate
 	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Type UpdateType `json:"imagePullPolicy,omitempty"`
+	Type UpdateType `json:"type,omitempty"`
 	// RollingUpdate defines parameters for the RollingUpdate type.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -431,10 +431,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
-	// PodDisruptionBudget defines the update strategy for the StatefulSet object.
+	// Updates defines how updates a MariaDB resource is updated.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Updates *Updates `json:"updates,omitempty"`
 	// Service defines templates to configure the general Service object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -573,6 +573,12 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 	if m.IsGaleraEnabled() {
 		m.Spec.Galera.SetDefaults(m, env)
 	}
+
+	if m.Spec.Updates == nil {
+		m.Spec.Updates = &Updates{}
+		m.Spec.Updates.SetDefaults()
+	}
+
 	m.Spec.Storage.SetDefaults()
 	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
 }
