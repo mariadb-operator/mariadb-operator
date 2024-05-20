@@ -15,7 +15,7 @@ type StatefulSetReconciler struct {
 	client.Client
 }
 
-type StatefulSetUpdateFn func(existingSts, desiredSts *appsv1.StatefulSet) (bool, error)
+type StatefulSetUpdateFn func(ctx context.Context, existingSts, desiredSts *appsv1.StatefulSet) (bool, error)
 
 func NewStatefulSetReconciler(client client.Client) *StatefulSetReconciler {
 	return &StatefulSetReconciler{
@@ -38,7 +38,7 @@ func (r *StatefulSetReconciler) ReconcileWithUpdateFn(ctx context.Context, desir
 		return nil
 	}
 
-	shouldUpdate, err := shouldUpdateFn(&existingSts, desiredSts)
+	shouldUpdate, err := shouldUpdateFn(ctx, &existingSts, desiredSts)
 	if err != nil {
 		return fmt.Errorf("error checking StatefulSet update: %v", err)
 	}
@@ -54,14 +54,14 @@ func (r *StatefulSetReconciler) ReconcileWithUpdateFn(ctx context.Context, desir
 }
 
 func (r *StatefulSetReconciler) Reconcile(ctx context.Context, desiredSts *appsv1.StatefulSet) error {
-	return r.ReconcileWithUpdateFn(ctx, desiredSts, func(existingSts, desiredSts *appsv1.StatefulSet) (bool, error) {
+	return r.ReconcileWithUpdateFn(ctx, desiredSts, func(ctx context.Context, existingSts, desiredSts *appsv1.StatefulSet) (bool, error) {
 		return true, nil
 	})
 }
 
 func StatefulSetHasChanged(sts, otherSts *appsv1.StatefulSet) bool {
 	return sts == nil || otherSts == nil ||
-		!reflect.DeepEqual(sts.Spec.Template, otherSts.Spec.Template) ||
+		!reflect.DeepEqual(sts.Spec.Template.Spec, otherSts.Spec.Template.Spec) ||
 		!reflect.DeepEqual(sts.Spec.UpdateStrategy, otherSts.Spec.UpdateStrategy) ||
 		ptr.Deref(sts.Spec.Replicas, int32(0)) != ptr.Deref(otherSts.Spec.Replicas, int32(0))
 }
