@@ -8,7 +8,7 @@ import (
 )
 
 func TestConfigMapMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	tests := []struct {
 		name     string
 		opts     ConfigMapOpts

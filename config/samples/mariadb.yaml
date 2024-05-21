@@ -4,8 +4,8 @@ metadata:
   name: mariadb
 spec:
   rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
+    name: mariadb-root
+    key: password
     generate: true
 
   username: mariadb
@@ -23,22 +23,43 @@ spec:
   galera:
     enabled: true
 
+  # imagePullSecrets:
+  #   - name: mariadb-customer-token 
+
+  # bootstrapFrom:
+  #   s3:
+  #     bucket: backups
+  #     prefix: mariadb
+  #     endpoint: minio.minio.svc.cluster.local:9000
+  #     accessKeyIdSecretKeyRef:
+  #       name: minio
+  #       key: access-key-id
+  #     secretAccessKeySecretKeyRef:
+  #       name: minio
+  #       key: secret-access-key
+  #     tls:
+  #       enabled: true
+  #       caSecretKeyRef:
+  #         name: minio-ca
+  #         key: ca.crt
+  #   targetRecoveryTime: 2023-12-19T09:00:00Z
+
   service:
     type: ClusterIP
   connection:
-    secretName: mariadb-repl-conn
+    secretName: mariadb-conn
     secretTemplate:
       key: dsn
   primaryService:
     type: ClusterIP
   primaryConnection:
-    secretName: mariadb-repl-conn-primary
+    secretName: mariadb-conn-primary
     secretTemplate:
       key: dsn
   secondaryService:
     type: ClusterIP
   secondaryConnection:
-    secretName: mariadb-repl-conn-secondary
+    secretName: mariadb-conn-secondary
     secretTemplate:
       key: dsn
 
@@ -51,4 +72,8 @@ spec:
     max_allowed_packet=256M
 
   metrics:
+    passwordSecretKeyRef:
+      name: mariadb-metrics
+      key: password
+      generate: true
     enabled: true

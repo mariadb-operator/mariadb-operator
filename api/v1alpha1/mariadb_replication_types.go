@@ -192,22 +192,22 @@ type Replication struct {
 type ReplicationSpec struct {
 	// Primary is the replication configuration for the primary node.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Primary *PrimaryReplication `json:"primary,omitempty"`
 	// ReplicaReplication is the replication configuration for the replica nodes.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replica *ReplicaReplication `json:"replica,omitempty"`
 	// SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.
 	// It trades off performance for consistency.
 	// See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SyncBinlog *bool `json:"syncBinlog,omitempty"`
 	// ProbesEnabled indicates to use replication specific liveness and readiness probes.
 	// This probes check that the primary can receive queries and that the replica has the replication thread running.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ProbesEnabled *bool `json:"probesEnabled,omitempty"`
 }
 

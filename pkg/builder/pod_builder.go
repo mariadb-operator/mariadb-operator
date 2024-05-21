@@ -142,7 +142,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		return nil, err
 	}
 
-	securityContext, err := b.buildPodSecurityContext(mariadb.Spec.PodSecurityContext)
+	securityContext, err := b.buildPodSecurityContextWithUserGroup(mariadb.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -196,12 +196,10 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 	if err != nil {
 		return nil, err
 	}
-
-	securityContext, err := b.buildPodSecurityContext(mxs.Spec.PodSecurityContext)
+	securityContext, err := b.maxscalePodSecurityContext(mxs)
 	if err != nil {
 		return nil, err
 	}
-
 	affinity := ptr.Deref(mxs.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	return &corev1.PodTemplateSpec{
@@ -221,6 +219,13 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 			TopologySpreadConstraints:    mxs.Spec.TopologySpreadConstraints,
 		},
 	}, nil
+}
+
+func (b *Builder) maxscalePodSecurityContext(mxs *mariadbv1alpha1.MaxScale) (*corev1.PodSecurityContext, error) {
+	if b.discovery.IsEnterprise() {
+		return b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleEnterpriseUser, maxscaleEnterpriseGroup)
+	}
+	return b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleUser, maxscaleGroup)
 }
 
 func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.Volume {
@@ -349,6 +354,24 @@ func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: maxscale.ConfigSecretKeyRef().Name,
 				},
+			},
+		},
+		{
+			Name: RunVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: LogVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: CacheVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
 	}

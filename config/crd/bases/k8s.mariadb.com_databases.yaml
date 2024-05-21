@@ -70,7 +70,7 @@ spec:
                 type: string
               collate:
                 default: utf8_general_ci
-                description: CharacterSet to use in the Database.
+                description: Collate to use in the Database.
                 type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.

@@ -38,7 +38,7 @@ type MaxScaleServer struct {
 	Protocol string `json:"protocol,omitempty"`
 	// Maintenance indicates whether the server is in maintenance mode.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Maintenance bool `json:"maintenance,omitempty"`
 	// Params defines extra parameters to pass to the server.
 	// Any parameter supported by MaxScale may be specified here. See reference:
@@ -62,7 +62,7 @@ func (m *MaxScaleServer) SetDefaults() {
 type SuspendTemplate struct {
 	// Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Suspend bool `json:"suspend,omitempty"`
 }
 
@@ -98,6 +98,9 @@ const (
 
 // MaxScaleMonitor monitors MariaDB server instances
 type MaxScaleMonitor struct {
+	// SuspendTemplate defines how a resource can be suspended.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the monitor. It is defaulted if not provided.
 	// +optional
@@ -109,12 +112,12 @@ type MaxScaleMonitor struct {
 	Module MonitorModule `json:"module" webhook:"inmutableinit"`
 	// Interval used to monitor MariaDB servers. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Interval metav1.Duration `json:"interval,omitempty"`
 	// CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when HA is enabled.
 	// +optional
 	// +kubebuilder:validation:Enum=majority_of_all;majority_of_running
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	CooperativeMonitoring *CooperativeMonitoring `json:"cooperativeMonitoring,omitempty"`
 	// Params defines extra parameters to pass to the monitor.
 	// Any parameter supported by MaxScale may be specified here. See reference:
@@ -123,7 +126,7 @@ type MaxScaleMonitor struct {
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters.
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -142,6 +145,9 @@ func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
 
 // MaxScaleListener defines how the MaxScale server will listen for connections.
 type MaxScaleListener struct {
+	// SuspendTemplate defines how a resource can be suspended.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the listener. It is defaulted if not provided
 	// +optional
@@ -153,13 +159,13 @@ type MaxScaleListener struct {
 	Port int32 `json:"port,omitempty" webhook:"inmutable"`
 	// Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Protocol string `json:"protocol,omitempty"`
 	// Params defines extra parameters to pass to the listener.
 	// Any parameter supported by MaxScale may be specified here. See reference:
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -185,6 +191,9 @@ const (
 
 // Services define how the traffic is forwarded to the MariaDB servers.
 type MaxScaleService struct {
+	// SuspendTemplate defines how a resource can be suspended.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the MaxScale service.
 	// +kubebuilder:validation:Required
@@ -206,7 +215,7 @@ type MaxScaleService struct {
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -223,7 +232,7 @@ type MaxScaleAdmin struct {
 	Port int32 `json:"port"`
 	// GuiEnabled indicates whether the admin GUI should be enabled.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	GuiEnabled *bool `json:"guiEnabled,omitempty"`
 }
 
@@ -263,11 +272,11 @@ type MaxScaleConfig struct {
 	Params map[string]string `json:"params,omitempty"`
 	// VolumeClaimTemplate provides a template to define the PVCs for storing MaxScale runtime configuration files. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	VolumeClaimTemplate VolumeClaimTemplate `json:"volumeClaimTemplate"`
 	// Sync defines how to replicate configuration across MaxScale replicas. It is defaulted when HA is enabled.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Sync *MaxScaleConfigSync `json:"sync,omitempty"`
 }
 
@@ -307,83 +316,83 @@ type MaxScaleAuth struct {
 	// Generate  defies whether the operator should generate users and grants for MaxScale to work.
 	// It only supports MariaDBs specified via spec.mariaDbRef.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Generate *bool `json:"generate,omitempty" webhook:"inmutableinit"`
 	// AdminUsername is an admin username to call the admin REST API. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	AdminUsername string `json:"adminUsername,omitempty" webhook:"inmutableinit"`
 	// AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admin REST API. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	AdminPasswordSecretKeyRef GeneratedSecretKeyRef `json:"adminPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	DeleteDefaultAdmin *bool `json:"deleteDefaultAdmin,omitempty" webhook:"inmutableinit"`
 	// MetricsUsername is an metrics username to call the REST API. It is defaulted if metrics are enabled.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MetricsUsername string `json:"metricsUsername,omitempty" webhook:"inmutableinit"`
 	// MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MetricsPasswordSecretKeyRef GeneratedSecretKeyRef `json:"metricsPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientUsername string `json:"clientUsername,omitempty" webhook:"inmutableinit"`
 	// ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientPasswordSecretKeyRef GeneratedSecretKeyRef `json:"clientPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// ClientMaxConnections defines the maximum number of connections that the client can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientMaxConnections int32 `json:"clientMaxConnections,omitempty" webhook:"inmutableinit"`
 	// ServerUsername is the user used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerUsername string `json:"serverUsername,omitempty" webhook:"inmutableinit"`
 	// ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerPasswordSecretKeyRef GeneratedSecretKeyRef `json:"serverPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// ServerMaxConnections defines the maximum number of connections that the server can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerMaxConnections int32 `json:"serverMaxConnections,omitempty" webhook:"inmutableinit"`
 	// MonitorUsername is the user used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MonitorUsername string `json:"monitorUsername,omitempty" webhook:"inmutableinit"`
 	// MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MonitorPasswordSecretKeyRef GeneratedSecretKeyRef `json:"monitorPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// MonitorMaxConnections defines the maximum number of connections that the monitor can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MonitorMaxConnections int32 `json:"monitorMaxConnections,omitempty" webhook:"inmutableinit"`
 	// MonitoSyncUsernamerUsername is the user used by MaxScale config sync to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SyncUsername *string `json:"syncUsername,omitempty" webhook:"inmutableinit"`
 	// SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SyncPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"syncPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// SyncMaxConnections defines the maximum number of connections that the sync can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SyncMaxConnections *int32 `json:"syncMaxConnections,omitempty" webhook:"inmutableinit"`
 }
 
@@ -463,11 +472,11 @@ type MaxScaleMetrics struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// Exporter defines the metrics exporter container.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Exporter Exporter `json:"exporter"`
 	// ServiceMonitor defines the ServiceMonior object.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
 }
 
@@ -487,7 +496,7 @@ type MaxScaleSpec struct {
 	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
 	// Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Servers []MaxScaleServer `json:"servers"`
 	// Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.
 	// Only MaxScale official images are supported.
@@ -501,7 +510,7 @@ type MaxScaleSpec struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
 	// Services define how the traffic is forwarded to the MariaDB servers. It is defaulted if not provided.
 	// +optional
@@ -509,7 +518,7 @@ type MaxScaleSpec struct {
 	Services []MaxScaleService `json:"services,omitempty"`
 	// Monitor monitors MariaDB server instances. It is required if 'spec.mariaDbRef' is not provided.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Monitor MaxScaleMonitor `json:"monitor,omitempty"`
 	// Admin configures the admin REST API and GUI.
 	// +optional
@@ -517,11 +526,11 @@ type MaxScaleSpec struct {
 	Admin MaxScaleAdmin `json:"admin,omitempty"`
 	// Config defines the MaxScale configuration.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Config MaxScaleConfig `json:"config,omitempty"`
 	// Auth defines the credentials required for MaxScale to connect to MariaDB.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Auth MaxScaleAuth `json:"auth,omitempty"`
 	// Metrics configures metrics and how to scrape them.
 	// +optional
@@ -537,11 +546,11 @@ type MaxScaleSpec struct {
 	Replicas int32 `json:"replicas,omitempty"`
 	// PodDisruptionBudget defines the budget for replica availability.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
 	// UpdateStrategy defines the update strategy for the StatefulSet object.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
 	// KubernetesService defines a template for a Kubernetes Service object to connect to MaxScale.
 	// +optional
@@ -553,7 +562,7 @@ type MaxScaleSpec struct {
 	GuiKubernetesService *ServiceTemplate `json:"guiKubernetesService,omitempty"`
 	// RequeueInterval is used to perform requeue reconciliations. If not defined, it defaults to 10s.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
 }
 
@@ -736,11 +745,6 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 	}
 
 	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
-	if m.Spec.PodTemplate.PodSecurityContext == nil {
-		m.Spec.PodTemplate.PodSecurityContext = &corev1.PodSecurityContext{
-			FSGroup: ptr.To(int64(996)),
-		}
-	}
 }
 
 func (m *MaxScale) getAntiAffinityInstances(mariadb *MariaDB) []string {

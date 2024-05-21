@@ -1,10 +1,12 @@
 package builder
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -771,8 +773,68 @@ func TestMaxScaleProbe(t *testing.T) {
 	}
 }
 
+func TestMaxScaleCommand(t *testing.T) {
+	mxs := mariadbv1alpha1.MaxScale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-maxscale-command",
+		},
+	}
+	builder := newDefaultTestBuilder(t)
+
+	expectedCmd := command.NewCommand(
+		[]string{
+			"maxscale",
+		},
+		[]string{
+			"--config",
+			fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
+			"-dU",
+			"maxscale",
+			"-l",
+			"stdout",
+		},
+	)
+	cmd, err := builder.maxscaleCommand(&mxs)
+	if err != nil {
+		t.Fatalf("unexpected error getting MaxScale command: %v", err)
+	}
+	if !reflect.DeepEqual(cmd, expectedCmd) {
+		t.Error("unexpected MaxScale command")
+	}
+
+	resource := &metav1.APIResourceList{
+		GroupVersion: "security.openshift.io/v1",
+		APIResources: []metav1.APIResource{
+			{
+				Name: "securitycontextconstraints",
+			},
+		},
+	}
+	d, err := discovery.NewFakeDiscovery(true, resource)
+	if err != nil {
+		t.Fatalf("unexpected error getting discovery: %v", err)
+	}
+	builder = newTestBuilder(d)
+
+	expectedCmd = command.NewBashCommand(
+		[]string{
+			fmt.Sprintf(
+				"maxscale --config %s -dU $(id -u) -l stdout",
+				fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
+			),
+		},
+	)
+	cmd, err = builder.maxscaleCommand(&mxs)
+	if err != nil {
+		t.Fatalf("unexpected error getting MaxScale enterprise command: %v", err)
+	}
+	if !reflect.DeepEqual(cmd, expectedCmd) {
+		t.Error("unexpected MaxScale enterprise command")
+	}
+}
+
 func TestContainerSecurityContext(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	tpl := &mariadbv1alpha1.ContainerTemplate{}
 
 	container, err := builder.buildContainer("mariadb:10.6", corev1.PullIfNotPresent, tpl)
@@ -785,7 +847,7 @@ func TestContainerSecurityContext(t *testing.T) {
 
 	tpl = &mariadbv1alpha1.ContainerTemplate{
 		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: ptr.To(int64(999)),
+			RunAsUser: ptr.To(mysqlUser),
 		},
 	}
 	container, err = builder.buildContainer("mariadb:10.6", corev1.PullIfNotPresent, tpl)
@@ -804,11 +866,11 @@ func TestContainerSecurityContext(t *testing.T) {
 			},
 		},
 	}
-	discovery, err := discovery.NewFakeDiscovery(resource)
+	discovery, err := discovery.NewFakeDiscovery(false, resource)
 	if err != nil {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
-	builder = newTestBuilder(t, WithDiscovery(discovery))
+	builder = newTestBuilder(discovery)
 
 	container, err = builder.buildContainer("mariadb:10.6", corev1.PullIfNotPresent, tpl)
 	if err != nil {

@@ -1,45 +1,63 @@
 package discovery
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
+	discoverypkg "k8s.io/client-go/discovery"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	fakeClient "k8s.io/client-go/kubernetes/fake"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type Discovery struct {
-	client discovery.DiscoveryInterface
+	client       discovery.DiscoveryInterface
+	isEnterprise bool
 }
 
-func NewDiscovery() (*Discovery, error) {
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, err
+type DiscoveryOpt func(*Discovery)
+
+func WithClient(client discovery.DiscoveryInterface) DiscoveryOpt {
+	return func(d *Discovery) {
+		d.client = client
 	}
-	client, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return &Discovery{
-		client: client,
-	}, nil
 }
 
-func NewDiscoveryWithClient(client discovery.DiscoveryInterface) (*Discovery, error) {
-	if client == nil {
-		return nil, errors.New("client should not be nil")
+func WithEnterprise(isEnterprise bool) DiscoveryOpt {
+	return func(d *Discovery) {
+		d.isEnterprise = isEnterprise
 	}
-	return &Discovery{
-		client: client,
-	}, nil
 }
 
-func NewFakeDiscovery(resources ...*metav1.APIResourceList) (*Discovery, error) {
+func NewDiscovery(opts ...DiscoveryOpt) (*Discovery, error) {
+	discovery := Discovery{}
+	for _, setOpt := range opts {
+		setOpt(&discovery)
+	}
+	if discovery.client == nil {
+		config, err := ctrl.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+		client, err := discoverypkg.NewDiscoveryClientForConfig(config)
+		if err != nil {
+			return nil, err
+		}
+		discovery.client = client
+	}
+	return &discovery, nil
+}
+
+func NewDiscoveryEnterprise() (*Discovery, error) {
+	return NewDiscovery(
+		WithEnterprise(true),
+	)
+}
+
+func NewFakeDiscovery(isEnterprise bool, resources ...*metav1.APIResourceList) (*Discovery, error) {
 	client := fakeClient.NewSimpleClientset()
 	fakeDiscovery, ok := client.Discovery().(*fakeDiscovery.FakeDiscovery)
 	if !ok {
@@ -48,7 +66,14 @@ func NewFakeDiscovery(resources ...*metav1.APIResourceList) (*Discovery, error) 
 	if resources != nil {
 		fakeDiscovery.Resources = resources
 	}
-	return NewDiscoveryWithClient(fakeDiscovery)
+	return NewDiscovery(
+		WithEnterprise(isEnterprise),
+		WithClient(fakeDiscovery),
+	)
+}
+
+func (c *Discovery) IsEnterprise() bool {
+	return c.isEnterprise
 }
 
 func (c *Discovery) ServiceMonitorExist() (bool, error) {
@@ -57,6 +82,24 @@ func (c *Discovery) ServiceMonitorExist() (bool, error) {
 
 func (c *Discovery) SecurityContextConstrainstsExist() (bool, error) {
 	return c.resourceExist("security.openshift.io/v1", "securitycontextconstraints")
+}
+
+func (c *Discovery) LogInfo(logger logr.Logger) error {
+	logger.Info("Discovery info")
+	logger.Info("Enterprise", "enterprise", c.IsEnterprise())
+	svcMonitor, err := c.ServiceMonitorExist()
+	if err != nil {
+		return err
+	}
+	scc, err := c.SecurityContextConstrainstsExist()
+	if err != nil {
+		return err
+	}
+	logger.Info("Resources",
+		"ServiceMonitor", svcMonitor,
+		"SecurityContextConstrainsts", scc,
+	)
+	return nil
 }
 
 func (c *Discovery) resourceExist(groupVersion, kind string) (bool, error) {

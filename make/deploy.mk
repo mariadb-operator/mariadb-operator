@@ -18,8 +18,8 @@ cluster-ha: kind ## Create a HA kind cluster.
 cluster-delete: kind ## Delete the kind cluster.
 	$(KIND) delete cluster --name $(CLUSTER)
 
-.PHONY: kubectl cluster-ctx
-cluster-ctx: ## Sets cluster context.
+.PHONY: cluster-ctx
+cluster-ctx: kubectl ## Sets cluster context.
 	$(KUBECTL) config use-context kind-$(CLUSTER)
 
 .PHONY: cluster-ls
@@ -55,21 +55,6 @@ REGISTRY_PULL_SECRET ?= registry
 registry-secret: ## Configure registry pull secret.
 	@$(KUBECTL) create secret docker-registry $(REGISTRY_PULL_SECRET) --from-file=.dockerconfigjson=$(DOCKER_CONFIG) --dry-run=client -o yaml \
 		| $(KUBECTL) apply -f -
-
-OCP_REGISTRY_URL ?= https://index.docker.io/v1/
-.PHONY: openshift-registry
-openshift-registry-add: oc jq ## Add catalog registry in OpenShift global config.
-	$(OC) extract secret/pull-secret -n openshift-config --confirm
-	@cat .dockerconfigjson | $(JQ) -c \
-		--argjson registryauth '$(shell cat $(DOCKER_CONFIG) | $(JQ) '.auths["$(OCP_REGISTRY_URL)"]')' '.auths["$(OCP_REGISTRY_URL)"] |= . + $$registryauth' \
-		> .new_dockerconfigjson 
-	$(OC) set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=.new_dockerconfigjson 
-	@rm .dockerconfigjson .new_dockerconfigjson 
-
-.PHONY: openshift-registry
-openshift-registry: ## Setup registries in OpenShift global config.
-	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=https://index.docker.io/v1/
-	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=us-central1-docker.pkg.dev
 
 ##@ Failover
 
@@ -131,7 +116,7 @@ install-metallb: cluster-ctx ## Install metallb helm chart.
 
 MINIO_VERSION ?= "5.2.0"
 .PHONY: install-minio
-install-minio: cluster-ctx cert-minio ## Install minio helm chart.
+install-minio: cert-minio ## Install minio helm chart.
 	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
 
 .PHONY: install-crds
@@ -142,8 +127,8 @@ install-crds: cluster-ctx manifests kustomize ## Install CRDs.
 uninstall-crds: cluster-ctx manifests kustomize ## Uninstall CRDs.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
-.PHONY: install-samples
-install-samples: cluster-ctx  ## Install sample configuration.
+.PHONY: install-config
+install-config: cluster-ctx  ## Install common configuration.
 	kubectl apply -f examples/manifests/config
 
 .PHONY: serviceaccount
@@ -159,10 +144,10 @@ storageclass: cluster-ctx  ## Create StorageClass that allows volume expansion.
 	$(KUBECTL) apply -f ./hack/manifests/storageclass.yaml
 
 .PHONY: install
-install: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount storageclass cert docker-dev ## Install everything you need for local development.
+install: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass cert docker-dev ## Install everything you need for local development.
 
 .PHONY: install-ent
-install-ent: cluster-ctx install-crds install-samples install-prometheus-crds serviceaccount storageclass cert docker-dev-ent ## Install everything you need for local enterprise development.
+install-ent: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass cert docker-dev-ent ## Install everything you need for local enterprise development.
 
 ##@ Deploy
 

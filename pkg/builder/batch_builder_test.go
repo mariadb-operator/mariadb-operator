@@ -12,7 +12,7 @@ import (
 )
 
 func TestBackupJobImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "backup-image-pull-secrets",
 		Namespace: "test",
@@ -169,7 +169,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 }
 
 func TestRestoreJobImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "restore-image-pull-secrets",
 		Namespace: "test",
@@ -326,7 +326,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 }
 
 func TestInitJobImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "init-image-pull-secrets",
 		Namespace: "test",
@@ -381,7 +381,7 @@ func TestInitJobImagePullSecrets(t *testing.T) {
 }
 
 func TestSqlJobImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "sqljob-image-pull-secrets",
 		Namespace: "test",
@@ -538,7 +538,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 }
 
 func TestBackupJobMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "backup-job",
 	}
@@ -727,7 +727,7 @@ func TestBackupJobMeta(t *testing.T) {
 }
 
 func TestRestoreJobMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "restore-job",
 	}
@@ -931,7 +931,7 @@ func TestRestoreJobMeta(t *testing.T) {
 }
 
 func TestInitJobMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "init-obj",
 	}
@@ -1153,7 +1153,7 @@ func TestInitJobMeta(t *testing.T) {
 }
 
 func TestSqlJobMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "sql-job",
 	}

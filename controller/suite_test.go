@@ -2,10 +2,12 @@ package controller
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -47,6 +49,7 @@ var (
 	testCtx        = context.Background()
 	k8sClient      client.Client
 	testCidrPrefix string
+	testLogger     logr.Logger
 )
 
 func TestAPIs(t *testing.T) {
@@ -56,12 +59,13 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	log.SetLogger(zap.New(
+	testLogger = zap.New(
 		zap.WriteTo(GinkgoWriter),
 		zap.UseDevMode(true),
 		zap.Level(zapcore.InfoLevel),
 		zap.RawZapOpts(zappkg.Fields(zappkg.Int("ginkgo-process", GinkgoParallelProcess()))),
-	))
+	)
+	log.SetLogger(testLogger)
 
 	var err error
 	testCidrPrefix, err = docker.GetKindCidrPrefix()
@@ -117,10 +121,17 @@ var _ = BeforeSuite(func() {
 
 	env, err := environment.GetOperatorEnv(testCtx)
 	Expect(err).ToNot(HaveOccurred())
-	discovery, err := discovery.NewDiscovery()
+
+	var disc *discovery.Discovery
+	if os.Getenv("ENTERPRISE") != "" {
+		disc, err = discovery.NewDiscoveryEnterprise()
+	} else {
+		disc, err = discovery.NewDiscovery()
+	}
 	Expect(err).ToNot(HaveOccurred())
-	builder, err := builder.NewBuilder(scheme, env, builder.WithDiscovery(discovery))
-	Expect(err).ToNot(HaveOccurred())
+	Expect(disc.LogInfo(testLogger)).To(Succeed())
+
+	builder := builder.NewBuilder(scheme, env, disc)
 	refResolver := refresolver.New(client)
 
 	conditionReady := condition.NewReady()
@@ -194,7 +205,7 @@ var _ = BeforeSuite(func() {
 		Builder:        builder,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
-		Discovery:      discovery,
+		Discovery:      disc,
 
 		ConfigMapReconciler:      configMapReconciler,
 		SecretReconciler:         secretReconciler,
@@ -221,7 +232,7 @@ var _ = BeforeSuite(func() {
 		ConditionReady: conditionReady,
 		Environment:    env,
 		RefResolver:    refResolver,
-		Discovery:      discovery,
+		Discovery:      disc,
 
 		SecretReconciler:         secretReconciler,
 		RBACReconciler:           rbacReconciler,
