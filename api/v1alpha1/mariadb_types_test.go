@@ -56,7 +56,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -107,7 +107,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -138,7 +138,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -197,7 +197,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -262,7 +262,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -312,7 +312,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -369,7 +369,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -426,7 +426,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -515,7 +515,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -586,7 +586,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -644,7 +644,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -727,7 +727,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -805,7 +805,7 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 					},
 				},
@@ -844,7 +844,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type: RollingUpdateUpdateType,
+							Type: ReplicasFirstPrimaryLast,
 						},
 						PodTemplate: PodTemplate{
 							ServiceAccountName: &objMeta.Name,

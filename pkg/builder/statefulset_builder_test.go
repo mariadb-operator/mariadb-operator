@@ -30,7 +30,11 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 			name: "No Secrets",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
-				Spec:       mariadbv1alpha1.MariaDBSpec{},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+					},
+				},
 			},
 			wantPullSecrets: nil,
 		},
@@ -45,6 +49,9 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 								Name: "mariadb-registry",
 							},
 						},
+					},
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
 					},
 				},
 			},
@@ -141,6 +148,11 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 			name: "empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+					},
+				},
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
@@ -160,6 +172,9 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+					},
 				},
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
@@ -178,6 +193,9 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
+					},
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
 					},
 				},
 			},
@@ -204,6 +222,9 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 					},
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
+					},
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
 					},
 				},
 			},
@@ -238,30 +259,31 @@ func TestMariaDBUpdateStrategy(t *testing.T) {
 	tests := []struct {
 		name               string
 		mariadb            *mariadbv1alpha1.MariaDB
-		wantUpdateStrategy appsv1.StatefulSetUpdateStrategy
+		wantUpdateStrategy *appsv1.StatefulSetUpdateStrategy
+		wantErr            bool
 	}{
 		{
 			name: "empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 			},
-			wantUpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: appsv1.RollingUpdateStatefulSetStrategyType,
-			},
+			wantUpdateStrategy: nil,
+			wantErr:            true,
 		},
 		{
-			name: "on delete",
+			name: "replicas first primary last",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.OnDeleteUpdateType,
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
 					},
 				},
 			},
-			wantUpdateStrategy: appsv1.StatefulSetUpdateStrategy{
+			wantUpdateStrategy: &appsv1.StatefulSetUpdateStrategy{
 				Type: appsv1.OnDeleteStatefulSetStrategyType,
 			},
+			wantErr: false,
 		},
 		{
 			name: "rolling update",
@@ -276,18 +298,40 @@ func TestMariaDBUpdateStrategy(t *testing.T) {
 					},
 				},
 			},
-			wantUpdateStrategy: appsv1.StatefulSetUpdateStrategy{
+			wantUpdateStrategy: &appsv1.StatefulSetUpdateStrategy{
 				Type: appsv1.RollingUpdateStatefulSetStrategyType,
 				RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
 					MaxUnavailable: ptr.To(intstr.FromInt(1)),
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name: "on delete",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.OnDeleteUpdateType,
+					},
+				},
+			},
+			wantUpdateStrategy: &appsv1.StatefulSetUpdateStrategy{
+				Type: appsv1.OnDeleteStatefulSetStrategyType,
+			},
+			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stsStategy := mariadbUpdateStrategy(tt.mariadb)
+			stsStategy, err := mariadbUpdateStrategy(tt.mariadb)
+			if !tt.wantErr && err != nil {
+				t.Errorf("unexpected error building update strategy: %v", err)
+			}
+			if tt.wantErr && err == nil {
+				t.Errorf("expected error building update strategy, got nil")
+			}
 			if !reflect.DeepEqual(tt.wantUpdateStrategy, stsStategy) {
 				t.Errorf("expecting mariadbUpdateStrategy returned value to be:\n%v\ngot:\n%v\n", tt.wantUpdateStrategy, stsStategy)
 			}
