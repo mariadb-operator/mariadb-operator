@@ -14,6 +14,15 @@ func SetPendingUpdate(c Conditioner) {
 	})
 }
 
+func SetUpdating(c Conditioner) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeUpdated,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonUpdating,
+		Message: "Updating",
+	})
+}
+
 func SetUpdated(c Conditioner) {
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeUpdated,

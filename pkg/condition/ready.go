@@ -73,6 +73,15 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 }
 
 func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1alpha1.MariaDB) {
+	if mdb.IsUpdating() {
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonUpdating,
+			Message: "Updating",
+		})
+		return
+	}
 	if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
 		c.SetCondition(metav1.Condition{
 			Type:    mariadbv1alpha1.ConditionTypeReady,
@@ -82,6 +91,7 @@ func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1a
 		})
 		return
 	}
+
 	if mdb.HasPendingUpdate() {
 		c.SetCondition(metav1.Condition{
 			Type:    mariadbv1alpha1.ConditionTypeReady,
