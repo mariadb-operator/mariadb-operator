@@ -21753,10 +21753,12 @@ spec:
                         type: integer
                     type: object
                   type:
-                    default: RollingUpdate
-                    description: Type defines the type of updates. One of `RollingUpdate`
-                      or `OnDelete`. If not defined, it defaults to `RollingUpdate`.
+                    default: ReplicasFirstPrimaryLast
+                    description: Type defines the type of updates. One of `ReplicasFirstPrimaryLast`,
+                      `RollingUpdate` or `OnDelete`. If not defined, it defaults to
+                      `ReplicasFirstPrimaryLast`.
                     enum:
+                    - ReplicasFirstPrimaryLast
                     - RollingUpdate
                     - OnDelete
                     type: string

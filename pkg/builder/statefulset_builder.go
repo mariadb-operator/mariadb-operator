@@ -65,6 +65,11 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
+
+	updateStrategy, err := mariadbUpdateStrategy(mariadb)
+	if err != nil {
+		return nil, err
+	}
 	podTemplate, err := b.mariadbPodTemplate(mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
@@ -76,7 +81,7 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 			ServiceName:         mariadb.InternalServiceKey().Name,
 			Replicas:            &mariadb.Spec.Replicas,
 			PodManagementPolicy: appsv1.ParallelPodManagement,
-			UpdateStrategy:      mariadbUpdateStrategy(mariadb),
+			UpdateStrategy:      *updateStrategy,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -124,22 +129,23 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 	return sts, nil
 }
 
-func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) appsv1.StatefulSetUpdateStrategy {
+func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSetUpdateStrategy, error) {
 	switch mdb.Spec.UpdateStrategy.Type {
-	case mariadbv1alpha1.RollingUpdateUpdateType:
-		return appsv1.StatefulSetUpdateStrategy{
-			Type:          appsv1.RollingUpdateStatefulSetStrategyType,
-			RollingUpdate: mdb.Spec.UpdateStrategy.RollingUpdate,
-		}
-	case mariadbv1alpha1.OnDeleteUpdateType:
-		return appsv1.StatefulSetUpdateStrategy{
+	case mariadbv1alpha1.ReplicasFirstPrimaryLast:
+		return &appsv1.StatefulSetUpdateStrategy{
 			Type: appsv1.OnDeleteStatefulSetStrategyType,
-		}
-	default:
-		return appsv1.StatefulSetUpdateStrategy{
+		}, nil
+	case mariadbv1alpha1.RollingUpdateUpdateType:
+		return &appsv1.StatefulSetUpdateStrategy{
 			Type:          appsv1.RollingUpdateStatefulSetStrategyType,
 			RollingUpdate: mdb.Spec.UpdateStrategy.RollingUpdate,
-		}
+		}, nil
+	case mariadbv1alpha1.OnDeleteUpdateType:
+		return &appsv1.StatefulSetUpdateStrategy{
+			Type: appsv1.OnDeleteStatefulSetStrategyType,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported update strategy type: %v", mdb.Spec.UpdateStrategy.Type)
 	}
 }
 

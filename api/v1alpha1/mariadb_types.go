@@ -293,26 +293,25 @@ type BootstrapFrom struct {
 type UpdateType string
 
 const (
-	// RollingUpdateUpdateType indicates that update will be
-	// applied to all Pods in the StatefulSet with respect to the StatefulSet
-	// ordering constraints. When a scale operation is performed with this
-	// strategy, new Pods will be created from the specification version indicated
-	// by the StatefulSet's updateRevision.
+	// ReplicasFirstPrimaryLast indicates that the update will be applied to all replica Pods first and later on to the primary Pod.
+	// The updates are applied one by one waiting until each Pod passes the readiness probe
+	// i.e. the Pod gets synced and it is ready to receive traffic.
+	ReplicasFirstPrimaryLast UpdateType = "ReplicasFirstPrimaryLast"
+	// RollingUpdateUpdateType indicates that the update will be applied by the StatefulSet controller using the RollingUpdate strategy.
+	// This strategy is unaware of the roles that the Pod have (primary or replica) and it will
+	// perform the update following the StatefulSet ordinal, from higher to lower.
 	RollingUpdateUpdateType UpdateType = "RollingUpdate"
-	// OnDeleteUpdateType triggers the legacy behavior. Version
-	// tracking and ordered rolling restarts are disabled. Pods are recreated
-	// from the StatefulSetSpec when they are manually deleted. When a scale
-	// operation is performed with this strategy,specification version indicated
-	// by the StatefulSet's currentRevision.
+	// OnDeleteUpdateType indicates that the update will be applied by the StatefulSet controller using the OnDelete strategy.
+	// The update will be done when the Pods get manually deleted by the user.
 	OnDeleteUpdateType UpdateType = "OnDelete"
 )
 
 // UpdateStrategy defines how a MariaDB resource is updated.
 type UpdateStrategy struct {
-	// Type defines the type of updates. One of `RollingUpdate` or `OnDelete`. If not defined, it defaults to `RollingUpdate`.
+	// Type defines the type of updates. One of `ReplicasFirstPrimaryLast`, `RollingUpdate` or `OnDelete`. If not defined, it defaults to `ReplicasFirstPrimaryLast`.
 	// +optional
-	// +kubebuilder:default=RollingUpdate
-	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
+	// +kubebuilder:default=ReplicasFirstPrimaryLast
+	// +kubebuilder:validation:Enum=ReplicasFirstPrimaryLast;RollingUpdate;OnDelete
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Type UpdateType `json:"type,omitempty"`
 	// RollingUpdate defines parameters for the RollingUpdate type.
@@ -324,7 +323,7 @@ type UpdateStrategy struct {
 // SetDefaults sets reasonable defaults.
 func (u *UpdateStrategy) SetDefaults() {
 	if u.Type == "" {
-		u.Type = RollingUpdateUpdateType
+		u.Type = ReplicasFirstPrimaryLast
 	}
 }
 
