@@ -655,7 +655,20 @@ func (m *MariaDB) IsWaitingForStorageResize() bool {
 
 // HasPendingUpdate indicates that MariaDB has a pending update.
 func (m *MariaDB) HasPendingUpdate() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeUpdated)
+	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeUpdated)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonPendingUpdate
+}
+
+// IsUpdating indicates that a MariaDB update is in progress.
+func (m *MariaDB) IsUpdating() bool {
+	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeUpdated)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonUpdating
 }
 
 // +kubebuilder:object:root=true
