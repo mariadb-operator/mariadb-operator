@@ -184,7 +184,7 @@ func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariad
 	}
 	log.FromContext(ctx).V(1).Info("Pods updated", "pods", podsUpdated)
 
-	if podsUpdated == int(mdb.Spec.Replicas) {
+	if podsUpdated >= int(mdb.Spec.Replicas) {
 		condition.SetUpdated(&mdb.Status)
 	} else if podsUpdated > 0 {
 		conditions.SetUpdating(&mdb.Status)
