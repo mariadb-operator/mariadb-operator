@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
@@ -281,20 +280,18 @@ type MaxScaleConfig struct {
 }
 
 func (m *MaxScaleConfig) SetDefaults(mxs *MaxScale) {
-	if reflect.ValueOf(m.VolumeClaimTemplate).IsZero() {
-		m.VolumeClaimTemplate = VolumeClaimTemplate{
-			PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-				Resources: corev1.VolumeResourceRequirements{
-					Requests: corev1.ResourceList{
-						"storage": resource.MustParse("100Mi"),
-					},
-				},
-				AccessModes: []corev1.PersistentVolumeAccessMode{
-					corev1.ReadWriteOnce,
-				},
-			},
-		}
+	if m.VolumeClaimTemplate.Resources.Requests == nil {
+		m.VolumeClaimTemplate.Resources.Requests = make(corev1.ResourceList)
 	}
+
+	if _, exit := m.VolumeClaimTemplate.Resources.Requests["storage"]; !exit {
+		m.VolumeClaimTemplate.Resources.Requests["storage"] = resource.MustParse("100Mi")
+	}
+
+	if len(m.VolumeClaimTemplate.AccessModes) == 0 {
+		m.VolumeClaimTemplate.AccessModes = append(m.VolumeClaimTemplate.AccessModes, corev1.ReadWriteOnce)
+	}
+
 	if mxs.IsHAEnabled() {
 		if m.Sync == nil {
 			m.Sync = &MaxScaleConfigSync{}
