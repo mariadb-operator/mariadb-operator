@@ -7,13 +7,18 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	conditions "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
-	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
+	stspkg "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,6 +68,11 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
 			return nil
 		}
+
+		if err := r.setUpdatedCondition(ctx, mdb); err != nil {
+			return err
+		}
+
 		condition.SetReadyWithMariaDB(&mdb.Status, &sts, mdb)
 		return nil
 	})
@@ -83,7 +93,7 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 	replicationStatus := make(mariadbv1alpha1.ReplicationStatus)
 	logger := log.FromContext(ctx)
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
-		pod := stsobj.PodName(mdb.ObjectMeta, i)
+		pod := stspkg.PodName(mdb.ObjectMeta, i)
 
 		client, err := clientSet.ClientForIndex(ctx, i)
 		if err != nil {
@@ -141,6 +151,49 @@ func (r *MariaDBReconciler) getInitJob(ctx context.Context, mdb *mariadbv1alpha1
 	return &job, nil
 }
 
+func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+	key := client.ObjectKeyFromObject(mdb)
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, key, &sts); err != nil {
+		return err
+	}
+
+	stsUpdateRevision := sts.Status.UpdateRevision
+	if stsUpdateRevision == "" {
+		return nil
+	}
+
+	list := corev1.PodList{}
+	listOpts := &client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mdb).
+				Build(),
+		),
+		Namespace: mdb.GetNamespace(),
+	}
+	if err := r.List(ctx, &list, listOpts); err != nil {
+		return fmt.Errorf("error listing Pods: %v", err)
+	}
+
+	podsUpdated := 0
+	for _, pod := range list.Items {
+		if podpkg.PodUpdated(&pod, stsUpdateRevision) {
+			podsUpdated++
+		}
+	}
+	log.FromContext(ctx).V(1).Info("Pods updated", "pods", podsUpdated)
+
+	if podsUpdated == int(mdb.Spec.Replicas) {
+		condition.SetUpdated(&mdb.Status)
+	} else if podsUpdated > 0 {
+		conditions.SetUpdating(&mdb.Status)
+	} else {
+		conditions.SetPendingUpdate(&mdb.Status)
+	}
+	return nil
+}
+
 func podIndexForServer(serverName string, mxs *mariadbv1alpha1.MaxScale, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
 	var server *mariadbv1alpha1.MaxScaleServer
 	for _, srv := range mxs.Spec.Servers {
@@ -154,7 +207,7 @@ func podIndexForServer(serverName string, mxs *mariadbv1alpha1.MaxScale, mdb *ma
 	}
 
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
-		address := stsobj.PodFQDNWithService(mdb.ObjectMeta, i, mdb.InternalServiceKey().Name)
+		address := stspkg.PodFQDNWithService(mdb.ObjectMeta, i, mdb.InternalServiceKey().Name)
 		if server.Address == address {
 			return &i, nil
 		}
@@ -176,7 +229,7 @@ func defaultPrimary(mdb *mariadbv1alpha1.MariaDB) {
 		podIndex = ptr.Deref(primaryReplication.PodIndex, 0)
 	}
 	mdb.Status.CurrentPrimaryPodIndex = &podIndex
-	mdb.Status.CurrentPrimary = ptr.To(stsobj.PodName(mdb.ObjectMeta, podIndex))
+	mdb.Status.CurrentPrimary = ptr.To(stspkg.PodName(mdb.ObjectMeta, podIndex))
 }
 
 func setMaxScalePrimary(mdb *mariadbv1alpha1.MariaDB, podIndex *int) {
@@ -184,5 +237,5 @@ func setMaxScalePrimary(mdb *mariadbv1alpha1.MariaDB, podIndex *int) {
 		return
 	}
 	mdb.Status.CurrentPrimaryPodIndex = podIndex
-	mdb.Status.CurrentPrimary = ptr.To(stsobj.PodName(mdb.ObjectMeta, *podIndex))
+	mdb.Status.CurrentPrimary = ptr.To(stspkg.PodName(mdb.ObjectMeta, *podIndex))
 }
