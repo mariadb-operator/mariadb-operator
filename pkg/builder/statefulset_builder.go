@@ -125,11 +125,11 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 }
 
 func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) appsv1.StatefulSetUpdateStrategy {
-	switch mdb.Spec.Updates.Type {
+	switch mdb.Spec.UpdateStrategy.Type {
 	case mariadbv1alpha1.RollingUpdateUpdateType:
 		return appsv1.StatefulSetUpdateStrategy{
 			Type:          appsv1.RollingUpdateStatefulSetStrategyType,
-			RollingUpdate: mdb.Spec.Updates.RollingUpdate,
+			RollingUpdate: mdb.Spec.UpdateStrategy.RollingUpdate,
 		}
 	case mariadbv1alpha1.OnDeleteUpdateType:
 		return appsv1.StatefulSetUpdateStrategy{
@@ -138,7 +138,7 @@ func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) appsv1.StatefulSetUpdat
 	default:
 		return appsv1.StatefulSetUpdateStrategy{
 			Type:          appsv1.RollingUpdateStatefulSetStrategyType,
-			RollingUpdate: mdb.Spec.Updates.RollingUpdate,
+			RollingUpdate: mdb.Spec.UpdateStrategy.RollingUpdate,
 		}
 	}
 }

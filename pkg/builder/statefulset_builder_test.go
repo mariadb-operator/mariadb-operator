@@ -254,7 +254,7 @@ func TestMariaDBUpdateStrategy(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Updates: mariadbv1alpha1.Updates{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
 						Type: mariadbv1alpha1.OnDeleteUpdateType,
 					},
 				},
@@ -268,7 +268,7 @@ func TestMariaDBUpdateStrategy(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Updates: mariadbv1alpha1.Updates{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
 						Type: mariadbv1alpha1.RollingUpdateUpdateType,
 						RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
 							MaxUnavailable: ptr.To(intstr.FromInt(1)),

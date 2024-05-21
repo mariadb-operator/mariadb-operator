@@ -21723,13 +21723,9 @@ spec:
                   - whenUnsatisfiable
                   type: object
                 type: array
-              updates:
-                description: Updates defines how a MariaDB resource is updated.
+              updateStrategy:
+                description: UpdateStrategy defines how a MariaDB resource is updated.
                 properties:
-                  enabled:
-                    description: Enabled is a flag to indicate whether the updates
-                      are enabled. It is set to true by default.
-                    type: boolean
                   rollingUpdate:
                     description: RollingUpdate defines parameters for the RollingUpdate
                       type.
