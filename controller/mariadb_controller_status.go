@@ -152,13 +152,9 @@ func (r *MariaDBReconciler) getInitJob(ctx context.Context, mdb *mariadbv1alpha1
 }
 
 func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
-		return err
-	}
-	stsUpdateRevision := sts.Status.UpdateRevision
-	if stsUpdateRevision == "" {
-		return nil
+	stsUpdateRevision, err := r.getStatefulSetRevision(ctx, mdb)
+	if err != nil {
+		return fmt.Errorf("error getting StatefulSet revision: %v", err)
 	}
 
 	list := corev1.PodList{}
@@ -192,6 +188,14 @@ func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariad
 		conditions.SetPendingUpdate(&mdb.Status)
 	}
 	return nil
+}
+
+func (r *MariaDBReconciler) getStatefulSetRevision(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (string, error) {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
+		return "", err
+	}
+	return sts.Status.UpdateRevision, nil
 }
 
 func podIndexForServer(serverName string, mxs *mariadbv1alpha1.MaxScale, mdb *mariadbv1alpha1.MariaDB) (*int, error) {

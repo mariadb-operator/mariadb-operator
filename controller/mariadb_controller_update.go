@@ -28,11 +28,10 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 	logger := log.FromContext(ctx).WithName("update")
 
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
-		return ctrl.Result{}, err
+	stsUpdateRevision, err := r.getStatefulSetRevision(ctx, mdb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting StatefulSet revision: %v", err)
 	}
-	stsUpdateRevision := sts.Status.UpdateRevision
 	if stsUpdateRevision == "" {
 		logger.V(1).Info("StatefulSet status.updateRevision not set. Requeuing...")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
@@ -49,9 +48,8 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 	logger.V(1).Info("Detected stale Pods that need updating", "pods", stalePodNames)
 
-	if sts.Status.ReadyReplicas != mdb.Spec.Replicas {
-		logger.V(1).Info("Waiting for all Pods to be ready to proceed with the update. Requeuing...")
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	if result, err := r.waitForReadyStatus(ctx, mdb, logger); !result.IsZero() || err != nil {
+		return result, err
 	}
 
 	for _, replicaPod := range podsByRole.replicas {
@@ -74,6 +72,29 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	logger.Info("Updating primary Pod", "pod", primaryPod.Name)
 	if err := r.updatePod(ctx, &primaryPod, stsUpdateRevision, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error updating primary Pod '%s': %v", primaryPod.Name, err)
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) waitForReadyStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
+		return ctrl.Result{}, err
+	}
+	if sts.Status.ReadyReplicas != mdb.Spec.Replicas {
+		logger.V(1).Info("Waiting for all Pods to be ready to proceed with the update. Requeuing...")
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	if mdb.IsMaxScaleEnabled() {
+		mxs, err := r.RefResolver.MaxScale(ctx, mdb.Spec.MaxScaleRef, mdb.Namespace)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !mxs.IsReady() {
+			logger.V(1).Info("Waiting for MaxScale to be ready to proceed with the update. Requeuing...")
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
 	}
 	return ctrl.Result{}, nil
 }
