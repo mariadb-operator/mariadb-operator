@@ -15,6 +15,7 @@ import (
 
 var _ = Describe("MaxScale types", func() {
 	format.MaxLength = 10000
+	storageClassName := "test-sc"
 	objMeta := metav1.ObjectMeta{
 		Name:      "maxscale-obj",
 		Namespace: "maxscale-obj",
@@ -109,6 +110,139 @@ var _ = Describe("MaxScale types", func() {
 									AccessModes: []corev1.PersistentVolumeAccessMode{
 										corev1.ReadWriteOnce,
 									},
+								},
+							},
+						},
+						Auth: MaxScaleAuth{
+							AdminUsername: "mariadb-operator",
+							AdminPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-admin",
+									},
+									Key: "password",
+								},
+								Generate: true,
+							},
+							DeleteDefaultAdmin: ptr.To(true),
+							ClientUsername:     "maxscale-obj-client",
+							ClientPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-client",
+									},
+									Key: "password",
+								},
+								Generate: true,
+							},
+							ClientMaxConnections: 30,
+							ServerUsername:       "maxscale-obj-server",
+							ServerPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-server",
+									},
+									Key: "password",
+								},
+								Generate: true,
+							},
+							ServerMaxConnections: 30,
+							MonitorUsername:      "maxscale-obj-monitor",
+							MonitorPasswordSecretKeyRef: GeneratedSecretKeyRef{
+								SecretKeySelector: corev1.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "maxscale-obj-monitor",
+									},
+									Key: "password",
+								},
+								Generate: true,
+							},
+							MonitorMaxConnections: 30,
+						},
+					},
+				},
+				env,
+			),
+			Entry(
+				"Custom config volumeClaimTemplate",
+				&MaxScale{
+					ObjectMeta: objMeta,
+					Spec: MaxScaleSpec{
+						Servers: []MaxScaleServer{
+							{
+								Name:    "mariadb-0",
+								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
+							},
+						},
+						Services: []MaxScaleService{
+							{
+								Name:   "rw-router",
+								Router: ServiceRouterReadWriteSplit,
+								Listener: MaxScaleListener{
+									Port: 3306,
+								},
+							},
+						},
+						Monitor: MaxScaleMonitor{
+							Module: MonitorModuleMariadb,
+						},
+						Config: MaxScaleConfig{
+							VolumeClaimTemplate: VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									StorageClassName: &storageClassName,
+								},
+							},
+						},
+					},
+				},
+				&MaxScale{
+					ObjectMeta: objMeta,
+					Spec: MaxScaleSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+						Image: env.RelatedMaxscaleImage,
+						Servers: []MaxScaleServer{
+							{
+								Name:     "mariadb-0",
+								Address:  "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
+								Port:     3306,
+								Protocol: "MariaDBBackend",
+							},
+						},
+						RequeueInterval: &metav1.Duration{Duration: 10 * time.Second},
+						Services: []MaxScaleService{
+							{
+								Name:   "rw-router",
+								Router: ServiceRouterReadWriteSplit,
+								Listener: MaxScaleListener{
+									Name:     "rw-router-listener",
+									Port:     3306,
+									Protocol: "MariaDBProtocol",
+								},
+							},
+						},
+						Monitor: MaxScaleMonitor{
+							Name:     "mariadbmon-monitor",
+							Module:   MonitorModuleMariadb,
+							Interval: metav1.Duration{Duration: 2 * time.Second},
+						},
+						Admin: MaxScaleAdmin{
+							Port:       8989,
+							GuiEnabled: ptr.To(true),
+						},
+						Config: MaxScaleConfig{
+							VolumeClaimTemplate: VolumeClaimTemplate{
+								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.VolumeResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("100Mi"),
+										},
+									},
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
+									StorageClassName: &storageClassName,
 								},
 							},
 						},
