@@ -1,4 +1,4 @@
-##@ OLM
+##@ OpenShift
 
 ifneq ($(origin CHANNELS), undefined)
 BUNDLE_CHANNELS := --channels=$(CHANNELS)
@@ -46,13 +46,13 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG_ENT)
 	$(YQ) e -i '.spec.template.spec.containers[0].env[0].value = "$(RELATED_IMAGE_MARIADB_ENT)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[1].value = "$(RELATED_IMAGE_MAXSCALE)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[2].value = "$(RELATED_IMAGE_EXPORTER)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[3].value = "$(RELATED_IMAGE_EXPORTER_MAXSCALE)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[1].value = "$(RELATED_IMAGE_MAXSCALE_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[2].value = "$(RELATED_IMAGE_EXPORTER_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[3].value = "$(RELATED_IMAGE_EXPORTER_MAXSCALE_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[4].value = "$(IMG_ENT)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[5].value = "$(MARIADB_GALERA_ENT_INIT_IMAGE)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[6].value = "$(MARIADB_GALERA_ENT_AGENT_IMAGE)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[7].value = "$(MARIADB_GALERA_ENT_LIB_PATH)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[5].value = "$(MARIADB_GALERA_INIT_IMAGE_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[6].value = "$(MARIADB_GALERA_AGENT_IMAGE_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[7].value = "$(MARIADB_GALERA_LIB_PATH_ENT)"' config/manager/manager.yaml
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(YQ) e -i '.metadata.annotations.containerImage = (.spec.relatedImages[] | select(.name == "mariadb-operator-enterprise").image)' bundle/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
 	$(MAKE) bundle-validate
@@ -102,9 +102,42 @@ preflight-bundle: preflight ## Run preflight tests on the bundle image and submi
 licenses: go-licenses ## Generate licenses folder.
 	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force
 
+.PHONY: openshift-ctx
+openshift-ctx: oc ## Sets OpenShift context.
+	$(OC) config use-context crc-admin
+
+OCP_REGISTRY_URL ?= https://index.docker.io/v1/
+.PHONY: openshift-registry
+openshift-registry-add: oc jq ## Add catalog registry in OpenShift global config.
+	$(OC) extract secret/pull-secret -n openshift-config --confirm
+	@cat .dockerconfigjson | $(JQ) -c \
+		--argjson registryauth '$(shell cat $(DOCKER_CONFIG) | $(JQ) '.auths["$(OCP_REGISTRY_URL)"]')' '.auths["$(OCP_REGISTRY_URL)"] |= . + $$registryauth' \
+		> .new_dockerconfigjson 
+	$(OC) set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=.new_dockerconfigjson 
+	@rm .dockerconfigjson .new_dockerconfigjson 
+
+.PHONY: openshift-registry
+openshift-registry: ## Setup registries in OpenShift global config.
+	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=https://index.docker.io/v1/
+	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=us-central1-docker.pkg.dev
+
 CERTIFIED_REPO ?= "https://github.com/mariadb-operator/certified-operators"
 CERTIFIED_BRANCH ?= cert-test
 BUNDLE_PATH ?= "operators/mariadb-operator/${VERSION}"
-.PHONY: cert-test
-cert-test: openshift-registry ## Run certification tests in OpenShift.
+.PHONY: openshift-cert-test
+openshift-cert-test: openshift-ctx openshift-registry ## Run certification tests.
 	CERTIFIED_REPO=$(CERTIFIED_REPO) CERTIFIED_BRANCH=$(CERTIFIED_BRANCH) BUNDLE_PATH=$(BUNDLE_PATH) ./hack/certification_test.sh 
+
+.PHONY: openshift-minio
+openshift-minio: openshift-ctx cert-minio ## Deploy minio.
+	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
+	$(OC) apply -f examples/manifests/config/minio-secret.yaml -n openshift-operators 
+	$(OC) create secret generic minio-ca \
+		--from-file=ca.crt=$(CA_DIR)/tls.crt \
+		--dry-run=client -o yaml -n openshift-operators | $(OC) apply -f -
+
+.PHONY: openshift-catalog
+openshift-catalog: docker-build-ent docker-push-ent bundle bundle-build bundle-push catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy images needed for the catalog.
+
+.PHONY: openshift-deploy
+openshift-deploy: openshift-registry openshift-minio openshift-catalog ## Deploy dependencies to test mariadb-operator.

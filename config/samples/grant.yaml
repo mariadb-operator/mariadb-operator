@@ -9,11 +9,8 @@ spec:
     - "SELECT"
     - "INSERT"
     - "UPDATE"
-    # - "ALL PRIVILEGES"
   database: "*"
   table: "*"
-  username: user
+  username: my-user
   grantOption: true
   host: "%"
-  requeueInterval: 30s
-  retryInterval: 5s

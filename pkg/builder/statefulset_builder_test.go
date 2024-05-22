@@ -5,14 +5,17 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestMariadbImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "mariadb-image-pull-secrets",
 		Namespace: "test",
@@ -67,7 +70,7 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 }
 
 func TestMaxScaleImagePullSecrets(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "maxscale-image-pull-secrets",
 		Namespace: "test",
@@ -122,7 +125,7 @@ func TestMaxScaleImagePullSecrets(t *testing.T) {
 }
 
 func TestMariaDBStatefulSetMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
@@ -228,8 +231,72 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 	}
 }
 
+func TestMariaDBUpdateStrategy(t *testing.T) {
+	objMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name               string
+		mariadb            *mariadbv1alpha1.MariaDB
+		wantUpdateStrategy appsv1.StatefulSetUpdateStrategy
+	}{
+		{
+			name: "empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+			},
+			wantUpdateStrategy: appsv1.StatefulSetUpdateStrategy{
+				Type: appsv1.RollingUpdateStatefulSetStrategyType,
+			},
+		},
+		{
+			name: "on delete",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.OnDeleteUpdateType,
+					},
+				},
+			},
+			wantUpdateStrategy: appsv1.StatefulSetUpdateStrategy{
+				Type: appsv1.OnDeleteStatefulSetStrategyType,
+			},
+		},
+		{
+			name: "rolling update",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.RollingUpdateUpdateType,
+						RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+							MaxUnavailable: ptr.To(intstr.FromInt(1)),
+						},
+					},
+				},
+			},
+			wantUpdateStrategy: appsv1.StatefulSetUpdateStrategy{
+				Type: appsv1.RollingUpdateStatefulSetStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+					MaxUnavailable: ptr.To(intstr.FromInt(1)),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stsStategy := mariadbUpdateStrategy(tt.mariadb)
+			if !reflect.DeepEqual(tt.wantUpdateStrategy, stsStategy) {
+				t.Errorf("expecting mariadbUpdateStrategy returned value to be:\n%v\ngot:\n%v\n", tt.wantUpdateStrategy, stsStategy)
+			}
+		})
+	}
+}
+
 func TestMaxScaleStatefulSetMeta(t *testing.T) {
-	builder := newTestBuilder(t)
+	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name: "maxscale-obj",
 	}

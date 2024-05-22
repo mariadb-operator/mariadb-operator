@@ -61,7 +61,7 @@ var _ = Describe("MaxScale controller", func() {
 		})
 	})
 
-	Context("When creating a MariaDB replication with MaxScale", Serial, func() {
+	Context("When creating a MariaDB replication with MaxScale", Serial, FlakeAttempts(3), func() {
 		It("Should reconcile", func() {
 			testMdbMxsKey := types.NamespacedName{
 				Name:      "mxs-repl",

@@ -20,7 +20,7 @@ type DatabaseSpec struct {
 	// +kubebuilder:default=utf8
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CharacterSet string `json:"characterSet,omitempty" webhook:"inmutable"`
-	// CharacterSet to use in the Database.
+	// Collate to use in the Database.
 	// +optional
 	// +kubebuilder:default=utf8_general_ci
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

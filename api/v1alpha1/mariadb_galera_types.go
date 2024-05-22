@@ -247,7 +247,7 @@ type GaleraConfig struct {
 	// ReuseStorageVolume indicates that storage volume used by MariaDB should be reused to store the Galera configuration files.
 	// It defaults to false, which implies that a dedicated volume for the Galera configuration files is provisioned.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	ReuseStorageVolume *bool `json:"reuseStorageVolume,omitempty" webhook:"inmutableinit"`
 	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB.
 	// +optional
@@ -330,53 +330,53 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
 type GaleraSpec struct {
 	// Primary is the Galera configuration for the primary node.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Primary PrimaryGalera `json:"primary,omitempty"`
 	// SST is the Snapshot State Transfer used when new Pods join the cluster.
 	// More info: https://galeracluster.com/library/documentation/sst.html.
 	// +optional
 	// +kubebuilder:validation:Enum=rsync;mariabackup;mysqldump
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SST SST `json:"sst,omitempty"`
 	// AvailableWhenDonor indicates whether a donor node should be responding to queries. It defaults to false.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	AvailableWhenDonor *bool `json:"availableWhenDonor,omitempty"`
 	// GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided.
 	// More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GaleraLibPath string `json:"galeraLibPath,omitempty"`
 	// ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.
 	// More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ReplicaThreads int `json:"replicaThreads,omitempty"`
 	// ProviderOptions is map of Galera configuration parameters.
 	// More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ProviderOptions map[string]string `json:"providerOptions,omitempty"`
 	// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Agent GaleraAgent `json:"agent,omitempty"`
 	// GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
 	// More info: https://galeracluster.com/library/documentation/crash-recovery.html.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Recovery *GaleraRecovery `json:"recovery,omitempty"`
 	// InitContainer is an init container that co-operates with mariadb-operator.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InitContainer Container `json:"initContainer,omitempty"`
 	// InitJob defines additional properties for the Job used to perform the initialization.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InitJob *Job `json:"initJob,omitempty"`
 	// GaleraConfig defines storage options for the Galera configuration files.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Config GaleraConfig `json:"config,omitempty"`
 }
 

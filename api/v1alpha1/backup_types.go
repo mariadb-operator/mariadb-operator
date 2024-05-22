@@ -78,26 +78,26 @@ type BackupSpec struct {
 	// If not provided, it will default to true when the referred MariaDB instance has Galera enabled and otherwise to false.
 	// See: https://github.com/mariadb-operator/mariadb-operator/issues/556
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	IgnoreGlobalPriv *bool `json:"ignoreGlobalPriv,omitempty"`
 	// LogLevel to be used n the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	LogLevel string `json:"logLevel,omitempty"`
 	// BackoffLimit defines the maximum number of attempts to successfully take a Backup.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	BackoffLimit int32 `json:"backoffLimit,omitempty"`
 	// RestartPolicy to be added to the Backup Pod.
 	// +optional
 	// +kubebuilder:default=OnFailure
 	// +kubebuilder:validation:Enum=Always;OnFailure;Never
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RestartPolicy corev1.RestartPolicy `json:"restartPolicy,omitempty" webhook:"inmutable"`
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
 }
 
