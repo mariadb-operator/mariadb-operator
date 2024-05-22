@@ -55,6 +55,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -103,6 +106,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -130,6 +136,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -186,6 +195,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -249,6 +261,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -295,6 +310,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -350,6 +368,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -403,6 +424,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -490,6 +514,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -558,6 +585,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
+						},
 					},
 				},
 				env,
@@ -612,6 +642,9 @@ var _ = Describe("MariaDB types", func() {
 									StorageClassName: ptr.To("my-class"),
 								},
 							},
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -693,6 +726,49 @@ var _ = Describe("MariaDB types", func() {
 								},
 							},
 						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
+						},
+					},
+				},
+				env,
+			),
+			Entry(
+				"updates",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						UpdateStrategy: UpdateStrategy{
+							Type: OnDeleteUpdateType,
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: OnDeleteUpdateType,
+						},
 					},
 				},
 				env,
@@ -727,6 +803,9 @@ var _ = Describe("MariaDB types", func() {
 						Port: 3306,
 						Storage: Storage{
 							Ephemeral: ptr.To(true),
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
 						},
 					},
 				},
@@ -763,6 +842,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: RollingUpdateUpdateType,
 						},
 						PodTemplate: PodTemplate{
 							ServiceAccountName: &objMeta.Name,
@@ -852,6 +934,9 @@ var _ = Describe("MariaDB types", func() {
 									StorageClassName: ptr.To("my-class"),
 								},
 							},
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: OnDeleteUpdateType,
 						},
 						PodTemplate: PodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
@@ -952,6 +1037,9 @@ var _ = Describe("MariaDB types", func() {
 									StorageClassName: ptr.To("my-class"),
 								},
 							},
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type: OnDeleteUpdateType,
 						},
 						PodTemplate: PodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),

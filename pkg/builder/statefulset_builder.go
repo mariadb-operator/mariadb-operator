@@ -76,7 +76,7 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 			ServiceName:         mariadb.InternalServiceKey().Name,
 			Replicas:            &mariadb.Spec.Replicas,
 			PodManagementPolicy: appsv1.ParallelPodManagement,
-			UpdateStrategy:      statefulSetUpdateStrategy(mariadb.Spec.UpdateStrategy),
+			UpdateStrategy:      mariadbUpdateStrategy(mariadb),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -122,6 +122,25 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 		return nil, fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
 	return sts, nil
+}
+
+func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) appsv1.StatefulSetUpdateStrategy {
+	switch mdb.Spec.UpdateStrategy.Type {
+	case mariadbv1alpha1.RollingUpdateUpdateType:
+		return appsv1.StatefulSetUpdateStrategy{
+			Type:          appsv1.RollingUpdateStatefulSetStrategyType,
+			RollingUpdate: mdb.Spec.UpdateStrategy.RollingUpdate,
+		}
+	case mariadbv1alpha1.OnDeleteUpdateType:
+		return appsv1.StatefulSetUpdateStrategy{
+			Type: appsv1.OnDeleteStatefulSetStrategyType,
+		}
+	default:
+		return appsv1.StatefulSetUpdateStrategy{
+			Type:          appsv1.RollingUpdateStatefulSetStrategyType,
+			RollingUpdate: mdb.Spec.UpdateStrategy.RollingUpdate,
+		}
+	}
 }
 
 func statefulSetUpdateStrategy(strategy *appsv1.StatefulSetUpdateStrategy) appsv1.StatefulSetUpdateStrategy {

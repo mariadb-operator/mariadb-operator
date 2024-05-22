@@ -289,6 +289,45 @@ type BootstrapFrom struct {
 	RestoreJob *Job `json:"restoreJob,omitempty"`
 }
 
+// UpdateType defines the type of update for a MariaDB resource.
+type UpdateType string
+
+const (
+	// RollingUpdateUpdateType indicates that update will be
+	// applied to all Pods in the StatefulSet with respect to the StatefulSet
+	// ordering constraints. When a scale operation is performed with this
+	// strategy, new Pods will be created from the specification version indicated
+	// by the StatefulSet's updateRevision.
+	RollingUpdateUpdateType UpdateType = "RollingUpdate"
+	// OnDeleteUpdateType triggers the legacy behavior. Version
+	// tracking and ordered rolling restarts are disabled. Pods are recreated
+	// from the StatefulSetSpec when they are manually deleted. When a scale
+	// operation is performed with this strategy,specification version indicated
+	// by the StatefulSet's currentRevision.
+	OnDeleteUpdateType UpdateType = "OnDelete"
+)
+
+// UpdateStrategy defines how a MariaDB resource is updated.
+type UpdateStrategy struct {
+	// Type defines the type of updates. One of `RollingUpdate` or `OnDelete`. If not defined, it defaults to `RollingUpdate`.
+	// +optional
+	// +kubebuilder:default=RollingUpdate
+	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Type UpdateType `json:"type,omitempty"`
+	// RollingUpdate defines parameters for the RollingUpdate type.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	RollingUpdate *appsv1.RollingUpdateStatefulSetStrategy `json:"rollingUpdate,omitempty"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (u *UpdateStrategy) SetDefaults() {
+	if u.Type == "" {
+		u.Type = RollingUpdateUpdateType
+	}
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -385,10 +424,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PodDisruptionBudget *PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
-	// PodDisruptionBudget defines the update strategy for the StatefulSet object.
+	// UpdateStrategy defines how a MariaDB resource is updated.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	UpdateStrategy UpdateStrategy `json:"updateStrategy,omitempty"`
 	// Service defines templates to configure the general Service object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -527,6 +566,11 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 	if m.IsGaleraEnabled() {
 		m.Spec.Galera.SetDefaults(m, env)
 	}
+
+	if m.Spec.UpdateStrategy == (UpdateStrategy{}) {
+		m.Spec.UpdateStrategy.SetDefaults()
+	}
+
 	m.Spec.Storage.SetDefaults()
 	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
 }
@@ -607,6 +651,24 @@ func (m *MariaDB) IsWaitingForStorageResize() bool {
 		return false
 	}
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonWaitStorageResize
+}
+
+// HasPendingUpdate indicates that MariaDB has a pending update.
+func (m *MariaDB) HasPendingUpdate() bool {
+	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeUpdated)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonPendingUpdate
+}
+
+// IsUpdating indicates that a MariaDB update is in progress.
+func (m *MariaDB) IsUpdating() bool {
+	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeUpdated)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonUpdating
 }
 
 // +kubebuilder:object:root=true
