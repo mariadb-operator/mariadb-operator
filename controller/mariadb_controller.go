@@ -313,7 +313,14 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
-	return ctrl.Result{}, r.StatefulSetReconciler.Reconcile(ctx, desiredSts)
+	if err := r.StatefulSetReconciler.Reconcile(ctx, desiredSts); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling StatefulSet: %v", err)
+	}
+
+	if result, err := r.reconcileUpdates(ctx, mariadb); !result.IsZero() || err != nil {
+		return result, err
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {

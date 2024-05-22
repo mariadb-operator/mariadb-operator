@@ -152,12 +152,10 @@ func (r *MariaDBReconciler) getInitJob(ctx context.Context, mdb *mariadbv1alpha1
 }
 
 func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
-	key := client.ObjectKeyFromObject(mdb)
 	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, key, &sts); err != nil {
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
 		return err
 	}
-
 	stsUpdateRevision := sts.Status.UpdateRevision
 	if stsUpdateRevision == "" {
 		return nil
@@ -182,13 +180,15 @@ func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariad
 			podsUpdated++
 		}
 	}
-	log.FromContext(ctx).V(1).Info("Pods updated", "pods", podsUpdated)
 
 	if podsUpdated >= int(mdb.Spec.Replicas) {
+		log.FromContext(ctx).V(1).Info("MariaDB is up to date")
 		condition.SetUpdated(&mdb.Status)
 	} else if podsUpdated > 0 {
+		log.FromContext(ctx).V(1).Info("MariaDB update in progress")
 		conditions.SetUpdating(&mdb.Status)
 	} else {
+		log.FromContext(ctx).V(1).Info("MariaDB has a pending update")
 		conditions.SetPendingUpdate(&mdb.Status)
 	}
 	return nil
