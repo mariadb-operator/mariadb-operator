@@ -30,7 +30,7 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 
 	stsUpdateRevision, err := r.getStatefulSetRevision(ctx, mdb)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting StatefulSet revision: %v", err)
+		return ctrl.Result{}, err
 	}
 	if stsUpdateRevision == "" {
 		logger.V(1).Info("StatefulSet status.updateRevision not set. Requeuing...")
@@ -151,6 +151,10 @@ func (r *MariaDBReconciler) getPodsByRole(ctx context.Context, mdb *mariadbv1alp
 		logger.V(1).Info("MariaDB status.currentPrimary not set. Requeuing...")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	if mdb.Spec.Replicas == 0 {
+		logger.V(1).Info("MariaDB is downscaled. Requeuing...")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
 
 	list := corev1.PodList{}
 	listOpts := &client.ListOptions{
@@ -181,7 +185,7 @@ func (r *MariaDBReconciler) getPodsByRole(ctx context.Context, mdb *mariadbv1alp
 			replicas = append(replicas, pod)
 		}
 	}
-	if len(replicas) == 0 {
+	if mdb.IsHAEnabled() && len(replicas) == 0 {
 		return ctrl.Result{}, errors.New("no replica Pods found")
 	}
 	if primary == nil {
