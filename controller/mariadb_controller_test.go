@@ -394,14 +394,10 @@ var _ = Describe("MariaDB controller", func() {
 	Context("When updating a MariaDB", func() {
 		It("Should reconcile", func() {
 			By("Creating MariaDB")
-			updateMariaDBKey := types.NamespacedName{
-				Name:      "test-update-mariadb",
-				Namespace: testNamespace,
-			}
-			updateMariaDB := mariadbv1alpha1.MariaDB{
+			mdb := mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      updateMariaDBKey.Name,
-					Namespace: updateMariaDBKey.Namespace,
+					Name:      "test-update-mariadb",
+					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Storage: mariadbv1alpha1.Storage{
@@ -409,44 +405,7 @@ var _ = Describe("MariaDB controller", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &updateMariaDB)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMariaDB(&updateMariaDB)
-			})
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
-					return false
-				}
-				return updateMariaDB.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Updating MariaDB image")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
-					return false
-				}
-				updateMariaDB.Spec.Image = "mariadb:lts"
-				return k8sClient.Update(testCtx, &updateMariaDB) == nil
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting image to be updated in StatefulSet eventually")
-			Eventually(func() bool {
-				var sts appsv1.StatefulSet
-				if err := k8sClient.Get(testCtx, updateMariaDBKey, &sts); err != nil {
-					return false
-				}
-				return sts.Spec.Template.Spec.Containers[0].Image == "mariadb:lts"
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, updateMariaDBKey, &updateMariaDB); err != nil {
-					return false
-				}
-				return updateMariaDB.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
+			testMariadbUpdate(&mdb, "mariadb:lts")
 		})
 	})
 })
@@ -1219,5 +1178,47 @@ func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.Re
 			return false
 		}
 		return mdb.HasRestoredBackup()
+	}, testTimeout, testInterval).Should(BeTrue())
+}
+
+func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, updateVersion string) {
+	key := client.ObjectKeyFromObject(mdb)
+	Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+	DeferCleanup(func() {
+		deleteMariaDB(mdb)
+	})
+
+	By("Expecting MariaDB to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+			return false
+		}
+		return mdb.IsReady()
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Updating MariaDB image")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+			return false
+		}
+		mdb.Spec.Image = updateVersion
+		return k8sClient.Update(testCtx, mdb) == nil
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting image to be updated in StatefulSet eventually")
+	Eventually(func() bool {
+		var sts appsv1.StatefulSet
+		if err := k8sClient.Get(testCtx, key, &sts); err != nil {
+			return false
+		}
+		return sts.Spec.Template.Spec.Containers[0].Image == updateVersion
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting MariaDB to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+			return false
+		}
+		return mdb.IsReady()
 	}, testTimeout, testInterval).Should(BeTrue())
 }
