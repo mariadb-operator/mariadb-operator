@@ -60,6 +60,7 @@ var _ = Describe("MariaDB controller", func() {
 				return testDefaultMariaDb.Spec.Image != ""
 			}, testTimeout, testInterval).Should(BeTrue())
 		})
+
 		It("Should reconcile", func() {
 			var testMariaDb mariadbv1alpha1.MariaDB
 			By("Getting MariaDB")
@@ -390,24 +391,6 @@ var _ = Describe("MariaDB controller", func() {
 			expectSecretToExist(testCtx, k8sClient, testPwdKey, testPwdSecretKey)
 		})
 	})
-
-	Context("When updating a MariaDB", func() {
-		It("Should reconcile", func() {
-			By("Creating MariaDB")
-			mdb := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-update-mariadb",
-					Namespace: testNamespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("300Mi")),
-					},
-				},
-			}
-			testMariadbUpdate(&mdb, "mariadb:lts")
-		})
-	})
 })
 
 var _ = Describe("MariaDB replication", func() {
@@ -506,6 +489,9 @@ var _ = Describe("MariaDB replication", func() {
 						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 							Key: &testConnSecretKey,
 						},
+					},
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
 					},
 				},
 			}
@@ -655,7 +641,8 @@ var _ = Describe("MariaDB replication", func() {
 				Name:      "maxscale-repl",
 				Namespace: testNamespace,
 			}
-			expectMariadbMaxScaleReady(&mdb, mxsKey)
+			testMariadbMaxscale(&mdb, mxsKey)
+			testMariadbUpdate(&mdb, "mariadb:lts")
 		})
 	})
 })
@@ -808,6 +795,9 @@ var _ = Describe("MariaDB Galera", func() {
 						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 							Key: &testConnSecretKey,
 						},
+					},
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
 					},
 				},
 			}
@@ -969,7 +959,8 @@ var _ = Describe("MariaDB Galera", func() {
 				Name:      "maxscale-galera",
 				Namespace: testNamespace,
 			}
-			expectMariadbMaxScaleReady(&mdb, mxsKey)
+			testMariadbMaxscale(&mdb, mxsKey)
+			testMariadbUpdate(&mdb, "mariadb:lts")
 		})
 
 		It("Should reconcile storage", Serial, func() {
@@ -1060,81 +1051,6 @@ var _ = Describe("MariaDB Galera", func() {
 	})
 })
 
-func expectMariadbMaxScaleReady(mdb *mariadbv1alpha1.MariaDB, mxsKey types.NamespacedName) {
-	mxs := mariadbv1alpha1.MaxScale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      mxsKey.Name,
-			Namespace: mxsKey.Namespace,
-		},
-		Spec: mariadbv1alpha1.MaxScaleSpec{
-			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
-					Name: client.ObjectKeyFromObject(mdb).Name,
-				},
-			},
-		},
-	}
-	By("Creating MaxScale")
-	Expect(k8sClient.Create(testCtx, &mxs)).To(Succeed())
-	DeferCleanup(func() {
-		deleteMaxScale(mxsKey, true)
-	})
-
-	By("Point MariaDB to MaxScale")
-	mdb.Spec.MaxScaleRef = &corev1.ObjectReference{
-		Name:      mxsKey.Name,
-		Namespace: mxsKey.Namespace,
-	}
-	Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
-
-	By("Expecting MariaDB to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), mdb); err != nil {
-			return false
-		}
-		return mdb.IsReady()
-	}, testHighTimeout, testInterval).Should(BeTrue())
-
-	By("Expecting MaxScale to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, mxsKey, &mxs); err != nil {
-			return false
-		}
-		return mxs.IsReady()
-	}, testHighTimeout, testInterval).Should(BeTrue())
-}
-
-func deploymentReady(deploy *appsv1.Deployment) bool {
-	for _, c := range deploy.Status.Conditions {
-		if c.Type == appsv1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
-
-func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
-	Expect(k8sClient.Delete(testCtx, mdb)).To(Succeed())
-
-	Eventually(func(g Gomega) bool {
-		listOpts := &client.ListOptions{
-			LabelSelector: klabels.SelectorFromSet(
-				labels.NewLabelsBuilder().
-					WithMariaDBSelectorLabels(mdb).
-					Build(),
-			),
-			Namespace: mdb.GetNamespace(),
-		}
-		pvcList := &corev1.PersistentVolumeClaimList{}
-		g.Expect(k8sClient.List(testCtx, pvcList, listOpts)).To(Succeed())
-
-		for _, pvc := range pvcList.Items {
-			g.Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
-		}
-		return true
-	}, 30*time.Second, 1*time.Second).Should(BeTrue())
-}
-
 func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1181,12 +1097,52 @@ func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.Re
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
+func testMariadbMaxscale(mdb *mariadbv1alpha1.MariaDB, mxsKey types.NamespacedName) {
+	mxs := mariadbv1alpha1.MaxScale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mxsKey.Name,
+			Namespace: mxsKey.Namespace,
+		},
+		Spec: mariadbv1alpha1.MaxScaleSpec{
+			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+				ObjectReference: corev1.ObjectReference{
+					Name: client.ObjectKeyFromObject(mdb).Name,
+				},
+			},
+		},
+	}
+	By("Creating MaxScale")
+	Expect(k8sClient.Create(testCtx, &mxs)).To(Succeed())
+	DeferCleanup(func() {
+		deleteMaxScale(mxsKey, true)
+	})
+
+	By("Point MariaDB to MaxScale")
+	mdb.Spec.MaxScaleRef = &corev1.ObjectReference{
+		Name:      mxsKey.Name,
+		Namespace: mxsKey.Namespace,
+	}
+	Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+
+	By("Expecting MariaDB to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), mdb); err != nil {
+			return false
+		}
+		return mdb.IsReady()
+	}, testHighTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting MaxScale to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, mxsKey, &mxs); err != nil {
+			return false
+		}
+		return mxs.IsReady()
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
 func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, updateVersion string) {
 	key := client.ObjectKeyFromObject(mdb)
-	Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
-	DeferCleanup(func() {
-		deleteMariaDB(mdb)
-	})
 
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
@@ -1214,11 +1170,45 @@ func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, updateVersion string) {
 		return sts.Spec.Template.Spec.Containers[0].Image == updateVersion
 	}, testTimeout, testInterval).Should(BeTrue())
 
-	By("Expecting MariaDB to be ready eventually")
+	By("Expecting MariaDB to be updated eventually")
 	Eventually(func() bool {
 		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 			return false
 		}
-		return mdb.IsReady()
-	}, testTimeout, testInterval).Should(BeTrue())
+		if !mdb.IsReady() {
+			return false
+		}
+		return meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeUpdated)
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func deploymentReady(deploy *appsv1.Deployment) bool {
+	for _, c := range deploy.Status.Conditions {
+		if c.Type == appsv1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
+	Expect(k8sClient.Delete(testCtx, mdb)).To(Succeed())
+
+	Eventually(func(g Gomega) bool {
+		listOpts := &client.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				labels.NewLabelsBuilder().
+					WithMariaDBSelectorLabels(mdb).
+					Build(),
+			),
+			Namespace: mdb.GetNamespace(),
+		}
+		pvcList := &corev1.PersistentVolumeClaimList{}
+		g.Expect(k8sClient.List(testCtx, pvcList, listOpts)).To(Succeed())
+
+		for _, pvc := range pvcList.Items {
+			g.Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
+		}
+		return true
+	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 }

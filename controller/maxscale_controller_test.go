@@ -151,8 +151,8 @@ var _ = Describe("MaxScale controller", func() {
 				return testMdbMxs.IsReady()
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
-			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
-			expecFailoverSuccess(&testMdbMxs)
+			testMaxscale(testMdbMxs.MaxScaleKey())
+			testMaxscaleFailover(&testMdbMxs)
 		})
 	})
 
@@ -246,8 +246,8 @@ var _ = Describe("MaxScale controller", func() {
 				return testMdbMxs.IsReady()
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
-			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
-			expecFailoverSuccess(&testMdbMxs)
+			testMaxscale(testMdbMxs.MaxScaleKey())
+			testMaxscaleFailover(&testMdbMxs)
 		})
 	})
 
@@ -311,13 +311,13 @@ var _ = Describe("MaxScale controller", func() {
 				return testMdbMxs.IsReady()
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
-			expectMaxScaleReady(testMdbMxs.MaxScaleKey())
-			expectMetricsReady(testMdbMxs.MaxScaleKey())
+			testMaxscale(testMdbMxs.MaxScaleKey())
+			testMaxScaleMetrics(testMdbMxs.MaxScaleKey())
 		})
 	})
 })
 
-func expectMaxScaleReady(key types.NamespacedName) {
+func testMaxscale(key types.NamespacedName) {
 	var mxs mariadbv1alpha1.MaxScale
 
 	By("Expecting MaxScale to be ready eventually")
@@ -443,7 +443,7 @@ func expectMaxScaleReady(key types.NamespacedName) {
 	}
 }
 
-func expectMetricsReady(key types.NamespacedName) {
+func testMaxScaleMetrics(key types.NamespacedName) {
 	var mxs mariadbv1alpha1.MaxScale
 
 	By("Expecting MaxScale to be ready eventually")
@@ -487,7 +487,7 @@ func expectMetricsReady(key types.NamespacedName) {
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
-func expecFailoverSuccess(mdb *mariadbv1alpha1.MariaDB) {
+func testMaxscaleFailover(mdb *mariadbv1alpha1.MariaDB) {
 	var (
 		mxs             mariadbv1alpha1.MaxScale
 		previousPrimary string
