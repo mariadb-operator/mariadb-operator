@@ -72,7 +72,6 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		if err := r.setUpdatedCondition(ctx, mdb); err != nil {
 			return err
 		}
-
 		condition.SetReadyWithMariaDB(&mdb.Status, &sts, mdb)
 		return nil
 	})
@@ -154,7 +153,10 @@ func (r *MariaDBReconciler) getInitJob(ctx context.Context, mdb *mariadbv1alpha1
 func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
 	stsUpdateRevision, err := r.getStatefulSetRevision(ctx, mdb)
 	if err != nil {
-		return fmt.Errorf("error getting StatefulSet revision: %v", err)
+		return err
+	}
+	if stsUpdateRevision == "" {
+		return nil
 	}
 
 	list := corev1.PodList{}
@@ -177,14 +179,16 @@ func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariad
 		}
 	}
 
+	logger := log.FromContext(ctx)
+
 	if podsUpdated >= int(mdb.Spec.Replicas) {
-		log.FromContext(ctx).V(1).Info("MariaDB is up to date")
+		logger.V(1).Info("MariaDB is up to date")
 		condition.SetUpdated(&mdb.Status)
 	} else if podsUpdated > 0 {
-		log.FromContext(ctx).V(1).Info("MariaDB update in progress")
+		logger.V(1).Info("MariaDB update in progress")
 		conditions.SetUpdating(&mdb.Status)
 	} else {
-		log.FromContext(ctx).V(1).Info("MariaDB has a pending update")
+		logger.V(1).Info("MariaDB has a pending update")
 		conditions.SetPendingUpdate(&mdb.Status)
 	}
 	return nil
