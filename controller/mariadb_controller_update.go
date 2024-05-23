@@ -52,10 +52,6 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return result, err
 	}
 
-	// TODO: stop monitor
-	// TODO: defer updateMonitorState
-	// TODO: on the MaxScale side: avoid updateMonitorState when Update in progress
-
 	for _, replicaPod := range podsByRole.replicas {
 		if podpkg.PodUpdated(&replicaPod, stsUpdateRevision) {
 			logger.V(1).Info("Replica Pod up to date", "pod", replicaPod.Name)
@@ -73,8 +69,6 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		logger.V(1).Info("Primary Pod up to date", "pod", primaryPod.Name)
 		return ctrl.Result{}, nil
 	}
-
-	// TODO: switchover or restart primary
 
 	logger.Info("Updating primary Pod", "pod", primaryPod.Name)
 	if err := r.updatePod(ctx, &primaryPod, stsUpdateRevision, logger); err != nil {
