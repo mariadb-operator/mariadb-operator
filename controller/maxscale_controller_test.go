@@ -133,6 +133,9 @@ var _ = Describe("MaxScale controller", func() {
 								Generate: false,
 							},
 						},
+						Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+							Enabled: true,
+						},
 					},
 				},
 			}
@@ -151,7 +154,10 @@ var _ = Describe("MaxScale controller", func() {
 				return testMdbMxs.IsReady()
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
+			By("Expecting MaxScale to reconcile")
 			testMaxscale(testMdbMxs.MaxScaleKey())
+
+			By("Failing over MaxScale")
 			testMaxscaleFailover(&testMdbMxs)
 		})
 	})
@@ -228,6 +234,9 @@ var _ = Describe("MaxScale controller", func() {
 								Generate: false,
 							},
 						},
+						Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+							Enabled: true,
+						},
 					},
 				},
 			}
@@ -246,73 +255,11 @@ var _ = Describe("MaxScale controller", func() {
 				return testMdbMxs.IsReady()
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
+			By("Expecting MaxScale to reconcile")
 			testMaxscale(testMdbMxs.MaxScaleKey())
+
+			By("Failing over MaxScale")
 			testMaxscaleFailover(&testMdbMxs)
-		})
-	})
-
-	Context("When creating a MariaDB with MaxScale with metrics", Serial, func() {
-		It("Should reconcile", func() {
-			testMdbMxsKey := types.NamespacedName{
-				Name:      "mxs-metrics",
-				Namespace: testNamespace,
-			}
-			testMdbMxs := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testMdbMxsKey.Name,
-					Namespace: testMdbMxsKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("300Mi")),
-					},
-					Service: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Metadata: &mariadbv1alpha1.Metadata{
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.86",
-							},
-						},
-					},
-					MaxScale: &mariadbv1alpha1.MariaDBMaxScaleSpec{
-						Enabled: true,
-						KubernetesService: &mariadbv1alpha1.ServiceTemplate{
-							Type: corev1.ServiceTypeLoadBalancer,
-							Metadata: &mariadbv1alpha1.Metadata{
-								Annotations: map[string]string{
-									"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.88",
-								},
-							},
-						},
-						Connection: &mariadbv1alpha1.ConnectionTemplate{
-							SecretName: ptr.To("mxs-metrics-conn"),
-							HealthCheck: &mariadbv1alpha1.HealthCheck{
-								Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
-							},
-						},
-						Metrics: &mariadbv1alpha1.MaxScaleMetrics{
-							Enabled: true,
-						},
-					},
-				},
-			}
-			By("Creating MariaDB with MaxScale")
-			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMariaDB(&testMdbMxs)
-				deleteMaxScale(testMdbMxs.MaxScaleKey(), true)
-			})
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, testMdbMxsKey, &testMdbMxs); err != nil {
-					return false
-				}
-				return testMdbMxs.IsReady()
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			testMaxscale(testMdbMxs.MaxScaleKey())
-			testMaxScaleMetrics(testMdbMxs.MaxScaleKey())
 		})
 	})
 })
@@ -441,18 +388,6 @@ func testMaxscale(key types.NamespacedName) {
 		}
 		expectSecretToExist(testCtx, k8sClient, key, secretKeyRef.keySelector.Key)
 	}
-}
-
-func testMaxScaleMetrics(key types.NamespacedName) {
-	var mxs mariadbv1alpha1.MaxScale
-
-	By("Expecting MaxScale to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, &mxs); err != nil {
-			return false
-		}
-		return mxs.IsReady()
-	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting to create a exporter Deployment eventually")
 	Eventually(func(g Gomega) bool {
