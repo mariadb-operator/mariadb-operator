@@ -189,7 +189,7 @@ var _ = Describe("MariaDB replication", func() {
 			testReplicationFailover(&mdb)
 
 			By("Updating MariaDB")
-			testMariadbUpdate(&mdb, "mariadb:lts")
+			testMariadbUpdate(&mdb, "500m")
 
 			By("Resizing MariaDB PVCs")
 			testMariadbVolumeResize(&mdb, "400Mi")

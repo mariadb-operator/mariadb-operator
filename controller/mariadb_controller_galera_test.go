@@ -281,7 +281,7 @@ var _ = Describe("MariaDB Galera", func() {
 			testGaleraClusterRecovery(&mdb)
 
 			By("Updating MariaDB")
-			testMariadbUpdate(&mdb, "mariadb:lts")
+			testMariadbUpdate(&mdb, "500m")
 
 			By("Resizing MariaDB PVCs")
 			testMariadbVolumeResize(&mdb, "400Mi")

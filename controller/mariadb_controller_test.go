@@ -436,25 +436,20 @@ func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.Re
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
-func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, updateVersion string) {
+func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, newCPUreq string) {
 	key := client.ObjectKeyFromObject(mdb)
 
-	By("Updating MariaDB image")
+	By("Updating MariaDB compute resources")
 	Eventually(func() bool {
 		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 			return false
 		}
-		mdb.Spec.Image = updateVersion
-		return k8sClient.Update(testCtx, mdb) == nil
-	}, testTimeout, testInterval).Should(BeTrue())
-
-	By("Expecting image to be updated in StatefulSet eventually")
-	Eventually(func() bool {
-		var sts appsv1.StatefulSet
-		if err := k8sClient.Get(testCtx, key, &sts); err != nil {
-			return false
+		mdb.Spec.Resources = &corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				"cpu": resource.MustParse(newCPUreq),
+			},
 		}
-		return sts.Spec.Template.Spec.Containers[0].Image == updateVersion
+		return k8sClient.Update(testCtx, mdb) == nil
 	}, testTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting MariaDB to be updated eventually")
