@@ -7,18 +7,13 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
-	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	policyv1 "k8s.io/api/policy/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -297,6 +292,7 @@ var _ = Describe("MariaDB controller", func() {
 				},
 				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 			}
+			By("Bootstrapping MariaDB from backup")
 			testMariadbBootstrap(key, restoreSource)
 		})
 
@@ -329,6 +325,7 @@ var _ = Describe("MariaDB controller", func() {
 				S3:                 testS3WithBucket("test-mariadb", "s3"),
 				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 			}
+			By("Bootstrapping MariaDB from S3")
 			testMariadbBootstrap(key, restoreSource)
 		})
 	})
@@ -393,664 +390,6 @@ var _ = Describe("MariaDB controller", func() {
 	})
 })
 
-var _ = Describe("MariaDB replication", func() {
-	Context("When creating a MariaDB with replication", func() {
-		It("Should reconcile", func() {
-			mdb := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mariadb-repl",
-					Namespace: testNamespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Username: &testUser,
-					PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testPwdKey.Name,
-							},
-							Key: testPwdSecretKey,
-						},
-					},
-					Database: &testDatabase,
-					MyCnf: func() *string {
-						cfg := `[mariadb]
-						bind-address=*
-						default_storage_engine=InnoDB
-						binlog_format=row
-						innodb_autoinc_lock_mode=2
-						max_allowed_packet=256M`
-						return &cfg
-					}(),
-					Replication: &mariadbv1alpha1.Replication{
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							Primary: &mariadbv1alpha1.PrimaryReplication{
-								PodIndex:          func() *int { i := 0; return &i }(),
-								AutomaticFailover: func() *bool { f := true; return &f }(),
-							},
-							Replica: &mariadbv1alpha1.ReplicaReplication{
-								WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
-								Gtid:      func() *mariadbv1alpha1.Gtid { g := mariadbv1alpha1.GtidCurrentPos; return &g }(),
-							},
-							SyncBinlog: func() *bool { s := true; return &s }(),
-						},
-						Enabled: true,
-					},
-					Replicas: 3,
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("300Mi")),
-					},
-					Service: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Metadata: &mariadbv1alpha1.Metadata{
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
-							},
-						},
-					},
-					Connection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: func() *string {
-							s := "mdb-repl-conn"
-							return &s
-						}(),
-						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-							Key: &testConnSecretKey,
-						},
-					},
-					PrimaryService: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Metadata: &mariadbv1alpha1.Metadata{
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
-							},
-						},
-					},
-					PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: func() *string {
-							s := "mdb-repl-conn-primary"
-							return &s
-						}(),
-						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-							Key: &testConnSecretKey,
-						},
-					},
-					SecondaryService: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Metadata: &mariadbv1alpha1.Metadata{
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
-							},
-						},
-					},
-					SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: func() *string {
-							s := "mdb-repl-conn-secondary"
-							return &s
-						}(),
-						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-							Key: &testConnSecretKey,
-						},
-					},
-					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
-					},
-				},
-			}
-
-			By("Creating MariaDB with replication")
-			Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMariaDB(&mdb)
-			})
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.IsReady()
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting to create a Service")
-			var svc corev1.Service
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &svc)).To(Succeed())
-
-			By("Expecting to create a primary Service")
-			Expect(k8sClient.Get(testCtx, mdb.PrimaryServiceKey(), &svc)).To(Succeed())
-			Expect(svc.Spec.Selector["statefulset.kubernetes.io/pod-name"]).To(Equal(statefulset.PodName(mdb.ObjectMeta, 0)))
-
-			By("Expecting to create a secondary Service")
-			Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &svc)).To(Succeed())
-
-			By("Expecting Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting primary Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, mdb.PrimaryConnectioneKey(), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting secondary Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, mdb.SecondaryConnectioneKey(), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting to create secondary Endpoints")
-			var endpoints corev1.Endpoints
-			Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &endpoints)).To(Succeed())
-			Expect(endpoints.Subsets).To(HaveLen(1))
-			Expect(endpoints.Subsets[0].Addresses).To(HaveLen(int(mdb.Spec.Replicas) - 1))
-
-			By("Expecting to create a PodDisruptionBudget")
-			var pdb policyv1.PodDisruptionBudget
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &pdb)).To(Succeed())
-
-			By("Expecting MariaDB to eventually update primary")
-			podIndex := 1
-			Eventually(func(g Gomega) bool {
-				g.Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb)).To(Succeed())
-				mdb.Replication().Primary.PodIndex = &podIndex
-				g.Expect(k8sClient.Update(testCtx, &mdb)).To(Succeed())
-				return true
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB to eventually change primary")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				if !mdb.IsReady() || mdb.Status.CurrentPrimaryPodIndex == nil {
-					return false
-				}
-				return *mdb.Status.CurrentPrimaryPodIndex == podIndex
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting primary Service to eventually change primary")
-			Eventually(func() bool {
-				var svc corev1.Service
-				if err := k8sClient.Get(testCtx, mdb.PrimaryServiceKey(), &svc); err != nil {
-					return false
-				}
-				return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(mdb.ObjectMeta, podIndex)
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Tearing down primary Pod consistently")
-			Consistently(func() bool {
-				primaryPodKey := types.NamespacedName{
-					Name:      statefulset.PodName(mdb.ObjectMeta, 1),
-					Namespace: mdb.Namespace,
-				}
-				var primaryPod corev1.Pod
-				if err := k8sClient.Get(testCtx, primaryPodKey, &primaryPod); err != nil {
-					return apierrors.IsNotFound(err)
-				}
-				return k8sClient.Delete(testCtx, &primaryPod) == nil
-			}, 10*time.Second, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.IsReady()
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB to eventually change primary")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				if !mdb.IsReady() || mdb.Status.CurrentPrimaryPodIndex == nil {
-					return false
-				}
-				return *mdb.Status.CurrentPrimaryPodIndex == 0 || *mdb.Status.CurrentPrimaryPodIndex == 2
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting primary Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, mdb.PrimaryConnectioneKey(), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			mxsKey := types.NamespacedName{
-				Name:      "maxscale-repl",
-				Namespace: testNamespace,
-			}
-			testMariadbMaxscale(&mdb, mxsKey)
-			testMariadbUpdate(&mdb, "mariadb:lts")
-		})
-	})
-})
-
-var _ = Describe("MariaDB Galera", func() {
-	Context("When creating a MariaDB Galera", func() {
-		It("Should default", func() {
-			By("Creating MariaDB")
-			testDefaultMariaDb := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-mariadb-galera-default",
-					Namespace: testNamespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-					},
-					Replicas: 3,
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("300Mi")),
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &testDefaultMariaDb)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMariaDB(&testDefaultMariaDb)
-			})
-
-			By("Expecting to eventually default")
-			Eventually(func(g Gomega) bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testDefaultMariaDb), &testDefaultMariaDb); err != nil {
-					return false
-				}
-				g.Expect(testDefaultMariaDb.Spec.Galera).ToNot(BeZero())
-				g.Expect(testDefaultMariaDb.Spec.Galera.Primary).ToNot(BeZero())
-				g.Expect(testDefaultMariaDb.Spec.Galera.SST).ToNot(BeZero())
-				g.Expect(testDefaultMariaDb.Spec.Galera.ReplicaThreads).ToNot(BeZero())
-				g.Expect(testDefaultMariaDb.Spec.Galera.Recovery).ToNot(BeZero())
-				g.Expect(testDefaultMariaDb.Spec.Galera.InitContainer).ToNot(BeZero())
-				g.Expect(testDefaultMariaDb.Spec.Galera.Config).ToNot(BeZero())
-				return true
-			}, testTimeout, testInterval).Should(BeTrue())
-		})
-
-		galeraKey := types.NamespacedName{
-			Name:      "mariadb-galera",
-			Namespace: testNamespace,
-		}
-
-		It("Should reconcile", Serial, func() {
-			mdb := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      galeraKey.Name,
-					Namespace: galeraKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Username: &testUser,
-					PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testPwdKey.Name,
-							},
-							Key: testPwdSecretKey,
-						},
-					},
-					Database: &testDatabase,
-					MyCnf: ptr.To(`[mariadb]
-					bind-address=*
-					default_storage_engine=InnoDB
-					binlog_format=row
-					innodb_autoinc_lock_mode=2
-					max_allowed_packet=256M
-					`),
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Primary: mariadbv1alpha1.PrimaryGalera{
-								PodIndex:          ptr.To(0),
-								AutomaticFailover: ptr.To(true),
-							},
-							Recovery: &mariadbv1alpha1.GaleraRecovery{
-								Enabled: true,
-							},
-							Config: mariadbv1alpha1.GaleraConfig{
-								ReuseStorageVolume: ptr.To(false),
-								VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-									PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-										Resources: corev1.VolumeResourceRequirements{
-											Requests: corev1.ResourceList{
-												"storage": resource.MustParse("100Mi"),
-											},
-										},
-										AccessModes: []corev1.PersistentVolumeAccessMode{
-											corev1.ReadWriteOnce,
-										},
-									},
-								},
-							},
-							InitJob: &mariadbv1alpha1.Job{
-								Metadata: &mariadbv1alpha1.Metadata{
-									Labels: map[string]string{
-										"sidecar.istio.io/inject": "false",
-									},
-								},
-							},
-						},
-					},
-					Replicas: 3,
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("300Mi")),
-					},
-					Service: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Metadata: &mariadbv1alpha1.Metadata{
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
-							},
-						},
-					},
-					Connection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: ptr.To("mdb-galera-conn"),
-						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-							Key: &testConnSecretKey,
-						},
-					},
-					PrimaryService: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Metadata: &mariadbv1alpha1.Metadata{
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.160",
-							},
-						},
-					},
-					PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: ptr.To("mdb-galera-conn-primary"),
-						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-							Key: &testConnSecretKey,
-						},
-					},
-					SecondaryService: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Metadata: &mariadbv1alpha1.Metadata{
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.161",
-							},
-						},
-					},
-					SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-						SecretName: ptr.To("mdb-galera-conn-secondary"),
-						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-							Key: &testConnSecretKey,
-						},
-					},
-					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
-					},
-				},
-			}
-
-			By("Creating MariaDB Galera")
-			Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMariaDB(&mdb)
-			})
-
-			By("Expecting init Job to eventually be completed")
-			Eventually(func(g Gomega) bool {
-				var job batchv1.Job
-				g.Expect(k8sClient.Get(testCtx, mdb.InitKey(), &job)).To(Succeed())
-
-				g.Expect(job.ObjectMeta.Labels).NotTo(BeNil())
-				g.Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
-
-				return jobpkg.IsJobComplete(&job)
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting to create a StatefulSet")
-			var sts appsv1.StatefulSet
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &sts)).To(Succeed())
-
-			By("Expecting to create a Service")
-			var svc corev1.Service
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &svc)).To(Succeed())
-
-			By("Expecting to create a primary Service")
-			Expect(k8sClient.Get(testCtx, mdb.PrimaryServiceKey(), &svc)).To(Succeed())
-			Expect(svc.Spec.Selector["statefulset.kubernetes.io/pod-name"]).To(Equal(statefulset.PodName(mdb.ObjectMeta, 0)))
-
-			By("Expecting to create a secondary Service")
-			Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &svc)).To(Succeed())
-
-			By("Expecting Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting primary Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, mdb.PrimaryConnectioneKey(), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting secondary Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, mdb.SecondaryConnectioneKey(), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting to create secondary Endpoints")
-			var endpoints corev1.Endpoints
-			Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &endpoints)).To(Succeed())
-			Expect(endpoints.Subsets).To(HaveLen(1))
-			Expect(endpoints.Subsets[0].Addresses).To(HaveLen(int(mdb.Spec.Replicas) - 1))
-
-			By("Expecting to create a PodDisruptionBudget")
-			var pdb policyv1.PodDisruptionBudget
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &pdb)).To(Succeed())
-
-			By("Updating MariaDB primary")
-			podIndex := 1
-			mdb.Spec.Galera.Primary.PodIndex = ptr.To(podIndex)
-			Expect(k8sClient.Update(testCtx, &mdb)).To(Succeed())
-
-			By("Expecting MariaDB to eventually change primary")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				if !mdb.IsReady() || mdb.Status.CurrentPrimaryPodIndex == nil {
-					return false
-				}
-				return *mdb.Status.CurrentPrimaryPodIndex == podIndex
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting primary Service to eventually change primary")
-			Eventually(func() bool {
-				var svc corev1.Service
-				if err := k8sClient.Get(testCtx, mdb.PrimaryServiceKey(), &svc); err != nil {
-					return false
-				}
-				return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(mdb.ObjectMeta, podIndex)
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Tearing down all Pods consistently")
-			opts := []client.DeleteAllOfOption{
-				client.MatchingLabels{
-					"app.kubernetes.io/instance": mdb.Name,
-				},
-				client.InNamespace(mdb.Namespace),
-			}
-			Expect(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, opts...)).To(Succeed())
-
-			By("Expecting MariaDB NOT to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return !mdb.IsReady()
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting Galera NOT to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.HasGaleraNotReadyCondition()
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.IsReady() && mdb.HasGaleraReadyCondition()
-			}, testVeryHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting primary Connection to be ready eventually")
-			Eventually(func() bool {
-				var conn mariadbv1alpha1.Connection
-				if err := k8sClient.Get(testCtx, mdb.PrimaryConnectioneKey(), &conn); err != nil {
-					return false
-				}
-				return conn.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			mxsKey := types.NamespacedName{
-				Name:      "maxscale-galera",
-				Namespace: testNamespace,
-			}
-			testMariadbMaxscale(&mdb, mxsKey)
-			testMariadbUpdate(&mdb, "mariadb:lts")
-		})
-
-		It("Should reconcile storage", Serial, func() {
-			mdb := mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      galeraKey.Name,
-					Namespace: galeraKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Config: mariadbv1alpha1.GaleraConfig{
-								ReuseStorageVolume: ptr.To(true),
-							},
-						},
-					},
-					Replicas: 3,
-					Storage: mariadbv1alpha1.Storage{
-						Size:                ptr.To(resource.MustParse("300Mi")),
-						StorageClassName:    "standard-resize",
-						ResizeInUseVolumes:  ptr.To(true),
-						WaitForVolumeResize: ptr.To(true),
-					},
-					Service: &mariadbv1alpha1.ServiceTemplate{
-						Type: corev1.ServiceTypeLoadBalancer,
-						Metadata: &mariadbv1alpha1.Metadata{
-							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
-							},
-						},
-					},
-				},
-			}
-
-			By("Creating MariaDB Galera")
-			Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMariaDB(&mdb)
-			})
-
-			By("Expecting MariaDB to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Updating storage")
-			mdb.Spec.Storage.Size = ptr.To(resource.MustParse("400Mi"))
-			Expect(k8sClient.Update(testCtx, &mdb)).To(Succeed())
-
-			By("Expecting MariaDB to have resized storage eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-					return false
-				}
-				return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeStorageResized)
-			}, testHighTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting StatefulSet storage to have been resized")
-			var sts appsv1.StatefulSet
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &sts)).To(Succeed())
-			mdbSize := mdb.Spec.Storage.GetSize()
-			stsSize := stsobj.GetStorageSize(&sts, builder.StorageVolume)
-			Expect(mdbSize).NotTo(BeNil())
-			Expect(stsSize).NotTo(BeNil())
-			Expect(mdbSize.Cmp(*stsSize)).To(Equal(0))
-
-			By("Expecting PVCs to have been resized")
-			pvcList := corev1.PersistentVolumeClaimList{}
-			listOpts := client.ListOptions{
-				LabelSelector: klabels.SelectorFromSet(
-					labels.NewLabelsBuilder().
-						WithMariaDBSelectorLabels(&mdb).
-						WithPVCRole(builder.StorageVolumeRole).
-						Build(),
-				),
-				Namespace: mdb.GetNamespace(),
-			}
-			Expect(k8sClient.List(testCtx, &pvcList, &listOpts)).To(Succeed())
-			for _, p := range pvcList.Items {
-				pvcSize := p.Spec.Resources.Requests[corev1.ResourceStorage]
-				Expect(mdbSize.Cmp(pvcSize)).To(Equal(0))
-			}
-		})
-	})
-})
-
 func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1074,7 +413,7 @@ func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.Re
 		},
 	}
 
-	By("Creating a MariaDB bootstrapping from backup")
+	By("Creating MariaDB")
 	Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 	DeferCleanup(func() {
 		deleteMariaDB(&mdb)
@@ -1095,6 +434,78 @@ func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.Re
 		}
 		return mdb.HasRestoredBackup()
 	}, testTimeout, testInterval).Should(BeTrue())
+}
+
+func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, updateVersion string) {
+	key := client.ObjectKeyFromObject(mdb)
+
+	By("Updating MariaDB image")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+			return false
+		}
+		mdb.Spec.Image = updateVersion
+		return k8sClient.Update(testCtx, mdb) == nil
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting image to be updated in StatefulSet eventually")
+	Eventually(func() bool {
+		var sts appsv1.StatefulSet
+		if err := k8sClient.Get(testCtx, key, &sts); err != nil {
+			return false
+		}
+		return sts.Spec.Template.Spec.Containers[0].Image == updateVersion
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting MariaDB to be updated eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+			return false
+		}
+		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeUpdated)
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func testMariadbVolumeResize(mdb *mariadbv1alpha1.MariaDB, newVolumeSize string) {
+	key := client.ObjectKeyFromObject(mdb)
+
+	By("Updating storage")
+	mdb.Spec.Storage.Size = ptr.To(resource.MustParse(newVolumeSize))
+	Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+
+	By("Expecting MariaDB to have resized storage eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+			return false
+		}
+		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeStorageResized)
+	}, testHighTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting StatefulSet storage to have been resized")
+	var sts appsv1.StatefulSet
+	Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
+	mdbSize := mdb.Spec.Storage.GetSize()
+	stsSize := stsobj.GetStorageSize(&sts, builder.StorageVolume)
+	Expect(mdbSize).NotTo(BeNil())
+	Expect(stsSize).NotTo(BeNil())
+	Expect(mdbSize.Cmp(*stsSize)).To(Equal(0))
+
+	By("Expecting PVCs to have been resized")
+	pvcList := corev1.PersistentVolumeClaimList{}
+	listOpts := client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mdb).
+				WithPVCRole(builder.StorageVolumeRole).
+				Build(),
+		),
+		Namespace: mdb.GetNamespace(),
+	}
+	Expect(k8sClient.List(testCtx, &pvcList, &listOpts)).To(Succeed())
+	for _, p := range pvcList.Items {
+		pvcSize := p.Spec.Resources.Requests[corev1.ResourceStorage]
+		Expect(mdbSize.Cmp(pvcSize)).To(Equal(0))
+	}
 }
 
 func testMariadbMaxscale(mdb *mariadbv1alpha1.MariaDB, mxsKey types.NamespacedName) {
@@ -1138,47 +549,6 @@ func testMariadbMaxscale(mdb *mariadbv1alpha1.MariaDB, mxsKey types.NamespacedNa
 			return false
 		}
 		return mxs.IsReady()
-	}, testHighTimeout, testInterval).Should(BeTrue())
-}
-
-func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, updateVersion string) {
-	key := client.ObjectKeyFromObject(mdb)
-
-	By("Expecting MariaDB to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-			return false
-		}
-		return mdb.IsReady()
-	}, testTimeout, testInterval).Should(BeTrue())
-
-	By("Updating MariaDB image")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-			return false
-		}
-		mdb.Spec.Image = updateVersion
-		return k8sClient.Update(testCtx, mdb) == nil
-	}, testTimeout, testInterval).Should(BeTrue())
-
-	By("Expecting image to be updated in StatefulSet eventually")
-	Eventually(func() bool {
-		var sts appsv1.StatefulSet
-		if err := k8sClient.Get(testCtx, key, &sts); err != nil {
-			return false
-		}
-		return sts.Spec.Template.Spec.Containers[0].Image == updateVersion
-	}, testTimeout, testInterval).Should(BeTrue())
-
-	By("Expecting MariaDB to be updated eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-			return false
-		}
-		if !mdb.IsReady() {
-			return false
-		}
-		return meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeUpdated)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
