@@ -47,13 +47,6 @@ host-mxs-galera-test: ## Add MaxScale Galera test hosts to /etc/hosts.
 	@./hack/add_host.sh 83 mxs-galera-maxscale-3.mxs-galera-maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 84 mxs-galera-maxscale.default.svc.cluster.local
 
-.PHONY: host-mxs-metrics-test
-host-mxs-metrics-test: ## Add MaxScale metrics test hosts to /etc/hosts.
-	@./hack/add_host.sh 85 mxs-metrics-0.mxs-metrics-internal.default.svc.cluster.local
-	@./hack/add_host.sh 86 mxs-metrics.default.svc.cluster.local
-	@./hack/add_host.sh 87 mxs-metrics-maxscale-0.mxs-metrics-maxscale-internal.default.svc.cluster.local
-	@./hack/add_host.sh 88 mxs-metrics-maxscale.default.svc.cluster.local
-
 .PHONY: host-mariadb-repl
 host-mariadb-repl: ## Add mariadb repl hosts to /etc/hosts.
 	@./hack/add_host.sh 110 mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
@@ -119,7 +112,7 @@ host-maxscale-gui: ## Add maxscale GUI hosts to /etc/hosts.
 host: host-mariadb host-mariadb-repl host-mariadb-galera host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui ## Configure hosts for local development.
 
 .PHONY: host-test
-host-test: host host-mdb-test host-mxs-repl-test host-mxs-galera-test host-mxs-metrics-test ## Configure hosts for local tests.
+host-test: host host-mdb-test host-mxs-repl-test host-mxs-galera-test ## Configure hosts for local tests.
 
 .PHONY: net
 net: install-metallb host host-test ## Configure networking for local development.
