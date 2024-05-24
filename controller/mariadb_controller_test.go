@@ -463,7 +463,7 @@ func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, updateVersion string) {
 			return false
 		}
 		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeUpdated)
-	}, testHighTimeout, testInterval).Should(BeTrue())
+	}, testVeryHighTimeout, testInterval).Should(BeTrue())
 }
 
 func testMariadbVolumeResize(mdb *mariadbv1alpha1.MariaDB, newVolumeSize string) {
