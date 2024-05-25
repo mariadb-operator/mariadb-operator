@@ -10,54 +10,52 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var _ = Describe("User controller", func() {
-	Context("When creating a User", func() {
-		It("Should reconcile", func() {
-			userKey := types.NamespacedName{
-				Name:      "user-test",
-				Namespace: testNamespace,
-			}
-			user := mariadbv1alpha1.User{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      userKey.Name,
-					Namespace: userKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.UserSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: testMdbkey.Name,
-						},
-						WaitForIt: true,
+var _ = Describe("User", func() {
+	It("should reconcile", func() {
+		userKey := types.NamespacedName{
+			Name:      "user-test",
+			Namespace: testNamespace,
+		}
+		user := mariadbv1alpha1.User{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      userKey.Name,
+				Namespace: userKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.UserSpec{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: testMdbkey.Name,
 					},
-					PasswordSecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					MaxUserConnections: 20,
+					WaitForIt: true,
 				},
-			}
-			Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
-			})
-
-			By("Expecting User to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, userKey, &user); err != nil {
-					return false
-				}
-				return user.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting User to eventually have finalizer")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, userKey, &user); err != nil {
-					return false
-				}
-				return controllerutil.ContainsFinalizer(&user, userFinalizerName)
-			}, testTimeout, testInterval).Should(BeTrue())
+				PasswordSecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+				MaxUserConnections: 20,
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
 		})
+
+		By("Expecting User to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, userKey, &user); err != nil {
+				return false
+			}
+			return user.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting User to eventually have finalizer")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, userKey, &user); err != nil {
+				return false
+			}
+			return controllerutil.ContainsFinalizer(&user, userFinalizerName)
+		}, testTimeout, testInterval).Should(BeTrue())
 	})
 })

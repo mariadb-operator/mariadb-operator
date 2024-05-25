@@ -11,41 +11,39 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Backup controller", func() {
-	Context("When creating a Backup", func() {
-		It("Should reconcile a Job with PVC storage", func() {
-			key := types.NamespacedName{
-				Name:      "backup-pvc-test",
-				Namespace: testNamespace,
-			}
-			backup := getBackupWithPVCStorage(key)
-			testBackup(backup)
-		})
+var _ = Describe("Backup", func() {
+	It("should reconcile a Job with PVC storage", func() {
+		key := types.NamespacedName{
+			Name:      "backup-pvc-test",
+			Namespace: testNamespace,
+		}
+		backup := getBackupWithPVCStorage(key)
+		testBackup(backup)
+	})
 
-		It("Should reconcile a Job with Volume storage", func() {
-			key := types.NamespacedName{
-				Name:      "backup-volume-test",
-				Namespace: testNamespace,
-			}
-			backup := getBackupWithVolumeStorage(key)
-			testBackup(backup)
-		})
+	It("should reconcile a Job with Volume storage", func() {
+		key := types.NamespacedName{
+			Name:      "backup-volume-test",
+			Namespace: testNamespace,
+		}
+		backup := getBackupWithVolumeStorage(key)
+		testBackup(backup)
+	})
 
-		It("Should reconcile a Job with S3 storage", func() {
-			key := types.NamespacedName{
-				Name:      "backup-s3-test",
-				Namespace: testNamespace,
-			}
-			testS3Backup(key, "test-backup", "")
-		})
+	It("should reconcile a Job with S3 storage", func() {
+		key := types.NamespacedName{
+			Name:      "backup-s3-test",
+			Namespace: testNamespace,
+		}
+		testS3Backup(key, "test-backup", "")
+	})
 
-		It("Should reconcile a Job with S3 storage with prefix", func() {
-			key := types.NamespacedName{
-				Name:      "backup-s3-test-prefix",
-				Namespace: testNamespace,
-			}
-			testS3Backup(key, "test-backup", "mariadb")
-		})
+	It("should reconcile a Job with S3 storage with prefix", func() {
+		key := types.NamespacedName{
+			Name:      "backup-s3-test-prefix",
+			Namespace: testNamespace,
+		}
+		testS3Backup(key, "test-backup", "mariadb")
 	})
 })
 

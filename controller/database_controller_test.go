@@ -10,50 +10,48 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var _ = Describe("Database controller", func() {
-	Context("When creating a Database", func() {
-		It("Should reconcile", func() {
-			By("Creating a Database")
-			databaseKey := types.NamespacedName{
-				Name:      "database-create-test",
-				Namespace: testNamespace,
-			}
-			database := mariadbv1alpha1.Database{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      databaseKey.Name,
-					Namespace: databaseKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.DatabaseSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: testMdbkey.Name,
-						},
-						WaitForIt: true,
+var _ = Describe("Database", func() {
+	It("should reconcile", func() {
+		By("Creating a Database")
+		databaseKey := types.NamespacedName{
+			Name:      "database-create-test",
+			Namespace: testNamespace,
+		}
+		database := mariadbv1alpha1.Database{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      databaseKey.Name,
+				Namespace: databaseKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.DatabaseSpec{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: testMdbkey.Name,
 					},
-					CharacterSet: "utf8",
-					Collate:      "utf8_general_ci",
+					WaitForIt: true,
 				},
-			}
-			Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
-			})
-
-			By("Expecting Database to be ready eventually")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, databaseKey, &database); err != nil {
-					return false
-				}
-				return database.IsReady()
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By("Expecting Database to eventually have finalizer")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, databaseKey, &database); err != nil {
-					return false
-				}
-				return controllerutil.ContainsFinalizer(&database, databaseFinalizerName)
-			}, testTimeout, testInterval).Should(BeTrue())
+				CharacterSet: "utf8",
+				Collate:      "utf8_general_ci",
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
 		})
+
+		By("Expecting Database to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, databaseKey, &database); err != nil {
+				return false
+			}
+			return database.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting Database to eventually have finalizer")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, databaseKey, &database); err != nil {
+				return false
+			}
+			return controllerutil.ContainsFinalizer(&database, databaseFinalizerName)
+		}, testTimeout, testInterval).Should(BeTrue())
 	})
 })
