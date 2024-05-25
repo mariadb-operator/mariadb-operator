@@ -23,12 +23,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+func shouldReconcileStorage(mdb *mariadbv1alpha1.MariaDB) bool {
+	if mdb.IsRestoringBackup() || mdb.IsUpdating() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
+		return false
+	}
+	return true
+}
+
 func (r *MariaDBReconciler) reconcileStorage(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !shouldReconcileStorage(mariadb) {
+		return ctrl.Result{}, nil
+	}
 	if mariadb.IsWaitingForStorageResize() {
 		return r.waitForStorageResize(ctx, mariadb)
-	}
-	if !r.shouldReconcileStorage(mariadb) {
-		return ctrl.Result{}, nil
 	}
 
 	key := client.ObjectKeyFromObject(mariadb)
@@ -76,13 +83,6 @@ func (r *MariaDBReconciler) reconcileStorage(ctx context.Context, mariadb *maria
 	}
 
 	return r.waitForStorageResize(ctx, mariadb)
-}
-
-func (r *MariaDBReconciler) shouldReconcileStorage(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.IsRestoringBackup() || mdb.IsUpdating() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
-		return false
-	}
-	return true
 }
 
 func (r *MariaDBReconciler) resizeInUsePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
