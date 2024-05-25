@@ -22,8 +22,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+func shouldReconcileUpdates(mdb *mariadbv1alpha1.MariaDB) bool {
+	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
+		return false
+	}
+	if mdb.Spec.UpdateStrategy.Type != mariadbv1alpha1.ReplicasFirstPrimaryLast {
+		return false
+	}
+	return true
+}
+
 func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !r.shouldReconcileUpdates(mdb) {
+	if !shouldReconcileUpdates(mdb) {
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("update")
@@ -75,16 +85,6 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{}, fmt.Errorf("error updating primary Pod '%s': %v", primaryPod.Name, err)
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *MariaDBReconciler) shouldReconcileUpdates(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.Spec.UpdateStrategy.Type != mariadbv1alpha1.ReplicasFirstPrimaryLast {
-		return false
-	}
-	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
-		return false
-	}
-	return true
 }
 
 func (r *MariaDBReconciler) waitForReadyStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
