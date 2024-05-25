@@ -18,7 +18,7 @@ var _ = Describe("Backup controller", func() {
 				Name:      "backup-pvc-test",
 				Namespace: testNamespace,
 			}
-			backup := testBackupWithPVCStorage(key)
+			backup := getBackupWithPVCStorage(key)
 			testBackup(backup)
 		})
 
@@ -27,7 +27,7 @@ var _ = Describe("Backup controller", func() {
 				Name:      "backup-volume-test",
 				Namespace: testNamespace,
 			}
-			backup := testBackupWithVolumeStorage(key)
+			backup := getBackupWithVolumeStorage(key)
 			testBackup(backup)
 		})
 
@@ -109,7 +109,7 @@ func testBackup(backup *mariadbv1alpha1.Backup) {
 }
 
 func testS3Backup(key types.NamespacedName, bucket, prefix string) {
-	backup := testBackupWithS3Storage(key, bucket, prefix)
+	backup := getBackupWithS3Storage(key, bucket, prefix)
 
 	By("Creating Backup with S3 storage")
 	Expect(k8sClient.Create(testCtx, backup)).To(Succeed())

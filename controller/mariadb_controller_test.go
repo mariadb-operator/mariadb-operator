@@ -5,8 +5,6 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,10 +12,8 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -266,7 +262,7 @@ var _ = Describe("MariaDB controller", func() {
 				Name:      "backup-mdb-from-backup",
 				Namespace: testNamespace,
 			}
-			backup := testBackupWithS3Storage(backupKey, "test-mariadb", "")
+			backup := getBackupWithS3Storage(backupKey, "test-mariadb", "")
 
 			By("Creating Backup")
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
@@ -301,7 +297,7 @@ var _ = Describe("MariaDB controller", func() {
 				Name:      "backup-mdb-from-s3",
 				Namespace: testNamespace,
 			}
-			backup := testBackupWithS3Storage(backupKey, "test-mariadb", "s3")
+			backup := getBackupWithS3Storage(backupKey, "test-mariadb", "s3")
 
 			By("Creating Backup")
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
@@ -322,7 +318,7 @@ var _ = Describe("MariaDB controller", func() {
 				Namespace: testNamespace,
 			}
 			restoreSource := mariadbv1alpha1.RestoreSource{
-				S3:                 testS3WithBucket("test-mariadb", "s3"),
+				S3:                 getS3WithBucket("test-mariadb", "s3"),
 				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 			}
 			By("Bootstrapping MariaDB from S3")
@@ -434,146 +430,4 @@ func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.Re
 		}
 		return mdb.HasRestoredBackup()
 	}, testTimeout, testInterval).Should(BeTrue())
-}
-
-func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, newCPUreq string) {
-	key := client.ObjectKeyFromObject(mdb)
-
-	By("Updating MariaDB compute resources")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-			return false
-		}
-		mdb.Spec.Resources = &corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				"cpu": resource.MustParse(newCPUreq),
-			},
-		}
-		return k8sClient.Update(testCtx, mdb) == nil
-	}, testTimeout, testInterval).Should(BeTrue())
-
-	By("Expecting MariaDB to be updated eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-			return false
-		}
-		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeUpdated)
-	}, testVeryHighTimeout, testInterval).Should(BeTrue())
-}
-
-func testMariadbVolumeResize(mdb *mariadbv1alpha1.MariaDB, newVolumeSize string) {
-	key := client.ObjectKeyFromObject(mdb)
-
-	By("Updating storage")
-	mdb.Spec.Storage.Size = ptr.To(resource.MustParse(newVolumeSize))
-	Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
-
-	By("Expecting MariaDB to have resized storage eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-			return false
-		}
-		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeStorageResized)
-	}, testHighTimeout, testInterval).Should(BeTrue())
-
-	By("Expecting StatefulSet storage to have been resized")
-	var sts appsv1.StatefulSet
-	Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
-	mdbSize := mdb.Spec.Storage.GetSize()
-	stsSize := stsobj.GetStorageSize(&sts, builder.StorageVolume)
-	Expect(mdbSize).NotTo(BeNil())
-	Expect(stsSize).NotTo(BeNil())
-	Expect(mdbSize.Cmp(*stsSize)).To(Equal(0))
-
-	By("Expecting PVCs to have been resized")
-	pvcList := corev1.PersistentVolumeClaimList{}
-	listOpts := client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mdb).
-				WithPVCRole(builder.StorageVolumeRole).
-				Build(),
-		),
-		Namespace: mdb.GetNamespace(),
-	}
-	Expect(k8sClient.List(testCtx, &pvcList, &listOpts)).To(Succeed())
-	for _, p := range pvcList.Items {
-		pvcSize := p.Spec.Resources.Requests[corev1.ResourceStorage]
-		Expect(mdbSize.Cmp(pvcSize)).To(Equal(0))
-	}
-}
-
-func testMariadbMaxscale(mdb *mariadbv1alpha1.MariaDB, mxsKey types.NamespacedName) {
-	mxs := mariadbv1alpha1.MaxScale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      mxsKey.Name,
-			Namespace: mxsKey.Namespace,
-		},
-		Spec: mariadbv1alpha1.MaxScaleSpec{
-			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
-					Name: client.ObjectKeyFromObject(mdb).Name,
-				},
-			},
-		},
-	}
-	By("Creating MaxScale")
-	Expect(k8sClient.Create(testCtx, &mxs)).To(Succeed())
-	DeferCleanup(func() {
-		deleteMaxScale(mxsKey, true)
-	})
-
-	By("Point MariaDB to MaxScale")
-	mdb.Spec.MaxScaleRef = &corev1.ObjectReference{
-		Name:      mxsKey.Name,
-		Namespace: mxsKey.Namespace,
-	}
-	Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
-
-	By("Expecting MariaDB to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), mdb); err != nil {
-			return false
-		}
-		return mdb.IsReady()
-	}, testHighTimeout, testInterval).Should(BeTrue())
-
-	By("Expecting MaxScale to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, mxsKey, &mxs); err != nil {
-			return false
-		}
-		return mxs.IsReady()
-	}, testHighTimeout, testInterval).Should(BeTrue())
-}
-
-func deploymentReady(deploy *appsv1.Deployment) bool {
-	for _, c := range deploy.Status.Conditions {
-		if c.Type == appsv1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
-
-func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
-	Expect(k8sClient.Delete(testCtx, mdb)).To(Succeed())
-
-	Eventually(func(g Gomega) bool {
-		listOpts := &client.ListOptions{
-			LabelSelector: klabels.SelectorFromSet(
-				labels.NewLabelsBuilder().
-					WithMariaDBSelectorLabels(mdb).
-					Build(),
-			),
-			Namespace: mdb.GetNamespace(),
-		}
-		pvcList := &corev1.PersistentVolumeClaimList{}
-		g.Expect(k8sClient.List(testCtx, pvcList, listOpts)).To(Succeed())
-
-		for _, pvc := range pvcList.Items {
-			g.Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
-		}
-		return true
-	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 }
