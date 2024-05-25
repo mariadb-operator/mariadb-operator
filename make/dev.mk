@@ -1,5 +1,3 @@
-##@ Dev
-
 MARIADB_OPERATOR_NAME ?= mariadb-operator
 MARIADB_OPERATOR_NAMESPACE ?= default
 MARIADB_OPERATOR_SA_PATH ?= /tmp/mariadb-operator/token
@@ -34,24 +32,50 @@ ENV_ENT ?= \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
 	ENTERPRISE=true
 
-.PHONY: lint
-lint: golangci-lint ## Lint.
-	$(GOLANGCI_LINT) run
-
 TEST_ENV ?= $(ENV) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-.PHONY: test
-test: envtest ginkgo ## Run tests.
-	 $(TEST_ENV) $(GINKGO) -p --timeout 25m --label-filter='!enterprise' --coverprofile=cover.out ./pkg/... ./api/... ./controller/... 
+TEST ?= $(TEST_ENV) $(GINKGO) -p --timeout 25m --label-filter='!enterprise' --coverprofile=cover.out 
 
-TEST_ENT_ENV ?= $(ENV_ENT) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-.PHONY: test-ent
-test-ent: envtest ginkgo ## Run enterprise tests.
-	 $(TEST_ENT_ENV) $(GINKGO) -p --timeout 25m --coverprofile=cover.out ./pkg/... ./api/... ./controller/... 
+TEST_ENV_ENT ?= $(ENV_ENT) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
+TEST_ENT ?= $(TEST_ENV_ENT) $(GINKGO) -p --timeout 25m --coverprofile=cover.out 
+
+##@ Test
+
+.PHONY: test-unit
+test-unit: envtest ginkgo ## Run unit tests.
+	$(TEST) ./pkg/... ./api/...
+
+.PHONY: test-int
+test-int: envtest ginkgo ## Run integration tests.
+	$(TEST) ./controller/...
+
+.PHONY: test
+test: test-unit test-int ## Run tests.
 
 .PHONY: cover
 cover: ## Generate and view coverage report.
 	@go tool cover -html=cover.out -o=cover.html
 	open cover.html
+
+##@ Test Enterprise
+
+.PHONY: test-unit-ent
+test-unit-ent: envtest ginkgo ## Run enterprise unit tests.
+	$(TEST_ENT) ./pkg/... ./api/...
+
+.PHONY: test-int-ent
+test-int-ent: envtest ginkgo ## Run enterprise integration tests.
+	$(TEST_ENT) ./controller/...
+
+.PHONY: test-ent
+test-ent: test-unit-ent test-int-ent ## Run enterprise tests.
+
+##@ Lint
+
+.PHONY: lint
+lint: golangci-lint ## Lint.
+	$(GOLANGCI_LINT) run
+
+##@ Release
 
 .PHONY: release
 release: goreleaser ## Test release locally.
