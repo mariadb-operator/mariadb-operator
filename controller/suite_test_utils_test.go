@@ -178,6 +178,8 @@ max_allowed_packet=256M`),
 			},
 		},
 	}
+	applyMariadbTestConfig(&mdb)
+
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
 	expectMariadbReady(ctx, k8sClient, testMdbkey)
 }
@@ -263,6 +265,8 @@ func testMariadbMaxscale(mdb *mariadbv1alpha1.MariaDB, mxsKey types.NamespacedNa
 			},
 		},
 	}
+	applyMaxscaleTestConfig(&mxs)
+
 	By("Creating MaxScale")
 	Expect(k8sClient.Create(testCtx, &mxs)).To(Succeed())
 	DeferCleanup(func() {
@@ -291,6 +295,26 @@ func testMariadbMaxscale(mdb *mariadbv1alpha1.MariaDB, mxsKey types.NamespacedNa
 		}
 		return mxs.IsReady()
 	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
+	mdb.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
+		InitialDelaySeconds: 5,
+	}
+	mdb.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
+		InitialDelaySeconds: 30,
+	}
+	return mdb
+}
+
+func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
+	mxs.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
+		InitialDelaySeconds: 5,
+	}
+	mxs.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
+		InitialDelaySeconds: 30,
+	}
+	return mxs
 }
 
 func getS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {

@@ -137,6 +137,8 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 				},
 			},
 		}
+		applyMariadbTestConfig(mdb)
+
 		By("Creating MariaDB Galera")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {

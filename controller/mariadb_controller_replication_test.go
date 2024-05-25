@@ -128,6 +128,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 				},
 			},
 		}
+		applyMariadbTestConfig(mdb)
 
 		By("Creating MariaDB with replication")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
