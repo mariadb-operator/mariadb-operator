@@ -118,7 +118,7 @@ func (r *MariaDBReconciler) updatePod(ctx context.Context, pod *corev1.Pod, upda
 	updateCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 	if err := r.pollUntilPodUpdated(updateCtx, client.ObjectKeyFromObject(pod), updateRevision, logger); err != nil {
-		return fmt.Errorf("error waiting for primary Pod '%s' to be updated: %v", pod.Name, err)
+		return fmt.Errorf("error waiting for Pod '%s' to be updated: %v", pod.Name, err)
 	}
 	return nil
 }
