@@ -26,7 +26,7 @@ var _ = Describe("Restore controller", func() {
 				Name:      fmt.Sprintf("%s-%s", key.Name, "backup"),
 				Namespace: testNamespace,
 			}
-			backup := testBackupWithPVCStorage(backupKey)
+			backup := getBackupWithPVCStorage(backupKey)
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 			DeferCleanup(func() {
 				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
@@ -137,7 +137,7 @@ var _ = Describe("Restore controller", func() {
 				Name:      fmt.Sprintf("%s-%s", key.Name, "backup"),
 				Namespace: testNamespace,
 			}
-			backup := testBackupWithPVCStorage(backupKey)
+			backup := getBackupWithPVCStorage(backupKey)
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 			DeferCleanup(func() {
 				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
@@ -210,7 +210,7 @@ func testS3BackupRestore(key types.NamespacedName, bucket, prefix string) {
 		Name:      fmt.Sprintf("%s-%s", key.Name, "backup"),
 		Namespace: testNamespace,
 	}
-	backup := testBackupWithS3Storage(backupKey, bucket, prefix)
+	backup := getBackupWithS3Storage(backupKey, bucket, prefix)
 
 	By("Creating Backup")
 	Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
@@ -240,7 +240,7 @@ func testS3BackupRestore(key types.NamespacedName, bucket, prefix string) {
 				WaitForIt: true,
 			},
 			RestoreSource: mariadbv1alpha1.RestoreSource{
-				S3: testS3WithBucket(bucket, prefix),
+				S3: getS3WithBucket(bucket, prefix),
 			},
 		},
 	}

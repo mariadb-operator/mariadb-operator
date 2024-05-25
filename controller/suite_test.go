@@ -340,5 +340,5 @@ var _ = BeforeSuite(func() {
 	}()
 
 	By("Creating initial test data")
-	createTestData(testCtx, k8sClient, *env)
+	testCreateInitialData(testCtx, k8sClient, *env)
 })
