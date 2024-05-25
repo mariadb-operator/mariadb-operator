@@ -281,7 +281,6 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 	})
 
 	It("should recover after Galera cluster crash", func() {
-		key := client.ObjectKeyFromObject(mdb)
 		By("Tearing down all Pods consistently")
 		opts := []client.DeleteAllOfOption{
 			client.MatchingLabels{
