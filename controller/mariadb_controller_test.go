@@ -288,6 +288,7 @@ var _ = Describe("MariaDB controller", func() {
 				},
 				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 			}
+
 			By("Bootstrapping MariaDB from backup")
 			testMariadbBootstrap(key, restoreSource)
 		})
@@ -321,6 +322,7 @@ var _ = Describe("MariaDB controller", func() {
 				S3:                 getS3WithBucket("test-mariadb", "s3"),
 				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 			}
+
 			By("Bootstrapping MariaDB from S3")
 			testMariadbBootstrap(key, restoreSource)
 		})
@@ -367,6 +369,7 @@ var _ = Describe("MariaDB controller", func() {
 					},
 				},
 			}
+			applyMariadbTestConfig(&mdb)
 
 			By("Creating MariaDB")
 			Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
@@ -408,6 +411,7 @@ func testMariadbBootstrap(mdbKey types.NamespacedName, source mariadbv1alpha1.Re
 			},
 		},
 	}
+	applyMariadbTestConfig(&mdb)
 
 	By("Creating MariaDB")
 	Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())

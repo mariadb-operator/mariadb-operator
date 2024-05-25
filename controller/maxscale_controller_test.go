@@ -139,6 +139,8 @@ var _ = Describe("MaxScale controller", func() {
 					},
 				},
 			}
+			applyMariadbTestConfig(&testMdbMxs)
+
 			By("Creating MariaDB replication with MaxScale")
 			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
 			DeferCleanup(func() {
@@ -240,6 +242,8 @@ var _ = Describe("MaxScale controller", func() {
 					},
 				},
 			}
+			applyMariadbTestConfig(&testMdbMxs)
+
 			By("Creating MariaDB Galera with MaxScale")
 			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
 			DeferCleanup(func() {
