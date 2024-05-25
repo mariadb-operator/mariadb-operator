@@ -371,11 +371,18 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 	return ctrl.Result{}, r.reconcileDefaultConnection(ctx, mariadb)
 }
 
-func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mdb.Spec.BootstrapFrom == nil {
-		return ctrl.Result{}, nil
+func shouldReconcileRestore(mdb *mariadbv1alpha1.MariaDB) bool {
+	if mdb.IsUpdating() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
+		return false
 	}
-	if mdb.HasRestoredBackup() {
+	if mdb.HasRestoredBackup() || mdb.Spec.BootstrapFrom == nil {
+		return false
+	}
+	return true
+}
+
+func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !shouldReconcileRestore(mdb) {
 		return ctrl.Result{}, nil
 	}
 	if mdb.IsRestoringBackup() {
