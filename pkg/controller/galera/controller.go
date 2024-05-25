@@ -76,12 +76,24 @@ func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, en
 	return r
 }
 
+func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
+	if mdb.IsMaxScaleEnabled() || mdb.IsRestoringBackup() || mdb.IsUpdating() || mdb.IsResizingStorage() {
+		return false
+	}
+	if mdb.Status.CurrentPrimaryPodIndex == nil {
+		return false
+	}
+	currentPodIndex := ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
+	desiredPodIndex := ptr.Deref(ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary.PodIndex, 0)
+	return currentPodIndex != desiredPodIndex
+}
+
 func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsGaleraEnabled() || mariadb.IsRestoringBackup() {
+	if !mariadb.IsGaleraEnabled() {
 		return ctrl.Result{}, nil
 	}
-	sts, err := r.statefulSet(ctx, mariadb)
-	if err != nil {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
 		return ctrl.Result{}, err
 	}
 	logger := log.FromContext(ctx).WithName("galera")
@@ -127,14 +139,6 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	return ctrl.Result{}, nil
 }
 
-func (r *GaleraReconciler) statefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSet, error) {
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
-		return nil, err
-	}
-	return &sts, nil
-}
-
 func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	logger.V(1).Info("Disabling Galera bootstrap")
 
@@ -173,13 +177,4 @@ func (r *GaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1al
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
-}
-
-func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.IsMaxScaleEnabled() || mdb.Status.CurrentPrimaryPodIndex == nil {
-		return false
-	}
-	currentPodIndex := ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
-	desiredPodIndex := ptr.Deref(ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary.PodIndex, 0)
-	return currentPodIndex != desiredPodIndex
 }

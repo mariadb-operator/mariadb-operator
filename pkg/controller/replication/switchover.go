@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 type switchoverPhase struct {
@@ -23,12 +24,23 @@ type switchoverPhase struct {
 	reconcile func(context.Context, *mariadbv1alpha1.MariaDB, *ReplicationClientSet, logr.Logger) error
 }
 
-func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest, switchoverLogger logr.Logger) error {
-	shouldReconcile, err := shouldReconcileSwitchover(req.mariadb)
-	if err != nil {
-		return err
+func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
+	if mdb.IsMaxScaleEnabled() || mdb.IsRestoringBackup() || mdb.IsUpdating() || mdb.IsResizingStorage() {
+		return false
 	}
-	if !shouldReconcile {
+	if !mdb.IsReplicationConfigured() {
+		return false
+	}
+	if mdb.Status.CurrentPrimaryPodIndex == nil {
+		return false
+	}
+	currentPodIndex := ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
+	desiredPodIndex := ptr.Deref(mdb.Replication().Primary.PodIndex, 0)
+	return currentPodIndex != desiredPodIndex
+}
+
+func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest, switchoverLogger logr.Logger) error {
+	if !shouldReconcileSwitchover(req.mariadb) {
 		return nil
 	}
 
@@ -89,22 +101,6 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
 		"Primary switched from index '%d' to index '%d'", *fromIndex, toIndex)
 	return nil
-}
-
-func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) (bool, error) {
-	if mdb.IsMaxScaleEnabled() {
-		return false, nil
-	}
-	if !mdb.IsReplicationConfigured() && !mdb.IsSwitchingPrimary() {
-		return false, nil
-	}
-	if mdb.Status.CurrentPrimaryPodIndex == nil {
-		return false, errors.New("'status.currentPrimaryPodIndex' must be set")
-	}
-	if *mdb.Replication().Primary.PodIndex == *mdb.Status.CurrentPrimaryPodIndex {
-		return false, nil
-	}
-	return true, nil
 }
 
 func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
