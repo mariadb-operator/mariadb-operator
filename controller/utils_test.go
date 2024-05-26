@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -12,9 +14,12 @@ import (
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -251,38 +256,49 @@ func testMariadbVolumeResize(mdb *mariadbv1alpha1.MariaDB, newVolumeSize string)
 	}
 }
 
-func testMariadbMaxscale(mdb *mariadbv1alpha1.MariaDB, mxsKey types.NamespacedName) {
-	mxs := mariadbv1alpha1.MaxScale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      mxsKey.Name,
-			Namespace: mxsKey.Namespace,
-		},
-		Spec: mariadbv1alpha1.MaxScaleSpec{
-			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
-					Name: client.ObjectKeyFromObject(mdb).Name,
-				},
-			},
-		},
-	}
-	applyMaxscaleTestConfig(&mxs)
+func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
+	mdbKey := client.ObjectKeyFromObject(mdb)
+	mxsKey := client.ObjectKeyFromObject(mxs)
+
+	applyMaxscaleTestConfig(mxs)
 
 	By("Creating MaxScale")
-	Expect(k8sClient.Create(testCtx, &mxs)).To(Succeed())
+	Expect(k8sClient.Create(testCtx, mxs)).To(Succeed())
 	DeferCleanup(func() {
 		deleteMaxScale(mxsKey, true)
 	})
 
 	By("Point MariaDB to MaxScale")
-	mdb.Spec.MaxScaleRef = &corev1.ObjectReference{
-		Name:      mxsKey.Name,
-		Namespace: mxsKey.Namespace,
-	}
-	Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, mdbKey, mdb); err != nil {
+			return false
+		}
+		mdb.Spec.MaxScaleRef = &corev1.ObjectReference{
+			Name:      mxsKey.Name,
+			Namespace: mxsKey.Namespace,
+		}
+		g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Point MaxScale to MariaDB")
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, mxsKey, mxs); err != nil {
+			return false
+		}
+		mxs.Spec.MariaDBRef = &mariadbv1alpha1.MariaDBRef{
+			ObjectReference: corev1.ObjectReference{
+				Name:      mdbKey.Name,
+				Namespace: mdbKey.Namespace,
+			},
+		}
+		g.Expect(k8sClient.Update(testCtx, mxs)).To(Succeed())
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting MariaDB to be ready eventually")
 	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), mdb); err != nil {
+		if err := k8sClient.Get(testCtx, mdbKey, mdb); err != nil {
 			return false
 		}
 		return mdb.IsReady()
@@ -290,11 +306,167 @@ func testMariadbMaxscale(mdb *mariadbv1alpha1.MariaDB, mxsKey types.NamespacedNa
 
 	By("Expecting MaxScale to be ready eventually")
 	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, mxsKey, &mxs); err != nil {
+		if err := k8sClient.Get(testCtx, mxsKey, mxs); err != nil {
 			return false
 		}
 		return mxs.IsReady()
 	}, testHighTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting servers to be ready eventually")
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, mxsKey, mxs); err != nil {
+			return false
+		}
+		for _, srv := range mxs.Status.Servers {
+			g.Expect(srv.IsReady()).To(BeTrue())
+		}
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting monitor to be running eventually")
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, mxsKey, mxs); err != nil {
+			return false
+		}
+		g.Expect(ptr.Deref(
+			mxs.Status.Monitor,
+			mariadbv1alpha1.MaxScaleResourceStatus{},
+		).State).To(Equal("Running"))
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting services to be started eventually")
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, mxsKey, mxs); err != nil {
+			return false
+		}
+		for _, svc := range mxs.Status.Services {
+			g.Expect(svc.State).To(Equal("Started"))
+		}
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting listeners to be running")
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, mxsKey, mxs); err != nil {
+			return false
+		}
+		for _, listener := range mxs.Status.Listeners {
+			g.Expect(listener.State).To(Equal("Running"))
+		}
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting primary to be set eventually")
+	Eventually(func(g Gomega) bool {
+		g.Expect(mdb.Status.CurrentPrimary).ToNot(BeNil())
+		g.Expect(mdb.Status.CurrentPrimaryPodIndex).ToNot(BeNil())
+		g.Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
+		return true
+	}, testHighTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting to create a ServiceAccount")
+	var svcAcc corev1.ServiceAccount
+	Expect(k8sClient.Get(testCtx, mxsKey, &svcAcc)).To(Succeed())
+
+	By("Expecting to create a StatefulSet")
+	var sts appsv1.StatefulSet
+	Expect(k8sClient.Get(testCtx, mxsKey, &sts)).To(Succeed())
+
+	By("Expecting to create a Service")
+	var svc corev1.Service
+	Expect(k8sClient.Get(testCtx, mxsKey, &svc)).To(Succeed())
+
+	By("Expecting to create a GUI Service")
+	var guiSvc corev1.Service
+	Expect(k8sClient.Get(testCtx, mxs.GuiServiceKey(), &guiSvc)).To(Succeed())
+
+	By("Expecting Connection to be ready eventually")
+	Eventually(func() bool {
+		var conn mariadbv1alpha1.Connection
+		if err := k8sClient.Get(testCtx, mxs.ConnectionKey(), &conn); err != nil {
+			return false
+		}
+		return conn.IsReady()
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	type secretRef struct {
+		name        string
+		keySelector corev1.SecretKeySelector
+	}
+	secretKeyRefs := []secretRef{
+		{
+			name:        "admin",
+			keySelector: mxs.Spec.Auth.AdminPasswordSecretKeyRef.SecretKeySelector,
+		},
+		{
+			name:        "client",
+			keySelector: mxs.Spec.Auth.ClientPasswordSecretKeyRef.SecretKeySelector,
+		},
+		{
+			name:        "server",
+			keySelector: mxs.Spec.Auth.ServerPasswordSecretKeyRef.SecretKeySelector,
+		},
+		{
+			name:        "monitor",
+			keySelector: mxs.Spec.Auth.MonitorPasswordSecretKeyRef.SecretKeySelector,
+		},
+	}
+	if mxs.IsHAEnabled() {
+		secretKeyRefs = append(secretKeyRefs, secretRef{
+			name:        "sync",
+			keySelector: mxs.Spec.Auth.SyncPasswordSecretKeyRef.SecretKeySelector,
+		})
+	}
+	if mxs.AreMetricsEnabled() {
+		secretKeyRefs = append(secretKeyRefs, secretRef{
+			name:        "metrics",
+			keySelector: mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector,
+		})
+	}
+
+	for _, secretKeyRef := range secretKeyRefs {
+		By(fmt.Sprintf("Expecting to create a '%s' Secret eventually", secretKeyRef.name))
+		key := types.NamespacedName{
+			Name:      secretKeyRef.keySelector.Name,
+			Namespace: mxs.Namespace,
+		}
+		expectSecretToExist(testCtx, k8sClient, key, secretKeyRef.keySelector.Key)
+	}
+
+	if mxs.AreMetricsEnabled() {
+		By("Expecting to create a exporter Deployment eventually")
+		Eventually(func(g Gomega) bool {
+			var deploy appsv1.Deployment
+			if err := k8sClient.Get(testCtx, mxs.MetricsKey(), &deploy); err != nil {
+				return false
+			}
+			expectedImage := os.Getenv("RELATED_IMAGE_EXPORTER_MAXSCALE")
+			g.Expect(expectedImage).ToNot(BeEmpty())
+
+			By("Expecting Deployment to have exporter image")
+			g.Expect(deploy.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"Image": Equal(expectedImage),
+				})))
+
+			By("Expecting Deployment to be ready")
+			return deploymentReady(&deploy)
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting to create a ServiceMonitor eventually")
+		Eventually(func(g Gomega) bool {
+			var svcMonitor monitoringv1.ServiceMonitor
+			if err := k8sClient.Get(testCtx, mxs.MetricsKey(), &svcMonitor); err != nil {
+				return false
+			}
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", mxs.MetricsKey().Name))
+			g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(int(mxs.Spec.Replicas)))
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+	}
 }
 
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
@@ -457,4 +629,37 @@ func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
 		}
 		return true
 	}, 30*time.Second, 1*time.Second).Should(BeTrue())
+}
+
+func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
+	mxs := mariadbv1alpha1.MaxScale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+	}
+	err := k8sClient.Delete(testCtx, &mxs)
+	if err != nil && !apierrors.IsNotFound(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
+
+	if !assertPVCDeletion {
+		return
+	}
+	Eventually(func(g Gomega) bool {
+		listOpts := &client.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				labels.NewLabelsBuilder().
+					WithMaxScaleSelectorLabels(&mxs).
+					Build(),
+			),
+			Namespace: mxs.GetNamespace(),
+		}
+		pvcList := &corev1.PersistentVolumeClaimList{}
+		err := k8sClient.List(testCtx, pvcList, listOpts)
+		if err != nil && !apierrors.IsNotFound(err) {
+			g.Expect(err).ToNot(HaveOccurred())
+		}
+		return len(pvcList.Items) == 0
+	}, testHighTimeout, testInterval).Should(BeTrue())
 }
