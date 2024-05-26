@@ -33,10 +33,10 @@ ENV_ENT ?= \
 	ENTERPRISE=true
 
 TEST_ENV ?= $(ENV) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-TEST ?= $(TEST_ENV) $(GINKGO) -p --timeout 25m --label-filter='!enterprise' --coverprofile=cover.out 
+TEST ?= $(TEST_ENV) $(GINKGO) -p --timeout 15m --label-filter='!enterprise' --coverprofile=cover.out 
 
 TEST_ENV_ENT ?= $(ENV_ENT) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-TEST_ENT ?= $(TEST_ENV_ENT) $(GINKGO) -p --timeout 25m --coverprofile=cover.out 
+TEST_ENT ?= $(TEST_ENV_ENT) $(GINKGO) -p --timeout 15m --coverprofile=cover.out 
 
 ##@ Test
 
