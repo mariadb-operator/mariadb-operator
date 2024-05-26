@@ -23,54 +23,56 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("MaxScale controller", func() {
-	Context("When creating a MaxScale", func() {
-		It("Should default", func() {
-			By("Creating MaxScale")
-			testDefaultMxsKey := types.NamespacedName{
-				Name:      "test-maxscale-default",
-				Namespace: testNamespace,
-			}
-			testDefaultMxs := mariadbv1alpha1.MaxScale{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testDefaultMxsKey.Name,
-					Namespace: testDefaultMxsKey.Namespace,
-				},
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name:      testMdbkey.Name,
-							Namespace: testMdbkey.Namespace,
-						},
+var _ = Describe("MaxScale", func() {
+	It("should default", func() {
+		By("Creating MaxScale")
+		testDefaultMxsKey := types.NamespacedName{
+			Name:      "test-maxscale-default",
+			Namespace: testNamespace,
+		}
+		testDefaultMxs := mariadbv1alpha1.MaxScale{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testDefaultMxsKey.Name,
+				Namespace: testDefaultMxsKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.MaxScaleSpec{
+				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name:      testMdbkey.Name,
+						Namespace: testMdbkey.Namespace,
 					},
 				},
-			}
-			Expect(k8sClient.Create(testCtx, &testDefaultMxs)).To(Succeed())
-			DeferCleanup(func() {
-				deleteMaxScale(testDefaultMxsKey, false)
-			})
-
-			By("Expecting to eventually default")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, testDefaultMxsKey, &testDefaultMxs); err != nil {
-					return false
-				}
-				return testDefaultMxs.Spec.Image != "" && len(testDefaultMxs.Spec.Servers) > 0 &&
-					len(testDefaultMxs.Spec.Services) > 0 && testDefaultMxs.Spec.Monitor.Module != ""
-			}, testTimeout, testInterval).Should(BeTrue())
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &testDefaultMxs)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMaxScale(testDefaultMxsKey, false)
 		})
+
+		By("Expecting to eventually default")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, testDefaultMxsKey, &testDefaultMxs); err != nil {
+				return false
+			}
+			return testDefaultMxs.Spec.Image != "" && len(testDefaultMxs.Spec.Servers) > 0 &&
+				len(testDefaultMxs.Spec.Services) > 0 && testDefaultMxs.Spec.Monitor.Module != ""
+		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
-	Context("When creating a MariaDB replication with MaxScale", Serial, FlakeAttempts(3), func() {
-		It("Should reconcile", func() {
-			testMdbMxsKey := types.NamespacedName{
+	Context("with MariaDB replication", Ordered, func() {
+		var (
+			key = types.NamespacedName{
 				Name:      "mxs-repl",
 				Namespace: testNamespace,
 			}
-			testMdbMxs := mariadbv1alpha1.MariaDB{
+			mdbMxs *mariadbv1alpha1.MariaDB
+		)
+
+		BeforeAll(func() {
+			mdbMxs = &mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testMdbMxsKey.Name,
-					Namespace: testMdbMxsKey.Namespace,
+					Name:      key.Name,
+					Namespace: key.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
@@ -139,41 +141,49 @@ var _ = Describe("MaxScale controller", func() {
 					},
 				},
 			}
-			applyMariadbTestConfig(&testMdbMxs)
+			applyMariadbTestConfig(mdbMxs)
 
 			By("Creating MariaDB replication with MaxScale")
-			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, mdbMxs)).To(Succeed())
 			DeferCleanup(func() {
-				deleteMariaDB(&testMdbMxs)
-				deleteMaxScale(testMdbMxs.MaxScaleKey(), true)
+				deleteMariaDB(mdbMxs)
+				deleteMaxScale(mdbMxs.MaxScaleKey(), true)
 			})
+		})
 
+		It("should reconcile", func() {
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, testMdbMxsKey, &testMdbMxs); err != nil {
+				if err := k8sClient.Get(testCtx, key, mdbMxs); err != nil {
 					return false
 				}
-				return testMdbMxs.IsReady()
+				return mdbMxs.IsReady()
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting MaxScale to reconcile")
-			testMaxscale(testMdbMxs.MaxScaleKey())
+			testMaxscale(mdbMxs.MaxScaleKey())
+		})
 
+		It("should fail over", FlakeAttempts(3), func() {
 			By("Failing over MaxScale")
-			testMaxscaleFailover(&testMdbMxs)
+			testMaxscaleFailover(mdbMxs)
 		})
 	})
 
-	Context("When creating a MariaDB Galera with MaxScale", Serial, func() {
-		It("Should reconcile", func() {
-			testMdbMxsKey := types.NamespacedName{
+	Context("with MariaDB Galera", Ordered, func() {
+		var (
+			key = types.NamespacedName{
 				Name:      "mxs-galera",
 				Namespace: testNamespace,
 			}
-			testMdbMxs := mariadbv1alpha1.MariaDB{
+			mdbMxs *mariadbv1alpha1.MariaDB
+		)
+
+		BeforeAll(func() {
+			mdbMxs = &mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testMdbMxsKey.Name,
-					Namespace: testMdbMxsKey.Namespace,
+					Name:      key.Name,
+					Namespace: key.Namespace,
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -242,28 +252,32 @@ var _ = Describe("MaxScale controller", func() {
 					},
 				},
 			}
-			applyMariadbTestConfig(&testMdbMxs)
+			applyMariadbTestConfig(mdbMxs)
 
 			By("Creating MariaDB Galera with MaxScale")
-			Expect(k8sClient.Create(testCtx, &testMdbMxs)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, mdbMxs)).To(Succeed())
 			DeferCleanup(func() {
-				deleteMariaDB(&testMdbMxs)
-				deleteMaxScale(testMdbMxs.MaxScaleKey(), true)
+				deleteMariaDB(mdbMxs)
+				deleteMaxScale(mdbMxs.MaxScaleKey(), true)
 			})
+		})
 
+		It("should reconcile", func() {
 			By("Expecting MariaDB to be ready eventually")
 			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, testMdbMxsKey, &testMdbMxs); err != nil {
+				if err := k8sClient.Get(testCtx, key, mdbMxs); err != nil {
 					return false
 				}
-				return testMdbMxs.IsReady()
+				return mdbMxs.IsReady()
 			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting MaxScale to reconcile")
-			testMaxscale(testMdbMxs.MaxScaleKey())
+			testMaxscale(mdbMxs.MaxScaleKey())
+		})
 
+		It("should fail over", func() {
 			By("Failing over MaxScale")
-			testMaxscaleFailover(&testMdbMxs)
+			testMaxscaleFailover(mdbMxs)
 		})
 	})
 })
@@ -393,37 +407,39 @@ func testMaxscale(key types.NamespacedName) {
 		expectSecretToExist(testCtx, k8sClient, key, secretKeyRef.keySelector.Key)
 	}
 
-	By("Expecting to create a exporter Deployment eventually")
-	Eventually(func(g Gomega) bool {
-		var deploy appsv1.Deployment
-		if err := k8sClient.Get(testCtx, mxs.MetricsKey(), &deploy); err != nil {
-			return false
-		}
-		expectedImage := os.Getenv("RELATED_IMAGE_EXPORTER_MAXSCALE")
-		g.Expect(expectedImage).ToNot(BeEmpty())
+	if mxs.AreMetricsEnabled() {
+		By("Expecting to create a exporter Deployment eventually")
+		Eventually(func(g Gomega) bool {
+			var deploy appsv1.Deployment
+			if err := k8sClient.Get(testCtx, mxs.MetricsKey(), &deploy); err != nil {
+				return false
+			}
+			expectedImage := os.Getenv("RELATED_IMAGE_EXPORTER_MAXSCALE")
+			g.Expect(expectedImage).ToNot(BeEmpty())
 
-		By("Expecting Deployment to have exporter image")
-		g.Expect(deploy.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
-			Fields{
-				"Image": Equal(expectedImage),
-			})))
+			By("Expecting Deployment to have exporter image")
+			g.Expect(deploy.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"Image": Equal(expectedImage),
+				})))
 
-		By("Expecting Deployment to be ready")
-		return deploymentReady(&deploy)
-	}, testTimeout, testInterval).Should(BeTrue())
+			By("Expecting Deployment to be ready")
+			return deploymentReady(&deploy)
+		}, testTimeout, testInterval).Should(BeTrue())
 
-	By("Expecting to create a ServiceMonitor eventually")
-	Eventually(func(g Gomega) bool {
-		var svcMonitor monitoringv1.ServiceMonitor
-		if err := k8sClient.Get(testCtx, mxs.MetricsKey(), &svcMonitor); err != nil {
-			return false
-		}
-		g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
-		g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
-		g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", mxs.MetricsKey().Name))
-		g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(int(mxs.Spec.Replicas)))
-		return true
-	}, testTimeout, testInterval).Should(BeTrue())
+		By("Expecting to create a ServiceMonitor eventually")
+		Eventually(func(g Gomega) bool {
+			var svcMonitor monitoringv1.ServiceMonitor
+			if err := k8sClient.Get(testCtx, mxs.MetricsKey(), &svcMonitor); err != nil {
+				return false
+			}
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", mxs.MetricsKey().Name))
+			g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(int(mxs.Spec.Replicas)))
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+	}
 }
 
 func testMaxscaleFailover(mdb *mariadbv1alpha1.MariaDB) {
