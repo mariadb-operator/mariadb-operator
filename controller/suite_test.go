@@ -89,8 +89,8 @@ var _ = BeforeSuite(func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(k8sClient).NotTo(BeNil())
 
-		By("Waiting for MariaDB")
-		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+		By("Waiting for password Secret to exist")
+		expectSecretToExist(testCtx, k8sClient, testPwdKey, testPwdSecretKey)
 		return
 	}
 

@@ -10,6 +10,11 @@ import (
 )
 
 var _ = Describe("MaxScale", func() {
+	BeforeEach(func() {
+		By("Waiting for MariaDB to be ready")
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+	})
+
 	It("should default", func() {
 		By("Creating MaxScale")
 		testDefaultMxsKey := types.NamespacedName{

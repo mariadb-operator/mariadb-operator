@@ -13,6 +13,11 @@ import (
 )
 
 var _ = Describe("Grant", func() {
+	BeforeEach(func() {
+		By("Waiting for MariaDB to be ready")
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+	})
+
 	It("should grant privileges for all tables and databases", func() {
 		By("Creating a User")
 		userKey := types.NamespacedName{
