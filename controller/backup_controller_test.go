@@ -12,6 +12,11 @@ import (
 )
 
 var _ = Describe("Backup", func() {
+	BeforeEach(func() {
+		By("Waiting for MariaDB to be ready")
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+	})
+
 	It("should reconcile a Job with PVC storage", func() {
 		key := types.NamespacedName{
 			Name:      "backup-pvc-test",
