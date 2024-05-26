@@ -11,6 +11,11 @@ import (
 )
 
 var _ = Describe("SqlJob", func() {
+	BeforeEach(func() {
+		By("Waiting for MariaDB to be ready")
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+	})
+
 	It("should reconcile a Job", func() {
 		createUsersJob := mariadbv1alpha1.SqlJob{
 			ObjectMeta: metav1.ObjectMeta{

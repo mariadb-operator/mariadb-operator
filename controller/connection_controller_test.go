@@ -13,6 +13,11 @@ import (
 )
 
 var _ = Describe("Connection", func() {
+	BeforeEach(func() {
+		By("Waiting for MariaDB to be ready")
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+	})
+
 	DescribeTable("should reconcile", func(conn *mariadbv1alpha1.Connection, wantDsn string) {
 		key := client.ObjectKeyFromObject(conn)
 		Expect(k8sClient.Create(testCtx, conn)).To(Succeed())

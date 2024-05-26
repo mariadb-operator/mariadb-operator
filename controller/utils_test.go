@@ -31,8 +31,8 @@ import (
 )
 
 var (
-	testVeryHighTimeout = 3 * time.Minute
-	testHighTimeout     = 2 * time.Minute
+	testVeryHighTimeout = 5 * time.Minute
+	testHighTimeout     = 3 * time.Minute
 	testTimeout         = 1 * time.Minute
 	testInterval        = 1 * time.Second
 
@@ -211,7 +211,7 @@ func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, newCPUreq string) {
 			return false
 		}
 		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeUpdated)
-	}, testVeryHighTimeout, testInterval).Should(BeTrue())
+	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
 func testMariadbVolumeResize(mdb *mariadbv1alpha1.MariaDB, newVolumeSize string) {

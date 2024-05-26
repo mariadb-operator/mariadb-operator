@@ -11,6 +11,11 @@ import (
 )
 
 var _ = Describe("User", func() {
+	BeforeEach(func() {
+		By("Waiting for MariaDB to be ready")
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+	})
+
 	It("should reconcile", func() {
 		userKey := types.NamespacedName{
 			Name:      "user-test",

@@ -15,6 +15,11 @@ import (
 )
 
 var _ = Describe("Restore", func() {
+	BeforeEach(func() {
+		By("Waiting for MariaDB to be ready")
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+	})
+
 	It("should reconcile a Job with BackupRef", func() {
 		By("Creating Backup")
 		key := types.NamespacedName{
