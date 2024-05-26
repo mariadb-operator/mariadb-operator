@@ -299,11 +299,54 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should reconcile with MaxScale", func() {
-		mxsKey := types.NamespacedName{
-			Name:      "maxscale-repl",
-			Namespace: testNamespace,
+		mxs := &mariadbv1alpha1.MaxScale{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "maxscale-repl",
+				Namespace: testNamespace,
+			},
+			Spec: mariadbv1alpha1.MaxScaleSpec{
+				Replicas: 3,
+				KubernetesService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.214",
+						},
+					},
+				},
+				GuiKubernetesService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.230",
+						},
+					},
+				},
+				Connection: &mariadbv1alpha1.ConnectionTemplate{
+					SecretName: ptr.To("mxs-repl-conn"),
+					HealthCheck: &mariadbv1alpha1.HealthCheck{
+						Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+					},
+				},
+				Auth: mariadbv1alpha1.MaxScaleAuth{
+					Generate: ptr.To(true),
+					AdminPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testPwdKey.Name,
+							},
+							Key: testPwdSecretKey,
+						},
+						Generate: false,
+					},
+				},
+				Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+					Enabled: true,
+				},
+			},
 		}
+
 		By("Using MariaDB with MaxScale")
-		testMariadbMaxscale(mdb, mxsKey)
+		testMaxscale(mdb, mxs)
 	})
 })
