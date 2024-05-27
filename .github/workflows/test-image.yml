@@ -1,0 +1,35 @@
+name: Test image
+
+on:
+  workflow_dispatch:
+    inputs:
+      mariadb_image:
+        description: "MariaDB image used to run the tests"
+        required: true
+        type: string
+
+jobs:
+  test:
+    name: "Test \"${{ inputs.mariadb_image }}\" image"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Cluster
+        run: |
+          make cluster
+          make install
+          make install-minio
+          make net
+
+      - name: Test
+        run: make test
+        env:
+          RELATED_IMAGE_MARIADB: "${{ inputs.mariadb_image }}"
