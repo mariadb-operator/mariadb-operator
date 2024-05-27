@@ -363,11 +363,17 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 
 	By("Expecting primary to be set eventually")
 	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, mdbKey, mdb); err != nil {
+			return false
+		}
+		if err := k8sClient.Get(testCtx, mxsKey, mxs); err != nil {
+			return false
+		}
 		g.Expect(mdb.Status.CurrentPrimary).ToNot(BeNil())
 		g.Expect(mdb.Status.CurrentPrimaryPodIndex).ToNot(BeNil())
 		g.Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
 		return true
-	}, testVeryHighTimeout, testInterval).Should(BeTrue())
+	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting to create a ServiceAccount")
 	var svcAcc corev1.ServiceAccount
