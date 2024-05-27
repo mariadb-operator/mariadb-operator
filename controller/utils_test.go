@@ -480,6 +480,13 @@ func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.Maria
 	mdb.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
 		InitialDelaySeconds: 30,
 	}
+
+	if mdb.Spec.PodTemplate.Affinity == nil {
+		mdb.Spec.PodTemplate.Affinity = &mariadbv1alpha1.AffinityConfig{
+			AntiAffinityEnabled: ptr.To(true),
+		}
+	}
+
 	mdb.Spec.Resources = &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			"cpu":    resource.MustParse("300m"),
@@ -500,6 +507,13 @@ func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.Max
 	mxs.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
 		InitialDelaySeconds: 30,
 	}
+
+	if mxs.Spec.PodTemplate.Affinity == nil {
+		mxs.Spec.PodTemplate.Affinity = &mariadbv1alpha1.AffinityConfig{
+			AntiAffinityEnabled: ptr.To(true),
+		}
+	}
+
 	mxs.Spec.Resources = &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			"cpu":    resource.MustParse("200m"),
