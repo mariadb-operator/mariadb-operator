@@ -32,7 +32,7 @@ ENV_ENT ?= \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
 	ENTERPRISE=true
 
-TEST_ARGS ?= --timeout 15m -procs 2
+TEST_ARGS ?= --timeout 15m
 
 TEST_ENV ?= $(ENV) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
 TEST ?= $(TEST_ENV) $(GINKGO) -p --coverprofile=cover.out --label-filter='!enterprise' $(TEST_ARGS)
