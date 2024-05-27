@@ -33,4 +33,3 @@ jobs:
         run: make test
         env:
           RELATED_IMAGE_MARIADB: "${{ inputs.mariadb_image }}"
-          TEST_ARGS: "--timeout 40m -procs=1"
