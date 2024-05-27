@@ -481,7 +481,7 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
 	mdb.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 10,
+		InitialDelaySeconds: 5,
 	}
 	mdb.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
 		InitialDelaySeconds: 30,
@@ -501,7 +501,7 @@ func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.Maria
 
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
 	mxs.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 20,
+		InitialDelaySeconds: 5,
 	}
 	mxs.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
 		InitialDelaySeconds: 30,
