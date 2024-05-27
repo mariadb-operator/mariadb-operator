@@ -109,8 +109,6 @@ jobs:
 
       - name: Test
         run: make test
-        env:
-          TEST_ARGS: "--timeout 30m -procs=2"
 
   test-ent:
     name: Test enterprise
@@ -152,8 +150,6 @@ jobs:
 
       - name: Test
         run: make test-ent
-        env:
-          TEST_ARGS: "--timeout 30m -procs=2"
 
   olm:
     name: OLM

@@ -32,23 +32,25 @@ ENV_ENT ?= \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
 	ENTERPRISE=true
 
-TEST_ARGS ?= "--timeout 15m"
 
 TEST_ENV ?= $(ENV) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-TEST ?= $(TEST_ENV) $(GINKGO) -p --label-filter='!enterprise' --coverprofile=cover.out $(TEST_ARGS)
+TEST ?= $(TEST_ENV) $(GINKGO) -p --coverprofile=cover.out --label-filter='!enterprise' 
 
 TEST_ENV_ENT ?= $(ENV_ENT) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-TEST_ENT ?= $(TEST_ENV_ENT) $(GINKGO) -p --coverprofile=cover.out $(TEST_ARGS)
+TEST_ENT ?= $(TEST_ENV_ENT) $(GINKGO) -p --coverprofile=cover.out
+
+TEST_UNIT_ARGS ?= "--timeout 5m"
+TEST_INT_ARGS ?= "--timeout 15m"
 
 ##@ Test
 
 .PHONY: test-unit
 test-unit: envtest ginkgo ## Run unit tests.
-	$(TEST) ./pkg/... ./api/...
+	$(TEST) $(TEST_UNIT_ARGS) ./pkg/... ./api/...
 
 .PHONY: test-int
 test-int: envtest ginkgo ## Run integration tests.
-	$(TEST) ./controller/...
+	$(TEST) $(TEST_INT_ARGS) ./controller/...
 
 .PHONY: test
 test: test-unit test-int ## Run tests.
@@ -62,11 +64,11 @@ cover: ## Generate and view coverage report.
 
 .PHONY: test-unit-ent
 test-unit-ent: envtest ginkgo ## Run enterprise unit tests.
-	$(TEST_ENT) ./pkg/... ./api/...
+	$(TEST_ENT) $(TEST_UNIT_ARGS) ./pkg/... ./api/...
 
 .PHONY: test-int-ent
 test-int-ent: envtest ginkgo ## Run enterprise integration tests.
-	$(TEST_ENT) ./controller/...
+	$(TEST_ENT) $(TEST_INT_ARGS) ./controller/...
 
 .PHONY: test-ent
 test-ent: test-unit-ent test-int-ent ## Run enterprise tests.
