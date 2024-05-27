@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-# usage: GHA_TOKEN="$GHA_TOKEN" MARIADB_IMAGE="mariadbmmontes/enterprise-server:10.6" ./hack/test_image_ent.sh
+# usage: GHA_TOKEN="$GHA_TOKEN" MARIADB_IMAGE="mariadbmmontes/enterprise-server:10.6" test_image_ent.sh
 
 if [ -z "$GHA_TOKEN" ]; then 
   echo "GHA_TOKEN environment variable is mandatory"
