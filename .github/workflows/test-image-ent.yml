@@ -1,4 +1,4 @@
-name: Enterprise test
+name: Test enterprise image
 
 on:
   workflow_dispatch:
@@ -9,8 +9,8 @@ on:
         type: string
 
 jobs:
-  test-ent:
-    name: Test enterprise
+  test:
+    name: "Test \"${{ inputs.mariadb_image }}\" enterprise image"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
