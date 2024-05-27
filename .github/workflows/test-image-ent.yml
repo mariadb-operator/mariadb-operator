@@ -47,3 +47,4 @@ jobs:
         run: make test-ent
         env:
           RELATED_IMAGE_MARIADB_ENT: "${{ inputs.mariadb_image }}"
+          TEST_ARGS: "-procs=1"
