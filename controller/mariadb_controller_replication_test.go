@@ -290,7 +290,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 
 	It("should update", func() {
 		By("Updating MariaDB")
-		testMariadbUpdate(mdb, "500m")
+		testMariadbUpdate(mdb)
 	})
 
 	It("should resize PVCs", func() {

@@ -189,7 +189,7 @@ max_allowed_packet=256M`),
 	expectMariadbReady(ctx, k8sClient, testMdbkey)
 }
 
-func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, newCPUreq string) {
+func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
 	key := client.ObjectKeyFromObject(mdb)
 
 	By("Updating MariaDB compute resources")
@@ -197,11 +197,15 @@ func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, newCPUreq string) {
 		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 			return false
 		}
-		mdb.Spec.Resources = &corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				"cpu": resource.MustParse(newCPUreq),
-			},
+		if mdb.Spec.PodTemplate.PodMetadata == nil {
+			mdb.Spec.PodTemplate.PodMetadata = &mariadbv1alpha1.Metadata{}
+
+			if mdb.Spec.PodTemplate.PodMetadata.Annotations == nil {
+				mdb.Spec.PodTemplate.PodMetadata.Annotations = map[string]string{}
+			}
 		}
+		mdb.Spec.PodTemplate.PodMetadata.Annotations["k8s.mariadb.com/updated-at"] = time.Now().String()
+
 		return k8sClient.Update(testCtx, mdb) == nil
 	}, testTimeout, testInterval).Should(BeTrue())
 
@@ -471,20 +475,40 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
 	mdb.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 5,
+		InitialDelaySeconds: 10,
 	}
 	mdb.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
 		InitialDelaySeconds: 30,
+	}
+	mdb.Spec.Resources = &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("300m"),
+			"memory": resource.MustParse("256Mi"),
+		},
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse("300m"),
+			"memory": resource.MustParse("256Mi"),
+		},
 	}
 	return mdb
 }
 
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
 	mxs.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 5,
+		InitialDelaySeconds: 10,
 	}
 	mxs.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
 		InitialDelaySeconds: 30,
+	}
+	mxs.Spec.Resources = &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("200m"),
+			"memory": resource.MustParse("128Mi"),
+		},
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse("200m"),
+			"memory": resource.MustParse("128Mi"),
+		},
 	}
 	return mxs
 }
