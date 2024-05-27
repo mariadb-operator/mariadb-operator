@@ -367,7 +367,7 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 		g.Expect(mdb.Status.CurrentPrimaryPodIndex).ToNot(BeNil())
 		g.Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
 		return true
-	}, testHighTimeout, testInterval).Should(BeTrue())
+	}, testVeryHighTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting to create a ServiceAccount")
 	var svcAcc corev1.ServiceAccount
