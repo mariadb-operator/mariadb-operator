@@ -9,12 +9,3 @@ nodes:
     image: *image
   - role: worker
     image: *image
-  - role: worker
-    image: *image
-    kubeadmConfigPatches: &kubeadmConfigPatches
-      - |
-        kind: JoinConfiguration
-        nodeRegistration:
-          taints:
-            - key: "k8s.mariadb.com/ha"
-              effect: "NoSchedule"

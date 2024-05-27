@@ -24,7 +24,7 @@ jobs:
 
       - name: Cluster
         run: |
-          make cluster
+          make cluster-ha
           make install
           make install-minio
           make net
