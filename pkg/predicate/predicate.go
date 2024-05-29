@@ -12,6 +12,23 @@ func PredicateWithAnnotations(annotations []string) predicate.Predicate {
 	})
 }
 
+func PredicateWithLabel(label string) predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return hasLabel(e.Object, label)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return hasLabel(e.Object, label)
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return hasLabel(e.ObjectNew, label)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return hasLabel(e.Object, label)
+		},
+	}
+}
+
 func PredicateChangedWithAnnotations(annotations []string, hasChanged func(old, new client.Object) bool) predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
@@ -40,4 +57,9 @@ func hasAnnotations(o client.Object, annotations []string) bool {
 		}
 	}
 	return true
+}
+
+func hasLabel(o client.Object, label string) bool {
+	_, hasLabel := o.GetLabels()[label]
+	return hasLabel
 }

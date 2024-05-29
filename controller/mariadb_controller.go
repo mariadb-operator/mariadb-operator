@@ -29,21 +29,28 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+const myCnfConfigMapField = ".spec.myCnfConfigMapKeyRef.name"
 
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
@@ -790,6 +797,10 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := r.createIndex(mgr); err != nil {
+		return fmt.Errorf("error creating index: %v", err)
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MariaDB{}).
 		Owns(&mariadbv1alpha1.MaxScale{}).
@@ -808,5 +819,51 @@ func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
+		Watches(
+			&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToRequests),
+			ctrlbuilder.WithPredicates(
+				predicate.PredicateWithLabel(metadata.WatchLabel),
+			),
+		).
 		Complete(r)
+}
+
+func (r *MariaDBReconciler) createIndex(mgr ctrl.Manager) error {
+	indexFn := func(rawObj client.Object) []string {
+		mdb := rawObj.(*mariadbv1alpha1.MariaDB)
+
+		if mdb.Spec.MyCnfConfigMapKeyRef != nil &&
+			mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name != "" {
+			return []string{mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name}
+		}
+		return nil
+	}
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &mariadbv1alpha1.MariaDB{}, myCnfConfigMapField, indexFn); err != nil {
+		return fmt.Errorf("error indexing '%s' field in MariaDB: %v", myCnfConfigMapField, err)
+	}
+	return nil
+}
+
+func (r *MariaDBReconciler) mapConfigMapToRequests(ctx context.Context, configMap client.Object) []reconcile.Request {
+	mariadbsToReconcile := &mariadbv1alpha1.MariaDBList{}
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(myCnfConfigMapField, configMap.GetName()),
+		Namespace:     configMap.GetNamespace(),
+	}
+
+	if err := r.List(context.Background(), mariadbsToReconcile, listOpts); err != nil {
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(mariadbsToReconcile.Items))
+	for i, item := range mariadbsToReconcile.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      item.GetName(),
+				Namespace: item.GetNamespace(),
+			},
+		}
+	}
+	return requests
 }
