@@ -20,7 +20,7 @@ func TestMariadbPodMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		mariadb  *mariadbv1alpha1.MariaDB
-		opts     []mariadbOpt
+		opts     []mariadbPodOpt
 		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
@@ -120,7 +120,7 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 			},
-			opts: []mariadbOpt{
+			opts: []mariadbPodOpt{
 				withMeta(&mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"sidecar.istio.io/inject": "false",
@@ -186,7 +186,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbOpt{
+			opts: []mariadbPodOpt{
 				withMeta(&mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"sidecar.istio.io/inject": "true",
@@ -250,7 +250,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbOpt{
+			opts: []mariadbPodOpt{
 				withMariadbSelectorLabels(false),
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
@@ -282,7 +282,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbOpt{
+			opts: []mariadbPodOpt{
 				withMeta(&mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
 						"sidecar.istio.io/inject": "false",
@@ -520,7 +520,7 @@ func TestMariadbPodBuilder(t *testing.T) {
 			},
 		},
 	}
-	opts := []mariadbOpt{
+	opts := []mariadbPodOpt{
 		withAffinity(&mariadbv1alpha1.AffinityConfig{
 			AntiAffinityEnabled: ptr.To(true),
 			Affinity:            corev1.Affinity{},
