@@ -33,15 +33,6 @@ type ReconcileRequest struct {
 }
 
 func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req *ReconcileRequest) error {
-	var existingConfigMap corev1.ConfigMap
-	err := r.Get(ctx, req.Key, &existingConfigMap)
-	if err == nil {
-		return nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error getting ConfigMap: %v", err)
-	}
-
 	opts := builder.ConfigMapOpts{
 		Metadata: req.Metadata,
 		Key:      req.Key,
@@ -52,5 +43,18 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req *ReconcileReque
 		return fmt.Errorf("error building ConfigMap: %v", err)
 	}
 
-	return r.Create(ctx, configMap)
+	var existingConfigMap corev1.ConfigMap
+	if err := r.Get(ctx, req.Key, &existingConfigMap); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error getting ConfigMap: %v", err)
+		}
+		if err := r.Create(ctx, configMap); err != nil {
+			return fmt.Errorf("error creating ConfigMap: %v", err)
+		}
+		return nil
+	}
+
+	patch := client.MergeFrom(existingConfigMap.DeepCopy())
+	existingConfigMap.Data = configMap.Data
+	return r.Patch(ctx, &existingConfigMap, patch)
 }
