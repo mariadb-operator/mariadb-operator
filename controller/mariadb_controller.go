@@ -309,7 +309,7 @@ func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(mariadb)
-	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key)
+	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, nil)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}

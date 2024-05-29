@@ -55,7 +55,8 @@ const (
 	maxscaleEnterpriseGroup = int64(999)
 )
 
-func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*appsv1.StatefulSet, error) {
+func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
+	podAnnotations map[string]string) (*appsv1.StatefulSet, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
@@ -70,7 +71,16 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 	if err != nil {
 		return nil, err
 	}
-	podTemplate, err := b.mariadbPodTemplate(mariadb)
+
+	var mariadbPodOpts []mariadbPodOpt
+	if podAnnotations != nil {
+		mariadbPodOpts = append(mariadbPodOpts,
+			withMeta(&mariadbv1alpha1.Metadata{
+				Annotations: podAnnotations,
+			}),
+		)
+	}
+	podTemplate, err := b.mariadbPodTemplate(mariadb, mariadbPodOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
 	}
