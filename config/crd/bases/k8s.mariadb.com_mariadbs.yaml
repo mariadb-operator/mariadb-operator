@@ -19452,12 +19452,16 @@ spec:
                     type: string
                 type: object
               myCnf:
-                description: MyCnf allows to specify the my.cnf file mounted by Mariadb.
+                description: |-
+                  MyCnf allows to specify the my.cnf file mounted by Mariadb.
+                  Updating this field will trigger an update to the Mariadb resource.
                 type: string
               myCnfConfigMapKeyRef:
                 description: |-
                   MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.
-                  If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field.
+                  If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.
+                  If the referred ConfigMap is labeled with "k8s.mariadb.com/watch"="true",
+                  an update to the Mariadb resource will be triggered when the ConfigMap is updated.
                 properties:
                   key:
                     description: The key to select.
