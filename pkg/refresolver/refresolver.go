@@ -8,7 +8,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -119,19 +118,36 @@ func (r *RefResolver) SqlJob(ctx context.Context, ref *corev1.LocalObjectReferen
 
 func (r *RefResolver) SecretKeyRef(ctx context.Context, selector corev1.SecretKeySelector,
 	namespace string) (string, error) {
-	nn := types.NamespacedName{
+	key := types.NamespacedName{
 		Name:      selector.Name,
 		Namespace: namespace,
 	}
-	var secret v1.Secret
-	if err := r.client.Get(ctx, nn, &secret); err != nil {
-		return "", fmt.Errorf("error getting secret: %v", err)
+	var secret corev1.Secret
+	if err := r.client.Get(ctx, key, &secret); err != nil {
+		return "", fmt.Errorf("error getting Secret: %v", err)
 	}
 
 	data, ok := secret.Data[selector.Key]
 	if !ok {
-		return "", fmt.Errorf("secret key \"%s\" not found", selector.Key)
+		return "", fmt.Errorf("Secret key \"%s\" not found", selector.Key)
+	}
+	return string(data), nil
+}
+
+func (r *RefResolver) ConfigMapKeyRef(ctx context.Context, selector *corev1.ConfigMapKeySelector,
+	namespace string) (string, error) {
+	key := types.NamespacedName{
+		Name:      selector.Name,
+		Namespace: namespace,
+	}
+	var configMap corev1.ConfigMap
+	if err := r.client.Get(ctx, key, &configMap); err != nil {
+		return "", fmt.Errorf("error getting ConfigMap: %v", err)
 	}
 
+	data, ok := configMap.Data[selector.Key]
+	if !ok {
+		return "", fmt.Errorf("ConfigMap key \"%s\" not found", selector.Key)
+	}
 	return string(data), nil
 }
