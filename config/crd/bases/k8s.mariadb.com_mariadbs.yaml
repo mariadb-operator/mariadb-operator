@@ -19460,7 +19460,7 @@ spec:
                 description: |-
                   MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.
                   If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.
-                  If the referred ConfigMap is labeled with "k8s.mariadb.com/watch"="true",
+                  If the referred ConfigMap is labeled with "k8s.mariadb.com/watch",
                   an update to the Mariadb resource will be triggered when the ConfigMap is updated.
                 properties:
                   key:
