@@ -372,14 +372,17 @@ type MariaDBSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordSecretKeyRef *GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
 	// MyCnf allows to specify the my.cnf file mounted by Mariadb.
+	// Updating this field will trigger an update to the Mariadb resource.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MyCnf *string `json:"myCnf,omitempty" webhook:"inmutable"`
+	MyCnf *string `json:"myCnf,omitempty"`
 	// MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.
-	// If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field.
+	// If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.
+	// If the referred ConfigMap is labeled with "k8s.mariadb.com/watch"="true",
+	// an update to the Mariadb resource will be triggered when the ConfigMap is updated.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
+	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty"`
 	// BootstrapFrom defines a source to bootstrap from.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -531,8 +534,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 		m.Spec.Port = 3306
 	}
 	if m.Spec.MyCnf != nil && m.Spec.MyCnfConfigMapKeyRef == nil {
-		myCnfKeyRef := m.MyCnfConfigMapKeyRef()
-		m.Spec.MyCnfConfigMapKeyRef = &myCnfKeyRef
+		m.Spec.MyCnfConfigMapKeyRef = ptr.To(m.MyCnfConfigMapKeyRef())
 	}
 	if m.IsInitialDataEnabled() && m.Spec.PasswordSecretKeyRef == nil {
 		secretKeyRef := m.PasswordSecretKeyRef()
