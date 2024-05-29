@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -309,7 +311,12 @@ func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(mariadb)
-	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, nil)
+	podAnnotations, err := r.getPodAnnotations(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting Pod annotations: %v", err)
+	}
+
+	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, podAnnotations)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
@@ -321,6 +328,20 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 		return result, err
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) getPodAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
+	podAnnotations := make(map[string]string)
+
+	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		config, err := r.RefResolver.ConfigMapKeyRef(ctx, mariadb.Spec.MyCnfConfigMapKeyRef, mariadb.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting my.cnf from ConfigMap: %v", err)
+		}
+		podAnnotations[metadata.ConfigAnnotation] = fmt.Sprintf("%x", sha256.Sum256([]byte(config)))
+	}
+
+	return podAnnotations, nil
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
