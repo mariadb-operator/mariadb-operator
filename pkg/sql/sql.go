@@ -265,7 +265,7 @@ func (c *Client) DropUser(ctx context.Context, accountName string) error {
 }
 
 func (c *Client) AlterUser(ctx context.Context, accountName, password string) error {
-	query := fmt.Sprintf("ALTER USER %s IDENTIFIED BY '%s';", accountName, password)
+	query := fmt.Sprintf("ALTER USER '%s' IDENTIFIED BY '%s';", accountName, password)
 
 	return c.ExecFlushingPrivileges(ctx, query)
 }
