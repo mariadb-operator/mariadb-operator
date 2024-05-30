@@ -264,14 +264,14 @@ func (c *Client) DropUser(ctx context.Context, accountName string) error {
 	return c.ExecFlushingPrivileges(ctx, query)
 }
 
-func (c *Client) AlterUser(ctx context.Context, username, password string) error {
-	query := fmt.Sprintf("ALTER USER '%s'@'%s' IDENTIFIED BY '%s';", username, "%", password)
+func (c *Client) AlterUser(ctx context.Context, accountName, password string) error {
+	query := fmt.Sprintf("ALTER USER %s IDENTIFIED BY '%s';", accountName, password)
 
 	return c.ExecFlushingPrivileges(ctx, query)
 }
 
-func (c *Client) UserExists(ctx context.Context, username string) (bool, error) {
-	row := c.db.QueryRowContext(ctx, "SELECT COUNT(user) FROM mysql.user WHERE user=?", username)
+func (c *Client) UserExists(ctx context.Context, username, host string) (bool, error) {
+	row := c.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM mysql.user WHERE user=? AND host=?", username, host)
 	var count int
 	if err := row.Scan(&count); err != nil {
 		return false, err

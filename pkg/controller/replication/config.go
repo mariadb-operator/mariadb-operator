@@ -17,6 +17,7 @@ import (
 
 var (
 	replUser       = "repl"
+	replUserHost   = "%"
 	connectionName = "mariadb-operator"
 )
 
@@ -199,6 +200,7 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 
 	opts := userSqlOpts{
 		username:   replUser,
+		host:       replUserHost,
 		privileges: []string{"REPLICATION REPLICA"},
 	}
 	if err := r.reconcileUserSql(ctx, mariadb, client, &opts); err != nil {
@@ -209,6 +211,7 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 
 type userSqlOpts struct {
 	username   string
+	host       string
 	privileges []string
 }
 
@@ -232,8 +235,8 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		return fmt.Errorf("error reconciling replication passsword: %v", err)
 	}
 
-	accountName := formatAccountName(opts.username, "%")
-	exists, err := client.UserExists(ctx, replUser)
+	accountName := formatAccountName(opts.username, opts.host)
+	exists, err := client.UserExists(ctx, opts.username, opts.host)
 	if err != nil {
 		return fmt.Errorf("error checking if replication user exists: %v", err)
 	}
