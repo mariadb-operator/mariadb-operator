@@ -75,7 +75,21 @@ type User struct {
 }
 
 func (u *User) AccountName() string {
-	return fmt.Sprintf("'%s'@'%s'", u.usernameOrDefault(), u.hostnameOrDefault())
+	return fmt.Sprintf("'%s'@'%s'", u.UsernameOrDefault(), u.HostnameOrDefault())
+}
+
+func (u *User) UsernameOrDefault() string {
+	if u.Spec.Name != "" {
+		return u.Spec.Name
+	}
+	return u.Name
+}
+
+func (u *User) HostnameOrDefault() string {
+	if u.Spec.Host != "" {
+		return u.Spec.Host
+	}
+	return "%"
 }
 
 func (u *User) IsBeingDeleted() bool {
@@ -96,20 +110,6 @@ func (d *User) RequeueInterval() *metav1.Duration {
 
 func (u *User) RetryInterval() *metav1.Duration {
 	return u.Spec.RetryInterval
-}
-
-func (u *User) usernameOrDefault() string {
-	if u.Spec.Name != "" {
-		return u.Spec.Name
-	}
-	return u.Name
-}
-
-func (u *User) hostnameOrDefault() string {
-	if u.Spec.Host != "" {
-		return u.Spec.Host
-	}
-	return "%"
 }
 
 // +kubebuilder:object:root=true

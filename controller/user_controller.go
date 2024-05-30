@@ -81,8 +81,10 @@ func newWrapperUserReconciler(client client.Client, refResolver *refresolver.Ref
 func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
 	var createUserOpts []sqlClient.CreateUserOpt
 
+	var password string
 	if wr.user.Spec.PasswordSecretKeyRef != nil {
-		password, err := wr.refResolver.SecretKeyRef(ctx, *wr.user.Spec.PasswordSecretKeyRef, wr.user.Namespace)
+		var err error
+		password, err = wr.refResolver.SecretKeyRef(ctx, *wr.user.Spec.PasswordSecretKeyRef, wr.user.Namespace)
 		if err != nil {
 			return fmt.Errorf("error reading user password secret: %v", err)
 		}
@@ -92,8 +94,23 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlCl
 		createUserOpts = append(createUserOpts, sqlClient.WithMaxUserConnections(wr.user.Spec.MaxUserConnections))
 	}
 
-	if err := mdbClient.CreateUser(ctx, wr.user.AccountName(), createUserOpts...); err != nil {
-		return fmt.Errorf("error creating user in MariaDB: %v", err)
+	username := wr.user.UsernameOrDefault()
+	hostname := wr.user.HostnameOrDefault()
+	exists, err := mdbClient.UserExists(ctx, username, hostname)
+	if err != nil {
+		return fmt.Errorf("error checking if User exists: %v", err)
+	}
+
+	if !exists {
+		if err := mdbClient.CreateUser(ctx, wr.user.AccountName(), createUserOpts...); err != nil {
+			return fmt.Errorf("error creating User: %v", err)
+		}
+		return nil
+	}
+	if password != "" {
+		if err := mdbClient.AlterUser(ctx, username, password); err != nil {
+			return fmt.Errorf("error altering User: %v", err)
+		}
 	}
 	return nil
 }
