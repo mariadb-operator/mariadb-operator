@@ -5,6 +5,7 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -317,6 +318,151 @@ var _ = Describe("MariaDB", func() {
 
 		By("Expecting to create a password Secret eventually")
 		expectSecretToExist(testCtx, k8sClient, testPwdKey, testPwdSecretKey)
+	})
+
+	It("should get an update when my.cnf is updated", func() {
+		By("Creating MariaDB")
+		key := types.NamespacedName{
+			Name:      "test-mariadb-mycnf",
+			Namespace: testNamespace,
+		}
+		mdb := mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+				UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+					Type: mariadbv1alpha1.OnDeleteUpdateType,
+				},
+				MyCnf: ptr.To(`[mariadb]
+				bind-address=*
+				default_storage_engine=InnoDB
+				binlog_format=row
+				innodb_autoinc_lock_mode=2
+				innodb_buffer_pool_size=1024M
+				max_allowed_packet=256M
+				`),
+			},
+		}
+		applyMariadbTestConfig(&mdb)
+
+		By("Creating MariaDB")
+		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariaDB(&mdb)
+		})
+
+		By("Expecting MariaDB to be ready eventually")
+		expectMariadbReady(testCtx, k8sClient, key)
+
+		By("Updating innodb_buffer_pool_size in my.cnf")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
+			mdb.Spec.MyCnf = ptr.To(`[mariadb]
+			bind-address=*
+			default_storage_engine=InnoDB
+			binlog_format=row
+			innodb_autoinc_lock_mode=2
+			innodb_buffer_pool_size=2048M
+			max_allowed_packet=256M
+			`)
+			g.Expect(k8sClient.Update(testCtx, &mdb)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to have a pending update eventually")
+		expectMariadbFn(testCtx, k8sClient, key, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			return mdb.HasPendingUpdate()
+		})
+	})
+
+	It("should get an update when my.cnf ConfigMap is updated", func() {
+		key := types.NamespacedName{
+			Name:      "test-mariadb-mycnf-configmap",
+			Namespace: testNamespace,
+		}
+
+		By("Creating ConfigMap")
+		configMapKey := "my.cnf"
+		configMap := corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+				Labels: map[string]string{
+					metadata.WatchLabel: "",
+				},
+			},
+			Data: map[string]string{
+				configMapKey: `[mariadb]
+				bind-address=*
+				default_storage_engine=InnoDB
+				binlog_format=row
+				innodb_autoinc_lock_mode=2
+				innodb_buffer_pool_size=1024M
+				max_allowed_packet=256M
+				`,
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &configMap)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, &configMap)).To(Succeed())
+		})
+
+		By("Creating MariaDB")
+		mdb := mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+				UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+					Type: mariadbv1alpha1.OnDeleteUpdateType,
+				},
+				MyCnfConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: configMap.Name,
+					},
+					Key: configMapKey,
+				},
+			},
+		}
+		applyMariadbTestConfig(&mdb)
+
+		By("Creating MariaDB")
+		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariaDB(&mdb)
+		})
+
+		By("Expecting MariaDB to be ready eventually")
+		expectMariadbReady(testCtx, k8sClient, key)
+
+		By("Updating innodb_buffer_pool_size in my.cnf ConfigMap")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, &configMap)).To(Succeed())
+			configMap.Data[configMapKey] = `[mariadb]
+			bind-address=*
+			default_storage_engine=InnoDB
+			binlog_format=row
+			innodb_autoinc_lock_mode=2
+			innodb_buffer_pool_size=2048M
+			max_allowed_packet=256M
+			`
+			g.Expect(k8sClient.Update(testCtx, &configMap)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to have a pending update eventually")
+		expectMariadbFn(testCtx, k8sClient, key, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			return mdb.HasPendingUpdate()
+		})
 	})
 
 	It("should bootstrap from Backup", func() {
