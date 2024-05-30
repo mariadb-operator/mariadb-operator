@@ -220,7 +220,7 @@ var _ = BeforeSuite(func() {
 		MaxScaleReconciler:    mxsReconciler,
 		ReplicationReconciler: replicationReconciler,
 		GaleraReconciler:      galeraReconciler,
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&MaxScaleReconciler{
@@ -277,7 +277,7 @@ var _ = BeforeSuite(func() {
 	}
 	err = NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
-	err = NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
+	err = NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 	err = NewDatabaseReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

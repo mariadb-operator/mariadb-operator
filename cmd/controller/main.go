@@ -251,7 +251,7 @@ var rootCmd = &cobra.Command{
 			MaxScaleReconciler:    mxsReconciler,
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
-		}).SetupWithManager(mgr); err != nil {
+		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
 		}
@@ -315,7 +315,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
-		if err = controller.NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(mgr); err != nil {
+		if err = controller.NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Grant")
 			os.Exit(1)
 		}
