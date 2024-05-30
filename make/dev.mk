@@ -40,6 +40,8 @@ TEST ?= $(TEST_ENV) $(GINKGO) -p --coverprofile=cover.out --label-filter='!enter
 TEST_ENV_ENT ?= $(ENV_ENT) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
 TEST_ENT ?= $(TEST_ENV_ENT) $(GINKGO) -p --coverprofile=cover.out $(TEST_ARGS)
 
+GOCOVERDIR ?= .
+
 ##@ Test
 
 .PHONY: test-unit
