@@ -605,13 +605,17 @@ func getBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backu
 }
 
 func expectMariadbReady(ctx context.Context, k8sClient client.Client, key types.NamespacedName) {
-	var mdb mariadbv1alpha1.MariaDB
 	By("Expecting MariaDB to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
-			return false
-		}
+	expectMariadbFn(ctx, k8sClient, key, func(mdb *mariadbv1alpha1.MariaDB) bool {
 		return mdb.IsReady()
+	})
+}
+
+func expectMariadbFn(ctx context.Context, k8sClient client.Client, key types.NamespacedName, fn func(mdb *mariadbv1alpha1.MariaDB) bool) {
+	var mdb mariadbv1alpha1.MariaDB
+	Eventually(func(g Gomega) bool {
+		g.Expect(k8sClient.Get(ctx, key, &mdb)).To(Succeed())
+		return fn(&mdb)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
