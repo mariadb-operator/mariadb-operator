@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -11,6 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Exporter defines a metrics exporter container.
@@ -672,6 +675,31 @@ func (m *MariaDB) IsUpdating() bool {
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonUpdating
 }
 
+// MariadbMyCnfConfigMapFieldPath is the path related to the my.cnf ConfigMap field.
+const MariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
+
+func myCnfConfigMapIndexer(obj client.Object) []string {
+	mdb, ok := obj.(*MariaDB)
+	if !ok {
+		return nil
+	}
+	if mdb.Spec.MyCnfConfigMapKeyRef != nil &&
+		mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name != "" {
+		return []string{mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name}
+	}
+	return nil
+}
+
+// IndexerFuncForFieldPath returns an indexer function for a given field path.
+func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
+	switch fieldPath {
+	case MariadbMyCnfConfigMapFieldPath:
+		return myCnfConfigMapIndexer, nil
+	default:
+		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
+	}
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB
@@ -679,6 +707,15 @@ type MariaDBList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []MariaDB `json:"items"`
+}
+
+// ListItems gets a copy of the Items slice.
+func (m *MariaDBList) ListItems() []ctrlclient.Object {
+	items := make([]ctrlclient.Object, len(m.Items))
+	for i, item := range m.Items {
+		items[i] = item.DeepCopy()
+	}
+	return items
 }
 
 func init() {
