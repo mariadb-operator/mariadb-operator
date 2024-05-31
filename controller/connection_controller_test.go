@@ -4,11 +4,13 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -228,7 +230,7 @@ var _ = Describe("Connection", func() {
 		Expect(*conn.Spec.SecretTemplate.Key).To(Equal("dsn"))
 	})
 
-	It("should add extended information to secret", func() {
+	It("should add extended information to Secret", func() {
 		key := types.NamespacedName{
 			Name:      "conn-default-extended-test",
 			Namespace: testNamespace,
@@ -298,5 +300,126 @@ var _ = Describe("Connection", func() {
 		database, ok := secret.Data["name"]
 		Expect(ok).To(BeTrue())
 		Expect(string(database)).To(Equal(testDatabase))
+	})
+
+	It("should update Secret", func() {
+		key := types.NamespacedName{
+			Name:      "conn-update-test",
+			Namespace: testNamespace,
+		}
+		secretKey := "dsn"
+
+		By("Creating Secret")
+		passwordKey := types.NamespacedName{
+			Name:      "conn-update-test-password",
+			Namespace: testNamespace,
+		}
+		passwordSecret := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      passwordKey.Name,
+				Namespace: passwordKey.Namespace,
+				Labels: map[string]string{
+					metadata.WatchLabel: "",
+				},
+			},
+			StringData: map[string]string{
+				secretKey: "MariaDB11!",
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &passwordSecret)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, &passwordSecret)).To(Succeed())
+		})
+
+		conn := mariadbv1alpha1.Connection{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.ConnectionSpec{
+				ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
+					SecretName: ptr.To(key.Name),
+					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+						Key: ptr.To(secretKey),
+					},
+				},
+				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				Username: testUser,
+				PasswordSecretKeyRef: corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: passwordSecret.Name,
+					},
+					Key: secretKey,
+				},
+				Database: &testDatabase,
+			},
+		}
+		By("Creating Connection")
+		Expect(k8sClient.Create(testCtx, &conn)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
+		})
+
+		By("Expecting Secret to be updated")
+		Eventually(func(g Gomega) bool {
+			var secret corev1.Secret
+			if err := k8sClient.Get(testCtx, key, &secret); err != nil {
+				return false
+			}
+			g.Expect(secret.Data[secretKey]).To(
+				BeEquivalentTo("test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s"),
+			)
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Updating Connection username")
+		Eventually(func(g Gomega) bool {
+			var conn mariadbv1alpha1.Connection
+			if err := k8sClient.Get(testCtx, key, &conn); err != nil {
+				return false
+			}
+			conn.Spec.Username = "updated-test"
+			g.Expect(k8sClient.Update(testCtx, &conn)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting Secret username to be updated")
+		Eventually(func(g Gomega) bool {
+			var secret corev1.Secret
+			if err := k8sClient.Get(testCtx, key, &secret); err != nil {
+				return false
+			}
+			g.Expect(secret.Data[secretKey]).To(
+				BeEquivalentTo("updated-test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s"),
+			)
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Updating Connection password")
+		Eventually(func(g Gomega) bool {
+			if err := k8sClient.Get(testCtx, passwordKey, &passwordSecret); err != nil {
+				return false
+			}
+			passwordSecret.Data[secretKey] = []byte("MariaDB-updated11!")
+			g.Expect(k8sClient.Update(testCtx, &passwordSecret)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting Secret password to be updated")
+		Eventually(func(g Gomega) bool {
+			var secret corev1.Secret
+			if err := k8sClient.Get(testCtx, key, &secret); err != nil {
+				return false
+			}
+			g.Expect(secret.Data[secretKey]).To(
+				BeEquivalentTo("updated-test:MariaDB-updated11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s"),
+			)
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
 	})
 })
