@@ -6,6 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // UserSpec defines the desired state of User
@@ -112,6 +113,28 @@ func (u *User) RetryInterval() *metav1.Duration {
 	return u.Spec.RetryInterval
 }
 
+// UserPasswordSecretFieldPath is the path related to the password Secret field.
+const UserPasswordSecretFieldPath = ".spec.passwordSecretKeyRef.name"
+
+// IndexerFuncForFieldPath returns an indexer function for a given field path.
+func (m *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
+	switch fieldPath {
+	case UserPasswordSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordSecretKeyRef != nil && user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
+	}
+}
+
 // +kubebuilder:object:root=true
 
 // UserList contains a list of User
@@ -119,6 +142,15 @@ type UserList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []User `json:"items"`
+}
+
+// ListItems gets a copy of the Items slice.
+func (m *UserList) ListItems() []client.Object {
+	items := make([]client.Object, len(m.Items))
+	for i, item := range m.Items {
+		items[i] = item.DeepCopy()
+	}
+	return items
 }
 
 func init() {

@@ -121,22 +121,20 @@ func (g *Grant) HostnameOrDefault() string {
 // GrantUsernameFieldPath is the path related to the username field.
 const GrantUsernameFieldPath = ".spec.username"
 
-func usernameIndexer(obj client.Object) []string {
-	grant, ok := obj.(*Grant)
-	if !ok {
-		return nil
-	}
-	if grant.Spec.Username == "" {
-		return nil
-	}
-	return []string{grant.Spec.Username}
-}
-
 // IndexerFuncForFieldPath returns an indexer function for a given field path.
 func (g *Grant) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
 	switch fieldPath {
 	case GrantUsernameFieldPath:
-		return usernameIndexer, nil
+		return func(obj client.Object) []string {
+			grant, ok := obj.(*Grant)
+			if !ok {
+				return nil
+			}
+			if grant.Spec.Username != "" {
+				return []string{grant.Spec.Username}
+			}
+			return nil
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
 	}

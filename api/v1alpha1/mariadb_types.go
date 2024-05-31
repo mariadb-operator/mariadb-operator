@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Exporter defines a metrics exporter container.
@@ -678,23 +677,20 @@ func (m *MariaDB) IsUpdating() bool {
 // MariadbMyCnfConfigMapFieldPath is the path related to the my.cnf ConfigMap field.
 const MariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
 
-func myCnfConfigMapIndexer(obj client.Object) []string {
-	mdb, ok := obj.(*MariaDB)
-	if !ok {
-		return nil
-	}
-	if mdb.Spec.MyCnfConfigMapKeyRef != nil &&
-		mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name != "" {
-		return []string{mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name}
-	}
-	return nil
-}
-
 // IndexerFuncForFieldPath returns an indexer function for a given field path.
 func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
 	switch fieldPath {
 	case MariadbMyCnfConfigMapFieldPath:
-		return myCnfConfigMapIndexer, nil
+		return func(obj client.Object) []string {
+			mdb, ok := obj.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if mdb.Spec.MyCnfConfigMapKeyRef != nil && mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name != "" {
+				return []string{mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
 	}
@@ -710,8 +706,8 @@ type MariaDBList struct {
 }
 
 // ListItems gets a copy of the Items slice.
-func (m *MariaDBList) ListItems() []ctrlclient.Object {
-	items := make([]ctrlclient.Object, len(m.Items))
+func (m *MariaDBList) ListItems() []client.Object {
+	items := make([]client.Object, len(m.Items))
 	for i, item := range m.Items {
 		items[i] = item.DeepCopy()
 	}

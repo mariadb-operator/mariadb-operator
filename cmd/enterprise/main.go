@@ -322,7 +322,7 @@ var rootCmd = &cobra.Command{
 			sql.WithRequeueInterval(requeueSql),
 			sql.WithLogSql(logSql),
 		}
-		if err = controller.NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(mgr); err != nil {
+		if err = controller.NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
