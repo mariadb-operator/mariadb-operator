@@ -67,7 +67,7 @@ var _ = Describe("User webhook", Ordered, func() {
 				func(umdb *User) {
 					umdb.Spec.PasswordSecretKeyRef.Name = "another-secret"
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating MaxUserConnections",
