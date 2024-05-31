@@ -22,6 +22,7 @@ import (
 	clientsql "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -217,15 +218,6 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		mdbOpts.Database = *conn.Spec.Database
 	}
 
-	var existingSecret corev1.Secret
-	if err := r.Get(ctx, key, &existingSecret); err == nil {
-		if err := r.healthCheck(ctx, conn, mdbOpts); err != nil {
-			log.FromContext(ctx).Info("Error checking connection health", "err", err)
-			return errConnHealthCheck
-		}
-		return nil
-	}
-
 	dsn, err := clientsql.BuildDSN(mdbOpts)
 	if err != nil {
 		return fmt.Errorf("error building DSN: %v", err)
@@ -296,8 +288,25 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		return fmt.Errorf("error building Secret: %v", err)
 	}
 
-	if err := r.Create(ctx, secret); err != nil {
-		return fmt.Errorf("error creating Secret: %v", err)
+	var existingSecret corev1.Secret
+	if err := r.Get(ctx, key, &existingSecret); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error getting Secret: %v", err)
+		}
+		if err := r.Create(ctx, secret); err != nil {
+			return fmt.Errorf("error creating Secret: %v", err)
+		}
+	} else {
+		patch := client.MergeFrom(existingSecret.DeepCopy())
+		existingSecret.Data = secret.Data
+		if err := r.Patch(ctx, &existingSecret, patch); err != nil {
+			return fmt.Errorf("error patching Secret: %v", err)
+		}
+	}
+
+	if err := r.healthCheck(ctx, conn, mdbOpts); err != nil {
+		log.FromContext(ctx).Info("Error checking connection health", "err", err)
+		return errConnHealthCheck
 	}
 	return nil
 }
