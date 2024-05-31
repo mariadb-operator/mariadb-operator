@@ -202,23 +202,11 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		Name:      conn.SecretName(),
 		Namespace: conn.Namespace,
 	}
-	password, err := r.RefResolver.SecretKeyRef(ctx, conn.Spec.PasswordSecretKeyRef, conn.Namespace)
+	sqlOpts, err := r.getSqlOpts(ctx, conn)
 	if err != nil {
-		return fmt.Errorf("error getting password for connection DSN: %v", err)
+		return fmt.Errorf("error getting SQL options: %v", err)
 	}
-
-	mdbOpts := clientsql.Opts{
-		Username: conn.Spec.Username,
-		Password: password,
-		Host:     conn.Spec.Host,
-		Port:     conn.Spec.Port,
-		Params:   conn.Spec.Params,
-	}
-	if conn.Spec.Database != nil {
-		mdbOpts.Database = *conn.Spec.Database
-	}
-
-	dsn, err := clientsql.BuildDSN(mdbOpts)
+	dsn, err := clientsql.BuildDSN(sqlOpts)
 	if err != nil {
 		return fmt.Errorf("error building DSN: %v", err)
 	}
@@ -244,14 +232,14 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		builder := &strings.Builder{}
 
 		err := tmpl.Execute(builder, map[string]string{
-			"Username": mdbOpts.Username,
-			"Password": mdbOpts.Password,
-			"Host":     mdbOpts.Host,
-			"Port":     strconv.Itoa(int(mdbOpts.Port)),
-			"Database": mdbOpts.Database,
+			"Username": sqlOpts.Username,
+			"Password": sqlOpts.Password,
+			"Host":     sqlOpts.Host,
+			"Port":     strconv.Itoa(int(sqlOpts.Port)),
+			"Database": sqlOpts.Database,
 			"Params": func() string {
 				v := url.Values{}
-				for key, value := range mdbOpts.Params {
+				for key, value := range sqlOpts.Params {
 					v.Add(key, value)
 				}
 
@@ -268,19 +256,19 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		secretOpts.Data[conn.SecretKey()] = []byte(builder.String())
 	}
 	if usernameKey := conn.Spec.SecretTemplate.UsernameKey; usernameKey != nil {
-		secretOpts.Data[*usernameKey] = []byte(mdbOpts.Username)
+		secretOpts.Data[*usernameKey] = []byte(sqlOpts.Username)
 	}
 	if passwordKey := conn.Spec.SecretTemplate.PasswordKey; passwordKey != nil {
-		secretOpts.Data[*passwordKey] = []byte(mdbOpts.Password)
+		secretOpts.Data[*passwordKey] = []byte(sqlOpts.Password)
 	}
 	if hostKey := conn.Spec.SecretTemplate.HostKey; hostKey != nil {
-		secretOpts.Data[*hostKey] = []byte(mdbOpts.Host)
+		secretOpts.Data[*hostKey] = []byte(sqlOpts.Host)
 	}
 	if portKey := conn.Spec.SecretTemplate.PortKey; portKey != nil {
-		secretOpts.Data[*portKey] = []byte(strconv.Itoa(int(mdbOpts.Port)))
+		secretOpts.Data[*portKey] = []byte(strconv.Itoa(int(sqlOpts.Port)))
 	}
-	if databaseKey := conn.Spec.SecretTemplate.DatabaseKey; databaseKey != nil && mdbOpts.Database != "" {
-		secretOpts.Data[*databaseKey] = []byte(mdbOpts.Database)
+	if databaseKey := conn.Spec.SecretTemplate.DatabaseKey; databaseKey != nil && sqlOpts.Database != "" {
+		secretOpts.Data[*databaseKey] = []byte(sqlOpts.Database)
 	}
 
 	secret, err := r.Builder.BuildSecret(secretOpts, conn)
@@ -304,11 +292,29 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		}
 	}
 
-	if err := r.healthCheck(ctx, conn, mdbOpts); err != nil {
+	if err := r.healthCheck(ctx, conn, sqlOpts); err != nil {
 		log.FromContext(ctx).Info("Error checking connection health", "err", err)
 		return errConnHealthCheck
 	}
 	return nil
+}
+
+func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1alpha1.Connection) (clientsql.Opts, error) {
+	password, err := r.RefResolver.SecretKeyRef(ctx, conn.Spec.PasswordSecretKeyRef, conn.Namespace)
+	if err != nil {
+		return clientsql.Opts{}, fmt.Errorf("error getting password for connection DSN: %v", err)
+	}
+	sqlOpts := clientsql.Opts{
+		Username: conn.Spec.Username,
+		Password: password,
+		Host:     conn.Spec.Host,
+		Port:     conn.Spec.Port,
+		Params:   conn.Spec.Params,
+	}
+	if conn.Spec.Database != nil {
+		sqlOpts.Database = *conn.Spec.Database
+	}
+	return sqlOpts, nil
 }
 
 func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1alpha1.Connection, clientOpts clientsql.Opts) error {
