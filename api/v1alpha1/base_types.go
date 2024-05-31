@@ -464,7 +464,7 @@ type ConnectionTemplate struct {
 	// SecretTemplate to be used in the Connection.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SecretTemplate *SecretTemplate `json:"secretTemplate,omitempty" webhook:"inmutableinit"`
+	SecretTemplate *SecretTemplate `json:"secretTemplate,omitempty"`
 	// HealthCheck to be used in the Connection.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -472,11 +472,11 @@ type ConnectionTemplate struct {
 	// Params to be used in the Connection.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Params map[string]string `json:"params,omitempty" webhook:"inmutable"`
+	Params map[string]string `json:"params,omitempty"`
 	// ServiceName to be used in the Connection.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServiceName *string `json:"serviceName,omitempty" webhook:"inmutable"`
+	ServiceName *string `json:"serviceName,omitempty"`
 	// Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}

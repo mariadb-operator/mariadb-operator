@@ -173,28 +173,28 @@ var _ = Describe("Connection webhook", func() {
 				func(conn *Connection) {
 					conn.Spec.MariaDBRef.Name = "foo"
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating Username",
 				func(conn *Connection) {
 					conn.Spec.Username = "foo"
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating PasswordSecretKeyRef",
 				func(conn *Connection) {
 					conn.Spec.PasswordSecretKeyRef.Key = "foo"
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating Database",
 				func(conn *Connection) {
 					conn.Spec.Database = func() *string { t := "foo"; return &t }()
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating SecretName",
@@ -210,7 +210,7 @@ var _ = Describe("Connection webhook", func() {
 						"foo": "foo",
 					}
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating HealthCheck",

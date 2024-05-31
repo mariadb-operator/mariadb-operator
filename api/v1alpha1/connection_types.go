@@ -68,7 +68,7 @@ type ConnectionSpec struct {
 	// MariaDBRef is a reference to the MariaDB to connect to. Either MariaDBRef or MaxScaleRef must be provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
+	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty"`
 	// MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -90,7 +90,7 @@ type ConnectionSpec struct {
 	// Database to use when configuring the Connection.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Database *string `json:"database,omitempty" webhook:"inmutable"`
+	Database *string `json:"database,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
