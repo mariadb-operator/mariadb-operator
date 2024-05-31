@@ -819,7 +819,7 @@ func monitorGrantOpts(key types.NamespacedName, mxs *mariadbv1alpha1.MaxScale) [
 func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		if err := r.reconcileAdminInPod(ctx, req.mxs, podIndex, podName, client); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling admin in Pod '%s': %v", podName, err)
+			return ctrl.Result{}, fmt.Errorf("error reconciling API admin in Pod '%s': %v", podName, err)
 		}
 		if err := r.reconcileMetricsAdminInPod(ctx, req.mxs, client); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling metrics admin in Pod '%s': %v", podName, err)
@@ -867,7 +867,13 @@ func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs
 	}
 	_, err := client.User.Get(ctx, mxs.Spec.Auth.MetricsUsername)
 	if err == nil {
-		return nil
+		return r.patchUser(
+			ctx,
+			mxs,
+			client,
+			mxs.Spec.Auth.MetricsUsername,
+			mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector,
+		)
 	}
 	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
@@ -879,6 +885,17 @@ func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs
 		return fmt.Errorf("error creating metrics admin: %v", err)
 	}
 	return nil
+}
+
+func (r *MaxScaleReconciler) patchUser(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client,
+	username string, passwordKeyRef corev1.SecretKeySelector) error {
+	password, err := r.RefResolver.SecretKeyRef(ctx, passwordKeyRef, mxs.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting password: %v", err)
+	}
+	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
+
+	return mxsApi.patchUser(ctx, username, password)
 }
 
 func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
