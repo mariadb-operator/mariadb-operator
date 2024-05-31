@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
@@ -477,6 +478,47 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
 	}
+}
+
+func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKeySelector) {
+	key := types.NamespacedName{
+		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
+		Namespace: testNamespace,
+	}
+
+	conn := mariadbv1alpha1.Connection{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.ConnectionSpec{
+			ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
+				SecretName: ptr.To(key.Name),
+			},
+			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+				ObjectReference: corev1.ObjectReference{
+					Name: testMdbkey.Name,
+				},
+				WaitForIt: true,
+			},
+			Username:             username,
+			PasswordSecretKeyRef: passwordSecretKeyRef,
+			Database:             &testDatabase,
+		},
+	}
+	By("Creating Connection")
+	Expect(k8sClient.Create(testCtx, &conn)).To(Succeed())
+
+	By("Expecting Connection to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, &conn); err != nil {
+			return false
+		}
+		return conn.IsReady()
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Deleting Connection")
+	Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
 }
 
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
