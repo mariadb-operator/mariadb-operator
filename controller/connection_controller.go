@@ -16,12 +16,16 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	clientsql "github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -361,9 +365,25 @@ func (r *ConnectionReconciler) patch(ctx context.Context, conn *mariadbv1alpha1.
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ConnectionReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+func (r *ConnectionReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.Connection{}).
-		Owns(&corev1.Secret{}).
-		Complete(r)
+		Owns(&corev1.Secret{})
+
+	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
+	builder, err := watcherIndexer.Watch(
+		ctx,
+		&corev1.Secret{},
+		&mariadbv1alpha1.Connection{},
+		&mariadbv1alpha1.ConnectionList{},
+		mariadbv1alpha1.ConnectionPasswordSecretFieldPath,
+		ctrlbuilder.WithPredicates(
+			predicate.PredicateWithLabel(metadata.WatchLabel),
+		),
+	)
+	if err != nil {
+		return fmt.Errorf("error watching: %v", err)
+	}
+
+	return builder.Complete(r)
 }

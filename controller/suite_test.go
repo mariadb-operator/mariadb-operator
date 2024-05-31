@@ -289,7 +289,7 @@ var _ = BeforeSuite(func() {
 		RefResolver:     refResolver,
 		ConditionReady:  conditionReady,
 		RequeueInterval: 5 * time.Second,
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&SqlJobReconciler{

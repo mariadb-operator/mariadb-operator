@@ -342,7 +342,7 @@ var rootCmd = &cobra.Command{
 			RefResolver:     refResolver,
 			ConditionReady:  conditionReady,
 			RequeueInterval: requeueConnection,
-		}).SetupWithManager(mgr); err != nil {
+		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Connection")
 			os.Exit(1)
 		}
