@@ -275,7 +275,7 @@ var _ = BeforeSuite(func() {
 		sql.WithRequeueInterval(30 * time.Second),
 		sql.WithLogSql(false),
 	}
-	err = NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
+	err = NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 	err = NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
