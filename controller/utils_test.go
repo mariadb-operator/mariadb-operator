@@ -508,6 +508,9 @@ func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKey
 	}
 	By("Creating Connection")
 	Expect(k8sClient.Create(testCtx, &conn)).To(Succeed())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
+	})
 
 	By("Expecting Connection to be ready eventually")
 	Eventually(func() bool {
@@ -516,9 +519,6 @@ func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKey
 		}
 		return conn.IsReady()
 	}, testTimeout, testInterval).Should(BeTrue())
-
-	By("Deleting Connection")
-	Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
 }
 
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
