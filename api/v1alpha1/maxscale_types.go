@@ -342,7 +342,7 @@ type MaxScaleAuth struct {
 	// ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientPasswordSecretKeyRef GeneratedSecretKeyRef `json:"clientPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	ClientPasswordSecretKeyRef GeneratedSecretKeyRef `json:"clientPasswordSecretKeyRef,omitempty"`
 	// ClientMaxConnections defines the maximum number of connections that the client can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -356,7 +356,7 @@ type MaxScaleAuth struct {
 	// ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServerPasswordSecretKeyRef GeneratedSecretKeyRef `json:"serverPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	ServerPasswordSecretKeyRef GeneratedSecretKeyRef `json:"serverPasswordSecretKeyRef,omitempty"`
 	// ServerMaxConnections defines the maximum number of connections that the server can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -370,7 +370,7 @@ type MaxScaleAuth struct {
 	// MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	MonitorPasswordSecretKeyRef GeneratedSecretKeyRef `json:"monitorPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	MonitorPasswordSecretKeyRef GeneratedSecretKeyRef `json:"monitorPasswordSecretKeyRef,omitempty"`
 	// MonitorMaxConnections defines the maximum number of connections that the monitor can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -384,7 +384,7 @@ type MaxScaleAuth struct {
 	// SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SyncPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"syncPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	SyncPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"syncPasswordSecretKeyRef,omitempty"`
 	// SyncMaxConnections defines the maximum number of connections that the sync can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
