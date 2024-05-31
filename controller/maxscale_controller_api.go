@@ -44,6 +44,13 @@ func (m *maxScaleAPI) createAdminUser(ctx context.Context, username, password st
 	return m.client.User.Create(ctx, username, attrs)
 }
 
+func (m *maxScaleAPI) patchUser(ctx context.Context, username, password string) error {
+	attrs := mxsclient.UserAttributes{
+		Password: &password,
+	}
+	return m.client.User.Patch(ctx, username, attrs)
+}
+
 // MaxScale API - Servers
 
 func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
