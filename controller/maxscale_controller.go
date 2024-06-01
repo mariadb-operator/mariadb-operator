@@ -388,7 +388,7 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 
 	secretReq := secret.SecretRequest{
 		Owner:    mxs,
-		Metadata: req.mxs.Spec.InheritMetadata,
+		Metadata: []*mariadbv1alpha1.Metadata{req.mxs.Spec.InheritMetadata},
 		Key: types.NamespacedName{
 			Name:      secretKeyRef.Name,
 			Namespace: mxs.Namespace,

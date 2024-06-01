@@ -13,8 +13,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
@@ -22,7 +22,6 @@ import (
 	clientsql "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,11 +37,11 @@ var (
 // ConnectionReconciler reconciles a Connection object
 type ConnectionReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	Builder         *builder.Builder
-	RefResolver     *refresolver.RefResolver
-	ConditionReady  *condition.Ready
-	RequeueInterval time.Duration
+	Scheme           *runtime.Scheme
+	SecretReconciler *secret.SecretReconciler
+	RefResolver      *refresolver.RefResolver
+	ConditionReady   *condition.Ready
+	RequeueInterval  time.Duration
 }
 
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=connections,verbs=get;list;watch;create;update;patch;delete
@@ -198,10 +197,6 @@ func (r *ConnectionReconciler) checkHealth(ctx context.Context, conn *mariadbv1a
 
 func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariadbv1alpha1.Connection,
 	refs *mariadbv1alpha1.ConnectionRefs) error {
-	key := types.NamespacedName{
-		Name:      conn.SecretName(),
-		Namespace: conn.Namespace,
-	}
 	sqlOpts, err := r.getSqlOpts(ctx, conn)
 	if err != nil {
 		return fmt.Errorf("error getting SQL options: %v", err)
@@ -211,22 +206,9 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		return fmt.Errorf("error building DSN: %v", err)
 	}
 
-	secretOpts := builder.SecretOpts{
-		Key: key,
-		Data: map[string][]byte{
-			conn.SecretKey(): []byte(dsn),
-		},
+	data := map[string][]byte{
+		conn.SecretKey(): []byte(dsn),
 	}
-
-	var meta []*mariadbv1alpha1.Metadata
-	if refs.MariaDB != nil && refs.MariaDB.Spec.InheritMetadata != nil {
-		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
-	}
-	if conn.Spec.SecretTemplate.Metadata != nil {
-		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
-	}
-	secretOpts.Metadata = meta
-
 	if formatString := conn.Spec.SecretTemplate.Format; formatString != nil {
 		tmpl := template.Must(template.New("").Parse(*formatString))
 		builder := &strings.Builder{}
@@ -253,43 +235,43 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		if err != nil {
 			return fmt.Errorf("error parsing DSN template: %v", err)
 		}
-		secretOpts.Data[conn.SecretKey()] = []byte(builder.String())
+		data[conn.SecretKey()] = []byte(builder.String())
 	}
 	if usernameKey := conn.Spec.SecretTemplate.UsernameKey; usernameKey != nil {
-		secretOpts.Data[*usernameKey] = []byte(sqlOpts.Username)
+		data[*usernameKey] = []byte(sqlOpts.Username)
 	}
 	if passwordKey := conn.Spec.SecretTemplate.PasswordKey; passwordKey != nil {
-		secretOpts.Data[*passwordKey] = []byte(sqlOpts.Password)
+		data[*passwordKey] = []byte(sqlOpts.Password)
 	}
 	if hostKey := conn.Spec.SecretTemplate.HostKey; hostKey != nil {
-		secretOpts.Data[*hostKey] = []byte(sqlOpts.Host)
+		data[*hostKey] = []byte(sqlOpts.Host)
 	}
 	if portKey := conn.Spec.SecretTemplate.PortKey; portKey != nil {
-		secretOpts.Data[*portKey] = []byte(strconv.Itoa(int(sqlOpts.Port)))
+		data[*portKey] = []byte(strconv.Itoa(int(sqlOpts.Port)))
 	}
 	if databaseKey := conn.Spec.SecretTemplate.DatabaseKey; databaseKey != nil && sqlOpts.Database != "" {
-		secretOpts.Data[*databaseKey] = []byte(sqlOpts.Database)
+		data[*databaseKey] = []byte(sqlOpts.Database)
 	}
 
-	secret, err := r.Builder.BuildSecret(secretOpts, conn)
-	if err != nil {
-		return fmt.Errorf("error building Secret: %v", err)
+	var meta []*mariadbv1alpha1.Metadata
+	if refs.MariaDB != nil && refs.MariaDB.Spec.InheritMetadata != nil {
+		meta = append(meta, refs.MariaDB.Spec.InheritMetadata)
+	}
+	if conn.Spec.SecretTemplate.Metadata != nil {
+		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
 	}
 
-	var existingSecret corev1.Secret
-	if err := r.Get(ctx, key, &existingSecret); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("error getting Secret: %v", err)
-		}
-		if err := r.Create(ctx, secret); err != nil {
-			return fmt.Errorf("error creating Secret: %v", err)
-		}
-	} else {
-		patch := client.MergeFrom(existingSecret.DeepCopy())
-		existingSecret.Data = secret.Data
-		if err := r.Patch(ctx, &existingSecret, patch); err != nil {
-			return fmt.Errorf("error patching Secret: %v", err)
-		}
+	req := secret.SecretRequest{
+		Owner:    conn,
+		Metadata: meta,
+		Key: types.NamespacedName{
+			Name:      conn.SecretName(),
+			Namespace: conn.Namespace,
+		},
+		Data: data,
+	}
+	if err := r.SecretReconciler.Reconcile(ctx, &req); err != nil {
+		return fmt.Errorf("error reconciling Secret: %v", err)
 	}
 
 	if err := r.healthCheck(ctx, conn, sqlOpts); err != nil {

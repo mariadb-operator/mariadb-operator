@@ -336,12 +336,12 @@ var rootCmd = &cobra.Command{
 		}
 
 		if err = (&controller.ConnectionReconciler{
-			Client:          client,
-			Scheme:          scheme,
-			Builder:         builder,
-			RefResolver:     refResolver,
-			ConditionReady:  conditionReady,
-			RequeueInterval: requeueConnection,
+			Client:           client,
+			Scheme:           scheme,
+			SecretReconciler: secretReconciler,
+			RefResolver:      refResolver,
+			ConditionReady:   conditionReady,
+			RequeueInterval:  requeueConnection,
 		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Connection")
 			os.Exit(1)
