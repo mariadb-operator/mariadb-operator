@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mxs-test-0-lb
+  namespace: default
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.50
+spec:
+  ports:
+  - name: admin
+    port: 8989
+    protocol: TCP
+    targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    protocol: TCP
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    protocol: TCP
+    targetPort: 3308
+  selector:
+    app.kubernetes.io/instance: mxs-test
+    app.kubernetes.io/name: maxscale
+    statefulset.kubernetes.io/pod-name: mxs-test-0  
+  type: LoadBalancer
