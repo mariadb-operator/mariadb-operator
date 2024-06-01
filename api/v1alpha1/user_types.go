@@ -21,7 +21,7 @@ type UserSpec struct {
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// PasswordSecretKeyRef is a reference to the password to be used by the User.
 	// If not provided, the account will be locked and the password will expire.
-	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the user password.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
