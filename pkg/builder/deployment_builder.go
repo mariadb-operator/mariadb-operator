@@ -74,7 +74,8 @@ func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB) (*ap
 	return deployment, nil
 }
 
-func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale) (*appsv1.Deployment, error) {
+func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
+	podAnnotations map[string]string) (*appsv1.Deployment, error) {
 	if !mxs.AreMetricsEnabled() {
 		return nil, errors.New("MaxScale instance does not specify Metrics")
 	}
@@ -93,6 +94,7 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale)
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mxs.Spec.InheritMetadata).
 			WithMetadata(exporter.PodMetadata).
+			WithAnnotations(podAnnotations).
 			WithLabels(selectorLabels).
 			Build()
 
