@@ -80,9 +80,10 @@ type MariadbMetrics struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Username string `json:"username,omitempty" webhook:"inmutableinit"`
 	// PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PasswordSecretKeyRef GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	PasswordSecretKeyRef GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty"`
 }
 
 // Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB.
@@ -673,8 +674,12 @@ func (m *MariaDB) IsUpdating() bool {
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonUpdating
 }
 
-// MariadbMyCnfConfigMapFieldPath is the path related to the my.cnf ConfigMap field.
-const MariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
+const (
+	// MariadbMyCnfConfigMapFieldPath is the path related to the my.cnf ConfigMap field.
+	MariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
+	// MariadbMetricsPasswordSecretFieldPath is the path related to the metrics password Secret field.
+	MariadbMetricsPasswordSecretFieldPath = ".spec.metrics.passwordSecretKeyRef"
+)
 
 // IndexerFuncForFieldPath returns an indexer function for a given field path.
 func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
@@ -687,6 +692,17 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 			}
 			if mdb.Spec.MyCnfConfigMapKeyRef != nil && mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name != "" {
 				return []string{mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case MariadbMetricsPasswordSecretFieldPath:
+		return func(obj client.Object) []string {
+			mdb, ok := obj.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if mdb.AreMetricsEnabled() && mdb.Spec.Metrics != nil && mdb.Spec.Metrics.PasswordSecretKeyRef.Name != "" {
+				return []string{mdb.Spec.Metrics.PasswordSecretKeyRef.Name}
 			}
 			return nil
 		}, nil

@@ -121,7 +121,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildExporterDeployment(tt.mariadb)
+			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
 			if err != nil {
 				t.Fatalf("unexpected error building Deployment: %v", err)
 			}
@@ -262,6 +262,7 @@ func TestExporterDeploymentMeta(t *testing.T) {
 	tests := []struct {
 		name           string
 		mariadb        *mariadbv1alpha1.MariaDB
+		podAnnotations map[string]string
 		wantDeployMeta *mariadbv1alpha1.Metadata
 		wantPodMeta    *mariadbv1alpha1.Metadata
 	}{
@@ -275,6 +276,7 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
+			podAnnotations: nil,
 			wantDeployMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
@@ -305,6 +307,7 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
+			podAnnotations: nil,
 			wantDeployMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -346,6 +349,9 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
+			podAnnotations: map[string]string{
+				metadata.ConfigAnnotation: "config-hash",
+			},
 			wantDeployMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
@@ -357,7 +363,8 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					"database.myorg.io":          "pod",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "pod",
+					"database.myorg.io":       "pod",
+					metadata.ConfigAnnotation: "config-hash",
 				},
 			},
 		},
@@ -391,6 +398,9 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
+			podAnnotations: map[string]string{
+				metadata.ConfigAnnotation: "config-hash",
+			},
 			wantDeployMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -406,7 +416,8 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					"database.myorg.io":          "pod",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "pod",
+					"database.myorg.io":       "pod",
+					metadata.ConfigAnnotation: "config-hash",
 				},
 			},
 		},
@@ -414,7 +425,7 @@ func TestExporterDeploymentMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			deploy, err := builder.BuildExporterDeployment(tt.mariadb)
+			deploy, err := builder.BuildExporterDeployment(tt.mariadb, tt.podAnnotations)
 			if err != nil {
 				t.Fatalf("unexpected error building Deployment: %v", err)
 			}

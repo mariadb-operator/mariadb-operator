@@ -1368,7 +1368,7 @@ func (r *MaxScaleReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Mana
 		Owns(&appsv1.Deployment{})
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	builder, err := watcherIndexer.Watch(
+	if err := watcherIndexer.Watch(
 		ctx,
 		&corev1.Secret{},
 		&mariadbv1alpha1.MaxScale{},
@@ -1377,8 +1377,7 @@ func (r *MaxScaleReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Mana
 		ctrlbuilder.WithPredicates(
 			predicate.PredicateWithLabel(metadata.WatchLabel),
 		),
-	)
-	if err != nil {
+	); err != nil {
 		return fmt.Errorf("error watching: %v", err)
 	}
 

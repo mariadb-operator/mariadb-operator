@@ -45,23 +45,24 @@ func NewWatcherIndexer(mgr ctrl.Manager, builder *builder.Builder, client ctrlcl
 }
 
 func (rw *WatcherIndexer) Watch(ctx context.Context, obj client.Object, indexer Indexer, indexerList ItemLister,
-	indexerFieldPath string, opts ...builder.WatchesOption) (*builder.Builder, error) {
+	indexerFieldPath string, opts ...builder.WatchesOption) error {
 
 	indexerFn, err := indexer.IndexerFuncForFieldPath(indexerFieldPath)
 	if err != nil {
-		return nil, fmt.Errorf("error getting indexer func: %v", err)
+		return fmt.Errorf("error getting indexer func: %v", err)
 	}
 	if err := rw.mgr.GetFieldIndexer().IndexField(ctx, indexer, indexerFieldPath, indexerFn); err != nil {
-		return nil, fmt.Errorf("error indexing '%s' field: %v", indexerFieldPath, err)
+		return fmt.Errorf("error indexing '%s' field: %v", indexerFieldPath, err)
 	}
 
-	return rw.builder.Watches(
+	rw.builder.Watches(
 		obj,
 		handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o ctrlclient.Object) []reconcile.Request {
 			return rw.mapWatchedObjectToRequests(ctx, o, indexerList, indexerFieldPath)
 		}),
 		opts...,
-	), nil
+	)
+	return nil
 }
 
 func (rw *WatcherIndexer) mapWatchedObjectToRequests(ctx context.Context, obj ctrlclient.Object, indexList ItemLister,

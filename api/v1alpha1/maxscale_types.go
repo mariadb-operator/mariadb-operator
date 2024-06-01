@@ -876,7 +876,7 @@ func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc
 			if !ok {
 				return nil
 			}
-			if maxscale.Spec.Auth.MetricsPasswordSecretKeyRef.Name != "" {
+			if maxscale.AreMetricsEnabled() && maxscale.Spec.Auth.MetricsPasswordSecretKeyRef.Name != "" {
 				return []string{maxscale.Spec.Auth.MetricsPasswordSecretKeyRef.Name}
 			}
 			return nil

@@ -67,7 +67,7 @@ func (r *UserReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager)
 		For(&mariadbv1alpha1.User{})
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	builder, err := watcherIndexer.Watch(
+	if err := watcherIndexer.Watch(
 		ctx,
 		&corev1.Secret{},
 		&mariadbv1alpha1.User{},
@@ -76,8 +76,7 @@ func (r *UserReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager)
 		ctrlbuilder.WithPredicates(
 			predicate.PredicateWithLabel(metadata.WatchLabel),
 		),
-	)
-	if err != nil {
+	); err != nil {
 		return fmt.Errorf("error watching: %v", err)
 	}
 

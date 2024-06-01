@@ -24,7 +24,8 @@ const (
 	maxScaleRuntimeConfigMountPath = "/var/lib/maxscale/maxscale.cnf.d"
 )
 
-func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB) (*appsv1.Deployment, error) {
+func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB,
+	podAnnotations map[string]string) (*appsv1.Deployment, error) {
 	if !mariadb.AreMetricsEnabled() {
 		return nil, errors.New("MariaDB instance does not specify Metrics")
 	}
@@ -43,6 +44,7 @@ func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB) (*ap
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithMetadata(exporter.PodMetadata).
+			WithAnnotations(podAnnotations).
 			WithLabels(selectorLabels).
 			Build()
 
