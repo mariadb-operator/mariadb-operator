@@ -881,6 +881,9 @@ func (r *MaxScaleReconciler) reconcileMetricsAdmin(ctx context.Context, req *req
 		return result, err
 	}
 
+	if req.podClient == nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
 	if _, err := req.podClient.User.Get(ctx, req.mxs.Spec.Auth.MetricsUsername); err == nil {
 		return ctrl.Result{}, r.patchUser(
 			ctx,
