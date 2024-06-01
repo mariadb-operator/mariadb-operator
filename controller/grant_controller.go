@@ -66,7 +66,7 @@ func (r *GrantReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager
 		For(&mariadbv1alpha1.Grant{})
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	builder, err := watcherIndexer.Watch(
+	if err := watcherIndexer.Watch(
 		ctx,
 		&mariadbv1alpha1.User{},
 		&mariadbv1alpha1.Grant{},
@@ -77,8 +77,7 @@ func (r *GrantReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager
 				return true
 			},
 		}),
-	)
-	if err != nil {
+	); err != nil {
 		return fmt.Errorf("error watching: %v", err)
 	}
 

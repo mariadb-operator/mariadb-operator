@@ -813,7 +813,7 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Owns(&rbacv1.ClusterRoleBinding{})
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	builder, err := watcherIndexer.Watch(
+	if err := watcherIndexer.Watch(
 		ctx,
 		&corev1.ConfigMap{},
 		&mariadbv1alpha1.MariaDB{},
@@ -822,9 +822,20 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		ctrlbuilder.WithPredicates(
 			predicate.PredicateWithLabel(metadata.WatchLabel),
 		),
-	)
-	if err != nil {
-		return fmt.Errorf("error watching: %v", err)
+	); err != nil {
+		return fmt.Errorf("error watching '%s': %v", mariadbv1alpha1.MariadbMyCnfConfigMapFieldPath, err)
+	}
+	if err := watcherIndexer.Watch(
+		ctx,
+		&corev1.Secret{},
+		&mariadbv1alpha1.MariaDB{},
+		&mariadbv1alpha1.MariaDBList{},
+		mariadbv1alpha1.MariadbMetricsPasswordSecretFieldPath,
+		ctrlbuilder.WithPredicates(
+			predicate.PredicateWithLabel(metadata.WatchLabel),
+		),
+	); err != nil {
+		return fmt.Errorf("error watching '%s': %v", mariadbv1alpha1.MariadbMetricsPasswordSecretFieldPath, err)
 	}
 
 	return builder.Complete(r)

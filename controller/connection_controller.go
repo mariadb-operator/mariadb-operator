@@ -368,7 +368,7 @@ func (r *ConnectionReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		Owns(&corev1.Secret{})
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	builder, err := watcherIndexer.Watch(
+	if err := watcherIndexer.Watch(
 		ctx,
 		&corev1.Secret{},
 		&mariadbv1alpha1.Connection{},
@@ -377,8 +377,7 @@ func (r *ConnectionReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		ctrlbuilder.WithPredicates(
 			predicate.PredicateWithLabel(metadata.WatchLabel),
 		),
-	)
-	if err != nil {
+	); err != nil {
 		return fmt.Errorf("error watching: %v", err)
 	}
 
