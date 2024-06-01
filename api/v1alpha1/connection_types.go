@@ -78,8 +78,7 @@ type ConnectionSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Username string `json:"username"`
 	// PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.
-	// If the referred Secret is labeled with "k8s.mariadb.com/watch",
-	// updates may be performed to the Secret in order to update the password.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef"`
