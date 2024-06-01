@@ -817,15 +817,17 @@ func monitorGrantOpts(key types.NamespacedName, mxs *mariadbv1alpha1.MaxScale) [
 }
 
 func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	result, err := r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		if err := r.reconcileAdminInPod(ctx, req.mxs, podIndex, podName, client); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling API admin in Pod '%s': %v", podName, err)
 		}
-		if err := r.reconcileMetricsAdminInPod(ctx, req.mxs, client); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling metrics admin in Pod '%s': %v", podName, err)
-		}
 		return ctrl.Result{}, nil
 	})
+	if !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	return r.reconcileMetricsAdmin(ctx, req)
 }
 
 func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
@@ -860,20 +862,38 @@ func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *maria
 	return nil
 }
 
+func (r *MaxScaleReconciler) reconcileMetricsAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if !req.mxs.AreMetricsEnabled() {
+		return ctrl.Result{}, nil
+	}
+
+	result, err := r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+		if err := r.reconcileMetricsAdminInPod(ctx, req.mxs, client); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling metrics admin in Pod '%s': %v", podName, err)
+		}
+		return ctrl.Result{}, nil
+	})
+	if !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	if _, err := req.podClient.User.Get(ctx, req.mxs.Spec.Auth.MetricsUsername); err == nil {
+		return ctrl.Result{}, r.patchUser(
+			ctx,
+			req.mxs,
+			req.podClient,
+			req.mxs.Spec.Auth.MetricsUsername,
+			req.mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector,
+		)
+	}
+	return ctrl.Result{}, nil
+}
+
 func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	client *mxsclient.Client) error {
-	if !mxs.AreMetricsEnabled() {
-		return nil
-	}
 	_, err := client.User.Get(ctx, mxs.Spec.Auth.MetricsUsername)
 	if err == nil {
-		return r.patchUser(
-			ctx,
-			mxs,
-			client,
-			mxs.Spec.Auth.MetricsUsername,
-			mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector,
-		)
+		return nil
 	}
 	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
 
