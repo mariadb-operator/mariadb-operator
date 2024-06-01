@@ -283,12 +283,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ConnectionReconciler{
-		Client:          client,
-		Scheme:          scheme,
-		Builder:         builder,
-		RefResolver:     refResolver,
-		ConditionReady:  conditionReady,
-		RequeueInterval: 5 * time.Second,
+		Client:           client,
+		Scheme:           scheme,
+		SecretReconciler: secretReconciler,
+		RefResolver:      refResolver,
+		ConditionReady:   conditionReady,
+		RequeueInterval:  5 * time.Second,
 	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
