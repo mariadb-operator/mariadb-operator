@@ -289,7 +289,7 @@ var rootCmd = &cobra.Command{
 
 			RequeueInterval: requeueMaxScale,
 			LogMaxScale:     logMaxScale,
-		}).SetupWithManager(mgr); err != nil {
+		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)
 		}

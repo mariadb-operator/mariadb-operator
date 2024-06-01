@@ -380,8 +380,7 @@ type MariaDBSpec struct {
 	MyCnf *string `json:"myCnf,omitempty"`
 	// MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.
 	// If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.
-	// If the referred ConfigMap is labeled with "k8s.mariadb.com/watch",
-	// an update to the Mariadb resource will be triggered when the ConfigMap is updated.
+	// If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty"`

@@ -246,7 +246,7 @@ var _ = BeforeSuite(func() {
 
 		RequeueInterval: 5 * time.Second,
 		LogMaxScale:     false,
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&BackupReconciler{
