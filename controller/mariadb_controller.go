@@ -726,7 +726,46 @@ func (r *MariaDBReconciler) reconcileSQL(ctx context.Context, mariadb *mariadbv1
 		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing SQL resources")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	if err := r.reconcileDatabase(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling database: %v", err)
+	}
+	if result, err := r.reconcileUsers(ctx, mariadb); !result.IsZero() || err != nil {
+		return result, err
+	}
+	return ctrl.Result{}, nil
+}
 
+func (r *MariaDBReconciler) reconcileDatabase(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if mariadb.Spec.Database == nil {
+		return nil
+	}
+	var database mariadbv1alpha1.Database
+	err := r.Get(ctx, mariadb.MariadbDatabaseKey(), &database)
+	if err == nil {
+		return nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error getting database: %v", err)
+	}
+
+	opts := builder.DatabaseOpts{
+		Name:     *mariadb.Spec.Database,
+		Metadata: mariadb.Spec.InheritMetadata,
+		MariaDBRef: mariadbv1alpha1.MariaDBRef{
+			ObjectReference: corev1.ObjectReference{
+				Name:      mariadb.Name,
+				Namespace: mariadb.Namespace,
+			},
+		},
+	}
+	db, err := r.Builder.BuildDatabase(mariadb.MariadbDatabaseKey(), mariadb, opts)
+	if err != nil {
+		return fmt.Errorf("error building database: %v", err)
+	}
+	return r.Create(ctx, db)
+}
+
+func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	userKey := mariadb.MariadbSysUserKey()
 	userOpts := builder.UserOpts{
 		MariaDBRef: mariadbv1alpha1.MariaDBRef{

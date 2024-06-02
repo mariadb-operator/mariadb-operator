@@ -406,12 +406,6 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 	}
 
 	if !mariadb.Replication().Enabled {
-		if mariadb.Spec.Database != nil {
-			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_DATABASE",
-				Value: *mariadb.Spec.Database,
-			})
-		}
 		if mariadb.Spec.Username != nil {
 			env = append(env, corev1.EnvVar{
 				Name:  "MARIADB_USER",

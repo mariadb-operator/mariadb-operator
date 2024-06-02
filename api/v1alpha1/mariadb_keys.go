@@ -189,3 +189,11 @@ func (m *MariaDB) MariadbSysGrantKey() types.NamespacedName {
 		Namespace: m.Namespace,
 	}
 }
+
+// MariadbDatabaseKey defines the key for the initial database
+func (m *MariaDB) MariadbDatabaseKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-database", m.Name),
+		Namespace: m.Namespace,
+	}
+}
