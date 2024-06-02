@@ -17,6 +17,7 @@ import (
 	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // UserReconciler reconciles a User object
@@ -118,16 +119,14 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlCl
 	hostname := wr.user.HostnameOrDefault()
 	exists, err := mdbClient.UserExists(ctx, username, hostname)
 	if err != nil {
-		return fmt.Errorf("error checking if User exists: %v", err)
+		log.FromContext(ctx).Error(err, "Error checking if User exists")
 	}
 
 	if !exists {
 		if err := mdbClient.CreateUser(ctx, wr.user.AccountName(), createUserOpts...); err != nil {
 			return fmt.Errorf("error creating User: %v", err)
 		}
-		return nil
-	}
-	if password != "" {
+	} else if password != "" {
 		if err := mdbClient.AlterUser(ctx, username, password); err != nil {
 			return fmt.Errorf("error altering User: %v", err)
 		}
