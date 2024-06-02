@@ -465,6 +465,50 @@ var _ = Describe("MariaDB", func() {
 		})
 	})
 
+	It("should update metrics password", func() {
+		var mdb mariadbv1alpha1.MariaDB
+		By("Getting MariaDB")
+		Expect(k8sClient.Get(testCtx, testMdbkey, &mdb)).To(Succeed())
+
+		var deploy appsv1.Deployment
+		By("Expecting exporter Deployment to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			if err := k8sClient.Get(testCtx, mdb.MetricsKey(), &deploy); err != nil {
+				return false
+			}
+			return deploymentReady(&deploy)
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Getting config hash")
+		configHash := deploy.Spec.Template.Annotations[metadata.ConfigAnnotation]
+
+		By("Updating password Secret")
+		Eventually(func(g Gomega) bool {
+			var secret corev1.Secret
+			g.Expect(k8sClient.Get(testCtx, testPwdKey, &secret)).To(Succeed())
+			secret.Data[testPwdMetricsSecretKey] = []byte("MariaDB12!")
+			g.Expect(k8sClient.Update(testCtx, &secret)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting config hash to be updated")
+		Eventually(func(g Gomega) bool {
+			if err := k8sClient.Get(testCtx, mdb.MetricsKey(), &deploy); err != nil {
+				return false
+			}
+			g.Expect(deploy.Spec.Template.Annotations[metadata.ConfigAnnotation]).NotTo(Equal(configHash))
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting exporter Deployment to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			if err := k8sClient.Get(testCtx, mdb.MetricsKey(), &deploy); err != nil {
+				return false
+			}
+			return deploymentReady(&deploy)
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
 	It("should bootstrap from Backup", func() {
 		backupKey := types.NamespacedName{
 			Name:      "backup-mdb-from-backup",

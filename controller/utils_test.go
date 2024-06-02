@@ -12,6 +12,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -46,10 +47,11 @@ var (
 		Name:      "password",
 		Namespace: testNamespace,
 	}
-	testPwdSecretKey = "passsword"
-	testUser         = "test"
-	testDatabase     = "test"
-	testConnKey      = types.NamespacedName{
+	testPwdSecretKey        = "passsword"
+	testPwdMetricsSecretKey = "metrics"
+	testUser                = "test"
+	testDatabase            = "test"
+	testConnKey             = types.NamespacedName{
 		Name:      "conn",
 		Namespace: testNamespace,
 	}
@@ -77,9 +79,13 @@ func testCreateInitialData(ctx context.Context, k8sClient client.Client, env env
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testPwdKey.Name,
 			Namespace: testPwdKey.Namespace,
+			Labels: map[string]string{
+				metadata.WatchLabel: "",
+			},
 		},
 		Data: map[string][]byte{
-			testPwdSecretKey: []byte("MariaDB11!"),
+			testPwdSecretKey:        []byte("MariaDB11!"),
+			testPwdMetricsSecretKey: []byte("MariaDB11!"),
 		},
 	}
 	Expect(k8sClient.Create(ctx, &password)).To(Succeed())
@@ -175,7 +181,7 @@ max_allowed_packet=256M`),
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
-						Key: testPwdSecretKey,
+						Key: testPwdMetricsSecretKey,
 					},
 				},
 			},
