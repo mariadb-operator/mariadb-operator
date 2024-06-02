@@ -3829,7 +3829,8 @@ spec:
                     type: string
                 type: object
               database:
-                description: Database is the database to be created on bootstrap.
+                description: Database is the initial database to be created by the
+                  operator once MariaDB is ready.
                 type: string
               env:
                 description: Env represents the environment variables to be injected

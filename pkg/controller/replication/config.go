@@ -188,16 +188,6 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 		}
 	}
 
-	if mariadb.Spec.Database != nil {
-		databaseOpts := sqlClient.DatabaseOpts{
-			CharacterSet: "utf8",
-			Collate:      "utf8_general_ci",
-		}
-		if err := client.CreateDatabase(ctx, *mariadb.Spec.Database, databaseOpts); err != nil {
-			return fmt.Errorf("error creating database: %v", err)
-		}
-	}
-
 	opts := userSqlOpts{
 		username:   replUser,
 		host:       replUserHost,
