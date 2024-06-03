@@ -1,7 +1,7 @@
 # Updates
 
 > [!NOTE]  
-> This documentation applies to `mariadb-operator` version >= v0.0.26
+> This documentation applies to `mariadb-operator` version >= v0.0.29
 
 This documentation aims to describe the supported strategies to perform updates of the `MariaDB` resource. 
 
