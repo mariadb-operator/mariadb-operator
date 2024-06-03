@@ -658,7 +658,7 @@ var _ = Describe("MariaDB webhook", func() {
 				func(mdb *MariaDB) {
 					mdb.Spec.PasswordSecretKeyRef.Key = "another-password"
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating Image",

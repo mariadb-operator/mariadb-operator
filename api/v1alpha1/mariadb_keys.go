@@ -206,7 +206,7 @@ func (m *MariaDB) MariadbUserKey() types.NamespacedName {
 	}
 }
 
-// MariadbGrantKey defines the key for the initial grant.
+// MariadbGrantKey defines the key for the initial grant
 func (m *MariaDB) MariadbGrantKey() types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-user-all", m.Name),
