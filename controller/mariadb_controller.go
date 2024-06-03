@@ -780,7 +780,8 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			user: builder.UserOpts{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: corev1.ObjectReference{
-						Name: mariadb.Name,
+						Name:      mariadb.Name,
+						Namespace: mariadb.Namespace,
 					},
 				},
 				Metadata:             mariadb.Spec.InheritMetadata,
@@ -794,7 +795,8 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 				GrantOpts: builder.GrantOpts{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
-							Name: mariadb.Name,
+							Name:      mariadb.Name,
+							Namespace: mariadb.Namespace,
 						},
 					},
 					Metadata: mariadb.Spec.InheritMetadata,
@@ -814,7 +816,8 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		user: builder.UserOpts{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				ObjectReference: corev1.ObjectReference{
-					Name: mariadb.Name,
+					Name:      mariadb.Name,
+					Namespace: mariadb.Namespace,
 				},
 			},
 			Metadata:             mariadb.Spec.InheritMetadata,
@@ -828,7 +831,8 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			GrantOpts: builder.GrantOpts{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: corev1.ObjectReference{
-						Name: mariadb.Name,
+						Name:      mariadb.Name,
+						Namespace: mariadb.Namespace,
 					},
 				},
 				Metadata: mariadb.Spec.InheritMetadata,
