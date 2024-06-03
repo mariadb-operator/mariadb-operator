@@ -52,7 +52,7 @@ metadata:
 spec:
   ...
 - image: mariadb:10.11.7
-+ image: mariadb:11.4
++ image: mariadb:10.11.8
   resources:
     requests:
       cpu: 200m
