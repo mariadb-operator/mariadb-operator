@@ -62,20 +62,21 @@ spec:
 +     memory: 2Gi
 ```
 
-Once the update is triggered, they way it is managed by the operator varies depending of the chosen update strategy.
+Once the update is triggered, the operator manages it differently based on the selected update strategy.
 
 ## `ReplicasFirstPrimaryLast`
 
-This strategy consists in rolling out the replica `Pods` one by one first, waiting until they are fully in sync and then proceed with the primary `Pod` which handles the write operations. This is the default update strategy, as it could potentially satisfy multiple reliability requirements and minimize the risk of updates:
-- Write operations won't be affected until all the replica `Pods` have been rolled out. If something goes wrong in the update, for example,  update to an incompatible MariaDB version, this is detected early when the replicas are being rolled out and the update operation will be paused from that point
-- Read operations impact is minimized by only rolling just one replica `Pod` at a time.
-- Waiting for every `Pod` to be synced (readiness probe passed) minimizes the impact in the clustering protocols and the network.
+This strategy consists in rolling out the replica `Pods` one by one first, waiting until they are fully in sync and then proceed with the primary `Pod`, which handles the write operations. This is the default update strategy because it can potentially meet various reliability requirements and minimize the risks associated with updates:
+
+- Write operations won't be affected until all the replica `Pods` have been rolled out. If something goes wrong in the update, such as an update to an incompatible MariaDB version, this is detected early when the replicas are being rolled out and the update operation will be paused at that point
+- Read operations impact is minimized by only rolling one replica `Pod` at a time.
+- Waiting for every `Pod` to be synced (i.e. readiness probe passed) minimizes the impact in the clustering protocols and the network.
 
 ## `RollingUpdate`
 
-This strategy leverages the default [`StatefulSet` update strategy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#rolling-updates), which unlike [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast), it does not take into account the role of the `Pods`. It basically rolls out the `Pods` one by one, from higher to lower `StatefulSet` index..
+This strategy leverages the default [`StatefulSet` update strategy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#rolling-updates), which, unlike [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast), does not take into account the role of the `Pods`(primary or replica). Instead, it rolls out the `Pods` one by one, from the highest to the lowest `StatefulSet` index.
 
-You are able to configure this strategy in the `rollingUpdate` object:
+You are able to pass extra parameters to this strategy via the `rollingUpdate` object:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -85,14 +86,14 @@ metadata:
 spec:
   ...
   updateStrategy:
-    type: ReplicasFirstPrimaryLast
+    type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 1
 ``` 
 
 ## `OnDelete`
 
-This strategy aims to provide a way to update `MariaDB` resources manually by restarting the `Pods` by hand. This way, the user is in full control of the update process, being able to decide when and which `Pods` are rolled out.
+This strategy aims to provide a method to update `MariaDB` resources manually by allowing users to restart the `Pods` individually.This way, the user has full control over the update process and can decide which `Pods` are rolled out at any given time.
 
 Whenever an [update is triggered](#trigger-updates), the `MariaDB` will be marked as pending to update:
 
