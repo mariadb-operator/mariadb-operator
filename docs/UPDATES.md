@@ -20,7 +20,7 @@ This documentation aims to describe the supported strategies to perform updates 
 In order to provide you with flexibility for updating `MariaDB` reliably, this operator supports multiple update strategies:
 
 - [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast): Roll out replica `Pods` one by one first, and then update the primary `Pod`. This is the default strategy.
-- [`RollingUpdate`](#rollingupdate): Utilize the default Kubernetes rolling update strategy. 
+- [`RollingUpdate`](#rollingupdate): Utilize the rolling update strategy from Kubernetes. 
 - [`OnDelete`](#ondelete): Updates are performed manually by deleting `Pods`.
 
 ## Configuration
@@ -74,7 +74,7 @@ This strategy consists in rolling out the replica `Pods` one by one first, waiti
 
 ## `RollingUpdate`
 
-This strategy leverages the default [`StatefulSet` update strategy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#rolling-updates), which, unlike [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast), does not take into account the role of the `Pods`(primary or replica). Instead, it rolls out the `Pods` one by one, from the highest to the lowest `StatefulSet` index.
+This strategy leverages the rolling update strategy from the [`StatefulSet` resource](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#rolling-updates), which, unlike [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast), does not take into account the role of the `Pods`(primary or replica). Instead, it rolls out the `Pods` one by one, from the highest to the lowest `StatefulSet` index.
 
 You are able to pass extra parameters to this strategy via the `rollingUpdate` object:
 
