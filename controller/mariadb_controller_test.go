@@ -169,6 +169,91 @@ var _ = Describe("MariaDB", func() {
 			return conn.IsReady()
 		}, testTimeout, testInterval).Should(BeTrue())
 
+		By("Expecting to create a exporter Deployment eventually")
+		Eventually(func(g Gomega) bool {
+			var deploy appsv1.Deployment
+			if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &deploy); err != nil {
+				return false
+			}
+			expectedImage := os.Getenv("RELATED_IMAGE_EXPORTER")
+			g.Expect(expectedImage).ToNot(BeEmpty())
+			By("Expecting Deployment to have exporter image")
+			g.Expect(deploy.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"Image": Equal(expectedImage),
+				})))
+
+			g.Expect(deploy.ObjectMeta.Labels).NotTo(BeNil())
+			g.Expect(deploy.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			g.Expect(deploy.ObjectMeta.Annotations).NotTo(BeNil())
+			g.Expect(deploy.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			return deploymentReady(&deploy)
+		}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
+
+		By("Expecting to create a ServiceMonitor eventually")
+		Eventually(func(g Gomega) bool {
+			var svcMonitor monitoringv1.ServiceMonitor
+			if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &svcMonitor); err != nil {
+				return false
+			}
+
+			g.Expect(svcMonitor.ObjectMeta.Labels).NotTo(BeNil())
+			g.Expect(svcMonitor.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			g.Expect(svcMonitor.ObjectMeta.Annotations).NotTo(BeNil())
+			g.Expect(svcMonitor.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDb.MetricsKey().Name))
+			g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
+			return true
+		}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
+	})
+
+	It("should reconcile SQL", func() {
+		var testMariaDb mariadbv1alpha1.MariaDB
+		By("Getting MariaDB")
+		Expect(k8sClient.Get(testCtx, testMdbkey, &testMariaDb)).To(Succeed())
+
+		By("Expecting initial Database to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			var database mariadbv1alpha1.Database
+			if err := k8sClient.Get(testCtx, testMariaDb.MariadbDatabaseKey(), &database); err != nil {
+				return false
+			}
+			g.Expect(database.ObjectMeta.Labels).NotTo(BeNil())
+			g.Expect(database.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			g.Expect(database.ObjectMeta.Annotations).NotTo(BeNil())
+			g.Expect(database.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			return database.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting initial User to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			var user mariadbv1alpha1.User
+			if err := k8sClient.Get(testCtx, testMariaDb.MariadbUserKey(), &user); err != nil {
+				return false
+			}
+			g.Expect(user.ObjectMeta.Labels).NotTo(BeNil())
+			g.Expect(user.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			g.Expect(user.ObjectMeta.Annotations).NotTo(BeNil())
+			g.Expect(user.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			return user.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting initial Grant to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			var grant mariadbv1alpha1.Grant
+			if err := k8sClient.Get(testCtx, testMariaDb.MariadbGrantKey(), &grant); err != nil {
+				return false
+			}
+			g.Expect(grant.ObjectMeta.Labels).NotTo(BeNil())
+			g.Expect(grant.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			g.Expect(grant.ObjectMeta.Annotations).NotTo(BeNil())
+			g.Expect(grant.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			return grant.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
 		By("Expecting mariadb.sys User to be ready eventually")
 		Eventually(func(g Gomega) bool {
 			var user mariadbv1alpha1.User
@@ -220,46 +305,6 @@ var _ = Describe("MariaDB", func() {
 			g.Expect(grant.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 			return grant.IsReady()
 		}, testTimeout, testInterval).Should(BeTrue())
-
-		By("Expecting to create a exporter Deployment eventually")
-		Eventually(func(g Gomega) bool {
-			var deploy appsv1.Deployment
-			if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &deploy); err != nil {
-				return false
-			}
-			expectedImage := os.Getenv("RELATED_IMAGE_EXPORTER")
-			g.Expect(expectedImage).ToNot(BeEmpty())
-			By("Expecting Deployment to have exporter image")
-			g.Expect(deploy.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
-				Fields{
-					"Image": Equal(expectedImage),
-				})))
-
-			g.Expect(deploy.ObjectMeta.Labels).NotTo(BeNil())
-			g.Expect(deploy.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-			g.Expect(deploy.ObjectMeta.Annotations).NotTo(BeNil())
-			g.Expect(deploy.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-			return deploymentReady(&deploy)
-		}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
-
-		By("Expecting to create a ServiceMonitor eventually")
-		Eventually(func(g Gomega) bool {
-			var svcMonitor monitoringv1.ServiceMonitor
-			if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &svcMonitor); err != nil {
-				return false
-			}
-
-			g.Expect(svcMonitor.ObjectMeta.Labels).NotTo(BeNil())
-			g.Expect(svcMonitor.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-			g.Expect(svcMonitor.ObjectMeta.Annotations).NotTo(BeNil())
-			g.Expect(svcMonitor.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-
-			g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
-			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
-			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDb.MetricsKey().Name))
-			g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
-			return true
-		}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
 	})
 
 	It("should reconcile with generated passwords", func() {
