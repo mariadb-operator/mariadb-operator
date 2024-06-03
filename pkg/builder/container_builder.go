@@ -405,23 +405,6 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		})
 	}
 
-	if !mariadb.Replication().Enabled {
-		if mariadb.Spec.Username != nil {
-			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_USER",
-				Value: *mariadb.Spec.Username,
-			})
-		}
-		if mariadb.Spec.PasswordSecretKeyRef != nil {
-			env = append(env, corev1.EnvVar{
-				Name: "MARIADB_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
-				},
-			})
-		}
-	}
-
 	if mariadb.Spec.Env != nil {
 		env = append(env, mariadb.Spec.Env...)
 	}

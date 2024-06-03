@@ -163,31 +163,6 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 }
 
 func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client) error {
-	if mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
-		var createUserOpts []sqlClient.CreateUserOpt
-
-		if mariadb.Spec.PasswordSecretKeyRef != nil {
-			password, err := r.refResolver.SecretKeyRef(ctx, mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
-			if err != nil {
-				return fmt.Errorf("error getting password: %v", err)
-			}
-
-			createUserOpts = append(createUserOpts, sqlClient.WithIdentifiedBy(password))
-		}
-
-		accountName := formatAccountName(*mariadb.Spec.Username, "%")
-		if err := client.CreateUser(ctx, accountName, createUserOpts...); err != nil {
-			return fmt.Errorf("error creating user: %v", err)
-		}
-
-		privileges := []string{"ALL PRIVILEGES"}
-		database := "*"
-		table := "*"
-		if err := client.Grant(ctx, privileges, database, table, accountName); err != nil {
-			return fmt.Errorf("error creating grant: %v", err)
-		}
-	}
-
 	opts := userSqlOpts{
 		username:   replUser,
 		host:       replUserHost,

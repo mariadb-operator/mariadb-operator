@@ -765,24 +765,66 @@ func (r *MariaDBReconciler) reconcileDatabase(ctx context.Context, mariadb *mari
 	return r.Create(ctx, db)
 }
 
+type mariadbAuthReconcileItem struct {
+	key   types.NamespacedName
+	user  builder.UserOpts
+	grant auth.GrantOpts
+}
+
 func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	userKey := mariadb.MariadbSysUserKey()
-	userOpts := builder.UserOpts{
-		MariaDBRef: mariadbv1alpha1.MariaDBRef{
-			ObjectReference: corev1.ObjectReference{
-				Name: mariadb.Name,
+	var items []mariadbAuthReconcileItem
+
+	if mariadb.Spec.Database != nil && mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
+		items = append(items, mariadbAuthReconcileItem{
+			key: mariadb.MariadbUserKey(),
+			user: builder.UserOpts{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: mariadb.Name,
+					},
+				},
+				Metadata:             mariadb.Spec.InheritMetadata,
+				MaxUserConnections:   20,
+				Name:                 *mariadb.Spec.Username,
+				Host:                 "%",
+				PasswordSecretKeyRef: &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
 			},
-		},
-		Metadata:             mariadb.Spec.InheritMetadata,
-		MaxUserConnections:   20,
-		Name:                 "mariadb.sys",
-		Host:                 "localhost",
-		PasswordSecretKeyRef: nil,
+			grant: auth.GrantOpts{
+				Key: mariadb.MariadbGrantKey(),
+				GrantOpts: builder.GrantOpts{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: mariadb.Name,
+						},
+					},
+					Metadata: mariadb.Spec.InheritMetadata,
+					Privileges: []string{
+						"ALL PRIVILEGES",
+					},
+					Database: *mariadb.Spec.Database,
+					Table:    "*",
+					Username: *mariadb.Spec.Username,
+					Host:     "%",
+				},
+			},
+		})
 	}
-	grantKey := mariadb.MariadbSysGrantKey()
-	grantOpts := []auth.GrantOpts{
-		{
-			Key: grantKey,
+	items = append(items, mariadbAuthReconcileItem{
+		key: mariadb.MariadbSysUserKey(),
+		user: builder.UserOpts{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: corev1.ObjectReference{
+					Name: mariadb.Name,
+				},
+			},
+			Metadata:             mariadb.Spec.InheritMetadata,
+			MaxUserConnections:   20,
+			Name:                 "mariadb.sys",
+			Host:                 "localhost",
+			PasswordSecretKeyRef: nil,
+		},
+		grant: auth.GrantOpts{
+			Key: mariadb.MariadbSysGrantKey(),
 			GrantOpts: builder.GrantOpts{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: corev1.ObjectReference{
@@ -801,9 +843,15 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 				Host:     "localhost",
 			},
 		},
-	}
-	if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, userKey, mariadb, userOpts, grantOpts...); !result.IsZero() || err != nil {
-		return result, err
+	})
+
+	for _, item := range items {
+		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, item.key, mariadb, item.user, item.grant); !result.IsZero() || err != nil {
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", item.key.Name, err)
+			}
+			return result, err
+		}
 	}
 	return ctrl.Result{}, nil
 }

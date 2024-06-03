@@ -615,7 +615,7 @@ func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *ma
 	return sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == mxs.Spec.Replicas
 }
 
-type authReconcileItem struct {
+type maxscaleAuthReconcileItem struct {
 	key    types.NamespacedName
 	user   builder.UserOpts
 	grants []auth.GrantOpts
@@ -641,7 +641,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 		Namespace: mxs.Namespace,
 	}
 
-	items := []authReconcileItem{
+	items := []maxscaleAuthReconcileItem{
 		{
 			key: clientKey,
 			user: builder.UserOpts{
@@ -738,7 +738,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			Name:      *mxs.Spec.Auth.SyncUsername,
 			Namespace: mxs.Namespace,
 		}
-		items = append(items, authReconcileItem{
+		items = append(items, maxscaleAuthReconcileItem{
 			key: syncKey,
 			user: builder.UserOpts{
 				Name:                 *mxs.Spec.Auth.SyncUsername,
