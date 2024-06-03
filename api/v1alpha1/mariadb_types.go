@@ -366,14 +366,15 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Database *string `json:"database,omitempty" webhook:"inmutable"`
-	// Username is the username of the initial user created on bootstrap.
+	// Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Username *string `json:"username,omitempty" webhook:"inmutable"`
-	// PasswordSecretKeyRef is a Secret reference to the password of the initial user created on bootstrap.
+	// PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PasswordSecretKeyRef *GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	PasswordSecretKeyRef *GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty"`
 	// MyCnf allows to specify the my.cnf file mounted by Mariadb.
 	// Updating this field will trigger an update to the Mariadb resource.
 	// +optional
