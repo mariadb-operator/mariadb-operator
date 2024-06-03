@@ -98,7 +98,7 @@ spec:
     maxUnavailable: 50%
 
   updateStrategy:
-    type: RollingUpdate
+    type: ReplicasFirstPrimaryLast
 
   service:
     type: LoadBalancer
