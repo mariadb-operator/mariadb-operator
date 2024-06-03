@@ -140,7 +140,7 @@ spec:
     maxUnavailable: 33%
 
   updateStrategy:
-    type: RollingUpdate
+    type: ReplicasFirstPrimaryLast
 
   myCnf: |
     [mariadb]
