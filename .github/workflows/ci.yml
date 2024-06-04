@@ -116,7 +116,6 @@ jobs:
     needs: 
       - detect-noop
       - detect-ent
-      - test
     if: ${{ needs.detect-noop.outputs.noop != 'true' && needs.detect-ent.outputs.ent != '' }}
     steps:
       - name: Checkout code
