@@ -27,11 +27,6 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Automated [primary failover](./docs/HA.md).
 - Automated [Galera cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
 - Enhanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB.
-  - Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
-  - Connection-based routing: Load balance connections between multiple servers.
-  - Automated primary failover based on MariaDB internals.
-  - Replay pending transactions when a server goes down.
-  - Support for Galera and Replication.
 - Flexible [storage](./docs/STORAGE.md) configuration. [Volume expansion](./docs/STORAGE.md#volume-resize).
 - Take and restore [backups](./docs/BACKUP.md). 
 - Scheduled [backups](./docs/BACKUP.md/#scheduling). 
@@ -40,6 +35,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Target recovery time](./docs/BACKUP.md#target-recovery-time): infer which backup to restore.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
 - [Rolling updates](./docs/UPDATES.md): roll out replica Pods one by one and then proceed with primary Pod.
+- [my.cnf configuration](./docs/CONFIGURATION.md#mycnf). Automatically trigger [rolling updates](./docs/UPDATES.md) when my.cnf changes.
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter).
 - Manage [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
