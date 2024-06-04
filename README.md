@@ -43,7 +43,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Manage [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
 - Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
-- Validation webhooks to provide CRD inmutability.
+- Validation webhooks to provide CRD immutability.
 - Additional printer columns to report the current CRD status.
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 - [GitOps](#gitops) friendly.
