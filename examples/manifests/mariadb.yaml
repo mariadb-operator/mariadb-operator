@@ -15,7 +15,7 @@ spec:
     generate: true
   database: mariadb
 
-  image: mariadb:10.11.7
+  image: mariadb:10.11.8
   imagePullPolicy: IfNotPresent
 
   port: 3306

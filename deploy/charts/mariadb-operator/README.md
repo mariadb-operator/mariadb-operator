@@ -89,12 +89,13 @@ helm uninstall mariadb-operator
 | tolerations | list | `[]` | Tolerations to add to controller Pod |
 | webhook.affinity | object | `{}` | Affinity to add to controller Pod |
 | webhook.annotations | object | `{}` | Annotations for webhook configurations. |
-| webhook.cert.caPath | string | `"/tmp/k8s-webhook-server/certificate-authority"` | Path where the CA certificate will be mounted. |
+| webhook.cert.ca.key | string | `""` | File under 'ca.path' that contains the full CA trust chain. |
+| webhook.cert.ca.path | string | `""` | Path that contains the full CA trust chain. |
 | webhook.cert.certManager.duration | string | `""` | Duration to be used in the Certificate resource, |
 | webhook.cert.certManager.enabled | bool | `false` | Whether to use cert-manager to issue and rotate the certificate. If set to false, mariadb-operator's cert-controller will be used instead. |
 | webhook.cert.certManager.issuerRef | object | `{}` | Issuer reference to be used in the Certificate resource. If not provided, a self-signed issuer will be used. |
 | webhook.cert.certManager.renewBefore | string | `""` | Renew before duration to be used in the Certificate resource. |
-| webhook.cert.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. |
+| webhook.cert.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. 'tls.crt' and 'tls.key' certificates files should be under this path. |
 | webhook.cert.secretAnnotations | object | `{}` | Annotatioms to be added to webhook TLS secret. |
 | webhook.cert.secretLabels | object | `{}` | Labels to be added to webhook TLS secret. |
 | webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
