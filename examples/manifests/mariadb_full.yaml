@@ -56,7 +56,7 @@ spec:
 
   myCnfConfigMapKeyRef:
     name: mariadb
-    key: mycnf
+    key: my.cnf
 
   resources:
     requests:

@@ -7,9 +7,49 @@ This documentation aims to provide guidance on various configuration aspects acr
 
 ## Table of contents
 <!-- toc -->
+- [my.cnf](#mycnf)
 - [Passwords](#passwords)
+- [External resources](#external-resources)
 - [Probes](#probes)
 <!-- /toc -->
+
+## my.cnf
+
+An inline [configuration file (my.cnf)](https://mariadb.com/kb/en/configuring-mariadb-with-option-files/) can be provisioned in the `MariaDB` resource via the `myCnf` field:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  ...
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=1024M
+    max_allowed_packet=256M 
+```
+In this field, you may provide any [configuration option](https://mariadb.com/kb/en/mariadbd-options/) or [system variable](https://mariadb.com/kb/en/server-system-variables/) supported by MariaDB.
+
+Under the hood, the operator automatically creates a `ConfigMap` with the contents of  the `myCnf` field, which will be mounted in the `MariaDB` instance. Alternatively, you can manage your own configuration using a pre-existing `ConfigMap` by linking it via `myCnfConfigMapKeyRef`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  ...
+  myCnfConfigMapKeyRef:
+    name: mariadb
+    key: mycnf
+```
+
+To ensure your configuration changes take effect, the operator triggers a [rolling update](./UPDATES.md) whenever the `myCnf` field or a `ConfigMap` is updated. For the operator to detect changes in a `ConfigMap`, it must be labeled with `k8s.mariadb.com/watch`. Refer to the [external resources](#external-resources) section for further detail.
 
 ## Passwords
 
@@ -40,7 +80,7 @@ spec:
     generate: true
 ``` 
 
-You may choose to explicitly provide a `Secret` reference via `rootPasswordSecretKeyRef` and opt-out fron random password generation by either not providing the `generate` field or setting it to `false`: 
+You may choose to explicitly provide a `Secret` reference via `rootPasswordSecretKeyRef` and opt-out from random password generation by either not providing the `generate` field or setting it to `false`: 
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -57,6 +97,43 @@ spec:
 This way, we are telling the operator that we are expecting a `Secret` to be available eventually, enabling the use of GitOps tools to seed the password:
 - [sealed-secrets](https://github.com/bitnami-labs/sealed-secrets): The `Secret` is reconciled from a `SealedSecret`, which is decrypted by the sealed-secrets controller.
 - [external-secrets](https://github.com/external-secrets/external-secrets): The `Secret` is reconciled fom an `ExternalSecret`, which is read by the external-secrets controller from an external secrets source (Vault, AWS Secrets Manager ...).
+
+## External resources
+
+Many CRs have a references to external resources (i.e. `ConfigMap`, `Secret`) not managed by the operator. 
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  ...
+  myCnfConfigMapKeyRef:
+    name: mariadb
+    key: mycnf
+```
+
+
+These external resources should be labeled with `k8s.mariadb.com/watch` so the operator can watch them and perform reconciliations based on their changes. For example, see the `my.cnf` `ConfigMap`:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mariadb
+  labels:
+    k8s.mariadb.com/watch: ""
+data:
+  my.cnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=1024M
+    max_allowed_packet=256M
+```
 
 ## Probes
 

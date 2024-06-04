@@ -5,7 +5,7 @@ metadata:
   labels:
     k8s.mariadb.com/watch: ""
 data:
-  mycnf: |
+  my.cnf: |
     [mariadb]
     bind-address=*
     default_storage_engine=InnoDB
