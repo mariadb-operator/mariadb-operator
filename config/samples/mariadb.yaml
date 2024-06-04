@@ -10,7 +10,7 @@ spec:
 
   username: mariadb
   passwordSecretKeyRef:
-    name: mariadb
+    name: mariadb-password
     key: password
     generate: true
   database: mariadb

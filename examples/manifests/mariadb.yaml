@@ -4,13 +4,13 @@ metadata:
   name: mariadb
 spec:
   rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
+    name: mariadb-root
+    key: password
     generate: true
 
   username: mariadb
   passwordSecretKeyRef:
-    name: mariadb
+    name: mariadb-password
     key: password
     generate: true
   database: mariadb
