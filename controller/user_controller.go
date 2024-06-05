@@ -123,7 +123,13 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlCl
 	}
 
 	if !exists {
-		if err := mdbClient.CreateUser(ctx, wr.user.AccountName(), createUserOpts...); err != nil {
+		accountName := wr.user.AccountName()
+		// After restoring a backup, mysql.user and mysql.global_priv don't have the account entry, but the CREATE query still succeeds.
+		// This forces the user to be recreated from a clean state.
+		if err := mdbClient.DropUser(ctx, accountName); err != nil {
+			return fmt.Errorf("error dropping User: %v", err)
+		}
+		if err := mdbClient.CreateUser(ctx, accountName, createUserOpts...); err != nil {
 			return fmt.Errorf("error creating User: %v", err)
 		}
 	} else if password != "" {
