@@ -12,7 +12,7 @@ Run and operate MariaDB in a cloud native way
 
 ## Installing
 ```bash
-helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
+helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 
@@ -36,7 +36,7 @@ helm uninstall mariadb-operator
 | certController.ha.enabled | bool | `false` | Enable high availability |
 | certController.ha.replicas | int | `3` | Number of replicas |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
-| certController.image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
+| certController.image.repository | string | `"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"` |  |
 | certController.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | certController.imagePullSecrets | list | `[]` |  |
 | certController.lookaheadValidity | string | `"2160h"` | Duration used to verify whether a certificate is valid or not. |
@@ -65,7 +65,7 @@ helm uninstall mariadb-operator
 | ha.enabled | bool | `false` | Enable high availability |
 | ha.replicas | int | `3` | Number of replicas |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
+| image.repository | string | `"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"` |  |
 | image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | imagePullSecrets | list | `[]` |  |
 | logLevel | string | `"INFO"` | Controller log level |
@@ -105,7 +105,7 @@ helm uninstall mariadb-operator
 | webhook.ha.replicas | int | `3` | Number of replicas |
 | webhook.hostNetwork | bool | `false` | Expose the webhook server in the host network |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
-| webhook.image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
+| webhook.image.repository | string | `"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"` |  |
 | webhook.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.nodeSelector | object | `{}` | Node selectors to add to controller Pod |
