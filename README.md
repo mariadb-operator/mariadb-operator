@@ -54,7 +54,7 @@ Please, refer to the [documentation](./docs/), the [API reference](./docs/API_RE
 This installation flavour provides the minimum resources required to run `mariadb-operator` in your cluster.
 
 ```bash
-helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
+helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 ## Recommended installation
@@ -64,7 +64,7 @@ The recommended installation includes the following features:
 - **Webhook certificate renewal**: Automatic webhook certificate issuance and renewal using  [cert-manager](https://cert-manager.io/docs/installation/). By default, a static self-signed certificate is generated.
 
 ```bash
-helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
+helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator \
   --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
 ```
