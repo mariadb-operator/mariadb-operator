@@ -63,6 +63,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: "${{ secrets.GHA_TOKEN }}"
 
       - name: Configure Git
         run: |
@@ -77,7 +78,7 @@ jobs:
         env:
           CR_TOKEN: "${{ secrets.GHA_TOKEN }}"
           CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
-          CR_SKIP_EXISTING: true
         with:
           charts_dir: deploy/charts
-          charts_repo_url: https://mariadb-operator.github.io/mariadb-operator
+          skip_existing: "true"
+          pages_branch: gh-pages
