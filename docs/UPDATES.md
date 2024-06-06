@@ -19,7 +19,7 @@ This documentation aims to describe the supported strategies to perform updates 
 
 In order to provide you with flexibility for updating `MariaDB` reliably, this operator supports multiple update strategies:
 
-- [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast): Roll out replica `Pods` one by one first, and then update the primary `Pod`. This is the default strategy.
+- [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast): Roll out replica `Pods` one by one, wait for each of them to become ready, and then proceed with the primary `Pod`.
 - [`RollingUpdate`](#rollingupdate): Utilize the rolling update strategy from Kubernetes. 
 - [`OnDelete`](#ondelete): Updates are performed manually by deleting `Pods`.
 
@@ -66,11 +66,11 @@ Once the update is triggered, the operator manages it differently based on the s
 
 ## `ReplicasFirstPrimaryLast`
 
-This strategy consists in rolling out the replica `Pods` one by one first, waiting until they are fully in sync and then proceed with the primary `Pod`, which handles the write operations. This is the default update strategy because it can potentially meet various reliability requirements and minimize the risks associated with updates:
+This role-aware update strategy consists in rolling out the replica `Pods` one by one first, waiting for each of them become ready (i.e. readiness probe passed), and then proceed with the primary `Pod`. This is the default update strategy, as it can potentially meet various reliability requirements and minimize the risks associated with updates:
 
-- Write operations won't be affected until all the replica `Pods` have been rolled out. If something goes wrong in the update, such as an update to an incompatible MariaDB version, this is detected early when the replicas are being rolled out and the update operation will be paused at that point
+- Write operations won't be affected until all the replica `Pods` have been rolled out. If something goes wrong in the update, such as an update to an incompatible MariaDB version, this is detected early when the replicas are being rolled out and the update operation will be paused at that point.
 - Read operations impact is minimized by only rolling one replica `Pod` at a time.
-- Waiting for every `Pod` to be synced (i.e. readiness probe passed) minimizes the impact in the clustering protocols and the network.
+- Waiting for every `Pod` to be synced minimizes the impact in the clustering protocols and the network.
 
 ## `RollingUpdate`
 
