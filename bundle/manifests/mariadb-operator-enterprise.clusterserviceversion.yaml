@@ -127,11 +127,11 @@ metadata:
                 "name": "mariadb-metrics"
               }
             },
-            "myCnf": "[mariadb]\nbind-address=*\ndefault_storage_engine=InnoDB\nbinlog_format=row\ninnodb_autoinc_lock_mode=2\nmax_allowed_packet=256M\n",
+            "myCnf": "[mariadb]\nbind-address=*\ndefault_storage_engine=InnoDB\nbinlog_format=row\ninnodb_autoinc_lock_mode=2\ninnodb_buffer_pool_size=1024M\nmax_allowed_packet=256M\n",
             "passwordSecretKeyRef": {
               "generate": true,
               "key": "password",
-              "name": "mariadb"
+              "name": "mariadb-password"
             },
             "primaryConnection": {
               "secretName": "mariadb-conn-primary",
@@ -162,6 +162,9 @@ metadata:
             },
             "storage": {
               "size": "1Gi"
+            },
+            "updateStrategy": {
+              "type": "ReplicasFirstPrimaryLast"
             },
             "username": "mariadb"
           }
@@ -331,8 +334,8 @@ metadata:
     capabilities: Auto Pilot
     categories: Database
     certified: "true"
-    containerImage: mariadb/mariadb-operator-enterprise@sha256:6af51442fcc461ceed75ce08fb37eedd714fbb3fe245ca371479aeba334538b7
-    createdAt: "2024-05-17T16:37:59Z"
+    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
+    createdAt: "2024-06-07T10:56:15Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -348,7 +351,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: mariadb-operator-enterprise.v0.0.29-dev
+  name: mariadb-operator-enterprise.v0.0.29
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -601,7 +604,7 @@ spec:
             path: params
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.
+          - description: PasswordSecretKeyRef is a reference to the password to use for configuring the Connection. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
           - description: Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener.
@@ -1019,7 +1022,7 @@ spec:
             path: connection.serviceName
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Database is the database to be created on bootstrap.
+          - description: Database is the initial database to be created by the operator once MariaDB is ready.
             displayName: Database
             path: database
             x-descriptors:
@@ -1436,7 +1439,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
+          - description: ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Client Password Secret Key Ref
             path: maxScale.auth.clientPasswordSecretKeyRef
             x-descriptors:
@@ -1462,7 +1465,7 @@ spec:
             path: maxScale.auth.generate
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-          - description: MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
+          - description: MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Metrics Password Secret Key Ref
             path: maxScale.auth.metricsPasswordSecretKeyRef
             x-descriptors:
@@ -1483,7 +1486,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
+          - description: MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Monitor Password Secret Key Ref
             path: maxScale.auth.monitorPasswordSecretKeyRef
             x-descriptors:
@@ -1504,7 +1507,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+          - description: ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Server Password Secret Key Ref
             path: maxScale.auth.serverPasswordSecretKeyRef
             x-descriptors:
@@ -1525,7 +1528,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
+          - description: SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Sync Password Secret Key Ref
             path: maxScale.auth.syncPasswordSecretKeyRef
             x-descriptors:
@@ -2386,7 +2389,7 @@ spec:
             path: metrics.exporter.volumes
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
+          - description: PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Password Secret Key Ref
             path: metrics.passwordSecretKeyRef
             x-descriptors:
@@ -2418,10 +2421,10 @@ spec:
             path: metrics.username
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: MyCnf allows to specify the my.cnf file mounted by Mariadb.
+          - description: MyCnf allows to specify the my.cnf file mounted by Mariadb. Updating this field will trigger an update to the Mariadb resource.
             displayName: My Cnf
             path: myCnf
-          - description: MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap. If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field.
+          - description: MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap. If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field. If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated.
             displayName: My Cnf Config Map Key Ref
             path: myCnfConfigMapKeyRef
             x-descriptors:
@@ -2431,7 +2434,7 @@ spec:
             path: nodeSelector
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: PasswordSecretKeyRef is a Secret reference to the password of the initial user created on bootstrap.
+          - description: PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
             x-descriptors:
@@ -2986,13 +2989,16 @@ spec:
             path: topologySpreadConstraints
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: PodDisruptionBudget defines the update strategy for the StatefulSet object.
+          - description: UpdateStrategy defines how a MariaDB resource is updated.
             displayName: Update Strategy
             path: updateStrategy
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:updateStrategy
-              - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Username is the username of the initial user created on bootstrap.
+          - description: RollingUpdate defines parameters for the RollingUpdate type.
+            displayName: Rolling Update
+            path: updateStrategy.rollingUpdate
+          - description: Type defines the type of updates. One of `ReplicasFirstPrimaryLast`, `RollingUpdate` or `OnDelete`. If not defined, it defaults to `ReplicasFirstPrimaryLast`.
+            displayName: Type
+            path: updateStrategy.type
+          - description: Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.
             displayName: Username
             path: username
             x-descriptors:
@@ -3121,7 +3127,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
+          - description: ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Client Password Secret Key Ref
             path: auth.clientPasswordSecretKeyRef
             x-descriptors:
@@ -3147,7 +3153,7 @@ spec:
             path: auth.generate
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-          - description: MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
+          - description: MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Metrics Password Secret Key Ref
             path: auth.metricsPasswordSecretKeyRef
             x-descriptors:
@@ -3168,7 +3174,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
+          - description: MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Monitor Password Secret Key Ref
             path: auth.monitorPasswordSecretKeyRef
             x-descriptors:
@@ -3189,7 +3195,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+          - description: ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Server Password Secret Key Ref
             path: auth.serverPasswordSecretKeyRef
             x-descriptors:
@@ -3210,7 +3216,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
+          - description: SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Sync Password Secret Key Ref
             path: auth.syncPasswordSecretKeyRef
             x-descriptors:
@@ -4450,7 +4456,7 @@ spec:
           - description: Name overrides the default name provided by metadata.name.
             displayName: Name
             path: name
-          - description: PasswordSecretKeyRef is a reference to the password to be used by the User. If not provided, the account will be locked and the password will expire.
+          - description: PasswordSecretKeyRef is a reference to the password to be used by the User. If not provided, the account will be locked and the password will expire. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
           - description: RequeueInterval is used to perform requeue reconciliations.
@@ -4934,19 +4940,19 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: mariadbmmontes/enterprise-server@sha256:7196d7a97e0a368919cf8d905da533690158d20c606a692e336f09fd5c6d2fdf
+                        value: mariadbmmontes/enterprise-server@sha256:1765a42e4d47d9a8a76d2ce7b5dc66553c72353bf27227a0a5d10b73d61f92c8
                       - name: RELATED_IMAGE_MAXSCALE
-                        value: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
+                        value: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
                       - name: RELATED_IMAGE_EXPORTER
-                        value: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
-                        value: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+                        value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
                       - name: MARIADB_OPERATOR_IMAGE
-                        value: mariadb/mariadb-operator-enterprise:v0.0.29-dev
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
                       - name: MARIADB_GALERA_INIT_IMAGE
-                        value: mariadb/mariadb-operator-enterprise:v0.0.29-dev
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
                       - name: MARIADB_GALERA_AGENT_IMAGE
-                        value: mariadb/mariadb-operator-enterprise:v0.0.29-dev
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
                       - name: WATCH_NAMESPACE
@@ -4963,7 +4969,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: mariadb/mariadb-operator-enterprise@sha256:6af51442fcc461ceed75ce08fb37eedd714fbb3fe245ca371479aeba334538b7
+                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -5066,19 +5072,19 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
-      name: exporter-maxscale
-    - image: mariadb/mariadb-operator-enterprise@sha256:6af51442fcc461ceed75ce08fb37eedd714fbb3fe245ca371479aeba334538b7
+    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
       name: mariadb-operator-enterprise
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
-    - image: mariadbmmontes/enterprise-server@sha256:7196d7a97e0a368919cf8d905da533690158d20c606a692e336f09fd5c6d2fdf
+    - image: mariadbmmontes/enterprise-server@sha256:1765a42e4d47d9a8a76d2ce7b5dc66553c72353bf27227a0a5d10b73d61f92c8
       name: mariadb
-    - image: mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
+    - image: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
       name: maxscale
-    - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
+    - image: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
       name: exporter
-  version: 0.0.29-dev
+    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+      name: exporter-maxscale
+  version: 0.0.29
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
