@@ -6,7 +6,7 @@
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/ci.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml/badge.svg" alt="Release"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml/badge.svg" alt="Helm"></a>
-<a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/manifests.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/manifests.yml/badge.svg" alt="Manifests"></a>
+<a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm-release.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm-release.yml/badge.svg" alt="Helm release"></a>
 </p>
 
 <p align="center">
