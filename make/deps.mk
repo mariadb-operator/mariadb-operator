@@ -42,7 +42,7 @@ YQ_VERSION ?= v4.18.1
 OPERATOR_SDK_VERSION ?= v1.34.1
 OPM_VERSION ?= v1.37.0
 OC_TAR_GZ_URL ?= https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest-4.9/openshift-client-linux-4.9.59.tar.gz
-PREFLIGHT_VERSION ?= 1.9.1
+PREFLIGHT_VERSION ?= 1.9.7
 
 .PHONY: kind
 kind: $(KIND) ## Download kind locally if necessary.
