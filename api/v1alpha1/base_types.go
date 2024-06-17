@@ -505,6 +505,17 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CASecretKeyRef *corev1.SecretKeySelector `json:"caSecretKeyRef,omitempty"`
+	// Skip TLS verification
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (t *TLS) SetDefaults() {
+	if t.Enabled {
+		t.InsecureSkipTLSVerify = false
+	}
 }
 
 type S3 struct {
