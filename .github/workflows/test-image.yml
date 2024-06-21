@@ -33,3 +33,16 @@ jobs:
         run: make test
         env:
           RELATED_IMAGE_MARIADB: "${{ inputs.mariadb_image }}"
+
+      - name: Tell the MariaDB Folks that failed
+        if: ${{ failure() }}
+        uses: zulip/github-actions-zulip/send-message@v1
+        with:
+          api-key: ${{ secrets.MARIADB_ZULIP_API_KEY }}
+          email: "mariadb-operator-bot@mariadb.zulipchat.com"
+          organization-url: "https://mariadb.zulipchat.com"
+          to: "Buildbot"
+          type: "stream"
+          topic: "CI - MariaDB Operator"
+          content: "There was an error running MariaDB Operator tests on ${{ inputs.mariadb_image }} - URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
+
