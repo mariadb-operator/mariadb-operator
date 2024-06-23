@@ -443,6 +443,20 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			MountPath: MariadbConfigMountPath,
 		},
 	}
+
+	if mariadb.IsTLSEnabled() {
+		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
+			{
+				Name:      PKICAVolume,
+				MountPath: MariadbPKICAMountPath,
+			},
+			{
+				Name:      PKIVolume,
+				MountPath: MariadbPKIMountPath,
+			},
+		}...)
+	}
+
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
 

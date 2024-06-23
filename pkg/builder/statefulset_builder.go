@@ -27,6 +27,11 @@ const (
 	MaxscaleConfigMountPath = "/etc/config"
 	ConfigVolumeRole        = "config"
 
+	PKICAVolume           = "pki-ca"
+	MariadbPKICAMountPath = "/etc/pki/ca"
+	PKIVolume             = "pki"
+	MariadbPKIMountPath   = "/etc/pki"
+
 	RunVolume            = "run"
 	MaxScaleRunMountPath = "/var/run/maxscale"
 
