@@ -132,10 +132,10 @@ storageclass: cluster-ctx  ## Create StorageClass that allows volume expansion.
 	$(KUBECTL) apply -f ./hack/manifests/storageclass.yaml
 
 .PHONY: install
-install: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass cert docker-dev ## Install everything you need for local development.
+install: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass cert-webhook docker-dev ## Install everything you need for local development.
 
 .PHONY: install-ent
-install-ent: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass cert docker-dev-ent ## Install everything you need for local enterprise development.
+install-ent: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass cert-webhook docker-dev-ent ## Install everything you need for local enterprise development.
 
 ##@ Deploy
 
