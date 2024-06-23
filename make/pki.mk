@@ -76,7 +76,7 @@ cert-leaf-mariadb: ca ## Generate leaf certificates for MariaDB.
 	CERT=$(MARIADB_SERVER_CERT) \
 	KEY=$(MARIADB_SERVER_KEY) \
 	CERT_SUBJECT="/CN=$(MARIADB_NAME).default.svc.cluster.local" \
-	CERT_ALT_NAMES="subjectAltName=DNS:$(MARIADB_NAME).default.svc,DNS:$(MARIADB_NAME).default,DNS:$(MARIADB_NAME)" \
+	CERT_ALT_NAMES="subjectAltName=DNS:$(MARIADB_NAME).default.svc,DNS:$(MARIADB_NAME).default,DNS:$(MARIADB_NAME),DNS:localhost" \
 	$(MAKE) cert-leaf
 
 	CERT=$(MARIADB_CLIENT_CERT) \
