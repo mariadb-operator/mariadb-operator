@@ -433,6 +433,22 @@ func mariadbConfigVolume(mariadb *mariadbv1alpha1.MariaDB) corev1.Volume {
 			},
 		})
 	}
+	if mariadb.IsTLSEnabled() {
+		configMapKeyRef := mariadb.TLSConfigMapKeyRef()
+		projections = append(projections, corev1.VolumeProjection{
+			ConfigMap: &corev1.ConfigMapProjection{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: configMapKeyRef.Name,
+				},
+				Items: []corev1.KeyToPath{
+					{
+						Key:  configMapKeyRef.Key,
+						Path: configMapKeyRef.Key,
+					},
+				},
+			},
+		})
+	}
 	return corev1.Volume{
 		Name: ConfigVolume,
 		VolumeSource: corev1.VolumeSource{
