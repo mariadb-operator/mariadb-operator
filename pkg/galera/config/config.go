@@ -43,6 +43,7 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
+	// TODO: add SSL keys conditionally based on Pod environment MARIADB_TLS
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
@@ -179,6 +180,10 @@ func getProviderOptions(podIP string, options map[string]string) (string, error)
 	wsrepOpts := map[string]string{
 		galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
 		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
+		// TODO: add SSL keys conditionally based on Pod environment MARIADB_TLS
+		// galerakeys.WsrepOptSocketSSLCert: "/etc/pki/server.crt",
+		// galerakeys.WsrepOptSocketSSLKey:  "/etc/pki/server.key",
+		// galerakeys.WsrepOptSocketSSLCA:   "/etc/pki/ca/client.crt",
 	}
 	maps.Copy(wsrepOpts, options)
 

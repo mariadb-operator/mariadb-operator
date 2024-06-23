@@ -485,6 +485,19 @@ func mariadbPKIVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 								},
 							},
 						},
+						{
+							Secret: &corev1.SecretProjection{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: mariadb.Spec.TLS.ServerCASecretRef.Name,
+								},
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "tls.crt",
+										Path: "server.crt",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -494,6 +507,23 @@ func mariadbPKIVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 			VolumeSource: corev1.VolumeSource{
 				Projected: &corev1.ProjectedVolumeSource{
 					Sources: []corev1.VolumeProjection{
+						{
+							Secret: &corev1.SecretProjection{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: mariadb.Spec.TLS.ClientSecretRef.Name,
+								},
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "tls.crt",
+										Path: "client.crt",
+									},
+									{
+										Key:  "tls.key",
+										Path: "client.key",
+									},
+								},
+							},
+						},
 						{
 							Secret: &corev1.SecretProjection{
 								LocalObjectReference: corev1.LocalObjectReference{
