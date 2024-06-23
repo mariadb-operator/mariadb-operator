@@ -17,7 +17,7 @@ ca: ## Generates CA keypair.
 		echo "CA files already exist, skipping generation."; \
 	fi
 
-CA_SECRET_NAME ?= mariadb-ca
+CA_SECRET_NAME ?= mariadb-ca-manual
 CA_SECRET_NAMESPACE ?= default
 .PHONY: ca-secret-tls
 ca-secret-tls: ## Generates a TLS Secret for a CA.
@@ -39,13 +39,21 @@ CERT ?= $(PKI_DIR)/tls.crt
 KEY ?= $(PKI_DIR)/tls.key 
 CERT_SUBJECT ?= "/CN=localhost"
 CERT_ALT_NAMES ?= "subjectAltName=DNS:localhost,IP:127.0.0.1"
-.PHONY: cert
-cert: ## Generates certificate keypair.
+.PHONY: cert-leaf
+cert-leaf: ## Generates leaf certificate keypair.
 	@mkdir -p $(PKI_DIR)
 	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
 		-CA $(CA_CERT) -CAkey $(CA_KEY) \
 		-out $(CERT) -keyout $(KEY) \
 		-subj $(CERT_SUBJECT) -addext $(CERT_ALT_NAMES)
+
+.PHONY: cert-leaf-client
+cert-leaf-client: ## Generates leaf certificate keypair for a client.
+	@mkdir -p $(PKI_DIR)
+	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
+		-CA $(CA_CERT) -CAkey $(CA_KEY) \
+		-out $(CERT) -keyout $(KEY) \
+		-subj $(CERT_SUBJECT)
 
 CERT_SECRET_NAME ?= mariadb-tls
 CERT_SECRET_NAMESPACE ?= default
@@ -57,6 +65,43 @@ cert-secret-tls: kubectl ## Creates a TLS Secret.
 		--cert=$(CERT) --key=$(KEY) \
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
 
+MARIADB_NAME ?= mariadb
+MARIADB_NAMESPACE ?= default
+MARIADB_SERVER_CERT ?= $(PKI_DIR)/$(MARIADB_NAME)-server.crt
+MARIADB_SERVER_KEY ?= $(PKI_DIR)/$(MARIADB_NAME)-server.key
+MARIADB_CLIENT_CERT ?= $(PKI_DIR)/$(MARIADB_NAME)-client.crt
+MARIADB_CLIENT_KEY ?= $(PKI_DIR)/$(MARIADB_NAME)-client.key
+.PHONY: cert-leaf-mariadb
+cert-leaf-mariadb: ca ## Generate leaf certificates for MariaDB.
+	CERT=$(MARIADB_SERVER_CERT) \
+	KEY=$(MARIADB_SERVER_KEY) \
+	CERT_SUBJECT="/CN=$(MARIADB_NAME).default.svc.cluster.local" \
+	CERT_ALT_NAMES="subjectAltName=DNS:$(MARIADB_NAME).default.svc,DNS:$(MARIADB_NAME).default,DNS:$(MARIADB_NAME)" \
+	$(MAKE) cert-leaf
+
+	CERT=$(MARIADB_CLIENT_CERT) \
+	KEY=$(MARIADB_CLIENT_KEY) \
+	CERT_SUBJECT="/CN=$(MARIADB_NAME)-client" \
+	$(MAKE) cert-leaf-client
+
+	$(MAKE) ca-secret-tls
+
+	CERT_SECRET_NAME=$(MARIADB_NAME)-tls-server-manual \
+	CERT_SECRET_NAMESPACE=$(MARIADB_NAMESPACE) \
+	CERT=$(MARIADB_SERVER_CERT) \
+	KEY=$(MARIADB_SERVER_KEY) \
+	$(MAKE) cert-secret-tls
+
+	CERT_SECRET_NAME=$(MARIADB_NAME)-tls-client-manual \
+	CERT_SECRET_NAMESPACE=$(MARIADB_NAMESPACE) \
+	CERT=$(MARIADB_CLIENT_CERT) \
+	KEY=$(MARIADB_CLIENT_KEY) \
+	$(MAKE) cert-secret-tls
+
+.PHONY: cert-mariadb
+cert-mariadb: ## Generate certificates for MariaDB.
+	MARIADB_NAME="mariadb" $(MAKE) cert-leaf-mariadb
+
 WEBHOOK_PKI_DIR ?= /tmp/k8s-webhook-server/serving-certs
 .PHONY: cert-webhook
 cert-webhook: ca ## Generates webhook private key and certificate for local development.
@@ -67,7 +112,7 @@ cert-webhook: ca ## Generates webhook private key and certificate for local deve
 	KEY=$(WEBHOOK_PKI_DIR)/tls.key \
 	CERT_SUBJECT="/CN=localhost" \
 	CERT_ALT_NAMES="subjectAltName=DNS:localhost,IP:127.0.0.1" \
-	$(MAKE) cert
+	$(MAKE) cert-leaf
 
 MINIO_PKI_DIR ?= /tmp/pki-minio
 MINIO_CERT ?= $(MINIO_PKI_DIR)/tls.crt
@@ -85,12 +130,10 @@ cert-minio: ca kubectl ## Generates minio private key and certificate for local 
 	KEY=$(MINIO_KEY) \
 	CERT_SUBJECT="/CN=minio.minio.svc.cluster.local" \
 	CERT_ALT_NAMES="subjectAltName=DNS:minio,DNS:minio.minio,DNS:minio.minio.svc.cluster.local" \
-	$(MAKE) cert
+	$(MAKE) cert-leaf
 
 	CA_SECRET_NAME=$(MINIO_CA_SECRET_NAME) \
 	CA_SECRET_NAMESPACE=$(MINIO_CA_NAMESPACE) \
-	CA_CERT=$(CA_CERT) \
-	CA_KEY=$(CA_KEY) \
 	$(MAKE) ca-secret
 
 	CERT_SECRET_NAME=$(MINIO_CERT_SECRET_NAME) \
@@ -98,3 +141,6 @@ cert-minio: ca kubectl ## Generates minio private key and certificate for local 
 	CERT=$(MINIO_CERT) \
 	KEY=$(MINIO_KEY) \
 	$(MAKE) cert-secret-tls
+
+.PHONY: cert
+cert: cert-mariadb cert-webhook cert-minio ## Generate certificates.
