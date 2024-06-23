@@ -65,6 +65,9 @@ type PodEnvironment struct {
 	MariadbName         string `env:"MARIADB_NAME,required"`
 	MariadbRootPassword string `env:"MARIADB_ROOT_PASSWORD,required"`
 	MariadbPort         string `env:"MYSQL_TCP_PORT,required"`
+	MariadbSSLCA        string `env:"MARIADB_SSL_CA"`
+	MariadbSSLCert      string `env:"MARIADB_SSL_CERT"`
+	MariadbSSLKey       string `env:"MARIADB_SSL_KEY"`
 }
 
 func (e *PodEnvironment) Port() (int32, error) {
@@ -73,6 +76,10 @@ func (e *PodEnvironment) Port() (int32, error) {
 		return 0, err
 	}
 	return int32(port), nil
+}
+
+func (e *PodEnvironment) IsTLSEnabled() bool {
+	return e.MariadbSSLCA != "" && e.MariadbSSLCert != "" && e.MariadbSSLKey != ""
 }
 
 func GetPodEnv(ctx context.Context) (*PodEnvironment, error) {
