@@ -3,9 +3,12 @@ package sql
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -23,16 +26,33 @@ var (
 )
 
 type Opts struct {
-	Username string
-	Password string
-	Host     string
-	Port     int32
-	Database string
-	Params   map[string]string
-	Timeout  *time.Duration
+	MariadbName string
+	Namespace   string
+	Username    string
+	Password    string
+	Host        string
+	Port        int32
+	Database    string
+	SSLCert     string
+	SSLKey      string
+	SSLCA       string
+	Params      map[string]string
+	Timeout     *time.Duration
 }
 
 type Opt func(*Opts)
+
+func WithMariadbName(name string) Opt {
+	return func(o *Opts) {
+		o.MariadbName = name
+	}
+}
+
+func WithNamespace(namespace string) Opt {
+	return func(o *Opts) {
+		o.Namespace = namespace
+	}
+}
 
 func WithUsername(username string) Opt {
 	return func(o *Opts) {
@@ -61,6 +81,14 @@ func WithPort(port int32) Opt {
 func WithDatabase(database string) Opt {
 	return func(o *Opts) {
 		o.Database = database
+	}
+}
+
+func WithSSL(ca, cert, key string) Opt {
+	return func(o *Opts) {
+		o.SSLCA = ca
+		o.SSLCert = cert
+		o.SSLKey = key
 	}
 }
 
@@ -143,10 +171,19 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 		return nil, fmt.Errorf("error getting port: %v", err)
 	}
 	opts := []Opt{
+		WithMariadbName(env.MariadbName),
+		WithNamespace(env.PodNamespace),
 		WithUsername("root"),
 		WithPassword(env.MariadbRootPassword),
 		WitHost("localhost"),
 		WithPort(port),
+	}
+	if env.IsTLSEnabled() {
+		opts = append(opts, WithSSL(
+			env.MariadbSSLCA,
+			env.MariadbSSLCert,
+			env.MariadbSSLKey,
+		))
 	}
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
@@ -175,8 +212,45 @@ func BuildDSN(opts Opts) (string, error) {
 	if opts.Params != nil {
 		config.Params = opts.Params
 	}
+	if opts.MariadbName != "" && opts.Namespace != "" &&
+		opts.SSLCA != "" && opts.SSLCert != "" && opts.SSLKey != "" {
 
+		configName := fmt.Sprintf("%s-%s", opts.MariadbName, opts.Namespace)
+		if err := configureTLS(configName, opts.SSLCA); err != nil {
+			return "", fmt.Errorf("error configuring TLS: %v", err)
+		}
+		config.TLSConfig = configName
+	}
 	return config.FormatDSN(), nil
+}
+
+func configureTLS(configName, caPath string) error {
+	var tlsCfg tls.Config
+	caBundle := x509.NewCertPool()
+	pemCA, err := os.ReadFile(caPath)
+	if err != nil {
+		return err
+	}
+	if ok := caBundle.AppendCertsFromPEM(pemCA); ok {
+		tlsCfg.RootCAs = caBundle
+	} else {
+		return fmt.Errorf("failed parse pem-encoded CA certificates from %s", caPath)
+	}
+
+	// TODO: require TLS certificates for root connections. Create another mariadb-operator user?
+	// certPairs := make([]tls.Certificate, 0, 1)
+	// keyPair, err := tls.LoadX509KeyPair(certPath, keyPath)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to parse pem-encoded SSL cert %s or SSL key %s: %w",
+	// 		certPath, keyPath, err)
+	// }
+	// certPairs = append(certPairs, keyPair)
+	// tlsCfg.Certificates = certPairs
+
+	if err := mysql.RegisterTLSConfig(configName, &tlsCfg); err != nil {
+		return fmt.Errorf("error registering TLS config \"%s\": %v", configName, err)
+	}
+	return nil
 }
 
 func Connect(dsn string) (*sql.DB, error) {

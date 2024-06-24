@@ -391,6 +391,23 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		},
 	}
 
+	if mariadb.IsTLSEnabled() {
+		env = append(env, []corev1.EnvVar{
+			{
+				Name:  "MARIADB_SSL_CA",
+				Value: "/etc/pki/ca/server.crt",
+			},
+			{
+				Name:  "MARIADB_SSL_CERT",
+				Value: "/etc/pki/client.crt",
+			},
+			{
+				Name:  "MARIADB_SSL_KEY",
+				Value: "/etc/pki/client.key",
+			},
+		}...)
+	}
+
 	if mariadb.IsRootPasswordEmpty() {
 		env = append(env, corev1.EnvVar{
 			Name:  "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
@@ -420,6 +437,20 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			MountPath: MariadbConfigMountPath,
 		},
 	}
+
+	if mariadb.IsTLSEnabled() {
+		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
+			{
+				Name:      PKICAVolume,
+				MountPath: MariadbPKICAMountPath,
+			},
+			{
+				Name:      PKIVolume,
+				MountPath: MariadbPKIMountPath,
+			},
+		}...)
+	}
+
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
 

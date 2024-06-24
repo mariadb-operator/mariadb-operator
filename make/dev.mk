@@ -94,14 +94,14 @@ run: lint ## Run a controller from your host.
 	$(ENV) go run cmd/controller/*.go $(RUN_FLAGS)
 
 .PHONY: run-ent
-run-ent: lint cert ## Run a enterprise controllers from your host.
+run-ent: lint cert-webhook ## Run a enterprise controllers from your host.
 	$(ENV_ENT) go run cmd/enterprise/*.go $(RUN_FLAGS)
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
-	--ca-cert-path=$(CA_DIR)/tls.crt --cert-dir=$(CERT_DIR) \
+	--ca-cert-path=$(CA_CERT) --cert-dir=$(WEBHOOK_PKI_DIR) \
 	--validate-cert=false
 .PHONY: webhook
-webhook: lint cert ## Run a webhook from your host.
+webhook: lint cert-webhook ## Run a webhook from your host.
 	go run cmd/controller/*.go webhook $(WEBHOOK_FLAGS)
 
 CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
@@ -112,7 +112,7 @@ cert-controller: lint ## Run a cert-controller from your host.
 
 BACKUP_ENV ?= AWS_ACCESS_KEY_ID=mariadb-operator AWS_SECRET_ACCESS_KEY=Minio11!
 BACKUP_COMMON_FLAGS ?= --path=backup --target-file-path=backup/0-backup-target.txt \
-	--s3 --s3-bucket=backups --s3-endpoint=minio:9000 --s3-region=us-east-1 --s3-tls --s3-ca-cert-path=/tmp/certificate-authority/tls.crt \
+	--s3 --s3-bucket=backups --s3-endpoint=minio:9000 --s3-region=us-east-1 --s3-tls --s3-ca-cert-path=/tmp/pki/ca/tls.crt \
 	--log-dev --log-level=debug --log-time-encoder=iso8601
 
 BACKUP_FLAGS ?= --max-retention=8h $(BACKUP_COMMON_FLAGS)

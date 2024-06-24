@@ -330,6 +330,40 @@ func (u *UpdateStrategy) SetDefaults() {
 	}
 }
 
+// TLS defines the PKI to be used with MariaDB.
+type TLS struct {
+	// Enabled is a flag to enable TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled"`
+	// ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB server.
+	// One of:
+	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Generic Secret containing the tls.crt to establish trust. In this case, serverSecretRef is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCASecretRef corev1.LocalObjectReference `json:"serverCASecretRef,omitempty"`
+	// ServerSecretRef is a reference to a TLS Secret used by the MariaDB server to configure TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerSecretRef corev1.LocalObjectReference `json:"serverSecretRef,omitempty"`
+	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB clients.
+	// One of:
+	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Generic Secret containing the tls.crt to establish trust. In this case, clientSecretRef is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientCASecretRef corev1.LocalObjectReference `json:"clientCASecretRef,omitempty"`
+	// ClientSecretRef is a reference to a TLS Secret used by the MariaDB clients to configure TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientSecretRef corev1.LocalObjectReference `json:"clientSecretRef,omitempty"`
+	// ClientSecretRef is a reference to a TLS Secret used by the initial MariaDB user to configure TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientUserSecretRef *corev1.LocalObjectReference `json:"clientUserSecretRef,omitempty"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -398,6 +432,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Metrics *MariadbMetrics `json:"metrics,omitempty"`
+	// TLS defines the PKI to be used with MariaDB.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *TLS `json:"tls,omitempty"`
 	// Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -606,6 +644,11 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
 func (m *MariaDB) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MariadbMetrics{}).Enabled
+}
+
+// IsTLSEnabled indicates whether the MariaDB instance has TLS enabled
+func (m *MariaDB) IsTLSEnabled() bool {
+	return ptr.Deref(m.Spec.TLS, TLS{}).Enabled
 }
 
 // IsInitialDataEnabled indicates whether the MariaDB instance has initial data enabled

@@ -427,7 +427,7 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 	if s3 == nil {
 		return nil
 	}
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLS{})
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
 
 	cmdOpts := []command.BackupOpt{
 		command.WithS3(

@@ -130,6 +130,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileConfigMap,
 		},
 		{
+			Name:      "TLS",
+			Reconcile: r.reconcileTLS,
+		},
+		{
 			Name:      "RBAC",
 			Reconcile: r.reconcileRBAC,
 		},

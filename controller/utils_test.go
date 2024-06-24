@@ -585,7 +585,7 @@ func getS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {
 			},
 			Key: "secret-access-key",
 		},
-		TLS: &mariadbv1alpha1.TLS{
+		TLS: &mariadbv1alpha1.TLSS3{
 			Enabled: true,
 			CASecretKeyRef: &corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
