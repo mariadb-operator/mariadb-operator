@@ -65,7 +65,7 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildMariadbStatefulSet(tt.mariadb, client.ObjectKeyFromObject(tt.mariadb))
+			job, err := builder.BuildMariadbStatefulSet(tt.mariadb, client.ObjectKeyFromObject(tt.mariadb), nil)
 			if err != nil {
 				t.Fatalf("unexpected error building StatefulSet: %v", err)
 			}
@@ -140,9 +140,11 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 		Name: "mariadb-obj",
 	}
 	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *mariadbv1alpha1.Metadata
+		name           string
+		mariadb        *mariadbv1alpha1.MariaDB
+		podAnnotations map[string]string
+		wantMeta       *mariadbv1alpha1.Metadata
+		wantPodMeta    *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "empty",
@@ -154,8 +156,16 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 					},
 				},
 			},
+			podAnnotations: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"app.kubernetes.io/name":     "mariadb",
+				},
 				Annotations: map[string]string{},
 			},
 		},
@@ -177,9 +187,20 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 					},
 				},
 			},
+			podAnnotations: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject":    "false",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"app.kubernetes.io/name":     "mariadb",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -199,11 +220,57 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 					},
 				},
 			},
+			podAnnotations: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{},
 				Annotations: map[string]string{
 					"k8s.mariadb.com/mariadb": "mariadb-obj",
 					"k8s.mariadb.com/galera":  "",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"app.kubernetes.io/name":     "mariadb",
+				},
+				Annotations: map[string]string{
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+				},
+			},
+		},
+		{
+			name: "Pod annotations",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"k8s.mariadb.com/pod-meta": "pod-meta",
+							},
+						},
+					},
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+					},
+				},
+			},
+			podAnnotations: map[string]string{
+				"k8s.mariadb.com/config": "config-hash",
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"app.kubernetes.io/name":     "mariadb",
+				},
+				Annotations: map[string]string{
+					"k8s.mariadb.com/pod-meta": "pod-meta",
+					"k8s.mariadb.com/config":   "config-hash",
 				},
 			},
 		},
@@ -223,10 +290,20 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"k8s.mariadb.com/pod-meta": "pod-meta",
+							},
+						},
+					},
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
 						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
 					},
 				},
+			},
+			podAnnotations: map[string]string{
+				"k8s.mariadb.com/config": "config-hash",
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
@@ -238,16 +315,31 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 					"k8s.mariadb.com/galera":  "",
 				},
 			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io":          "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"app.kubernetes.io/name":     "mariadb",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io":        "mariadb",
+					"k8s.mariadb.com/mariadb":  "mariadb-obj",
+					"k8s.mariadb.com/galera":   "",
+					"k8s.mariadb.com/pod-meta": "pod-meta",
+					"k8s.mariadb.com/config":   "config-hash",
+				},
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sts, err := builder.BuildMariadbStatefulSet(tt.mariadb, key)
+			sts, err := builder.BuildMariadbStatefulSet(tt.mariadb, key, tt.podAnnotations)
 			if err != nil {
 				t.Fatalf("unexpected error building MariaDB StatefulSet: %v", err)
 			}
 			assertObjectMeta(t, &sts.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &sts.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
 }

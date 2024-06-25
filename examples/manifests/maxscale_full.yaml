@@ -3,7 +3,7 @@ kind: MaxScale
 metadata:
   name: maxscale-galera
 spec:
-  image: mariadb/maxscale:23.08
+  image: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
     - name: registry # run 'make registry-secret' to generate a secret from ~/.docker/config.json

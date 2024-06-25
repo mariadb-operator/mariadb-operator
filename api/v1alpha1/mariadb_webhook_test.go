@@ -592,7 +592,7 @@ var _ = Describe("MariaDB webhook", func() {
 							Key: "password",
 						},
 					},
-					MyCnf: func() *string { c := "foo"; return &c }(),
+					MyCnf: ptr.To("foo"),
 					BootstrapFrom: &BootstrapFrom{
 						RestoreSource: RestoreSource{
 							BackupRef: &corev1.LocalObjectReference{
@@ -658,7 +658,7 @@ var _ = Describe("MariaDB webhook", func() {
 				func(mdb *MariaDB) {
 					mdb.Spec.PasswordSecretKeyRef.Key = "another-password"
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating Image",
@@ -691,10 +691,9 @@ var _ = Describe("MariaDB webhook", func() {
 			Entry(
 				"Updating MyCnf",
 				func(mdb *MariaDB) {
-					newCnf := "bar"
-					mdb.Spec.MyCnf = &newCnf
+					mdb.Spec.MyCnf = ptr.To("bar")
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating MyCnfConfigMapKeyRef",

@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -11,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Exporter defines a metrics exporter container.
@@ -78,9 +80,10 @@ type MariadbMetrics struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Username string `json:"username,omitempty" webhook:"inmutableinit"`
 	// PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PasswordSecretKeyRef GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	PasswordSecretKeyRef GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty"`
 }
 
 // Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB.
@@ -359,27 +362,30 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch", "urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RootEmptyPassword *bool `json:"rootEmptyPassword,omitempty" webhook:"inmutableinit"`
-	// Database is the database to be created on bootstrap.
+	// Database is the initial database to be created by the operator once MariaDB is ready.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Database *string `json:"database,omitempty" webhook:"inmutable"`
-	// Username is the username of the initial user created on bootstrap.
+	// Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Username *string `json:"username,omitempty" webhook:"inmutable"`
-	// PasswordSecretKeyRef is a Secret reference to the password of the initial user created on bootstrap.
+	// PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PasswordSecretKeyRef *GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	PasswordSecretKeyRef *GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty"`
 	// MyCnf allows to specify the my.cnf file mounted by Mariadb.
+	// Updating this field will trigger an update to the Mariadb resource.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MyCnf *string `json:"myCnf,omitempty" webhook:"inmutable"`
+	MyCnf *string `json:"myCnf,omitempty"`
 	// MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.
-	// If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field.
+	// If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.
+	// If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
+	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty"`
 	// BootstrapFrom defines a source to bootstrap from.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -531,8 +537,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 		m.Spec.Port = 3306
 	}
 	if m.Spec.MyCnf != nil && m.Spec.MyCnfConfigMapKeyRef == nil {
-		myCnfKeyRef := m.MyCnfConfigMapKeyRef()
-		m.Spec.MyCnfConfigMapKeyRef = &myCnfKeyRef
+		m.Spec.MyCnfConfigMapKeyRef = ptr.To(m.MyCnfConfigMapKeyRef())
 	}
 	if m.IsInitialDataEnabled() && m.Spec.PasswordSecretKeyRef == nil {
 		secretKeyRef := m.PasswordSecretKeyRef()
@@ -670,6 +675,43 @@ func (m *MariaDB) IsUpdating() bool {
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonUpdating
 }
 
+const (
+	// MariadbMyCnfConfigMapFieldPath is the path related to the my.cnf ConfigMap field.
+	MariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
+	// MariadbMetricsPasswordSecretFieldPath is the path related to the metrics password Secret field.
+	MariadbMetricsPasswordSecretFieldPath = ".spec.metrics.passwordSecretKeyRef"
+)
+
+// IndexerFuncForFieldPath returns an indexer function for a given field path.
+func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
+	switch fieldPath {
+	case MariadbMyCnfConfigMapFieldPath:
+		return func(obj client.Object) []string {
+			mdb, ok := obj.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if mdb.Spec.MyCnfConfigMapKeyRef != nil && mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name != "" {
+				return []string{mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case MariadbMetricsPasswordSecretFieldPath:
+		return func(obj client.Object) []string {
+			mdb, ok := obj.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if mdb.AreMetricsEnabled() && mdb.Spec.Metrics != nil && mdb.Spec.Metrics.PasswordSecretKeyRef.Name != "" {
+				return []string{mdb.Spec.Metrics.PasswordSecretKeyRef.Name}
+			}
+			return nil
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
+	}
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB
@@ -677,6 +719,15 @@ type MariaDBList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []MariaDB `json:"items"`
+}
+
+// ListItems gets a copy of the Items slice.
+func (m *MariaDBList) ListItems() []client.Object {
+	items := make([]client.Object, len(m.Items))
+	for i, item := range m.Items {
+		items[i] = item.DeepCopy()
+	}
+	return items
 }
 
 func init() {

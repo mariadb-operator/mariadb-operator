@@ -117,7 +117,7 @@ openshift-registry-add: oc jq ## Add catalog registry in OpenShift global config
 	@rm .dockerconfigjson .new_dockerconfigjson 
 
 .PHONY: openshift-registry
-openshift-registry: ## Setup registries in OpenShift global config.
+openshift-registry: openshift-ctx ## Setup registries in OpenShift global config.
 	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=https://index.docker.io/v1/
 	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=us-central1-docker.pkg.dev
 

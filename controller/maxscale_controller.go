@@ -23,8 +23,11 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	mxsconfig "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/config"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -36,6 +39,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -388,7 +392,7 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 
 	secretReq := secret.SecretRequest{
 		Owner:    mxs,
-		Metadata: req.mxs.Spec.InheritMetadata,
+		Metadata: []*mariadbv1alpha1.Metadata{req.mxs.Spec.InheritMetadata},
 		Key: types.NamespacedName{
 			Name:      secretKeyRef.Name,
 			Namespace: mxs.Namespace,
@@ -611,7 +615,7 @@ func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *ma
 	return sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == mxs.Spec.Replicas
 }
 
-type authReconcileItem struct {
+type maxscaleAuthReconcileItem struct {
 	key    types.NamespacedName
 	user   builder.UserOpts
 	grants []auth.GrantOpts
@@ -637,7 +641,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 		Namespace: mxs.Namespace,
 	}
 
-	items := []authReconcileItem{
+	items := []maxscaleAuthReconcileItem{
 		{
 			key: clientKey,
 			user: builder.UserOpts{
@@ -734,7 +738,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			Name:      *mxs.Spec.Auth.SyncUsername,
 			Namespace: mxs.Namespace,
 		}
-		items = append(items, authReconcileItem{
+		items = append(items, maxscaleAuthReconcileItem{
 			key: syncKey,
 			user: builder.UserOpts{
 				Name:                 *mxs.Spec.Auth.SyncUsername,
@@ -817,15 +821,17 @@ func monitorGrantOpts(key types.NamespacedName, mxs *mariadbv1alpha1.MaxScale) [
 }
 
 func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	result, err := r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		if err := r.reconcileAdminInPod(ctx, req.mxs, podIndex, podName, client); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling admin in Pod '%s': %v", podName, err)
-		}
-		if err := r.reconcileMetricsAdminInPod(ctx, req.mxs, client); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling metrics admin in Pod '%s': %v", podName, err)
+			return ctrl.Result{}, fmt.Errorf("error reconciling API admin in Pod '%s': %v", podName, err)
 		}
 		return ctrl.Result{}, nil
 	})
+	if !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	return r.reconcileMetricsAdmin(ctx, req)
 }
 
 func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
@@ -860,11 +866,38 @@ func (r *MaxScaleReconciler) reconcileAdminInPod(ctx context.Context, mxs *maria
 	return nil
 }
 
+func (r *MaxScaleReconciler) reconcileMetricsAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if !req.mxs.AreMetricsEnabled() {
+		return ctrl.Result{}, nil
+	}
+
+	result, err := r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+		if err := r.reconcileMetricsAdminInPod(ctx, req.mxs, client); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling metrics admin in Pod '%s': %v", podName, err)
+		}
+		return ctrl.Result{}, nil
+	})
+	if !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	if req.podClient == nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	if _, err := req.podClient.User.Get(ctx, req.mxs.Spec.Auth.MetricsUsername); err == nil {
+		return ctrl.Result{}, r.patchUser(
+			ctx,
+			req.mxs,
+			req.podClient,
+			req.mxs.Spec.Auth.MetricsUsername,
+			req.mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector,
+		)
+	}
+	return ctrl.Result{}, nil
+}
+
 func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	client *mxsclient.Client) error {
-	if !mxs.AreMetricsEnabled() {
-		return nil
-	}
 	_, err := client.User.Get(ctx, mxs.Spec.Auth.MetricsUsername)
 	if err == nil {
 		return nil
@@ -879,6 +912,17 @@ func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs
 		return fmt.Errorf("error creating metrics admin: %v", err)
 	}
 	return nil
+}
+
+func (r *MaxScaleReconciler) patchUser(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client,
+	username string, passwordKeyRef corev1.SecretKeySelector) error {
+	password, err := r.RefResolver.SecretKeyRef(ctx, passwordKeyRef, mxs.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting password: %v", err)
+	}
+	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
+
+	return mxsApi.patchUser(ctx, username, password)
 }
 
 func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -1311,8 +1355,8 @@ func (r *MaxScaleReconciler) requeueResult(ctx context.Context, mxs *mariadbv1al
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *MaxScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+func (r *MaxScaleReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MaxScale{}).
 		Owns(&mariadbv1alpha1.User{}).
 		Owns(&mariadbv1alpha1.Grant{}).
@@ -1321,6 +1365,21 @@ func (r *MaxScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&appsv1.StatefulSet{}).
-		Owns(&appsv1.Deployment{}).
-		Complete(r)
+		Owns(&appsv1.Deployment{})
+
+	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
+	if err := watcherIndexer.Watch(
+		ctx,
+		&corev1.Secret{},
+		&mariadbv1alpha1.MaxScale{},
+		&mariadbv1alpha1.MaxScaleList{},
+		mariadbv1alpha1.MaxScaleMetricsPasswordSecretFieldPath,
+		ctrlbuilder.WithPredicates(
+			predicate.PredicateWithLabel(metadata.WatchLabel),
+		),
+	); err != nil {
+		return fmt.Errorf("error watching: %v", err)
+	}
+
+	return builder.Complete(r)
 }

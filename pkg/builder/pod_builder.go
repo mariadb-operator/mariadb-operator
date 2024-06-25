@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type mariadbOpts struct {
+type mariadbPodOpts struct {
 	meta                  *mariadbv1alpha1.Metadata
 	command               []string
 	args                  []string
@@ -27,8 +27,8 @@ type mariadbOpts struct {
 	includeSelectorLabels bool
 }
 
-func newMariadbOpts(userOpts ...mariadbOpt) *mariadbOpts {
-	opts := &mariadbOpts{
+func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
+	opts := &mariadbPodOpts{
 		includeGalera:         true,
 		includePorts:          true,
 		includeProbes:         true,
@@ -40,86 +40,86 @@ func newMariadbOpts(userOpts ...mariadbOpt) *mariadbOpts {
 	return opts
 }
 
-type mariadbOpt func(opts *mariadbOpts)
+type mariadbPodOpt func(opts *mariadbPodOpts)
 
-func withMeta(meta *mariadbv1alpha1.Metadata) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withMeta(meta *mariadbv1alpha1.Metadata) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.meta = meta
 	}
 }
 
-func withCommand(command []string) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withCommand(command []string) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.command = command
 	}
 }
 
-func withArgs(args []string) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withArgs(args []string) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.args = args
 	}
 }
 
-func withRestartPolicy(restartPolicy corev1.RestartPolicy) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withRestartPolicy(restartPolicy corev1.RestartPolicy) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.restartPolicy = &restartPolicy
 	}
 }
 
-func withResources(resources *corev1.ResourceRequirements) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withResources(resources *corev1.ResourceRequirements) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.resources = resources
 	}
 }
 
-func withAffinity(affinity *mariadbv1alpha1.AffinityConfig) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withAffinity(affinity *mariadbv1alpha1.AffinityConfig) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.affinity = affinity
 	}
 }
 
-func withExtraVolumes(volumes []corev1.Volume) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withExtraVolumes(volumes []corev1.Volume) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.extraVolumes = volumes
 	}
 }
 
-func withExtraVolumeMounts(volumeMounts []corev1.VolumeMount) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withExtraVolumeMounts(volumeMounts []corev1.VolumeMount) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.extraVolumeMounts = volumeMounts
 	}
 }
 
-func withGalera(includeGalera bool) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withGalera(includeGalera bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.includeGalera = includeGalera
 	}
 }
 
-func withPorts(includePorts bool) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withPorts(includePorts bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.includePorts = includePorts
 	}
 }
 
-func withProbes(includeProbes bool) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withProbes(includeProbes bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.includeProbes = includeProbes
 	}
 }
 
-func withMariadbSelectorLabels(includeSelectorLabels bool) mariadbOpt {
-	return func(opts *mariadbOpts) {
+func withMariadbSelectorLabels(includeSelectorLabels bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
 		opts.includeSelectorLabels = includeSelectorLabels
 	}
 }
 
-func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) (*corev1.PodTemplateSpec, error) {
+func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) (*corev1.PodTemplateSpec, error) {
 	containers, err := b.mariadbContainers(mariadb, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
-	mariadbOpts := newMariadbOpts(opts...)
+	mariadbOpts := newMariadbPodOpts(opts...)
 
 	objMetaBuilder :=
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mariadb)).
@@ -228,8 +228,8 @@ func (b *Builder) maxscalePodSecurityContext(mxs *mariadbv1alpha1.MaxScale) (*co
 	return b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleUser, maxscaleGroup)
 }
 
-func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.Volume {
-	mariadbOpts := newMariadbOpts(opts...)
+func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.Volume {
+	mariadbOpts := newMariadbPodOpts(opts...)
 	volumes := []corev1.Volume{
 		mariadbConfigVolume(mariadb),
 	}

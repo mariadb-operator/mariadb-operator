@@ -85,7 +85,7 @@ jobs:
           registry: ghcr.io
 
       - name: Publish multi-arch Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           push: true
           builder: ${{ steps.buildx.outputs.name }}
@@ -131,7 +131,7 @@ jobs:
         run: make licenses
 
       - name: Publish multi-arch Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           push: true
           builder: ${{ steps.buildx.outputs.name }}
@@ -176,7 +176,7 @@ jobs:
         run: echo "GORELEASER_PREVIOUS_TAG=$(git tag -l "v*" --sort=-version:refname | head -n 2 | tail -n 1)" >> $GITHUB_ENV
 
       - name: GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: ${{ env.GORELEASER_VERSION }}
           args: ${{ needs.args.outputs.RELEASE_ARGS }}

@@ -330,24 +330,28 @@ Once you are done with these steps, you will have the context required to jump a
 
 #### Permission denied writing Galera configuration
 
+This error occurs when the user that runs the container does not have enough privileges to write in `/etc/mysql/mariadb.conf.d`:
+
 ```bash
  Error writing Galera config: open /etc/mysql/mariadb.conf.d/0-galera.cnf: permission denied
 ```
-This error is returned by the `init` container when it is unable to write the configuration file in the filesystem backed by the PVC. In particular, this has been raised by users using longhorn and rook as a storage provider, which in some cases require a specific user to write in the filesystem:
-- https://github.com/longhorn/longhorn/issues/3549
 
-The remediation is matching the user expected by the storage provider to be able to write in the PVC:
+To mitigate this, by default, the operator sets the following `securityContext` in the `MariaDB`'s `StatefulSet` :
 
 ```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: mariadb-galera
 spec:
-  podSecurityContext:
-    runAsUser: 0
-...
+  securityContext:
+    fsGroup: 999
+    runAsGroup: 999
+    runAsNonRoot: true
+    runAsUser: 999
 ```
+
+This enables the `CSIDriver` and the kubelet to recursively set the ownership ofr the `/etc/mysql/mariadb.conf.d` folder to the group `999`, which is the one expected by MariaDB. It is important to note that not all the `CSIDrivers` implementations support this feature, see the [CSIDriver documentation](https://kubernetes-csi.github.io/docs/support-fsgroup.html) for further information.
 
 #### Unauthorized error disabling bootstrap
 

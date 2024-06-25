@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -10,6 +11,8 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -53,15 +56,6 @@ func (r *MaxScaleReconciler) reconcileMetrics(ctx context.Context, req *requestM
 
 func (r *MaxScaleReconciler) reconcileExporterConfig(ctx context.Context, req *requestMaxScale) error {
 	secretKeyRef := req.mxs.MetricsConfigSecretKeyRef()
-	key := types.NamespacedName{
-		Name:      secretKeyRef.Name,
-		Namespace: req.mxs.Namespace,
-	}
-	var existingSecret corev1.Secret
-	if err := r.Get(ctx, key, &existingSecret); err == nil {
-		return nil
-	}
-
 	password, err := r.RefResolver.SecretKeyRef(ctx, req.mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector, req.mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting metrics password Secret: %v", err)
@@ -83,26 +77,41 @@ maxscale_password={{ .Password }}`)
 		return fmt.Errorf("error rendering exporter config: %v", err)
 	}
 
-	secretOpts := builder.SecretOpts{
+	secretReq := secret.SecretRequest{
+		Owner:    req.mxs,
 		Metadata: []*mariadbv1alpha1.Metadata{req.mxs.Spec.InheritMetadata},
-		Key:      key,
+		Key: types.NamespacedName{
+			Name:      secretKeyRef.Name,
+			Namespace: req.mxs.Namespace,
+		},
 		Data: map[string][]byte{
 			secretKeyRef.Key: buf.Bytes(),
 		},
 	}
-	secret, err := r.Builder.BuildSecret(secretOpts, req.mxs)
-	if err != nil {
-		return fmt.Errorf("error building exporter config Secret: %v", err)
-	}
-	return r.Create(ctx, secret)
+	return r.SecretReconciler.Reconcile(ctx, &secretReq)
 }
 
 func (r *MaxScaleReconciler) reconcileExporterDeployment(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
-	desiredDeploy, err := r.Builder.BuildMaxScaleExporterDeployment(mxs)
+	podAnnotations, err := r.getExporterPodAnnotations(ctx, mxs)
+	if err != nil {
+		return fmt.Errorf("error getting exporter Pod annotations: %v", err)
+	}
+	desiredDeploy, err := r.Builder.BuildMaxScaleExporterDeployment(mxs, podAnnotations)
 	if err != nil {
 		return fmt.Errorf("error building exporter Deployment: %v", err)
 	}
 	return r.DeploymentReconciler.Reconcile(ctx, desiredDeploy)
+}
+
+func (r *MaxScaleReconciler) getExporterPodAnnotations(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (map[string]string, error) {
+	config, err := r.RefResolver.SecretKeyRef(ctx, mxs.MetricsConfigSecretKeyRef().SecretKeySelector, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
+	}
+	podAnnotations := map[string]string{
+		metadata.ConfigAnnotation: fmt.Sprintf("%x", sha256.Sum256([]byte(config))),
+	}
+	return podAnnotations, nil
 }
 
 func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {

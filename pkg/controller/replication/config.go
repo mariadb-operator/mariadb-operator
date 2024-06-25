@@ -17,6 +17,7 @@ import (
 
 var (
 	replUser       = "repl"
+	replUserHost   = "%"
 	connectionName = "mariadb-operator"
 )
 
@@ -162,43 +163,9 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 }
 
 func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client) error {
-	if mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
-		var createUserOpts []sqlClient.CreateUserOpt
-
-		if mariadb.Spec.PasswordSecretKeyRef != nil {
-			password, err := r.refResolver.SecretKeyRef(ctx, mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
-			if err != nil {
-				return fmt.Errorf("error getting password: %v", err)
-			}
-
-			createUserOpts = append(createUserOpts, sqlClient.WithIdentifiedBy(password))
-		}
-
-		accountName := formatAccountName(*mariadb.Spec.Username, "%")
-		if err := client.CreateUser(ctx, accountName, createUserOpts...); err != nil {
-			return fmt.Errorf("error creating user: %v", err)
-		}
-
-		privileges := []string{"ALL PRIVILEGES"}
-		database := "*"
-		table := "*"
-		if err := client.Grant(ctx, privileges, database, table, accountName); err != nil {
-			return fmt.Errorf("error creating grant: %v", err)
-		}
-	}
-
-	if mariadb.Spec.Database != nil {
-		databaseOpts := sqlClient.DatabaseOpts{
-			CharacterSet: "utf8",
-			Collate:      "utf8_general_ci",
-		}
-		if err := client.CreateDatabase(ctx, *mariadb.Spec.Database, databaseOpts); err != nil {
-			return fmt.Errorf("error creating database: %v", err)
-		}
-	}
-
 	opts := userSqlOpts{
 		username:   replUser,
+		host:       replUserHost,
 		privileges: []string{"REPLICATION REPLICA"},
 	}
 	if err := r.reconcileUserSql(ctx, mariadb, client, &opts); err != nil {
@@ -209,6 +176,7 @@ func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *ma
 
 type userSqlOpts struct {
 	username   string
+	host       string
 	privileges []string
 }
 
@@ -232,8 +200,8 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		return fmt.Errorf("error reconciling replication passsword: %v", err)
 	}
 
-	accountName := formatAccountName(opts.username, "%")
-	exists, err := client.UserExists(ctx, replUser)
+	accountName := formatAccountName(opts.username, opts.host)
+	exists, err := client.UserExists(ctx, opts.username, opts.host)
 	if err != nil {
 		return fmt.Errorf("error checking if replication user exists: %v", err)
 	}

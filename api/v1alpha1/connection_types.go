@@ -2,12 +2,14 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -66,7 +68,7 @@ type ConnectionSpec struct {
 	// MariaDBRef is a reference to the MariaDB to connect to. Either MariaDBRef or MaxScaleRef must be provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
+	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty"`
 	// MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -74,11 +76,12 @@ type ConnectionSpec struct {
 	// Username to use for configuring the Connection.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Username string `json:"username" webhook:"inmutable"`
+	Username string `json:"username"`
 	// PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
+	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef"`
 	// Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -86,7 +89,7 @@ type ConnectionSpec struct {
 	// Database to use when configuring the Connection.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Database *string `json:"database,omitempty" webhook:"inmutable"`
+	Database *string `json:"database,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
@@ -166,6 +169,28 @@ func (c *Connection) SecretKey() string {
 	return defaultConnSecretKey
 }
 
+// ConnectionPasswordSecretFieldPath is the path related to the password Secret field.
+const ConnectionPasswordSecretFieldPath = ".spec.passwordSecretKeyRef.name"
+
+// IndexerFuncForFieldPath returns an indexer function for a given field path.
+func (c *Connection) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
+	switch fieldPath {
+	case ConnectionPasswordSecretFieldPath:
+		return func(obj client.Object) []string {
+			connection, ok := obj.(*Connection)
+			if !ok {
+				return nil
+			}
+			if connection.Spec.PasswordSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{connection.Spec.PasswordSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
+	}
+}
+
 //+kubebuilder:object:root=true
 
 // ConnectionList contains a list of Connection
@@ -173,6 +198,15 @@ type ConnectionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Connection `json:"items"`
+}
+
+// ListItems gets a copy of the Items slice.
+func (m *ConnectionList) ListItems() []client.Object {
+	items := make([]client.Object, len(m.Items))
+	for i, item := range m.Items {
+		items[i] = item.DeepCopy()
+	}
+	return items
 }
 
 func init() {

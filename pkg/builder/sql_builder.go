@@ -78,3 +78,27 @@ func (b *Builder) BuildGrant(key types.NamespacedName, owner metav1.Object, opts
 	}
 	return grant, nil
 }
+
+type DatabaseOpts struct {
+	Name       string
+	Metadata   *mariadbv1alpha1.Metadata
+	MariaDBRef mariadbv1alpha1.MariaDBRef
+}
+
+func (b *Builder) BuildDatabase(key types.NamespacedName, owner metav1.Object, opts DatabaseOpts) (*mariadbv1alpha1.Database, error) {
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(opts.Metadata).
+			Build()
+	database := &mariadbv1alpha1.Database{
+		ObjectMeta: objMeta,
+		Spec: mariadbv1alpha1.DatabaseSpec{
+			MariaDBRef: opts.MariaDBRef,
+			Name:       opts.Name,
+		},
+	}
+	if err := controllerutil.SetControllerReference(owner, database, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Database: %v", err)
+	}
+	return database, nil
+}

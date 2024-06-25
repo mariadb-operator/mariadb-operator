@@ -6,11 +6,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -45,10 +47,11 @@ var (
 		Name:      "password",
 		Namespace: testNamespace,
 	}
-	testPwdSecretKey = "passsword"
-	testUser         = "test"
-	testDatabase     = "test"
-	testConnKey      = types.NamespacedName{
+	testPwdSecretKey        = "passsword"
+	testPwdMetricsSecretKey = "metrics"
+	testUser                = "test"
+	testDatabase            = "test"
+	testConnKey             = types.NamespacedName{
 		Name:      "conn",
 		Namespace: testNamespace,
 	}
@@ -76,9 +79,13 @@ func testCreateInitialData(ctx context.Context, k8sClient client.Client, env env
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testPwdKey.Name,
 			Namespace: testPwdKey.Namespace,
+			Labels: map[string]string{
+				metadata.WatchLabel: "",
+			},
 		},
 		Data: map[string][]byte{
-			testPwdSecretKey: []byte("MariaDB11!"),
+			testPwdSecretKey:        []byte("MariaDB11!"),
+			testPwdMetricsSecretKey: []byte("MariaDB11!"),
 		},
 	}
 	Expect(k8sClient.Create(ctx, &password)).To(Succeed())
@@ -174,7 +181,7 @@ max_allowed_packet=256M`),
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
-						Key: testPwdSecretKey,
+						Key: testPwdMetricsSecretKey,
 					},
 				},
 			},
@@ -189,7 +196,7 @@ max_allowed_packet=256M`),
 	expectMariadbReady(ctx, k8sClient, testMdbkey)
 }
 
-func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, newCPUreq string) {
+func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
 	key := client.ObjectKeyFromObject(mdb)
 
 	By("Updating MariaDB compute resources")
@@ -197,11 +204,15 @@ func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB, newCPUreq string) {
 		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 			return false
 		}
-		mdb.Spec.Resources = &corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				"cpu": resource.MustParse(newCPUreq),
-			},
+		if mdb.Spec.PodTemplate.PodMetadata == nil {
+			mdb.Spec.PodTemplate.PodMetadata = &mariadbv1alpha1.Metadata{}
+
+			if mdb.Spec.PodTemplate.PodMetadata.Annotations == nil {
+				mdb.Spec.PodTemplate.PodMetadata.Annotations = map[string]string{}
+			}
 		}
+		mdb.Spec.PodTemplate.PodMetadata.Annotations["k8s.mariadb.com/updated-at"] = time.Now().String()
+
 		return k8sClient.Update(testCtx, mdb) == nil
 	}, testTimeout, testInterval).Should(BeTrue())
 
@@ -359,6 +370,12 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 
 	By("Expecting primary to be set eventually")
 	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(testCtx, mdbKey, mdb); err != nil {
+			return false
+		}
+		if err := k8sClient.Get(testCtx, mxsKey, mxs); err != nil {
+			return false
+		}
 		g.Expect(mdb.Status.CurrentPrimary).ToNot(BeNil())
 		g.Expect(mdb.Status.CurrentPrimaryPodIndex).ToNot(BeNil())
 		g.Expect(mxs.Status.PrimaryServer).NotTo(BeNil())
@@ -469,22 +486,83 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	}
 }
 
+func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKeySelector) {
+	key := types.NamespacedName{
+		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
+		Namespace: testNamespace,
+	}
+
+	conn := mariadbv1alpha1.Connection{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.ConnectionSpec{
+			ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
+				SecretName: ptr.To(key.Name),
+			},
+			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+				ObjectReference: corev1.ObjectReference{
+					Name: testMdbkey.Name,
+				},
+				WaitForIt: true,
+			},
+			Username:             username,
+			PasswordSecretKeyRef: passwordSecretKeyRef,
+			Database:             &testDatabase,
+		},
+	}
+	By("Creating Connection")
+	Expect(k8sClient.Create(testCtx, &conn)).To(Succeed())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
+	})
+
+	By("Expecting Connection to be ready eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, &conn); err != nil {
+			return false
+		}
+		return conn.IsReady()
+	}, testTimeout, testInterval).Should(BeTrue())
+}
+
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
 	mdb.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 5,
+		InitialDelaySeconds: 10,
 	}
 	mdb.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
 		InitialDelaySeconds: 30,
+	}
+	mdb.Spec.Resources = &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("300m"),
+			"memory": resource.MustParse("256Mi"),
+		},
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse("300m"),
+			"memory": resource.MustParse("256Mi"),
+		},
 	}
 	return mdb
 }
 
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
 	mxs.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 5,
+		InitialDelaySeconds: 10,
 	}
 	mxs.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
 		InitialDelaySeconds: 30,
+	}
+	mxs.Spec.Resources = &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("200m"),
+			"memory": resource.MustParse("128Mi"),
+		},
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse("200m"),
+			"memory": resource.MustParse("128Mi"),
+		},
 	}
 	return mxs
 }
@@ -575,13 +653,17 @@ func getBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backu
 }
 
 func expectMariadbReady(ctx context.Context, k8sClient client.Client, key types.NamespacedName) {
-	var mdb mariadbv1alpha1.MariaDB
 	By("Expecting MariaDB to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
-			return false
-		}
+	expectMariadbFn(ctx, k8sClient, key, func(mdb *mariadbv1alpha1.MariaDB) bool {
 		return mdb.IsReady()
+	})
+}
+
+func expectMariadbFn(ctx context.Context, k8sClient client.Client, key types.NamespacedName, fn func(mdb *mariadbv1alpha1.MariaDB) bool) {
+	var mdb mariadbv1alpha1.MariaDB
+	Eventually(func(g Gomega) bool {
+		g.Expect(k8sClient.Get(ctx, key, &mdb)).To(Succeed())
+		return fn(&mdb)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 

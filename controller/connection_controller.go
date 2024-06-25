@@ -13,15 +13,19 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	clientsql "github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -33,11 +37,11 @@ var (
 // ConnectionReconciler reconciles a Connection object
 type ConnectionReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	Builder         *builder.Builder
-	RefResolver     *refresolver.RefResolver
-	ConditionReady  *condition.Ready
-	RequeueInterval time.Duration
+	Scheme           *runtime.Scheme
+	SecretReconciler *secret.SecretReconciler
+	RefResolver      *refresolver.RefResolver
+	ConditionReady   *condition.Ready
+	RequeueInterval  time.Duration
 }
 
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=connections,verbs=get;list;watch;create;update;patch;delete
@@ -193,69 +197,31 @@ func (r *ConnectionReconciler) checkHealth(ctx context.Context, conn *mariadbv1a
 
 func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariadbv1alpha1.Connection,
 	refs *mariadbv1alpha1.ConnectionRefs) error {
-	key := types.NamespacedName{
-		Name:      conn.SecretName(),
-		Namespace: conn.Namespace,
-	}
-	password, err := r.RefResolver.SecretKeyRef(ctx, conn.Spec.PasswordSecretKeyRef, conn.Namespace)
+	sqlOpts, err := r.getSqlOpts(ctx, conn)
 	if err != nil {
-		return fmt.Errorf("error getting password for connection DSN: %v", err)
+		return fmt.Errorf("error getting SQL options: %v", err)
 	}
-
-	mdbOpts := clientsql.Opts{
-		Username: conn.Spec.Username,
-		Password: password,
-		Host:     conn.Spec.Host,
-		Port:     conn.Spec.Port,
-		Params:   conn.Spec.Params,
-	}
-	if conn.Spec.Database != nil {
-		mdbOpts.Database = *conn.Spec.Database
-	}
-
-	var existingSecret corev1.Secret
-	if err := r.Get(ctx, key, &existingSecret); err == nil {
-		if err := r.healthCheck(ctx, conn, mdbOpts); err != nil {
-			log.FromContext(ctx).Info("Error checking connection health", "err", err)
-			return errConnHealthCheck
-		}
-		return nil
-	}
-
-	dsn, err := clientsql.BuildDSN(mdbOpts)
+	dsn, err := clientsql.BuildDSN(sqlOpts)
 	if err != nil {
 		return fmt.Errorf("error building DSN: %v", err)
 	}
 
-	secretOpts := builder.SecretOpts{
-		Key: key,
-		Data: map[string][]byte{
-			conn.SecretKey(): []byte(dsn),
-		},
+	data := map[string][]byte{
+		conn.SecretKey(): []byte(dsn),
 	}
-
-	var meta []*mariadbv1alpha1.Metadata
-	if refs.MariaDB != nil && refs.MariaDB.Spec.InheritMetadata != nil {
-		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
-	}
-	if conn.Spec.SecretTemplate.Metadata != nil {
-		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
-	}
-	secretOpts.Metadata = meta
-
 	if formatString := conn.Spec.SecretTemplate.Format; formatString != nil {
 		tmpl := template.Must(template.New("").Parse(*formatString))
 		builder := &strings.Builder{}
 
 		err := tmpl.Execute(builder, map[string]string{
-			"Username": mdbOpts.Username,
-			"Password": mdbOpts.Password,
-			"Host":     mdbOpts.Host,
-			"Port":     strconv.Itoa(int(mdbOpts.Port)),
-			"Database": mdbOpts.Database,
+			"Username": sqlOpts.Username,
+			"Password": sqlOpts.Password,
+			"Host":     sqlOpts.Host,
+			"Port":     strconv.Itoa(int(sqlOpts.Port)),
+			"Database": sqlOpts.Database,
 			"Params": func() string {
 				v := url.Values{}
-				for key, value := range mdbOpts.Params {
+				for key, value := range sqlOpts.Params {
 					v.Add(key, value)
 				}
 
@@ -269,33 +235,68 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 		if err != nil {
 			return fmt.Errorf("error parsing DSN template: %v", err)
 		}
-		secretOpts.Data[conn.SecretKey()] = []byte(builder.String())
+		data[conn.SecretKey()] = []byte(builder.String())
 	}
 	if usernameKey := conn.Spec.SecretTemplate.UsernameKey; usernameKey != nil {
-		secretOpts.Data[*usernameKey] = []byte(mdbOpts.Username)
+		data[*usernameKey] = []byte(sqlOpts.Username)
 	}
 	if passwordKey := conn.Spec.SecretTemplate.PasswordKey; passwordKey != nil {
-		secretOpts.Data[*passwordKey] = []byte(mdbOpts.Password)
+		data[*passwordKey] = []byte(sqlOpts.Password)
 	}
 	if hostKey := conn.Spec.SecretTemplate.HostKey; hostKey != nil {
-		secretOpts.Data[*hostKey] = []byte(mdbOpts.Host)
+		data[*hostKey] = []byte(sqlOpts.Host)
 	}
 	if portKey := conn.Spec.SecretTemplate.PortKey; portKey != nil {
-		secretOpts.Data[*portKey] = []byte(strconv.Itoa(int(mdbOpts.Port)))
+		data[*portKey] = []byte(strconv.Itoa(int(sqlOpts.Port)))
 	}
-	if databaseKey := conn.Spec.SecretTemplate.DatabaseKey; databaseKey != nil && mdbOpts.Database != "" {
-		secretOpts.Data[*databaseKey] = []byte(mdbOpts.Database)
-	}
-
-	secret, err := r.Builder.BuildSecret(secretOpts, conn)
-	if err != nil {
-		return fmt.Errorf("error building Secret: %v", err)
+	if databaseKey := conn.Spec.SecretTemplate.DatabaseKey; databaseKey != nil && sqlOpts.Database != "" {
+		data[*databaseKey] = []byte(sqlOpts.Database)
 	}
 
-	if err := r.Create(ctx, secret); err != nil {
-		return fmt.Errorf("error creating Secret: %v", err)
+	var meta []*mariadbv1alpha1.Metadata
+	if refs.MariaDB != nil && refs.MariaDB.Spec.InheritMetadata != nil {
+		meta = append(meta, refs.MariaDB.Spec.InheritMetadata)
+	}
+	if conn.Spec.SecretTemplate.Metadata != nil {
+		meta = append(meta, conn.Spec.SecretTemplate.Metadata)
+	}
+
+	req := secret.SecretRequest{
+		Owner:    conn,
+		Metadata: meta,
+		Key: types.NamespacedName{
+			Name:      conn.SecretName(),
+			Namespace: conn.Namespace,
+		},
+		Data: data,
+	}
+	if err := r.SecretReconciler.Reconcile(ctx, &req); err != nil {
+		return fmt.Errorf("error reconciling Secret: %v", err)
+	}
+
+	if err := r.healthCheck(ctx, conn, sqlOpts); err != nil {
+		log.FromContext(ctx).Info("Error checking connection health", "err", err)
+		return errConnHealthCheck
 	}
 	return nil
+}
+
+func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1alpha1.Connection) (clientsql.Opts, error) {
+	password, err := r.RefResolver.SecretKeyRef(ctx, conn.Spec.PasswordSecretKeyRef, conn.Namespace)
+	if err != nil {
+		return clientsql.Opts{}, fmt.Errorf("error getting password for connection DSN: %v", err)
+	}
+	sqlOpts := clientsql.Opts{
+		Username: conn.Spec.Username,
+		Password: password,
+		Host:     conn.Spec.Host,
+		Port:     conn.Spec.Port,
+		Params:   conn.Spec.Params,
+	}
+	if conn.Spec.Database != nil {
+		sqlOpts.Database = *conn.Spec.Database
+	}
+	return sqlOpts, nil
 }
 
 func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1alpha1.Connection, clientOpts clientsql.Opts) error {
@@ -361,9 +362,24 @@ func (r *ConnectionReconciler) patch(ctx context.Context, conn *mariadbv1alpha1.
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ConnectionReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+func (r *ConnectionReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.Connection{}).
-		Owns(&corev1.Secret{}).
-		Complete(r)
+		Owns(&corev1.Secret{})
+
+	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
+	if err := watcherIndexer.Watch(
+		ctx,
+		&corev1.Secret{},
+		&mariadbv1alpha1.Connection{},
+		&mariadbv1alpha1.ConnectionList{},
+		mariadbv1alpha1.ConnectionPasswordSecretFieldPath,
+		ctrlbuilder.WithPredicates(
+			predicate.PredicateWithLabel(metadata.WatchLabel),
+		),
+	); err != nil {
+		return fmt.Errorf("error watching: %v", err)
+	}
+
+	return builder.Complete(r)
 }

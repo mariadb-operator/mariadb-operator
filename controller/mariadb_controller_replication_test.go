@@ -42,15 +42,13 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					},
 				},
 				Database: &testDatabase,
-				MyCnf: func() *string {
-					cfg := `[mariadb]
-							bind-address=*
-							default_storage_engine=InnoDB
-							binlog_format=row
-							innodb_autoinc_lock_mode=2
-							max_allowed_packet=256M`
-					return &cfg
-				}(),
+				MyCnf: ptr.To(`[mariadb]
+				bind-address=*
+				default_storage_engine=InnoDB
+				binlog_format=row
+				innodb_autoinc_lock_mode=2
+				max_allowed_packet=256M`,
+				),
 				Replication: &mariadbv1alpha1.Replication{
 					ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
 						Primary: &mariadbv1alpha1.PrimaryReplication{
@@ -290,7 +288,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 
 	It("should update", func() {
 		By("Updating MariaDB")
-		testMariadbUpdate(mdb, "500m")
+		testMariadbUpdate(mdb)
 	})
 
 	It("should resize PVCs", func() {

@@ -1,4 +1,4 @@
-name: Manifests
+name: Helm release
 
 on:
   push:
@@ -33,5 +33,28 @@ jobs:
             dist/crds/crds.yaml
             dist/manifests/manifests.yaml
             dist/manifests/manifests.min.yaml
+        env:
+          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
+
+  index:
+    name: Helm index
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch helm index workflow
+        run: gh workflow run helm-index.yml --repo mariadb-operator/mariadb-operator
+        env:
+          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
+
+  olm:
+    name: Helm OLM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Dispatch helm OLM workflow
+        run: gh workflow run bundle.yaml --repo mariadb-operator/mariadb-operator-helm -f version=$(make helm-chart-version)
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"

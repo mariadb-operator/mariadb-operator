@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MaxScaleServer defines a MariaDB server to forward traffic to.
@@ -332,17 +333,19 @@ type MaxScaleAuth struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MetricsUsername string `json:"metricsUsername,omitempty" webhook:"inmutableinit"`
 	// MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	MetricsPasswordSecretKeyRef GeneratedSecretKeyRef `json:"metricsPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	MetricsPasswordSecretKeyRef GeneratedSecretKeyRef `json:"metricsPasswordSecretKeyRef,omitempty"`
 	// ClientUsername is the user to connect to MaxScale. It is defaulted if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientUsername string `json:"clientUsername,omitempty" webhook:"inmutableinit"`
 	// ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientPasswordSecretKeyRef GeneratedSecretKeyRef `json:"clientPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	ClientPasswordSecretKeyRef GeneratedSecretKeyRef `json:"clientPasswordSecretKeyRef,omitempty"`
 	// ClientMaxConnections defines the maximum number of connections that the client can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -354,9 +357,10 @@ type MaxScaleAuth struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerUsername string `json:"serverUsername,omitempty" webhook:"inmutableinit"`
 	// ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServerPasswordSecretKeyRef GeneratedSecretKeyRef `json:"serverPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	ServerPasswordSecretKeyRef GeneratedSecretKeyRef `json:"serverPasswordSecretKeyRef,omitempty"`
 	// ServerMaxConnections defines the maximum number of connections that the server can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -368,9 +372,10 @@ type MaxScaleAuth struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MonitorUsername string `json:"monitorUsername,omitempty" webhook:"inmutableinit"`
 	// MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	MonitorPasswordSecretKeyRef GeneratedSecretKeyRef `json:"monitorPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	MonitorPasswordSecretKeyRef GeneratedSecretKeyRef `json:"monitorPasswordSecretKeyRef,omitempty"`
 	// MonitorMaxConnections defines the maximum number of connections that the monitor can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -382,9 +387,10 @@ type MaxScaleAuth struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SyncUsername *string `json:"syncUsername,omitempty" webhook:"inmutableinit"`
 	// SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SyncPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"syncPasswordSecretKeyRef,omitempty" webhook:"inmutableinit"`
+	SyncPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"syncPasswordSecretKeyRef,omitempty"`
 	// SyncMaxConnections defines the maximum number of connections that the sync can establish.
 	// If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.
 	// It defaults to 30 times the number of MaxScale replicas.
@@ -858,6 +864,28 @@ func (m *MaxScale) defaultConnections() int32 {
 	return 30
 }
 
+// MaxScaleMetricsPasswordSecretFieldPath is the path related to the metrics password Secret field.
+const MaxScaleMetricsPasswordSecretFieldPath = ".spec.auth.metricsPasswordSecretKeyRef.name"
+
+// IndexerFuncForFieldPath returns an indexer function for a given field path.
+func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
+	switch fieldPath {
+	case MaxScaleMetricsPasswordSecretFieldPath:
+		return func(obj client.Object) []string {
+			maxscale, ok := obj.(*MaxScale)
+			if !ok {
+				return nil
+			}
+			if maxscale.AreMetricsEnabled() && maxscale.Spec.Auth.MetricsPasswordSecretKeyRef.Name != "" {
+				return []string{maxscale.Spec.Auth.MetricsPasswordSecretKeyRef.Name}
+			}
+			return nil
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
+	}
+}
+
 //+kubebuilder:object:root=true
 
 // MaxScaleList contains a list of MaxScale
@@ -865,6 +893,15 @@ type MaxScaleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []MaxScale `json:"items"`
+}
+
+// ListItems gets a copy of the Items slice.
+func (m *MaxScaleList) ListItems() []client.Object {
+	items := make([]client.Object, len(m.Items))
+	for i, item := range m.Items {
+		items[i] = item.DeepCopy()
+	}
+	return items
 }
 
 func init() {

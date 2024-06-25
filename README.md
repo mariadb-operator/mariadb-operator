@@ -6,8 +6,7 @@
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/ci.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml/badge.svg" alt="Release"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml/badge.svg" alt="Helm"></a>
-<a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/manifests.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/manifests.yml/badge.svg" alt="Manifests"></a>
-<a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/olm-helm.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/olm-helm.yml/badge.svg" alt="OLM Helm"></a>
+<a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm-release.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm-release.yml/badge.svg" alt="Helm release"></a>
 </p>
 
 <p align="center">
@@ -27,11 +26,6 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Automated [primary failover](./docs/HA.md).
 - Automated [Galera cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
 - Enhanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB.
-  - Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
-  - Connection-based routing: Load balance connections between multiple servers.
-  - Automated primary failover based on MariaDB internals.
-  - Replay pending transactions when a server goes down.
-  - Support for Galera and Replication.
 - Flexible [storage](./docs/STORAGE.md) configuration. [Volume expansion](./docs/STORAGE.md#volume-resize).
 - Take and restore [backups](./docs/BACKUP.md). 
 - Scheduled [backups](./docs/BACKUP.md/#scheduling). 
@@ -39,11 +33,13 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Backup retention policy](./docs/BACKUP.md#retention-policy).
 - [Target recovery time](./docs/BACKUP.md#target-recovery-time): infer which backup to restore.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
+- [Rolling updates](./docs/UPDATES.md): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod.
+- [my.cnf configuration](./docs/CONFIGURATION.md#mycnf). Automatically trigger [rolling updates](./docs/UPDATES.md) when my.cnf changes.
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter).
 - Manage [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
 - Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
-- Validation webhooks to provide CRD inmutability.
+- Validation webhooks to provide CRD immutability.
 - Additional printer columns to report the current CRD status.
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 - [GitOps](#gitops) friendly.
@@ -57,7 +53,7 @@ Please, refer to the [documentation](./docs/), the [API reference](./docs/API_RE
 This installation flavour provides the minimum resources required to run `mariadb-operator` in your cluster.
 
 ```bash
-helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
+helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 ## Recommended installation
@@ -67,7 +63,7 @@ The recommended installation includes the following features:
 - **Webhook certificate renewal**: Automatic webhook certificate issuance and renewal using  [cert-manager](https://cert-manager.io/docs/installation/). By default, a static self-signed certificate is generated.
 
 ```bash
-helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
+helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator \
   --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
 ```

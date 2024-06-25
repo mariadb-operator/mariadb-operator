@@ -9,19 +9,13 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	"k8s.io/apimachinery/pkg/fields"
+	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
+	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-const (
-	usernameField = ".spec.username"
 )
 
 // GrantReconciler reconciles a Grant object
@@ -67,60 +61,27 @@ func (r *GrantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *GrantReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if err := r.createIndex(mgr); err != nil {
-		return fmt.Errorf("error creating index: %v", err)
-	}
+func (r *GrantReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(&mariadbv1alpha1.Grant{})
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&mariadbv1alpha1.Grant{}).
-		Watches(
-			&mariadbv1alpha1.User{},
-			handler.EnqueueRequestsFromMapFunc(r.mapUserToRequests),
-			builder.WithPredicates(predicate.Funcs{
-				CreateFunc: func(ce event.CreateEvent) bool {
-					return true
-				},
-			}),
-		).
-		Complete(r)
-}
-
-func (r *GrantReconciler) createIndex(mgr ctrl.Manager) error {
-	indexFn := func(rawObj client.Object) []string {
-		grant := rawObj.(*mariadbv1alpha1.Grant)
-		if grant.Spec.Username == "" {
-			return nil
-		}
-		return []string{grant.Spec.Username}
-	}
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &mariadbv1alpha1.Grant{}, usernameField, indexFn); err != nil {
-		return fmt.Errorf("error indexing '%s' field in Grant: %v", usernameField, err)
-	}
-	return nil
-}
-
-func (r *GrantReconciler) mapUserToRequests(ctx context.Context, user client.Object) []reconcile.Request {
-	grantsToReconcile := &mariadbv1alpha1.GrantList{}
-	listOpts := &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector(usernameField, user.GetName()),
-		Namespace:     user.GetNamespace(),
-	}
-
-	if err := r.List(context.Background(), grantsToReconcile, listOpts); err != nil {
-		return []reconcile.Request{}
-	}
-
-	requests := make([]reconcile.Request, len(grantsToReconcile.Items))
-	for i, item := range grantsToReconcile.Items {
-		requests[i] = reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      item.GetName(),
-				Namespace: item.GetNamespace(),
+	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
+	if err := watcherIndexer.Watch(
+		ctx,
+		&mariadbv1alpha1.User{},
+		&mariadbv1alpha1.Grant{},
+		&mariadbv1alpha1.GrantList{},
+		mariadbv1alpha1.GrantUsernameFieldPath,
+		ctrlbuilder.WithPredicates(predicate.Funcs{
+			CreateFunc: func(ce event.CreateEvent) bool {
+				return true
 			},
-		}
+		}),
+	); err != nil {
+		return fmt.Errorf("error watching: %v", err)
 	}
-	return requests
+
+	return builder.Complete(r)
 }
 
 type wrappedGrantReconciler struct {

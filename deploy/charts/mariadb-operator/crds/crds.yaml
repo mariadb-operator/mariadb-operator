@@ -3793,8 +3793,9 @@ spec:
                 description: Params to be used in the Connection.
                 type: object
               passwordSecretKeyRef:
-                description: PasswordSecretKeyRef is a reference to the password to
-                  use for configuring the Connection.
+                description: |-
+                  PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.
+                  If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -4021,7 +4022,7 @@ spec:
                 type: string
               collate:
                 default: utf8_general_ci
-                description: CharacterSet to use in the Database.
+                description: Collate to use in the Database.
                 type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
@@ -8229,7 +8230,8 @@ spec:
                     type: string
                 type: object
               database:
-                description: Database is the database to be created on bootstrap.
+                description: Database is the initial database to be created by the
+                  operator once MariaDB is ready.
                 type: string
               env:
                 description: Env represents the environment variables to be injected
@@ -12226,9 +12228,9 @@ spec:
                         format: int32
                         type: integer
                       clientPasswordSecretKeyRef:
-                        description: ClientPasswordSecretKeyRef is Secret key reference
-                          to the password to connect to MaxScale. It is defaulted
-                          if not provided.
+                        description: |-
+                          ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
+                          If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                         properties:
                           generate:
                             default: false
@@ -12268,9 +12270,9 @@ spec:
                           It only supports MariaDBs specified via spec.mariaDbRef.
                         type: boolean
                       metricsPasswordSecretKeyRef:
-                        description: MetricsPasswordSecretKeyRef is Secret key reference
-                          to the metrics password to call the admib REST API. It is
-                          defaulted if metrics are enabled.
+                        description: |-
+                          MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
+                          If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                         properties:
                           generate:
                             default: false
@@ -12307,9 +12309,9 @@ spec:
                         format: int32
                         type: integer
                       monitorPasswordSecretKeyRef:
-                        description: MonitorPasswordSecretKeyRef is Secret key reference
-                          to the password used by MaxScale monitor to connect to MariaDB
-                          server. It is defaulted if not provided.
+                        description: |-
+                          MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
+                          If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                         properties:
                           generate:
                             default: false
@@ -12347,9 +12349,9 @@ spec:
                         format: int32
                         type: integer
                       serverPasswordSecretKeyRef:
-                        description: ServerPasswordSecretKeyRef is Secret key reference
-                          to the password used by MaxScale to connect to MariaDB server.
-                          It is defaulted if not provided.
+                        description: |-
+                          ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+                          If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                         properties:
                           generate:
                             default: false
@@ -12386,9 +12388,9 @@ spec:
                         format: int32
                         type: integer
                       syncPasswordSecretKeyRef:
-                        description: SyncPasswordSecretKeyRef is Secret key reference
-                          to the password used by MaxScale config to connect to MariaDB
-                          server. It is defaulted when HA is enabled.
+                        description: |-
+                          SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
+                          If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                         properties:
                           generate:
                             default: false
@@ -12784,7 +12786,7 @@ spec:
                   image:
                     description: |-
                       Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.
-                      Only MaxScale official images are supported.
+                      Only MariaDB official images are supported.
                     type: string
                   imagePullPolicy:
                     description: ImagePullPolicy is the image pull policy. One of
@@ -23802,8 +23804,9 @@ spec:
                         type: array
                     type: object
                   passwordSecretKeyRef:
-                    description: PasswordSecretKeyRef is a reference to the password
-                      of the monitoring user used by the exporter.
+                    description: |-
+                      PasswordSecretKeyRef is a reference to the password of the monitoring user used by the exporter.
+                      If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                     properties:
                       generate:
                         default: false
@@ -23852,12 +23855,15 @@ spec:
                     type: string
                 type: object
               myCnf:
-                description: MyCnf allows to specify the my.cnf file mounted by Mariadb.
+                description: |-
+                  MyCnf allows to specify the my.cnf file mounted by Mariadb.
+                  Updating this field will trigger an update to the Mariadb resource.
                 type: string
               myCnfConfigMapKeyRef:
                 description: |-
                   MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.
-                  If not provided, it will be defaulted with reference to a ConfigMap with the contents of the MyCnf field.
+                  If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.
+                  If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated.
                 properties:
                   key:
                     description: The key to select.
@@ -23882,8 +23888,9 @@ spec:
                 description: NodeSelector to be used in the Pod.
                 type: object
               passwordSecretKeyRef:
-                description: PasswordSecretKeyRef is a reference to the password of
-                  the initial user provided via a Secret.
+                description: |-
+                  PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user.
+                  If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                 properties:
                   generate:
                     default: false
@@ -24394,6 +24401,8 @@ spec:
                 type: integer
               replication:
                 description: Replication configures high availability via replication.
+                  This feature is still in alpha, use Galera if you are looking for
+                  a more production-ready HA.
                 properties:
                   enabled:
                     description: Enabled is a flag to enable Replication.
@@ -24543,7 +24552,8 @@ spec:
                 type: object
               rootEmptyPassword:
                 description: RootEmptyPassword indicates if the root password should
-                  be empty.
+                  be empty. Don't use this feature in production, it is only intended
+                  for development and test environments.
                 type: boolean
               rootPasswordSecretKeyRef:
                 description: RootPasswordSecretKeyRef is a reference to a Secret key
@@ -26121,12 +26131,11 @@ spec:
                   type: object
                 type: array
               updateStrategy:
-                description: PodDisruptionBudget defines the update strategy for the
-                  StatefulSet object.
+                description: UpdateStrategy defines how a MariaDB resource is updated.
                 properties:
                   rollingUpdate:
-                    description: RollingUpdate is used to communicate parameters when
-                      Type is RollingUpdateStatefulSetStrategyType.
+                    description: RollingUpdate defines parameters for the RollingUpdate
+                      type.
                     properties:
                       maxUnavailable:
                         anyOf:
@@ -26151,14 +26160,20 @@ spec:
                         type: integer
                     type: object
                   type:
-                    description: |-
-                      Type indicates the type of the StatefulSetUpdateStrategy.
-                      Default is RollingUpdate.
+                    default: ReplicasFirstPrimaryLast
+                    description: Type defines the type of updates. One of `ReplicasFirstPrimaryLast`,
+                      `RollingUpdate` or `OnDelete`. If not defined, it defaults to
+                      `ReplicasFirstPrimaryLast`.
+                    enum:
+                    - ReplicasFirstPrimaryLast
+                    - RollingUpdate
+                    - OnDelete
                     type: string
                 type: object
               username:
-                description: Username is the username of the user to be created on
-                  bootstrap.
+                description: Username is the initial username to be created by the
+                  operator once MariaDB is ready. It has all privileges on the initial
+                  database.
                 type: string
               volumeMounts:
                 description: VolumeMounts to be used in the Container.
@@ -29049,9 +29064,9 @@ spec:
                     format: int32
                     type: integer
                   clientPasswordSecretKeyRef:
-                    description: ClientPasswordSecretKeyRef is Secret key reference
-                      to the password to connect to MaxScale. It is defaulted if not
-                      provided.
+                    description: |-
+                      ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.
+                      If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                     properties:
                       generate:
                         default: false
@@ -29091,9 +29106,9 @@ spec:
                       It only supports MariaDBs specified via spec.mariaDbRef.
                     type: boolean
                   metricsPasswordSecretKeyRef:
-                    description: MetricsPasswordSecretKeyRef is Secret key reference
-                      to the metrics password to call the admib REST API. It is defaulted
-                      if metrics are enabled.
+                    description: |-
+                      MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.
+                      If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                     properties:
                       generate:
                         default: false
@@ -29130,9 +29145,9 @@ spec:
                     format: int32
                     type: integer
                   monitorPasswordSecretKeyRef:
-                    description: MonitorPasswordSecretKeyRef is Secret key reference
-                      to the password used by MaxScale monitor to connect to MariaDB
-                      server. It is defaulted if not provided.
+                    description: |-
+                      MonitorPasswordSecretKeyRef is Secret key reference to the password used by MaxScale monitor to connect to MariaDB server. It is defaulted if not provided.
+                      If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                     properties:
                       generate:
                         default: false
@@ -29169,9 +29184,9 @@ spec:
                     format: int32
                     type: integer
                   serverPasswordSecretKeyRef:
-                    description: ServerPasswordSecretKeyRef is Secret key reference
-                      to the password used by MaxScale to connect to MariaDB server.
-                      It is defaulted if not provided.
+                    description: |-
+                      ServerPasswordSecretKeyRef is Secret key reference to the password used by MaxScale to connect to MariaDB server. It is defaulted if not provided.
+                      If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                     properties:
                       generate:
                         default: false
@@ -29208,9 +29223,9 @@ spec:
                     format: int32
                     type: integer
                   syncPasswordSecretKeyRef:
-                    description: SyncPasswordSecretKeyRef is Secret key reference
-                      to the password used by MaxScale config to connect to MariaDB
-                      server. It is defaulted when HA is enabled.
+                    description: |-
+                      SyncPasswordSecretKeyRef is Secret key reference to the password used by MaxScale config to connect to MariaDB server. It is defaulted when HA is enabled.
+                      If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                     properties:
                       generate:
                         default: false
@@ -45018,6 +45033,7 @@ spec:
                 description: |-
                   PasswordSecretKeyRef is a reference to the password to be used by the User.
                   If not provided, the account will be locked and the password will expire.
+                  If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a

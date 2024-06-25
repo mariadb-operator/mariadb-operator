@@ -6,13 +6,11 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
-    generate: true
 
   username: mariadb
   passwordSecretKeyRef:
     name: mariadb
     key: password
-    generate: true
   database: mariadb
   
   storage:
@@ -57,9 +55,8 @@ spec:
       waitPoint: AfterSync
       gtid: CurrentPos
       replPasswordSecretKeyRef:
-        name: mariadb-replication
+        name: mariadb
         key: password
-        generate: true
       connectionTimeout: 10s
       connectionRetries: 10
       syncTimeout: 10s
@@ -108,7 +105,7 @@ spec:
     maxUnavailable: 33%
 
   updateStrategy:
-    type: RollingUpdate
+    type: ReplicasFirstPrimaryLast
 
   myCnf: |
     [mariadb]
@@ -116,6 +113,7 @@ spec:
     default_storage_engine=InnoDB
     binlog_format=row
     innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=1024M
     max_allowed_packet=256M
 
   resources:

@@ -10,7 +10,7 @@ spec:
 
   username: mariadb
   passwordSecretKeyRef:
-    name: mariadb
+    name: mariadb-password
     key: password
     generate: true
   database: mariadb
@@ -22,27 +22,6 @@ spec:
 
   galera:
     enabled: true
-
-  # imagePullSecrets:
-  #   - name: mariadb-customer-token 
-
-  # bootstrapFrom:
-  #   s3:
-  #     bucket: backups
-  #     prefix: mariadb
-  #     endpoint: minio.minio.svc.cluster.local:9000
-  #     accessKeyIdSecretKeyRef:
-  #       name: minio
-  #       key: access-key-id
-  #     secretAccessKeySecretKeyRef:
-  #       name: minio
-  #       key: secret-access-key
-  #     tls:
-  #       enabled: true
-  #       caSecretKeyRef:
-  #         name: minio-ca
-  #         key: ca.crt
-  #   targetRecoveryTime: 2023-12-19T09:00:00Z
 
   service:
     type: ClusterIP
@@ -63,12 +42,16 @@ spec:
     secretTemplate:
       key: dsn
 
+  updateStrategy:
+    type: ReplicasFirstPrimaryLast
+
   myCnf: |
     [mariadb]
     bind-address=*
     default_storage_engine=InnoDB
     binlog_format=row
     innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=1024M
     max_allowed_packet=256M
 
   metrics:

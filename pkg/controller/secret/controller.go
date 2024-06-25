@@ -82,24 +82,14 @@ func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req PasswordRe
 
 type SecretRequest struct {
 	Owner    metav1.Object
-	Metadata *mariadbv1alpha1.Metadata
+	Metadata []*mariadbv1alpha1.Metadata
 	Key      types.NamespacedName
 	Data     map[string][]byte
 }
 
 func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) error {
-	var existingSecret corev1.Secret
-	err := r.Get(ctx, req.Key, &existingSecret)
-
-	if err == nil {
-		return nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error reconciling Secret: %v", err)
-	}
-
 	secretOpts := builder.SecretOpts{
-		Metadata: []*mariadbv1alpha1.Metadata{req.Metadata},
+		Metadata: req.Metadata,
 		Key:      req.Key,
 		Data:     req.Data,
 	}
@@ -108,5 +98,15 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) er
 		return fmt.Errorf("error building Secret: %v", err)
 	}
 
-	return r.Create(ctx, secret)
+	var existingSecret corev1.Secret
+	if err := r.Get(ctx, req.Key, &existingSecret); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error reconciling Secret: %v", err)
+		}
+		return r.Create(ctx, secret)
+	}
+
+	patch := client.MergeFrom(existingSecret.DeepCopy())
+	existingSecret.Data = secret.Data
+	return r.Patch(ctx, &existingSecret, patch)
 }

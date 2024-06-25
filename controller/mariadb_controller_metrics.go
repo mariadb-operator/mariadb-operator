@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"text/template"
@@ -13,6 +14,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -117,15 +119,6 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) reconcileExporterConfig(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	secretKeyRef := mariadb.MetricsConfigSecretKeyRef()
-	key := types.NamespacedName{
-		Name:      secretKeyRef.Name,
-		Namespace: mariadb.Namespace,
-	}
-	var existingSecret corev1.Secret
-	if err := r.Get(ctx, key, &existingSecret); err == nil {
-		return nil
-	}
-
 	password, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.Metrics.PasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting metrics password Secret: %v", err)
@@ -147,26 +140,41 @@ password={{ .Password }}`)
 		return fmt.Errorf("error rendering exporter config: %v", err)
 	}
 
-	secretOpts := builder.SecretOpts{
+	secretReq := secret.SecretRequest{
+		Owner:    mariadb,
 		Metadata: []*mariadbv1alpha1.Metadata{mariadb.Spec.InheritMetadata},
-		Key:      key,
+		Key: types.NamespacedName{
+			Name:      secretKeyRef.Name,
+			Namespace: mariadb.Namespace,
+		},
 		Data: map[string][]byte{
 			secretKeyRef.Key: buf.Bytes(),
 		},
 	}
-	secret, err := r.Builder.BuildSecret(secretOpts, mariadb)
-	if err != nil {
-		return fmt.Errorf("error building exporter config Secret: %v", err)
-	}
-	return r.Create(ctx, secret)
+	return r.SecretReconciler.Reconcile(ctx, &secretReq)
 }
 
 func (r *MariaDBReconciler) reconcileExporterDeployment(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	desiredDeploy, err := r.Builder.BuildExporterDeployment(mariadb)
+	podAnnotations, err := r.getExporterPodAnnotations(ctx, mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting exporter Pod annotations: %v", err)
+	}
+	desiredDeploy, err := r.Builder.BuildExporterDeployment(mariadb, podAnnotations)
 	if err != nil {
 		return fmt.Errorf("error building exporter Deployment: %v", err)
 	}
 	return r.DeploymentReconciler.Reconcile(ctx, desiredDeploy)
+}
+
+func (r *MariaDBReconciler) getExporterPodAnnotations(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
+	config, err := r.RefResolver.SecretKeyRef(ctx, mdb.MetricsConfigSecretKeyRef().SecretKeySelector, mdb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
+	}
+	podAnnotations := map[string]string{
+		metadata.ConfigAnnotation: fmt.Sprintf("%x", sha256.Sum256([]byte(config))),
+	}
+	return podAnnotations, nil
 }
 
 func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

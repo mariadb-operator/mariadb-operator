@@ -50,8 +50,8 @@ var (
 	}
 )
 
-func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) ([]corev1.Container, error) {
-	mariadbOpts := newMariadbOpts(opts...)
+func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]corev1.Container, error) {
+	mariadbOpts := newMariadbPodOpts(opts...)
 	mariadbContainer, err := b.buildContainer(mariadb.Spec.Image, mariadb.Spec.ImagePullPolicy, &mariadb.Spec.ContainerTemplate, opts...)
 	if err != nil {
 		return nil, err
@@ -226,8 +226,8 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 	return container, nil
 }
 
-func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) ([]corev1.Container, error) {
-	mariadbOpts := newMariadbOpts(opts...)
+func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]corev1.Container, error) {
+	mariadbOpts := newMariadbPodOpts(opts...)
 	initContainers := []corev1.Container{}
 	if mariadb.Spec.InitContainers != nil {
 		for index, container := range mariadb.Spec.InitContainers {
@@ -303,8 +303,8 @@ func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1
 }
 
 func (b *Builder) buildContainer(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1alpha1.ContainerTemplate,
-	opts ...mariadbOpt) (*corev1.Container, error) {
-	mariadbOpts := newMariadbOpts(opts...)
+	opts ...mariadbPodOpt) (*corev1.Container, error) {
+	mariadbOpts := newMariadbPodOpts(opts...)
 	sc, err := b.buildContainerSecurityContext(tpl.SecurityContext)
 	if err != nil {
 		return nil, err
@@ -405,29 +405,6 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		})
 	}
 
-	if !mariadb.Replication().Enabled {
-		if mariadb.Spec.Database != nil {
-			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_DATABASE",
-				Value: *mariadb.Spec.Database,
-			})
-		}
-		if mariadb.Spec.Username != nil {
-			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_USER",
-				Value: *mariadb.Spec.Username,
-			})
-		}
-		if mariadb.Spec.PasswordSecretKeyRef != nil {
-			env = append(env, corev1.EnvVar{
-				Name: "MARIADB_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
-				},
-			})
-		}
-	}
-
 	if mariadb.Spec.Env != nil {
 		env = append(env, mariadb.Spec.Env...)
 	}
@@ -435,8 +412,8 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 	return env
 }
 
-func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbOpt) []corev1.VolumeMount {
-	mariadbOpts := newMariadbOpts(opts...)
+func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.VolumeMount {
+	mariadbOpts := newMariadbPodOpts(opts...)
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      ConfigVolume,

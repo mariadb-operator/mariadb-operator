@@ -251,7 +251,7 @@ var rootCmd = &cobra.Command{
 			MaxScaleReconciler:    mxsReconciler,
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
-		}).SetupWithManager(mgr); err != nil {
+		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
 		}
@@ -278,7 +278,7 @@ var rootCmd = &cobra.Command{
 
 			RequeueInterval: requeueMaxScale,
 			LogMaxScale:     logMaxScale,
-		}).SetupWithManager(mgr); err != nil {
+		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)
 		}
@@ -311,11 +311,11 @@ var rootCmd = &cobra.Command{
 			sql.WithRequeueInterval(requeueSql),
 			sql.WithLogSql(logSql),
 		}
-		if err = controller.NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(mgr); err != nil {
+		if err = controller.NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
-		if err = controller.NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(mgr); err != nil {
+		if err = controller.NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Grant")
 			os.Exit(1)
 		}
@@ -325,13 +325,13 @@ var rootCmd = &cobra.Command{
 		}
 
 		if err = (&controller.ConnectionReconciler{
-			Client:          client,
-			Scheme:          scheme,
-			Builder:         builder,
-			RefResolver:     refResolver,
-			ConditionReady:  conditionReady,
-			RequeueInterval: requeueConnection,
-		}).SetupWithManager(mgr); err != nil {
+			Client:           client,
+			Scheme:           scheme,
+			SecretReconciler: secretReconciler,
+			RefResolver:      refResolver,
+			ConditionReady:   conditionReady,
+			RequeueInterval:  requeueConnection,
+		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Connection")
 			os.Exit(1)
 		}

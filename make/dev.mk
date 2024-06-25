@@ -32,11 +32,15 @@ ENV_ENT ?= \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
 	ENTERPRISE=true
 
+TEST_ARGS ?= --timeout 20m -procs 1
+
 TEST_ENV ?= $(ENV) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-TEST ?= $(TEST_ENV) $(GINKGO) -p --timeout 15m --label-filter='!enterprise' --coverprofile=cover.out 
+TEST ?= $(TEST_ENV) $(GINKGO) -p --coverprofile=cover.out --label-filter='!enterprise' $(TEST_ARGS)
 
 TEST_ENV_ENT ?= $(ENV_ENT) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-TEST_ENT ?= $(TEST_ENV_ENT) $(GINKGO) -p --timeout 15m --coverprofile=cover.out 
+TEST_ENT ?= $(TEST_ENV_ENT) $(GINKGO) -p --coverprofile=cover.out $(TEST_ARGS)
+
+GOCOVERDIR ?= .
 
 ##@ Test
 

@@ -53,7 +53,7 @@ jobs:
           password: ${{ secrets.GAR_JSON_KEY }}
 
       - name: Publish bundle image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           push: true
           context: .

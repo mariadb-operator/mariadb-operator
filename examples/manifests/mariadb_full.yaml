@@ -6,16 +6,14 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
-    generate: true
 
   username: mariadb
   passwordSecretKeyRef:
     name: mariadb
     key: password
-    generate: true
   database: mariadb
 
-  image: mariadb:10.11.7
+  image: docker-registry1.mariadb.com/library/mariadb:10.11.8
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
     - name: registry # run 'make registry-secret' to generate a secret from ~/.docker/config.json
@@ -51,7 +49,12 @@ spec:
     default_storage_engine=InnoDB
     binlog_format=row
     innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=1024M
     max_allowed_packet=256M
+
+  myCnfConfigMapKeyRef:
+    name: mariadb
+    key: my.cnf
 
   resources:
     requests:
@@ -63,10 +66,6 @@ spec:
   env:
     - name: TZ
       value: SYSTEM
-
-  envFrom:
-    - configMapRef:
-        name: mariadb
 
   podSecurityContext:
     runAsUser: 0
@@ -98,7 +97,7 @@ spec:
     maxUnavailable: 50%
 
   updateStrategy:
-    type: RollingUpdate
+    type: ReplicasFirstPrimaryLast
 
   service:
     type: LoadBalancer

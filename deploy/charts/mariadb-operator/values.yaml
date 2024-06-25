@@ -2,7 +2,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: ghcr.io/mariadb-operator/mariadb-operator
+  repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
   pullPolicy: IfNotPresent
   # -- Image tag to use. By default the chart appVersion is used
   tag: ""
@@ -89,7 +89,7 @@ affinity: {}
 
 webhook:
   image:
-    repository: ghcr.io/mariadb-operator/mariadb-operator
+    repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
     tag: ""
@@ -176,7 +176,7 @@ certController:
   # -- Specifies whether the cert-controller should be created.
   enabled: true
   image:
-    repository: ghcr.io/mariadb-operator/mariadb-operator
+    repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
     tag: ""

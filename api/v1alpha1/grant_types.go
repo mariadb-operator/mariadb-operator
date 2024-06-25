@@ -5,6 +5,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GrantSpec defines the desired state of Grant
@@ -116,6 +118,28 @@ func (g *Grant) HostnameOrDefault() string {
 	return "%"
 }
 
+// GrantUsernameFieldPath is the path related to the username field.
+const GrantUsernameFieldPath = ".spec.username"
+
+// IndexerFuncForFieldPath returns an indexer function for a given field path.
+func (g *Grant) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
+	switch fieldPath {
+	case GrantUsernameFieldPath:
+		return func(obj client.Object) []string {
+			grant, ok := obj.(*Grant)
+			if !ok {
+				return nil
+			}
+			if grant.Spec.Username != "" {
+				return []string{grant.Spec.Username}
+			}
+			return nil
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
+	}
+}
+
 //+kubebuilder:object:root=true
 
 // GrantList contains a list of Grant
@@ -123,6 +147,15 @@ type GrantList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Grant `json:"items"`
+}
+
+// ListItems gets a copy of the Items slice.
+func (m *GrantList) ListItems() []ctrlclient.Object {
+	items := make([]ctrlclient.Object, len(m.Items))
+	for i, item := range m.Items {
+		items[i] = item.DeepCopy()
+	}
+	return items
 }
 
 func init() {

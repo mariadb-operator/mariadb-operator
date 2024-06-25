@@ -1,0 +1,27 @@
+name: Helm index
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Update index.yaml
+        run: ./hack/helm_index.sh
+        env:
+          BRANCH: gh-pages
+          BASE_URL: https://helm.mariadb.com/mariadb-operator/
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

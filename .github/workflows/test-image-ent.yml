@@ -1,0 +1,49 @@
+name: Test enterprise image
+
+on:
+  workflow_dispatch:
+    inputs:
+      mariadb_image:
+        description: "MariaDB image used to run the tests"
+        required: true
+        type: string
+
+jobs:
+  test:
+    name: "Test \"${{ inputs.mariadb_image }}\" enterprise image"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Login DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login GAR
+        uses: docker/login-action@v3
+        with:
+          registry: us-central1-docker.pkg.dev
+          username: _json_key
+          password: ${{ secrets.GAR_JSON_KEY }}
+
+      - name: Cluster
+        run: |
+          make cluster
+          make registry
+          make install-ent
+          make install-minio
+          make net
+
+      - name: Test
+        run: make test-ent
+        env:
+          RELATED_IMAGE_MARIADB_ENT: "${{ inputs.mariadb_image }}"

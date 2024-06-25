@@ -2,6 +2,14 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mariadb
+  labels:
+    k8s.mariadb.com/watch: ""
 data:
-  UMASK: "0660"
-  UMASK_DIR: "0750"
+  my.cnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=1024M
+    max_allowed_packet=256M

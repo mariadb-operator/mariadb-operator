@@ -220,7 +220,7 @@ var _ = BeforeSuite(func() {
 		MaxScaleReconciler:    mxsReconciler,
 		ReplicationReconciler: replicationReconciler,
 		GaleraReconciler:      galeraReconciler,
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&MaxScaleReconciler{
@@ -246,7 +246,7 @@ var _ = BeforeSuite(func() {
 
 		RequeueInterval: 5 * time.Second,
 		LogMaxScale:     false,
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&BackupReconciler{
@@ -275,21 +275,21 @@ var _ = BeforeSuite(func() {
 		sql.WithRequeueInterval(30 * time.Second),
 		sql.WithLogSql(false),
 	}
-	err = NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
+	err = NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
-	err = NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
+	err = NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 	err = NewDatabaseReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ConnectionReconciler{
-		Client:          client,
-		Scheme:          scheme,
-		Builder:         builder,
-		RefResolver:     refResolver,
-		ConditionReady:  conditionReady,
-		RequeueInterval: 5 * time.Second,
-	}).SetupWithManager(k8sManager)
+		Client:           client,
+		Scheme:           scheme,
+		SecretReconciler: secretReconciler,
+		RefResolver:      refResolver,
+		ConditionReady:   conditionReady,
+		RequeueInterval:  5 * time.Second,
+	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&SqlJobReconciler{

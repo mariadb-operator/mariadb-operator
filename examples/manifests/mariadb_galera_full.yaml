@@ -6,13 +6,11 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
-    generate: true
 
   username: mariadb
   passwordSecretKeyRef:
     name: mariadb
     key: password
-    generate: true
   database: mariadb
 
   storage:
@@ -60,7 +58,7 @@ spec:
     providerOptions:
       gcs.fc_limit: '64'
     agent:
-      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.28
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
       port: 5555
       kubernetesAuth:
         enabled: true
@@ -74,7 +72,7 @@ spec:
       podRecoveryTimeout: 3m
       podSyncTimeout: 3m
     initContainer:
-      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.28
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
     initJob:
       metadata:
         labels:
@@ -140,7 +138,7 @@ spec:
     maxUnavailable: 33%
 
   updateStrategy:
-    type: RollingUpdate
+    type: ReplicasFirstPrimaryLast
 
   myCnf: |
     [mariadb]

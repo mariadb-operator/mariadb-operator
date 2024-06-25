@@ -54,7 +54,7 @@ jobs:
           cache: true
 
       - name: GolangCI Lint
-        uses: golangci/golangci-lint-action@v5
+        uses: golangci/golangci-lint-action@v6
         with:
           version: ${{ env.GOLANGCI_VERSION }}
 
@@ -102,7 +102,7 @@ jobs:
 
       - name: Cluster
         run: |
-          make cluster
+          make cluster-ha
           make install
           make install-minio
           make net
