@@ -33,7 +33,7 @@ git checkout $BRANCH
 echo "Updating index.yaml."
 yq e -i '
   .entries.mariadb-operator[] |= 
-  . * {"urls": [env(BASE_URL) + "/releases/download/helm-chart-" + .version + "/mariadb-operator-" + .version + ".tgz"]}
+  . * {"urls": [env(BASE_URL) + "releases/download/helm-chart-" + .version + "/mariadb-operator-" + .version + ".tgz"]}
 ' index.yaml
 CURRENT_TIMESTAMP=$(date --utc +%Y-%m-%dT%H:%M:%SZ)
 yq e -i ".generated = \"$CURRENT_TIMESTAMP\"" index.yaml
