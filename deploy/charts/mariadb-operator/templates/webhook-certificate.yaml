@@ -37,6 +37,7 @@ spec:
   renewBefore: {{ . | quote }}
   {{- end }}
   secretName: {{ include "mariadb-operator.fullname" . }}-webhook-cert
+  {{- if or (.Values.webhook.cert.secretLabels) (.Values.webhook.cert.secretAnnotations) }}
   secretTemplate:
     {{- with .Values.webhook.cert.secretLabels }}
     labels:
@@ -46,4 +47,5 @@ spec:
     annotations:
       {{- toYaml . | nindent 6 }}
     {{- end }}
+  {{- end }}
 {{ end }}
