@@ -36,6 +36,9 @@ spec:
   {{- with .Values.webhook.cert.certManager.renewBefore }}
   renewBefore: {{ . | quote }}
   {{- end }}
+  {{- with .Values.webhook.cert.certManager.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ . }}
+  {{- end }}
   secretName: {{ include "mariadb-operator.fullname" . }}-webhook-cert
   {{- if or (.Values.webhook.cert.secretLabels) (.Values.webhook.cert.secretAnnotations) }}
   secretTemplate:
