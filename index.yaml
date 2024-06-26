@@ -22,7 +22,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.29.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.29.0/mariadb-operator-0.29.0.tgz
       version: 0.29.0
     - apiVersion: v2
       appVersion: v0.0.28
@@ -45,7 +45,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.28.1
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.28.1/mariadb-operator-0.28.1.tgz
       version: 0.28.1
     - apiVersion: v2
       appVersion: v0.0.28
@@ -68,7 +68,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.28.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.28.0/mariadb-operator-0.28.0.tgz
       version: 0.28.0
     - apiVersion: v2
       appVersion: v0.0.27
@@ -91,7 +91,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.27.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.27.0/mariadb-operator-0.27.0.tgz
       version: 0.27.0
     - apiVersion: v2
       appVersion: v0.0.26
@@ -114,7 +114,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.26.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.26.0/mariadb-operator-0.26.0.tgz
       version: 0.26.0
     - apiVersion: v2
       appVersion: v0.0.25
@@ -137,7 +137,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.25.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.25.0/mariadb-operator-0.25.0.tgz
       version: 0.25.0
     - apiVersion: v2
       appVersion: v0.0.24
@@ -158,7 +158,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.24.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.24.0/mariadb-operator-0.24.0.tgz
       version: 0.24.0
     - apiVersion: v2
       appVersion: v0.0.23
@@ -179,7 +179,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.23.1
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.23.1/mariadb-operator-0.23.1.tgz
       version: 0.23.1
     - apiVersion: v2
       appVersion: v0.0.23
@@ -200,7 +200,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.23.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.23.0/mariadb-operator-0.23.0.tgz
       version: 0.23.0
     - apiVersion: v2
       appVersion: v0.0.22
@@ -221,7 +221,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.22.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.22.0/mariadb-operator-0.22.0.tgz
       version: 0.22.0
     - apiVersion: v2
       appVersion: v0.0.21
@@ -242,7 +242,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.21.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.21.0/mariadb-operator-0.21.0.tgz
       version: 0.21.0
     - apiVersion: v2
       appVersion: v0.0.20
@@ -263,7 +263,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.20.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.20.0/mariadb-operator-0.20.0.tgz
       version: 0.20.0
     - apiVersion: v2
       appVersion: v0.0.19
@@ -284,7 +284,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.19.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.19.0/mariadb-operator-0.19.0.tgz
       version: 0.19.0
     - apiVersion: v2
       appVersion: v0.0.18
@@ -305,7 +305,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.18.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.18.0/mariadb-operator-0.18.0.tgz
       version: 0.18.0
     - apiVersion: v2
       appVersion: v0.0.17
@@ -326,7 +326,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.17.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.17.0/mariadb-operator-0.17.0.tgz
       version: 0.17.0
     - apiVersion: v2
       appVersion: v0.0.16
@@ -347,7 +347,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.16.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.16.0/mariadb-operator-0.16.0.tgz
       version: 0.16.0
     - apiVersion: v2
       appVersion: v0.0.15
@@ -368,7 +368,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.15.1
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.15.1/mariadb-operator-0.15.1.tgz
       version: 0.15.1
     - apiVersion: v2
       appVersion: v0.0.15
@@ -389,7 +389,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.15.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.15.0/mariadb-operator-0.15.0.tgz
       version: 0.15.0
     - apiVersion: v2
       appVersion: v0.0.14
@@ -410,7 +410,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.14.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.14.0/mariadb-operator-0.14.0.tgz
       version: 0.14.0
     - apiVersion: v2
       appVersion: v0.0.13
@@ -431,7 +431,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.13.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.13.0/mariadb-operator-0.13.0.tgz
       version: 0.13.0
     - apiVersion: v2
       appVersion: v0.0.12
@@ -452,7 +452,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.12.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.12.0/mariadb-operator-0.12.0.tgz
       version: 0.12.0
     - apiVersion: v2
       appVersion: v0.0.11
@@ -473,7 +473,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.11.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.11.0/mariadb-operator-0.11.0.tgz
       version: 0.11.0
     - apiVersion: v2
       appVersion: v0.0.10
@@ -494,7 +494,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.10.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.10.0/mariadb-operator-0.10.0.tgz
       version: 0.10.0
     - apiVersion: v2
       appVersion: v0.0.9
@@ -515,7 +515,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.9.1
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.9.1/mariadb-operator-0.9.1.tgz
       version: 0.9.1
     - apiVersion: v2
       appVersion: v0.0.9
@@ -536,7 +536,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.9.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.9.0/mariadb-operator-0.9.0.tgz
       version: 0.9.0
     - apiVersion: v2
       appVersion: v0.0.8
@@ -557,7 +557,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.8.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.8.0/mariadb-operator-0.8.0.tgz
       version: 0.8.0
     - apiVersion: v2
       appVersion: v0.0.7
@@ -578,7 +578,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.7.1
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.7.1/mariadb-operator-0.7.1.tgz
       version: 0.7.1
     - apiVersion: v2
       appVersion: v0.0.7
@@ -599,7 +599,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.7.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.7.0/mariadb-operator-0.7.0.tgz
       version: 0.7.0
     - apiVersion: v2
       appVersion: v0.0.6
@@ -620,7 +620,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.6.7
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.6.7/mariadb-operator-0.6.7.tgz
       version: 0.6.7
     - apiVersion: v2
       appVersion: v0.0.6
@@ -641,7 +641,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.6.6
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.6.6/mariadb-operator-0.6.6.tgz
       version: 0.6.6
     - apiVersion: v2
       appVersion: v0.0.6
@@ -662,7 +662,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.6.5
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.6.5/mariadb-operator-0.6.5.tgz
       version: 0.6.5
     - apiVersion: v2
       appVersion: v0.0.6
@@ -683,7 +683,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.6.4
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.6.4/mariadb-operator-0.6.4.tgz
       version: 0.6.4
     - apiVersion: v2
       appVersion: v0.0.6
@@ -704,7 +704,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.6.3
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.6.3/mariadb-operator-0.6.3.tgz
       version: 0.6.3
     - apiVersion: v2
       appVersion: v0.0.6
@@ -723,7 +723,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.6.2
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.6.2/mariadb-operator-0.6.2.tgz
       version: 0.6.2
     - apiVersion: v2
       appVersion: v0.0.6
@@ -742,7 +742,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.6.1
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.6.1/mariadb-operator-0.6.1.tgz
       version: 0.6.1
     - apiVersion: v2
       appVersion: v0.0.6
@@ -761,7 +761,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.6.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.6.0/mariadb-operator-0.6.0.tgz
       version: 0.6.0
     - apiVersion: v2
       appVersion: v0.0.6
@@ -780,7 +780,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.5.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.5.0/mariadb-operator-0.5.0.tgz
       version: 0.5.0
     - apiVersion: v2
       appVersion: v0.0.6
@@ -799,7 +799,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.4.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.4.0/mariadb-operator-0.4.0.tgz
       version: 0.4.0
     - apiVersion: v2
       appVersion: v0.0.5
@@ -818,7 +818,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.3.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.3.0/mariadb-operator-0.3.0.tgz
       version: 0.3.0
     - apiVersion: v2
       appVersion: v0.0.4
@@ -837,7 +837,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.2.2
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.2.2/mariadb-operator-0.2.2.tgz
       version: 0.2.2
     - apiVersion: v2
       appVersion: v0.0.4
@@ -856,7 +856,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.2.1
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.2.1/mariadb-operator-0.2.1.tgz
       version: 0.2.1
     - apiVersion: v2
       appVersion: v0.0.4
@@ -869,6 +869,6 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/0.2.0
+        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.2.0/mariadb-operator-0.2.0.tgz
       version: 0.2.0
-generated: "2024-06-07T10:08:19Z"
+generated: "2024-06-26T12:53:55Z"
