@@ -47,6 +47,6 @@ spec:
     {{- end }}
     {{- with .Values.webhook.cert.secretAnnotations }}
     annotations:
-      {{- toYaml . | nindent 4 }}
+      {{- toYaml . | nindent 6 }}
     {{- end }}
 {{ end }}
