@@ -40,3 +40,6 @@ cover.*
 
 # Operator pipelines
 /operator-pipelines
+
+# MariaDB Docker
+/mariadb-docker
