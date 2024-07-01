@@ -12,7 +12,10 @@ code: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and Dee
 
 .PHONY: embed-entrypoint
 embed-entrypoint: ## Get entrypoint from mariadb-docker to be embeded in operator binary. See: https://github.com/MariaDB/mariadb-docker/blob/master/docker-entrypoint.sh.
-	curl -sSLo $(MARIADB_DOCKER_PATH) "$(MARIADB_DOCKER_URL)"
+	@MARIADB_DOCKER_REPO=$(MARIADB_DOCKER_REPO) \
+	MARIADB_DOCKER_COMMIT_HASH=$(MARIADB_DOCKER_COMMIT_HASH) \
+	MARIADB_ENTRYPOINT_PATH=$(MARIADB_ENTRYPOINT_PATH) \
+	./hack/get_entrypoint.sh
 
 ##@ Generate - Helm
 
