@@ -58,7 +58,7 @@ spec:
     providerOptions:
       gcs.fc_limit: '64'
     agent:
-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30
       port: 5555
       kubernetesAuth:
         enabled: true
@@ -72,7 +72,7 @@ spec:
       podRecoveryTimeout: 5m
       podSyncTimeout: 5m
     initContainer:
-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30
     initJob:
       metadata:
         labels:
