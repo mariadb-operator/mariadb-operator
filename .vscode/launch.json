@@ -27,6 +27,7 @@
         "MARIADB_GALERA_INIT_IMAGE": "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
         "MARIADB_GALERA_AGENT_IMAGE": "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
         "MARIADB_GALERA_LIB_PATH": "/usr/lib/galera/libgalera_smm.so",
+        "MARIADB_ENTRYPOINT_VERSION": "10.11",
       }
     },
     {
@@ -52,6 +53,7 @@
         "MARIADB_GALERA_INIT_IMAGE": "mariadb/mariadb-operator-enterprise:v0.0.26",
         "MARIADB_GALERA_AGENT_IMAGE": "mariadb/mariadb-operator-enterprise:v0.0.26",
         "MARIADB_GALERA_LIB_PATH": "/usr/lib/galera/libgalera_enterprise_smm.so",
+        "MARIADB_ENTRYPOINT_VERSION": "10.11",
       }
     },
     {
