@@ -53,6 +53,7 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 	$(YQ) e -i '.spec.template.spec.containers[0].env[5].value = "$(MARIADB_GALERA_INIT_IMAGE_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[6].value = "$(MARIADB_GALERA_AGENT_IMAGE_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[7].value = "$(MARIADB_GALERA_LIB_PATH_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[8].value = "$(MARIADB_ENTRYPOINT_VERSION)"' config/manager/manager.yaml
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(YQ) e -i '.metadata.annotations.containerImage = (.spec.relatedImages[] | select(.name == "mariadb-operator-enterprise").image)' bundle/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
 	$(MAKE) bundle-validate

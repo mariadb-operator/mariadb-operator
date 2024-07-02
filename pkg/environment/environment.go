@@ -21,6 +21,7 @@ type OperatorEnv struct {
 	MariadbGaleraInitImage       string `env:"MARIADB_GALERA_INIT_IMAGE,required"`
 	MariadbGaleraAgentImage      string `env:"MARIADB_GALERA_AGENT_IMAGE,required"`
 	MariadbGaleraLibPath         string `env:"MARIADB_GALERA_LIB_PATH,required"`
+	MariadbEntrypointVersion     string `env:"MARIADB_ENTRYPOINT_VERSION,required"`
 	WatchNamespace               string `env:"WATCH_NAMESPACE"`
 }
 

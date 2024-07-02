@@ -259,10 +259,16 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		var pdb policyv1.PodDisruptionBudget
 		Expect(k8sClient.Get(testCtx, key, &pdb)).To(Succeed())
 
-		By("Updating MariaDB primary")
+		By("Expecting to eventually update MariaDB primary")
 		podIndex := 1
-		mdb.Spec.Galera.Primary.PodIndex = ptr.To(podIndex)
-		Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+		Eventually(func(g Gomega) bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			mdb.Spec.Galera.Primary.PodIndex = ptr.To(podIndex)
+			g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting MariaDB to eventually change primary")
 		Eventually(func() bool {
