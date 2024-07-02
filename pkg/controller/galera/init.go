@@ -74,7 +74,7 @@ func (r *GaleraReconciler) reconcileConfigMap(ctx context.Context, mariadb *mari
 		return err
 	}
 
-	entrypointBytes, err := mdbembed.ReadEntrypoint()
+	entrypointBytes, err := mdbembed.ReadEntrypoint(ctx, mariadb, r.env)
 	if err != nil {
 		return fmt.Errorf("error reading entrypoint: %v", err)
 	}
