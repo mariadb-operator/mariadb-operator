@@ -95,6 +95,7 @@ helm uninstall mariadb-operator
 | webhook.cert.certManager.enabled | bool | `false` | Whether to use cert-manager to issue and rotate the certificate. If set to false, mariadb-operator's cert-controller will be used instead. |
 | webhook.cert.certManager.issuerRef | object | `{}` | Issuer reference to be used in the Certificate resource. If not provided, a self-signed issuer will be used. |
 | webhook.cert.certManager.renewBefore | string | `""` | Renew before duration to be used in the Certificate resource. |
+| webhook.cert.certManager.revisionHistoryLimit | int | `3` | The maximum number of CertificateRequest revisions that are maintained in the Certificate’s history. |
 | webhook.cert.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. 'tls.crt' and 'tls.key' certificates files should be under this path. |
 | webhook.cert.secretAnnotations | object | `{}` | Annotatioms to be added to webhook TLS secret. |
 | webhook.cert.secretLabels | object | `{}` | Labels to be added to webhook TLS secret. |
