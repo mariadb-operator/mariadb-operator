@@ -23,8 +23,8 @@ embed-entrypoint: ## Get entrypoint from mariadb-docker to be embeded in operato
 helm-crds: kustomize ## Generate CRDs for Helm chart.
 	$(KUSTOMIZE) build config/crd > deploy/charts/mariadb-operator/crds/crds.yaml
 
-.PHONY: helm-images
-helm-images: ## Update operator env in the Helm chart.
+.PHONY: helm-env
+helm-env: ## Update operator env in the Helm chart.
 	$(KUBECTL) create configmap mariadb-operator-env \
 		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
 		--from-literal=RELATED_IMAGE_MAXSCALE=$(RELATED_IMAGE_MAXSCALE) \
@@ -34,11 +34,12 @@ helm-images: ## Update operator env in the Helm chart.
 		--from-literal=MARIADB_GALERA_INIT_IMAGE=$(MARIADB_GALERA_INIT_IMAGE) \
 		--from-literal=MARIADB_GALERA_AGENT_IMAGE=$(MARIADB_GALERA_AGENT_IMAGE) \
 		--from-literal=MARIADB_GALERA_LIB_PATH=$(MARIADB_GALERA_LIB_PATH) \
+		--from-literal=MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
 		--dry-run=client -o yaml \
 		> deploy/charts/mariadb-operator/templates/configmap.yaml
 
 .PHONY: helm
-helm: helm-crds helm-images ## Generate manifests for Helm chart.
+helm: helm-crds helm-env ## Generate manifests for Helm chart.
 
 ##@ Generate - Manifests
 
