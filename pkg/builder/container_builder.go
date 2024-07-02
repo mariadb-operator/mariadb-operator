@@ -406,7 +406,17 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 	}
 
 	if mariadb.Spec.Env != nil {
-		env = append(env, mariadb.Spec.Env...)
+		idx := make(map[string]int, len(env))
+		for i, envVar := range env {
+			idx[envVar.Name] = i
+		}
+		for _, envVar := range mariadb.Spec.Env {
+			if i, ok := idx[envVar.Name]; ok {
+				env[i] = envVar
+			} else {
+				env = append(env, envVar)
+			}
+		}
 	}
 
 	return env
