@@ -981,10 +981,6 @@ func TestMariadbEnv(t *testing.T) {
 								Value: "1.2.3.4",
 							},
 							{
-								Name:  "MYSQL_INITDB_SKIP_TZINFO",
-								Value: "0",
-							},
-							{
 								Name:  "CLUSTER_NAME",
 								Value: "foo.bar",
 							},
@@ -1020,10 +1016,6 @@ func TestMariadbEnv(t *testing.T) {
 				{
 					Name:  "MARIADB_ROOT_HOST",
 					Value: "1.2.3.4",
-				},
-				{
-					Name:  "MYSQL_INITDB_SKIP_TZINFO",
-					Value: "0",
 				},
 				{
 					Name:  "CLUSTER_NAME",
@@ -1105,10 +1097,6 @@ func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 		{
 			Name:  "MARIADB_ROOT_HOST",
 			Value: "%",
-		},
-		{
-			Name:  "MYSQL_INITDB_SKIP_TZINFO",
-			Value: "1",
 		},
 		defaults[clusterName.Name],
 		{

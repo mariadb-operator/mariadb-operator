@@ -265,6 +265,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 		Data: map[string]string{
 			defaultConfigMapKeyRef.Key: `[mariadb]
 skip-name-resolve
+default_time_zone = 'UTC'
 `,
 		},
 	}
