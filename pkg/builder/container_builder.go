@@ -354,10 +354,6 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 			Value: "%",
 		},
 		{
-			Name:  "MYSQL_INITDB_SKIP_TZINFO",
-			Value: "1",
-		},
-		{
 			Name:  "CLUSTER_NAME",
 			Value: clusterName,
 		},

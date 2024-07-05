@@ -89,6 +89,7 @@ var _ = Describe("MariaDB", func() {
 			g.Expect(cm.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 			g.Expect(cm.ObjectMeta.Annotations).NotTo(BeNil())
 			g.Expect(cm.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
+			g.Expect(cm.Data).To(HaveKeyWithValue("0-default.cnf", "[mariadb]\nskip-name-resolve\ndefault_time_zone = 'UTC'\n"))
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
 
