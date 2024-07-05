@@ -49,6 +49,7 @@ kubectl get events --field-selector involvedObject.name=<restore-resource-name>
 - Kubernetes version: [Version number]
 - Kubernetes distribution: [Vanilla, EKS, GKE, AKS, Rancher, OpenShift, k3s, KIND...]
 - mariadb-operator version: [Version number]
+- Galera agent (sidecar container): [Version number]
 - Install method: [helm, OLM, or static manifests]
 - Install flavor: [minimal, recommended, or custom]
 
