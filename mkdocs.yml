@@ -1,1 +1,6 @@
-site_name: My Docs
+site_name: MariaDB Operator
+repo_url: https://github.com/mariadb-operator/mariadb-operator
+repo_name: mariadb-operator
+docs_dir: ./docs
+edit_uri: ./edit/main/docs/
+remote_branch: gh-pages
