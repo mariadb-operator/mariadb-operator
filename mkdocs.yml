@@ -4,3 +4,23 @@ repo_name: mariadb-operator
 docs_dir: ./docs
 edit_uri: ./edit/main/docs/
 remote_branch: gh-pages
+theme:
+  name: material
+  palette: 
+    - scheme: default
+      primary: "mariadb-blue" 
+      accent: "cyan"
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+    - scheme: slate
+      primary: "mariadb-blue" 
+      accent: "cyan"
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  custom_dir: ./docs/overrides
+  logo: assets/mariadb_medium.svg
+  favicon: assets/mariadb_favicon.svg
+extra_css:
+  - stylesheets/extra.css
