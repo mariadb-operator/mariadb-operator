@@ -43,3 +43,6 @@ cover.*
 
 # MariaDB Docker
 /mariadb-docker
+
+# Documentation site
+/site
