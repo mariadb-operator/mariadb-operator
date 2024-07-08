@@ -93,6 +93,7 @@ include make/build.mk
 include make/deploy.mk
 include make/deps.mk
 include make/dev.mk
+include make/docs.mk
 include make/gen.mk
 include make/net.mk
 include make/openshift.mk
