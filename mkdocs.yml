@@ -35,3 +35,7 @@ extra:
       link: https://www.linkedin.com/company/mariadb
 extra_css:
   - stylesheets/extra.css
+exclude_docs: |
+  releases/
+  Dockerfile
+  requirements.txt
