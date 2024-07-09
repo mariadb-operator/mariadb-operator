@@ -1,0 +1,1827 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../HA/">
+      
+      
+        <link rel="next" href="../METADATA/">
+      
+      
+      <link rel="icon" href="../assets/mariadb_favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.27">
+    
+    
+      
+        <title>MaxScale - MariaDB Operator</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  <img referrerpolicy="no-referrer-when-downgrade" style="display: none;" src="https://static.scarf.sh/a.png?x-pxid=add331e0-a0f4-4810-af67-31067a199fa4" />
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="mariadb-blue" data-md-color-accent="cyan">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#maxscale" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),outdated=__md_get("__outdated",sessionStorage);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+      
+  <img src="../assets/mariadb_medium.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MariaDB Operator
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              MaxScale
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="mariadb-blue" data-md-color-accent="cyan"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="mariadb-blue" data-md-color-accent="cyan"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mariadb-operator/mariadb-operator" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mariadb-operator
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+      
+  <img src="../assets/mariadb_medium.svg" alt="logo">
+
+    </a>
+    MariaDB Operator
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mariadb-operator/mariadb-operator" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mariadb-operator
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Welcome to MkDocs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API_REFERENCE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../BACKUP/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Backup and Restore
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONFIGURATION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEVELOPMENT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Development guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GALERA/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    High availability via Galera
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../HA/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    High availability
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    MaxScale
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    MaxScale
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale resources
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MaxScale resources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#servers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Servers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#monitors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monitors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#services" class="md-nav__link">
+    <span class="md-ellipsis">
+      Services
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#listeners" class="md-nav__link">
+    <span class="md-ellipsis">
+      Listeners
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale CR
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mariadb-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      MariaDB CR
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-embedded-in-mariadb" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale embedded in MariaDB
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      Defaults
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Server configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Server maintenance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubernetes-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      Kubernetes Services
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Connection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      High availability
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suspend-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      Suspend resources
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-gui" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale GUI
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale API
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common errors
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#permission-denied-writing-varlibmaxscale" class="md-nav__link">
+    <span class="md-ellipsis">
+      Permission denied writing /var/lib/maxscale
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reference
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../METADATA/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Metadata
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../METRICS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prometheus metrics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../REGISTRY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Registry
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STORAGE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Storage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPDATES/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Updates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.20
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.21
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.24
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.26
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.28
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale resources
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MaxScale resources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#servers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Servers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#monitors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monitors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#services" class="md-nav__link">
+    <span class="md-ellipsis">
+      Services
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#listeners" class="md-nav__link">
+    <span class="md-ellipsis">
+      Listeners
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale CR
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mariadb-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      MariaDB CR
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-embedded-in-mariadb" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale embedded in MariaDB
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      Defaults
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Server configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Server maintenance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubernetes-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      Kubernetes Services
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Connection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      High availability
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suspend-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      Suspend resources
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-gui" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale GUI
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maxscale-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      MaxScale API
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common errors
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#permission-denied-writing-varlibmaxscale" class="md-nav__link">
+    <span class="md-ellipsis">
+      Permission denied writing /var/lib/maxscale
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reference
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="maxscale">MaxScale</h1>
+<blockquote>
+<p>[!NOTE]<br />
+This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.25</p>
+<p>[!IMPORTANT]<br />
+MaxScale 23.08 is licensed under <a href="https://github.com/mariadb-corporation/MaxScale/blob/23.08/LICENSE2308.TXT">Business Source License</a>. Make sure you understand the implications before using it!</p>
+</blockquote>
+<p>MaxScale is a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB. It provides a range of features that ensure optimal high availability:
+- Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
+- Connection-based routing: Load balance connections between multiple servers.
+- Automatic primary failover based on MariaDB internals.
+- Replay pending transactions when a server goes down.
+- Support for Galera and Replication.</p>
+<p>To better understand what MaxScale is capable of you may check the <a href="https://mariadb.com/docs/server/products/mariadb-maxscale/">product page</a> and the <a href="https://mariadb.com/kb/en/maxscale/">documentation</a>. </p>
+<h2 id="table-of-contents">Table of contents</h2>
+<!-- toc -->
+<ul>
+<li><a href="#maxscale-resources">MaxScale resources</a><ul>
+<li><a href="#servers">Servers</a></li>
+<li><a href="#monitors">Monitors</a></li>
+<li><a href="#services">Services</a></li>
+<li><a href="#listeners">Listeners</a></li>
+</ul>
+</li>
+<li><a href="#maxscale-cr"><code>MaxScale</code> CR</a></li>
+<li><a href="#mariadb-cr"><code>MariaDB</code> CR</a></li>
+<li><a href="#maxscale-embedded-in-mariadb"><code>MaxScale</code> embedded in <code>MariaDB</code></a></li>
+<li><a href="#defaults">Defaults</a></li>
+<li><a href="#server-configuration">Server configuration</a></li>
+<li><a href="#server-maintenance">Server maintenance</a></li>
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#authentication">Authentication</a></li>
+<li><a href="#kubernetes-services">Kubernetes <code>Services</code></a></li>
+<li><a href="#connection">Connection</a></li>
+<li><a href="#high-availability">High availability</a></li>
+<li><a href="#suspend-resources">Suspend resources</a></li>
+<li><a href="#maxscale-gui">MaxScale GUI</a></li>
+<li><a href="#maxscale-api">MaxScale API</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#common-errors">Common errors</a><ul>
+<li><a href="#permission-denied-writing-varlibmaxscale">Permission denied writing <code>/var/lib/maxscale</code></a></li>
+</ul>
+</li>
+<li><a href="#reference">Reference</a></li>
+</ul>
+<!-- /toc -->
+
+<h2 id="maxscale-resources">MaxScale resources</h2>
+<p>Prior to configuring MaxScale within Kubernetes, it's essential to have a basic understanding of the resources managed through its API.</p>
+<h4 id="servers">Servers</h4>
+<p>A server defines the backend database servers that MaxScale forwards traffic to. For more detailed information, please consult the <a href="https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#server">server reference</a>.</p>
+<h4 id="monitors">Monitors</h4>
+<p>A monitor is an agent that queries the state of the servers and makes it available to the services in order to route traffic based on it. For more detailed information, please consult the <a href="https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#monitor">monitor reference</a>.</p>
+<p>Depending on which highly available configuration your servers have, you will need to choose betweeen the following modules:
+- <a href="https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/">Galera Monitor</a>: Detects whether servers are part of the cluster, ensuring synchronization among them, and assigning primary and replica roles as needed.
+- <a href="https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/">MariaDB Monitor</a>: Probes the state of the cluster, assigns roles to the servers, and executes failover, switchover, and rejoin operations as necessary.</p>
+<h4 id="services">Services</h4>
+<p>A service defines how the traffic is routed to the servers based on a routing algorithm that takes into account the state of the servers and its role. For more detailed information, please consult the <a href="https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service">service reference</a>.</p>
+<p>Depending on your requirements to route traffic, you may choose between the following routers:
+- <a href="https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/">Readwritesplit</a>: Route write queries to the primary server and read queries to the replica servers.
+- <a href="https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/">Readconnroute</a>: Load balance connections between multiple servers.</p>
+<h4 id="listeners">Listeners</h4>
+<p>A listener specifies a port where MaxScale listens for incoming connections. It is associated with a service that handles the requests received on that port. For more detailed information, please consult the <a href="https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener">listener reference</a>.</p>
+<h2 id="maxscale-cr"><code>MaxScale</code> CR</h2>
+<p>The minimal spec you need to provision a MaxScale instance is just a reference to a <code>MariaDB</code> resource:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+</code></pre>
+<p>This will provision a new <code>StatefulSet</code> for running MaxScale and configure the servers specified by the <code>MariaDB</code> resource. Refer to the <a href="#server-configuration">Server configuration</a> section if you want to manually configure the MariaDB servers.</p>
+<p>The rest of the configuration uses reasonable <a href="#defaults">defaults</a> set automatically by the operator. If you need a more fine grained configuration, you can provide this values yourself:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  mariaDbRef:
+    name: mariadb-galera
+
+  services:
+    - name: rw-router
+      router: readwritesplit
+      params:
+        transaction_replay: &quot;true&quot;
+        transaction_replay_attempts: &quot;10&quot;
+        transaction_replay_timeout: &quot;5s&quot;
+        max_slave_connections: &quot;255&quot;
+        max_replication_lag: &quot;3s&quot;
+        master_accept_reads: &quot;true&quot;
+      listener:
+        port: 3306
+        protocol: MariaDBProtocol
+        params:
+          connection_metadata: &quot;tx_isolation=auto&quot;
+    - name: rconn-master-router
+      router: readconnroute
+      params:
+        router_options: &quot;master&quot;
+        max_replication_lag: &quot;3s&quot;
+        master_accept_reads: &quot;true&quot;
+      listener:
+        port: 3307
+    - name: rconn-slave-router
+      router: readconnroute
+      params:
+        router_options: &quot;slave&quot;
+        max_replication_lag: &quot;3s&quot;
+      listener:
+        port: 3308
+
+  monitor:
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      disable_master_failback: &quot;false&quot;
+      available_when_donor: &quot;false&quot;
+      disable_master_role_setting: &quot;false&quot;
+
+  kubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+</code></pre>
+<p>As you can see, the <a href="#maxscale-resources">MaxScale resources</a> we previously mentioned have a counterpart resource in the <code>MaxScale</code> CR. </p>
+<p>The previous example configured a <code>MaxScale</code> for a Galera cluster, but you may also configure <code>MaxScale</code> with a <code>MariaDB</code> that uses replication. It is important to note that the monitor module is automatically inferred by the operator based on the <code>MariaDB</code> reference you provided, however, its parameters are specific to each monitor module:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-repl
+spec:
+...
+  mariaDbRef:
+    name: mariadb-repl
+
+  services:
+    - name: rw-router
+      router: readwritesplit
+      params:
+        transaction_replay: &quot;true&quot;
+        transaction_replay_attempts: &quot;10&quot;
+        transaction_replay_timeout: &quot;5s&quot;
+        max_slave_connections: &quot;255&quot;
+        max_replication_lag: &quot;3s&quot;
+        master_accept_reads: &quot;true&quot;
+      listener:
+        port: 3306
+        protocol: MariaDBProtocol
+        params:
+          connection_metadata: &quot;tx_isolation=auto&quot;
+    - name: rconn-master-router
+      router: readconnroute
+      params:
+        router_options: &quot;master&quot;
+        max_replication_lag: &quot;3s&quot;
+        master_accept_reads: &quot;true&quot;
+      listener:
+        port: 3307
+    - name: rconn-slave-router
+      router: readconnroute
+      params:
+        router_options: &quot;slave&quot;
+        max_replication_lag: &quot;3s&quot;
+      listener:
+        port: 3308
+
+  monitor:
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      auto_failover: &quot;true&quot;
+      auto_rejoin: &quot;true&quot;
+      switchover_on_low_disk_space: &quot;true&quot;
+
+  kubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+</code></pre>
+<p>You also need to set a reference in the <code>MariaDB</code> resource to make it <code>MaxScale</code>-aware. This is explained in the <a href="#mariadb-cr">MariaDB CR</a> section.</p>
+<p>Refer to the <a href="#reference">Reference</a> section for further detail.</p>
+<h2 id="mariadb-cr"><code>MariaDB</code> CR</h2>
+<p>You can set a <code>spec.maxScaleRef</code> in your <code>MariaDB</code> resource to make it <code>MaxScale</code>-aware. By doing so, the primary server reported by <code>MaxScale</code> will be used in <code>MariaDB</code> and the high availability tasks such the primary failover will be delegated to <code>MaxScale</code>:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+...
+  maxScaleRef:
+    name: maxscale-galera
+
+  galera:
+    enabled: true
+</code></pre>
+<p>Refer to the <a href="#reference">Reference</a> section for further detail.</p>
+<h2 id="maxscale-embedded-in-mariadb"><code>MaxScale</code> embedded in <code>MariaDB</code></h2>
+<p>To streamline the setup outlined in the <a href="#mariadb-cr">MaxScale CR</a> and <a href="#mariadb-cr">MariaDB CR</a> sections, you can provision a <code>MaxScale</code> to be used with <code>MariaDB</code> in just one resource:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+...
+  maxScale:
+    enabled: true
+
+    kubernetesService:
+      type: LoadBalancer
+      metadata:
+        annotations:
+          metallb.universe.tf/loadBalancerIPs: 172.18.0.229
+
+  galera:
+    enabled: true
+</code></pre>
+<p>This will automatically set the references between <code>MariaDB</code> and <code>MaxScale</code> and <a href="#defaults">default</a> the rest of the fields.</p>
+<p>It is important to note that, this is intended for simple use cases where no further modifications are done on the <code>spec.maxscale</code> field. If you need a more fine grained configuration and perform further updates to the <code>MaxScale</code> resource, please use a dedicated <code>MaxScale</code> as described in the <a href="#mariadb-cr">MaxScale CR</a> section.</p>
+<p>Refer to the <a href="#reference">Reference</a> section for further detail.</p>
+<h2 id="defaults">Defaults</h2>
+<p><code>mariadb-operator</code> aims to provide highly configurable CRs, but at the same maximize its usability by providing reasonable defaults. In the case of <code>MaxScale</code>, the following defaulting logic is applied:
+- <code>spec.servers</code> are inferred from <code>spec.mariaDbRef</code>.
+- <code>spec.monitor.module</code> is inferred from the <code>spec.mariaDbRef</code>.
+- <code>spec.monitor.cooperativeMonitoring</code> is set if <a href="#high-availability">high availability</a> is enabled.
+- If <code>spec.services</code> is not provided, the following are configured by default:
+  - <code>readwritesplit</code> service on port <code>3306</code>.
+  - <code>readconnroute</code> service pointing to the primary node on port <code>3307</code>.
+  - <code>readconnroute</code> service pointing to the replica nodes on port <code>3308</code>.</p>
+<h2 id="server-configuration">Server configuration</h2>
+<p>As an alternative to provide a reference to a <code>MariaDB</code> via <code>spec.mariaDbRef</code>, you can also specify the servers manually:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  servers:
+    - name: mariadb-0
+      address: mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local
+    - name: mariadb-1
+      address: mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local
+    - name: mariadb-2
+      address: mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local
+</code></pre>
+<p>As you could see, you can refer to in-cluser MariaDB servers by providing the DNS names of the <code>MariaDB</code> <code>Pods</code> as server addresses. In addition, you can also refer to external MariaDB instances running outside of the Kubernetes cluster where <code>mariadb-operator</code> was deployed:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  servers:
+    - name: mariadb-0
+      address: 172.18.0.140
+      port: 3306
+    - name: mariadb-1
+      address: 172.18.0.141
+    - name: mariadb-2
+      address: 172.18.0.142
+
+  monitor:
+    name: mariadb-monitor
+    module: galeramon
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      disable_master_failback: &quot;false&quot;
+      available_when_donor: &quot;false&quot;
+      disable_master_role_setting: &quot;false&quot;
+
+  auth:
+    adminUsername: mariadb-operator
+    adminPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    clientUsername: maxscale-client
+    clientPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    serverUsername: maxscale-server
+    serverPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    monitorUsername: maxscale-monitor
+    monitorPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    syncUsername: maxscale-sync
+    syncPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+</code></pre>
+<p>⚠️ Pointing to external MariaDBs has a some limitations ⚠️. Since the operator doesn't have a reference to a <code>MariaDB</code> resource (<code>spec.mariaDbRef</code>), it will be unable to perform the following actions:
+- Infer the monitor module (<code>spec.monitor.module</code>), so it will need to be provided by the user.
+- Autogenerate authentication credentials (<code>spec.auth</code>), so they will need to be provided by the user. See <a href="#authentication">Authentication</a> section. </p>
+<h2 id="server-maintenance">Server maintenance</h2>
+<p>You can put servers in maintenance mode by setting <code>maintenance = true</code>:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  servers:
+    - name: mariadb-0
+      address: mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local
+      port: 3306
+      protocol: MariaDBBackend
+      maintenance: true
+</code></pre>
+<p>Maintenance mode prevents MaxScale from routing traffic to the server and also excludes it from being elected as the new primary during failover events.</p>
+<h2 id="configuration">Configuration</h2>
+<p>Similar to MariaDB, MaxScale allows you to provide global configuration parameters in a <code>maxscale.conf</code> file. You don't need to provide this config file directly, but instead you can use the <code>spec.config.params</code> to instruct the operator to create the <code>maxscale.conf</code>:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  config:
+    params:
+      log_info: &quot;true&quot;
+    volumeClaimTemplate:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
+</code></pre>
+<p>Both this global configuration and the resources created by the operator using the <a href="#maxscale-api">MaxScale API</a> are stored under a volume provisioned by the <code>spec.config.volumeClaimTemplate</code>. Refer to the <a href="#troubleshooting">troubleshooting</a> if you are getting errors writing on this volume.</p>
+<p>Refer to the <a href="https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/">MaxScale reference</a> to provide global configuration.</p>
+<h2 id="authentication">Authentication</h2>
+<p>MaxScale requires authentication with differents levels of permissions for the following components/actors:
+- <a href="#maxscale-api">MaxScale API</a> consumed by <code>mariadb-operator</code>.
+- Clients connecting to MaxScale.
+- MaxScale connecting to MariaDB servers.
+- MaxScale monitor connecting to MariaDB servers.
+- MaxScale configuration sync to connect to MariaDB servers. See <a href="#high-availability">high availability</a> section.</p>
+<p>By default, <code>mariadb-operator</code> autogenerates this credentials when <code>spec.mariaDbRef</code> is set and <code>spec.auth.generate = true</code>, but you are still able to provide your own:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  auth:
+    generate: false
+    adminUsername: mariadb-operator
+    adminPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    deleteDefaultAdmin: true
+    clientUsername: maxscale-client
+    clientPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    clientMaxConnections: 90
+    serverUsername: maxscale-server
+    serverPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    serverMaxConnections: 90 
+    monitorUsername: maxscale-monitor
+    monitorPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    monitorMaxConnections: 90 
+    syncUsername: maxscale-sync
+    syncPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    syncMaxConnections: 90
+</code></pre>
+<p>As you could see, you are also able to limit the number of connections for each component/actor. Bear in mind that, when running in <a href="#high-availability">high availability</a>, you may need to increase this number, as more MaxScale instances implies more connections.</p>
+<h2 id="kubernetes-services">Kubernetes <code>Services</code></h2>
+<p>To enable your applications to communicate with MaxScale, a Kubernetes <code>Service</code> is provisioned with all the ports specified in the MaxScale listeners. You have the flexibility to provide a template to customize this <code>Service</code>:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  kubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+</code></pre>
+<p>This results in the reconciliation of the following <code>Service</code>:</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 172.18.0.229
+  name: maxscale-galera
+spec:
+...
+  ports:
+  - name: admin
+    port: 8989
+    targetPort: 8989
+  - name: rw-router-listener
+    port: 3306
+    targetPort: 3306
+  - name: rconn-master-router-listener
+    port: 3307
+    targetPort: 3307
+  - name: rconn-slave-router-listener
+    port: 3308
+    targetPort: 3308
+  selector:
+    app.kubernetes.io/instance: maxscale-galera
+    app.kubernetes.io/name: maxscale
+  type: LoadBalancer
+</code></pre>
+<p>There is also another Kubernetes <code>Service</code> to access the GUI, please refer to the <a href="#maxscale-gui">MaxScale GUI</a> section for further detail.</p>
+<h2 id="connection">Connection</h2>
+<p>You can leverage the <code>Connection</code> resource to automatically configure connection strings as <code>Secret</code> resources that your applications can mount:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Connection
+metadata:
+  name: connection-maxscale
+spec:
+  maxScaleRef:
+    name: maxscale-galera
+  username: maxscale-galera-client
+  passwordSecretKeyRef:
+    name: maxscale-galera-client
+    key: password
+  secretName: conn-mxs
+  port: 3306
+</code></pre>
+<p>Alternatively, you can also provide a connection template to your <code>MaxScale</code> resource:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...  
+  connection:
+    secretName: mxs-galera-conn
+    port: 3306
+</code></pre>
+<p>Note that, the <code>Connection</code> uses the <code>Service</code> described in the <a href="#kubernetes-service">Kubernetes Service</a> section and you are able to specify which MaxScale service to connect to by providing the port (<code>spec.port</code>) of the corresponding MaxScale listener.</p>
+<h2 id="high-availability">High availability</h2>
+<p>To synchronize the configuration state across multiple replicas, MaxScale stores the configuration externally in a MariaDB table and conducts periodic polling across all replicas. By default, the table <code>mysql.maxscale_config</code> is used, but this can be configured by the user as well as the synchronization interval.</p>
+<p>Another crucial aspect to consider regarding HA is that only one monitor can be running at any given time to avoid conflicts. This can be achieved via cooperative locking, which can be configured by the user. Refer to <a href="https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/">MaxScale docs</a> for more information.</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  replicas: 3
+
+  monitor:
+    name: mariadb-monitor
+    module: galeramon
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      disable_master_failback: &quot;false&quot;
+      available_when_donor: &quot;false&quot;
+      disable_master_role_setting: &quot;false&quot;   
+
+  config:
+    sync:
+      database: mysql
+      interval: 5s
+      timeout: 10s
+</code></pre>
+<p>Multiple <code>MaxScale</code> replicas can be specified by providing the <code>spec.replicas</code> field. Note that, <code>MaxScale</code> exposes the <a href="https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource">scale subresource</a>, so you can scale/downscale it by running the following command:</p>
+<pre><code class="language-bash">kubectl scale maxscale maxscale-galera --replicas 3
+</code></pre>
+<p>Or even configuring an <code>HorizontalPodAutoscaler</code> to do the job automatically.</p>
+<h2 id="suspend-resources">Suspend resources</h2>
+<p>In order to enable this feature, you must set the <code>--feature-maxscale-suspend</code> feature flag:</p>
+<pre><code class="language-bash">helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set extraArgs={--feature-maxscale-suspend}
+</code></pre>
+<p>Then you will be able to suspend any <a href="#maxscale-resources">MaxScale resources</a>, for instance, you can suspend a monitor:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  monitor:
+    name: mariadb-monitor
+    module: galeramon
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      disable_master_failback: &quot;false&quot;
+      available_when_donor: &quot;false&quot;
+      disable_master_role_setting: &quot;false&quot;   
+    suspend: true
+</code></pre>
+<h2 id="maxscale-gui">MaxScale GUI</h2>
+<p>MaxScale offers a shiny user interface that provides very useful information about the <a href="#maxscale-resources">MaxScale resources</a>. You can  enable it providing the following configuration:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  admin:
+    port: 8989
+    guiEnabled: true
+  guiKubernetesService:
+    type: LoadBalancer
+    metadata:
+      metadata:
+        annotations:
+          metallb.universe.tf/loadBalancerIPs: 172.18.0.231
+</code></pre>
+<p>The GUI is exposed via a dedicated Kubernetes <code>Service</code> in the same port as the <a href="#maxscale-api">MaxScale API</a>. Once you access, you will need to enter the <a href="#maxscale-api">MaxScale API</a> credentials configured by <code>mariadb-operator</code> in a <code>Secret</code>. See the <a href="#authentication">Authentication</a> section for more details.</p>
+<p><img alt="MaxScale GUI" src="https://mariadb-operator.github.io/mariadb-operator/assets/maxscale-gui.png" /></p>
+<h2 id="maxscale-api">MaxScale API</h2>
+<p><code>mariadb-operator</code> interacts with the <a href="https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/">MaxScale REST API</a> to reconcile the specification provided by the user, considering both the MaxScale status retrieved from the API and the provided spec.</p>
+<p><a href="https://www.postman.com/mariadb-operator/workspace/mariadb-operator/collection/9776-74dfd54a-2b2b-451f-95ab-006e1d9d9998?action=share&amp;creator=9776&amp;active-environment=9776-a841398f-204a-48c8-ac04-6f6c3bb1d268"><img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;"></a></p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p><code>mariadb-operator</code> tracks both the <code>MaxScale</code> status in regards to Kubernetes resources as well as the status of the <a href="#maxscale-api">MaxScale API</a> resources. This information is available on the status field of the <code>MaxScale</code> resource, it may be very useful for debugging purposes:</p>
+<pre><code class="language-yaml">status:
+  conditions:
+  - lastTransitionTime: &quot;2024-02-08T17:29:01Z&quot;
+    message: Running
+    reason: MaxScaleReady
+    status: &quot;True&quot;
+    type: Ready
+  configSync:
+    databaseVersion: 20
+    maxScaleVersion: 20
+  listeners:
+  - name: rconn-master-router-listener
+    state: Running
+  - name: rconn-slave-router-listener
+    state: Running
+  - name: rw-router-listener
+    state: Running
+  monitor:
+    name: galeramon-monitor
+    state: Running
+  primaryServer: mariadb-galera-1
+  replicas: 1
+  servers:
+  - name: mariadb-galera-0
+    state: Slave, Synced, Running
+  - name: mariadb-galera-1
+    state: Master, Synced, Running
+  - name: mariadb-galera-2
+    state: Slave, Synced, Running
+  services:
+  - name: rconn-master-router
+    state: Started
+  - name: rconn-slave-router
+    state: Started
+  - name: rw-router
+    state: Started
+</code></pre>
+<p>Kubernetes events emitted by <code>mariadb-operator</code> may also be very relevant for debugging. For instance, an event is emitted whenever the primary server changes:</p>
+<pre><code class="language-bash">kubectl get events --field-selector involvedObject.name=mariadb-repl-maxscale --sort-by='.lastTimestamp'
+
+LAST SEEN   TYPE      REASON                         OBJECT                           MESSAGE
+24s         Normal    MaxScalePrimaryServerChanged   maxscale/mariadb-repl-maxscale   MaxScale primary server changed from 'mariadb-repl-0' to 'mariadb-repl-1'
+</code></pre>
+<p><code>mariadb-operator</code> logs can also be a good source of information for troubleshooting. You can increase its verbosity and enable <a href="#maxscale-api">MaxScale API</a> request logs by running:</p>
+<pre><code class="language-bash">helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set logLevel=debug --set extraArgs={--log-maxscale}
+</code></pre>
+<h3 id="common-errors">Common errors</h3>
+<h4 id="permission-denied-writing-varlibmaxscale">Permission denied writing <code>/var/lib/maxscale</code></h4>
+<p>This error occurs when the user that runs the container does not have enough privileges to write in <code>/var/lib/maxscale</code>:</p>
+<pre><code class="language-bash">Failed to create directory '/var/lib/maxscale/maxscale.cnf.d': 13, Permission denied
+</code></pre>
+<p>To mitigate this, by default, the operator sets the following <code>securityContext</code> in the <code>MaxScale</code>'s <code>StatefulSet</code>:</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: maxscale-galera
+spec:
+  securityContext:
+    fsGroup: 996
+    runAsGroup: 996
+    runAsNonRoot: true
+    runAsUser: 998
+</code></pre>
+<p>This enables the <code>CSIDriver</code> and the kubelet to recursively set the ownership ofr the <code>/var/lib/maxscale</code> folder to the group <code>996</code>, which is the one expected by MaxScale. It is important to note that not all the <code>CSIDrivers</code> implementations support this feature, see the <a href="https://kubernetes-csi.github.io/docs/support-fsgroup.html">CSIDriver documentation</a> for further information.</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="../API_REFERENCE/">API reference</a></li>
+<li><a href="../examples/">Example suite</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
+      
+    
+  </body>
+</html>

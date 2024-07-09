@@ -1,0 +1,16 @@
+Thank you for using `{{ .ProjectName }}`🦭!
+
+📣 Amazing news: The project just got a major boost – it's now officially **sponsored by [MariaDB Corporation](https://mariadb.com/)** 🎉 I'm absolutely thrilled about this collaboration and can't wait to dive in and work with them!
+
+🪣 More good news, but this time, something you've been waiting for a long time: ✨**S3 storage for backups**✨ is now officially supported, you can now store your backups in an S3 compatible storage like [AWS S3 ](https://aws.amazon.com/s3/) or [Minio](https://github.com/minio/minio). Refer to the documentation to see how to configure it:
+- [Backup and Restore](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md)
+
+📈 We have also introduced significant improvements on the metrics side, the newest version of [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) has now been supported. This update facilitates the use of a single Deployment targeting all replicas, eliminating the need for a sidecar exporter per replica. For more details on this architectural modification, please refer to the documentation:
+- [Prometheus metrics](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/METRICS.md)
+
+🛠️ In order to achieve this, we have been polishing our CRDs considerably and introduced some **BREAKING CHANGES**. Check out our migration guide before upgrading:
+- **[UPGRADE GUIDE v0.0.24](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.24.md)**
+
+🤝 We value your feedback! If you encounter any issues or have suggestions, please [open an issue on GitHub](https://github.com/mariadb-operator/mariadb-operator/issues/new/choose). Your input is crucial to improve `{{ .ProjectName }}`🦭.
+
+👥 Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.

@@ -1,0 +1,1422 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../DEVELOPMENT/">
+      
+      
+        <link rel="next" href="../HA/">
+      
+      
+      <link rel="icon" href="../assets/mariadb_favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.27">
+    
+    
+      
+        <title>High availability via Galera - MariaDB Operator</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  <img referrerpolicy="no-referrer-when-downgrade" style="display: none;" src="https://static.scarf.sh/a.png?x-pxid=add331e0-a0f4-4810-af67-31067a199fa4" />
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="mariadb-blue" data-md-color-accent="cyan">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#high-availability-via-galera" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),outdated=__md_get("__outdated",sessionStorage);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+      
+  <img src="../assets/mariadb_medium.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MariaDB Operator
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              High availability via Galera
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="mariadb-blue" data-md-color-accent="cyan"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="mariadb-blue" data-md-color-accent="cyan"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mariadb-operator/mariadb-operator" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mariadb-operator
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+      
+  <img src="../assets/mariadb_medium.svg" alt="logo">
+
+    </a>
+    MariaDB Operator
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mariadb-operator/mariadb-operator" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mariadb-operator
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Welcome to MkDocs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API_REFERENCE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../BACKUP/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Backup and Restore
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONFIGURATION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEVELOPMENT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Development guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    High availability via Galera
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    High availability via Galera
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Components
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mariadb-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      MariaDB configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Storage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#galera-cluster-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster recovery
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wsrep-provider" class="md-nav__link">
+    <span class="md-ellipsis">
+      Wsrep provider
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ipv6-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      IPv6 support
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quickstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quickstart
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common errors
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#permission-denied-writing-galera-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Permission denied writing Galera configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unauthorized-error-disabling-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unauthorized error disabling bootstrap
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeout-waiting-for-pod-to-be-synced" class="md-nav__link">
+    <span class="md-ellipsis">
+      Timeout waiting for Pod to be Synced
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#galera-cluster-bootstrap-timed-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster bootstrap timed out
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#github-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      GitHub Issues
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reference
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../HA/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    High availability
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MAXSCALE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MaxScale
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../METADATA/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Metadata
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../METRICS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prometheus metrics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../REGISTRY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Registry
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STORAGE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Storage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPDATES/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Updates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.20
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.21
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.24
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.26
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.28
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Components
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mariadb-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      MariaDB configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Storage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#galera-cluster-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster recovery
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wsrep-provider" class="md-nav__link">
+    <span class="md-ellipsis">
+      Wsrep provider
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ipv6-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      IPv6 support
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quickstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quickstart
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common errors
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#permission-denied-writing-galera-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Permission denied writing Galera configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unauthorized-error-disabling-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unauthorized error disabling bootstrap
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeout-waiting-for-pod-to-be-synced" class="md-nav__link">
+    <span class="md-ellipsis">
+      Timeout waiting for Pod to be Synced
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#galera-cluster-bootstrap-timed-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster bootstrap timed out
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#github-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      GitHub Issues
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reference
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="high-availability-via-galera">High availability via Galera</h1>
+<p>The <code>mariadb-operator</code> provides cloud native support for provisioning and operating multi-master MariaDB clusters using Galera. This setup enables the ability to perform both read and write operations on all nodes, enhancing availability and allowing scalability across multiple nodes.</p>
+<p>In certain circumstances, it could be the case that all the nodes of your cluster go down at the same time, something that Galera is not able to recover by itself, and it requires manual action to bring the cluster up again, as documented in the <a href="https://galeracluster.com/library/documentation/crash-recovery.html">Galera documentation</a>. Luckly enough, <code>mariadb-operator</code> has you covered and it encapsulates this operational expertise in the <code>MariaDB</code> CRD. You just need to declaratively specify <code>spec.galera</code>, as explained in more detail <a href="#configuration">later in this guide</a>.</p>
+<p>To accomplish this, after the MariaDB cluster has been provisioned, <code>mariadb-operator</code> will regularly monitor the cluster's status to make sure it is healthy. If any issues are detected, the operator will initiate the <a href="#galera-cluster-recovery">recovery process</a> to restore the cluster to a healthy state. During this process, the operator will set status conditions in the <code>MariaDB</code> and emit <code>Events</code> so you have a better understanding of the recovery progress and the underlying activities being performed. For example, you may want to know which <code>Pods</code> were out of sync to further investigate infrastructure-related issues (i.e. networking, storage...) on the nodes where these <code>Pods</code> were scheduled.</p>
+<h2 id="table-of-contents">Table of contents</h2>
+<!-- toc -->
+<ul>
+<li><a href="#components">Components</a></li>
+<li><a href="#mariadb-configuration"><code>MariaDB</code> configuration</a></li>
+<li><a href="#storage">Storage</a></li>
+<li><a href="#galera-cluster-recovery">Galera cluster recovery</a></li>
+<li><a href="#wsrep-provider">Wsrep provider</a></li>
+<li><a href="#ipv6-support">IPv6 support</a></li>
+<li><a href="#quickstart">Quickstart</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#common-errors">Common errors</a><ul>
+<li><a href="#permission-denied-writing-galera-configuration">Permission denied writing Galera configuration</a></li>
+<li><a href="#unauthorized-error-disabling-bootstrap">Unauthorized error disabling bootstrap</a></li>
+<li><a href="#timeout-waiting-for-pod-to-be-synced">Timeout waiting for Pod to be Synced</a></li>
+<li><a href="#galera-cluster-bootstrap-timed-out">Galera cluster bootstrap timed out</a></li>
+</ul>
+</li>
+<li><a href="#github-issues">GitHub Issues</a></li>
+<li><a href="#reference">Reference</a></li>
+</ul>
+<!-- /toc -->
+
+<h2 id="components">Components</h2>
+<p>To be able to effectively provision and recover MariaDB Galera clusters, the following components were introduced to co-operate with <code>mariadb-operator</code>:
+- <strong>init</strong>: Init container that dynamically provisions the Galera configuration file before the MariaDB container starts. Guarantees ordered deployment of <code>Pods</code> even if <code>spec.podManagementPolicy = Parallel</code> is set on the MariaDB <code>StatefulSet</code>, something crucial for performing the Galera recovery, as the operator needs to restart <code>Pods</code> independently.
+- <strong>agent</strong>: Sidecar agent that exposes the Galera state (<a href="https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/"><code>grastate.dat</code></a>) via HTTP and allows the operator to remotely bootstrap and recover the Galera cluster. For security reasons, it has authentication based on Kubernetes service accounts; this way only the operator is able to call the agent.</p>
+<p>All these components are available in the <code>ghcr.io/mariadb-operator mariadb-operator</code> image. More preciselly, they are subcommands of the CLI shipped as binary inside the image.</p>
+<h2 id="mariadb-configuration"><code>MariaDB</code> configuration</h2>
+<p>The easiest way to get a MariaDB Galera cluster up and running is setting <code>spec.galera.enabled = true</code>, like in this <a href="../examples/manifests/mariadb_galera.yaml">example</a>:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+...
+  replicas: 3
+
+  galera:
+    enabled: true
+</code></pre>
+<p>This relies on sensible defaults set by the operator, which may not be suitable for your Kubernetes cluster. This can be solved by overriding the defaults, as in this other <a href="../examples/manifests/mariadb_galera.yaml">example</a>, so you have fine-grained control over the Galera configuration.</p>
+<p>Refer to the <a href="#reference">reference</a> section to better understand the purpose of each field.</p>
+<h2 id="storage">Storage</h2>
+<p>By default, <code>mariadb-operator</code> provisions two PVCs for running Galera:
+- <strong>Storage PVC</strong>: Used to back the MariaDB data directory, mounted at <code>/var/lib/mysql</code>.
+- <strong>Config PVC</strong>: Where the Galera config files are located, mounted at <code>/etc/mysql/conf.d</code>.</p>
+<p>However, you are also able to use just one PVC for keeping both the data and the config files:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    config:
+      reuseStorageVolume: true
+</code></pre>
+<h2 id="galera-cluster-recovery">Galera cluster recovery</h2>
+<p><code>mariadb-operator</code> is able to monitor the Galera cluster and act accordinly to recover it if needed. This feature is enabled by default, but you may tune it as you need:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    recovery:
+      enabled: true
+      minClusterSize: 50%
+      clusterMonitorInterval: 10s
+      clusterHealthyTimeout: 30s
+      clusterBootstrapTimeout: 10m
+      podRecoveryTimeout: 3m
+      podSyncTimeout: 3m
+</code></pre>
+<p>The <code>minClusterSize</code> field indicates the minimum cluster size (either absolut number or percentage) for the operator to consider the cluster healthy. If the cluster is unhealthy for more than the period defined in <code>clusterHealthyTimeout</code>, a cluster recovery process is initiated by the operator. The process is explained in the <a href="https://galeracluster.com/library/documentation/crash-recovery.html">Galera documentation</a> and consists of the following steps:</p>
+<ul>
+<li>Recover the sequence number from the <code>grastate.dat</code> on each node.</li>
+<li>Put the nodes in recovery mode and restart them to obtain the sequence number. This step is skipped if we have already obtained a valid sequence number in the previous step.</li>
+<li>Mark the node with highest sequence (bootstrap node) as safe to bootstrap.</li>
+<li>Bootstrap a new cluster in the bootstrap node.</li>
+<li>Wait until the bootstrap node becomes ready.</li>
+<li>Restart the rest of the nodes one by one so they can join the new cluster.</li>
+</ul>
+<p>The operator monitors the Galera cluster health periodically and performs the cluster recovery described above if needed. You are able to tune the monitoring interval via the <code>clusterMonitorInterval</code> field.</p>
+<p>Refer to the <a href="#reference">reference</a> section to better understand the purpose of each field.</p>
+<h2 id="wsrep-provider">Wsrep provider</h2>
+<p>You are able to pass extra options to the Galera wsrep provider by using the <code>galera.providerOptions</code> field:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    providerOptions:
+      gcs.fc_limit: '64'
+</code></pre>
+<p>It is important to note that, the <code>ist.recv_addr</code> cannot be set by the user, as it is automatically configured to the <code>Pod</code> IP by the operator, something that an user won't be able to know beforehand.</p>
+<p>A list of the available options can be found in the <a href="https://mariadb.com/kb/en/wsrep_provider_options/">MariaDB documentation</a>.</p>
+<h2 id="ipv6-support">IPv6 support</h2>
+<p>If you have a Kubernetes cluster running with IPv6, the operator will automatically detect the IPv6 addresses of your <code>Pods</code> and it will configure several <a href="#wsrep-provider">wsrep provider</a> options to ensure that the Galera protocol runs smoothly with IPv6.</p>
+<h2 id="quickstart">Quickstart</h2>
+<p>First of all, install the following configuration manifests that will be referenced by the CRDs further:</p>
+<pre><code class="language-bash">kubectl apply -f examples/manifests/config
+</code></pre>
+<p>Next, you can proceed with the installation of a <code>MariaDB</code> instance with Galera support:</p>
+<pre><code class="language-bash">kubectl apply -f examples/manifests/mariadb_galera.yaml
+</code></pre>
+<pre><code class="language-bash">kubectl get mariadbs
+NAME             READY   STATUS    PRIMARY POD          AGE
+mariadb-galera   True    Running   mariadb-galera-0     48m
+
+kubectl get events --field-selector involvedObject.name=mariadb-galera --sort-by='.lastTimestamp'
+LAST SEEN   TYPE     REASON                 OBJECT                               MESSAGE
+...
+45m         Normal   GaleraClusterHealthy   mariadb/mariadb-galera               Galera cluster is healthy
+
+kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.conditions[?(@.type=='GaleraReady')]}&quot;
+{&quot;lastTransitionTime&quot;:&quot;2023-07-13T18:22:31Z&quot;,&quot;message&quot;:&quot;Galera ready&quot;,&quot;reason&quot;:&quot;GaleraReady&quot;,&quot;status&quot;:&quot;True&quot;,&quot;type&quot;:&quot;GaleraReady&quot;}
+
+kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.conditions[?(@.type=='GaleraConfigured')]}&quot;
+{&quot;lastTransitionTime&quot;:&quot;2023-07-13T18:22:31Z&quot;,&quot;message&quot;:&quot;Galera configured&quot;,&quot;reason&quot;:&quot;GaleraConfigured&quot;,&quot;status&quot;:&quot;True&quot;,&quot;type&quot;:&quot;GaleraConfigured&quot;}
+
+kubectl get statefulsets -o wide
+NAME             READY   AGE   CONTAINERS      IMAGES
+mariadb-galera   3/3     58m   mariadb,agent   mariadb:11.0.3,ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
+
+kubectl get pods -o wide
+NAME                                        READY   STATUS    RESTARTS   AGE   IP           NODE          NOMINATED NODE   READINESS GATES
+mariadb-galera-0                            2/2     Running   0          58m   10.244.2.4   mdb-worker3   &lt;none&gt;           &lt;none&gt;
+mariadb-galera-1                            2/2     Running   0          58m   10.244.1.9   mdb-worker2   &lt;none&gt;           &lt;none&gt;
+mariadb-galera-2                            2/2     Running   0          58m   10.244.5.4   mdb-worker4   &lt;none&gt;           &lt;none&gt;
+</code></pre>
+<p>Up and running. Let's now proceed with simulating a Galera cluster failure by deleting all the <code>Pods</code> at the same time:</p>
+<pre><code class="language-bash">kubectl delete pods -l app.kubernetes.io/instance=mariadb-galera
+pod &quot;mariadb-galera-0&quot; deleted
+pod &quot;mariadb-galera-1&quot; deleted
+pod &quot;mariadb-galera-2&quot; deleted
+</code></pre>
+<p>After some time, we will see the <code>MariaDB</code> entering a non <code>Ready</code> state:</p>
+<pre><code class="language-bash">kubectl get mariadb mariadb-galera
+NAME             READY   STATUS             PRIMARY POD             AGE
+mariadb-galera   False   Galera not ready   mariadb-galera-0        67m
+
+kubectl get events --field-selector involvedObject.name=mariadb-galera --sort-by='.lastTimestamp'
+LAST SEEN   TYPE      REASON                    OBJECT                       MESSAGE
+...
+48s         Warning   GaleraClusterNotHealthy   mariadb/mariadb-galera       Galera cluster is not healthy
+
+kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.conditions[?(@.type=='GaleraReady')]}&quot;
+{&quot;lastTransitionTime&quot;:&quot;2023-07-13T19:25:17Z&quot;,&quot;message&quot;:&quot;Galera not ready&quot;,&quot;reason&quot;:&quot;GaleraNotReady&quot;,&quot;status&quot;:&quot;False&quot;,&quot;type&quot;:&quot;GaleraReady&quot;}
+</code></pre>
+<p>Eventually, the operator will kick in and recover the Galera cluster:</p>
+<pre><code class="language-bash">kubectl get events --field-selector involvedObject.name=mariadb-galera --sort-by='.lastTimestamp'
+LAST SEEN   TYPE      REASON                    OBJECT                       MESSAGE
+...
+16m         Warning   GaleraClusterNotHealthy   mariadb/mariadb-galera       Galera cluster is not healthy
+16m         Normal    GaleraPodStateFetched     mariadb/mariadb-galera       Galera state fetched in Pod 'mariadb-galera-2'
+16m         Normal    GaleraPodStateFetched     mariadb/mariadb-galera       Galera state fetched in Pod 'mariadb-galera-1'
+16m         Normal    GaleraPodStateFetched     mariadb/mariadb-galera       Galera state fetched in Pod 'mariadb-galera-0'
+16m         Normal    GaleraPodRecovered        mariadb/mariadb-galera       Recovered Galera sequence in Pod 'mariadb-galera-1'
+16m         Normal    GaleraPodRecovered        mariadb/mariadb-galera       Recovered Galera sequence in Pod 'mariadb-galera-2'
+17m         Normal    GaleraPodRecovered        mariadb/mariadb-galera       Recovered Galera sequence in Pod 'mariadb-galera-0'
+17m         Normal    GaleraClusterBootstrap    mariadb/mariadb-galera       Bootstrapping Galera cluster in Pod 'mariadb-galera-2'
+20m         Normal    GaleraClusterHealthy      mariadb/mariadb-galera       Galera cluster is healthy
+
+kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.galeraRecovery}&quot;
+{&quot;bootstrap&quot;:{&quot;pod&quot;:&quot;mariadb-galera-2&quot;,&quot;time&quot;:&quot;2023-07-13T19:25:28Z&quot;},&quot;recovered&quot;:{&quot;mariadb-galera-0&quot;:{&quot;seqno&quot;:3,&quot;uuid&quot;:&quot;bf00b9c3-21a9-11ee-984f-9ba9ff0e9285&quot;},&quot;mariadb-galera-1&quot;:{&quot;seqno&quot;:3,&quot;uuid&quot;:&quot;bf00b9c3-21a9-11ee-984f-9ba9ff0e9285&quot;},&quot;mariadb-galera-2&quot;:{&quot;seqno&quot;:3,&quot;uuid&quot;:&quot;bf00b9c3-21a9-11ee-984f-9ba9ff0e9285&quot;}},&quot;state&quot;:{&quot;mariadb-galera-0&quot;:{&quot;safeToBootstrap&quot;:false,&quot;seqno&quot;:-1,&quot;uuid&quot;:&quot;bf00b9c3-21a9-11ee-984f-9ba9ff0e9285&quot;,&quot;version&quot;:&quot;2.1&quot;},&quot;mariadb-galera-1&quot;:{&quot;safeToBootstrap&quot;:false,&quot;seqno&quot;:-1,&quot;uuid&quot;:&quot;bf00b9c3-21a9-11ee-984f-9ba9ff0e9285&quot;,&quot;version&quot;:&quot;2.1&quot;},&quot;mariadb-galera-2&quot;:{&quot;safeToBootstrap&quot;:false,&quot;seqno&quot;:-1,&quot;uuid&quot;:&quot;bf00b9c3-21a9-11ee-984f-9ba9ff0e9285&quot;,&quot;version&quot;:&quot;2.1&quot;}}}
+</code></pre>
+<p>Finally, the <code>MariaDB</code> resource will become <code>Ready</code> and your Galera cluster will be operational again:</p>
+<pre><code class="language-bash">kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.conditions[?(@.type=='GaleraReady')]}&quot;
+{&quot;lastTransitionTime&quot;:&quot;2023-07-13T19:27:51Z&quot;,&quot;message&quot;:&quot;Galera ready&quot;,&quot;reason&quot;:&quot;GaleraReady&quot;,&quot;status&quot;:&quot;True&quot;,&quot;type&quot;:&quot;GaleraReady&quot;}
+
+kubectl get mariadb mariadb-galera
+NAME             READY   STATUS    PRIMARY POD   AGE
+mariadb-galera   True    Running   All           82m
+</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>The aim of this section is showing you how to diagnose your Galera cluster when something goes wrong. In this situations, observability is a key factor to understand the problem, so we recommend following these steps before jumping into debugging the problem.</p>
+<ul>
+<li>Inspect <code>MariaDB</code> status conditions.</li>
+</ul>
+<pre><code class="language-bash">kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status}&quot;
+{&quot;conditions&quot;:[{&quot;lastTransitionTime&quot;:&quot;2023-08-05T14:58:57Z&quot;,&quot;message&quot;:&quot;Galera not ready&quot;,&quot;reason&quot;:&quot;GaleraNotReady&quot;,&quot;status&quot;:&quot;False&quot;,&quot;type&quot;:&quot;Ready&quot;},{&quot;lastTransitionTime&quot;:&quot;2023-08-05T14:58:57Z&quot;,&quot;message&quot;:&quot;Galera not ready&quot;,&quot;reason&quot;:&quot;GaleraNotReady&quot;,&quot;status&quot;:&quot;False&quot;,&quot;type&quot;:&quot;GaleraReady&quot;},{&quot;lastTransitionTime&quot;:&quot;2023-08-03T19:21:16Z&quot;,&quot;message&quot;:&quot;Galera configured&quot;,&quot;reason&quot;:&quot;GaleraConfigured&quot;,&quot;status&quot;:&quot;True&quot;,&quot;type&quot;:&quot;GaleraConfigured&quot;}],&quot;currentPrimary&quot;:&quot;All&quot;,&quot;galeraRecovery&quot;:{&quot;bootstrap&quot;:{&quot;pod&quot;:&quot;mariadb-galera-1&quot;,&quot;time&quot;:&quot;2023-08-05T14:59:18Z&quot;},&quot;recovered&quot;:{&quot;mariadb-galera-0&quot;:{&quot;seqno&quot;:17,&quot;uuid&quot;:&quot;6ea235ec-3232-11ee-8152-4af03d2c43a9&quot;},&quot;mariadb-galera-1&quot;:{&quot;seqno&quot;:17,&quot;uuid&quot;:&quot;6ea235ec-3232-11ee-8152-4af03d2c43a9&quot;},&quot;mariadb-galera-2&quot;:{&quot;seqno&quot;:16,&quot;uuid&quot;:&quot;6ea235ec-3232-11ee-8152-4af03d2c43a9&quot;}},&quot;state&quot;:{&quot;mariadb-galera-0&quot;:{&quot;safeToBootstrap&quot;:false,&quot;seqno&quot;:-1,&quot;uuid&quot;:&quot;6ea235ec-3232-11ee-8152-4af03d2c43a9&quot;,&quot;version&quot;:&quot;2.1&quot;},&quot;mariadb-galera-1&quot;:{&quot;safeToBootstrap&quot;:false,&quot;seqno&quot;:-1,&quot;uuid&quot;:&quot;6ea235ec-3232-11ee-8152-4af03d2c43a9&quot;,&quot;version&quot;:&quot;2.1&quot;},&quot;mariadb-galera-2&quot;:{&quot;safeToBootstrap&quot;:false,&quot;seqno&quot;:-1,&quot;uuid&quot;:&quot;6ea235ec-3232-11ee-8152-4af03d2c43a9&quot;,&quot;version&quot;:&quot;2.1&quot;}}}}
+</code></pre>
+<ul>
+<li>Make sure network connectivity is fine by checking that you have an <code>Endpoint</code> per <code>Pod</code> in your Galera cluster.</li>
+</ul>
+<pre><code class="language-bash">kubectl get endpoints mariadb-galera-internal -o yaml
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: mariadb-internal
+subsets:
+- addresses:
+  - hostname: mariadb-1
+    ip: 10.255.140.181
+    nodeName: k8s-worker-1
+    targetRef:
+      kind: Pod
+      name: mariadb-1
+      namespace: mariadb
+  - hostname: mariadb-2
+    ip: 10.255.20.156
+    nodeName: k8s-worker-2
+    targetRef:
+      kind: Pod
+      name: mariadb-2
+      namespace: mariadb
+  - hostname: mariadb-0
+    ip: 10.255.214.164
+    nodeName: k8s-worker-0
+    targetRef:
+      kind: Pod
+      name: mariadb-0
+      namespace: mariadb
+  ports:
+  - name: sst
+    port: 4568
+    protocol: TCP
+  - name: ist
+    port: 4567
+    protocol: TCP
+  - name: mariadb
+    port: 3306
+    protocol: TCP
+  - name: agent
+    port: 5555
+    protocol: TCP
+  - name: cluster
+    port: 4444
+    protocol: TCP
+
+</code></pre>
+<ul>
+<li>Check the events associated with the <code>MariaDB</code> object, as they provide significant insights for diagnosis, particularly within the context of cluster recovery.</li>
+</ul>
+<pre><code class="language-bash">kubectl get events --field-selector involvedObject.name=mariadb-galera --sort-by='.lastTimestamp'
+LAST SEEN   TYPE      REASON                    OBJECT                       MESSAGE
+...
+16m         Warning   GaleraClusterNotHealthy   mariadb/mariadb-galera       Galera cluster is not healthy
+16m         Normal    GaleraPodStateFetched     mariadb/mariadb-galera       Galera state fetched in Pod 'mariadb-galera-2'
+16m         Normal    GaleraPodStateFetched     mariadb/mariadb-galera       Galera state fetched in Pod 'mariadb-galera-1'
+16m         Normal    GaleraPodStateFetched     mariadb/mariadb-galera       Galera state fetched in Pod 'mariadb-galera-0'
+16m         Normal    GaleraPodRecovered        mariadb/mariadb-galera       Recovered Galera sequence in Pod 'mariadb-galera-1'
+16m         Normal    GaleraPodRecovered        mariadb/mariadb-galera       Recovered Galera sequence in Pod 'mariadb-galera-2'
+17m         Normal    GaleraPodRecovered        mariadb/mariadb-galera       Recovered Galera sequence in Pod 'mariadb-galera-0'
+17m         Normal    GaleraClusterBootstrap    mariadb/mariadb-galera       Bootstrapping Galera cluster in Pod 'mariadb-galera-2'
+20m         Normal    GaleraClusterHealthy      mariadb/mariadb-galera       Galera cluster is healthy
+</code></pre>
+<ul>
+<li>Enable <code>debug</code> logs in <code>mariadb-operator</code>.</li>
+</ul>
+<pre><code class="language-bash">helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --set logLevel=debug
+kubectl logs mariadb-operator-546c78f4f5-gq44k
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1691090524.4911606,&quot;logger&quot;:&quot;galera.health&quot;,&quot;msg&quot;:&quot;Checking Galera cluster health&quot;,&quot;controller&quot;:&quot;statefulset&quot;,&quot;controllerGroup&quot;:&quot;apps&quot;,&quot;controllerKind&quot;:&quot;StatefulSet&quot;,&quot;statefulSet&quot;:{&quot;name&quot;:&quot;mariadb-galera&quot;,&quot;namespace&quot;:&quot;default&quot;},&quot;namespace&quot;:&quot;default&quot;,&quot;name&quot;:&quot;mariadb-galera&quot;,&quot;reconcileID&quot;:&quot;098620db-4486-45cc-966a-9f3fec0d165e&quot;}
+{&quot;level&quot;:&quot;debug&quot;,&quot;ts&quot;:1691090524.4911761,&quot;logger&quot;:&quot;galera.health&quot;,&quot;msg&quot;:&quot;StatefulSet ready replicas&quot;,&quot;controller&quot;:&quot;statefulset&quot;,&quot;controllerGroup&quot;:&quot;apps&quot;,&quot;controllerKind&quot;:&quot;StatefulSet&quot;,&quot;statefulSet&quot;:{&quot;name&quot;:&quot;mariadb-galera&quot;,&quot;namespace&quot;:&quot;default&quot;},&quot;namespace&quot;:&quot;default&quot;,&quot;name&quot;:&quot;mariadb-galera&quot;,&quot;reconcileID&quot;:&quot;098620db-4486-45cc-966a-9f3fec0d165e&quot;,&quot;replicas&quot;:1}
+</code></pre>
+<ul>
+<li>Get the logs of all the <code>MariaDB</code> <code>Pod</code> containers, not only of the main <code>mariadb</code> container but also the <code>agent</code> and <code>init</code> ones.</li>
+</ul>
+<pre><code class="language-bash">kubectl logs mariadb-galera-0 -c init
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1691090778.5239124,&quot;msg&quot;:&quot;Starting init&quot;}
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1691090778.5305626,&quot;msg&quot;:&quot;Configuring Galera&quot;}
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1691090778.5307593,&quot;msg&quot;:&quot;Already initialized. Init done&quot;}
+
+kubectl logs mariadb-galera-0 -c agent
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:1691090779.3193653,&quot;logger&quot;:&quot;server&quot;,&quot;msg&quot;:&quot;server listening&quot;,&quot;addr&quot;:&quot;:5555&quot;}
+2023/08/03 19:26:28 &quot;POST http://mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local:5555/api/recovery HTTP/1.1&quot; from 10.244.4.2:39162 - 200 58B in 4.112086ms
+2023/08/03 19:26:28 &quot;DELETE http://mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local:5555/api/recovery HTTP/1.1&quot; from 10.244.4.2:39162 - 200 0B in 883.544µs
+
+kubectl logs mariadb-galera-0 -c mariadb
+2023-08-03 19:27:10 0 [Note] WSREP: Member 2.0 (mariadb-galera-0) synced with group.
+2023-08-03 19:27:10 0 [Note] WSREP: Processing event queue:...100.0% (1/1 events) complete.
+2023-08-03 19:27:10 0 [Note] WSREP: Shifting JOINED -&gt; SYNCED (TO: 6)
+2023-08-03 19:27:10 2 [Note] WSREP: Server mariadb-galera-0 synced with group
+2023-08-03 19:27:10 2 [Note] WSREP: Server status change joined -&gt; synced
+2023-08-03 19:27:10 2 [Note] WSREP: Synchronized with group, ready for connections
+</code></pre>
+<p>Once you are done with these steps, you will have the context required to jump ahead to the <a href="#common-errors">Common errors</a> section to see if any of them matches your case.  If they don't, feel free to open an issue or even a PR updating this document if you managed to resolve it.</p>
+<h3 id="common-errors">Common errors</h3>
+<h4 id="permission-denied-writing-galera-configuration">Permission denied writing Galera configuration</h4>
+<p>This error occurs when the user that runs the container does not have enough privileges to write in <code>/etc/mysql/mariadb.conf.d</code>:</p>
+<pre><code class="language-bash"> Error writing Galera config: open /etc/mysql/mariadb.conf.d/0-galera.cnf: permission denied
+</code></pre>
+<p>To mitigate this, by default, the operator sets the following <code>securityContext</code> in the <code>MariaDB</code>'s <code>StatefulSet</code> :</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb-galera
+spec:
+  securityContext:
+    fsGroup: 999
+    runAsGroup: 999
+    runAsNonRoot: true
+    runAsUser: 999
+</code></pre>
+<p>This enables the <code>CSIDriver</code> and the kubelet to recursively set the ownership ofr the <code>/etc/mysql/mariadb.conf.d</code> folder to the group <code>999</code>, which is the one expected by MariaDB. It is important to note that not all the <code>CSIDrivers</code> implementations support this feature, see the <a href="https://kubernetes-csi.github.io/docs/support-fsgroup.html">CSIDriver documentation</a> for further information.</p>
+<h4 id="unauthorized-error-disabling-bootstrap">Unauthorized error disabling bootstrap</h4>
+<pre><code class="language-bash">Error reconciling Galera: error disabling bootstrap in Pod 0: unauthorized
+</code></pre>
+<p>This situation occurs when the <code>mariadb-operator</code> credentials passed to the <code>agent</code> as authentication are either invalid or the <code>agent</code> is unable to verify them. To confirm this, ensure that both the <code>mariadb-operator</code> and the <code>MariaDB</code> <code>ServiceAccounts</code> are able to create <code>TokenReview</code> objects:</p>
+<pre><code class="language-bash">kubectl auth can-i --list --as=system:serviceaccount:default:mariadb-operator | grep tokenreview
+tokenreviews.authentication.k8s.io              []                                    []               [create]
+
+kubectl auth can-i --list --as=system:serviceaccount:default:mariadb-galera | grep tokenreview
+tokenreviews.authentication.k8s.io              []                                    []               [create]
+</code></pre>
+<p>If that's not the case, check that the following <code>ClusterRole</code> and <code>ClusterRoleBindings</code> are available in your cluster:</p>
+<pre><code class="language-bash">kubectl get clusterrole system:auth-delegator
+NAME                    CREATED AT
+system:auth-delegator   2023-08-03T19:12:37Z
+
+kubectl get clusterrolebinding | grep mariadb | grep auth-delegator
+mariadb-galera:auth-delegator                     ClusterRole/system:auth-delegator                                                  108m
+mariadb-operator:auth-delegator                        ClusterRole/system:auth-delegator                                                  112m
+</code></pre>
+<p><code>mariadb-operator:auth-delegator</code> is the <code>ClusterRoleBinding</code> bound to the <code>mariadb-operator</code> <code>ServiceAccount</code> which is created by the helm chart, so you can re-install the helm release in order to recreate it:</p>
+<pre><code class="language-bash"> helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator
+</code></pre>
+<p><code>mariadb-galera:auth-delegator</code> is the <code>ClusterRoleBinding</code> bound to the <code>mariadb-galera</code> <code>ServiceAccount</code> which is created on the flight by the operator as part of the reconciliation logic. You may check the <code>mariadb-operator</code> logs to see if there are any issues reconciling it.</p>
+<p>Bear in mind that <code>ClusterRoleBindings</code> are cluster-wide resources that are not garbage collected when the <code>MariaDB</code> owner object is deleted, which means that creating and deleting <code>MariaDBs</code> could leave leftovers in your cluster. These leftovers can lead to RBAC misconfigurations, as the <code>ClusterRoleBinding</code> might not be pointing to the right <code>ServiceAccount</code>. To overcome this, you can override the <code>ClusterRoleBinding</code> name setting the <code>spec.galera.agent.kubernetesAuth.authDelegatorRoleName</code> field.</p>
+<h4 id="timeout-waiting-for-pod-to-be-synced">Timeout waiting for Pod to be Synced</h4>
+<pre><code class="language-bash">Timeout waiting for Pod 'mariadb-galera-2' to be Synced
+</code></pre>
+<p>This error appears in the <code>mariadb-operator</code> logs when a <code>Pod</code> is in non synced state for a duration exceeding the <code>spec.galera.recovery.podRecoveryTimeout</code>. Just after, the operator will restart the <code>Pod</code>.</p>
+<p>Increase this timeout if you consider that your <code>Pod</code> may take longer to recover.</p>
+<h4 id="galera-cluster-bootstrap-timed-out">Galera cluster bootstrap timed out</h4>
+<pre><code class="language-bash">Galera cluster bootstrap timed out. Resetting recovery status
+</code></pre>
+<p>This is error is returned by the <code>mariadb-operator</code> after exceeding the <code>spec.galera.recovery.clusterBootstrapTimeout</code> when recovering the cluster. At this point, the operator will reset the recovered sequence numbers and start again from a clean state.</p>
+<p>Increase this timeout if you consider that your Galera cluster may take longer to recover.</p>
+<h3 id="github-issues">GitHub Issues</h3>
+<p>Here it is a list of Galera-related issues reported by <code>mariadb-operator</code> users which might shed some light in your investigation:
+- https://github.com/mariadb-operator/mariadb-operator/issues?q=label%3Agalera+</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="../API_REFERENCE/">API reference</a></li>
+<li><a href="../examples/">Example suite</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
+      
+    
+  </body>
+</html>
