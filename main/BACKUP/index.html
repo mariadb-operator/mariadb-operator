@@ -355,15 +355,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#storage-types" class="md-nav__link">
     <span class="md-ellipsis">
       Storage types
@@ -748,106 +739,6 @@
   
 
     
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.20
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.21
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.24
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.26
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.28
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
   </ul>
 </nav>
                   </div>
@@ -873,15 +764,6 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
       
         <li class="md-nav__item">
   <a href="#storage-types" class="md-nav__link">
@@ -1079,42 +961,7 @@
 
 
 <h1 id="backup-and-restore">Backup and Restore</h1>
-<blockquote>
-<p>[!NOTE]<br />
-This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.28</p>
-</blockquote>
 <p><code>mariadb-operator</code> allows you to declarativaly take backups by defining <code>Backup</code> resources and later on restore them by using their <code>Restore</code> counterpart. These resources get reconciled into <code>Job</code>/<code>CronJob</code> resources that automatically perform the backup/restore operations, so you don't need to manually script them.</p>
-<h2 id="table-of-contents">Table of contents</h2>
-<!-- toc -->
-<ul>
-<li><a href="#storage-types">Storage types</a></li>
-<li><a href="#backup-cr"><code>Backup</code> CR</a><ul>
-<li><a href="#scheduling">Scheduling</a></li>
-<li><a href="#retention-policy">Retention policy</a></li>
-</ul>
-</li>
-<li><a href="#restore-cr"><code>Restore</code> CR</a><ul>
-<li><a href="#target-recovery-time">Target recovery time</a></li>
-</ul>
-</li>
-<li><a href="#bootstrap-new-mariadb-instances">Bootstrap new <code>MariaDB</code> instances</a></li>
-<li><a href="#backup-and-restore-specific-databases">Backup and restore specific databases</a></li>
-<li><a href="#extra-options">Extra options</a></li>
-<li><a href="#galera-backup-limitations">Galera backup limitations</a><ul>
-<li><a href="#mysqlglobal_priv"><code>mysql.global_priv</code></a></li>
-<li><a href="#lock-tables"><code>LOCK TABLES</code></a></li>
-</ul>
-</li>
-<li><a href="#migrating-to-a-mariadb-with-different-topology">Migrating to a <code>MariaDB</code> with different topology</a><ul>
-<li><a href="#migrating-between-standalone-and-replicated-mariadbs">Migrating between standalone and replicated <code>MariaDBs</code></a></li>
-<li><a href="#migrating-from-standalonereplicated-to-galera-mariadbs">Migrating from standalone/replicated to Galera <code>MariaDBs</code></a></li>
-</ul>
-</li>
-<li><a href="#minio-reference-installation">Minio reference installation</a></li>
-<li><a href="#reference">Reference</a></li>
-</ul>
-<!-- /toc -->
-
 <h2 id="storage-types">Storage types</h2>
 <p>Currently, the following storage types are supported:
 - <strong><a href="../examples/manifests/backup_s3.yaml">S3</a> compatible storage</strong>: Store backups in a S3 compatible storage, such as <a href="https://aws.amazon.com/s3/">AWS S3</a> or <a href="https://github.com/minio/minio">Minio</a>. 

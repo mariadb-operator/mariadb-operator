@@ -495,15 +495,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#operator-metrics" class="md-nav__link">
     <span class="md-ellipsis">
       Operator metrics
@@ -634,106 +625,6 @@
   
 
     
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.20
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.21
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.24
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.26
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.28
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
   </ul>
 </nav>
                   </div>
@@ -759,15 +650,6 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
       
         <li class="md-nav__item">
   <a href="#operator-metrics" class="md-nav__link">
@@ -851,24 +733,7 @@
 
 
 <h1 id="prometheus-metrics">Prometheus metrics</h1>
-<blockquote>
-<p>[!NOTE]<br />
-This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.24</p>
-</blockquote>
 <p><code>mariadb-operator</code> is able to provision MariaDB instances and automatically configure <a href="https://github.com/prometheus/prometheus">Prometheus</a> to scrape their metrics so they can be used later on to build <a href="#grafana-dashboards">Grafana dashboards</a> or trigger Alertmanager alerts.</p>
-<h2 id="table-of-contents">Table of contents</h2>
-<!-- toc -->
-<ul>
-<li><a href="#operator-metrics">Operator metrics</a></li>
-<li><a href="#exporter">Exporter</a></li>
-<li><a href="#servicemonitor"><code>ServiceMonitor</code></a></li>
-<li><a href="#configuration">Configuration</a></li>
-<li><a href="#prometheus-reference-installation">Prometheus reference installation</a></li>
-<li><a href="#grafana-dashboards">Grafana dashboards</a></li>
-<li><a href="#reference">Reference</a></li>
-</ul>
-<!-- /toc -->
-
 <h2 id="operator-metrics">Operator metrics</h2>
 <p>In order to expose the operator internal metrics, please refer to the <a href="../README.md#recommended-installation">recommended installation</a> flavour.</p>
 <h2 id="exporter">Exporter</h2>
