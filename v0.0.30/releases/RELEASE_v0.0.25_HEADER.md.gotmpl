@@ -1,0 +1,20 @@
+龙年快乐🐲! (Happy Year of the Dragon🐲!)
+
+🚀 In the very first release of the year we are excited to announce that we are introducing support for ✨**MaxScale**✨: a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB. It provides a range of features that ensure optimal high availability:
+  - Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
+  - Connection-based routing: Load balance connections between multiple servers.
+  - Automatic primary failover based on MariaDB internals.
+  - Replay pending transactions when a server goes down.
+  - Support for Galera and Replication.
+
+Please take a look at the [MaxScale docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md) for getting started with it.
+
+💨 We have also introduced support for provisioning MariaDBs with empty root password and ephemeral storage, take a look at [this example](https://github.com/mariadb-operator/mariadb-operator/blob/cdf83d7a7b7c05de63943f6242dd8fdb55f8dced/examples/manifests/mariadb_v1alpha1_mariadb_minimal.yaml). This has multiple use cases, such as provisioning MariaDB instances for your CI tests without hassle. Kudos to our new contributor @Hoega for stepping in and contributing with multiple PRs! 🙇
+
+🪣 Support for prefixes in the S3 storage by @addreas, another new contributor! 🙇
+
+🙌 Multiple improvements made by our amazing community. Take a look at the changelog below.
+
+🤝 We value your feedback! If you encounter any issues or have suggestions, please [open an issue on GitHub](https://github.com/mariadb-operator/mariadb-operator/issues/new/choose). Your input is crucial to improve `{{ .ProjectName }}`🦭.
+
+👥 Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.

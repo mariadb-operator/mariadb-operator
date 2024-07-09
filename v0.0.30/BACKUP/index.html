@@ -1,0 +1,1475 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../API_REFERENCE/">
+      
+      
+        <link rel="next" href="../CONFIGURATION/">
+      
+      
+      <link rel="icon" href="../assets/mariadb_favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.27">
+    
+    
+      
+        <title>Backup and Restore - MariaDB Operator</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  <img referrerpolicy="no-referrer-when-downgrade" style="display: none;" src="https://static.scarf.sh/a.png?x-pxid=add331e0-a0f4-4810-af67-31067a199fa4" />
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="mariadb-blue" data-md-color-accent="cyan">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#backup-and-restore" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),outdated=__md_get("__outdated",sessionStorage);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+      
+  <img src="../assets/mariadb_medium.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MariaDB Operator
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Backup and Restore
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="mariadb-blue" data-md-color-accent="cyan"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="mariadb-blue" data-md-color-accent="cyan"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mariadb-operator/mariadb-operator" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mariadb-operator
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+      
+  <img src="../assets/mariadb_medium.svg" alt="logo">
+
+    </a>
+    MariaDB Operator
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mariadb-operator/mariadb-operator" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mariadb-operator
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Welcome to MkDocs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API_REFERENCE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Backup and Restore
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Backup and Restore
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Storage types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup CR
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backup CR">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scheduling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retention-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Retention policy
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restore-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      Restore CR
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Restore CR">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#target-recovery-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      Target recovery time
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap-new-mariadb-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bootstrap new MariaDB instances
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-and-restore-specific-databases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup and restore specific databases
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extra-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extra options
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#galera-backup-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera backup limitations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Galera backup limitations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mysqlglobal_priv" class="md-nav__link">
+    <span class="md-ellipsis">
+      mysql.global_priv
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lock-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      LOCK TABLES
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migrating-to-a-mariadb-with-different-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrating to a MariaDB with different topology
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migrating to a MariaDB with different topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#migrating-between-standalone-and-replicated-mariadbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrating between standalone and replicated MariaDBs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#migrating-from-standalonereplicated-to-galera-mariadbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrating from standalone/replicated to Galera MariaDBs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minio-reference-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Minio reference installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reference
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONFIGURATION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEVELOPMENT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Development guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GALERA/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    High availability via Galera
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../HA/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    High availability
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MAXSCALE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MaxScale
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../METADATA/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Metadata
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../METRICS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prometheus metrics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../REGISTRY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Registry
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STORAGE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Storage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPDATES/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Updates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.20
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.21
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.24
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.26
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.28
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Storage types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup CR
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backup CR">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scheduling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retention-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Retention policy
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restore-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      Restore CR
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Restore CR">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#target-recovery-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      Target recovery time
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap-new-mariadb-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bootstrap new MariaDB instances
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-and-restore-specific-databases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup and restore specific databases
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extra-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extra options
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#galera-backup-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera backup limitations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Galera backup limitations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mysqlglobal_priv" class="md-nav__link">
+    <span class="md-ellipsis">
+      mysql.global_priv
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lock-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      LOCK TABLES
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migrating-to-a-mariadb-with-different-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrating to a MariaDB with different topology
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migrating to a MariaDB with different topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#migrating-between-standalone-and-replicated-mariadbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrating between standalone and replicated MariaDBs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#migrating-from-standalonereplicated-to-galera-mariadbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrating from standalone/replicated to Galera MariaDBs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minio-reference-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Minio reference installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reference
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="backup-and-restore">Backup and Restore</h1>
+<blockquote>
+<p>[!NOTE]<br />
+This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.28</p>
+</blockquote>
+<p><code>mariadb-operator</code> allows you to declarativaly take backups by defining <code>Backup</code> resources and later on restore them by using their <code>Restore</code> counterpart. These resources get reconciled into <code>Job</code>/<code>CronJob</code> resources that automatically perform the backup/restore operations, so you don't need to manually script them.</p>
+<h2 id="table-of-contents">Table of contents</h2>
+<!-- toc -->
+<ul>
+<li><a href="#storage-types">Storage types</a></li>
+<li><a href="#backup-cr"><code>Backup</code> CR</a><ul>
+<li><a href="#scheduling">Scheduling</a></li>
+<li><a href="#retention-policy">Retention policy</a></li>
+</ul>
+</li>
+<li><a href="#restore-cr"><code>Restore</code> CR</a><ul>
+<li><a href="#target-recovery-time">Target recovery time</a></li>
+</ul>
+</li>
+<li><a href="#bootstrap-new-mariadb-instances">Bootstrap new <code>MariaDB</code> instances</a></li>
+<li><a href="#backup-and-restore-specific-databases">Backup and restore specific databases</a></li>
+<li><a href="#extra-options">Extra options</a></li>
+<li><a href="#galera-backup-limitations">Galera backup limitations</a><ul>
+<li><a href="#mysqlglobal_priv"><code>mysql.global_priv</code></a></li>
+<li><a href="#lock-tables"><code>LOCK TABLES</code></a></li>
+</ul>
+</li>
+<li><a href="#migrating-to-a-mariadb-with-different-topology">Migrating to a <code>MariaDB</code> with different topology</a><ul>
+<li><a href="#migrating-between-standalone-and-replicated-mariadbs">Migrating between standalone and replicated <code>MariaDBs</code></a></li>
+<li><a href="#migrating-from-standalonereplicated-to-galera-mariadbs">Migrating from standalone/replicated to Galera <code>MariaDBs</code></a></li>
+</ul>
+</li>
+<li><a href="#minio-reference-installation">Minio reference installation</a></li>
+<li><a href="#reference">Reference</a></li>
+</ul>
+<!-- /toc -->
+
+<h2 id="storage-types">Storage types</h2>
+<p>Currently, the following storage types are supported:
+- <strong><a href="../examples/manifests/backup_s3.yaml">S3</a> compatible storage</strong>: Store backups in a S3 compatible storage, such as <a href="https://aws.amazon.com/s3/">AWS S3</a> or <a href="https://github.com/minio/minio">Minio</a>. 
+- <strong><a href="../examples/manifests/backup.yaml">PVCs</a></strong>: Use the available <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/">StorageClasses</a> in your Kubernetes cluster to provision a PVC dedicated to store the backup files.
+- <strong><a href="../examples/manifests/backup_nfs.yaml">Kubernetes volumes</a></strong>: Use any of the <a href="https://kubernetes.io/docs/concepts/storage/volumes/#volume-types">volume types</a> supported natively by Kubernetes.</p>
+<p>Our recommendation is to store the backups externally in a <a href="../examples/manifests/backup.yaml">S3</a> compatible storage. <a href="https://github.com/minio/minio">Minio</a> makes this incredibly easy, take a look at our <a href="#minio-reference-installation">Minio reference installation</a> to quickly spin up an instance.</p>
+<h2 id="backup-cr"><code>Backup</code> CR</h2>
+<p>You can take a one-time backup of your <code>MariaDB</code> instance by declaring the following resource:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  storage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
+</code></pre>
+<p>This will use the default <code>StorageClass</code> to provision a PVC that would hold the backup files, but ideally you should use a S3 compatible storage:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  storage:
+    s3:
+      bucket: backups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region:  us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+</code></pre>
+<p>By providing the authentication details and the TLS configuration via references to <code>Secret</code> keys, this example will store the backups in a local Minio instance.</p>
+<h4 id="scheduling">Scheduling</h4>
+<p>To minimize the Recovery Point Objective (RPO) and mitigate the risk of data loss, it is recommended to perform backups regularly. You can do so by providing a <code>spec.schedule</code> in your <code>Backup</code> resource:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-scheduled
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: backup
+  schedule:
+    cron: &quot;*/1 * * * *&quot;
+    suspend: false
+</code></pre>
+<p>This resource gets reconciled into a <code>CronJob</code> that periodically takes the backups.</p>
+<p>It is important to note that regularly scheduled <code>Backups</code> complement very well the <a href="#target-recovery-time">target recovery time</a> feature detailed below.</p>
+<h4 id="retention-policy">Retention policy</h4>
+<p>Given that the backups can consume a substantial amount of storage, it is crucial to define your retention policy by providing the <code>spec.maxRetention</code> field in your <code>Backup</code> resource:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-scheduled
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: backup
+  maxRetention: 720h # 30 days
+</code></pre>
+<p>By default, it will be set to <code>720h</code> (30 days), indicating that backups older than 30 days will be automatically deleted.</p>
+<h2 id="restore-cr"><code>Restore</code> CR</h2>
+<p>You can easily restore a <code>Backup</code> in your <code>MariaDB</code> instance by creating the following resource:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: backup
+</code></pre>
+<p>This will trigger a <code>Job</code> that will mount the same storage as the <code>Backup</code> and apply the dump to your <code>MariaDB</code> database.</p>
+<p>Nevertheless, the <code>Restore</code> resource doesn't necessarily need to specify a <code>spec.backupRef</code>, you can point to other storage source that contains backup files, for example a S3 bucket:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  mariaDbRef:
+    name: mariadb
+  s3:
+    bucket: backups
+    prefix: mariadb
+    endpoint: minio.minio.svc.cluster.local:9000
+    region:  us-east-1
+    accessKeyIdSecretKeyRef:
+      name: minio
+      key: access-key-id
+    secretAccessKeySecretKeyRef:
+      name: minio
+      key: secret-access-key
+    tls:
+      enabled: true
+      caSecretKeyRef:
+        name: minio-ca
+        key: ca.crt
+</code></pre>
+<h4 id="target-recovery-time">Target recovery time</h4>
+<p>If you have multiple backups available, specially after configuring a <a href="#scheduling">scheduled Backup</a>, the operator is able to infer which backup to restore based on the <code>spec.targetRecoveryTime</code> field.</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: backup
+  targetRecoveryTime: 2023-12-19T09:00:00Z
+</code></pre>
+<p>The operator will look for the closest backup available and utilize it to restore your <code>MariaDB</code> instance.</p>
+<p>By default, <code>spec.targetRecoveryTime</code> will be set to the current time, which means that the latest available backup will be used.</p>
+<h2 id="bootstrap-new-mariadb-instances">Bootstrap new <code>MariaDB</code> instances</h2>
+<p>To minimize your Recovery Time Objective (RTO) and to switfly spin up new clusters from existing <code>Backups</code>, you can provide a <code>Restore</code> source directly in the <code>MariaDB</code> object via the <code>spec.bootstrapFrom</code> field:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-from-backup
+spec:
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+  bootstrapFrom:
+    backupRef:
+      name: backup
+    targetRecoveryTime: 2023-12-19T09:00:00Z
+</code></pre>
+<p>As in the <code>Restore</code> resource, you don't strictly need to specify a reference to a <code>Backup</code>, you can provide other storage types that contain backup files:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-from-backup
+spec:
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 1Gi
+    accessModes:
+      - ReadWriteOnce
+  bootstrapFrom:
+    s3:
+      bucket: backups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+    targetRecoveryTime: 2023-12-19T09:00:00Z
+</code></pre>
+<p>Under the hood, the operator creates a <code>Restore</code> object just after the <code>MariaDB</code> resource becomes ready. The advantage of using <code>spec.bootstrapFrom</code> over a standalone <code>Restore</code> is that the <code>MariaDB</code> is bootstrap-aware and this will allow the operator to hold primary switchover/failover operations until the restoration is finished.</p>
+<h2 id="backup-and-restore-specific-databases">Backup and restore specific databases</h2>
+<p>By default, all the logical databases are backed up when a <code>Backup</code> is created, but you may also select specific databases by providing the <code>databases</code> field:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  databases:
+    - db1
+    - db2
+    - db3
+</code></pre>
+<p>When it comes to restore, all the databases available in the backup will be restored, but you may also choose a single database to be restored via the  <code>database</code> field available in the <code>Restore</code> resource:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: backup
+  databases: db1
+</code></pre>
+<p>There are a couple of points to consider here:
+- The referred database (<code>db1</code> in the example) must previously exist for the <code>Restore</code> to succeed.
+- The <code>mariadb</code> CLI invoked by the operator under the hood only supports selecting a single database to restore via the <a href="https://mariadb.com/kb/en/mariadb-command-line-client/#-o-one-database"><code>--one-database</code></a> option, restoration of multiple specific databases is not supported.</p>
+<h2 id="extra-options">Extra options</h2>
+<p>Not all the flags supported by <code>mariadb-dump</code> and <code>mariadb</code> have their counterpart field in the <code>Backup</code> and <code>Restore</code> CRs respectively, but you may pass extra options by using the <code>args</code> field. For example, setting the <code>--verbose</code> flag can be helpful to track the progress of backup and restore operations:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  args:
+    - --verbose
+</code></pre>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  mariaDbRef:
+    name: mariadb
+  backupRef:
+    name: backup
+  args:
+    - --verbose
+</code></pre>
+<p>Refer to the <code>mariadb-dump</code> and <code>mariadb</code> CLI options in the <a href="#reference">reference</a> section.</p>
+<h2 id="galera-backup-limitations">Galera backup limitations</h2>
+<h4 id="mysqlglobal_priv"><code>mysql.global_priv</code></h4>
+<p>Galera only replicates the tables with InnoDB engine:
+- https://galeracluster.com/library/kb/user-changes.html</p>
+<p>Something that does not include <code>mysql.global_priv</code>: the table used to store users and grants. This basically means that a Galera instance with <code>mysql.global_priv</code> populated will not replicate this data to an empty Galera instance. This is something to take into account when defining your backup strategy.</p>
+<p>By default, the SQL dumps generated by the <code>Backup</code> resource include <code>DROP TABLE</code> statements to make the backup process idempotent. When they are restored in a <code>MariaDB</code> with Galera enabled, the <code>DROP TABLE</code> is propagated to the replicas, but not its data, resulting in authentication errors in the replicas. This is specially critical because the <code>livenessProbes</code> will fail with authentication errors, resulting in <code>Pods</code> restarting. More information can be found in https://github.com/mariadb-operator/mariadb-operator/issues/556.</p>
+<p>To overcome this, the operator automatically adds the <code>--ignore-table</code> option to ignore the <code>mysql.global_priv</code> when backing up a <code>MariaDB</code> with Galera enabled. This implies that <code>mysql.global_priv</code> will be skipped in backups and its recreation will rely in either:
+- MariaDB image entrypoint, by using the <code>spec.rootPasswordSecretKeyRef</code>, <code>spec.username</code> and <code>spec.passwordSecretKeyRef</code> fields of the <code>MariaDB</code> CR.
+- The <code>User</code> and <code>Grant</code> CRs, which will be eventually reconciled by the operator.</p>
+<p>In any case, you are able to opt-out from this feature by setting the <code>spec.ignoreGlobalPriv=false</code> in the <code>Backup</code> resource:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  ignoreGlobalPriv: false
+</code></pre>
+<h4 id="lock-tables"><code>LOCK TABLES</code></h4>
+<p>Galera is not compatible with the <code>LOCK TABLES</code> statement:
+- https://mariadb.com/kb/en/lock-tables/#limitations</p>
+<p>For this reason, the operator automatically adds the <code>--skip-add-locks</code> option to the <code>Backup</code> to overcome this limitation.</p>
+<h2 id="migrating-to-a-mariadb-with-different-topology">Migrating to a <code>MariaDB</code> with different topology</h2>
+<p>Logical backups serve not just as a source of restoration, but also enable data mobility between <code>MariaDB</code> instances. These backups are called "logical" because they are independent from the <code>MariaDB</code> topology, as they only contain DDLs and <code>INSERT</code> statements to populate data.</p>
+<p>Although backing up and restoring data from <code>MariaDBs</code> with different topologies is possible, there are a couple of technical details that you need to be aware of in the following scenarios:</p>
+<h4 id="migrating-between-standalone-and-replicated-mariadbs">Migrating between standalone and replicated <code>MariaDBs</code></h4>
+<p>This should be fully compatible, no issues have been detected.</p>
+<h4 id="migrating-from-standalonereplicated-to-galera-mariadbs">Migrating from standalone/replicated to Galera <code>MariaDBs</code></h4>
+<p>There are a couple of limitations regarding the backups in Galera, please make sure you read the <a href="#galera-backup-limitations">Galera backup limitations</a> section before proceeding.</p>
+<p>To overcome this limitations, the <code>Backup</code> in the standalone/replicated instance needs to be taken with <code>spec.ignoreGlobalPriv=true</code>. In the following example, we are backing up a standalone <code>MariaDB</code> (single instance):</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-standalone
+spec:
+  mariaDbRef:
+    name: mariadb-standalone
+  ignoreGlobalPriv: true
+</code></pre>
+<p>Once the previous <code>Backup</code> is completed, we will be able bootstrap a new Galera instance from it:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  galera:
+    enabled: true
+  bootstrapFrom:
+    backupRef:
+      name: backup-standalone
+</code></pre>
+<h2 id="minio-reference-installation">Minio reference installation</h2>
+<p>The easiest way to get a S3 compatible storage is <a href="https://github.com/minio/minio">Minio</a>. You can install it by using their <a href="https://github.com/minio/minio/tree/master/helm/minio">helm chart</a>, or, if you are looking for a production-grade deployment, take a look at their <a href="https://github.com/minio/operator">operator</a>.</p>
+<p>In our case, we have have <a href="../hack/config/minio.yaml">configured</a> a Minio instance for <a href="../DEVELOPMENT/">development</a> purposes, you can easily install it by running:</p>
+<pre><code class="language-bash">make cluster
+make install-minio
+make net # to access the console via a MetalLB LoadBalancer: https://minio-console:9001
+</code></pre>
+<p>As an alternative, you can also use <a href="https://play.min.io/">play.min.io</a> using these <a href="../examples/manifests/config/minio-secret.yaml">credentials</a>.</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="../API_REFERENCE/">API reference</a></li>
+<li><a href="../examples/">Example suite</a></li>
+<li><a href="https://mariadb.com/kb/en/mariadb-dump/#options"><code>mariadb-dump</code> options</a></li>
+<li><a href="https://mariadb.com/kb/en/mariadb-command-line-client/#options"><code>mariadb</code> options</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
+      
+    
+  </body>
+</html>
