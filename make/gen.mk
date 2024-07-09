@@ -99,7 +99,7 @@ examples: examples-operator examples-mariadb examples-maxscale examples-exporter
 ifneq ($(findstring -dev,$(VERSION)),)
 generate: manifests code embed-entrypoint
 else
-generate: manifests code embed-entrypoint helm manifests-bundle docs examples
+generate: manifests code embed-entrypoint helm manifests-bundle docs-gen examples
 endif
 
 .PHONY: gen

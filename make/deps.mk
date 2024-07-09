@@ -16,7 +16,6 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 GORELEASER ?= $(LOCALBIN)/goreleaser
 GO_LICENSES = $(LOCALBIN)/go-licenses
 CRD_REF_DOCS = $(LOCALBIN)/crd-ref-docs
-MDTOC = $(LOCALBIN)/mdtoc
 FLUX ?= $(LOCALBIN)/flux
 YQ ?= $(LOCALBIN)/yq
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
@@ -35,7 +34,6 @@ GOLANGCI_LINT_VERSION ?= v1.56.2
 GORELEASER_VERSION ?= v1.24.0
 GO_LICENSES_VERSION ?= v1.0.0
 CRD_REF_DOCS_VERSION ?= v0.0.11
-MDTOC_VERSION ?= v1.3.0
 FLUX_VERSION ?= 0.40.1
 JQ_VERSION ?= jq-1.7
 YQ_VERSION ?= v4.18.1
@@ -104,11 +102,6 @@ $(GO_LICENSES): $(LOCALBIN)
 crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
 $(CRD_REF_DOCS): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
-
-.PHONY: mdtoc
-mdtoc: $(MDTOC) ## Download mdtoc locally if necessary.
-$(MDTOC): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/mdtoc@$(MDTOC_VERSION)
 
 .PHONY: flux
 flux: ## Download flux locally if necessary.
