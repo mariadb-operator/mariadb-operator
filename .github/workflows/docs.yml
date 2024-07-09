@@ -33,9 +33,16 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Set Environment Variables
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "DOCS_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ github.event.inputs.alias }}" ]; then
+            echo "DOCS_ALIAS=${{ github.event.inputs.alias }}" >> $GITHUB_ENV
+          fi
+
       - name: Build Docs
         run: make docs-publish
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          DOCS_VERSION: "${{ inputs.version }}"
-          DOCS_ALIAS: "${{ inputs.alias }}"
