@@ -1,0 +1,41 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+      - release-*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Documentation version to be set. Defaults to \"main\" if not provided."
+        type: string
+      alias:
+        description: "Documentation alias to be set. Defaults to \"unstable\" if not provided."
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Build Docs
+        run: make docs-publish
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          DOCS_VERSION: "${{ inputs.version }}"
+          DOCS_ALIAS: "${{ inputs.alias }}"
