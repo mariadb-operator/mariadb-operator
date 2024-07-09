@@ -26,5 +26,12 @@ theme:
 extra:
   version:
     provider: mike
+  social:
+    - icon: fontawesome/brands/slack
+      link: https://r.mariadb.com/join-community-slack
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/mariadb
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/mariadb
 extra_css:
   - stylesheets/extra.css
