@@ -3,7 +3,7 @@
 HELM_DOCS_IMG ?= jnorwood/helm-docs:v1.11.0
 .PHONY: docs-helm
 docs-helm: ## Generate Helm chart docs.
-	docker run --rm -it \
+	docker run --rm \
 		-u $(shell id -u) \
 		-v $(shell pwd)/$(HELM_DIR):/helm-docs \
 		$(HELM_DOCS_IMG)
@@ -20,7 +20,7 @@ docs-api: crd-ref-docs ## Generate API reference docs.
 docs-gen: docs-helm docs-api ## Generate docs.
 
 DOCS_IMG ?= mariadb-operator/docs:0.0.1
-DOCS_RUN ?= docker run --rm -it \
+DOCS_RUN ?= docker run --rm \
 	-u $(shell id -u):$(shell id -g) \
 	-v $(shell pwd):/docs \
 	-p 8000:8000 \
