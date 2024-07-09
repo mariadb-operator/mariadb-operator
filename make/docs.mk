@@ -1,9 +1,12 @@
 ##@ Documentation
 
-DOCS_HELM_IMG ?= jnorwood/helm-docs:v1.11.0
+HELM_DOCS_IMG ?= jnorwood/helm-docs:v1.11.0
 .PHONY: docs-helm
 docs-helm: ## Generate Helm chart docs.
-	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) $(DOCS_HELM_IMG)
+	docker run --rm -it \
+		-u $(shell id -u) \
+		-v $(shell pwd)/$(HELM_DIR):/helm-docs \
+		$(HELM_DOCS_IMG)
 
 .PHONY: docs-api
 docs-api: crd-ref-docs ## Generate API reference docs.
@@ -13,30 +16,43 @@ docs-api: crd-ref-docs ## Generate API reference docs.
 		--renderer=markdown \
 		--output-path=./docs/API_REFERENCE.md
 
-.PHONY: docs-toc
-docs-toc: mdtoc ## Generate table of contents in docs.
-	@for f in $$(ls docs/*.md | grep -v 'API_REFERENCE' | grep -v 'UPGRADE'); do \
-		$(MDTOC) --inplace $$f; \
-	done
+.PHONY: docs-gen
+docs-gen: docs-helm docs-api ## Generate docs.
 
-MKDOCS_IMG ?= squidfunk/mkdocs-material:9.5.27
-MKDOCS ?= docker run --rm -it \
+DOCS_IMG ?= mariadb-operator/docs:0.0.1
+DOCS_RUN ?= docker run --rm -it \
 	-u $(shell id -u):$(shell id -g) \
 	-v $(shell pwd):/docs \
 	-p 8000:8000 \
-	$(MKDOCS_IMG)
+	-e "GIT_COMMITTER_NAME=$(shell git config user.name)" \
+	-e "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
+	$(DOCS_IMG)
+MKDOCS ?= $(DOCS_RUN) mkdocs
+MIKE ?= $(DOCS_RUN) mike
+
+.PHONY: docs-image
+docs-image: ## Build a new docs image
+	docker build -t $(DOCS_IMG) -f docs/Dockerfile docs
 
 .PHONY: docs-new
-docs-new: ## Create new documentation site.
+docs-new: docs-image ## Create new documentation site.
 	$(MKDOCS) new .
 
 .PHONY: docs-serve
-docs-serve: ## Serve documentation site locally for development.
-	$(MKDOCS)
+docs-serve: docs-image ## Serve documentation site locally for development.
+	$(MKDOCS) serve --dev-addr=0.0.0.0:8000
 
 .PHONY: docs-build
-docs-build: ## Build documentation site.
+docs-build: docs-image ## Build documentation site.
 	$(MKDOCS) build
 
-.PHONY: docs
-docs: docs-helm docs-api docs-toc ## Generate docs.
+DOCS_VERSION ?= main
+DOCS_ALIAS ?= unstable
+.PHONY: docs-publish
+docs-publish: docs-image ## Publish documentation site.
+	$(MIKE) deploy --push --update-aliases $(DOCS_VERSION) $(DOCS_ALIAS)
+
+DOCS_DEFAULT ?= latest
+.PHONY: docs-set-default
+docs-set-default: docs-image ## Set documentation default version.
+	$(MIKE) set-default --push $(DOCS_DEFAULT)
