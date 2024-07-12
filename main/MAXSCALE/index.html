@@ -455,6 +455,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#maxscale-resources" class="md-nav__link">
     <span class="md-ellipsis">
       MaxScale resources
@@ -787,6 +796,106 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.20
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.21
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.24
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.26
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.28
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -812,6 +921,15 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#maxscale-resources" class="md-nav__link">
@@ -1058,8 +1176,10 @@
 
 <h1 id="maxscale">MaxScale</h1>
 <blockquote>
+<p>[!NOTE]<br />
+This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.25</p>
 <p>[!IMPORTANT]<br />
-MaxScale 23.08 is licensed under <a href="https://github.com/mariadb-corporation/MaxScale/blob/23.08/LICENSE2308.TXT">Business Source License</a>. Make sure you understand the implications before using it!</p>
+MaxScale 23.08 is licensed under <a href="https://github.com/mariadb-corporation/MaxScale/blob/23.08/LICENSE.TXT">Business Source License</a>. Make sure you understand the implications before using it!</p>
 </blockquote>
 <p>MaxScale is a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB. It provides a range of features that ensure optimal high availability:
 - Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
@@ -1067,7 +1187,40 @@ MaxScale 23.08 is licensed under <a href="https://github.com/mariadb-corporation
 - Automatic primary failover based on MariaDB internals.
 - Replay pending transactions when a server goes down.
 - Support for Galera and Replication.</p>
-<p>To better understand what MaxScale is capable of you may check the <a href="https://mariadb.com/docs/server/products/mariadb-maxscale/">product page</a> and the <a href="https://mariadb.com/kb/en/maxscale/">documentation</a>.</p>
+<p>To better understand what MaxScale is capable of you may check the <a href="https://mariadb.com/docs/server/products/mariadb-maxscale/">product page</a> and the <a href="https://mariadb.com/kb/en/maxscale/">documentation</a>. </p>
+<h2 id="table-of-contents">Table of contents</h2>
+<!-- toc -->
+<ul>
+<li><a href="#maxscale-resources">MaxScale resources</a><ul>
+<li><a href="#servers">Servers</a></li>
+<li><a href="#monitors">Monitors</a></li>
+<li><a href="#services">Services</a></li>
+<li><a href="#listeners">Listeners</a></li>
+</ul>
+</li>
+<li><a href="#maxscale-cr"><code>MaxScale</code> CR</a></li>
+<li><a href="#mariadb-cr"><code>MariaDB</code> CR</a></li>
+<li><a href="#maxscale-embedded-in-mariadb"><code>MaxScale</code> embedded in <code>MariaDB</code></a></li>
+<li><a href="#defaults">Defaults</a></li>
+<li><a href="#server-configuration">Server configuration</a></li>
+<li><a href="#server-maintenance">Server maintenance</a></li>
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#authentication">Authentication</a></li>
+<li><a href="#kubernetes-services">Kubernetes <code>Services</code></a></li>
+<li><a href="#connection">Connection</a></li>
+<li><a href="#high-availability">High availability</a></li>
+<li><a href="#suspend-resources">Suspend resources</a></li>
+<li><a href="#maxscale-gui">MaxScale GUI</a></li>
+<li><a href="#maxscale-api">MaxScale API</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#common-errors">Common errors</a><ul>
+<li><a href="#permission-denied-writing-varlibmaxscale">Permission denied writing <code>/var/lib/maxscale</code></a></li>
+</ul>
+</li>
+<li><a href="#reference">Reference</a></li>
+</ul>
+<!-- /toc -->
+
 <h2 id="maxscale-resources">MaxScale resources</h2>
 <p>Prior to configuring MaxScale within Kubernetes, it's essential to have a basic understanding of the resources managed through its API.</p>
 <h4 id="servers">Servers</h4>
