@@ -182,3 +182,22 @@ jobs:
           args: ${{ needs.args.outputs.RELEASE_ARGS }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    needs: 
+    - args
+    - release
+    - release-ent
+    - goreleaser
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Dispatch docs workflow
+        run: gh workflow run docs.yaml --repo mariadb-operator/mariadb-operator -f version=${{ needs.args.outputs.TAG }} alias=latest
+        env:
+          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
