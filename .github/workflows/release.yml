@@ -201,3 +201,53 @@ jobs:
         run: gh workflow run docs.yaml --repo mariadb-operator/mariadb-operator -f version=${{ needs.args.outputs.TAG }} alias=latest
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
+
+  helm:
+    name: Helm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: 
+    - args
+    - release
+    - release-ent
+    - goreleaser
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Helm version
+        id: version
+        run: |
+          VERSION=$(make helm-version-bump)
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+      
+      - name: Helm generate
+        run: make helm-gen
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Updated helm chart (${{ steps.version.outputs.VERSION }})
+          commit_author: Martin Montes <martin11lrx@gmail.com>
+          branch: helm-${{ steps.version.outputs.VERSION }}-update
+          push_options: '--force'
+          create_branch: true
+  
+      - name: Create pull request
+        run: |
+          gh pr create \
+            -B ${{ github.event.repository.default_branch }} \
+            -H helm-${{ steps.version.outputs.VERSION }}-update \
+            --title 'Updated helm chart (${{ steps.version.outputs.VERSION }})' \
+            --body 'Automatically created by GitHub actions.'
+          gh pr merge helm-${{ steps.version.outputs.VERSION }}-update --auto --rebase --delete-branch  
+        env:
+          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
