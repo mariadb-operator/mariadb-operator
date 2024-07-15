@@ -52,7 +52,7 @@ test-unit: envtest ginkgo ## Run unit tests.
 
 .PHONY: test-int
 test-int: envtest ginkgo ## Run integration tests.
-	$(TEST) ./controller/...
+	$(TEST) ./internal/controller/...
 
 .PHONY: test
 test: test-unit test-int ## Run tests.
@@ -70,7 +70,7 @@ test-unit-ent: envtest ginkgo ## Run enterprise unit tests.
 
 .PHONY: test-int-ent
 test-int-ent: envtest ginkgo ## Run enterprise integration tests.
-	$(TEST_ENT) ./controller/...
+	$(TEST_ENT) ./internal/controller/...
 
 .PHONY: test-ent
 test-ent: test-unit-ent test-int-ent ## Run enterprise tests.
