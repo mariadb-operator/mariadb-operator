@@ -17,30 +17,6 @@ embed-entrypoint: ## Get entrypoint from mariadb-docker to be embeded in operato
 	MARIADB_ENTRYPOINT_PATH=$(MARIADB_ENTRYPOINT_PATH) \
 	./hack/get_entrypoint.sh
 
-##@ Generate - Helm
-
-.PHONY: helm-crds 
-helm-crds: kustomize ## Generate CRDs for Helm chart.
-	$(KUSTOMIZE) build config/crd > deploy/charts/mariadb-operator/crds/crds.yaml
-
-.PHONY: helm-env
-helm-env: ## Update operator env in the Helm chart.
-	$(KUBECTL) create configmap mariadb-operator-env \
-		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
-		--from-literal=RELATED_IMAGE_MAXSCALE=$(RELATED_IMAGE_MAXSCALE) \
-		--from-literal=RELATED_IMAGE_EXPORTER=$(RELATED_IMAGE_EXPORTER) \
-		--from-literal=RELATED_IMAGE_EXPORTER_MAXSCALE=$(RELATED_IMAGE_EXPORTER_MAXSCALE) \
-		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
-		--from-literal=MARIADB_GALERA_INIT_IMAGE=$(MARIADB_GALERA_INIT_IMAGE) \
-		--from-literal=MARIADB_GALERA_AGENT_IMAGE=$(MARIADB_GALERA_AGENT_IMAGE) \
-		--from-literal=MARIADB_GALERA_LIB_PATH=$(MARIADB_GALERA_LIB_PATH) \
-		--from-literal=MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
-		--dry-run=client -o yaml \
-		> deploy/charts/mariadb-operator/templates/configmap.yaml
-
-.PHONY: helm
-helm: helm-crds helm-env ## Generate manifests for Helm chart.
-
 ##@ Generate - Manifests
 
 MANIFESTS_CRDS_DIR ?= deploy/crds
@@ -99,7 +75,7 @@ examples: examples-operator examples-mariadb examples-maxscale examples-exporter
 ifneq ($(findstring -dev,$(VERSION)),)
 generate: manifests code embed-entrypoint
 else
-generate: manifests code embed-entrypoint helm manifests-bundle docs-gen examples
+generate: manifests code embed-entrypoint helm-gen manifests-bundle docs-gen examples
 endif
 
 .PHONY: gen

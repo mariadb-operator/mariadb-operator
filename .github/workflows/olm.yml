@@ -85,7 +85,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Updated OLM bundle (${{ steps.version.outputs.VERSION }})
-          commit_author: Martin Montes <martin11lrx@gmail.com
+          commit_author: Martin Montes <martin11lrx@gmail.com>
           branch: olm-${{ steps.version.outputs.VERSION }}-update-bundle
           push_options: '--force'
           create_branch: true

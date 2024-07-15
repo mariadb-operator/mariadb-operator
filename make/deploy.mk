@@ -1,4 +1,3 @@
-HELM_DIR ?= deploy/charts/mariadb-operator
 CLUSTER ?= mdb
 
 ##@ Cluster
