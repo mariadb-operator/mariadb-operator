@@ -8,6 +8,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,7 +41,8 @@ var _ = Describe("Backup", func() {
 			Name:      "backup-s3-test",
 			Namespace: testNamespace,
 		}
-		testS3Backup(key, "test-backup", "")
+		backup := getBackupWithS3Storage(key, "test-backup", "")
+		testS3Backup(backup)
 	})
 
 	It("should reconcile a Job with S3 storage with prefix", func() {
@@ -48,7 +50,48 @@ var _ = Describe("Backup", func() {
 			Name:      "backup-s3-test-prefix",
 			Namespace: testNamespace,
 		}
-		testS3Backup(key, "test-backup", "mariadb")
+		backup := getBackupWithS3Storage(key, "test-backup", "mariadb")
+		testS3Backup(backup)
+	})
+
+	It("should reconcile a CronJob with PVC storage", func() {
+		key := types.NamespacedName{
+			Name:      "backup-pvc-scheduled-test",
+			Namespace: testNamespace,
+		}
+		backup := getBackupWithScheduleAndHistoryLimits(getBackupWithPVCStorage(key))
+		testBackup(backup)
+	})
+
+	It("should reconcile a CronJob with Volume storage", func() {
+		key := types.NamespacedName{
+			Name:      "backup-volume-scheduled-test",
+			Namespace: testNamespace,
+		}
+		backup := getBackupWithScheduleAndHistoryLimits(getBackupWithVolumeStorage(key))
+		testBackup(backup)
+	})
+
+	It("should reconcile a CronJob with S3 storage", func() {
+		key := types.NamespacedName{
+			Name:      "backup-s3-scheduled-test",
+			Namespace: testNamespace,
+		}
+		backup := getBackupWithScheduleAndHistoryLimits(
+			getBackupWithS3Storage(key, "test-backup", ""),
+		)
+		testS3Backup(backup)
+	})
+
+	It("should reconcile a CronJob with S3 storage with prefix", func() {
+		key := types.NamespacedName{
+			Name:      "backup-s3-scheduled-test-prefix",
+			Namespace: testNamespace,
+		}
+		backup := getBackupWithScheduleAndHistoryLimits(
+			getBackupWithS3Storage(key, "test-backup", "mariadb"),
+		)
+		testS3Backup(backup)
 	})
 })
 
@@ -74,6 +117,16 @@ func testBackup(backup *mariadbv1alpha1.Backup) {
 		g.Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 		return true
 	}, testTimeout, testInterval).Should(BeTrue())
+
+	if backup.Spec.Schedule != nil {
+		testBackupCronJob(backup)
+	} else {
+		testBackupJob(backup)
+	}
+}
+
+func testBackupJob(backup *mariadbv1alpha1.Backup) {
+	key := client.ObjectKeyFromObject(backup)
 
 	var job batchv1.Job
 	By("Expecting to create a Job eventually")
@@ -111,20 +164,45 @@ func testBackup(backup *mariadbv1alpha1.Backup) {
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
-func testS3Backup(key types.NamespacedName, bucket, prefix string) {
-	backup := getBackupWithS3Storage(key, bucket, prefix)
+func testBackupCronJob(backup *mariadbv1alpha1.Backup) {
+	By("Expecting to create a CronJob eventually")
+	Eventually(func() bool {
+		var cronJob batchv1.CronJob
+		err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(backup), &cronJob)
+		if err != nil {
+			return false
+		}
+		isScheduleCorrect := cronJob.Spec.Schedule == backup.Spec.Schedule.Cron
+		isSuccessfulJobHistoryLimitCorrect := *cronJob.Spec.SuccessfulJobsHistoryLimit ==
+			*backup.Spec.SuccessfulJobsHistoryLimit
+		isFailedJobHistoryLimitCorrect := *cronJob.Spec.FailedJobsHistoryLimit == *backup.Spec.FailedJobsHistoryLimit
+		return isScheduleCorrect && isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
 
+func testS3Backup(backup *mariadbv1alpha1.Backup) {
 	By("Creating Backup with S3 storage")
 	Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 	DeferCleanup(func() {
 		Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 	})
 
-	By("Expecting Backup to complete eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, backup); err != nil {
-			return false
-		}
-		return backup.IsComplete()
-	}, testTimeout, testInterval).Should(BeTrue())
+	if backup.Spec.Schedule != nil {
+		testBackupCronJob(backup)
+	} else {
+		By("Expecting Backup to complete eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(backup), backup); err != nil {
+				return false
+			}
+			return backup.IsComplete()
+		}, testTimeout, testInterval).Should(BeTrue())
+	}
+}
+
+func getBackupWithScheduleAndHistoryLimits(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+	backup.Spec.Schedule = &mariadbv1alpha1.Schedule{Cron: "*/5 * * * *"}
+	backup.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
+	backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
+	return backup
 }

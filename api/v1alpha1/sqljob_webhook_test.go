@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -73,6 +74,33 @@ var _ = Describe("SqlJob webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid history limits",
+				&SqlJob{
+					ObjectMeta: objMeta,
+					Spec: SqlJobSpec{
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "foo",
+							},
+						},
+						Schedule: &Schedule{
+							Cron: "foo",
+						},
+						Username: "foo",
+						PasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "foo",
+							},
+							Key: "foo",
+						},
+						Sql:                        func() *string { s := "foo"; return &s }(),
+						SuccessfulJobsHistoryLimit: ptr.To[int32](-5),
+						FailedJobsHistoryLimit:     ptr.To[int32](-5),
+					},
+				},
+				true,
+			),
+			Entry(
 				"Valid",
 				&SqlJob{
 					ObjectMeta: objMeta,
@@ -118,6 +146,33 @@ var _ = Describe("SqlJob webhook", func() {
 					},
 				},
 				false,
+			),
+			Entry(
+				"Valid with schedule and history limits",
+				&SqlJob{
+					ObjectMeta: objMeta,
+					Spec: SqlJobSpec{
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "foo",
+							},
+						},
+						Schedule: &Schedule{
+							Cron: "foo",
+						},
+						Username: "foo",
+						PasswordSecretKeyRef: corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "foo",
+							},
+							Key: "foo",
+						},
+						Sql:                        func() *string { s := "foo"; return &s }(),
+						SuccessfulJobsHistoryLimit: ptr.To[int32](5),
+						FailedJobsHistoryLimit:     ptr.To[int32](5),
+					},
+				},
+				true,
 			),
 		)
 	})
@@ -278,6 +333,34 @@ var _ = Describe("SqlJob webhook", func() {
 						Cron:    "foo",
 						Suspend: false,
 					}
+				},
+				true,
+			),
+			Entry(
+				"Updating SuccessfulJobsHistoryLimit",
+				func(job *SqlJob) {
+					job.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
+				},
+				false,
+			),
+			Entry(
+				"Updating with wrong SuccessfulJobsHistoryLimit",
+				func(job *SqlJob) {
+					job.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](-5)
+				},
+				true,
+			),
+			Entry(
+				"Updating FailedJobsHistoryLimit",
+				func(job *SqlJob) {
+					job.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
+				},
+				false,
+			),
+			Entry(
+				"Updating with wrong FailedJobsHistoryLimit",
+				func(job *SqlJob) {
+					job.Spec.FailedJobsHistoryLimit = ptr.To[int32](-5)
 				},
 				true,
 			),

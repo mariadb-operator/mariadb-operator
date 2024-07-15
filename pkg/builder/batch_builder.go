@@ -151,6 +151,8 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 				ObjectMeta: job.ObjectMeta,
 				Spec:       job.Spec,
 			},
+			SuccessfulJobsHistoryLimit: backup.Spec.SuccessfulJobsHistoryLimit,
+			FailedJobsHistoryLimit:     backup.Spec.FailedJobsHistoryLimit,
 		},
 	}
 	if err := controllerutil.SetControllerReference(backup, cronJob, b.scheme); err != nil {
@@ -415,6 +417,8 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 				ObjectMeta: job.ObjectMeta,
 				Spec:       job.Spec,
 			},
+			SuccessfulJobsHistoryLimit: sqlJob.Spec.SuccessfulJobsHistoryLimit,
+			FailedJobsHistoryLimit:     sqlJob.Spec.FailedJobsHistoryLimit,
 		},
 	}
 	if err := controllerutil.SetControllerReference(sqlJob, cronJob, b.scheme); err != nil {
