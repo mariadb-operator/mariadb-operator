@@ -44209,6 +44209,9 @@ spec:
                   type: object
                   x-kubernetes-map-type: atomic
                 type: array
+              failedJobsHistoryLimit:
+                format: int32
+                type: integer
               imagePullSecrets:
                 description: ImagePullSecrets is the list of pull Secrets to be used
                   to pull the image.
@@ -44780,6 +44783,9 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              successfulJobsHistoryLimit:
+                format: int32
+                type: integer
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:

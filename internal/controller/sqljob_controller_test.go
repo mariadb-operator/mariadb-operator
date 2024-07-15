@@ -7,6 +7,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -229,8 +230,12 @@ var _ = Describe("SqlJob", func() {
 				}(),
 			},
 		}
+		scheduledSqlJobWithHistoryLimits := scheduledSqlJob.DeepCopy()
+		scheduledSqlJobWithHistoryLimits.ObjectMeta.Name = "sqljob-scheduled-with-history-limits"
+		scheduledSqlJobWithHistoryLimits.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
+		scheduledSqlJobWithHistoryLimits.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
 
-		By("Creating SqlJob")
+		By("Creating a scheduled SqlJob")
 		Expect(k8sClient.Create(testCtx, &scheduledSqlJob)).To(Succeed())
 		DeferCleanup(func() {
 			Expect(k8sClient.Delete(testCtx, &scheduledSqlJob)).To(Succeed())
@@ -240,6 +245,26 @@ var _ = Describe("SqlJob", func() {
 		Eventually(func() bool {
 			var cronJob batchv1.CronJob
 			return k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob) != nil
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		By("Creating a scheduled SqlJob with history limits")
+		Expect(k8sClient.Create(testCtx, scheduledSqlJobWithHistoryLimits)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, scheduledSqlJobWithHistoryLimits)).To(Succeed())
+		})
+
+		By("Expecting to create a CronJob with history limits eventually")
+		Eventually(func() bool {
+			var cronJob batchv1.CronJob
+			err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(scheduledSqlJobWithHistoryLimits), &cronJob)
+			if err != nil {
+				return false
+			}
+			isSuccessfulJobHistoryLimitCorrect := *cronJob.Spec.SuccessfulJobsHistoryLimit ==
+				*scheduledSqlJobWithHistoryLimits.Spec.SuccessfulJobsHistoryLimit
+			isFailedJobHistoryLimitCorrect := *cronJob.Spec.FailedJobsHistoryLimit ==
+				*scheduledSqlJobWithHistoryLimits.Spec.FailedJobsHistoryLimit
+			return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect
 		}, testHighTimeout, testInterval).Should(BeTrue())
 	})
 })
