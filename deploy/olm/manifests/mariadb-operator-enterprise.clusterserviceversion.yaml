@@ -331,11 +331,11 @@ metadata:
           }
         }
       ]
-    capabilities: Auto Pilot
+    capabilities: Deep Insights
     categories: Database
     certified: "true"
     containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
-    createdAt: "2024-07-16T09:11:59Z"
+    createdAt: "2024-07-16T09:49:48Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -5069,6 +5069,8 @@ spec:
   maintainers:
     - email: martin.montes@mariadb.com
       name: Martin Montes
+    - email: pieter.humphrey@mariadb.com
+      name: Pieter Humphrey
   maturity: alpha
   minKubeVersion: 1.16.0
   provider:

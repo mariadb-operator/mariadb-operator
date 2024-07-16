@@ -1,5 +1,7 @@
 ##@ OpenShift
 
+BUNDLE_DIR ?= deploy/olm
+
 ifneq ($(origin CHANNELS), undefined)
 BUNDLE_CHANNELS := --channels=$(CHANNELS)
 endif
@@ -9,7 +11,7 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
-BUNDLE_GEN_FLAGS ?= -q --overwrite=false --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+BUNDLE_GEN_FLAGS ?= -q --overwrite=false --version $(VERSION) --output-dir $(BUNDLE_DIR) $(BUNDLE_METADATA_OPTS)
 USE_IMAGE_DIGESTS ?= true
 ifeq ($(USE_IMAGE_DIGESTS), true)
 	BUNDLE_GEN_FLAGS += --use-image-digests
@@ -34,16 +36,16 @@ BUNDLE_VALIDATE_FLAGS ?= --select-optional suite=operatorframework
 # BUNDLE_VALIDATE_FLAGS ?= --select-optional suite=operatorframework --select-optional name=multiarch
 .PHONY: bundle-validate
 bundle-validate: operator-sdk ## Validate content and format of the operator bundle.
-	$(OPERATOR_SDK) bundle validate ./bundle $(BUNDLE_VALIDATE_FLAGS)
+	$(OPERATOR_SDK) bundle validate $(BUNDLE_DIR) $(BUNDLE_VALIDATE_FLAGS)
 
 BUNBLDE_SCORECARD_FLAGS ?= --service-account=scorecard --namespace=default --wait-time=3m
 .PHONY: bundle-scorecard
 bundle-scorecard: operator-sdk cluster-ctx scorecard-sa ## Statically validate your operator bundle using Scorecard.
-	$(OPERATOR_SDK) scorecard ./bundle $(BUNBLDE_SCORECARD_FLAGS)
+	$(OPERATOR_SDK) scorecard $(BUNDLE_DIR) $(BUNBLDE_SCORECARD_FLAGS)
 
 .PHONY: bundle
 bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and metadata, then validate generated files.
-	$(OPERATOR_SDK) generate kustomize manifests -q
+	$(OPERATOR_SDK) generate kustomize manifests -q --output-dir config/manifests
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG_ENT)
 	$(YQ) e -i '.spec.template.spec.containers[0].env[0].value = "$(RELATED_IMAGE_MARIADB_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[1].value = "$(RELATED_IMAGE_MAXSCALE_ENT)"' config/manager/manager.yaml
@@ -55,7 +57,7 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 	$(YQ) e -i '.spec.template.spec.containers[0].env[7].value = "$(MARIADB_GALERA_LIB_PATH_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[8].value = "$(MARIADB_ENTRYPOINT_VERSION)"' config/manager/manager.yaml
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
-	$(YQ) e -i '.metadata.annotations.containerImage = (.spec.relatedImages[] | select(.name == "mariadb-operator-enterprise").image)' bundle/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
+	$(YQ) e -i '.metadata.annotations.containerImage = (.spec.relatedImages[] | select(.name == "mariadb-operator-enterprise").image)' $(BUNDLE_DIR)/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
 	$(MAKE) bundle-validate
 
 .PHONY: bundle-build
