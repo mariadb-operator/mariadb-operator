@@ -4,7 +4,7 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: mariadb-operator
+projectName: mariadb-operator-enterprise
 repo: github.com/mariadb-operator/mariadb-operator
 resources:
 - api:

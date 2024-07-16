@@ -335,7 +335,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
-    createdAt: "2024-06-07T11:10:29Z"
+    createdAt: "2024-07-16T09:11:59Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -345,7 +345,7 @@ metadata:
     features.operators.openshift.io/token-auth-gcp: "false"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
     operators.operatorframework.io/builder: operator-sdk-v1.34.1
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     support: MariaDB Corporation
   labels:
     operatorframework.io/arch.amd64: supported
@@ -4940,7 +4940,7 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: mariadbmmontes/enterprise-server@sha256:1765a42e4d47d9a8a76d2ce7b5dc66553c72353bf27227a0a5d10b73d61f92c8
+                        value: mariadbmmontes/enterprise-server@sha256:41d23e4bbdbb054b3db0e243f578f11b077505f20b01a6c2ee02b6d7b428e8f4
                       - name: RELATED_IMAGE_MAXSCALE
                         value: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
                       - name: RELATED_IMAGE_EXPORTER
@@ -4955,6 +4955,8 @@ spec:
                         value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
+                      - name: MARIADB_ENTRYPOINT_VERSION
+                        value: "10.11"
                       - name: WATCH_NAMESPACE
                         valueFrom:
                           fieldRef:
@@ -5072,8 +5074,6 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadbmmontes/enterprise-server@sha256:1765a42e4d47d9a8a76d2ce7b5dc66553c72353bf27227a0a5d10b73d61f92c8
-      name: mariadb
     - image: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
       name: maxscale
     - image: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
@@ -5084,6 +5084,8 @@ spec:
       name: mariadb-operator-enterprise
     - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
       name: exporter_maxscale
+    - image: mariadbmmontes/enterprise-server@sha256:41d23e4bbdbb054b3db0e243f578f11b077505f20b01a6c2ee02b6d7b428e8f4
+      name: mariadb
   version: 0.0.29
   webhookdefinitions:
     - admissionReviewVersions:
