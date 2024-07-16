@@ -86,7 +86,7 @@ jobs:
         with:
           commit_message: Updated OLM bundle (${{ steps.version.outputs.VERSION }})
           commit_author: Martin Montes <martin11lrx@gmail.com>
-          branch: olm-${{ steps.version.outputs.VERSION }}-update-bundle
+          branch: olm-${{ steps.version.outputs.VERSION }}-update
           push_options: '--force'
           create_branch: true
 
@@ -94,11 +94,11 @@ jobs:
         run: |
           gh pr create \
             -B ${{ github.event.repository.default_branch }} \
-            -H olm-${{ steps.version.outputs.VERSION }}-update-bundle \
+            -H olm-${{ steps.version.outputs.VERSION }}-update \
             --title 'Updated OLM bundle (${{ steps.version.outputs.VERSION }})' \
             --body 'Automatically created by GitHub actions.'
           gh pr merge \
-            olm-${{ steps.version.outputs.VERSION }}-update-bundle \
+            olm-${{ steps.version.outputs.VERSION }}-update \
             --auto --rebase --delete-branch  
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
@@ -107,6 +107,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ steps.version.outputs.TAG }}"
-          files: bundle/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
+          files: deploy/olm/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
