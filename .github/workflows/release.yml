@@ -215,6 +215,7 @@ jobs:
       - release
       - release-ent
       - goreleaser
+      - docs
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -241,7 +242,6 @@ jobs:
           commit_message: Updated helm chart (${{ steps.version.outputs.VERSION }})
           commit_author: Martin Montes <martin11lrx@gmail.com>
           branch: helm-${{ steps.version.outputs.VERSION }}-update
-          push_options: '--force'
           create_branch: true
   
       - name: Create pull request
@@ -265,6 +265,7 @@ jobs:
     - release
     - release-ent
     - goreleaser
+    - helm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
