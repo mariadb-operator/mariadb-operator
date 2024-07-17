@@ -2,18 +2,18 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   creationTimestamp: null
-  name: connections.k8s.mariadb.com
+  name: databases.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
   names:
-    kind: Connection
-    listKind: ConnectionList
-    plural: connections
+    kind: Database
+    listKind: DatabaseList
+    plural: databases
     shortNames:
-    - cmdb
-    singular: connection
+    - dmdb
+    singular: database
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -23,17 +23,26 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].message
       name: Status
       type: string
-    - jsonPath: .spec.secretName
-      name: Secret
+    - jsonPath: .spec.characterSet
+      name: CharSet
+      type: string
+    - jsonPath: .spec.collate
+      name: Collate
+      type: string
+    - jsonPath: .spec.mariaDbRef.name
+      name: MariaDB
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .spec.name
+      name: Name
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Connection is the Schema for the connections API. It is used
-          to configure connection strings for the applications connecting to MariaDB.
+        description: Database is the Schema for the databases API. It is used to define
+          a logical database as if you were running a 'CREATE DATABASE' statement.
         properties:
           apiVersion:
             description: |-
@@ -53,29 +62,18 @@ spec:
           metadata:
             type: object
           spec:
-            description: ConnectionSpec defines the desired state of Connection
+            description: DatabaseSpec defines the desired state of Database
             properties:
-              database:
-                description: Database to use when configuring the Connection.
+              characterSet:
+                default: utf8
+                description: CharacterSet to use in the Database.
                 type: string
-              healthCheck:
-                description: HealthCheck to be used in the Connection.
-                properties:
-                  interval:
-                    description: Interval used to perform health checks.
-                    type: string
-                  retryInterval:
-                    description: RetryInterval is the interval used to perform health
-                      check retries.
-                    type: string
-                type: object
-              host:
-                description: Host to connect to. If not provided, it defaults to the
-                  MariaDB host or to the MaxScale host.
+              collate:
+                default: utf8_general_ci
+                description: Collate to use in the Database.
                 type: string
               mariaDbRef:
-                description: MariaDBRef is a reference to the MariaDB to connect to.
-                  Either MariaDBRef or MaxScaleRef must be provided.
+                description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -123,140 +121,25 @@ spec:
                     type: boolean
                 type: object
                 x-kubernetes-map-type: atomic
-              maxScaleRef:
-                description: MaxScaleRef is a reference to the MaxScale to connect
-                  to. Either MariaDBRef or MaxScaleRef must be provided.
-                properties:
-                  apiVersion:
-                    description: API version of the referent.
-                    type: string
-                  fieldPath:
-                    description: |-
-                      If referring to a piece of an object instead of an entire object, this string
-                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                      For example, if the object reference is to a container within a pod, this would take on a value like:
-                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                      the event) or if no container name is specified "spec.containers[2]" (container with
-                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                      referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
-                    type: string
-                  kind:
-                    description: |-
-                      Kind of the referent.
-                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                    type: string
-                  name:
-                    description: |-
-                      Name of the referent.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                    type: string
-                  namespace:
-                    description: |-
-                      Namespace of the referent.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
-                    type: string
-                  resourceVersion:
-                    description: |-
-                      Specific resourceVersion to which this reference is made, if any.
-                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-                    type: string
-                  uid:
-                    description: |-
-                      UID of the referent.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-                    type: string
-                type: object
-                x-kubernetes-map-type: atomic
-              params:
-                additionalProperties:
-                  type: string
-                description: Params to be used in the Connection.
-                type: object
-              passwordSecretKeyRef:
-                description: |-
-                  PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.
-                  If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
-                properties:
-                  key:
-                    description: The key of the secret to select from.  Must be a
-                      valid secret key.
-                    type: string
-                  name:
-                    description: |-
-                      Name of the referent.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Add other useful fields. apiVersion, kind, uid?
-                    type: string
-                  optional:
-                    description: Specify whether the Secret or its key must be defined
-                    type: boolean
-                required:
-                - key
-                type: object
-                x-kubernetes-map-type: atomic
-              port:
-                description: Port to connect to. If not provided, it defaults to the
-                  MariaDB port or to the first MaxScale listener.
-                format: int32
-                type: integer
-              secretName:
-                description: SecretName to be used in the Connection.
+              name:
+                description: Name overrides the default Database name provided by
+                  metadata.name.
+                maxLength: 80
                 type: string
-              secretTemplate:
-                description: SecretTemplate to be used in the Connection.
-                properties:
-                  databaseKey:
-                    description: DatabaseKey to be used in the Secret.
-                    type: string
-                  format:
-                    description: Format to be used in the Secret.
-                    type: string
-                  hostKey:
-                    description: HostKey to be used in the Secret.
-                    type: string
-                  key:
-                    description: Key to be used in the Secret.
-                    type: string
-                  metadata:
-                    description: Metadata to be added to the Secret object.
-                    properties:
-                      annotations:
-                        additionalProperties:
-                          type: string
-                        description: Annotations to be added to children resources.
-                        type: object
-                      labels:
-                        additionalProperties:
-                          type: string
-                        description: Labels to be added to children resources.
-                        type: object
-                    type: object
-                  passwordKey:
-                    description: PasswordKey to be used in the Secret.
-                    type: string
-                  portKey:
-                    description: PortKey to be used in the Secret.
-                    type: string
-                  usernameKey:
-                    description: UsernameKey to be used in the Secret.
-                    type: string
-                type: object
-              serviceName:
-                description: ServiceName to be used in the Connection.
+              requeueInterval:
+                description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
-              username:
-                description: Username to use for configuring the Connection.
+              retryInterval:
+                description: RetryInterval is the interval used to perform retries.
                 type: string
             required:
-            - passwordSecretKeyRef
-            - username
+            - mariaDbRef
             type: object
           status:
-            description: ConnectionStatus defines the observed state of Connection
+            description: DatabaseStatus defines the observed state of Database
             properties:
               conditions:
-                description: Conditions for the Connection object.
+                description: Conditions for the Database object.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for
