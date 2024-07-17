@@ -80,17 +80,6 @@ POD ?= mariadb-repl-0
 delete-pod: ## Continiously delete a Pod.
 	@while true; do kubectl delete pod $(POD); sleep 1; done;
 
-##@ Helm
-
-CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0 
-.PHONY: helm-lint
-helm-lint: ## Lint Helm charts.
-	docker run --rm --workdir /repo -v $(shell pwd):/repo $(CT_IMG) ct lint --config .github/config/ct.yml 
-
-.PHONY: helm-chart-version
-helm-chart-version: yq ## Get helm chart version.
-	@cat $(HELM_DIR)/Chart.yaml | $(YQ) e ".version"
-
 ##@ Install
 
 PROMETHEUS_VERSION ?= "58.3.1"
