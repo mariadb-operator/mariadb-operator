@@ -1337,6 +1337,11 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(v1.ConfigMapKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.TimeZone != nil {
+		in, out := &in.TimeZone, &out.TimeZone
+		*out = new(string)
+		**out = **in
+	}
 	if in.BootstrapFrom != nil {
 		in, out := &in.BootstrapFrom, &out.BootstrapFrom
 		*out = new(BootstrapFrom)

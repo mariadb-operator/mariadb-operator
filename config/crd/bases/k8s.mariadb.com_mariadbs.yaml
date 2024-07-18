@@ -22872,6 +22872,10 @@ spec:
                       It defaults to true.
                     type: boolean
                 type: object
+              timeZone:
+                description: TimeZone sets the default timezone. If not provided,
+                  it defaults to SYSTEM and the timezone data is not loaded.
+                type: string
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:

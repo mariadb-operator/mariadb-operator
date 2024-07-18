@@ -401,6 +401,13 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		})
 	}
 
+	if mariadb.Spec.TimeZone == nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "MYSQL_INITDB_SKIP_TZINFO",
+			Value: "1",
+		})
+	}
+
 	if mariadb.Spec.Env != nil {
 		idx := make(map[string]int, len(env))
 		for i, envVar := range env {

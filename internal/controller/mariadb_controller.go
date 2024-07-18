@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"text/template"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -255,6 +257,11 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	defaultConfigMapKeyRef := mariadb.DefaultConfigMapKeyRef()
+	config, err := defaultConfig(mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting default config: %v", err)
+	}
+
 	req := configmap.ReconcileRequest{
 		Metadata: mariadb.Spec.InheritMetadata,
 		Owner:    mariadb,
@@ -263,10 +270,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 			Namespace: mariadb.Namespace,
 		},
 		Data: map[string]string{
-			defaultConfigMapKeyRef.Key: `[mariadb]
-skip-name-resolve
-default_time_zone = 'UTC'
-`,
+			defaultConfigMapKeyRef.Key: config,
 		},
 	}
 	if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
@@ -936,4 +940,28 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	}
 
 	return builder.Complete(r)
+}
+
+func defaultConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
+	tpl := createTpl("0-default.cnf", `[mariadb]
+skip-name-resolve
+{{- with .TimeZone }}
+default_time_zone = {{ . }}
+{{- end }}
+`)
+
+	buf := new(bytes.Buffer)
+	err := tpl.Execute(buf, struct {
+		TimeZone *string
+	}{
+		TimeZone: mariadb.Spec.TimeZone,
+	})
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func createTpl(name, t string) *template.Template {
+	return template.Must(template.New(name).Parse(t))
 }
