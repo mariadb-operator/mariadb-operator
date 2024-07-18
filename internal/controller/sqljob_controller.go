@@ -235,6 +235,8 @@ func (r *SqlJobReconciler) reconcileCronJob(ctx context.Context, sqlJob *mariadb
 	}
 
 	patch := client.MergeFrom(existingCronJob.DeepCopy())
+	existingCronJob.Spec.FailedJobsHistoryLimit = desiredCronJob.Spec.FailedJobsHistoryLimit
+	existingCronJob.Spec.SuccessfulJobsHistoryLimit = desiredCronJob.Spec.SuccessfulJobsHistoryLimit
 	existingCronJob.Spec.Schedule = desiredCronJob.Spec.Schedule
 	existingCronJob.Spec.Suspend = desiredCronJob.Spec.Suspend
 	existingCronJob.Spec.JobTemplate.Spec.BackoffLimit = desiredCronJob.Spec.JobTemplate.Spec.BackoffLimit

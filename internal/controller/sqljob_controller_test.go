@@ -266,5 +266,24 @@ var _ = Describe("SqlJob", func() {
 				*scheduledSqlJobWithHistoryLimits.Spec.FailedJobsHistoryLimit
 			return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect
 		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		patch := client.MergeFrom(scheduledSqlJobWithHistoryLimits.DeepCopy())
+		scheduledSqlJobWithHistoryLimits.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
+		scheduledSqlJobWithHistoryLimits.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
+		By("Updating a scheduled SqlJob's history limits")
+		Expect(k8sClient.Patch(testCtx, scheduledSqlJobWithHistoryLimits, patch)).To(Succeed())
+
+		By("Expecting to update the CronJob history limits eventually")
+		Eventually(func() bool {
+			var cronJob batchv1.CronJob
+			if k8sClient.Get(testCtx, client.ObjectKeyFromObject(scheduledSqlJobWithHistoryLimits), &cronJob) != nil {
+				return false
+			}
+			isSuccessfulJobHistoryLimitCorrect := *cronJob.Spec.SuccessfulJobsHistoryLimit ==
+				*scheduledSqlJobWithHistoryLimits.Spec.SuccessfulJobsHistoryLimit
+			isFailedJobHistoryLimitCorrect := *cronJob.Spec.FailedJobsHistoryLimit ==
+				*scheduledSqlJobWithHistoryLimits.Spec.FailedJobsHistoryLimit
+			return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect
+		}, testHighTimeout, testInterval).Should(BeTrue())
 	})
 })
