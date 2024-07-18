@@ -1,16 +1,15 @@
 ##@ Build
 
+DOCKER_PLATFORMS ?= linux/amd64
+DOCKER_ARGS ?=
+
 .PHONY: build
 build: ## Build binary.
 	go build -o bin/mariadb-operator cmd/controller/*.go
 
 .PHONY: docker-build
 docker-build: ## Build docker image.
-	docker build -t $(IMG) .  
-
-.PHONY: docker-push
-docker-push: ## Push docker image.
-	docker push $(IMG)
+	docker buildx build --platform $(DOCKER_PLATFORMS) -t $(IMG) . $(DOCKER_ARGS)
 
 .PHONY: docker-load
 docker-load: kind ## Load docker image in KIND.
@@ -27,11 +26,7 @@ build-ent: ## Build the enterprise binary.
 
 .PHONY: docker-build-ent
 docker-build-ent: ## Build the enterprise image.
-	docker build -f Dockerfile.ent -t $(IMG_ENT) .
-
-.PHONY: docker-push-ent
-docker-push-ent: ## Push the enterprise image.
-	$(MAKE) docker-push IMG=$(IMG_ENT)
+	docker buildx build --platform $(DOCKER_PLATFORMS) -f Dockerfile.ent -t $(IMG_ENT) . $(DOCKER_ARGS)
 
 .PHONY: docker-load-ent
 docker-load-ent: ## Load the enterprise image in KIND.
@@ -39,4 +34,3 @@ docker-load-ent: ## Load the enterprise image in KIND.
 
 .PHONY: docker-dev-ent
 docker-dev-ent: docker-build-ent docker-load-ent ## Build and load enterprise image for local development.
-
