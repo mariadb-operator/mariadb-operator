@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	corev1 "k8s.io/api/core/v1"
@@ -662,7 +663,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs := newRecoveryStatus(tt.mdb)
-			complete := rs.isComplete(tt.pods)
+			complete := rs.isComplete(tt.pods, logr.Logger{})
 			if tt.wantBool != complete {
 				t.Errorf("unexpected complete value: expected: %v, got: %v", tt.wantBool, complete)
 			}
@@ -1082,7 +1083,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs := newRecoveryStatus(tt.mdb)
-			source, err := rs.bootstrapSource(tt.pods)
+			source, err := rs.bootstrapSource(tt.pods, logr.Logger{})
 			if !reflect.DeepEqual(tt.wantSource, source) {
 				t.Errorf("unexpected bootstrapSource value: expected: %v, got: %v", tt.wantSource, source)
 			}
