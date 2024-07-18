@@ -948,6 +948,15 @@ func TestMariadbEnv(t *testing.T) {
 			}),
 		},
 		{
+			name: "MariaDB timeZone",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TimeZone: ptr.To("UTC"),
+				},
+			},
+			wantEnv: removeEnv(defaultEnv(nil), "MYSQL_INITDB_SKIP_TZINFO"),
+		},
+		{
 			name: "MariaDB env append",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -1004,6 +1013,10 @@ func TestMariadbEnv(t *testing.T) {
 								Name:  "MARIADB_ROOT_PASSWORD",
 								Value: "foo",
 							},
+							{
+								Name:  "MYSQL_INITDB_SKIP_TZINFO",
+								Value: "0",
+							},
 						},
 					},
 				},
@@ -1041,6 +1054,10 @@ func TestMariadbEnv(t *testing.T) {
 					Name:  "MARIADB_ROOT_PASSWORD",
 					Value: "foo",
 				},
+				{
+					Name:  "MYSQL_INITDB_SKIP_TZINFO",
+					Value: "0",
+				},
 			},
 		},
 	}
@@ -1077,11 +1094,16 @@ func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 			SecretKeyRef: &corev1.SecretKeySelector{},
 		},
 	}
+	mysqlInitdbSkupTzinfo := corev1.EnvVar{
+		Name:  "MYSQL_INITDB_SKIP_TZINFO",
+		Value: "1",
+	}
 	defaults := map[string]corev1.EnvVar{
-		mysqlTcpPort.Name:        mysqlTcpPort,
-		clusterName.Name:         clusterName,
-		mariadbName.Name:         mariadbName,
-		mariadbRootPassword.Name: mariadbRootPassword,
+		mysqlTcpPort.Name:          mysqlTcpPort,
+		clusterName.Name:           clusterName,
+		mariadbName.Name:           mariadbName,
+		mariadbRootPassword.Name:   mariadbRootPassword,
+		mysqlInitdbSkupTzinfo.Name: mysqlInitdbSkupTzinfo,
 	}
 	for _, override := range overrides {
 		if _, ok := defaults[override.Name]; ok {
@@ -1125,5 +1147,16 @@ func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 		},
 		defaults[mariadbName.Name],
 		defaults[mariadbRootPassword.Name],
+		defaults[mysqlInitdbSkupTzinfo.Name],
 	}
+}
+
+func removeEnv(env []corev1.EnvVar, key string) []corev1.EnvVar {
+	var result []corev1.EnvVar
+	for _, e := range env {
+		if e.Name != key {
+			result = append(result, e)
+		}
+	}
+	return result
 }

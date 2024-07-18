@@ -26,6 +26,34 @@ var _ = Describe("MariaDB", func() {
 		expectMariadbReady(testCtx, k8sClient, testMdbkey)
 	})
 
+	DescribeTable(
+		"should render default config",
+		func(mariadb *mariadbv1alpha1.MariaDB, expectedConfig string) {
+			config, err := defaultConfig(mariadb)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(config).To(BeEquivalentTo(expectedConfig))
+		},
+		Entry(
+			"no timezone",
+			&mariadbv1alpha1.MariaDB{},
+			`[mariadb]
+skip-name-resolve
+`,
+		),
+		Entry(
+			"timezone",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TimeZone: ptr.To("UTC"),
+				},
+			},
+			`[mariadb]
+skip-name-resolve
+default_time_zone = UTC
+`,
+		),
+	)
+
 	It("should default", func() {
 		By("Creating MariaDB")
 		testDefaultKey := types.NamespacedName{
@@ -89,7 +117,7 @@ var _ = Describe("MariaDB", func() {
 			g.Expect(cm.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 			g.Expect(cm.ObjectMeta.Annotations).NotTo(BeNil())
 			g.Expect(cm.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-			g.Expect(cm.Data).To(HaveKeyWithValue("0-default.cnf", "[mariadb]\nskip-name-resolve\ndefault_time_zone = 'UTC'\n"))
+			g.Expect(cm.Data).To(HaveKeyWithValue("0-default.cnf", "[mariadb]\nskip-name-resolve\n"))
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
 
