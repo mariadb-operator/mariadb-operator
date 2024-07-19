@@ -180,6 +180,9 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 		stateUUID := ptr.Deref(state, recovery.GaleraState{}).UUID
 		recoveredUUID := ptr.Deref(recovered, recovery.Bootstrap{}).UUID
 
+		// Pods with 00000000-0000-0000-0000-000000000000 UUID need an SST to rejoin the cluster,
+		// they can be skipped in order to continue with the bootstrap process.
+		// See: https://galeracluster.com/library/documentation/node-provisioning.html#node-provisioning
 		if stateUUID == zeroUUID && recoveredUUID == zeroUUID {
 			logger.Info("Skipping Pod with zero UUID", "pod", p.Name)
 			numZeros++
