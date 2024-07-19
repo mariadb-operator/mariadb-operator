@@ -457,6 +457,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#important-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Important considerations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Important considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#root-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      Root credentials
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#restore-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      Restore job
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#galera-backup-limitations" class="md-nav__link">
     <span class="md-ellipsis">
       Galera backup limitations
@@ -537,6 +570,30 @@
       Reference
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#galera-pods-restarting-after-bootstrapping-from-a-backup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera Pods restarting after bootstrapping from a backup
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -977,6 +1034,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#important-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Important considerations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Important considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#root-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      Root credentials
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#restore-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      Restore job
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#galera-backup-limitations" class="md-nav__link">
     <span class="md-ellipsis">
       Galera backup limitations
@@ -1060,6 +1150,30 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#galera-pods-restarting-after-bootstrapping-from-a-backup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera Pods restarting after bootstrapping from a backup
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1100,6 +1214,7 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.2
 <li><a href="#bootstrap-new-mariadb-instances">Bootstrap new <code>MariaDB</code> instances</a></li>
 <li><a href="#backup-and-restore-specific-databases">Backup and restore specific databases</a></li>
 <li><a href="#extra-options">Extra options</a></li>
+<li><a href="#important-considerations">Important considerations</a></li>
 <li><a href="#galera-backup-limitations">Galera backup limitations</a><ul>
 <li><a href="#mysqlglobal_priv"><code>mysql.global_priv</code></a></li>
 <li><a href="#lock-tables"><code>LOCK TABLES</code></a></li>
@@ -1352,6 +1467,27 @@ spec:
     - --verbose
 </code></pre>
 <p>Refer to the <code>mariadb-dump</code> and <code>mariadb</code> CLI options in the <a href="#reference">reference</a> section.</p>
+<h2 id="important-considerations">Important considerations</h2>
+<h4 id="root-credentials">Root credentials</h4>
+<p>When restoring a backup, the root credentials specified through the <code>spec.rootPasswordSecretKeyRef</code> field in the <code>MariaDB</code> resource must match the ones in the backup. These credentials are utilized by the liveness and readiness probes, and if they are invalid, the probes will fail, causing your <code>MariaDB</code> <code>Pods</code> to restart after the backup restoration.</p>
+<h4 id="restore-job">Restore job</h4>
+<p>Restoring large backups can consume significant compute resources and may cause <code>Restore</code> <code>Jobs</code> to become stuck due to insufficient resources. To prevent this, you can define the compute resources allocated to the <code>Job</code>:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  bootstrapFrom:
+    restoreJob:
+      args:
+        - --verbose
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          memory: 1Gi
+</code></pre>
 <h2 id="galera-backup-limitations">Galera backup limitations</h2>
 <h4 id="mysqlglobal_priv"><code>mysql.global_priv</code></h4>
 <p>Galera only replicates the tables with InnoDB engine:
@@ -1419,6 +1555,12 @@ make net # to access the console via a MetalLB LoadBalancer: https://minio-conso
 <li><a href="https://mariadb.com/kb/en/mariadb-dump/#options"><code>mariadb-dump</code> options</a></li>
 <li><a href="https://mariadb.com/kb/en/mariadb-command-line-client/#options"><code>mariadb</code> options</a></li>
 </ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h4 id="galera-pods-restarting-after-bootstrapping-from-a-backup">Galera <code>Pods</code> restarting after bootstrapping from a backup</h4>
+<p>Most likely, this means that the root credentials specified via <code>MariaDB</code>'s <code>spec.rootPasswordKeyRef</code> do not match the root credentials of the restored backup. In this case, you need to update your root password <code>Secret</code> to match the database internal state.</p>
+<p>See:
+- <a href="#important-considerations">Important considerations</a>
+- <a href="#galera-backup-limitations">Galera backup limitations</a></p>
 
 
 
