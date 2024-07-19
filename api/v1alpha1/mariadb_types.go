@@ -386,6 +386,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty"`
+	// TimeZone sets the default timezone. If not provided, it defaults to SYSTEM and the timezone data is not loaded.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	TimeZone *string `json:"timeZone,omitempty" webhook:"inmutable"`
 	// BootstrapFrom defines a source to bootstrap from.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

@@ -12,7 +12,7 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-VERSION ?= 0.0.29
+VERSION ?= 0.0.30-dev
 
 # mariadb-operator
 IMG_NAME ?= docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
@@ -69,9 +69,10 @@ MARIADB_GALERA_LIB_PATH ?= /usr/lib/galera/libgalera_smm.so
 MARIADB_GALERA_LIB_PATH_ENT ?= /usr/lib64/galera/libgalera_smm.so
 
 # docker
-MARIADB_DOCKER_COMMIT_HASH ?= d7a950d41e9347ac94ad2d2f28469bff74858db7
-MARIADB_DOCKER_URL ?= https://raw.githubusercontent.com/MariaDB/mariadb-docker/$(MARIADB_DOCKER_COMMIT_HASH)/10.11/docker-entrypoint.sh
-MARIADB_DOCKER_PATH ?= pkg/embed/mariadb-docker/docker-entrypoint.sh
+MARIADB_DOCKER_REPO ?= https://github.com/MariaDB/mariadb-docker
+MARIADB_DOCKER_COMMIT_HASH ?= 11135d071fd1fe355b1f7fa99b9d3b4a59bb5225
+MARIADB_ENTRYPOINT_PATH ?= pkg/embed/mariadb-docker
+MARIADB_ENTRYPOINT_VERSION ?= 10.11
 
 DOCKER_CONFIG ?= $(HOME)/.docker/config.json 
 
@@ -92,7 +93,9 @@ include make/build.mk
 include make/deploy.mk
 include make/deps.mk
 include make/dev.mk
+include make/docs.mk
 include make/gen.mk
+include make/helm.mk
 include make/net.mk
 include make/openshift.mk
 include make/pki.mk

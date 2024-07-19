@@ -16,7 +16,6 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 GORELEASER ?= $(LOCALBIN)/goreleaser
 GO_LICENSES = $(LOCALBIN)/go-licenses
 CRD_REF_DOCS = $(LOCALBIN)/crd-ref-docs
-MDTOC = $(LOCALBIN)/mdtoc
 FLUX ?= $(LOCALBIN)/flux
 YQ ?= $(LOCALBIN)/yq
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
@@ -25,24 +24,23 @@ OC ?= $(LOCALBIN)/oc
 PREFLIGHT ?= $(LOCALBIN)/preflight
 
 ## Tool Versions
-KIND_VERSION ?= v0.22.0
-KUBECTL_VERSION ?= v1.29.3
-KUSTOMIZE_VERSION ?= v5.3.0
-CONTROLLER_GEN_VERSION ?= v0.14.0
-ENVTEST_K8S_VERSION ?= 1.29
-GINKGO_VERSION ?= v2.17.2
+KUBERNETES_VERSION ?= 1.30.x
+KIND_VERSION ?= v0.23.0
+KUBECTL_VERSION ?= v1.30.2
+KUSTOMIZE_VERSION ?= v5.4.2
+CONTROLLER_GEN_VERSION ?= v0.15.0
+GINKGO_VERSION ?= v2.19.0
 GOLANGCI_LINT_VERSION ?= v1.56.2
-GORELEASER_VERSION ?= v1.24.0
+GORELEASER_VERSION ?= v2.10.0
 GO_LICENSES_VERSION ?= v1.0.0
-CRD_REF_DOCS_VERSION ?= v0.0.11
-MDTOC_VERSION ?= v1.3.0
+CRD_REF_DOCS_VERSION ?= v0.0.12
 FLUX_VERSION ?= 0.40.1
 JQ_VERSION ?= jq-1.7
 YQ_VERSION ?= v4.18.1
-OPERATOR_SDK_VERSION ?= v1.34.1
+OPERATOR_SDK_VERSION ?= v1.35.0
 OPM_VERSION ?= v1.37.0
 OC_TAR_GZ_URL ?= https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest-4.9/openshift-client-linux-4.9.59.tar.gz
-PREFLIGHT_VERSION ?= 1.9.7
+PREFLIGHT_VERSION ?= 1.9.9
 
 .PHONY: kind
 kind: $(KIND) ## Download kind locally if necessary.
@@ -104,11 +102,6 @@ $(GO_LICENSES): $(LOCALBIN)
 crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
 $(CRD_REF_DOCS): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
-
-.PHONY: mdtoc
-mdtoc: $(MDTOC) ## Download mdtoc locally if necessary.
-$(MDTOC): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/mdtoc@$(MDTOC_VERSION)
 
 .PHONY: flux
 flux: ## Download flux locally if necessary.

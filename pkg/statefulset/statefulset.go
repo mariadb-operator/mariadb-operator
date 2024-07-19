@@ -33,6 +33,10 @@ func PodFQDNWithService(meta metav1.ObjectMeta, podIndex int, service string) st
 	return fmt.Sprintf("%s.%s", PodName(meta, podIndex), ServiceFQDNWithService(meta, service))
 }
 
+func PodShortFQDNWithService(meta metav1.ObjectMeta, podIndex int, service string) string {
+	return fmt.Sprintf("%s.%s", PodName(meta, podIndex), service)
+}
+
 func PodIndex(podName string) (*int, error) {
 	parts := strings.Split(podName, "-")
 	if len(parts) == 0 {

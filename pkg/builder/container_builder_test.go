@@ -3,6 +3,7 @@ package builder
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -879,4 +880,283 @@ func TestContainerSecurityContext(t *testing.T) {
 	if container.SecurityContext != nil {
 		t.Error("expected SecurityContext to be nil")
 	}
+}
+
+func TestMariadbEnv(t *testing.T) {
+	tests := []struct {
+		name           string
+		mariadb        *mariadbv1alpha1.MariaDB
+		wantEnv        []corev1.EnvVar
+		setClusterName bool
+	}{
+		{
+			name:    "MariaDB empty",
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantEnv: defaultEnv(nil),
+		},
+		{
+			name:    "MariaDB cluster name",
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantEnv: defaultEnv([]corev1.EnvVar{
+				{
+					Name:  "CLUSTER_NAME",
+					Value: "example.com",
+				},
+			}),
+			setClusterName: true,
+		},
+		{
+			name: "MariaDB tcp port",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Port: 12345,
+				},
+			},
+			wantEnv: defaultEnv([]corev1.EnvVar{
+				{
+					Name:  "MYSQL_TCP_PORT",
+					Value: strconv.Itoa(12345),
+				},
+			}),
+		},
+		{
+			name: "MariaDB name",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "example",
+				},
+			},
+			wantEnv: defaultEnv([]corev1.EnvVar{
+				{
+					Name:  "MARIADB_NAME",
+					Value: "example",
+				},
+			}),
+		},
+		{
+			name: "MariaDB root empty password",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootEmptyPassword: ptr.To(true),
+				},
+			},
+			wantEnv: defaultEnv([]corev1.EnvVar{
+				{
+					Name:  "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
+					Value: "yes",
+				},
+			}),
+		},
+		{
+			name: "MariaDB timeZone",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TimeZone: ptr.To("UTC"),
+				},
+			},
+			wantEnv: removeEnv(defaultEnv(nil), "MYSQL_INITDB_SKIP_TZINFO"),
+		},
+		{
+			name: "MariaDB env append",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Env: []corev1.EnvVar{
+							{
+								Name:  "FOO_BAR_BAZ",
+								Value: "LOREM_IPSUM_DOLOR",
+							},
+						},
+					},
+				},
+			},
+			wantEnv: append(defaultEnv(nil), corev1.EnvVar{
+				Name:  "FOO_BAR_BAZ",
+				Value: "LOREM_IPSUM_DOLOR",
+			}),
+		},
+		{
+			name: "MariaDB env override",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Env: []corev1.EnvVar{
+							{
+								Name:  "MYSQL_TCP_PORT",
+								Value: strconv.Itoa(12345),
+							},
+							{
+								Name:  "MARIADB_ROOT_HOST",
+								Value: "1.2.3.4",
+							},
+							{
+								Name:  "CLUSTER_NAME",
+								Value: "foo.bar",
+							},
+							{
+								Name:  "POD_NAME",
+								Value: "foo",
+							},
+							{
+								Name:  "POD_NAMESPACE",
+								Value: "foo",
+							},
+							{
+								Name:  "POD_IP",
+								Value: "1.2.3.4",
+							},
+							{
+								Name:  "MARIADB_NAME",
+								Value: "foo",
+							},
+							{
+								Name:  "MARIADB_ROOT_PASSWORD",
+								Value: "foo",
+							},
+							{
+								Name:  "MYSQL_INITDB_SKIP_TZINFO",
+								Value: "0",
+							},
+						},
+					},
+				},
+			},
+			wantEnv: []corev1.EnvVar{
+				{
+					Name:  "MYSQL_TCP_PORT",
+					Value: strconv.Itoa(12345),
+				},
+				{
+					Name:  "MARIADB_ROOT_HOST",
+					Value: "1.2.3.4",
+				},
+				{
+					Name:  "CLUSTER_NAME",
+					Value: "foo.bar",
+				},
+				{
+					Name:  "POD_NAME",
+					Value: "foo",
+				},
+				{
+					Name:  "POD_NAMESPACE",
+					Value: "foo",
+				},
+				{
+					Name:  "POD_IP",
+					Value: "1.2.3.4",
+				},
+				{
+					Name:  "MARIADB_NAME",
+					Value: "foo",
+				},
+				{
+					Name:  "MARIADB_ROOT_PASSWORD",
+					Value: "foo",
+				},
+				{
+					Name:  "MYSQL_INITDB_SKIP_TZINFO",
+					Value: "0",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setClusterName {
+				t.Setenv("CLUSTER_NAME", "example.com")
+			}
+			env := mariadbEnv(tt.mariadb)
+			if !reflect.DeepEqual(tt.wantEnv, env) {
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantEnv, env)
+			}
+		})
+	}
+}
+
+func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
+	mysqlTcpPort := corev1.EnvVar{
+		Name:  "MYSQL_TCP_PORT",
+		Value: strconv.Itoa(0),
+	}
+	clusterName := corev1.EnvVar{
+		Name:  "CLUSTER_NAME",
+		Value: "cluster.local",
+	}
+	mariadbName := corev1.EnvVar{
+		Name:  "MARIADB_NAME",
+		Value: "",
+	}
+	mariadbRootPassword := corev1.EnvVar{
+		Name: "MARIADB_ROOT_PASSWORD",
+		ValueFrom: &corev1.EnvVarSource{
+			SecretKeyRef: &corev1.SecretKeySelector{},
+		},
+	}
+	mysqlInitdbSkupTzinfo := corev1.EnvVar{
+		Name:  "MYSQL_INITDB_SKIP_TZINFO",
+		Value: "1",
+	}
+	defaults := map[string]corev1.EnvVar{
+		mysqlTcpPort.Name:          mysqlTcpPort,
+		clusterName.Name:           clusterName,
+		mariadbName.Name:           mariadbName,
+		mariadbRootPassword.Name:   mariadbRootPassword,
+		mysqlInitdbSkupTzinfo.Name: mysqlInitdbSkupTzinfo,
+	}
+	for _, override := range overrides {
+		if _, ok := defaults[override.Name]; ok {
+			defaults[override.Name] = override
+		}
+		if override.Name == "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD" {
+			defaults[mariadbRootPassword.Name] = override
+		}
+	}
+
+	return []corev1.EnvVar{
+		defaults[mysqlTcpPort.Name],
+		{
+			Name:  "MARIADB_ROOT_HOST",
+			Value: "%",
+		},
+		defaults[clusterName.Name],
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name: "POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		defaults[mariadbName.Name],
+		defaults[mariadbRootPassword.Name],
+		defaults[mysqlInitdbSkupTzinfo.Name],
+	}
+}
+
+func removeEnv(env []corev1.EnvVar, key string) []corev1.EnvVar {
+	var result []corev1.EnvVar
+	for _, e := range env {
+		if e.Name != key {
+			result = append(result, e)
+		}
+	}
+	return result
 }

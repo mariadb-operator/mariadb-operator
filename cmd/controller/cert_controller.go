@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/controller"
+	"github.com/mariadb-operator/mariadb-operator/internal/controller"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"

@@ -2,6 +2,7 @@ MARIADB_OPERATOR_NAME ?= mariadb-operator
 MARIADB_OPERATOR_NAMESPACE ?= default
 MARIADB_OPERATOR_SA_PATH ?= /tmp/mariadb-operator/token
 WATCH_NAMESPACE ?= ""
+KUBEBUILDER_ASSETS ?= "$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path)" 
 
 ENV ?= \
 	RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
@@ -15,7 +16,9 @@ ENV ?= \
 	MARIADB_OPERATOR_NAME=$(MARIADB_OPERATOR_NAME) \
 	MARIADB_OPERATOR_NAMESPACE=$(MARIADB_OPERATOR_NAMESPACE) \
 	MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
-	WATCH_NAMESPACE=$(WATCH_NAMESPACE)
+	MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
+	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
+	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
 ENV_ENT ?= \
 	RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB_ENT) \
@@ -29,16 +32,15 @@ ENV_ENT ?= \
 	MARIADB_OPERATOR_NAME=$(MARIADB_OPERATOR_NAME) \
 	MARIADB_OPERATOR_NAMESPACE=$(MARIADB_OPERATOR_NAMESPACE) \
 	MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
+	MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
-	ENTERPRISE=true
+	ENTERPRISE=true \
+	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
 TEST_ARGS ?= --timeout 20m -procs 1
 
-TEST_ENV ?= $(ENV) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-TEST ?= $(TEST_ENV) $(GINKGO) -p --coverprofile=cover.out --label-filter='!enterprise' $(TEST_ARGS)
-
-TEST_ENV_ENT ?= $(ENV_ENT) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)"
-TEST_ENT ?= $(TEST_ENV_ENT) $(GINKGO) -p --coverprofile=cover.out $(TEST_ARGS)
+TEST ?= $(ENV) $(GINKGO) -p --coverprofile=cover.out --label-filter='!enterprise' $(TEST_ARGS)
+TEST_ENT ?= $(ENV_ENT) $(GINKGO) -p --coverprofile=cover.out $(TEST_ARGS)
 
 GOCOVERDIR ?= .
 
@@ -50,7 +52,7 @@ test-unit: envtest ginkgo ## Run unit tests.
 
 .PHONY: test-int
 test-int: envtest ginkgo ## Run integration tests.
-	$(TEST) ./controller/...
+	$(TEST) ./internal/controller/...
 
 .PHONY: test
 test: test-unit test-int ## Run tests.
@@ -68,7 +70,7 @@ test-unit-ent: envtest ginkgo ## Run enterprise unit tests.
 
 .PHONY: test-int-ent
 test-int-ent: envtest ginkgo ## Run enterprise integration tests.
-	$(TEST_ENT) ./controller/...
+	$(TEST_ENT) ./internal/controller/...
 
 .PHONY: test-ent
 test-ent: test-unit-ent test-int-ent ## Run enterprise tests.

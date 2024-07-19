@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -160,6 +161,44 @@ var _ = Describe("Backup webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid history limits",
+				&Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-valid",
+						Namespace: testNamespace,
+					},
+					Spec: BackupSpec{
+						JobContainerTemplate: JobContainerTemplate{
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
+						Schedule: &Schedule{
+							Cron: "*/1 * * * *",
+						},
+						Storage: BackupStorage{
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit:               10,
+						RestartPolicy:              corev1.RestartPolicyOnFailure,
+						SuccessfulJobsHistoryLimit: ptr.To[int32](-5),
+						FailedJobsHistoryLimit:     ptr.To[int32](-5),
+					},
+				},
+				true,
+			),
+			Entry(
 				"Valid",
 				&Backup{
 					ObjectMeta: metav1.ObjectMeta{
@@ -191,6 +230,44 @@ var _ = Describe("Backup webhook", func() {
 						},
 						BackoffLimit:  10,
 						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				false,
+			),
+			Entry(
+				"Valid with history limits",
+				&Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-valid-with-history-limits",
+						Namespace: testNamespace,
+					},
+					Spec: BackupSpec{
+						JobContainerTemplate: JobContainerTemplate{
+							Resources: &corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
+						Schedule: &Schedule{
+							Cron: "*/1 * * * *",
+						},
+						Storage: BackupStorage{
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit:               10,
+						RestartPolicy:              corev1.RestartPolicyOnFailure,
+						SuccessfulJobsHistoryLimit: ptr.To[int32](5),
+						FailedJobsHistoryLimit:     ptr.To[int32](5),
 					},
 				},
 				false,
@@ -268,6 +345,34 @@ var _ = Describe("Backup webhook", func() {
 					}
 				},
 				false,
+			),
+			Entry(
+				"Updating SuccessfulJobsHistoryLimit",
+				func(bmdb *Backup) {
+					bmdb.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
+				},
+				false,
+			),
+			Entry(
+				"Updating with wrong SuccessfulJobsHistoryLimit",
+				func(bmdb *Backup) {
+					bmdb.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](-5)
+				},
+				true,
+			),
+			Entry(
+				"Updating FailedJobsHistoryLimit",
+				func(bmdb *Backup) {
+					bmdb.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
+				},
+				false,
+			),
+			Entry(
+				"Updating with wrong FailedJobsHistoryLimit",
+				func(bmdb *Backup) {
+					bmdb.Spec.FailedJobsHistoryLimit = ptr.To[int32](-5)
+				},
+				true,
 			),
 			Entry(
 				"Updating MaxRetention",

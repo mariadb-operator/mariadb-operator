@@ -129,10 +129,10 @@ func serviceMonitorEndpoints(objMeta metav1.ObjectMeta, replicas int, serviceNam
 			Path:   "/probe",
 			Port:   MetricsPortName,
 			Scheme: "http",
-			MetricRelabelConfigs: []*monitoringv1.RelabelConfig{
+			MetricRelabelConfigs: []monitoringv1.RelabelConfig{
 				{
 					Action:      "replace",
-					Replacement: podFQDN,
+					Replacement: ptr.To(podFQDN),
 					SourceLabels: []monitoringv1.LabelName{
 						monitoringv1.LabelName("instance"),
 					},
@@ -140,7 +140,7 @@ func serviceMonitorEndpoints(objMeta metav1.ObjectMeta, replicas int, serviceNam
 				},
 				{
 					Action:      "replace",
-					Replacement: podName,
+					Replacement: ptr.To(podName),
 					SourceLabels: []monitoringv1.LabelName{
 						monitoringv1.LabelName("target"),
 					},

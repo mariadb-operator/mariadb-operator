@@ -146,7 +146,8 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 
 	changeMasterOpts := &sqlClient.ChangeMasterOpts{
 		Connection: connectionName,
-		Host: statefulset.PodFQDNWithService(
+		// MariaDB 10.5 has a limitation of 60 characters in this host.
+		Host: statefulset.PodShortFQDNWithService(
 			mariadb.ObjectMeta,
 			primaryPodIndex,
 			mariadb.InternalServiceKey().Name,

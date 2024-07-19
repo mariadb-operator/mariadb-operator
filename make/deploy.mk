@@ -1,10 +1,9 @@
-HELM_DIR ?= deploy/charts/mariadb-operator
 CLUSTER ?= mdb
 
 ##@ Cluster
 
 KIND_CONFIG ?= hack/config/kind.yaml
-KIND_IMAGE ?= kindest/node:v1.29.2
+KIND_IMAGE ?= kindest/node:v1.30.2
 
 .PHONY: cluster
 cluster: kind ## Create a single node kind cluster.
@@ -80,17 +79,6 @@ POD ?= mariadb-repl-0
 .PHONY: delete-pod
 delete-pod: ## Continiously delete a Pod.
 	@while true; do kubectl delete pod $(POD); sleep 1; done;
-
-##@ Helm
-
-CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0 
-.PHONY: helm-lint
-helm-lint: ## Lint Helm charts.
-	docker run --rm --workdir /repo -v $(shell pwd):/repo $(CT_IMG) ct lint --config .github/config/ct.yml 
-
-.PHONY: helm-chart-version
-helm-chart-version: yq ## Get helm chart version.
-	@cat $(HELM_DIR)/Chart.yaml | $(YQ) e ".version"
 
 ##@ Install
 

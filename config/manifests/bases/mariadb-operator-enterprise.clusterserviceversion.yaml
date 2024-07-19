@@ -3,7 +3,7 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: '[]'
-    capabilities: Auto Pilot
+    capabilities: Deep Insights
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise:v0.0.23
@@ -4884,6 +4884,8 @@ spec:
   maintainers:
   - email: martin.montes@mariadb.com
     name: Martin Montes
+  - email: pieter.humphrey@mariadb.com
+    name: Pieter Humphrey
   maturity: alpha
   minKubeVersion: 1.16.0
   provider:
