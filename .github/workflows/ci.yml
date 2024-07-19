@@ -7,7 +7,7 @@ on:
   pull_request: {}
 
 env:
-  GOLANGCI_VERSION: "v1.56.2"
+  GOLANGCI_VERSION: "v1.59.1"
 
 jobs:
   detect-noop:
