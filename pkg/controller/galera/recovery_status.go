@@ -188,7 +188,7 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 			numZeros++
 			continue
 		}
-		if (state != nil && state.Seqno != -1) || (recovered != nil && recovered.Seqno != -1) {
+		if (state != nil && state.GetSeqno() != -1) || (recovered != nil && recovered.GetSeqno() != -1) {
 			continue
 		}
 		return false
