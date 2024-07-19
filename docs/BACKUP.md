@@ -16,6 +16,7 @@
 - [Bootstrap new <code>MariaDB</code> instances](#bootstrap-new-mariadb-instances)
 - [Backup and restore specific databases](#backup-and-restore-specific-databases)
 - [Extra options](#extra-options)
+- [Important considerations](#important-considerations)
 - [Galera backup limitations](#galera-backup-limitations)
     - [<code>mysql.global_priv</code>](#mysqlglobal_priv)
     - [<code>LOCK TABLES</code>](#lock-tables)
@@ -319,6 +320,34 @@ spec:
 
 Refer to the `mariadb-dump` and `mariadb` CLI options in the [reference](#reference) section.
 
+## Important considerations
+
+#### Root credentials
+
+When restoring a backup, the root credentials specified through the `spec.rootPasswordSecretKeyRef` field in the `MariaDB` resource must match the ones in the backup. These credentials are utilized by the liveness and readiness probes, and if they are invalid, the probes will fail, causing your `MariaDB` `Pods` to restart after the backup restoration.
+
+#### Restore job
+
+Restoring large backups can consume significant compute resources and may cause `Restore` `Jobs` to become stuck due to insufficient resources. To prevent this, you can define the compute resources allocated to the `Job`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  bootstrapFrom:
+    restoreJob:
+      args:
+        - --verbose
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          memory: 1Gi
+``` 
+
 ## Galera backup limitations
 
 #### `mysql.global_priv`
@@ -414,3 +443,14 @@ As an alternative, you can also use [play.min.io](https://play.min.io/) using th
 - [Example suite](../examples/)
 - [`mariadb-dump` options](https://mariadb.com/kb/en/mariadb-dump/#options)
 - [`mariadb` options](https://mariadb.com/kb/en/mariadb-command-line-client/#options)
+
+
+## Troubleshooting
+
+#### Galera `Pods` restarting after bootstrapping from a backup
+
+Most likely, this means that the root credentials specified via `MariaDB`'s `spec.rootPasswordKeyRef` do not match the root credentials of the restored backup. In this case, you need to update your root password `Secret` to match the database internal state.
+
+See:
+- [Important considerations](#important-considerations)
+- [Galera backup limitations](#galera-backup-limitations)
