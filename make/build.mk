@@ -1,6 +1,5 @@
 ##@ Build
 
-DOCKER_PLATFORMS ?= linux/amd64
 DOCKER_ARGS ?=
 
 .PHONY: build
@@ -9,7 +8,7 @@ build: ## Build binary.
 
 .PHONY: docker-build
 docker-build: ## Build docker image.
-	docker buildx build --platform $(DOCKER_PLATFORMS) -t $(IMG) . $(DOCKER_ARGS)
+	docker buildx build -t $(IMG) . $(DOCKER_ARGS)
 
 .PHONY: docker-load
 docker-load: kind ## Load docker image in KIND.
@@ -26,7 +25,7 @@ build-ent: ## Build the enterprise binary.
 
 .PHONY: docker-build-ent
 docker-build-ent: ## Build the enterprise image.
-	docker buildx build --platform $(DOCKER_PLATFORMS) -f Dockerfile.ent -t $(IMG_ENT) . $(DOCKER_ARGS)
+	docker buildx build -f Dockerfile.ent -t $(IMG_ENT) . $(DOCKER_ARGS)
 
 .PHONY: docker-load-ent
 docker-load-ent: ## Load the enterprise image in KIND.
