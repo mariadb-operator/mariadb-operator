@@ -19,6 +19,7 @@ import (
 	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/wait"
+	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -228,34 +229,30 @@ func (r *GaleraReconciler) getPods(ctx context.Context, mariadb *mariadbv1alpha1
 
 func (r *GaleraReconciler) stateByPod(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod, rs *recoveryStatus,
 	clientSet *agentClientSet, logger logr.Logger) error {
-	doneChan := make(chan struct{})
-	errChan := make(chan error)
+	g := new(errgroup.Group)
+	g.SetLimit(len(pods))
 
-	var wg sync.WaitGroup
 	for _, pod := range pods {
 		if _, ok := rs.state(pod.Name); ok {
 			logger.V(1).Info("Skipping Pod state", "pod", pod.Name)
 			continue
 		}
 
-		i, err := statefulset.PodIndex(pod.Name)
-		if err != nil {
-			return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
-		}
-
-		wg.Add(1)
-		go func(i int, pod corev1.Pod) {
-			defer wg.Done()
-
-			client, err := clientSet.clientForIndex(i)
+		g.Go(func() error {
+			i, err := statefulset.PodIndex(pod.Name)
 			if err != nil {
-				errChan <- fmt.Errorf("error getting client for Pod '%s': %v", pod.Name, err)
-				return
+				return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
+			}
+
+			client, err := clientSet.clientForIndex(*i)
+			if err != nil {
+				return fmt.Errorf("error getting client for Pod '%s': %v", pod.Name, err)
 			}
 
 			stateCtx, cancelState := context.WithTimeout(ctx, 30*time.Second)
 			defer cancelState()
-			if err = wait.PollUntilSucessWithTimeout(stateCtx, logger, func(ctx context.Context) error {
+
+			err = wait.PollUntilSucessWithTimeout(stateCtx, logger, func(ctx context.Context) error {
 				galeraState, err := client.State.GetGaleraState(ctx)
 				if err != nil {
 					return err
@@ -265,25 +262,17 @@ func (r *GaleraReconciler) stateByPod(ctx context.Context, mariadb *mariadbv1alp
 				r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodStateFetched,
 					"Galera state fetched in Pod '%s'", pod.Name)
 				rs.setState(pod.Name, galeraState)
-				return nil
-			}); err != nil {
-				errChan <- fmt.Errorf("error getting Galera state for Pod '%s': %v", pod.Name, err)
-			}
-		}(*i, pod)
-	}
-	go func() {
-		wg.Wait()
-		close(doneChan)
-	}()
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-doneChan:
-		return nil
-	case err := <-errChan:
-		return err
+				return nil
+			})
+			if err != nil {
+				return fmt.Errorf("error getting Galera state for Pod '%s': %v", pod.Name, err)
+			}
+			return nil
+		})
 	}
+
+	return g.Wait()
 }
 
 func (r *GaleraReconciler) recoveryByPod(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod, rs *recoveryStatus,
