@@ -328,6 +328,44 @@ func TestRecoveryStatusSafeToBootstrap(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "safe to bootstrap with zero UUIDs",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno:           1,
+								SafeToBootstrap: true,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+						},
+					},
+				},
+			},
+			pods: pods,
+			wantSource: &bootstrapSource{
+				bootstrap: &recovery.Bootstrap{
+					UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
+					Seqno: 1,
+				},
+				pod: &pod1,
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -658,6 +696,141 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 			pods:     pods,
 			wantBool: true,
 		},
+		{
+			name: "some zero UUIDs",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+						},
+						Recovered: map[string]*recovery.Bootstrap{
+							"mariadb-galera-0": {
+								UUID:  "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno: 1,
+							},
+							"mariadb-galera-1": {
+								UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno: 1,
+							},
+							"mariadb-galera-2": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+						},
+					},
+				},
+			},
+			pods:     pods,
+			wantBool: true,
+		},
+		{
+			name: "zero UUID in state, non zero recovered",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+						},
+						Recovered: map[string]*recovery.Bootstrap{
+							"mariadb-galera-0": {
+								UUID:  "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno: 1,
+							},
+							"mariadb-galera-1": {
+								UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno: 1,
+							},
+							"mariadb-galera-2": {
+								UUID:  "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
+								Seqno: 1,
+							},
+						},
+					},
+				},
+			},
+			pods:     pods,
+			wantBool: true,
+		},
+		{
+			name: "full zero UUIDs",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+						},
+						Recovered: map[string]*recovery.Bootstrap{
+							"mariadb-galera-0": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+							"mariadb-galera-1": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+							"mariadb-galera-2": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+						},
+					},
+				},
+			},
+			pods:     pods,
+			wantBool: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -923,6 +1096,54 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "partially recovered with zero UUIDs",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno:           4,
+								SafeToBootstrap: true,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+						},
+						Recovered: map[string]*recovery.Bootstrap{
+							"mariadb-galera-1": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+							"mariadb-galera-2": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+						},
+					},
+				},
+			},
+			pods: pods,
+			wantSource: &bootstrapSource{
+				bootstrap: &recovery.Bootstrap{
+					UUID:  "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+					Seqno: 4,
+				},
+				pod: &pod0,
+			},
+			wantErr: false,
+		},
+		{
 			name: "fully recovered",
 			mdb: &mariadbv1alpha1.MariaDB{
 				Status: mariadbv1alpha1.MariaDBStatus{
@@ -1075,6 +1296,58 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Seqno: 6,
 				},
 				pod: &pod1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "fully recovered with zero UUIDs",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno:           3,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+						},
+						Recovered: map[string]*recovery.Bootstrap{
+							"mariadb-galera-0": {
+								UUID:  "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno: 3,
+							},
+							"mariadb-galera-1": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+							"mariadb-galera-2": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+						},
+					},
+				},
+			},
+			pods: pods,
+			wantSource: &bootstrapSource{
+				bootstrap: &recovery.Bootstrap{
+					UUID:  "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+					Seqno: 3,
+				},
+				pod: &pod0,
 			},
 			wantErr: false,
 		},
