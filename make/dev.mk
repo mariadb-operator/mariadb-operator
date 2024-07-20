@@ -37,10 +37,10 @@ ENV_ENT ?= \
 	ENTERPRISE=true \
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
-TEST_ARGS ?= --timeout 20m -procs 1
+TEST_ARGS ?= --timeout 20m
 
-TEST ?= $(ENV) $(GINKGO) -p --coverprofile=cover.out --label-filter='!enterprise' $(TEST_ARGS)
-TEST_ENT ?= $(ENV_ENT) $(GINKGO) -p --coverprofile=cover.out $(TEST_ARGS)
+TEST ?= $(ENV) $(GINKGO) --coverprofile=cover.out --label-filter='!enterprise' $(TEST_ARGS)
+TEST_ENT ?= $(ENV_ENT) $(GINKGO) --coverprofile=cover.out $(TEST_ARGS)
 
 GOCOVERDIR ?= .
 
