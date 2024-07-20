@@ -179,24 +179,10 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 		}
 
 		if err := r.pollUntilPodDeleted(syncContext, key, logger); err != nil {
-			var aggErr *multierror.Error
-			aggErr = multierror.Append(aggErr, err)
-
-			logger.Error(err, "Error restarting Pod. Resetting recovery", "pod", key.Name)
-			resetErr := r.resetRecovery(ctx, mariadb, rs)
-			aggErr = multierror.Append(aggErr, resetErr)
-
-			return fmt.Errorf("error deleting Pod '%s': %v", key.Name, aggErr)
+			return fmt.Errorf("error deleting Pod '%s': %v", key.Name, err)
 		}
 		if err := r.pollUntilPodSynced(syncContext, key, sqlClientSet, logger); err != nil {
-			var aggErr *multierror.Error
-			aggErr = multierror.Append(aggErr, err)
-
-			logger.Error(err, "Error waiting for Pod to be Synced. Resetting recovery", "pod", key.Name)
-			resetErr := r.resetRecovery(ctx, mariadb, rs)
-			aggErr = multierror.Append(aggErr, resetErr)
-
-			return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", key.Name, aggErr)
+			return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", key.Name, err)
 		}
 	}
 
