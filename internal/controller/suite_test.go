@@ -82,10 +82,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
-
 	By("Bootstrapping test environment")
 	testEnv := &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("../..", "config", "crd", "bases")},
@@ -332,5 +328,10 @@ var _ = BeforeSuite(func() {
 	}()
 
 	By("Creating initial test data")
-	testCreateInitialData(testCtx, k8sClient, *env)
+	testCreateInitialData(testCtx, *env)
+})
+
+var _ = AfterSuite(func() {
+	By("Cleaning up initial test data")
+	testCleanupInitialData(testCtx)
 })

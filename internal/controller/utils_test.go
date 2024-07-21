@@ -70,7 +70,7 @@ var (
 	}
 )
 
-func testCreateInitialData(ctx context.Context, k8sClient client.Client, env environment.OperatorEnv) {
+func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 	var testCidrPrefix, err = docker.GetKindCidrPrefix()
 	Expect(testCidrPrefix).ShouldNot(Equal(""))
 	Expect(err).ToNot(HaveOccurred())
@@ -194,6 +194,16 @@ max_allowed_packet=256M`),
 
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
 	expectMariadbReady(ctx, k8sClient, testMdbkey)
+}
+
+func testCleanupInitialData(ctx context.Context) {
+	var password corev1.Secret
+	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
+
+	var mdb mariadbv1alpha1.MariaDB
+	Expect(k8sClient.Get(ctx, testMdbkey, &mdb)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &mdb)).To(Succeed())
 }
 
 func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
