@@ -43,7 +43,7 @@ jobs:
           make install-minio
           make net
 
-      - name: Test
-        run: make test-ent
+      - name: Integration tests enterprise
+        run: make test-int-ent
         env:
           RELATED_IMAGE_MARIADB_ENT: "${{ inputs.mariadb_image }}"
