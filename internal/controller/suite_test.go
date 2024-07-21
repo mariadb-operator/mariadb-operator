@@ -111,7 +111,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	var disc *discovery.Discovery
-	if os.Getenv("ENTERPRISE") != "" {
+	if os.Getenv("TEST_ENTERPRISE") != "" {
 		disc, err = discovery.NewDiscoveryEnterprise()
 	} else {
 		disc, err = discovery.NewDiscovery()
@@ -329,9 +329,8 @@ var _ = BeforeSuite(func() {
 
 	By("Creating initial test data")
 	testCreateInitialData(testCtx, *env)
-})
-
-var _ = AfterSuite(func() {
-	By("Cleaning up initial test data")
-	testCleanupInitialData(testCtx)
+	DeferCleanup(func() {
+		By("Cleaning up initial test data")
+		testCleanupInitialData(testCtx)
+	})
 })

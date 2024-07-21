@@ -34,13 +34,12 @@ ENV_ENT ?= \
 	MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
 	MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
-	ENTERPRISE=true \
+	TEST_ENTERPRISE=true \
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
-TEST_ARGS ?= --timeout 20m
-
-TEST ?= $(ENV) $(GINKGO) --coverprofile=cover.out --label-filter='!enterprise' $(TEST_ARGS)
-TEST_ENT ?= $(ENV_ENT) $(GINKGO) --coverprofile=cover.out $(TEST_ARGS)
+TEST_ARGS ?= --coverprofile=cover.out --timeout 20m
+TEST ?= $(ENV) $(GINKGO) $(TEST_ARGS)
+TEST_ENT ?= $(ENV_ENT) $(GINKGO) $(TEST_ARGS)
 
 GOCOVERDIR ?= .
 
