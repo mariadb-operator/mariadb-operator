@@ -12,10 +12,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	zappkg "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -43,7 +43,6 @@ var _ = BeforeSuite(func() {
 		zap.WriteTo(GinkgoWriter),
 		zap.UseDevMode(true),
 		zap.Level(zapcore.InfoLevel),
-		zap.RawZapOpts(zappkg.Fields(zappkg.Int("ginkgo-process", GinkgoParallelProcess()))),
 	))
 
 	var err error
@@ -66,6 +65,7 @@ var _ = BeforeSuite(func() {
 		WebhookInstallOptions: envtest.WebhookInstallOptions{
 			Paths: []string{filepath.Join("..", "..", "config", "webhook")},
 		},
+		UseExistingCluster: ptr.To(false),
 	}
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())

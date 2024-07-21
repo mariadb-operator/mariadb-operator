@@ -101,10 +101,7 @@ jobs:
           cache: true
 
       - name: Test
-        run: make test-unit
-
-      - name: Test
-        run: make test-unit-ent
+        run: make test
 
   integration-test:
     name: Integration tests
