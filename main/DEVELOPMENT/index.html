@@ -509,9 +509,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#test" class="md-nav__link">
+  <a href="#unit-tests" class="md-nav__link">
     <span class="md-ellipsis">
-      Test
+      Unit tests
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration tests
     </span>
   </a>
   
@@ -926,9 +935,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#test" class="md-nav__link">
+  <a href="#unit-tests" class="md-nav__link">
     <span class="md-ellipsis">
-      Test
+      Unit tests
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration tests
     </span>
   </a>
   
@@ -1064,12 +1082,15 @@ make install
 make net
 make run
 </code></pre>
-<h2 id="test">Test</h2>
+<h2 id="unit-tests">Unit tests</h2>
+<pre><code class="language-bash">make test
+</code></pre>
+<h2 id="integration-tests">Integration tests</h2>
 <pre><code class="language-bash">make cluster
 make install
 make install-minio
 make net
-make test
+make test-int
 </code></pre>
 
 
