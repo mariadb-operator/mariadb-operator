@@ -408,15 +408,6 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	var guiSvc corev1.Service
 	Expect(k8sClient.Get(testCtx, mxs.GuiServiceKey(), &guiSvc)).To(Succeed())
 
-	By("Expecting Connection to be ready eventually")
-	Eventually(func() bool {
-		var conn mariadbv1alpha1.Connection
-		if err := k8sClient.Get(testCtx, mxs.ConnectionKey(), &conn); err != nil {
-			return false
-		}
-		return conn.IsReady()
-	}, testTimeout, testInterval).Should(BeTrue())
-
 	type secretRef struct {
 		name        string
 		keySelector corev1.SecretKeySelector
@@ -460,6 +451,15 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 		}
 		expectSecretToExist(testCtx, k8sClient, key, secretKeyRef.keySelector.Key)
 	}
+
+	By("Expecting Connection to be ready eventually")
+	Eventually(func() bool {
+		var conn mariadbv1alpha1.Connection
+		if err := k8sClient.Get(testCtx, mxs.ConnectionKey(), &conn); err != nil {
+			return false
+		}
+		return conn.IsReady()
+	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	if mxs.AreMetricsEnabled() {
 		By("Expecting to create a exporter Deployment eventually")
