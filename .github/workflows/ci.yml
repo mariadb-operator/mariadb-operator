@@ -85,8 +85,29 @@ jobs:
       - name: Build Enterprise Docker
         run: make docker-build-ent
 
-  test:
-    name: Test
+  unit-test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: detect-noop
+    if: ${{ needs.detect-noop.outputs.noop != 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Test
+        run: make test-unit
+
+      - name: Test
+        run: make test-unit-ent
+
+  integration-test:
+    name: Integration tests
     runs-on: ubuntu-latest
     needs: detect-noop
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
@@ -102,16 +123,16 @@ jobs:
 
       - name: Cluster
         run: |
-          make cluster-ha
+          make cluster
           make install
           make install-minio
           make net
 
       - name: Test
-        run: make test
+        run: make test-int
 
-  test-ent:
-    name: Test enterprise
+  integration-test-ent:
+    name: Integration tests enterprise
     runs-on: ubuntu-latest
     needs: 
       - detect-noop
@@ -149,7 +170,7 @@ jobs:
           make net
 
       - name: Test
-        run: make test-ent
+        run: make test-int-ent
 
   olm:
     name: OLM
