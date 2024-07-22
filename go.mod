@@ -17,7 +17,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sethvargo/go-envconfig v1.0.1
 	github.com/sethvargo/go-password v0.3.1
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.7.0
 	k8s.io/api v0.30.3
