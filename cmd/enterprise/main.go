@@ -60,6 +60,7 @@ var (
 	requeueSql        time.Duration
 	requeueSqlJob     time.Duration
 	requeueMaxScale   time.Duration
+	webhookEnabled    bool
 	webhookPort       int
 	webhookCertDir    string
 
@@ -85,10 +86,12 @@ func init() {
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 10*time.Second, "The interval at which MaxScales are requeued.")
-	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server.")
+	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", true, "Enable the webhook server.")
+	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server."+
+		"This only applies if the webhook server is enabled.")
 	rootCmd.Flags().StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs",
-		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory.")
-
+		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory."+
+			"This only applies if the webhook server is enabled.")
 	rootCmd.Flags().BoolVar(&featureMaxScaleSuspend, "feature-maxscale-suspend", false, "Feature flag to enable MaxScale resource suspension.")
 }
 
@@ -127,11 +130,14 @@ var rootCmd = &cobra.Command{
 			},
 			HealthProbeBindAddress: healthAddr,
 			LeaderElection:         leaderElect,
-			LeaderElectionID:       "mariadb-operator-enterprisse.k8s.mariadb.com",
-			WebhookServer: webhook.NewServer(webhook.Options{
+			LeaderElectionID:       "mariadb-operator-enterprise.k8s.mariadb.com",
+		}
+		if webhookEnabled {
+			setupLog.Info("Enabling webhook")
+			mgrOpts.WebhookServer = webhook.NewServer(webhook.Options{
 				CertDir: webhookCertDir,
 				Port:    webhookPort,
-			}),
+			})
 		}
 		if env.WatchNamespace != "" {
 			namespaces, err := env.WatchNamespaces()
@@ -147,6 +153,7 @@ var rootCmd = &cobra.Command{
 		} else {
 			setupLog.Info("Watching all namespaces")
 		}
+
 		mgr, err := ctrl.NewManager(restConfig, mgrOpts)
 		if err != nil {
 			setupLog.Error(err, "Unable to start manager")
@@ -376,50 +383,52 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if err = (&mariadbv1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "MariaDB")
-			os.Exit(1)
-		}
-		if err = (&mariadbv1alpha1.MaxScale{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "MaxScale")
-			os.Exit(1)
-		}
-		if err = (&mariadbv1alpha1.Backup{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "Backup")
-			os.Exit(1)
-		}
-		if err = (&mariadbv1alpha1.Restore{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "restore")
-			os.Exit(1)
-		}
-		if err = (&mariadbv1alpha1.User{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "User")
-			os.Exit(1)
-		}
-		if err = (&mariadbv1alpha1.Grant{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "Grant")
-			os.Exit(1)
-		}
-		if err = (&mariadbv1alpha1.Database{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "Database")
-			os.Exit(1)
-		}
-		if err = (&mariadbv1alpha1.Connection{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "Connection")
-			os.Exit(1)
-		}
-		if err = (&mariadbv1alpha1.SqlJob{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "SqlJob")
-			os.Exit(1)
-		}
+		if webhookEnabled {
+			if err = (&mariadbv1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "MariaDB")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.MaxScale{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "MaxScale")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Backup{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "Backup")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Restore{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "restore")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.User{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "User")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Grant{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "Grant")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Database{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "Database")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Connection{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "Connection")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.SqlJob{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "SqlJob")
+				os.Exit(1)
+			}
 
-		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-			setupLog.Error(err, "Unable to set up health check")
-			os.Exit(1)
-		}
-		if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-			setupLog.Error(err, "Unable to set up ready check")
-			os.Exit(1)
+			if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+				setupLog.Error(err, "Unable to set up health check")
+				os.Exit(1)
+			}
+			if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+				setupLog.Error(err, "Unable to set up ready check")
+				os.Exit(1)
+			}
 		}
 
 		setupLog.Info("Starting manager")
