@@ -3,7 +3,7 @@ module github.com/mariadb-operator/mariadb-operator
 go 1.22.5
 
 require (
-	github.com/go-chi/chi/v5 v5.0.12
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/httprate v0.9.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-sql-driver/mysql v1.8.1
