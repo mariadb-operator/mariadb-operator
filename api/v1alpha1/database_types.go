@@ -12,7 +12,8 @@ const (
 
 // DatabaseSpec defines the desired state of Database
 type DatabaseSpec struct {
-	// FinalizerPolicy defines whter finalizer will delete the database of not
+	// FinalizerPolicy specifies whether the finalizer should delete the database or not. The default value is "Delete" to
+	// be backwards compatible. Use "Skip" to prevent tne databse to be deleted from the MariaDB.
 	// +optional
 	// +kubebuilder:default="Delete"
 	// +kubebuilder:validation:Enum=Delete;Skip
