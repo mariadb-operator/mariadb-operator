@@ -461,6 +461,11 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
+	// Suspend defines whether the operator manages the mariadb or not.
+	// +optional
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Suspend bool `json:"suspend"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
