@@ -22953,6 +22953,11 @@ spec:
                       It defaults to true.
                     type: boolean
                 type: object
+              suspend:
+                default: false
+                description: Suspend defines whether the operator manages the mariadb
+                  or not.
+                type: boolean
               timeZone:
                 description: TimeZone sets the default timezone. If not provided,
                   it defaults to SYSTEM and the timezone data is not loaded.

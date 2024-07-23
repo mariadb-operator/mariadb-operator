@@ -115,6 +115,11 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	if mariadb.Spec.Suspend {
+		log.FromContext(ctx).V(1).Info("%s suspended. Skipping...", mariadb.Name)
+		return ctrl.Result{}, nil
+	}
+
 	phases := []reconcilePhaseMariaDB{
 		{
 			Name:      "Spec",
