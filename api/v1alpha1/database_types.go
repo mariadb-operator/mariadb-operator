@@ -5,8 +5,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	FinalizerPolicyDelete = string("Delete")
+	FinalizerPolicySkip   = string("Skip")
+)
+
 // DatabaseSpec defines the desired state of Database
 type DatabaseSpec struct {
+	// FinalizerPolicy defines whter finalizer will delete the database of not
+	// +optional
+	// +kubebuilder:default="Delete"
+	// +kubebuilder:validation:Enum=Delete;Skip
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	FinalizerPolicy string `json:"finalizerPolicy"`
 	// SQLTemplate defines templates to configure SQL objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

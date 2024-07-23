@@ -72,6 +72,14 @@ spec:
                 default: utf8_general_ci
                 description: Collate to use in the Database.
                 type: string
+              finalizerPolicy:
+                default: Delete
+                description: FinalizerPolicy defines whter finalizer will delete the
+                  database of not
+                enum:
+                - Delete
+                - Skip
+                type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
