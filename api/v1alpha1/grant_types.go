@@ -11,6 +11,15 @@ import (
 
 // GrantSpec defines the desired state of Grant
 type GrantSpec struct {
+	// CleanupPolicy specifies whether the controller should revoke the grant when the resource is deleted or not.
+	// The default value is "Revoke" to be backwards compatible.
+	// Use "Skip" to prevent the grant being revoken.
+	// +optional
+	// +kubebuilder:default="Revoke"
+	// +kubebuilder:validation:Enum=Revoke;Skip
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CleanupPolicy string `json:"cleanupPolicy"`
+
 	// SQLTemplate defines templates to configure SQL objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
