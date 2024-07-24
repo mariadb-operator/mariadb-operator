@@ -117,6 +117,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if mariadb.Spec.Suspend {
 		log.FromContext(ctx).V(1).Info("%s suspended. Skipping...", mariadb.Name)
+		condition.SetReadyWithMariaDB(&mariadb.Status, nil, &mariadb)
 		return ctrl.Result{}, nil
 	}
 
