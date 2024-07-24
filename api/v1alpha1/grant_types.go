@@ -19,7 +19,6 @@ type GrantSpec struct {
 	// +kubebuilder:validation:Enum=Revoke;Skip
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CleanupPolicy string `json:"cleanupPolicy"`
-
 	// SQLTemplate defines templates to configure SQL objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

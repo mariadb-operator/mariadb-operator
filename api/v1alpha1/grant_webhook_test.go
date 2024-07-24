@@ -22,6 +22,7 @@ var _ = Describe("Grant webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: GrantSpec{
+					CleanupPolicy: CleanupPolicyRevoke,
 					MariaDBRef: MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
 							Name: "mariadb-webhook",
@@ -100,6 +101,13 @@ var _ = Describe("Grant webhook", func() {
 					grant.Spec.GrantOption = true
 				},
 				true,
+			),
+			Entry(
+				"Updating CleanupPolicy",
+				func(grant *Grant) {
+					grant.Spec.CleanupPolicy = CleanupPolicySkip
+				},
+				false,
 			),
 		)
 	})
