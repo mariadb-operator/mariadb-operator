@@ -5,20 +5,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	FinalizerPolicyDelete = string("Delete")
-	FinalizerPolicySkip   = string("Skip")
-)
-
 // DatabaseSpec defines the desired state of Database
 type DatabaseSpec struct {
-	// FinalizerPolicy specifies whether the finalizer should delete the database or not. The default value is "Delete" to
-	// be backwards compatible. Use "Skip" to prevent tne databse to be deleted from the MariaDB.
+	// CleanupPolicy specifies whether the controller should delete the database when the resource is deleted or not.
+	// The default value is "Delete" to be backwards compatible.
+	// Use "Skip" to prevent the databse from being deleted from the MariaDB.
 	// +optional
 	// +kubebuilder:default="Delete"
 	// +kubebuilder:validation:Enum=Delete;Skip
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	FinalizerPolicy string `json:"finalizerPolicy"`
+	CleanupPolicy string `json:"cleanupPolicy"`
 	// SQLTemplate defines templates to configure SQL objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
