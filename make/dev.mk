@@ -34,46 +34,33 @@ ENV_ENT ?= \
 	MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
 	MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
-	ENTERPRISE=true \
+	TEST_ENTERPRISE=true \
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
-TEST_ARGS ?= --timeout 20m -procs 1
-
-TEST ?= $(ENV) $(GINKGO) -p --coverprofile=cover.out --label-filter='!enterprise' $(TEST_ARGS)
-TEST_ENT ?= $(ENV_ENT) $(GINKGO) -p --coverprofile=cover.out $(TEST_ARGS)
+TEST_ARGS ?= --coverprofile=cover.out --timeout 25m
+TEST ?= $(ENV) $(GINKGO) $(TEST_ARGS)
+TEST_ENT ?= $(ENV_ENT) $(GINKGO) $(TEST_ARGS)
 
 GOCOVERDIR ?= .
 
 ##@ Test
 
-.PHONY: test-unit
-test-unit: envtest ginkgo ## Run unit tests.
+.PHONY: test
+test: envtest ginkgo ## Run unit tests.
 	$(TEST) ./pkg/... ./api/...
 
 .PHONY: test-int
 test-int: envtest ginkgo ## Run integration tests.
 	$(TEST) ./internal/controller/...
 
-.PHONY: test
-test: test-unit test-int ## Run tests.
+.PHONY: test-int-ent
+test-int-ent: envtest ginkgo ## Run enterprise integration tests.
+	$(TEST_ENT) ./internal/controller/...
 
 .PHONY: cover
 cover: ## Generate and view coverage report.
 	@go tool cover -html=cover.out -o=cover.html
 	open cover.html
-
-##@ Test Enterprise
-
-.PHONY: test-unit-ent
-test-unit-ent: envtest ginkgo ## Run enterprise unit tests.
-	$(TEST_ENT) ./pkg/... ./api/...
-
-.PHONY: test-int-ent
-test-int-ent: envtest ginkgo ## Run enterprise integration tests.
-	$(TEST_ENT) ./internal/controller/...
-
-.PHONY: test-ent
-test-ent: test-unit-ent test-int-ent ## Run enterprise tests.
 
 ##@ Lint
 

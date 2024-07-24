@@ -33,7 +33,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	zappkg "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
@@ -63,7 +62,6 @@ var _ = BeforeSuite(func() {
 		zap.WriteTo(GinkgoWriter),
 		zap.UseDevMode(true),
 		zap.Level(zapcore.InfoLevel),
-		zap.RawZapOpts(zappkg.Fields(zappkg.Int("ginkgo-process", GinkgoParallelProcess()))),
 	)
 	log.SetLogger(testLogger)
 
@@ -80,19 +78,9 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
-	if GinkgoParallelProcess() != 1 {
-		cfg, err := ctrl.GetConfig()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(cfg).NotTo(BeNil())
-
-		k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(k8sClient).NotTo(BeNil())
-
-		By("Waiting for password Secret to exist")
-		expectSecretToExist(testCtx, k8sClient, testPwdKey, testPwdSecretKey)
-		return
-	}
+	cfg, err := ctrl.GetConfig()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(cfg).NotTo(BeNil())
 
 	By("Bootstrapping test environment")
 	testEnv := &envtest.Environment{
@@ -100,7 +88,7 @@ var _ = BeforeSuite(func() {
 		ErrorIfCRDPathMissing: true,
 		UseExistingCluster:    ptr.To(true),
 	}
-	cfg, err := testEnv.Start()
+	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 	DeferCleanup(testEnv.Stop)
@@ -123,7 +111,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	var disc *discovery.Discovery
-	if os.Getenv("ENTERPRISE") != "" {
+	if os.Getenv("TEST_ENTERPRISE") != "" {
 		disc, err = discovery.NewDiscoveryEnterprise()
 	} else {
 		disc, err = discovery.NewDiscovery()
@@ -340,5 +328,9 @@ var _ = BeforeSuite(func() {
 	}()
 
 	By("Creating initial test data")
-	testCreateInitialData(testCtx, k8sClient, *env)
+	testCreateInitialData(testCtx, *env)
+	DeferCleanup(func() {
+		By("Cleaning up initial test data")
+		testCleanupInitialData(testCtx)
+	})
 })

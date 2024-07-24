@@ -7,7 +7,7 @@ on:
   pull_request: {}
 
 env:
-  GOLANGCI_VERSION: "v1.56.2"
+  GOLANGCI_VERSION: "v1.59.1"
 
 jobs:
   detect-noop:
@@ -85,8 +85,26 @@ jobs:
       - name: Build Enterprise Docker
         run: make docker-build-ent
 
-  test:
-    name: Test
+  unit-test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: detect-noop
+    if: ${{ needs.detect-noop.outputs.noop != 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Test
+        run: make test
+
+  integration-test:
+    name: Integration tests
     runs-on: ubuntu-latest
     needs: detect-noop
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
@@ -102,16 +120,16 @@ jobs:
 
       - name: Cluster
         run: |
-          make cluster-ha
+          make cluster
           make install
           make install-minio
           make net
 
       - name: Test
-        run: make test
+        run: make test-int
 
-  test-ent:
-    name: Test enterprise
+  integration-test-ent:
+    name: Integration tests enterprise
     runs-on: ubuntu-latest
     needs: 
       - detect-noop
@@ -127,18 +145,12 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
-      - name: Login DockerHub
+      - name: Login Docker MariaDB
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login GAR
-        uses: docker/login-action@v3
-        with:
-          registry: us-central1-docker.pkg.dev
-          username: _json_key
-          password: ${{ secrets.GAR_JSON_KEY }}
+          registry: docker-registry.mariadb.com
+          username: ${{ secrets.DOCKER_MARIADB_USER }}
+          password: ${{ secrets.DOCKER_MARIADB_PASSWORD }}
 
       - name: Cluster
         run: |
@@ -149,7 +161,7 @@ jobs:
           make net
 
       - name: Test
-        run: make test-ent
+        run: make test-int-ent
 
   olm:
     name: OLM

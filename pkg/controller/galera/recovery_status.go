@@ -6,12 +6,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
+
+const zeroUUID = "00000000-0000-0000-0000-000000000000"
 
 type recoveryStatus struct {
 	inner mariadbv1alpha1.GaleraRecoveryStatus
@@ -163,29 +166,46 @@ func (rs *recoveryStatus) safeToBootstrap(pods []corev1.Pod) (*bootstrapSource, 
 	return nil, errors.New("no Pods safe to bootstrap were found")
 }
 
-func (rs *recoveryStatus) isComplete(pods []corev1.Pod) bool {
+func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool {
 	if len(pods) == 0 {
 		return false
 	}
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
+	numZeros := 0
 	for _, p := range pods {
 		state := rs.inner.State[p.Name]
 		recovered := rs.inner.Recovered[p.Name]
-		if (state != nil && state.Seqno != -1) || (recovered != nil && recovered.Seqno != -1) {
+		stateUUID := ptr.Deref(state, recovery.GaleraState{}).UUID
+		recoveredUUID := ptr.Deref(recovered, recovery.Bootstrap{}).UUID
+
+		// Pods with 00000000-0000-0000-0000-000000000000 UUID need an SST to rejoin the cluster,
+		// they can be skipped in order to continue with the bootstrap process.
+		// See: https://galeracluster.com/library/documentation/node-provisioning.html#node-provisioning
+		if stateUUID == zeroUUID && recoveredUUID == zeroUUID {
+			logger.Info("Skipping Pod with zero UUID", "pod", p.Name)
+			numZeros++
 			continue
 		}
+		if (state != nil && state.GetSeqno() != -1) || (recovered != nil && recovered.GetSeqno() != -1) {
+			continue
+		}
+		return false
+	}
+
+	if numZeros == len(pods) {
+		logger.Info("No Pods with non zero UUIDs were found")
 		return false
 	}
 	return true
 }
 
-func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod) (*bootstrapSource, error) {
+func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, logger logr.Logger) (*bootstrapSource, error) {
 	if source, err := rs.safeToBootstrap(pods); source != nil && err == nil {
 		return source, nil
 	}
-	if !rs.isComplete(pods) {
+	if !rs.isComplete(pods, logger) {
 		return nil, errors.New("recovery status not completed")
 	}
 
