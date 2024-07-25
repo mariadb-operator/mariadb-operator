@@ -1486,7 +1486,7 @@ spec:
   ignoreGlobalPriv: false
 </code></pre>
 <p>Also, to avoid situations where <code>mysql.global_priv</code> is unreplicated, all the entries in that table must be managed via DDLs. This is the recommended approach suggested in the <a href="https://galeracluster.com/library/kb/user-changes.html">Galera docs</a>. There are a couple of ways that we can guarantee this:
-- Rely on the <code>rootPasswordSecretKeyRef</code>, <code>username</code> and <code>passwordSecretKeyRef</code> to create the root and initial user respectively. This fields will be translated fo DDLs by the image entrypoint.
+- Use the <code>rootPasswordSecretKeyRef</code>, <code>username</code> and <code>passwordSecretKeyRef</code> to create the root and initial user respectively. This fields will be translated into DDLs by the image entrypoint.
 - Rely the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml"><code>User</code></a> and <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml"><code>Grant</code></a> CRs to create additional users and grants. They will be translated into DDL statements (<code>CREATE USER</code>, <code>GRANT</code>) by the operator.</p>
 <h4 id="lock-tables"><code>LOCK TABLES</code></h4>
 <p>Galera is not compatible with the <code>LOCK TABLES</code> statement:
