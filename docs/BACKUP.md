@@ -352,17 +352,17 @@ Something that does not include `mysql.global_priv`, the table used to store use
 Taking this into account, if we think now about a restore scenario where:
 - The backup file includes a `DROP TABLE` statement for the `mysql.global_priv` table.
 - The backup has some `INSERT` statements for the `mysql.global_priv` table.
-- The Galera cluster has 3 nodes: `galera-0`, `galera-1` and `galera-3`.
-- The backup is restored in `galera-0.
+- The Galera cluster has 3 nodes: `galera-0`, `galera-1` and `galera-2`.
+- The backup is restored in `galera-0`.
 
 This is what will happen under the scenes while restoring the backup:
-- The `DROP TABLE` statement is a DDL so it will be executed in `galera-0`, `galera-1` and `galera-3`.
+- The `DROP TABLE` statement is a DDL so it will be executed in `galera-0`, `galera-1` and `galera-2`.
 - The `INSERT` statements are not DDLs, so they will only be applied to `galera-0`.
 - This results in the `galera-1` and `galera-2` not having the `mysql.global_priv` table.
 
 After the backup is fully restored, the liveness and readiness probes will kick in, they will succeed in `galera-0`, but they will fail in `galera-1` and `galera-2`, as they rely in the root credentials available in `mysql.global_priv`, resulting in the `galera-1` and `galera-2` getting restarted.
 
-To address this issue, when backing up MariaDB instances with Galera enabled, the `mysql.global_priv` table will be excluded by using the `--ignore-table` option with `mariadb-dump`. This prevents the replication of the `DROP TABLE` statement for the `mysql.global_priv` table. You can disable this feature by setting `spec.ignoreGlobalPriv=false` in the Backup resource.
+To address this issue, when backing up `MariaDB` instances with Galera enabled, the `mysql.global_priv` table will be excluded from backups by using the `--ignore-table` option with `mariadb-dump`. This prevents the replication of the `DROP TABLE` statement for the `mysql.global_priv` table. You can opt-out from this feature by setting `spec.ignoreGlobalPriv=false` in the `Backup` resource.
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -375,9 +375,9 @@ spec:
   ignoreGlobalPriv: false
 ```
 
-Also, to avoid situations where `mysql.global_priv` is unreplicated, we have decided that all the entries in that table should be managed via DDLs. This is the recommended approach suggested in the [Galera docs](https://galeracluster.com/library/kb/user-changes.html). There are a couple of ways that we can guarantee this:
-- Rely on the `rootPasswordSecretKeyRef`, `username` and `passwordSecretKeyRef` to create the root and initial users respectively. This fields will be translated fo DDLs by the image entrypoint.
-- Use the [`User`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml) and [`Grant`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml) CRs to create additional users. They will be translated into DDL statements (`CREATE USER`, `GRANT`) by the operator.
+Also, to avoid situations where `mysql.global_priv` is unreplicated, all the entries in that table must be managed via DDLs. This is the recommended approach suggested in the [Galera docs](https://galeracluster.com/library/kb/user-changes.html). There are a couple of ways that we can guarantee this:
+- Rely on the `rootPasswordSecretKeyRef`, `username` and `passwordSecretKeyRef` to create the root and initial user respectively. This fields will be translated fo DDLs by the image entrypoint.
+- Rely the [`User`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml) and [`Grant`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml) CRs to create additional users and grants. They will be translated into DDL statements (`CREATE USER`, `GRANT`) by the operator.
 
 
 #### `LOCK TABLES` 
@@ -455,6 +455,4 @@ As an alternative, you can also use [play.min.io](https://play.min.io/) using th
 
 Most likely, this means that the root credentials specified via `MariaDB`'s `spec.rootPasswordKeyRef` do not match the root credentials of the restored backup. In this case, you need to update your root password `Secret` to match the database internal state.
 
-See:
-- [Important considerations](#important-considerations)
-- [Galera backup limitations](#galera-backup-limitations)
+Please make sure you read the [important considerations](#important-considerations) section and [Galera backup limitations](#galera-backup-limitations) if you have Galera enabled.
