@@ -1468,7 +1468,7 @@ spec:
 <p>Taking this into account, if we think now about a restore scenario where:
 - The backup file includes a <code>DROP TABLE</code> statement for the <code>mysql.global_priv</code> table.
 - The backup has some <code>INSERT</code> statements for the <code>mysql.global_priv</code> table.
-- The Galera cluster has 3 nodes: <code>galera-0</code>, <code>galera-1</code> and <code>galera-3</code>.
+- The Galera cluster has 3 nodes: <code>galera-0</code>, <code>galera-1</code> and <code>galera-2</code>.
 - The backup is restored in <code>galera-0</code>.</p>
 <p>This is what will happen under the scenes while restoring the backup:
 - The <code>DROP TABLE</code> statement is a DDL so it will be executed in <code>galera-0</code>, <code>galera-1</code> and <code>galera-2</code>.
@@ -1487,7 +1487,7 @@ spec:
 </code></pre>
 <p>Also, to avoid situations where <code>mysql.global_priv</code> is unreplicated, all the entries in that table must be managed via DDLs. This is the recommended approach suggested in the <a href="https://galeracluster.com/library/kb/user-changes.html">Galera docs</a>. There are a couple of ways that we can guarantee this:
 - Rely on the <code>rootPasswordSecretKeyRef</code>, <code>username</code> and <code>passwordSecretKeyRef</code> to create the root and initial user respectively. This fields will be translated fo DDLs by the image entrypoint.
-- Rely the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml"><code>User</code></a> and <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml"><code>Grant</code></a> CRs to create additional users. They will be translated into DDL statements (<code>CREATE USER</code>, <code>GRANT</code>) by the operator.</p>
+- Rely the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml"><code>User</code></a> and <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml"><code>Grant</code></a> CRs to create additional users and grants. They will be translated into DDL statements (<code>CREATE USER</code>, <code>GRANT</code>) by the operator.</p>
 <h4 id="lock-tables"><code>LOCK TABLES</code></h4>
 <p>Galera is not compatible with the <code>LOCK TABLES</code> statement:
 - https://mariadb.com/kb/en/lock-tables/#limitations</p>
