@@ -17,6 +17,7 @@
 - [Migrating to a <code>MariaDB</code> with different topology](#migrating-to-a-mariadb-with-different-topology)
 - [Minio reference installation](#minio-reference-installation)
 - [Reference](#reference)
+- [Troubleshooting](#troubleshooting)
 <!-- /toc -->
 
 ## Storage types
@@ -453,6 +454,6 @@ As an alternative, you can also use [play.min.io](https://play.min.io/) using th
 
 #### Galera `Pods` restarting after bootstrapping from a backup
 
-Most likely, this means that the root credentials specified via `MariaDB`'s `spec.rootPasswordKeyRef` do not match the root credentials of the restored backup. In this case, you need to update your root password `Secret` to match the database internal state.
+Please make sure you understand the [Galera backup limitations](#galera-backup-limitations).
 
-Please make sure you read the [important considerations](#important-considerations) section and [Galera backup limitations](#galera-backup-limitations) if you have Galera enabled.
+After doing so, ensure that your backup does not contain a `DROP TABLE mysql.global_priv;` statement, as it will make your liveness and readiness probes to fail after the backup restoration.
