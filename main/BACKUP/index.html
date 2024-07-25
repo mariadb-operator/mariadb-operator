@@ -1469,13 +1469,13 @@ spec:
 - The backup file includes a <code>DROP TABLE</code> statement for the <code>mysql.global_priv</code> table.
 - The backup has some <code>INSERT</code> statements for the <code>mysql.global_priv</code> table.
 - The Galera cluster has 3 nodes: <code>galera-0</code>, <code>galera-1</code> and <code>galera-3</code>.
-- The backup is restored in `galera-0.</p>
+- The backup is restored in <code>galera-0</code>.</p>
 <p>This is what will happen under the scenes while restoring the backup:
-- The <code>DROP TABLE</code> statement is a DDL so it will be executed in <code>galera-0</code>, <code>galera-1</code> and <code>galera-3</code>.
+- The <code>DROP TABLE</code> statement is a DDL so it will be executed in <code>galera-0</code>, <code>galera-1</code> and <code>galera-2</code>.
 - The <code>INSERT</code> statements are not DDLs, so they will only be applied to <code>galera-0</code>.
 - This results in the <code>galera-1</code> and <code>galera-2</code> not having the <code>mysql.global_priv</code> table.</p>
 <p>After the backup is fully restored, the liveness and readiness probes will kick in, they will succeed in <code>galera-0</code>, but they will fail in <code>galera-1</code> and <code>galera-2</code>, as they rely in the root credentials available in <code>mysql.global_priv</code>, resulting in the <code>galera-1</code> and <code>galera-2</code> getting restarted.</p>
-<p>To address this issue, when backing up MariaDB instances with Galera enabled, the <code>mysql.global_priv</code> table will be excluded by using the <code>--ignore-table</code> option with <code>mariadb-dump</code>. This prevents the replication of the <code>DROP TABLE</code> statement for the <code>mysql.global_priv</code> table. You can disable this feature by setting <code>spec.ignoreGlobalPriv=false</code> in the Backup resource.</p>
+<p>To address this issue, when backing up <code>MariaDB</code> instances with Galera enabled, the <code>mysql.global_priv</code> table will be excluded from backups by using the <code>--ignore-table</code> option with <code>mariadb-dump</code>. This prevents the replication of the <code>DROP TABLE</code> statement for the <code>mysql.global_priv</code> table. You can opt-out from this feature by setting <code>spec.ignoreGlobalPriv=false</code> in the <code>Backup</code> resource.</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
@@ -1485,9 +1485,9 @@ spec:
     name: mariadb
   ignoreGlobalPriv: false
 </code></pre>
-<p>Also, to avoid situations where <code>mysql.global_priv</code> is unreplicated, we have decided that all the entries in that table should be managed via DDLs. This is the recommended approach suggested in the <a href="https://galeracluster.com/library/kb/user-changes.html">Galera docs</a>. There are a couple of ways that we can guarantee this:
-- Rely on the <code>rootPasswordSecretKeyRef</code>, <code>username</code> and <code>passwordSecretKeyRef</code> to create the root and initial users respectively. This fields will be translated fo DDLs by the image entrypoint.
-- Use the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml"><code>User</code></a> and <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml"><code>Grant</code></a> CRs to create additional users. They will be translated into DDL statements (<code>CREATE USER</code>, <code>GRANT</code>) by the operator.</p>
+<p>Also, to avoid situations where <code>mysql.global_priv</code> is unreplicated, all the entries in that table must be managed via DDLs. This is the recommended approach suggested in the <a href="https://galeracluster.com/library/kb/user-changes.html">Galera docs</a>. There are a couple of ways that we can guarantee this:
+- Rely on the <code>rootPasswordSecretKeyRef</code>, <code>username</code> and <code>passwordSecretKeyRef</code> to create the root and initial user respectively. This fields will be translated fo DDLs by the image entrypoint.
+- Rely the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml"><code>User</code></a> and <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml"><code>Grant</code></a> CRs to create additional users. They will be translated into DDL statements (<code>CREATE USER</code>, <code>GRANT</code>) by the operator.</p>
 <h4 id="lock-tables"><code>LOCK TABLES</code></h4>
 <p>Galera is not compatible with the <code>LOCK TABLES</code> statement:
 - https://mariadb.com/kb/en/lock-tables/#limitations</p>
@@ -1539,9 +1539,7 @@ make net # to access the console via a MetalLB LoadBalancer: https://minio-conso
 <h2 id="troubleshooting">Troubleshooting</h2>
 <h4 id="galera-pods-restarting-after-bootstrapping-from-a-backup">Galera <code>Pods</code> restarting after bootstrapping from a backup</h4>
 <p>Most likely, this means that the root credentials specified via <code>MariaDB</code>'s <code>spec.rootPasswordKeyRef</code> do not match the root credentials of the restored backup. In this case, you need to update your root password <code>Secret</code> to match the database internal state.</p>
-<p>See:
-- <a href="#important-considerations">Important considerations</a>
-- <a href="#galera-backup-limitations">Galera backup limitations</a></p>
+<p>Please make sure you read the <a href="#important-considerations">important considerations</a> section and <a href="#galera-backup-limitations">Galera backup limitations</a> if you have Galera enabled.</p>
 
 
 
