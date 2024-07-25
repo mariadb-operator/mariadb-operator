@@ -1539,8 +1539,8 @@ make net # to access the console via a MetalLB LoadBalancer: https://minio-conso
 </ul>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <h4 id="galera-pods-restarting-after-bootstrapping-from-a-backup">Galera <code>Pods</code> restarting after bootstrapping from a backup</h4>
-<p>Please make sure you understand the <a href="#important-considerations">important considerations</a> section and <a href="#galera-backup-limitations">Galera backup limitations</a>.</p>
-<p>After doing so, ensure that your backup does not contain a <code>DROP TABLE mysql.global_priv;</code> statement, as it will make your liveness and readiness probes to fail.</p>
+<p>Please make sure you understand the <a href="#galera-backup-limitations">Galera backup limitations</a>.</p>
+<p>After doing so, ensure that your backup does not contain a <code>DROP TABLE mysql.global_priv;</code> statement, as it will make your liveness and readiness probes to fail after the backup restoration.</p>
 
 
 
