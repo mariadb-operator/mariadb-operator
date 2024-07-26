@@ -122,269 +122,6 @@ func TestRecoveryStatusGetSet(t *testing.T) {
 	}
 }
 
-func TestRecoveryStatusBootstrap(t *testing.T) {
-	timeout := 3 * time.Second
-	duration := metav1.Duration{Duration: timeout}
-	mdb := &mariadbv1alpha1.MariaDB{
-		Spec: mariadbv1alpha1.MariaDBSpec{
-			Galera: &mariadbv1alpha1.Galera{
-				Enabled: true,
-				GaleraSpec: mariadbv1alpha1.GaleraSpec{
-					Recovery: &mariadbv1alpha1.GaleraRecovery{
-						Enabled:                 true,
-						ClusterHealthyTimeout:   &duration,
-						ClusterBootstrapTimeout: &duration,
-						PodRecoveryTimeout:      &duration,
-						PodSyncTimeout:          &duration,
-					},
-				},
-			},
-		},
-	}
-	rs := newRecoveryStatus(mdb)
-	if rs.isBootstrapping() {
-		t.Error("expect recovery status to not allow bootstrapping")
-	}
-	if rs.bootstrapTimeout(&mariadbv1alpha1.MariaDB{}) {
-		t.Error("expect recovery status bootstrap not to have timed out")
-	}
-
-	rs.setBootstrapping("mariadb-galera-0")
-	if !rs.isBootstrapping() {
-		t.Error("expect recovery status to allow bootstrapping")
-	}
-	if rs.bootstrapTimeout(mdb) {
-		t.Error("expect recovery status bootstrap not to have timed out")
-	}
-
-	time.Sleep(timeout)
-	if !rs.bootstrapTimeout(mdb) {
-		t.Error("expect recovery status bootstrap to have timed out")
-	}
-}
-
-func TestRecoveryStatusSafeToBootstrap(t *testing.T) {
-	pod0 := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "mariadb-galera-0",
-		},
-	}
-	pod1 := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "mariadb-galera-1",
-		},
-	}
-	pod2 := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "mariadb-galera-2",
-		},
-	}
-	pods := []corev1.Pod{pod0, pod1, pod2}
-	tests := []struct {
-		name       string
-		mdb        *mariadbv1alpha1.MariaDB
-		pods       []corev1.Pod
-		wantSource *bootstrapSource
-		wantErr    bool
-	}{
-		{
-			name:       "no status",
-			mdb:        &mariadbv1alpha1.MariaDB{},
-			pods:       pods,
-			wantSource: nil,
-			wantErr:    true,
-		},
-		{
-			name: "no pods",
-			mdb: &mariadbv1alpha1.MariaDB{
-				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
-						State: map[string]*recovery.GaleraState{
-							"mariadb-galera-0": {
-								Version:         "2.1",
-								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
-								Seqno:           -1,
-								SafeToBootstrap: false,
-							},
-							"mariadb-galera-1": {
-								Version:         "2.1",
-								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
-								Seqno:           1,
-								SafeToBootstrap: true,
-							},
-							"mariadb-galera-2": {
-								Version:         "2.1",
-								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
-								Seqno:           2,
-								SafeToBootstrap: true,
-							},
-						},
-					},
-				},
-			},
-			pods:       []corev1.Pod{},
-			wantSource: nil,
-			wantErr:    true,
-		},
-		{
-			name: "negative seqno",
-			mdb: &mariadbv1alpha1.MariaDB{
-				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
-						State: map[string]*recovery.GaleraState{
-							"mariadb-galera-0": {
-								Version:         "2.1",
-								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
-								Seqno:           -1,
-								SafeToBootstrap: false,
-							},
-							"mariadb-galera-1": {
-								Version:         "2.1",
-								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
-								Seqno:           -1,
-								SafeToBootstrap: true,
-							},
-							"mariadb-galera-2": {
-								Version:         "2.1",
-								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
-								Seqno:           -1,
-								SafeToBootstrap: true,
-							},
-						},
-					},
-				},
-			},
-			pods:       pods,
-			wantSource: nil,
-			wantErr:    true,
-		},
-		{
-			name: "no source",
-			mdb: &mariadbv1alpha1.MariaDB{
-				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
-						State: map[string]*recovery.GaleraState{
-							"mariadb-galera-0": {
-								Version:         "2.1",
-								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
-								Seqno:           -1,
-								SafeToBootstrap: false,
-							},
-							"mariadb-galera-1": {
-								Version:         "2.1",
-								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
-								Seqno:           1,
-								SafeToBootstrap: false,
-							},
-							"mariadb-galera-2": {
-								Version:         "2.1",
-								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
-								Seqno:           2,
-								SafeToBootstrap: false,
-							},
-						},
-					},
-				},
-			},
-			pods:       pods,
-			wantSource: nil,
-			wantErr:    true,
-		},
-		{
-			name: "safe to bootstrap source",
-			mdb: &mariadbv1alpha1.MariaDB{
-				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
-						State: map[string]*recovery.GaleraState{
-							"mariadb-galera-0": {
-								Version:         "2.1",
-								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
-								Seqno:           -1,
-								SafeToBootstrap: false,
-							},
-							"mariadb-galera-1": {
-								Version:         "2.1",
-								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
-								Seqno:           1,
-								SafeToBootstrap: true,
-							},
-							"mariadb-galera-2": {
-								Version:         "2.1",
-								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
-								Seqno:           2,
-								SafeToBootstrap: false,
-							},
-						},
-					},
-				},
-			},
-			pods: pods,
-			wantSource: &bootstrapSource{
-				bootstrap: &recovery.Bootstrap{
-					UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
-					Seqno: 1,
-				},
-				pod: &pod1,
-			},
-			wantErr: false,
-		},
-		{
-			name: "safe to bootstrap with zero UUIDs",
-			mdb: &mariadbv1alpha1.MariaDB{
-				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
-						State: map[string]*recovery.GaleraState{
-							"mariadb-galera-0": {
-								Version:         "2.1",
-								UUID:            "00000000-0000-0000-0000-000000000000",
-								Seqno:           -1,
-								SafeToBootstrap: false,
-							},
-							"mariadb-galera-1": {
-								Version:         "2.1",
-								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
-								Seqno:           1,
-								SafeToBootstrap: true,
-							},
-							"mariadb-galera-2": {
-								Version:         "2.1",
-								UUID:            "00000000-0000-0000-0000-000000000000",
-								Seqno:           -1,
-								SafeToBootstrap: false,
-							},
-						},
-					},
-				},
-			},
-			pods: pods,
-			wantSource: &bootstrapSource{
-				bootstrap: &recovery.Bootstrap{
-					UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
-					Seqno: 1,
-				},
-				pod: &pod1,
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rs := newRecoveryStatus(tt.mdb)
-			source, err := rs.safeToBootstrap(tt.pods)
-			if !reflect.DeepEqual(tt.wantSource, source) {
-				t.Errorf("unexpected bootstrapSource value: expected: %v, got: %v", tt.wantSource, source)
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
 func TestRecoveryStatusIsComplete(t *testing.T) {
 	pods := []corev1.Pod{
 		{
@@ -422,7 +159,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 			wantBool: false,
 		},
 		{
-			name: "partial state",
+			name: "safe to bootstrap",
 			mdb: &mariadbv1alpha1.MariaDB{
 				Status: mariadbv1alpha1.MariaDBStatus{
 					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
@@ -438,6 +175,37 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
 								Seqno:           1,
 								SafeToBootstrap: true,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+						},
+					},
+				},
+			},
+			pods:     pods,
+			wantBool: true,
+		},
+		{
+			name: "partial state",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno:           1,
+								SafeToBootstrap: false,
 							},
 						},
 					},
@@ -468,7 +236,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 								Version:         "2.1",
 								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 						},
 					},
@@ -533,13 +301,13 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 								Version:         "2.1",
 								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 							"mariadb-galera-1": {
 								Version:         "2.1",
 								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 						},
 						Recovered: map[string]*recovery.Bootstrap{
@@ -564,13 +332,13 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 								Version:         "2.1",
 								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 							"mariadb-galera-1": {
 								Version:         "2.1",
 								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
 								Seqno:           -1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 						},
 						Recovered: map[string]*recovery.Bootstrap{
@@ -595,13 +363,13 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 								Version:         "2.1",
 								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 							"mariadb-galera-1": {
 								Version:         "2.1",
 								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 						},
 						Recovered: map[string]*recovery.Bootstrap{
@@ -626,13 +394,13 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 								Version:         "2.1",
 								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 							"mariadb-galera-1": {
 								Version:         "2.1",
 								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 						},
 						Recovered: map[string]*recovery.Bootstrap{
@@ -667,13 +435,13 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 								Version:         "2.1",
 								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 							"mariadb-galera-2": {
 								Version:         "2.1",
 								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 						},
 						Recovered: map[string]*recovery.Bootstrap{
