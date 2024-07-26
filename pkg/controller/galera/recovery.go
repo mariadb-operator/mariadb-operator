@@ -167,7 +167,7 @@ func (r *GaleraReconciler) recoverPods(ctx context.Context, mariadb *mariadbv1al
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	specRecovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
-	syncTimeout := ptr.Deref(specRecovery.PodSyncTimeout, metav1.Duration{Duration: 3 * time.Minute}).Duration
+	syncTimeout := ptr.Deref(specRecovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 	syncContext, syncCancel := context.WithTimeout(ctx, syncTimeout)
 	defer syncCancel()
 
