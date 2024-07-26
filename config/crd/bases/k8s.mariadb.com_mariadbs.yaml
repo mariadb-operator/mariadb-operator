@@ -7162,14 +7162,13 @@ spec:
                           It defaults to '50%' of the replicas specified by the MariaDB object.
                         x-kubernetes-int-or-string: true
                       podRecoveryTimeout:
-                        description: |-
-                          PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.
-                          Once this timeout is reached, the Pod is restarted.
+                        description: PodRecoveryTimeout is the time limit for recevorying
+                          the sequence of a Pod during the cluster recovery.
                         type: string
                       podSyncTimeout:
-                        description: |-
-                          PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.
-                          Once this timeout is reached, the Pod is restarted.
+                        description: PodSyncTimeout is the time limit for a Pod to
+                          join the cluster after having performed a cluster bootstrap
+                          during the cluster recovery.
                         type: string
                     type: object
                   replicaThreads:

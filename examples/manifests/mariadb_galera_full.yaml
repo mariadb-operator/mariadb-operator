@@ -70,7 +70,7 @@ spec:
       clusterHealthyTimeout: 30s
       clusterBootstrapTimeout: 10m
       podRecoveryTimeout: 3m
-      podSyncTimeout: 3m
+      podSyncTimeout: 5m
     initContainer:
       image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
     initJob:

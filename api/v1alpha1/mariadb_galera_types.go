@@ -181,12 +181,10 @@ type GaleraRecovery struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ClusterBootstrapTimeout *metav1.Duration `json:"clusterBootstrapTimeout,omitempty"`
 	// PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.
-	// Once this timeout is reached, the Pod is restarted.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodRecoveryTimeout *metav1.Duration `json:"podRecoveryTimeout,omitempty"`
 	// PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.
-	// Once this timeout is reached, the Pod is restarted.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
@@ -228,7 +226,7 @@ func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 		g.PodRecoveryTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
 	}
 	if g.PodSyncTimeout == nil {
-		g.PodSyncTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
+		g.PodSyncTimeout = ptr.To(metav1.Duration{Duration: 5 * time.Minute})
 	}
 }
 
