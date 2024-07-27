@@ -174,13 +174,75 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 								Version:         "2.1",
 								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
 								Seqno:           1,
-								SafeToBootstrap: true,
+								SafeToBootstrap: false,
 							},
 							"mariadb-galera-2": {
 								Version:         "2.1",
 								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
 								Seqno:           1,
+								SafeToBootstrap: true,
+							},
+						},
+					},
+				},
+			},
+			pods:     pods,
+			wantBool: true,
+		},
+		{
+			name: "safe to bootstrap with negative seqnos",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno:           -1,
 								SafeToBootstrap: false,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
+								Seqno:           1,
+								SafeToBootstrap: true,
+							},
+						},
+					},
+				},
+			},
+			pods:     pods,
+			wantBool: true,
+		},
+		{
+			name: "safe to bootstrap with zero UUIDs",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
+								Seqno:           1,
+								SafeToBootstrap: true,
 							},
 						},
 					},
