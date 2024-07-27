@@ -149,6 +149,7 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 	defer rs.mux.RUnlock()
 
 	numZeroUUIDs := 0
+	isComplete := true
 	for _, p := range pods {
 		state := ptr.Deref(rs.inner.State[p.Name], recovery.GaleraState{})
 		recovered := ptr.Deref(rs.inner.Recovered[p.Name], recovery.Bootstrap{})
@@ -163,14 +164,14 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 		if state.GetSeqno() > 0 || recovered.GetSeqno() > 0 {
 			continue
 		}
-		return false
+		isComplete = false
 	}
 
 	if numZeroUUIDs == len(pods) {
 		logger.Info("No Pods with non zero UUIDs were found")
 		return false
 	}
-	return true
+	return isComplete
 }
 
 func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, logger logr.Logger) (*bootstrapSource, error) {
