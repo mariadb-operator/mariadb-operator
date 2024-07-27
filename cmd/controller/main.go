@@ -37,6 +37,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -147,6 +148,12 @@ var rootCmd = &cobra.Command{
 		galeraRecorder := mgr.GetEventRecorderFor("galera")
 		replRecorder := mgr.GetEventRecorderFor("replication")
 
+		kubeClientset, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			setupLog.Error(err, "Error getting Kubernetes clientset")
+			os.Exit(1)
+		}
+
 		discovery, err := discovery.NewDiscovery()
 		if err != nil {
 			setupLog.Error(err, "Error creating discovery")
@@ -194,6 +201,7 @@ var rootCmd = &cobra.Command{
 		}
 		galeraReconciler := galera.NewGaleraReconciler(
 			client,
+			kubeClientset,
 			galeraRecorder,
 			env,
 			builder,
