@@ -1152,6 +1152,228 @@ func TestInitJobMeta(t *testing.T) {
 	}
 }
 
+func TestGaleraRecoveryJobMeta(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "recovery-obj",
+	}
+	mariadbObjMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name        string
+		mariadb     *mariadbv1alpha1.MariaDB
+		recoveryJob *mariadbv1alpha1.GaleraRecoveryJob
+		wantJobMeta *mariadbv1alpha1.Metadata
+		wantPodMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "inherit meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "extra meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{
+				Metadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "Pod meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "override Pod meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{
+				Metadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "true",
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "true",
+				},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "true",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "all",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+				},
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{},
+				Annotations: map[string]string{
+					"database.myorg.io":       "mariadb",
+					"sidecar.istio.io/inject": "false",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io":       "mariadb",
+					"sidecar.istio.io/inject": "false",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, tt.recoveryJob, 0)
+			if err != nil {
+				t.Fatalf("unexpected error building Galera recovery Job: %v", err)
+			}
+			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+		})
+	}
+}
+
 func TestSqlJobMeta(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{

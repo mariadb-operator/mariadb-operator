@@ -321,6 +321,56 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 	return job, nil
 }
 
+func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
+	galeraRecoveryJob *mariadbv1alpha1.GaleraRecoveryJob, podIndex int) (*batchv1.Job, error) {
+	recoveryJob := ptr.Deref(galeraRecoveryJob, mariadbv1alpha1.GaleraRecoveryJob{})
+	extraMeta := ptr.Deref(recoveryJob.Metadata, mariadbv1alpha1.Metadata{})
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(&extraMeta).
+			Build()
+	command := command.NewCommand([]string{"mariadbd"}, []string{"--wsrep-recover"})
+
+	podTpl, err := b.mariadbPodTemplate(
+		mariadb,
+		withMeta(mariadb.Spec.InheritMetadata),
+		withMeta(&extraMeta),
+		withCommand(command.Command),
+		withArgs(command.Args),
+		withRestartPolicy(corev1.RestartPolicyOnFailure),
+		withResources(recoveryJob.Resources),
+		withExtraVolumes([]corev1.Volume{
+			{
+				Name: StorageVolume,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: mariadb.PVCKey(StorageVolume, podIndex).Name,
+					},
+				},
+			},
+		}),
+		withGalera(false),
+		withPorts(false),
+		withProbes(false),
+		withMariadbSelectorLabels(false),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: objMeta,
+		Spec: batchv1.JobSpec{
+			Template: *podTpl,
+		},
+	}
+	if err := controllerutil.SetControllerReference(mariadb, job, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+	return job, nil
+}
+
 func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	jobMeta :=
