@@ -153,6 +153,18 @@ func (r *GaleraAgent) SetDefaults(env *environment.OperatorEnv) {
 	}
 }
 
+// GaleraRecoveryJob defines a Job used to be used to recover the Galera cluster.
+type GaleraRecoveryJob struct {
+	// Metadata defines additional metadata for the Galera recovery Jobs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Metadata *Metadata `json:"metadata,omitempty"`
+	// Resouces describes the compute resource requirements.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
 // GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
 // More info: https://galeracluster.com/library/documentation/crash-recovery.html.
 type GaleraRecovery struct {
@@ -188,6 +200,10 @@ type GaleraRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
+	// Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Job *GaleraRecoveryJob `json:"job,omitempty"`
 }
 
 // Validate determines whether a GaleraRecovery is valid.
