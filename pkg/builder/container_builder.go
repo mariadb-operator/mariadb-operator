@@ -81,7 +81,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	var containers []corev1.Container
 	containers = append(containers, *mariadbContainer)
 
-	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGalera {
+	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGaleraContainers {
 		agentContainer, err := b.galeraAgentContainer(mariadb)
 		if err != nil {
 			return nil, err
@@ -246,7 +246,7 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 			initContainers = append(initContainers, *initContainer)
 		}
 	}
-	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGalera {
+	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGaleraContainers {
 		initContainer, err := b.galeraInitContainer(mariadb)
 		if err != nil {
 			return nil, err
@@ -451,7 +451,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			MountPath: ProbesMountPath,
 		})
 	}
-	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGalera {
+	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGaleraConfig {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      ServiceAccountVolume,
 			MountPath: ServiceAccountMountPath,

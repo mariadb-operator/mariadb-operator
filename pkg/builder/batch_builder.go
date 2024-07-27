@@ -8,6 +8,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -300,7 +301,8 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 				MountPath: InitConfigPath,
 			},
 		}),
-		withGalera(false),
+		withGaleraContainers(false),
+		withGaleraConfig(false),
 		withPorts(false),
 		withProbes(false),
 		withMariadbSelectorLabels(false),
@@ -349,8 +351,19 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 					},
 				},
 			},
+			// TODO: consider galera.config.reuseStorageVolume
+			// TODO: reuse logic from mariadbVolumeClaimTemplates
+			{
+				Name: galeraresources.GaleraConfigVolume,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: mariadb.PVCKey(galeraresources.GaleraConfigVolume, podIndex).Name,
+					},
+				},
+			},
 		}),
-		withGalera(false),
+		withGaleraContainers(false),
+		withGaleraConfig(true),
 		withPorts(false),
 		withProbes(false),
 		withMariadbSelectorLabels(false),
