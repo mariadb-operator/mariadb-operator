@@ -96,12 +96,6 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 		p.readinessLogger.Error(err, "error getting MariaDB")
 	}
 
-	if mdb.HasGaleraNotReadyCondition() {
-		p.readinessLogger.Info("Galera not ready. Returning OK to facilitate recovery")
-		p.responseWriter.WriteOK(w, nil)
-		return
-	}
-
 	env, err := environment.GetPodEnv(context.Background())
 	if err != nil {
 		p.readinessLogger.Error(err, "error getting environment")
