@@ -78,6 +78,7 @@ helm uninstall mariadb-operator
 | nodeSelector | object | `{}` | Node selectors to add to controller Pod |
 | podAnnotations | object | `{}` | Annotations to add to controller Pod |
 | podSecurityContext | object | `{}` | Security context to add to controller Pod |
+| rbac.aggregation.enabled | bool | `true` | Specifies whether the cluster roles aggrate to view and edit predefinied roles |
 | rbac.enabled | bool | `true` | Specifies whether RBAC resources should be created |
 | resources | object | `{}` | Resources to add to controller container |
 | securityContext | object | `{}` | Security context to add to controller container |
