@@ -1,6 +1,6 @@
 ##@ Build
 
-DOCKER_ARGS ?=
+DOCKER_ARGS ?= --load
 
 .PHONY: build
 build: ## Build binary.

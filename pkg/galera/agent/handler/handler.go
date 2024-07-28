@@ -14,16 +14,14 @@ import (
 type Handler struct {
 	Bootstrap *Bootstrap
 	State     *State
-	Recovery  *Recovery
 	Probe     *Probe
 }
 
 func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileManager *filemanager.FileManager,
-	initState *state.State, logger *logr.Logger, recoveryOpts ...RecoveryOption) *Handler {
+	initState *state.State, logger *logr.Logger) *Handler {
 	mux := &sync.RWMutex{}
 	bootstrapLogger := logger.WithName("bootstrap")
 	stateLogger := logger.WithName("state")
-	recoveryLogger := logger.WithName("recovery")
 	probeLogger := logger.WithName("probe")
 
 	bootstrap := NewBootstrap(
@@ -39,13 +37,6 @@ func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileM
 		mux.RLocker(),
 		&stateLogger,
 	)
-	recovery := NewRecover(
-		fileManager,
-		mdbhttp.NewResponseWriter(&recoveryLogger),
-		mux,
-		&recoveryLogger,
-		recoveryOpts...,
-	)
 	probe := NewProbe(
 		mariadbKey,
 		client,
@@ -56,7 +47,6 @@ func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileM
 	return &Handler{
 		Bootstrap: bootstrap,
 		State:     state,
-		Recovery:  recovery,
 		Probe:     probe,
 	}
 }

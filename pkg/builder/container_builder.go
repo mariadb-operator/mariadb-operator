@@ -171,7 +171,6 @@ func (b *Builder) maxscaleCommand(mxs *mariadbv1alpha1.MaxScale) (*command.Comma
 
 func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 	agent := galera.Agent
 
 	container, err := b.buildContainer(agent.Image, agent.ImagePullPolicy, &agent.ContainerTemplate)
@@ -196,9 +195,6 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 		}...)
 		if agent.GracefulShutdownTimeout != nil {
 			args = append(args, fmt.Sprintf("--graceful-shutdown-timeout=%s", agent.GracefulShutdownTimeout.Duration))
-		}
-		if recovery.Enabled && recovery.PodRecoveryTimeout != nil {
-			args = append(args, fmt.Sprintf("--recovery-timeout=%s", recovery.PodRecoveryTimeout.Duration))
 		}
 		if ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{}).Enabled {
 			args = append(args, []string{

@@ -87,11 +87,6 @@ func apiRouter(h *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logg
 	r.Route("/state", func(r chi.Router) {
 		r.Get("/galera", h.State.GetGaleraState)
 	})
-	r.Route("/recovery", func(r chi.Router) {
-		r.Put("/", h.Recovery.Enable)
-		r.Post("/", h.Recovery.Start)
-		r.Delete("/", h.Recovery.Disable)
-	})
 
 	return r
 }
