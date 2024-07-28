@@ -526,6 +526,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#galerarecoveryjob" class="md-nav__link">
+    <span class="md-ellipsis">
+      GaleraRecoveryJob
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#galeraspec" class="md-nav__link">
     <span class="md-ellipsis">
       GaleraSpec
@@ -1588,6 +1597,15 @@
   <a href="#galerarecovery" class="md-nav__link">
     <span class="md-ellipsis">
       GaleraRecovery
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#galerarecoveryjob" class="md-nav__link">
+    <span class="md-ellipsis">
+      GaleraRecoveryJob
     </span>
   </a>
   
@@ -3338,13 +3356,47 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </tr>
 <tr>
 <td><code>podRecoveryTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
-<td>PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.<br />Once this timeout is reached, the Pod is restarted.</td>
+<td>PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>podSyncTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
-<td>PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.<br />Once this timeout is reached, the Pod is restarted.</td>
+<td>PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>job</code> <em><a href="#galerarecoveryjob">GaleraRecoveryJob</a></em></td>
+<td>Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster.</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="galerarecoveryjob">GaleraRecoveryJob</h4>
+<p>GaleraRecoveryJob defines a Job used to be used to recover the Galera cluster.</p>
+<p><em>Appears in:</em>
+- <a href="#galerarecovery">GaleraRecovery</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>metadata</code> <em><a href="#metadata">Metadata</a></em></td>
+<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
@@ -5117,6 +5169,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <p><em>Appears in:</em>
 - <a href="#backupspec">BackupSpec</a>
 - <a href="#exporter">Exporter</a>
+- <a href="#galerarecoveryjob">GaleraRecoveryJob</a>
 - <a href="#job">Job</a>
 - <a href="#jobpodtemplate">JobPodTemplate</a>
 - <a href="#mariadbspec">MariaDBSpec</a>
