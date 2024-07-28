@@ -334,6 +334,30 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 			Build()
 	command := command.NewCommand([]string{"mariadbd"}, []string{"--wsrep-recover"})
 
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
+
+	volumes := []corev1.Volume{
+		{
+			Name: StorageVolume,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: mariadb.PVCKey(StorageVolume, podIndex).Name,
+				},
+			},
+		},
+	}
+	if !reuseStorageVolume {
+		volumes = append(volumes, corev1.Volume{
+			Name: galeraresources.GaleraConfigVolume,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: mariadb.PVCKey(galeraresources.GaleraConfigVolume, podIndex).Name,
+				},
+			},
+		})
+	}
+
 	podTpl, err := b.mariadbPodTemplate(
 		mariadb,
 		withMeta(mariadb.Spec.InheritMetadata),
@@ -342,26 +366,7 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		withArgs(command.Args),
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
 		withResources(recoveryJob.Resources),
-		withExtraVolumes([]corev1.Volume{
-			{
-				Name: StorageVolume,
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: mariadb.PVCKey(StorageVolume, podIndex).Name,
-					},
-				},
-			},
-			// TODO: consider galera.config.reuseStorageVolume
-			// TODO: reuse logic from mariadbVolumeClaimTemplates
-			{
-				Name: galeraresources.GaleraConfigVolume,
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: mariadb.PVCKey(galeraresources.GaleraConfigVolume, podIndex).Name,
-					},
-				},
-			},
-		}),
+		withExtraVolumes(volumes),
 		withGaleraContainers(false),
 		withGaleraConfig(true),
 		withPorts(false),
