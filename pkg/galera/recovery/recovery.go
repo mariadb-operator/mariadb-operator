@@ -16,14 +16,6 @@ const (
 	BootstrapFileName   = "1-bootstrap.cnf"
 	BootstrapFile       = `[galera]
 wsrep_new_cluster="ON"`
-	RecoveryFileName    = "2-recovery.cnf"
-	RecoveryLogFileName = "mariadb.err"
-)
-
-var (
-	RecoveryFile = fmt.Sprintf(`[galera]
-log_error=%s
-wsrep_recover="ON"`, RecoveryLogFileName)
 )
 
 type GaleraRecoverer interface {

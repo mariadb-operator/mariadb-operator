@@ -59,11 +59,6 @@ func (b *Bootstrap) Enable(w http.ResponseWriter, r *http.Request) {
 	defer b.locker.Unlock()
 	b.logger.V(1).Info("enabling bootstrap")
 
-	if err := b.fileManager.DeleteConfigFile(recovery.RecoveryFileName); err != nil && !os.IsNotExist(err) {
-		b.responseWriter.WriteErrorf(w, "error deleting existing recovery config: %v", err)
-		return
-	}
-
 	if err := b.setSafeToBootstrap(&bootstrap); err != nil {
 		b.responseWriter.WriteErrorf(w, "error setting safe to bootstrap: %v", err)
 		return
