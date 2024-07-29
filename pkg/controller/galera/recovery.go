@@ -183,11 +183,16 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 			logger.Info("Restarting Pod", "pod", key.Name)
 		}
 
-		if err := r.pollUntilPodDeleted(syncContext, key, logger); err != nil {
-			return fmt.Errorf("error deleting Pod '%s': %v", key.Name, err)
-		}
-		if err := r.pollUntilPodSynced(syncContext, key, sqlClientSet, logger); err != nil {
-			return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", key.Name, err)
+		if err := wait.PollUntilSucessWithTimeout(syncContext, logger, func(ctx context.Context) error {
+			if err := r.pollUntilPodDeleted(ctx, key, logger); err != nil {
+				return fmt.Errorf("error deleting Pod '%s': %v", key.Name, err)
+			}
+			if err := r.pollUntilPodSynced(ctx, key, sqlClientSet, logger); err != nil {
+				return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", key.Name, err)
+			}
+			return nil
+		}); err != nil {
+			return fmt.Errorf("error restarting Pod '%s': %v", key.Name, err)
 		}
 	}
 
