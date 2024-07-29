@@ -461,7 +461,7 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
-	// Suspend defines whether the operator manages the mariadb or not.
+	// Suspend defines whether the MariaDB reconciliation loop is enabled. This can be useful for maintenance, as disabling the reconciliation loop prevents the operator from interfering with user operations during maintenance activities.
 	// +optional
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
