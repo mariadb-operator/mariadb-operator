@@ -457,41 +457,14 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#important-considerations-and-limitations" class="md-nav__link">
-    <span class="md-ellipsis">
-      Important considerations and limitations
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Important considerations and limitations">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#root-credentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      Root credentials
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#restore-job" class="md-nav__link">
-    <span class="md-ellipsis">
-      Restore job
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#galera-backup-limitations" class="md-nav__link">
     <span class="md-ellipsis">
       Galera backup limitations
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="Galera backup limitations">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#mysqlglobal_priv" class="md-nav__link">
@@ -564,30 +537,6 @@
       Reference
     </span>
   </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      Troubleshooting
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Troubleshooting">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#galera-pods-restarting-after-bootstrapping-from-a-backup" class="md-nav__link">
-    <span class="md-ellipsis">
-      Galera Pods restarting after bootstrapping from a backup
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1028,41 +977,14 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#important-considerations-and-limitations" class="md-nav__link">
-    <span class="md-ellipsis">
-      Important considerations and limitations
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Important considerations and limitations">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#root-credentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      Root credentials
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#restore-job" class="md-nav__link">
-    <span class="md-ellipsis">
-      Restore job
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#galera-backup-limitations" class="md-nav__link">
     <span class="md-ellipsis">
       Galera backup limitations
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="Galera backup limitations">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#mysqlglobal_priv" class="md-nav__link">
@@ -1138,30 +1060,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      Troubleshooting
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Troubleshooting">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#galera-pods-restarting-after-bootstrapping-from-a-backup" class="md-nav__link">
-    <span class="md-ellipsis">
-      Galera Pods restarting after bootstrapping from a backup
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1190,16 +1088,30 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.2
 <!-- toc -->
 <ul>
 <li><a href="#storage-types">Storage types</a></li>
-<li><a href="#backup-cr"><code>Backup</code> CR</a></li>
-<li><a href="#restore-cr"><code>Restore</code> CR</a></li>
+<li><a href="#backup-cr"><code>Backup</code> CR</a><ul>
+<li><a href="#scheduling">Scheduling</a></li>
+<li><a href="#retention-policy">Retention policy</a></li>
+</ul>
+</li>
+<li><a href="#restore-cr"><code>Restore</code> CR</a><ul>
+<li><a href="#target-recovery-time">Target recovery time</a></li>
+</ul>
+</li>
 <li><a href="#bootstrap-new-mariadb-instances">Bootstrap new <code>MariaDB</code> instances</a></li>
 <li><a href="#backup-and-restore-specific-databases">Backup and restore specific databases</a></li>
 <li><a href="#extra-options">Extra options</a></li>
-<li><a href="#important-considerations-and-limitations">Important considerations and limitations</a></li>
-<li><a href="#migrating-to-a-mariadb-with-different-topology">Migrating to a <code>MariaDB</code> with different topology</a></li>
+<li><a href="#galera-backup-limitations">Galera backup limitations</a><ul>
+<li><a href="#mysqlglobal_priv"><code>mysql.global_priv</code></a></li>
+<li><a href="#lock-tables"><code>LOCK TABLES</code></a></li>
+</ul>
+</li>
+<li><a href="#migrating-to-a-mariadb-with-different-topology">Migrating to a <code>MariaDB</code> with different topology</a><ul>
+<li><a href="#migrating-between-standalone-and-replicated-mariadbs">Migrating between standalone and replicated <code>MariaDBs</code></a></li>
+<li><a href="#migrating-from-standalonereplicated-to-galera-mariadbs">Migrating from standalone/replicated to Galera <code>MariaDBs</code></a></li>
+</ul>
+</li>
 <li><a href="#minio-reference-installation">Minio reference installation</a></li>
 <li><a href="#reference">Reference</a></li>
-<li><a href="#troubleshooting">Troubleshooting</a></li>
 </ul>
 <!-- /toc -->
 
@@ -1440,43 +1352,16 @@ spec:
     - --verbose
 </code></pre>
 <p>Refer to the <code>mariadb-dump</code> and <code>mariadb</code> CLI options in the <a href="#reference">reference</a> section.</p>
-<h2 id="important-considerations-and-limitations">Important considerations and limitations</h2>
-<h4 id="root-credentials">Root credentials</h4>
-<p>When restoring a backup, the root credentials specified through the <code>spec.rootPasswordSecretKeyRef</code> field in the <code>MariaDB</code> resource must match the ones in the backup. These credentials are utilized by the liveness and readiness probes, and if they are invalid, the probes will fail, causing your <code>MariaDB</code> <code>Pods</code> to restart after the backup restoration.</p>
-<h4 id="restore-job">Restore job</h4>
-<p>Restoring large backups can consume significant compute resources and may cause <code>Restore</code> <code>Jobs</code> to become stuck due to insufficient resources. To prevent this, you can define the compute resources allocated to the <code>Job</code>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  bootstrapFrom:
-    restoreJob:
-      args:
-        - --verbose
-      resources:
-        requests:
-          cpu: 100m
-          memory: 128Mi
-        limits:
-          memory: 1Gi
-</code></pre>
-<h4 id="galera-backup-limitations">Galera backup limitations</h4>
+<h2 id="galera-backup-limitations">Galera backup limitations</h2>
 <h4 id="mysqlglobal_priv"><code>mysql.global_priv</code></h4>
 <p>Galera only replicates the tables with InnoDB engine:
 - https://galeracluster.com/library/kb/user-changes.html</p>
-<p>Something that does not include <code>mysql.global_priv</code>, the table used to store users and grants, which uses the MyISAM engine. This basically means that a Galera instance with <code>mysql.global_priv</code> populated will not replicate this data to an empty Galera instance. However, DDL statements (<code>CREATE USER</code>, <code>ALTER USER</code> ...) will be replicated.</p>
-<p>Taking this into account, if we think now about a restore scenario where:
-- The backup file includes a <code>DROP TABLE</code> statement for the <code>mysql.global_priv</code> table.
-- The backup has some <code>INSERT</code> statements for the <code>mysql.global_priv</code> table.
-- The Galera cluster has 3 nodes: <code>galera-0</code>, <code>galera-1</code> and <code>galera-2</code>.
-- The backup is restored in <code>galera-0</code>.</p>
-<p>This is what will happen under the scenes while restoring the backup:
-- The <code>DROP TABLE</code> statement is a DDL so it will be executed in <code>galera-0</code>, <code>galera-1</code> and <code>galera-2</code>.
-- The <code>INSERT</code> statements are not DDLs, so they will only be applied to <code>galera-0</code>.
-- This results in the <code>galera-1</code> and <code>galera-2</code> not having the <code>mysql.global_priv</code> table.</p>
-<p>After the backup is fully restored, the liveness and readiness probes will kick in, they will succeed in <code>galera-0</code>, but they will fail in <code>galera-1</code> and <code>galera-2</code>, as they rely in the root credentials available in <code>mysql.global_priv</code>, resulting in the <code>galera-1</code> and <code>galera-2</code> getting restarted.</p>
-<p>To address this issue, when backing up <code>MariaDB</code> instances with Galera enabled, the <code>mysql.global_priv</code> table will be excluded from backups by using the <code>--ignore-table</code> option with <code>mariadb-dump</code>. This prevents the replication of the <code>DROP TABLE</code> statement for the <code>mysql.global_priv</code> table. You can opt-out from this feature by setting <code>spec.ignoreGlobalPriv=false</code> in the <code>Backup</code> resource.</p>
+<p>Something that does not include <code>mysql.global_priv</code>: the table used to store users and grants. This basically means that a Galera instance with <code>mysql.global_priv</code> populated will not replicate this data to an empty Galera instance. This is something to take into account when defining your backup strategy.</p>
+<p>By default, the SQL dumps generated by the <code>Backup</code> resource include <code>DROP TABLE</code> statements to make the backup process idempotent. When they are restored in a <code>MariaDB</code> with Galera enabled, the <code>DROP TABLE</code> is propagated to the replicas, but not its data, resulting in authentication errors in the replicas. This is specially critical because the <code>livenessProbes</code> will fail with authentication errors, resulting in <code>Pods</code> restarting. More information can be found in https://github.com/mariadb-operator/mariadb-operator/issues/556.</p>
+<p>To overcome this, the operator automatically adds the <code>--ignore-table</code> option to ignore the <code>mysql.global_priv</code> when backing up a <code>MariaDB</code> with Galera enabled. This implies that <code>mysql.global_priv</code> will be skipped in backups and its recreation will rely in either:
+- MariaDB image entrypoint, by using the <code>spec.rootPasswordSecretKeyRef</code>, <code>spec.username</code> and <code>spec.passwordSecretKeyRef</code> fields of the <code>MariaDB</code> CR.
+- The <code>User</code> and <code>Grant</code> CRs, which will be eventually reconciled by the operator.</p>
+<p>In any case, you are able to opt-out from this feature by setting the <code>spec.ignoreGlobalPriv=false</code> in the <code>Backup</code> resource:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
@@ -1486,9 +1371,6 @@ spec:
     name: mariadb
   ignoreGlobalPriv: false
 </code></pre>
-<p>Also, to avoid situations where <code>mysql.global_priv</code> is unreplicated, all the entries in that table must be managed via DDLs. This is the recommended approach suggested in the <a href="https://galeracluster.com/library/kb/user-changes.html">Galera docs</a>. There are a couple of ways that we can guarantee this:
-- Use the <code>rootPasswordSecretKeyRef</code>, <code>username</code> and <code>passwordSecretKeyRef</code> fields of the <code>MariaDB</code> CR to create the root and initial user respectively. This fields will be translated into DDLs by the image entrypoint.
-- Rely on the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml"><code>User</code></a> and <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml"><code>Grant</code></a> CRs to create additional users and grants. They will be translated into DDL statements (<code>CREATE USER</code>, <code>GRANT</code>) by the operator.</p>
 <h4 id="lock-tables"><code>LOCK TABLES</code></h4>
 <p>Galera is not compatible with the <code>LOCK TABLES</code> statement:
 - https://mariadb.com/kb/en/lock-tables/#limitations</p>
@@ -1537,10 +1419,6 @@ make net # to access the console via a MetalLB LoadBalancer: https://minio-conso
 <li><a href="https://mariadb.com/kb/en/mariadb-dump/#options"><code>mariadb-dump</code> options</a></li>
 <li><a href="https://mariadb.com/kb/en/mariadb-command-line-client/#options"><code>mariadb</code> options</a></li>
 </ul>
-<h2 id="troubleshooting">Troubleshooting</h2>
-<h4 id="galera-pods-restarting-after-bootstrapping-from-a-backup">Galera <code>Pods</code> restarting after bootstrapping from a backup</h4>
-<p>Please make sure you understand the <a href="#galera-backup-limitations">Galera backup limitations</a>.</p>
-<p>After doing so, ensure that your backup does not contain a <code>DROP TABLE mysql.global_priv;</code> statement, as it will make your liveness and readiness probes to fail after the backup restoration.</p>
 
 
 
