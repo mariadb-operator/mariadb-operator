@@ -172,10 +172,6 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	specRecovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
-	syncTimeout := ptr.Deref(specRecovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
-	syncContext, syncCancel := context.WithTimeout(ctx, syncTimeout)
-	defer syncCancel()
-
 	for _, key := range podKeys {
 		if key.Name == bootstrapPodKey.Name {
 			logger.Info("Restarting bootstrap Pod", "pod", key.Name)
@@ -183,7 +179,11 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 			logger.Info("Restarting Pod", "pod", key.Name)
 		}
 
-		if err := wait.PollUntilSucessWithTimeout(syncContext, logger, func(ctx context.Context) error {
+		syncTimeout := ptr.Deref(specRecovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+		syncCtx, syncCancel := context.WithTimeout(ctx, syncTimeout)
+		defer syncCancel()
+
+		if err := wait.PollUntilSucessWithTimeout(syncCtx, logger, func(ctx context.Context) error {
 			if err := r.pollUntilPodDeleted(ctx, key, logger); err != nil {
 				return fmt.Errorf("error deleting Pod '%s': %v", key.Name, err)
 			}
