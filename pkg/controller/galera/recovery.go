@@ -248,7 +248,7 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 			stateLogger := logger.WithValues("pod", pod.Name)
 
-			recoveryTimeout := ptr.Deref(recovery.PodRecoveryTimeout, metav1.Duration{Duration: 3 * time.Minute}).Duration
+			recoveryTimeout := ptr.Deref(recovery.PodRecoveryTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, recoveryTimeout)
 			defer cancelRecovery()
 
@@ -323,7 +323,7 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 				}
 			}()
 
-			recoveryTimeout := ptr.Deref(recovery.PodRecoveryTimeout, metav1.Duration{Duration: 3 * time.Minute}).Duration
+			recoveryTimeout := ptr.Deref(recovery.PodRecoveryTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, recoveryTimeout)
 			defer cancelRecovery()
 
