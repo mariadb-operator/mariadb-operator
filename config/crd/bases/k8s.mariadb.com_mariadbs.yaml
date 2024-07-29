@@ -7152,6 +7152,12 @@ spec:
                       enabled:
                         description: Enabled is a flag to enable GaleraRecovery.
                         type: boolean
+                      forceClusterBootstrapInPod:
+                        description: |-
+                          ForceClusterBootstrapInPod allows you to manually initiate the bootstrap process in a specific Pod.
+                          IMPORTANT: Use this option only in exceptional circumstances. Not selecting the Pod with the highest sequence number may result in data loss.
+                          IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery.
+                        type: string
                       job:
                         description: Job allows configuration of the Galera recovery
                           Job, which is used to recover the Galera cluster.

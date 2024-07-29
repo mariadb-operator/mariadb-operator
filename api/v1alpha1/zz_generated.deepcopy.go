@@ -741,6 +741,11 @@ func (in *GaleraRecovery) DeepCopyInto(out *GaleraRecovery) {
 		*out = new(metav1.Duration)
 		**out = **in
 	}
+	if in.ForceClusterBootstrapInPod != nil {
+		in, out := &in.ForceClusterBootstrapInPod, &out.ForceClusterBootstrapInPod
+		*out = new(string)
+		**out = **in
+	}
 	if in.Job != nil {
 		in, out := &in.Job, &out.Job
 		*out = new(GaleraRecoveryJob)
