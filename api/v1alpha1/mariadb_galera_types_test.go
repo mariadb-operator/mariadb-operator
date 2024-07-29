@@ -21,7 +21,7 @@ var _ = Describe("MariaDB Galera types", func() {
 	}
 	Context("When creating a MariaDB Galera object", func() {
 		mdbObjMeta := metav1.ObjectMeta{
-			Name:      "mdb-galera-obj",
+			Name:      "mariadb-galera",
 			Namespace: testNamespace,
 		}
 		DescribeTable(
@@ -458,7 +458,7 @@ var _ = Describe("MariaDB Galera types", func() {
 		)
 
 		DescribeTable(
-			"Validate min cluster size",
+			"Validate",
 			func(mdb *MariaDB, wantErr bool) {
 				err := mdb.Spec.Galera.Recovery.Validate(mdb)
 				if wantErr {
@@ -584,6 +584,57 @@ var _ = Describe("MariaDB Galera types", func() {
 					},
 				},
 				true,
+			),
+			Entry(
+				"Integer out of range",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(4)),
+								},
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Invalid forceClusterBootstrapInPod",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:                    true,
+									ForceClusterBootstrapInPod: ptr.To("foo"),
+								},
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid forceClusterBootstrapInPod",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:                    true,
+									ForceClusterBootstrapInPod: ptr.To("mariadb-galera-0"),
+								},
+							},
+						},
+					},
+				},
+				false,
 			),
 		)
 	})

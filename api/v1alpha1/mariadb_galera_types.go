@@ -8,6 +8,7 @@ import (
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -200,6 +201,12 @@ type GaleraRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodSyncTimeout *metav1.Duration `json:"podSyncTimeout,omitempty"`
+	// ForceClusterBootstrapInPod allows you to manually initiate the bootstrap process in a specific Pod.
+	// IMPORTANT: Use this option only in exceptional circumstances. Not selecting the Pod with the highest sequence number may result in data loss.
+	// IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ForceClusterBootstrapInPod *string `json:"forceClusterBootstrapInPod,omitempty"`
 	// Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -208,17 +215,24 @@ type GaleraRecovery struct {
 
 // Validate determines whether a GaleraRecovery is valid.
 func (g *GaleraRecovery) Validate(mdb *MariaDB) error {
-	if !g.Enabled || g.MinClusterSize == nil {
+	if !g.Enabled {
 		return nil
 	}
-	_, err := intstr.GetScaledValueFromIntOrPercent(g.MinClusterSize, 0, false)
-	if err != nil {
-		return err
+	if g.MinClusterSize != nil {
+		_, err := intstr.GetScaledValueFromIntOrPercent(g.MinClusterSize, 0, false)
+		if err != nil {
+			return err
+		}
+		if g.MinClusterSize.Type == intstr.Int {
+			minClusterSize := g.MinClusterSize.IntValue()
+			if minClusterSize < 0 || minClusterSize > int(mdb.Spec.Replicas) {
+				return fmt.Errorf("'spec.galera.recovery.minClusterSize' out of 'spec.replicas' bounds: %d", minClusterSize)
+			}
+		}
 	}
-	if g.MinClusterSize.Type == intstr.Int {
-		minClusterSize := g.MinClusterSize.IntValue()
-		if minClusterSize < 0 || minClusterSize > int(mdb.Spec.Replicas) {
-			return fmt.Errorf("'spec.galera.recovery.minClusterSize' out of 'spec.replicas' bounds: %d", minClusterSize)
+	if g.ForceClusterBootstrapInPod != nil {
+		if err := statefulset.ValidPodName(mdb.ObjectMeta, *g.ForceClusterBootstrapInPod); err != nil {
+			return fmt.Errorf("'spec.galera.recovery.forceClusterBootstrapInPod' invalid: %v", err)
 		}
 	}
 	return nil

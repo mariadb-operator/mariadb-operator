@@ -49,6 +49,16 @@ func PodIndex(podName string) (*int, error) {
 	return &index, nil
 }
 
+func ValidPodName(meta metav1.ObjectMeta, podName string) error {
+	if _, err := PodIndex(podName); err != nil {
+		return fmt.Errorf("invalid Pod index: %v", err)
+	}
+	if !strings.HasPrefix(podName, meta.Name) {
+		return fmt.Errorf("invalid Pod name: must start with '%s'", meta.Name)
+	}
+	return nil
+}
+
 func GetStorageSize(sts *appsv1.StatefulSet, storageVolume string) *resource.Quantity {
 	for _, vctpl := range sts.Spec.VolumeClaimTemplates {
 		if vctpl.Name == storageVolume {
