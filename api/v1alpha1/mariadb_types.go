@@ -684,7 +684,7 @@ func (m *MariaDB) IsUpdating() bool {
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonUpdating
 }
 
-// IsUpdating indicates that a MariaDB update is in progress.
+// IsSuspended indicates that a MariaDB update is suspended.
 func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
 }
