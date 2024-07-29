@@ -239,7 +239,7 @@ func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 		g.ClusterBootstrapTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Minute})
 	}
 	if g.PodRecoveryTimeout == nil {
-		g.PodRecoveryTimeout = ptr.To(metav1.Duration{Duration: 3 * time.Minute})
+		g.PodRecoveryTimeout = ptr.To(metav1.Duration{Duration: 5 * time.Minute})
 	}
 	if g.PodSyncTimeout == nil {
 		g.PodSyncTimeout = ptr.To(metav1.Duration{Duration: 5 * time.Minute})
