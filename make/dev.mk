@@ -114,21 +114,29 @@ RESTORE_FLAGS ?= --target-time=1970-01-01T00:00:00Z $(BACKUP_COMMON_FLAGS)
 restore: lint ## Run restore from your host.
 	$(BACKUP_ENV) go run cmd/controller/*.go backup restore $(RESTORE_FLAGS)
 
-.PHONY: init-dir
-init-dir: ## Create config and state directories for init local development.
+.PHONY: local-dir
+local-dir: ## Create config and state directories for local development.
 	mkdir -p mariadb/config
 	mkdir -p mariadb/state
 
-INIT_ENV ?= KUBECONFIG=$(HOME)/.kube/config POD_NAME=mariadb-galera-0 MARIADB_ROOT_PASSWORD=MariaDB11!
-INIT_FLAGS ?= $(RUN_FLAGS) --mariadb-name=mariadb-galera --mariadb-namespace=default --config-dir=mariadb/config --state-dir=mariadb/state
-.PHONY: init
-init: init-dir ## Run init from your host.
-	$(INIT_ENV) go run cmd/controller/*.go init $(INIT_FLAGS)
+POD_ENV ?= \
+	CLUSTER_NAME=cluster.local  \
+	POD_NAME=mariadb-galera-0 \
+	POD_NAMESPACE=default \
+	POD_IP=10.244.0.36  \
+	MARIADB_NAME=mariadb-galera \
+	MARIADB_ROOT_PASSWORD=MariaDB11! \
+	MYSQL_TCP_PORT=3306 \
+	KUBECONFIG=$(HOME)/.kube/config
 
-AGENT_ENV ?= KUBECONFIG=$(HOME)/.kube/config
+INIT_FLAGS ?= $(RUN_FLAGS) --config-dir=mariadb/config --state-dir=mariadb/state
+.PHONY: init
+init: local-dir ## Run init from your host.
+	$(POD_ENV) go run cmd/controller/*.go init $(INIT_FLAGS)
+
 # AGENT_AUTH_FLAGS ?= --kubernetes-auth=true --kubernetes-trusted-name=mariadb-galera --kubernetes-trusted-namespace=default
 AGENT_AUTH_FLAGS ?=
 AGENT_FLAGS ?= $(RUN_FLAGS) $(AGENT_AUTH_FLAGS) --config-dir=mariadb/config --state-dir=mariadb/state
 .PHONY: agent
-agent: ## Run agent from your host.
-	$(AGENT_ENV) go run cmd/controller/*.go agent $(AGENT_FLAGS)
+agent: local-dir ## Run agent from your host.
+	$(POD_ENV) go run cmd/controller/*.go agent $(AGENT_FLAGS)

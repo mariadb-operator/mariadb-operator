@@ -394,14 +394,14 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, 
 	}
 	client, err := clientSet.clientForIndex(*idx)
 	if err != nil {
-		return fmt.Errorf("error getting client for Pod '%s': %v", src.pod, err)
+		return fmt.Errorf("error getting client for Pod '%s': %v", src.pod.Name, err)
 	}
 
 	bootstrapCtx, cancelBootstrap := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancelBootstrap()
 
 	if err = wait.PollUntilSucessWithTimeout(bootstrapCtx, logger, func(ctx context.Context) error {
-		if err := r.ensurePodRunning(ctx, ctrlclient.ObjectKeyFromObject(src.pod), logger); err != nil {
+		if err := r.ensurePodRunning(ctx, ctrlclient.ObjectKeyFromObject(&src.pod), logger); err != nil {
 			return err
 		}
 		return client.Bootstrap.Enable(ctx, src.bootstrap)

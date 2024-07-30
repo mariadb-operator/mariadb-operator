@@ -22,7 +22,7 @@ type recoveryStatus struct {
 
 type bootstrapSource struct {
 	bootstrap *recovery.Bootstrap
-	pod       *corev1.Pod
+	pod       corev1.Pod
 }
 
 func (b *bootstrapSource) String() string {
@@ -180,12 +180,12 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, forceBootstrapInPod
 		pod := datastructures.Find(pods, func(pod corev1.Pod) bool {
 			return pod.Name == *forceBootstrapInPod
 		})
-		if pod == nil {
-			return nil, fmt.Errorf("Pod '%s' used to forcefully bootstrap not found", *forceBootstrapInPod)
+		if pod != nil {
+			return &bootstrapSource{
+				pod: *pod,
+			}, nil
 		}
-		return &bootstrapSource{
-			pod: pod,
-		}, nil
+		return nil, fmt.Errorf("Pod '%s' used to forcefully bootstrap not found", *forceBootstrapInPod)
 	}
 
 	if !rs.isComplete(pods, logger) {
@@ -207,7 +207,7 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, forceBootstrapInPod
 					UUID:  state.GetUUID(),
 					Seqno: state.GetSeqno(),
 				},
-				pod: &p,
+				pod: p,
 			}, nil
 		}
 		if hasZeroUUID(state, recovered) {
@@ -232,7 +232,7 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, forceBootstrapInPod
 			UUID:  currentSource.GetUUID(),
 			Seqno: currentSource.GetSeqno(),
 		},
-		pod: &currentPod,
+		pod: currentPod,
 	}, nil
 }
 
