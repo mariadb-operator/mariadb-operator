@@ -89,7 +89,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		if err := r.bootstrap(ctx, src, rs, mariadb, clientSet, logger); err != nil {
 			return fmt.Errorf("error forcefully bootstrapping: %v", err)
 		}
-		return nil
+		return r.patchRecoveryStatus(ctx, mariadb, rs)
 	}
 
 	logger.V(1).Info("Get Galera state")

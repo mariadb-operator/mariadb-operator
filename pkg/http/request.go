@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	mdbreflect "github.com/mariadb-operator/mariadb-operator/pkg/reflect"
 )
 
 func (c *Client) NewRequestWithContext(ctx context.Context, method string, path string, body interface{},
@@ -28,7 +30,7 @@ func (c *Client) NewRequestWithContext(ctx context.Context, method string, path 
 	}
 
 	var bodyReader io.Reader
-	if body != nil {
+	if !mdbreflect.IsNil(body) {
 		bodyBytes, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf("error encoding body: %v", err)
