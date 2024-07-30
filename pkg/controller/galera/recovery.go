@@ -77,6 +77,21 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 
 func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
 	rs *recoveryStatus, clientSet *agentClientSet, logger logr.Logger) error {
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+
+	if recovery.ForceClusterBootstrapInPod != nil {
+		logger.Info("Starting forceful bootstrap ")
+		src, err := rs.bootstrapSource(pods, recovery.ForceClusterBootstrapInPod, logger)
+		if err != nil {
+			return fmt.Errorf("error getting source to forcefully bootstrap: %v", err)
+		}
+		if err := r.bootstrap(ctx, src, rs, mariadb, clientSet, logger); err != nil {
+			return fmt.Errorf("error forcefully bootstrapping: %v", err)
+		}
+		return nil
+	}
+
 	logger.V(1).Info("Get Galera state")
 	var stateErr *multierror.Error
 	err := r.getGaleraState(ctx, mariadb, pods, rs, clientSet, logger)
@@ -89,7 +104,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		return fmt.Errorf("error getting state: %v", err)
 	}
 
-	src, err := rs.bootstrapSource(pods, logger)
+	src, err := rs.bootstrapSource(pods, nil, logger)
 	if err != nil {
 		logger.V(1).Info("Error getting bootstrap source", "err", err)
 	}
@@ -112,7 +127,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		return fmt.Errorf("error performing recovery: %v", err)
 	}
 
-	src, err = rs.bootstrapSource(pods, logger)
+	src, err = rs.bootstrapSource(pods, nil, logger)
 	if err != nil {
 		return fmt.Errorf("error getting bootstrap source: %v", err)
 	}
@@ -170,7 +185,7 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 	}
 
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	specRecovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
 	for _, key := range podKeys {
 		if key.Name == bootstrapPodKey.Name {
@@ -179,7 +194,7 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 			logger.Info("Restarting Pod", "pod", key.Name)
 		}
 
-		syncTimeout := ptr.Deref(specRecovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+		syncTimeout := ptr.Deref(recovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 		syncCtx, syncCancel := context.WithTimeout(ctx, syncTimeout)
 		defer syncCancel()
 
