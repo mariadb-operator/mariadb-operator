@@ -88,10 +88,13 @@ func (b *Bootstrap) decodeAndValidateBootstrap(r *http.Request) (*recovery.Boots
 	if r.Body == nil || r.ContentLength == 0 {
 		return nil, nil
 	}
+
 	var bootstrap recovery.Bootstrap
 	if err := json.NewDecoder(r.Body).Decode(&bootstrap); err != nil {
 		return nil, galeraErrors.NewAPIErrorf("error decoding bootstrap: %v", err)
 	}
+	defer r.Body.Close()
+
 	if err := bootstrap.Validate(); err != nil {
 		return nil, galeraErrors.NewAPIErrorf("invalid bootstrap: %v", err)
 	}
