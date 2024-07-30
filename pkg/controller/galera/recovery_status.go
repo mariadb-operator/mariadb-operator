@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -174,10 +175,23 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 	return isComplete
 }
 
-func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, logger logr.Logger) (*bootstrapSource, error) {
+func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, forceBootstrapInPod *string, logger logr.Logger) (*bootstrapSource, error) {
+	if forceBootstrapInPod != nil {
+		pod := datastructures.Find(pods, func(pod corev1.Pod) bool {
+			return pod.Name == *forceBootstrapInPod
+		})
+		if pod == nil {
+			return nil, fmt.Errorf("Pod '%s' used to forcefully bootstrap not found", *forceBootstrapInPod)
+		}
+		return &bootstrapSource{
+			pod: pod,
+		}, nil
+	}
+
 	if !rs.isComplete(pods, logger) {
 		return nil, errors.New("recovery status not completed")
 	}
+
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 	var currentSource recovery.GaleraRecoverer

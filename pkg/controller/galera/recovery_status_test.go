@@ -692,11 +692,12 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 	}
 	pods := []corev1.Pod{pod0, pod1, pod2}
 	tests := []struct {
-		name       string
-		mdb        *mariadbv1alpha1.MariaDB
-		pods       []corev1.Pod
-		wantSource *bootstrapSource
-		wantErr    bool
+		name                string
+		mdb                 *mariadbv1alpha1.MariaDB
+		pods                []corev1.Pod
+		forceBootstrapInPod *string
+		wantSource          *bootstrapSource
+		wantErr             bool
 	}{
 		{
 			name:       "no status",
@@ -704,6 +705,82 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 			pods:       pods,
 			wantSource: nil,
 			wantErr:    true,
+		},
+		{
+			name: "force bootstrap",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno:           1,
+								SafeToBootstrap: true,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+						},
+						Recovered: map[string]*recovery.Bootstrap{
+							"mariadb-galera-1": {
+								UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno: 1,
+							},
+							"mariadb-galera-2": {
+								UUID:  "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
+								Seqno: 1,
+							},
+						},
+					},
+				},
+			},
+			pods:                pods,
+			forceBootstrapInPod: ptr.To("mariadb-galera-0"),
+			wantSource: &bootstrapSource{
+				pod: &pod0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "force bootstrap in non existing Pod",
+			mdb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
+								Seqno:           1,
+								SafeToBootstrap: true,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno:           1,
+								SafeToBootstrap: false,
+							},
+						},
+						Recovered: map[string]*recovery.Bootstrap{
+							"mariadb-galera-1": {
+								UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
+								Seqno: 1,
+							},
+							"mariadb-galera-2": {
+								UUID:  "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
+								Seqno: 1,
+							},
+						},
+					},
+				},
+			},
+			pods:                pods,
+			forceBootstrapInPod: ptr.To("mariadb-galera-5"),
+			wantSource:          nil,
+			wantErr:             true,
 		},
 		{
 			name: "missing pods",
@@ -737,9 +814,10 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods:       []corev1.Pod{},
-			wantSource: nil,
-			wantErr:    true,
+			pods:                []corev1.Pod{},
+			forceBootstrapInPod: nil,
+			wantSource:          nil,
+			wantErr:             true,
 		},
 		{
 			name: "safe to bootstrap",
@@ -769,7 +847,8 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods: pods,
+			pods:                pods,
+			forceBootstrapInPod: nil,
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
@@ -807,9 +886,10 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods:       pods,
-			wantSource: nil,
-			wantErr:    true,
+			pods:                pods,
+			forceBootstrapInPod: nil,
+			wantSource:          nil,
+			wantErr:             true,
 		},
 		{
 			name: "partially recovered",
@@ -839,7 +919,8 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods: pods,
+			pods:                pods,
+			forceBootstrapInPod: nil,
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
@@ -877,7 +958,8 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods: pods,
+			pods:                pods,
+			forceBootstrapInPod: nil,
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
@@ -915,7 +997,8 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods: pods,
+			pods:                pods,
+			forceBootstrapInPod: nil,
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
@@ -963,7 +1046,8 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods: pods,
+			pods:                pods,
+			forceBootstrapInPod: nil,
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
@@ -1015,7 +1099,8 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods: pods,
+			pods:                pods,
+			forceBootstrapInPod: nil,
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
@@ -1067,7 +1152,8 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods: pods,
+			pods:                pods,
+			forceBootstrapInPod: nil,
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "1ef327e6-8579-4d8e-bd3c-6f3f99e40b1d",
@@ -1119,7 +1205,8 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods: pods,
+			pods:                pods,
+			forceBootstrapInPod: nil,
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "0fc0436e-560f-4951-ae97-16911aae7ecf",
@@ -1171,7 +1258,8 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			pods: pods,
+			pods:                pods,
+			forceBootstrapInPod: nil,
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "dfc4e849-1c90-43b0-a2c8-0b777c1ce6e4",
@@ -1186,7 +1274,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs := newRecoveryStatus(tt.mdb)
-			source, err := rs.bootstrapSource(tt.pods, logr.Logger{})
+			source, err := rs.bootstrapSource(tt.pods, tt.forceBootstrapInPod, logr.Logger{})
 			if !reflect.DeepEqual(tt.wantSource, source) {
 				t.Errorf("unexpected bootstrapSource value: expected: %v, got: %v", tt.wantSource, source)
 			}
