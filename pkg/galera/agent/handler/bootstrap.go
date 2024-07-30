@@ -46,20 +46,17 @@ func (b *Bootstrap) IsBootstrapEnabled(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *Bootstrap) Enable(w http.ResponseWriter, r *http.Request) {
-	var bootstrap recovery.Bootstrap
-	if err := json.NewDecoder(r.Body).Decode(&bootstrap); err != nil {
-		b.responseWriter.Write(w, galeraErrors.NewAPIErrorf("error decoding bootstrap: %v", err), http.StatusBadRequest)
+	bootstrap, err := b.decodeAndValidateBootstrap(r)
+	if err != nil {
+		b.responseWriter.Write(w, err, http.StatusBadRequest)
 		return
 	}
-	if err := bootstrap.Validate(); err != nil {
-		b.responseWriter.Write(w, galeraErrors.NewAPIErrorf("invalid bootstrap: %v", err), http.StatusBadRequest)
-		return
-	}
+
 	b.locker.Lock()
 	defer b.locker.Unlock()
 	b.logger.V(1).Info("enabling bootstrap")
 
-	if err := b.setSafeToBootstrap(&bootstrap); err != nil {
+	if err := b.setSafeToBootstrap(bootstrap); err != nil {
 		b.responseWriter.WriteErrorf(w, "error setting safe to bootstrap: %v", err)
 		return
 	}
@@ -87,6 +84,20 @@ func (b *Bootstrap) Disable(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (b *Bootstrap) decodeAndValidateBootstrap(r *http.Request) (*recovery.Bootstrap, error) {
+	if r.Body == nil || r.ContentLength == 0 {
+		return nil, nil
+	}
+	var bootstrap recovery.Bootstrap
+	if err := json.NewDecoder(r.Body).Decode(&bootstrap); err != nil {
+		return nil, galeraErrors.NewAPIErrorf("error decoding bootstrap: %v", err)
+	}
+	if err := bootstrap.Validate(); err != nil {
+		return nil, galeraErrors.NewAPIErrorf("invalid bootstrap: %v", err)
+	}
+	return &bootstrap, nil
+}
+
 func (b *Bootstrap) setSafeToBootstrap(bootstrap *recovery.Bootstrap) error {
 	bytes, err := b.fileManager.ReadStateFile(recovery.GaleraStateFileName)
 	if err != nil {
@@ -101,9 +112,11 @@ func (b *Bootstrap) setSafeToBootstrap(bootstrap *recovery.Bootstrap) error {
 		return fmt.Errorf("error unmarshaling galera state: %v", err)
 	}
 
-	galeraState.UUID = bootstrap.UUID
-	galeraState.Seqno = bootstrap.Seqno
 	galeraState.SafeToBootstrap = true
+	if bootstrap != nil {
+		galeraState.UUID = bootstrap.UUID
+		galeraState.Seqno = bootstrap.Seqno
+	}
 	bytes, err = galeraState.Marshal()
 	if err != nil {
 		return fmt.Errorf("error marshaling galera state: %v", err)
