@@ -231,7 +231,7 @@ func (g *GaleraRecovery) Validate(mdb *MariaDB) error {
 		}
 	}
 	if g.ForceClusterBootstrapInPod != nil {
-		if err := statefulset.ValidPodName(mdb.ObjectMeta, *g.ForceClusterBootstrapInPod); err != nil {
+		if err := statefulset.ValidPodName(mdb.ObjectMeta, int(mdb.Spec.Replicas), *g.ForceClusterBootstrapInPod); err != nil {
 			return fmt.Errorf("'spec.galera.recovery.forceClusterBootstrapInPod' invalid: %v", err)
 		}
 	}
