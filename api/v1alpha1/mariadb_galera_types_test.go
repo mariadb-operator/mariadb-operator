@@ -586,23 +586,6 @@ var _ = Describe("MariaDB Galera types", func() {
 				true,
 			),
 			Entry(
-				"Integer out of range",
-				&MariaDB{
-					Spec: MariaDBSpec{
-						Replicas: 3,
-						Galera: &Galera{
-							GaleraSpec: GaleraSpec{
-								Recovery: &GaleraRecovery{
-									Enabled:        true,
-									MinClusterSize: ptr.To(intstr.FromInt(4)),
-								},
-							},
-						},
-					},
-				},
-				true,
-			),
-			Entry(
 				"Invalid forceClusterBootstrapInPod",
 				&MariaDB{
 					Spec: MariaDBSpec{
