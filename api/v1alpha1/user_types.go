@@ -9,6 +9,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// PasswordPluginSpec defines the User's password plugin and arguments
+type PasswordPluginSpec struct {
+	// PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PluginNameSecretKeyRef *corev1.SecretKeySelector `json:"pluginNameSecretKeyRef,omitempty"`
+	// PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PluginArgSecretKeyRef *corev1.SecretKeySelector `json:"pluginArgSecretKeyRef,omitempty"`
+}
+
 // UserSpec defines the desired state of User
 type UserSpec struct {
 	// SQLTemplate defines templates to configure SQL objects.
@@ -25,6 +39,15 @@ type UserSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
+	// PasswordHashSecretKeyRef is a reference to the password hash to be used by the User.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordHashSecretKeyRef *corev1.SecretKeySelector `json:"passwordHashSecretKeyRef,omitempty"`
+	// PasswordPlugin is a reference to the password plugin and arguments to be used by the User.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordPlugin PasswordPluginSpec `json:"passwordPlugin,omitempty"`
 	// MaxUserConnections defines the maximum number of connections that the User can establish.
 	// +optional
 	// +kubebuilder:default=10
@@ -116,6 +139,9 @@ func (u *User) RetryInterval() *metav1.Duration {
 
 // UserPasswordSecretFieldPath is the path related to the password Secret field.
 const UserPasswordSecretFieldPath = ".spec.passwordSecretKeyRef.name"
+const UserPasswordHashSecretFieldPath = ".spec.passwordHashSecretKeyRef.name"
+const UserPasswordPluginNameSecretFieldPath = ".spec.passwordPlugin.pluginNameSecretKeyRef.name"
+const UserPasswordPluginArgSecretFieldPath = ".spec.passwordPlugin.pluginArgSecretKeyRef.name"
 
 // IndexerFuncForFieldPath returns an indexer function for a given field path.
 func (m *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
@@ -128,6 +154,41 @@ func (m *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, er
 			}
 			if user.Spec.PasswordSecretKeyRef != nil && user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name != "" {
 				return []string{user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case UserPasswordHashSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordHashSecretKeyRef != nil && user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case UserPasswordPluginNameSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordPlugin.PluginNameSecretKeyRef != nil &&
+				user.Spec.PasswordPlugin.PluginNameSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordPlugin.PluginNameSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case UserPasswordPluginArgSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordPlugin.PluginArgSecretKeyRef != nil &&
+				user.Spec.PasswordPlugin.PluginArgSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordPlugin.PluginArgSecretKeyRef.LocalObjectReference.Name}
 			}
 			return nil
 		}, nil
