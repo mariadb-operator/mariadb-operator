@@ -8,6 +8,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -300,7 +301,74 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 				MountPath: InitConfigPath,
 			},
 		}),
-		withGalera(false),
+		withGaleraContainers(false),
+		withGaleraConfig(false),
+		withPorts(false),
+		withProbes(false),
+		withMariadbSelectorLabels(false),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: objMeta,
+		Spec: batchv1.JobSpec{
+			Template: *podTpl,
+		},
+	}
+	if err := controllerutil.SetControllerReference(mariadb, job, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+	return job, nil
+}
+
+func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
+	galeraRecoveryJob *mariadbv1alpha1.GaleraRecoveryJob, podIndex int) (*batchv1.Job, error) {
+	recoveryJob := ptr.Deref(galeraRecoveryJob, mariadbv1alpha1.GaleraRecoveryJob{})
+	extraMeta := ptr.Deref(recoveryJob.Metadata, mariadbv1alpha1.Metadata{})
+	objMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(&extraMeta).
+			Build()
+	command := command.NewCommand([]string{"mariadbd"}, []string{"--wsrep-recover"})
+
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
+
+	volumes := []corev1.Volume{
+		{
+			Name: StorageVolume,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: mariadb.PVCKey(StorageVolume, podIndex).Name,
+				},
+			},
+		},
+	}
+	if !reuseStorageVolume {
+		volumes = append(volumes, corev1.Volume{
+			Name: galeraresources.GaleraConfigVolume,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: mariadb.PVCKey(galeraresources.GaleraConfigVolume, podIndex).Name,
+				},
+			},
+		})
+	}
+
+	podTpl, err := b.mariadbPodTemplate(
+		mariadb,
+		withMeta(mariadb.Spec.InheritMetadata),
+		withMeta(&extraMeta),
+		withCommand(command.Command),
+		withArgs(command.Args),
+		withRestartPolicy(corev1.RestartPolicyOnFailure),
+		withResources(recoveryJob.Resources),
+		withExtraVolumes(volumes),
+		withGaleraContainers(false),
+		withGaleraConfig(true),
 		withPorts(false),
 		withProbes(false),
 		withMariadbSelectorLabels(false),

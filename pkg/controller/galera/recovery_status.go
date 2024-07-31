@@ -8,13 +8,12 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
-
-const zeroUUID = "00000000-0000-0000-0000-000000000000"
 
 type recoveryStatus struct {
 	inner mariadbv1alpha1.GaleraRecoveryStatus
@@ -23,7 +22,7 @@ type recoveryStatus struct {
 
 type bootstrapSource struct {
 	bootstrap *recovery.Bootstrap
-	pod       *corev1.Pod
+	pod       corev1.Pod
 }
 
 func (b *bootstrapSource) String() string {
@@ -143,29 +142,6 @@ func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
 	return time.Now().After(deadline)
 }
 
-func (rs *recoveryStatus) safeToBootstrap(pods []corev1.Pod) (*bootstrapSource, error) {
-	rs.mux.RLock()
-	defer rs.mux.RUnlock()
-
-	for k, v := range rs.inner.State {
-		if v.SafeToBootstrap && v.Seqno != -1 {
-			for _, p := range pods {
-				if k == p.Name {
-					return &bootstrapSource{
-						bootstrap: &recovery.Bootstrap{
-							UUID:  v.UUID,
-							Seqno: v.Seqno,
-						},
-						pod: &p,
-					}, nil
-				}
-			}
-			return nil, fmt.Errorf("Pod '%s' is safe to boostrap but it couldn't be found on the argument list", k)
-		}
-	}
-	return nil, errors.New("no Pods safe to bootstrap were found")
-}
-
 func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool {
 	if len(pods) == 0 {
 		return false
@@ -173,68 +149,90 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
-	numZeros := 0
+	numZeroUUIDs := 0
+	isComplete := true
 	for _, p := range pods {
-		state := rs.inner.State[p.Name]
-		recovered := rs.inner.Recovered[p.Name]
-		stateUUID := ptr.Deref(state, recovery.GaleraState{}).UUID
-		recoveredUUID := ptr.Deref(recovered, recovery.Bootstrap{}).UUID
+		state := ptr.Deref(rs.inner.State[p.Name], recovery.GaleraState{})
+		recovered := ptr.Deref(rs.inner.Recovered[p.Name], recovery.Bootstrap{})
 
-		// Pods with 00000000-0000-0000-0000-000000000000 UUID need an SST to rejoin the cluster,
-		// they can be skipped in order to continue with the bootstrap process.
-		// See: https://galeracluster.com/library/documentation/node-provisioning.html#node-provisioning
-		if stateUUID == zeroUUID && recoveredUUID == zeroUUID {
-			logger.Info("Skipping Pod with zero UUID", "pod", p.Name)
-			numZeros++
+		if state.SafeToBootstrap {
+			return true
+		}
+		if hasZeroUUID(state, recovered) {
+			numZeroUUIDs++
 			continue
 		}
-		if (state != nil && state.GetSeqno() != -1) || (recovered != nil && recovered.GetSeqno() != -1) {
+		if state.GetSeqno() > 0 || recovered.GetSeqno() > 0 {
 			continue
 		}
-		return false
+		isComplete = false
 	}
 
-	if numZeros == len(pods) {
+	if numZeroUUIDs == len(pods) {
 		logger.Info("No Pods with non zero UUIDs were found")
 		return false
 	}
-	return true
+	return isComplete
 }
 
-func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, logger logr.Logger) (*bootstrapSource, error) {
-	if source, err := rs.safeToBootstrap(pods); source != nil && err == nil {
-		return source, nil
+func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, forceBootstrapInPod *string, logger logr.Logger) (*bootstrapSource, error) {
+	if forceBootstrapInPod != nil {
+		pod := datastructures.Find(pods, func(pod corev1.Pod) bool {
+			return pod.Name == *forceBootstrapInPod
+		})
+		if pod != nil {
+			return &bootstrapSource{
+				pod: *pod,
+			}, nil
+		}
+		return nil, fmt.Errorf("Pod '%s' used to forcefully bootstrap not found", *forceBootstrapInPod)
 	}
+
 	if !rs.isComplete(pods, logger) {
 		return nil, errors.New("recovery status not completed")
 	}
 
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
-	var currentSoure recovery.GaleraRecoverer
+	var currentSource recovery.GaleraRecoverer
 	var currentPod corev1.Pod
 
 	for _, p := range pods {
-		state := rs.inner.State[p.Name]
-		recovered := rs.inner.Recovered[p.Name]
-		if state != nil && state.GetSeqno() != -1 && state.Compare(currentSoure) >= 0 {
-			currentSoure = state
+		state := ptr.Deref(rs.inner.State[p.Name], recovery.GaleraState{})
+		recovered := ptr.Deref(rs.inner.Recovered[p.Name], recovery.Bootstrap{})
+
+		if state.SafeToBootstrap {
+			return &bootstrapSource{
+				bootstrap: &recovery.Bootstrap{
+					UUID:  state.GetUUID(),
+					Seqno: state.GetSeqno(),
+				},
+				pod: p,
+			}, nil
+		}
+		if hasZeroUUID(state, recovered) {
+			logger.Info("Skipping Pod with zero UUID", "pod", p.Name)
+			continue
+		}
+		if state.GetSeqno() > 0 && state.Compare(currentSource) >= 0 {
+			currentSource = &state
 			currentPod = p
 		}
-		if recovered != nil && recovered.GetSeqno() != -1 && recovered.Compare(currentSoure) >= 0 {
-			currentSoure = recovered
+		if recovered.GetSeqno() > 0 && recovered.Compare(currentSource) >= 0 {
+			currentSource = &recovered
 			currentPod = p
 		}
 	}
-	if currentSoure == nil {
+
+	if currentSource == nil {
 		return nil, errors.New("bootstrap source not found")
 	}
 	return &bootstrapSource{
 		bootstrap: &recovery.Bootstrap{
-			UUID:  currentSoure.GetUUID(),
-			Seqno: currentSoure.GetSeqno(),
+			UUID:  currentSource.GetUUID(),
+			Seqno: currentSource.GetSeqno(),
 		},
-		pod: &currentPod,
+		pod: currentPod,
 	}, nil
 }
 
@@ -250,4 +248,14 @@ func (rs *recoveryStatus) podsRestarted() bool {
 	defer rs.mux.RUnlock()
 
 	return ptr.Deref(rs.inner.PodsRestarted, false)
+}
+
+const zeroUUID = "00000000-0000-0000-0000-000000000000"
+
+// hasZeroUUID determines if a Pod has zero UUID.
+// Pods with 00000000-0000-0000-0000-000000000000 UUID need an SST to rejoin the cluster,
+// they can be skipped in order to continue with the bootstrap process.
+// See: https://galeracluster.com/library/documentation/node-provisioning.html#node-provisioning
+func hasZeroUUID(state recovery.GaleraState, recovered recovery.Bootstrap) bool {
+	return state.UUID == zeroUUID || recovered.UUID == zeroUUID
 }

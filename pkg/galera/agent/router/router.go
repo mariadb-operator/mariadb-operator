@@ -79,18 +79,13 @@ func apiRouter(h *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logg
 		r.Use(kauth.Handler)
 	}
 
-	r.Route("/bootstrap", func(r chi.Router) {
-		r.Get("/", h.Bootstrap.IsBootstrapEnabled)
-		r.Put("/", h.Bootstrap.Enable)
-		r.Delete("/", h.Bootstrap.Disable)
-	})
-	r.Route("/state", func(r chi.Router) {
-		r.Get("/galera", h.State.GetGaleraState)
-	})
-	r.Route("/recovery", func(r chi.Router) {
-		r.Put("/", h.Recovery.Enable)
-		r.Post("/", h.Recovery.Start)
-		r.Delete("/", h.Recovery.Disable)
+	r.Route("/galera", func(r chi.Router) {
+		r.Get("/state", h.Galera.GetState)
+		r.Route("/bootstrap", func(r chi.Router) {
+			r.Get("/", h.Galera.IsBootstrapEnabled)
+			r.Put("/", h.Galera.EnableBootstrap)
+			r.Delete("/", h.Galera.DisableBootstrap)
+		})
 	})
 
 	return r

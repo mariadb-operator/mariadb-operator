@@ -1,6 +1,7 @@
 package statefulset
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -47,6 +48,25 @@ func PodIndex(podName string) (*int, error) {
 		return nil, fmt.Errorf("invalid Pod name: %v, error: %v", podName, err)
 	}
 	return &index, nil
+}
+
+func ValidPodName(meta metav1.ObjectMeta, replicas int, podName string) error {
+	if replicas < 0 {
+		return errors.New("replicas must be positive")
+	}
+
+	index, err := PodIndex(podName)
+	if err != nil {
+		return fmt.Errorf("invalid Pod index: %v", err)
+	}
+	if *index < 0 || *index >= replicas {
+		return fmt.Errorf("index '%d' out of replicas range", *index)
+	}
+
+	if !strings.HasPrefix(podName, meta.Name) {
+		return fmt.Errorf("invalid Pod name: must start with '%s'", meta.Name)
+	}
+	return nil
 }
 
 func GetStorageSize(sts *appsv1.StatefulSet, storageVolume string) *resource.Quantity {

@@ -207,6 +207,29 @@ var _ = Describe("MariaDB webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid force cluster bootstrap",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								SST: SSTMariaBackup,
+								Recovery: &GaleraRecovery{
+									Enabled:                    true,
+									ForceClusterBootstrapInPod: ptr.To("foo"),
+								},
+							},
+						},
+						Replicas: 3,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid SST",
 				&MariaDB{
 					ObjectMeta: meta,

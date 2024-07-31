@@ -34,6 +34,7 @@ import (
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -82,6 +83,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
+	env, err := environment.GetOperatorEnv(testCtx)
+	Expect(err).ToNot(HaveOccurred())
+
 	By("Bootstrapping test environment")
 	testEnv := &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("../..", "config", "crd", "bases")},
@@ -107,7 +111,7 @@ var _ = BeforeSuite(func() {
 	galeraRecorder := k8sManager.GetEventRecorderFor("galera")
 	replRecorder := k8sManager.GetEventRecorderFor("replication")
 
-	env, err := environment.GetOperatorEnv(testCtx)
+	kubeClientset, err := kubernetes.NewForConfig(cfg)
 	Expect(err).ToNot(HaveOccurred())
 
 	var disc *discovery.Discovery
@@ -151,6 +155,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	galeraReconciler := galera.NewGaleraReconciler(
 		client,
+		kubeClientset,
 		galeraRecorder,
 		env,
 		builder,

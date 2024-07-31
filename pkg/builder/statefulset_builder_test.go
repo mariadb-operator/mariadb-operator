@@ -5,8 +5,10 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -489,4 +491,177 @@ func TestMaxScaleStatefulSetMeta(t *testing.T) {
 			assertObjectMeta(t, &sts.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})
 	}
+}
+
+func TestMariaDBVolumeClaimTemplates(t *testing.T) {
+	objMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name        string
+		mariadb     *mariadbv1alpha1.MariaDB
+		wantVolumes []string
+	}{
+		{
+			name: "ephemeral",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Ephemeral: ptr.To(true),
+					},
+				},
+			},
+			wantVolumes: []string{},
+		},
+		{
+			name: "standalone",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantVolumes: []string{StorageVolume},
+		},
+		{
+			name: "replication",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						},
+					},
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+			},
+			wantVolumes: []string{StorageVolume},
+		},
+		{
+			name: "galera",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						},
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
+								VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+									PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+										Resources: corev1.VolumeResourceRequirements{
+											Requests: corev1.ResourceList{
+												"storage": resource.MustParse("1Gi"),
+											},
+										},
+										AccessModes: []corev1.PersistentVolumeAccessMode{
+											corev1.ReadWriteOnce,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantVolumes: []string{StorageVolume, galeraresources.GaleraConfigVolume},
+		},
+		{
+			name: "galera reuse storage",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						},
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
+								ReuseStorageVolume: ptr.To(true),
+							},
+						},
+					},
+				},
+			},
+			wantVolumes: []string{StorageVolume},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pvcs := mariadbVolumeClaimTemplates(tt.mariadb)
+			if len(pvcs) != len(tt.wantVolumes) {
+				t.Errorf("unexpected number of PVCs, got: %v, want: %v", len(pvcs), len(tt.wantVolumes))
+			}
+			for _, wantVolume := range tt.wantVolumes {
+				if !hasVolume(pvcs, wantVolume) {
+					t.Errorf("expecting Volume \"%s\", but it was not found", wantVolume)
+				}
+			}
+		})
+	}
+}
+
+func hasVolume(pvcs []corev1.PersistentVolumeClaim, volumeName string) bool {
+	for _, p := range pvcs {
+		if p.Name == volumeName {
+			return true
+		}
+	}
+	return false
 }

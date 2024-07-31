@@ -51,6 +51,11 @@ rbac:
   # -- Specifies whether RBAC resources should be created
   enabled: true
 
+  aggregation:
+
+    # -- Specifies whether the cluster roles aggrate to view and edit predefinied roles
+    enabled: true
+
 # -- Extra arguments to be passed to the controller entrypoint
 extrArgs: []
 

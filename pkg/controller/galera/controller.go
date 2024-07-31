@@ -16,6 +16,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,6 +46,7 @@ func WithServiceReconciler(sr *service.ServiceReconciler) Option {
 
 type GaleraReconciler struct {
 	client.Client
+	kubeClientset       *kubernetes.Clientset
 	recorder            record.EventRecorder
 	env                 *environment.OperatorEnv
 	builder             *builder.Builder
@@ -53,13 +55,14 @@ type GaleraReconciler struct {
 	serviceReconciler   *service.ServiceReconciler
 }
 
-func NewGaleraReconciler(client client.Client, recorder record.EventRecorder, env *environment.OperatorEnv, builder *builder.Builder,
-	opts ...Option) *GaleraReconciler {
+func NewGaleraReconciler(client client.Client, kubeClientset *kubernetes.Clientset, recorder record.EventRecorder,
+	env *environment.OperatorEnv, builder *builder.Builder, opts ...Option) *GaleraReconciler {
 	r := &GaleraReconciler{
-		Client:   client,
-		recorder: recorder,
-		env:      env,
-		builder:  builder,
+		Client:        client,
+		kubeClientset: kubeClientset,
+		recorder:      recorder,
+		env:           env,
+		builder:       builder,
 	}
 	for _, setOpt := range opts {
 		setOpt(r)
@@ -151,7 +154,7 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 		if err != nil {
 			return fmt.Errorf("error creating agent client: %v", err)
 		}
-		if err := agentClient.Bootstrap.Disable(ctx); err != nil && !errors.IsNotFound(err) {
+		if err := agentClient.Galera.DisableBootstrap(ctx); err != nil && !errors.IsNotFound(err) {
 			return fmt.Errorf("error disabling bootstrap in Pod %d: %v", i, err)
 		}
 	}

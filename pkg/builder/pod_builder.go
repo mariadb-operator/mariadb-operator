@@ -13,26 +13,28 @@ import (
 )
 
 type mariadbPodOpts struct {
-	meta                  *mariadbv1alpha1.Metadata
-	command               []string
-	args                  []string
-	restartPolicy         *corev1.RestartPolicy
-	resources             *corev1.ResourceRequirements
-	affinity              *mariadbv1alpha1.AffinityConfig
-	extraVolumes          []corev1.Volume
-	extraVolumeMounts     []corev1.VolumeMount
-	includeGalera         bool
-	includePorts          bool
-	includeProbes         bool
-	includeSelectorLabels bool
+	meta                    *mariadbv1alpha1.Metadata
+	command                 []string
+	args                    []string
+	restartPolicy           *corev1.RestartPolicy
+	resources               *corev1.ResourceRequirements
+	affinity                *mariadbv1alpha1.AffinityConfig
+	extraVolumes            []corev1.Volume
+	extraVolumeMounts       []corev1.VolumeMount
+	includeGaleraContainers bool
+	includeGaleraConfig     bool
+	includePorts            bool
+	includeProbes           bool
+	includeSelectorLabels   bool
 }
 
 func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
 	opts := &mariadbPodOpts{
-		includeGalera:         true,
-		includePorts:          true,
-		includeProbes:         true,
-		includeSelectorLabels: true,
+		includeGaleraContainers: true,
+		includeGaleraConfig:     true,
+		includePorts:            true,
+		includeProbes:           true,
+		includeSelectorLabels:   true,
 	}
 	for _, setOpt := range userOpts {
 		setOpt(opts)
@@ -90,9 +92,15 @@ func withExtraVolumeMounts(volumeMounts []corev1.VolumeMount) mariadbPodOpt {
 	}
 }
 
-func withGalera(includeGalera bool) mariadbPodOpt {
+func withGaleraContainers(includeGaleraContainers bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
-		opts.includeGalera = includeGalera
+		opts.includeGaleraContainers = includeGaleraContainers
+	}
+}
+
+func withGaleraConfig(includeGaleraConfig bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeGaleraConfig = includeGaleraConfig
 	}
 }
 

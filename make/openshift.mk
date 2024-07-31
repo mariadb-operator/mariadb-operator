@@ -122,7 +122,7 @@ openshift-registry-add: oc jq ## Add catalog registry in OpenShift global config
 .PHONY: openshift-registry
 openshift-registry: openshift-ctx ## Setup registries in OpenShift global config.
 	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=https://index.docker.io/v1/
-	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=us-central1-docker.pkg.dev
+	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=docker-registry.mariadb.com
 
 CERTIFIED_REPO ?= "https://github.com/mariadb-operator/certified-operators"
 CERTIFIED_BRANCH ?= cert-test

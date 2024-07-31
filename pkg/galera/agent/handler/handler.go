@@ -12,39 +12,22 @@ import (
 )
 
 type Handler struct {
-	Bootstrap *Bootstrap
-	State     *State
-	Recovery  *Recovery
-	Probe     *Probe
+	Galera *Galera
+	Probe  *Probe
 }
 
 func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileManager *filemanager.FileManager,
-	initState *state.State, logger *logr.Logger, recoveryOpts ...RecoveryOption) *Handler {
+	state *state.State, logger *logr.Logger) *Handler {
 	mux := &sync.RWMutex{}
-	bootstrapLogger := logger.WithName("bootstrap")
-	stateLogger := logger.WithName("state")
-	recoveryLogger := logger.WithName("recovery")
+	galeraLogger := logger.WithName("galera")
 	probeLogger := logger.WithName("probe")
 
-	bootstrap := NewBootstrap(
+	galera := NewGalera(
 		fileManager,
-		mdbhttp.NewResponseWriter(&bootstrapLogger),
+		state,
+		mdbhttp.NewResponseWriter(&galeraLogger),
 		mux,
-		&bootstrapLogger,
-	)
-	state := NewState(
-		fileManager,
-		initState,
-		mdbhttp.NewResponseWriter(&stateLogger),
-		mux.RLocker(),
-		&stateLogger,
-	)
-	recovery := NewRecover(
-		fileManager,
-		mdbhttp.NewResponseWriter(&recoveryLogger),
-		mux,
-		&recoveryLogger,
-		recoveryOpts...,
+		&galeraLogger,
 	)
 	probe := NewProbe(
 		mariadbKey,
@@ -54,9 +37,7 @@ func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileM
 	)
 
 	return &Handler{
-		Bootstrap: bootstrap,
-		State:     state,
-		Recovery:  recovery,
-		Probe:     probe,
+		Galera: galera,
+		Probe:  probe,
 	}
 }
