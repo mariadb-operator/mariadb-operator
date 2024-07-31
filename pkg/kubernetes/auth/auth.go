@@ -42,7 +42,7 @@ func (a *KubernetesAuth) Handler(next http.Handler) http.Handler {
 		token, err := authToken(r)
 		if err != nil {
 			a.logger.V(1).Info("Error getting Authorization header", "err", err)
-			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
+			a.responseWriter.Write(w, http.StatusUnauthorized, newAPIError("unauthorized"))
 			return
 		}
 		tokenReview := &authv1.TokenReview{
@@ -52,22 +52,22 @@ func (a *KubernetesAuth) Handler(next http.Handler) http.Handler {
 		}
 		if err := a.k8sClient.Create(r.Context(), tokenReview); err != nil {
 			a.logger.V(1).Info("Error verifying token in TokenReview API", "err", err)
-			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
+			a.responseWriter.Write(w, http.StatusUnauthorized, newAPIError("unauthorized"))
 			return
 		}
 		if !tokenReview.Status.Authenticated {
 			a.logger.V(1).Info("TokenReview not valid")
-			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
+			a.responseWriter.Write(w, http.StatusUnauthorized, newAPIError("unauthorized"))
 			return
 		}
 		if tokenReview.Status.User.Username == "" {
 			a.logger.V(1).Info("Username not found")
-			a.responseWriter.Write(w, newAPIError("unauthorized"), http.StatusUnauthorized)
+			a.responseWriter.Write(w, http.StatusUnauthorized, newAPIError("unauthorized"))
 			return
 		}
 		if a.trusted.String() != tokenReview.Status.User.Username {
 			a.logger.V(1).Info("Username not allowed", "username", tokenReview.Status.User.Username)
-			a.responseWriter.Write(w, newAPIError("forbidden"), http.StatusForbidden)
+			a.responseWriter.Write(w, http.StatusForbidden, newAPIError("forbidden"))
 			return
 		}
 		next.ServeHTTP(w, r)
