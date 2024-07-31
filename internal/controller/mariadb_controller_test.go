@@ -85,6 +85,47 @@ default_time_zone = UTC
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
+	It("should suspend ", func() {
+		By("Creating MariaDB")
+		testDefaultKey := types.NamespacedName{
+			Name:      "test-mariadb-default",
+			Namespace: testNamespace,
+		}
+		testDefaultMariaDb := mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testDefaultKey.Name,
+				Namespace: testDefaultKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &testDefaultMariaDb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariaDB(&testDefaultMariaDb)
+		})
+
+		By("Expecting MariaDB to be ready eventually")
+		expectMariadbReady(testCtx, k8sClient, testDefaultKey)
+
+		updateMariadbSuspendStatus(&testDefaultMariaDb, true)
+
+		By("Expecting Mariadb to be not ready with the reason suspended")
+		expectMariadbFn(testCtx, k8sClient, testDefaultKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			if !mdb.IsReady() {
+				for _, condition := range mdb.Status.Conditions {
+					if condition.Reason == mariadbv1alpha1.ConditionReasonSuspended {
+						return true
+					}
+				}
+			}
+			return false
+		})
+
+	})
+
 	It("should reconcile", func() {
 		var testMariaDb mariadbv1alpha1.MariaDB
 		By("Getting MariaDB")

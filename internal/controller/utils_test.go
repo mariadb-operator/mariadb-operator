@@ -557,6 +557,11 @@ func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.Maria
 	return mdb
 }
 
+func updateMariadbSuspendStatus(mdb *mariadbv1alpha1.MariaDB, status bool) *mariadbv1alpha1.MariaDB {
+	mdb.Spec.Suspend = true
+	return mdb
+}
+
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
 	mxs.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
 		InitialDelaySeconds: 10,
