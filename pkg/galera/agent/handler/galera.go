@@ -12,27 +12,53 @@ import (
 	galeraErrors "github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/state"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
-type Bootstrap struct {
+type Galera struct {
 	fileManager    *filemanager.FileManager
+	state          *state.State
 	responseWriter *mdbhttp.ResponseWriter
 	locker         sync.Locker
 	logger         *logr.Logger
 }
 
-func NewBootstrap(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter, locker sync.Locker,
-	logger *logr.Logger) *Bootstrap {
-	return &Bootstrap{
+func NewGalera(fileManager *filemanager.FileManager, state *state.State, responseWriter *mdbhttp.ResponseWriter, locker sync.Locker,
+	logger *logr.Logger) *Galera {
+	return &Galera{
 		fileManager:    fileManager,
+		state:          state,
 		responseWriter: responseWriter,
 		locker:         locker,
 		logger:         logger,
 	}
 }
 
-func (b *Bootstrap) IsBootstrapEnabled(w http.ResponseWriter, r *http.Request) {
+func (g *Galera) GetState(w http.ResponseWriter, r *http.Request) {
+	g.locker.Lock()
+	defer g.locker.Unlock()
+	g.logger.V(1).Info("getting galera state")
+
+	bytes, err := g.fileManager.ReadStateFile(recovery.GaleraStateFileName)
+	if err != nil {
+		if os.IsNotExist(err) {
+			g.responseWriter.Write(w, galeraErrors.NewAPIError("galera state not found"), http.StatusNotFound)
+			return
+		}
+		g.responseWriter.WriteErrorf(w, "error reading galera state: %v", err)
+		return
+	}
+
+	var galeraState recovery.GaleraState
+	if err := galeraState.Unmarshal(bytes); err != nil {
+		g.responseWriter.WriteErrorf(w, "error unmarshaling galera state: %v", err)
+		return
+	}
+	g.responseWriter.WriteOK(w, galeraState)
+}
+
+func (b *Galera) IsBootstrapEnabled(w http.ResponseWriter, r *http.Request) {
 	exists, err := b.fileManager.ConfigFileExists(recovery.BootstrapFileName)
 	if err != nil {
 		b.responseWriter.WriteErrorf(w, "error checking bootstrap config: %v", err)
@@ -45,7 +71,7 @@ func (b *Bootstrap) IsBootstrapEnabled(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (b *Bootstrap) Enable(w http.ResponseWriter, r *http.Request) {
+func (b *Galera) EnableBootstrap(w http.ResponseWriter, r *http.Request) {
 	bootstrap, err := b.decodeAndValidateBootstrap(r)
 	if err != nil {
 		b.responseWriter.Write(w, err, http.StatusBadRequest)
@@ -68,7 +94,7 @@ func (b *Bootstrap) Enable(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (b *Bootstrap) Disable(w http.ResponseWriter, r *http.Request) {
+func (b *Galera) DisableBootstrap(w http.ResponseWriter, r *http.Request) {
 	b.locker.Lock()
 	defer b.locker.Unlock()
 	b.logger.V(1).Info("disabling bootstrap")
@@ -84,7 +110,7 @@ func (b *Bootstrap) Disable(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (b *Bootstrap) decodeAndValidateBootstrap(r *http.Request) (*recovery.Bootstrap, error) {
+func (b *Galera) decodeAndValidateBootstrap(r *http.Request) (*recovery.Bootstrap, error) {
 	if r.Body == nil || r.ContentLength <= 0 {
 		return nil, nil
 	}
@@ -101,7 +127,7 @@ func (b *Bootstrap) decodeAndValidateBootstrap(r *http.Request) (*recovery.Boots
 	return &bootstrap, nil
 }
 
-func (b *Bootstrap) setSafeToBootstrap(bootstrap *recovery.Bootstrap) error {
+func (b *Galera) setSafeToBootstrap(bootstrap *recovery.Bootstrap) error {
 	bytes, err := b.fileManager.ReadStateFile(recovery.GaleraStateFileName)
 	if err != nil {
 		if os.IsNotExist(err) {
