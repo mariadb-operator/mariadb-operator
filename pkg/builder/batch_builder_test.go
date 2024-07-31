@@ -1482,6 +1482,66 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 	}
 }
 
+func TestGaleraRecoveryJobAffinity(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "job-obj",
+	}
+	objMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name    string
+		mariadb *mariadbv1alpha1.MariaDB
+	}{
+		{
+			name: "no mariadb affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+		},
+		{
+			name: "mariadb affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						Affinity: &mariadbv1alpha1.AffinityConfig{
+							AntiAffinityEnabled: ptr.To(true),
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, nil, 0)
+			if err != nil {
+				t.Errorf("unexpected error building Galera recovery Job: %v", err)
+			}
+			if job.Spec.Template.Spec.Affinity != nil {
+				t.Error("expected Galera recovery Job to not have affinity")
+			}
+		})
+	}
+}
+
 func TestSqlJobMeta(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
