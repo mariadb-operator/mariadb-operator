@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
+	mdbreflect "github.com/mariadb-operator/mariadb-operator/pkg/reflect"
 )
 
 type ResponseWriter struct {
@@ -18,23 +19,26 @@ func NewResponseWriter(logger *logr.Logger) *ResponseWriter {
 	}
 }
 
-func (r *ResponseWriter) Write(w http.ResponseWriter, v any, statusCode int) {
+func (r *ResponseWriter) Write(w http.ResponseWriter, statusCode int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		r.logger.Error(err, "error encoding json")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+
+	if !mdbreflect.IsNil(v) {
+		if err := json.NewEncoder(w).Encode(v); err != nil {
+			r.logger.Error(err, "error encoding json")
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 	}
 }
 
 func (r *ResponseWriter) WriteOK(w http.ResponseWriter, v any) {
-	r.Write(w, v, http.StatusOK)
+	r.Write(w, http.StatusOK, v)
 }
 
 func (r *ResponseWriter) WriteError(w http.ResponseWriter, msg string) {
-	r.Write(w, errors.NewAPIError(msg), http.StatusInternalServerError)
+	r.Write(w, http.StatusInternalServerError, errors.NewAPIError(msg))
 }
 
 func (r *ResponseWriter) WriteErrorf(w http.ResponseWriter, format string, a ...any) {
-	r.Write(w, errors.NewAPIErrorf(format, a...), http.StatusInternalServerError)
+	r.Write(w, http.StatusInternalServerError, errors.NewAPIErrorf(format, a...))
 }

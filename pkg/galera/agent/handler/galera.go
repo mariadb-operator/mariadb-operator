@@ -43,7 +43,7 @@ func (g *Galera) GetState(w http.ResponseWriter, r *http.Request) {
 	bytes, err := g.fileManager.ReadStateFile(recovery.GaleraStateFileName)
 	if err != nil {
 		if os.IsNotExist(err) {
-			g.responseWriter.Write(w, galeraErrors.NewAPIError("galera state not found"), http.StatusNotFound)
+			g.responseWriter.Write(w, http.StatusNotFound, galeraErrors.NewAPIError("galera state not found"))
 			return
 		}
 		g.responseWriter.WriteErrorf(w, "error reading galera state: %v", err)
@@ -74,7 +74,7 @@ func (b *Galera) IsBootstrapEnabled(w http.ResponseWriter, r *http.Request) {
 func (b *Galera) EnableBootstrap(w http.ResponseWriter, r *http.Request) {
 	bootstrap, err := b.decodeAndValidateBootstrap(r)
 	if err != nil {
-		b.responseWriter.Write(w, err, http.StatusBadRequest)
+		b.responseWriter.Write(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -101,7 +101,7 @@ func (b *Galera) DisableBootstrap(w http.ResponseWriter, r *http.Request) {
 
 	if err := b.fileManager.DeleteConfigFile(recovery.BootstrapFileName); err != nil {
 		if os.IsNotExist(err) {
-			b.responseWriter.Write(w, galeraErrors.NewAPIError("bootstrap config not found"), http.StatusNotFound)
+			b.responseWriter.Write(w, http.StatusNotFound, galeraErrors.NewAPIError("bootstrap config not found"))
 			return
 		}
 		b.responseWriter.WriteErrorf(w, "error deleting bootstrap config: %v", err)
