@@ -94,6 +94,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=endpoints,verbs=create;patch;get;list;watch
 //+kubebuilder:rbac:groups="",resources=endpoints/restricted,verbs=create;patch;get;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;delete
+//+kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
