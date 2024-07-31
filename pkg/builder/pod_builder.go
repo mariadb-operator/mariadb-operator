@@ -177,7 +177,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			NodeSelector:                 mariadb.Spec.NodeSelector,
 			Tolerations:                  mariadb.Spec.Tolerations,
 			PriorityClassName:            ptr.Deref(mariadb.Spec.PriorityClassName, ""),
-			TopologySpreadConstraints:    mariadb.Spec.TopologySpreadConstraints,
+			TopologySpreadConstraints:    mariadbTopologySpreadConstraints(mariadb, opts...),
 		},
 	}, nil
 }
@@ -251,6 +251,15 @@ func mariadbAffinity(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) *c
 		}
 	}
 	return nil
+}
+
+func mariadbTopologySpreadConstraints(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.TopologySpreadConstraint {
+	mariadbOpts := newMariadbPodOpts(opts...)
+
+	if !mariadbOpts.includeAffinity {
+		return nil
+	}
+	return mariadb.Spec.TopologySpreadConstraints
 }
 
 func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.Volume {
