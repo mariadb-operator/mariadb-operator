@@ -12,30 +12,22 @@ import (
 )
 
 type Handler struct {
-	Bootstrap *Bootstrap
-	State     *State
-	Probe     *Probe
+	Galera *Galera
+	Probe  *Probe
 }
 
 func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileManager *filemanager.FileManager,
-	initState *state.State, logger *logr.Logger) *Handler {
+	state *state.State, logger *logr.Logger) *Handler {
 	mux := &sync.RWMutex{}
-	bootstrapLogger := logger.WithName("bootstrap")
-	stateLogger := logger.WithName("state")
+	galeraLogger := logger.WithName("galera")
 	probeLogger := logger.WithName("probe")
 
-	bootstrap := NewBootstrap(
+	galera := NewGalera(
 		fileManager,
-		mdbhttp.NewResponseWriter(&bootstrapLogger),
+		state,
+		mdbhttp.NewResponseWriter(&galeraLogger),
 		mux,
-		&bootstrapLogger,
-	)
-	state := NewState(
-		fileManager,
-		initState,
-		mdbhttp.NewResponseWriter(&stateLogger),
-		mux.RLocker(),
-		&stateLogger,
+		&galeraLogger,
 	)
 	probe := NewProbe(
 		mariadbKey,
@@ -45,8 +37,7 @@ func NewHandler(mariadbKey types.NamespacedName, client ctrlclient.Client, fileM
 	)
 
 	return &Handler{
-		Bootstrap: bootstrap,
-		State:     state,
-		Probe:     probe,
+		Galera: galera,
+		Probe:  probe,
 	}
 }

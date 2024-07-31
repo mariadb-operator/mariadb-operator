@@ -157,7 +157,7 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 		return fmt.Errorf("error getting agent client: %v", err)
 	}
 
-	galeraState, err := client.State.GetGaleraState(ctx)
+	galeraState, err := client.Galera.GetState(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting Galera state: %v", err)
 	}
@@ -271,7 +271,7 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 				if err := r.ensurePodRunning(ctx, ctrlclient.ObjectKeyFromObject(&pod), logger); err != nil {
 					return err
 				}
-				galeraState, err := client.State.GetGaleraState(ctx)
+				galeraState, err := client.Galera.GetState(ctx)
 				if err != nil {
 					return err
 				}
@@ -404,7 +404,7 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, 
 		if err := r.ensurePodRunning(ctx, ctrlclient.ObjectKeyFromObject(&src.pod), logger); err != nil {
 			return err
 		}
-		return client.Bootstrap.Enable(ctx, src.bootstrap)
+		return client.Galera.EnableBootstrap(ctx, src.bootstrap)
 	}); err != nil {
 		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", src.pod.Name, err)
 	}

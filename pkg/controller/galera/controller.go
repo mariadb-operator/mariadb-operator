@@ -154,7 +154,7 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 		if err != nil {
 			return fmt.Errorf("error creating agent client: %v", err)
 		}
-		if err := agentClient.Bootstrap.Disable(ctx); err != nil && !errors.IsNotFound(err) {
+		if err := agentClient.Galera.DisableBootstrap(ctx); err != nil && !errors.IsNotFound(err) {
 			return fmt.Errorf("error disabling bootstrap in Pod %d: %v", i, err)
 		}
 	}
