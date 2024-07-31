@@ -1517,6 +1517,12 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 						Affinity: &mariadbv1alpha1.AffinityConfig{
 							AntiAffinityEnabled: ptr.To(true),
 						},
+						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+							{
+								MaxSkew:     1,
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
 					},
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
@@ -1537,6 +1543,9 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 			}
 			if job.Spec.Template.Spec.Affinity != nil {
 				t.Error("expected Galera recovery Job to not have affinity")
+			}
+			if job.Spec.Template.Spec.TopologySpreadConstraints != nil {
+				t.Error("expected Galera recovery Job to not have topologySpreadConstraints")
 			}
 		})
 	}
