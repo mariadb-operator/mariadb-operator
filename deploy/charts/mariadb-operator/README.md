@@ -59,6 +59,7 @@ helm uninstall mariadb-operator
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
 | extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
 | extraEnv | list | `[]` | Extra environment variables to be passed to the controller |
+| extraEnvFrom | list | `[]` | Extra environment variables from preexiting ConfigMap / Secret objects used by the controller using envFrom |
 | extraVolumeMounts | list | `[]` | Extra volumes to mount to the container. |
 | extraVolumes | list | `[]` | Extra volumes to pass to pod. |
 | fullnameOverride | string | `""` |  |
