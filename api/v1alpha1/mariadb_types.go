@@ -689,6 +689,10 @@ func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
 }
 
+func (m *MariaDB) Suspend(suspend bool) {
+	m.Spec.Suspend = suspend
+}
+
 const (
 	// MariadbMyCnfConfigMapFieldPath is the path related to the my.cnf ConfigMap field.
 	MariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
