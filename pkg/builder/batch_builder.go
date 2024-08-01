@@ -367,6 +367,7 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
 		withResources(recoveryJob.Resources),
 		withExtraVolumes(volumes),
+		withAffinityEnabled(false), // We need to schedule the recovery Job even if MariaDB defines anti-affinity.
 		withGaleraContainers(false),
 		withGaleraConfig(true),
 		withPorts(false),

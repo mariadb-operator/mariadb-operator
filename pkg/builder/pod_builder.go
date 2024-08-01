@@ -6,7 +6,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
-	mdbptr "github.com/mariadb-operator/mariadb-operator/pkg/ptr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,6 +25,7 @@ type mariadbPodOpts struct {
 	includePorts            bool
 	includeProbes           bool
 	includeSelectorLabels   bool
+	includeAffinity         bool
 }
 
 func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
@@ -35,6 +35,7 @@ func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
 		includePorts:            true,
 		includeProbes:           true,
 		includeSelectorLabels:   true,
+		includeAffinity:         true,
 	}
 	for _, setOpt := range userOpts {
 		setOpt(opts)
@@ -77,6 +78,12 @@ func withResources(resources *corev1.ResourceRequirements) mariadbPodOpt {
 func withAffinity(affinity *mariadbv1alpha1.AffinityConfig) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.affinity = affinity
+	}
+}
+
+func withAffinityEnabled(includeAffinity bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeAffinity = includeAffinity
 	}
 }
 
@@ -155,14 +162,6 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		return nil, err
 	}
 
-	affinity := mdbptr.Deref(
-		[]*mariadbv1alpha1.AffinityConfig{
-			mariadbOpts.affinity,
-			mariadb.Spec.Affinity,
-		},
-		mariadbv1alpha1.AffinityConfig{},
-	).Affinity
-
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
@@ -174,11 +173,11 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			ImagePullSecrets:             mariadb.Spec.ImagePullSecrets,
 			Volumes:                      mariadbVolumes(mariadb, opts...),
 			SecurityContext:              securityContext,
-			Affinity:                     &affinity,
+			Affinity:                     mariadbAffinity(mariadb, opts...),
 			NodeSelector:                 mariadb.Spec.NodeSelector,
 			Tolerations:                  mariadb.Spec.Tolerations,
 			PriorityClassName:            ptr.Deref(mariadb.Spec.PriorityClassName, ""),
-			TopologySpreadConstraints:    mariadb.Spec.TopologySpreadConstraints,
+			TopologySpreadConstraints:    mariadbTopologySpreadConstraints(mariadb, opts...),
 		},
 	}, nil
 }
@@ -234,6 +233,33 @@ func (b *Builder) maxscalePodSecurityContext(mxs *mariadbv1alpha1.MaxScale) (*co
 		return b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleEnterpriseUser, maxscaleEnterpriseGroup)
 	}
 	return b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleUser, maxscaleGroup)
+}
+
+func mariadbAffinity(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) *corev1.Affinity {
+	mariadbOpts := newMariadbPodOpts(opts...)
+
+	if !mariadbOpts.includeAffinity {
+		return nil
+	}
+	affinityConfig := []*mariadbv1alpha1.AffinityConfig{
+		mariadbOpts.affinity,
+		mariadb.Spec.Affinity,
+	}
+	for _, affinity := range affinityConfig {
+		if affinity != nil {
+			return &affinity.Affinity
+		}
+	}
+	return nil
+}
+
+func mariadbTopologySpreadConstraints(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.TopologySpreadConstraint {
+	mariadbOpts := newMariadbPodOpts(opts...)
+
+	if !mariadbOpts.includeAffinity {
+		return nil
+	}
+	return mariadb.Spec.TopologySpreadConstraints
 }
 
 func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.Volume {

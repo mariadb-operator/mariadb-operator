@@ -521,10 +521,6 @@ func TestMariadbPodBuilder(t *testing.T) {
 		},
 	}
 	opts := []mariadbPodOpt{
-		withAffinity(&mariadbv1alpha1.AffinityConfig{
-			AntiAffinityEnabled: ptr.To(true),
-			Affinity:            corev1.Affinity{},
-		}),
 		withResources(&corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				"cpu": resource.MustParse("100m"),
@@ -535,9 +531,6 @@ func TestMariadbPodBuilder(t *testing.T) {
 	podTpl, err := builder.mariadbPodTemplate(mariadb, opts...)
 	if err != nil {
 		t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-	}
-	if podTpl.Spec.Affinity == nil {
-		t.Error("expected affinity to have been set")
 	}
 
 	if reflect.ValueOf(podTpl.Spec.Containers[0].Resources).IsZero() {
@@ -559,6 +552,180 @@ func TestMariadbPodBuilder(t *testing.T) {
 	fsGroup := ptr.Deref(sc.FSGroup, 0)
 	if fsGroup != mysqlGroup {
 		t.Errorf("expected to run as mysql fsGroup, got fsGroup: %d", fsGroup)
+	}
+}
+
+func TestMariadbPodBuilderAffinity(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name: "test-mariadb-builder-affinity",
+	}
+	tests := []struct {
+		name                         string
+		mariadb                      *mariadbv1alpha1.MariaDB
+		opts                         []mariadbPodOpt
+		wantAffinity                 bool
+		wantTopologySpreadContraints bool
+	}{
+		{
+			name: "no affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			},
+			opts:                         nil,
+			wantAffinity:                 false,
+			wantTopologySpreadContraints: false,
+		},
+		{
+			name: "mariadb affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						Affinity: &mariadbv1alpha1.AffinityConfig{
+							AntiAffinityEnabled: ptr.To(true),
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			},
+			opts:                         nil,
+			wantAffinity:                 true,
+			wantTopologySpreadContraints: false,
+		},
+		{
+			name: "mariadb topologyspreadconstraints",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+							{
+								MaxSkew:     1,
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			},
+			opts:                         nil,
+			wantAffinity:                 false,
+			wantTopologySpreadContraints: true,
+		},
+		{
+			name: "opt affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withAffinity(&mariadbv1alpha1.AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+					Affinity:            corev1.Affinity{},
+				}),
+				withAffinityEnabled(true),
+			},
+			wantAffinity:                 true,
+			wantTopologySpreadContraints: false,
+		},
+		{
+			name: "mariadb and opt affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						Affinity: &mariadbv1alpha1.AffinityConfig{
+							AntiAffinityEnabled: ptr.To(true),
+						},
+						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+							{
+								MaxSkew:     1,
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withAffinity(&mariadbv1alpha1.AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+					Affinity:            corev1.Affinity{},
+				}),
+				withAffinityEnabled(true),
+			},
+			wantAffinity:                 true,
+			wantTopologySpreadContraints: true,
+		},
+		{
+			name: "disable affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						Affinity: &mariadbv1alpha1.AffinityConfig{
+							AntiAffinityEnabled: ptr.To(true),
+						},
+						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+							{
+								MaxSkew:     1,
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withAffinity(&mariadbv1alpha1.AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+					Affinity:            corev1.Affinity{},
+				}),
+				withAffinityEnabled(false),
+			},
+			wantAffinity:                 false,
+			wantTopologySpreadContraints: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+			if tt.wantAffinity && podTpl.Spec.Affinity == nil {
+				t.Error("expected affinity to have been set")
+			}
+			if !tt.wantAffinity && podTpl.Spec.Affinity != nil {
+				t.Error("expected affinity to not have been set")
+			}
+
+			if tt.wantTopologySpreadContraints && podTpl.Spec.TopologySpreadConstraints == nil {
+				t.Error("expected topologySpreadConstraints to have been set")
+			}
+			if !tt.wantTopologySpreadContraints && podTpl.Spec.TopologySpreadConstraints != nil {
+				t.Error("expected topologySpreadConstraints to not have been set")
+			}
+		})
 	}
 }
 
