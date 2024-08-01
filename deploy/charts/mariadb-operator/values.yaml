@@ -62,6 +62,9 @@ extrArgs: []
 # -- Extra environment variables to be passed to the controller
 extraEnv: []
 
+# -- Extra environment variables from preexiting ConfigMap / Secret objects used by the controller using envFrom
+extraEnvFrom: []
+
 # -- Extra volumes to pass to pod.
 extraVolumes: []
 
