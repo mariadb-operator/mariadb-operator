@@ -110,7 +110,7 @@ default_time_zone = UTC
 		By("Expecting MariaDB to be ready eventually")
 		expectMariadbReady(testCtx, k8sClient, testDefaultKey)
 
-		updateMariadbSuspendStatus(&testDefaultMariaDb, true)
+		updateMariadbSuspendStatus(testDefaultKey, true)
 
 		By("Expecting Mariadb to be not ready with the reason suspended")
 		expectMariadbFn(testCtx, k8sClient, testDefaultKey, func(mdb *mariadbv1alpha1.MariaDB) bool {

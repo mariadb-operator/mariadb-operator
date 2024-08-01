@@ -557,17 +557,16 @@ func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.Maria
 	return mdb
 }
 
-func updateMariadbSuspendStatus(mdb *mariadbv1alpha1.MariaDB, status bool) *mariadbv1alpha1.MariaDB {
-
+func updateMariadbSuspendStatus(key types.NamespacedName, status bool) {
+	var mdb mariadbv1alpha1.MariaDB
 	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
 			return false
 		}
-		mdb.spec.Suspend = status
+		mdb.Suspend(true)
 
-		return k8sClient.Update(testCtx, mdb) == nil
+		return k8sClient.Update(testCtx, &mdb) == nil
 	}, testTimeout, testInterval).Should(BeTrue())
-
 }
 
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
