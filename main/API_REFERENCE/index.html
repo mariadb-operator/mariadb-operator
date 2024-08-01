@@ -526,6 +526,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#galerarecoveryjob" class="md-nav__link">
+    <span class="md-ellipsis">
+      GaleraRecoveryJob
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#galeraspec" class="md-nav__link">
     <span class="md-ellipsis">
       GaleraSpec
@@ -835,15 +844,6 @@
   <a href="#replicationspec" class="md-nav__link">
     <span class="md-ellipsis">
       ReplicationSpec
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#replicationstate" class="md-nav__link">
-    <span class="md-ellipsis">
-      ReplicationState
     </span>
   </a>
   
@@ -1603,6 +1603,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#galerarecoveryjob" class="md-nav__link">
+    <span class="md-ellipsis">
+      GaleraRecoveryJob
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#galeraspec" class="md-nav__link">
     <span class="md-ellipsis">
       GaleraSpec
@@ -1912,15 +1921,6 @@
   <a href="#replicationspec" class="md-nav__link">
     <span class="md-ellipsis">
       ReplicationSpec
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#replicationstate" class="md-nav__link">
-    <span class="md-ellipsis">
-      ReplicationState
     </span>
   </a>
   
@@ -2244,18 +2244,6 @@
 <td></td>
 </tr>
 <tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
@@ -2409,6 +2397,18 @@
 <td></td>
 <td></td>
 </tr>
+<tr>
+<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
 </tbody>
 </table>
 <h4 id="backupstorage">BackupStorage</h4>
@@ -2512,18 +2512,6 @@
 <tr>
 <td><code>kind</code> <em>string</em></td>
 <td><code>Connection</code></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
 <td></td>
 </tr>
@@ -2872,18 +2860,6 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <tr>
 <td><code>kind</code> <em>string</em></td>
 <td><code>Database</code></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
 <td></td>
 </tr>
@@ -3380,13 +3356,53 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </tr>
 <tr>
 <td><code>podRecoveryTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
-<td>PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.<br />Once this timeout is reached, the Pod is restarted.</td>
+<td>PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>podSyncTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
-<td>PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.<br />Once this timeout is reached, the Pod is restarted.</td>
+<td>PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>forceClusterBootstrapInPod</code> <em>string</em></td>
+<td>ForceClusterBootstrapInPod allows you to manually initiate the bootstrap process in a specific Pod.<br />IMPORTANT: Use this option only in exceptional circumstances. Not selecting the Pod with the highest sequence number may result in data loss.<br />IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>job</code> <em><a href="#galerarecoveryjob">GaleraRecoveryJob</a></em></td>
+<td>Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster.</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="galerarecoveryjob">GaleraRecoveryJob</h4>
+<p>GaleraRecoveryJob defines a Job used to be used to recover the Galera cluster.</p>
+<p><em>Appears in:</em>
+- <a href="#galerarecovery">GaleraRecovery</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>metadata</code> <em><a href="#metadata">Metadata</a></em></td>
+<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
@@ -3493,7 +3509,7 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 <tbody>
 <tr>
 <td><code>name</code> <em>string</em></td>
-<td>Name of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br />TODO: Add other useful fields. apiVersion, kind, uid?</td>
+<td>Name of the referent.<br />This field is effectively required, but due to backwards compatibility is<br />allowed to be empty. Instances of this type with an empty value here are<br />almost certainly wrong.<br />TODO: Add other useful fields. apiVersion, kind, uid?<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br />TODO: Drop <code>kubebuilder:default</code> when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.</td>
 <td></td>
 <td></td>
 </tr>
@@ -3538,18 +3554,6 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 <tr>
 <td><code>kind</code> <em>string</em></td>
 <td><code>Grant</code></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
 <td></td>
 </tr>
@@ -3866,18 +3870,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <tr>
 <td><code>kind</code> <em>string</em></td>
 <td><code>MariaDB</code></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
 <td></td>
 </tr>
@@ -4279,6 +4271,12 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
+<td><code>timeZone</code> <em>string</em></td>
+<td>TimeZone sets the default timezone. If not provided, it defaults to SYSTEM and the timezone data is not loaded.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><code>bootstrapFrom</code> <em><a href="#bootstrapfrom">BootstrapFrom</a></em></td>
 <td>BootstrapFrom defines a source to bootstrap from.</td>
 <td></td>
@@ -4380,6 +4378,12 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 <td></td>
 </tr>
+<tr>
+<td><code>suspend</code> <em>boolean</em></td>
+<td>Suspend defines whether the MariaDB reconciliation loop is enabled. This can be useful for maintenance, as disabling the reconciliation loop prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>false</td>
+<td></td>
+</tr>
 </tbody>
 </table>
 <h4 id="mariadbmetrics">MariadbMetrics</h4>
@@ -4449,18 +4453,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <tr>
 <td><code>kind</code> <em>string</em></td>
 <td><code>MaxScale</code></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
 <td></td>
 </tr>
@@ -5189,6 +5181,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <p><em>Appears in:</em>
 - <a href="#backupspec">BackupSpec</a>
 - <a href="#exporter">Exporter</a>
+- <a href="#galerarecoveryjob">GaleraRecoveryJob</a>
 - <a href="#job">Job</a>
 - <a href="#jobpodtemplate">JobPodTemplate</a>
 - <a href="#mariadbspec">MariaDBSpec</a>
@@ -5545,10 +5538,6 @@ The agent validates the legitimacy of the service account token provided as an A
 </tr>
 </tbody>
 </table>
-<h4 id="replicationstate">ReplicationState</h4>
-<p><em>Underlying type:</em> <em>string</em></p>
-<p><em>Appears in:</em>
-- <a href="#replicationstatus">ReplicationStatus</a></p>
 <h4 id="restore">Restore</h4>
 <p>Restore is the Schema for the restores API. It is used to define restore jobs and its restoration source.</p>
 <table>
@@ -5570,18 +5559,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <tr>
 <td><code>kind</code> <em>string</em></td>
 <td><code>Restore</code></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
 <td></td>
 </tr>
@@ -6110,18 +6087,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
@@ -6280,6 +6245,18 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td>InheritMetadata defines the metadata to be inherited by children resources.</td>
 <td></td>
 <td></td>
+</tr>
+<tr>
+<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
 </tr>
 </tbody>
 </table>
@@ -6444,18 +6421,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
@@ -6593,7 +6558,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 </tr>
 <tr>
 <td><code>volumeAttributesClassName</code> <em>string</em></td>
-<td>volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.<br />If specified, the CSI driver will create or update the volume with the attributes defined<br />in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,<br />it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass<br />will be applied to the claim but it's not allowed to reset this field to empty string once it is set.<br />If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass<br />will be set by the persistentvolume controller if it exists.<br />If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be<br />set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource<br />exists.<br />More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#volumeattributesclass<br />(Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.</td>
+<td>volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.<br />If specified, the CSI driver will create or update the volume with the attributes defined<br />in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,<br />it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass<br />will be applied to the claim but it's not allowed to reset this field to empty string once it is set.<br />If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass<br />will be set by the persistentvolume controller if it exists.<br />If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be<br />set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource<br />exists.<br />More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/<br />(Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.</td>
 <td></td>
 <td></td>
 </tr>
