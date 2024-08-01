@@ -27552,6 +27552,13 @@ spec:
                       It defaults to true.
                     type: boolean
                 type: object
+              suspend:
+                default: false
+                description: Suspend defines whether the MariaDB reconciliation loop
+                  is enabled. This can be useful for maintenance, as disabling the
+                  reconciliation loop prevents the operator from interfering with
+                  user operations during maintenance activities.
+                type: boolean
               timeZone:
                 description: TimeZone sets the default timezone. If not provided,
                   it defaults to SYSTEM and the timezone data is not loaded.
