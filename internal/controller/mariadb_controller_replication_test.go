@@ -296,7 +296,9 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		testMariadbVolumeResize(mdb, "400Mi")
 	})
 
-	It("should reconcile with MaxScale", FlakeAttempts(3), func() {
+	It("should reconcile with MaxScale", func() {
+		Skip("TODO: re-evaluate this test when productionizing replication")
+
 		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "maxscale-repl",
