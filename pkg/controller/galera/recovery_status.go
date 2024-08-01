@@ -169,7 +169,7 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 	}
 
 	if numSkippedPods == len(pods) {
-		logger.Info("Recovery status not completed: all Pods have been skipped.")
+		logger.Info("Recovery status not completed: all Pods have been skipped")
 		return false
 	}
 	return isComplete
