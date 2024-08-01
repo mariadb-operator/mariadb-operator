@@ -149,7 +149,7 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
-	numZeroUUIDs := 0
+	numSkippedPods := 0
 	isComplete := true
 	for _, p := range pods {
 		state := ptr.Deref(rs.inner.State[p.Name], recovery.GaleraState{})
@@ -158,8 +158,8 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 		if state.SafeToBootstrap {
 			return true
 		}
-		if hasZeroUUID(state, recovered) {
-			numZeroUUIDs++
+		if shouldSkipPod(recovered) {
+			numSkippedPods++
 			continue
 		}
 		if state.GetSeqno() > 0 || recovered.GetSeqno() > 0 {
@@ -168,8 +168,8 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 		isComplete = false
 	}
 
-	if numZeroUUIDs == len(pods) {
-		logger.Info("No Pods with non zero UUIDs were found")
+	if numSkippedPods == len(pods) {
+		logger.Info("Recovery status not completed: all Pods have been skipped.")
 		return false
 	}
 	return isComplete
@@ -210,8 +210,8 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, forceBootstrapInPod
 				pod: p,
 			}, nil
 		}
-		if hasZeroUUID(state, recovered) {
-			logger.Info("Skipping Pod with zero UUID", "pod", p.Name)
+		if shouldSkipPod(recovered) {
+			logger.Info("Skipping Pod", "pod", p.Name)
 			continue
 		}
 		if state.GetSeqno() > 0 && state.Compare(currentSource) >= 0 {
@@ -250,12 +250,10 @@ func (rs *recoveryStatus) podsRestarted() bool {
 	return ptr.Deref(rs.inner.PodsRestarted, false)
 }
 
-const zeroUUID = "00000000-0000-0000-0000-000000000000"
-
-// hasZeroUUID determines if a Pod has zero UUID.
-// Pods with 00000000-0000-0000-0000-000000000000 UUID need an SST to rejoin the cluster,
-// they can be skipped in order to continue with the bootstrap process.
+// shouldSkipPod determines whether a Pod should be skipped during the recovery process.
+// UUID 00000000-0000-0000-0000-000000000000 means that the Pods needs SST to rejoin the cluster.
 // See: https://galeracluster.com/library/documentation/node-provisioning.html#node-provisioning
-func hasZeroUUID(state recovery.GaleraState, recovered recovery.Bootstrap) bool {
-	return state.UUID == zeroUUID || recovered.UUID == zeroUUID
+// Seqno -1 does not really help determining the last running Pod.
+func shouldSkipPod(recovered recovery.Bootstrap) bool {
+	return recovered.UUID == "00000000-0000-0000-0000-000000000000" && recovered.Seqno == -1
 }
