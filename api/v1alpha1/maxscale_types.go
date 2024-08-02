@@ -58,14 +58,6 @@ func (m *MaxScaleServer) SetDefaults() {
 	}
 }
 
-// SuspendTemplate indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
-type SuspendTemplate struct {
-	// Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Suspend bool `json:"suspend,omitempty"`
-}
-
 // MonitorModule defines the type of monitor module
 type MonitorModule string
 
@@ -98,7 +90,7 @@ const (
 
 // MaxScaleMonitor monitors MariaDB server instances
 type MaxScaleMonitor struct {
-	// SuspendTemplate defines how a resource can be suspended.
+	// SuspendTemplate defines how a resource can be suspended. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
@@ -145,7 +137,7 @@ func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
 
 // MaxScaleListener defines how the MaxScale server will listen for connections.
 type MaxScaleListener struct {
-	// SuspendTemplate defines how a resource can be suspended.
+	// SuspendTemplate defines how a resource can be suspended. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
@@ -191,7 +183,7 @@ const (
 
 // Services define how the traffic is forwarded to the MariaDB servers.
 type MaxScaleService struct {
-	// SuspendTemplate defines how a resource can be suspended.
+	// SuspendTemplate defines how a resource can be suspended. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`

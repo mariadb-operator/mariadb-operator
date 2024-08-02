@@ -8684,9 +8684,9 @@ spec:
                       https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.
                     type: object
                   suspend:
+                    default: false
                     description: Suspend indicates whether the current resource should
-                      be suspended or not. Feature flag --feature-maxscale-suspend
-                      is required in the controller to enable this.
+                      be suspended or not.
                     type: boolean
                 type: object
               nodeSelector:
@@ -9414,9 +9414,9 @@ spec:
                             to MariaDBProtocol.
                           type: string
                         suspend:
+                          default: false
                           description: Suspend indicates whether the current resource
-                            should be suspended or not. Feature flag --feature-maxscale-suspend
-                            is required in the controller to enable this.
+                            should be suspended or not.
                           type: boolean
                       type: object
                     name:
@@ -9440,9 +9440,9 @@ spec:
                       - readconnroute
                       type: string
                     suspend:
+                      default: false
                       description: Suspend indicates whether the current resource
-                        should be suspended or not. Feature flag --feature-maxscale-suspend
-                        is required in the controller to enable this.
+                        should be suspended or not.
                       type: boolean
                   required:
                   - listener
