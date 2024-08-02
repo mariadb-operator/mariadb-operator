@@ -485,6 +485,10 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodTemplate `json:",inline"`
+	// SuspendTemplate defines whether the MaxScale reconciliation loop is enabled. This can be useful for maintenance, as disabling the reconciliation loop prevents the operator from interfering with user operations during maintenance activities.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SuspendTemplate `json:",inline"`
 	// MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -763,6 +767,11 @@ func (m *MaxScale) IsReady() bool {
 // IsHAEnabled indicated whether high availability is enabled.
 func (m *MaxScale) IsHAEnabled() bool {
 	return m.Spec.Replicas > 1
+}
+
+// IsSuspended whether a MaxScale is suspended.
+func (m *MaxScale) IsSuspended() bool {
+	return m.Spec.Suspend
 }
 
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled

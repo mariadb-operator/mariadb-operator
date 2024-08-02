@@ -74,6 +74,10 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+		if req.mxs.IsSuspended() {
+			condition.SetReadySuspended(&req.mxs.Status)
+			return nil
+		}
 		mss.Replicas = sts.Status.ReadyReplicas
 		if srvStatus != nil {
 			if srvStatus.primary != "" {

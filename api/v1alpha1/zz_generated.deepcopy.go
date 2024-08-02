@@ -1853,6 +1853,7 @@ func (in *MaxScaleSpec) DeepCopyInto(out *MaxScaleSpec) {
 	*out = *in
 	in.ContainerTemplate.DeepCopyInto(&out.ContainerTemplate)
 	in.PodTemplate.DeepCopyInto(&out.PodTemplate)
+	out.SuspendTemplate = in.SuspendTemplate
 	if in.MariaDBRef != nil {
 		in, out := &in.MariaDBRef, &out.MariaDBRef
 		*out = new(MariaDBRef)
