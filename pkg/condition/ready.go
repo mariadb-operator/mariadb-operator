@@ -73,17 +73,6 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 }
 
 func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1alpha1.MariaDB) {
-
-	if mdb.IsSuspended() {
-		c.SetCondition(metav1.Condition{
-			Type:    mariadbv1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionFalse,
-			Reason:  mariadbv1alpha1.ConditionReasonSuspended,
-			Message: "Suspended",
-		})
-		return
-	}
-
 	if mdb.IsUpdating() {
 		c.SetCondition(metav1.Condition{
 			Type:    mariadbv1alpha1.ConditionTypeReady,
@@ -207,5 +196,14 @@ func SetReadyStorageResized(c Conditioner) {
 		Status:  metav1.ConditionTrue,
 		Reason:  mariadbv1alpha1.ConditionReasonStorageResized,
 		Message: "Storage resized",
+	})
+}
+
+func SetReadySuspended(c Conditioner) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonSuspended,
+		Message: "Suspended",
 	})
 }
