@@ -465,10 +465,6 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
-	// +optional
-	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Suspend bool `json:"suspend"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
@@ -687,14 +683,9 @@ func (m *MariaDB) IsUpdating() bool {
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonUpdating
 }
 
-// IsSuspended indicates that a MariaDB update is suspended.
+// IsSuspended whether a MariaDB is suspended.
 func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
-}
-
-// Suspend suspends a MariaDB.
-func (m *MariaDB) Suspend(suspend bool) {
-	m.Spec.Suspend = suspend
 }
 
 const (

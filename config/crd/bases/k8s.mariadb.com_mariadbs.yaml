@@ -22957,9 +22957,7 @@ spec:
                     type: boolean
                 type: object
               suspend:
-                allOf:
-                - default: false
-                - default: false
+                default: false
                 description: |-
                   Suspend indicates whether the current resource should be suspended or not.
                   This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.
