@@ -114,15 +114,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	if mariadb.IsSuspended() {
-		log.FromContext(ctx).V(1).Info("MariaDB is suspended. Skipping...")
-		return ctrl.Result{}, r.patchStatus(ctx, &mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-			condition.SetReadyWithMariaDB(&mariadb.Status, nil, &mariadb)
-			return nil
-		})
-	}
-
 	phases := []reconcilePhaseMariaDB{
 		{
 			Name:      "Spec",
@@ -131,6 +122,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Status",
 			Reconcile: r.reconcileStatus,
+		},
+		{
+			Name:      "Suspend",
+			Reconcile: r.reconcileSuspend,
 		},
 		{
 			Name:      "Secret",
@@ -786,6 +781,14 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 	return ctrl.Result{}, r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
 		mdb.SetDefaults(r.Environment)
 	})
+}
+
+func (r *MariaDBReconciler) reconcileSuspend(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mariadb.IsSuspended() {
+		log.FromContext(ctx).V(1).Info("MariaDB is suspended. Skipping...")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
