@@ -692,6 +692,7 @@ func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
 }
 
+// Suspend suspends a MariaDB.
 func (m *MariaDB) Suspend(suspend bool) {
 	m.Spec.Suspend = suspend
 }
