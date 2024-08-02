@@ -129,6 +129,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileStatus,
 		},
 		{
+			name:      "Suspend",
+			reconcile: r.reconcileSuspend,
+		},
+		{
 			name:      "Secret",
 			reconcile: r.reconcileSecret,
 		},
@@ -380,6 +384,14 @@ func (r *MaxScaleReconciler) getMariaDB(ctx context.Context, req *requestMaxScal
 		return nil, fmt.Errorf("error getting MariaDB: %v", errBundle)
 	}
 	return mdb, nil
+}
+
+func (r *MaxScaleReconciler) reconcileSuspend(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if req.mxs.IsSuspended() {
+		log.FromContext(ctx).V(1).Info("MaxScale is suspended. Skipping...")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
