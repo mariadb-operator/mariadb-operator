@@ -669,5 +669,5 @@ type SuspendTemplate struct {
 	// +optional
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Suspend bool `json:"suspend"`
+	Suspend bool `json:"suspend,omitempty"`
 }
