@@ -563,7 +563,7 @@ func updateMariadbSuspendStatus(key types.NamespacedName, status bool) {
 		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
 			return false
 		}
-		mdb.Suspend(true)
+		mdb.Suspend(status)
 
 		return k8sClient.Update(testCtx, &mdb) == nil
 	}, testTimeout, testInterval).Should(BeTrue())
