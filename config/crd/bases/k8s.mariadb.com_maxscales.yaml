@@ -8687,7 +8687,7 @@ spec:
                     default: false
                     description: |-
                       Suspend indicates whether the current resource should be suspended or not.
-                      This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.
+                      This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                     type: boolean
                 type: object
               nodeSelector:
@@ -9418,7 +9418,7 @@ spec:
                           default: false
                           description: |-
                             Suspend indicates whether the current resource should be suspended or not.
-                            This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.
+                            This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                           type: boolean
                       type: object
                     name:
@@ -9445,7 +9445,7 @@ spec:
                       default: false
                       description: |-
                         Suspend indicates whether the current resource should be suspended or not.
-                        This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.
+                        This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                       type: boolean
                   required:
                   - listener
@@ -10288,7 +10288,7 @@ spec:
                 default: false
                 description: |-
                   Suspend indicates whether the current resource should be suspended or not.
-                  This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.
+                  This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                 type: boolean
               tolerations:
                 description: Tolerations to be used in the Pod.
