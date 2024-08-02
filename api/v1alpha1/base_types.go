@@ -661,3 +661,12 @@ type GeneratedSecretKeyRef struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Generate bool `json:"generate,omitempty"`
 }
+
+// SuspendTemplate indicates whether the current resource should be suspended or not.
+type SuspendTemplate struct {
+	// Suspend indicates whether the current resource should be suspended or not.
+	// +optional
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Suspend bool `json:"suspend"`
+}

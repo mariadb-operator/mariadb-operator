@@ -1336,6 +1336,7 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 	*out = *in
 	in.ContainerTemplate.DeepCopyInto(&out.ContainerTemplate)
 	in.PodTemplate.DeepCopyInto(&out.PodTemplate)
+	out.SuspendTemplate = in.SuspendTemplate
 	if in.InheritMetadata != nil {
 		in, out := &in.InheritMetadata, &out.InheritMetadata
 		*out = new(Metadata)
