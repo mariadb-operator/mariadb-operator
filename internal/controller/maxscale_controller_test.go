@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -49,6 +50,54 @@ var _ = Describe("MaxScale", func() {
 			}
 			return testDefaultMxs.Spec.Image != "" && len(testDefaultMxs.Spec.Servers) > 0 &&
 				len(testDefaultMxs.Spec.Services) > 0 && testDefaultMxs.Spec.Monitor.Module != ""
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should suspend", func() {
+		By("Creating MaxScale")
+		testSuspendMxsKey := types.NamespacedName{
+			Name:      "test-maxscale-suspend",
+			Namespace: testNamespace,
+		}
+		testSuspendMxs := mariadbv1alpha1.MaxScale{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testSuspendMxsKey.Name,
+				Namespace: testSuspendMxsKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.MaxScaleSpec{
+				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name:      testMdbkey.Name,
+						Namespace: testMdbkey.Namespace,
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &testSuspendMxs)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMaxScale(testSuspendMxsKey, false)
+		})
+
+		By("Suspend MaxScale")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, testSuspendMxsKey, &testSuspendMxs); err != nil {
+				return false
+			}
+			testSuspendMxs.Spec.Suspend = true
+
+			return k8sClient.Update(testCtx, &testSuspendMxs) == nil
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MaxScale to eventually be suspended")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, testSuspendMxsKey, &testSuspendMxs); err != nil {
+				return false
+			}
+			condition := meta.FindStatusCondition(testSuspendMxs.Status.Conditions, mariadbv1alpha1.ConditionTypeReady)
+			if condition == nil {
+				return false
+			}
+			return condition.Status == metav1.ConditionFalse && condition.Reason == mariadbv1alpha1.ConditionReasonSuspended
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 

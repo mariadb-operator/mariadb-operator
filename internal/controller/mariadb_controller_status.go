@@ -26,6 +26,13 @@ import (
 )
 
 func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mdb.IsSuspended() {
+		return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+			condition.SetReadySuspended(status)
+			return nil
+		})
+	}
+
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
 		log.FromContext(ctx).V(1).Info("error getting StatefulSet", "err", err)
@@ -49,10 +56,6 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		if mdb.IsSuspended() {
-			condition.SetReadySuspended(status)
-			return nil
-		}
 		status.Replicas = sts.Status.ReadyReplicas
 		defaultPrimary(mdb)
 		setMaxScalePrimary(mdb, mxsPrimaryPodIndex)
