@@ -13,6 +13,7 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -87,14 +88,14 @@ default_time_zone = UTC
 
 	It("should suspend ", func() {
 		By("Creating MariaDB")
-		testDefaultKey := types.NamespacedName{
-			Name:      "test-mariadb-default",
+		testSuspendKey := types.NamespacedName{
+			Name:      "test-mariadb-suspend",
 			Namespace: testNamespace,
 		}
-		testDefaultMariaDb := mariadbv1alpha1.MariaDB{
+		testSuspendMariaDB := mariadbv1alpha1.MariaDB{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      testDefaultKey.Name,
-				Namespace: testDefaultKey.Namespace,
+				Name:      testSuspendKey.Name,
+				Namespace: testSuspendKey.Namespace,
 			},
 			Spec: mariadbv1alpha1.MariaDBSpec{
 				Storage: mariadbv1alpha1.Storage{
@@ -102,28 +103,29 @@ default_time_zone = UTC
 				},
 			},
 		}
-		Expect(k8sClient.Create(testCtx, &testDefaultMariaDb)).To(Succeed())
+		Expect(k8sClient.Create(testCtx, &testSuspendMariaDB)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(&testDefaultMariaDb)
+			deleteMariaDB(&testSuspendMariaDB)
 		})
 
-		By("Expecting MariaDB to be ready eventually")
-		expectMariadbReady(testCtx, k8sClient, testDefaultKey)
-
-		updateMariadbSuspendStatus(testDefaultKey, true)
-
-		By("Expecting Mariadb to be not ready with the reason suspended")
-		expectMariadbFn(testCtx, k8sClient, testDefaultKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			if !mdb.IsReady() {
-				for _, condition := range mdb.Status.Conditions {
-					if condition.Reason == mariadbv1alpha1.ConditionReasonSuspended {
-						return true
-					}
-				}
+		By("Suspend MariaDB")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, testSuspendKey, &testSuspendMariaDB); err != nil {
+				return false
 			}
-			return false
-		})
+			testSuspendMariaDB.Spec.Suspend = true
 
+			return k8sClient.Update(testCtx, &testSuspendMariaDB) == nil
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to eventually be suspended")
+		expectMariadbFn(testCtx, k8sClient, testSuspendKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			condition := meta.FindStatusCondition(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReady)
+			if condition == nil {
+				return false
+			}
+			return condition.Status == metav1.ConditionFalse && condition.Reason == mariadbv1alpha1.ConditionReasonSuspended
+		})
 	})
 
 	It("should reconcile", func() {
