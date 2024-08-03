@@ -24,13 +24,12 @@ spec:
               - --mysql-password=MaxScale11!
               - --mysql-db=sbtest
               - --time=300 
-              - --threads=16 
+              - --threads=64
               - --report-interval=1
               - run
             resources:
               requests:
-                cpu: 100m
+                cpu: 500m
                 memory: 128Mi
               limits:
-                cpu: 300m
                 memory: 512Mi

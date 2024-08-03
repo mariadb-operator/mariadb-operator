@@ -22,8 +22,7 @@ spec:
           - prepare
         resources:
           requests:
-            cpu: 100m
+            cpu: 500m
             memory: 128Mi
           limits:
-            cpu: 300m
             memory: 512Mi
