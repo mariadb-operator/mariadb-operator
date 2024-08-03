@@ -8,7 +8,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: sysbench-prepare
-        image: severalnines/sysbench
+        image: zyclonite/sysbench:1.0.21
         command:
           - sysbench 
           - oltp_read_write 
