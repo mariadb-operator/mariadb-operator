@@ -159,7 +159,7 @@ sysbench-prepare: ## Prepare sysbench tests for standalone.
 .PHONY: sysbench
 sysbench: ## Run sysbench tests for standalone.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sysbench_cronjob.yaml
-	$(KUBECTL) create job sysbench-repl --from cronjob/sysbench
+	$(KUBECTL) create job sysbench --from cronjob/sysbench
 
 .PHONY: sysbench-prepare-repl
 sysbench-prepare-repl: ## Prepare sysbench tests for replication.
