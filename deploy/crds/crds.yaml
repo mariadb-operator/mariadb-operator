@@ -19404,9 +19404,10 @@ spec:
                           https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.
                         type: object
                       suspend:
-                        description: Suspend indicates whether the current resource
-                          should be suspended or not. Feature flag --feature-maxscale-suspend
-                          is required in the controller to enable this.
+                        default: false
+                        description: |-
+                          Suspend indicates whether the current resource should be suspended or not.
+                          This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                         type: boolean
                     type: object
                   podDisruptionBudget:
@@ -19469,9 +19470,10 @@ spec:
                                 it defaults to MariaDBProtocol.
                               type: string
                             suspend:
-                              description: Suspend indicates whether the current resource
-                                should be suspended or not. Feature flag --feature-maxscale-suspend
-                                is required in the controller to enable this.
+                              default: false
+                              description: |-
+                                Suspend indicates whether the current resource should be suspended or not.
+                                This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                               type: boolean
                           type: object
                         name:
@@ -19495,9 +19497,10 @@ spec:
                           - readconnroute
                           type: string
                         suspend:
-                          description: Suspend indicates whether the current resource
-                            should be suspended or not. Feature flag --feature-maxscale-suspend
-                            is required in the controller to enable this.
+                          default: false
+                          description: |-
+                            Suspend indicates whether the current resource should be suspended or not.
+                            This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                           type: boolean
                       required:
                       - listener
@@ -27554,10 +27557,9 @@ spec:
                 type: object
               suspend:
                 default: false
-                description: Suspend defines whether the MariaDB reconciliation loop
-                  is enabled. This can be useful for maintenance, as disabling the
-                  reconciliation loop prevents the operator from interfering with
-                  user operations during maintenance activities.
+                description: |-
+                  Suspend indicates whether the current resource should be suspended or not.
+                  This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                 type: boolean
               timeZone:
                 description: TimeZone sets the default timezone. If not provided,
@@ -38490,9 +38492,10 @@ spec:
                       https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.
                     type: object
                   suspend:
-                    description: Suspend indicates whether the current resource should
-                      be suspended or not. Feature flag --feature-maxscale-suspend
-                      is required in the controller to enable this.
+                    default: false
+                    description: |-
+                      Suspend indicates whether the current resource should be suspended or not.
+                      This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                     type: boolean
                 type: object
               nodeSelector:
@@ -39220,9 +39223,10 @@ spec:
                             to MariaDBProtocol.
                           type: string
                         suspend:
-                          description: Suspend indicates whether the current resource
-                            should be suspended or not. Feature flag --feature-maxscale-suspend
-                            is required in the controller to enable this.
+                          default: false
+                          description: |-
+                            Suspend indicates whether the current resource should be suspended or not.
+                            This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                           type: boolean
                       type: object
                     name:
@@ -39246,9 +39250,10 @@ spec:
                       - readconnroute
                       type: string
                     suspend:
-                      description: Suspend indicates whether the current resource
-                        should be suspended or not. Feature flag --feature-maxscale-suspend
-                        is required in the controller to enable this.
+                      default: false
+                      description: |-
+                        Suspend indicates whether the current resource should be suspended or not.
+                        This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                       type: boolean
                   required:
                   - listener
@@ -40087,6 +40092,12 @@ spec:
                   - image
                   type: object
                 type: array
+              suspend:
+                default: false
+                description: |-
+                  Suspend indicates whether the current resource should be suspended or not.
+                  This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
+                type: boolean
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
