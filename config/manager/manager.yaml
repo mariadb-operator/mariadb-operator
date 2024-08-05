@@ -44,7 +44,7 @@ spec:
               name: health
           env:
             - name: RELATED_IMAGE_MARIADB
-              value: mariadbmmontes/enterprise-server:10.6
+              value: docker-registry.mariadb.com/enterprise-server:10.6.18-14
             - name: RELATED_IMAGE_MAXSCALE
               value: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5-ubi
             - name: RELATED_IMAGE_EXPORTER
