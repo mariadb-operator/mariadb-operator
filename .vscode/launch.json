@@ -150,15 +150,18 @@
         "--log-dev",
         "--log-level=info",
         "--log-time-encoder=iso8601",
-        "--mariadb-name=mariadb-galera",
-        "--mariadb-namespace=default",
         "--config-dir=mariadb/config",
         "--state-dir=mariadb/state"
       ],
       "env": {
-        "KUBECONFIG": "${env:HOME}/.kube/config",
+        "CLUSTER_NAME": "cluster.local",
         "POD_NAME": "mariadb-galera-0",
+        "POD_NAMESPACE": "default",
+        "POD_IP": "10.244.0.36",
+        "MARIADB_NAME": "mariadb-galera",
         "MARIADB_ROOT_PASSWORD": "MariaDB11!",
+        "MYSQL_TCP_PORT": "3306",
+        "KUBECONFIG": "${env:HOME}/.kube/config",
       },
       "cwd": "${workspaceRoot}"
     },
@@ -177,6 +180,38 @@
         "--state-dir=mariadb/state"
       ],
       "env": {
+        "CLUSTER_NAME": "cluster.local",
+        "POD_NAME": "mariadb-galera-0",
+        "POD_NAMESPACE": "default",
+        "POD_IP": "10.244.0.36",
+        "MARIADB_NAME": "mariadb-galera",
+        "MARIADB_ROOT_PASSWORD": "MariaDB11!",
+        "MYSQL_TCP_PORT": "3306",
+        "KUBECONFIG": "${env:HOME}/.kube/config",
+      },
+      "cwd": "${workspaceRoot}"
+    },
+    {
+      "name": "Status",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/controller",
+      "args": [
+        "status",
+        "--log-dev",
+        "--log-level=info",
+        "--log-time-encoder=iso8601",
+        "--state-dir=mariadb/state"
+      ],
+      "env": {
+        "CLUSTER_NAME": "cluster.local",
+        "POD_NAME": "mariadb-galera-0",
+        "POD_NAMESPACE": "default",
+        "POD_IP": "10.244.0.36",
+        "MARIADB_NAME": "mariadb-galera",
+        "MARIADB_ROOT_PASSWORD": "MariaDB11!",
+        "MYSQL_TCP_PORT": "3306",
         "KUBECONFIG": "${env:HOME}/.kube/config",
       },
       "cwd": "${workspaceRoot}"

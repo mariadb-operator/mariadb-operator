@@ -79,7 +79,7 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.GaleraRecovery = nil
-		condition.SetGaleraNotReady(status, mariadb)
+		condition.SetGaleraNotReady(status)
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB: %v", err)
 	}
