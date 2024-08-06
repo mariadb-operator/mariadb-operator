@@ -264,8 +264,17 @@ func (c *Client) DropUser(ctx context.Context, accountName string) error {
 	return c.ExecFlushingPrivileges(ctx, query)
 }
 
-func (c *Client) AlterUser(ctx context.Context, accountName, password string) error {
-	query := fmt.Sprintf("ALTER USER '%s' IDENTIFIED BY '%s';", accountName, password)
+func (c *Client) AlterUser(ctx context.Context, accountName string, createUserOpts ...CreateUserOpt) error {
+	opts := CreateUserOpts{}
+	for _, setOpt := range createUserOpts {
+		setOpt(&opts)
+	}
+
+	query := fmt.Sprintf("ALTER USER '%s' ", accountName)
+
+	query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
+
+	query += ";"
 
 	return c.ExecFlushingPrivileges(ctx, query)
 }
