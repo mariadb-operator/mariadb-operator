@@ -6,7 +6,7 @@ HELM_CHART_FILE ?= $(HELM_DIR)/Chart.yaml
 HELM_CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0 
 .PHONY: helm-lint
 helm-lint: ## Lint Helm charts.
-	docker run --rm --workdir /repo -v $(shell pwd):/repo $(HELM_CT_IMG) ct lint --config .github/config/ct.yml 
+	$(DOCKER) run --rm --workdir /repo -v $(shell pwd):/repo $(HELM_CT_IMG) ct lint --config .github/config/ct.yml 
 
 .PHONY: helm-crds 
 helm-crds: kustomize ## Generate CRDs for the Helm chart.
@@ -30,7 +30,7 @@ helm-env: ## Update operator env in the Helm chart.
 HELM_DOCS_IMG ?= jnorwood/helm-docs:v1.14.2
 .PHONY: helm-docs
 helm-docs: ## Generate Helm chart docs.
-	docker run --rm \
+	$(DOCKER) run --rm \
 		-u $(shell id -u) \
 		-v $(shell pwd)/$(HELM_DIR):/helm-docs \
 		$(HELM_DOCS_IMG)
