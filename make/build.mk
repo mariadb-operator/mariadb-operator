@@ -4,7 +4,7 @@ DOCKER_ARGS ?= --load
 
 .PHONY: build
 build: ## Build binary.
-	go build -o bin/mariadb-operator cmd/controller/*.go
+	$(GO) build -o bin/mariadb-operator cmd/controller/*.go
 
 .PHONY: docker-build
 docker-build: ## Build docker image.
@@ -21,7 +21,7 @@ docker-dev: docker-build docker-load ## Build and load docker image for local de
 
 .PHONY: build-ent
 build-ent: ## Build the enterprise binary.
-	go build -o bin/mariadb-operator-enterprise cmd/enterprise/*.go
+	$(GO) build -o bin/mariadb-operator-enterprise cmd/enterprise/*.go
 
 .PHONY: docker-build-ent
 docker-build-ent: ## Build the enterprise image.
