@@ -105,9 +105,10 @@ preflight-bundle: preflight ## Run preflight tests on the bundle image and submi
 licenses: go-licenses ## Generate licenses folder.
 	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force
 
+OPENSHIFT_CTX ?= crc-admin
 .PHONY: openshift-ctx
 openshift-ctx: oc ## Sets OpenShift context.
-	$(OC) config use-context crc-admin
+	$(OC) config use-context $(OPENSHIFT_CTX)
 
 OCP_REGISTRY_URL ?= https://index.docker.io/v1/
 .PHONY: openshift-registry
