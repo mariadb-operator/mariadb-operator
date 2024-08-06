@@ -7,6 +7,7 @@ $(LOCALBIN):
 
 ## Tool Binaries
 GO ?= go
+DOCKER ?= docker
 KIND ?= $(LOCALBIN)/kind
 KUBECTL ?= $(LOCALBIN)/kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize

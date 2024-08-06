@@ -23,11 +23,11 @@ cluster-ctx: kubectl ## Sets cluster context.
 
 .PHONY: cluster-ls
 cluster-ps: ## List all cluster Nodes.
-	docker ps --filter="name=$(CLUSTER)-*"
+	$(DOCKER) ps --filter="name=$(CLUSTER)-*"
 
 .PHONY: cluster-workers
 cluster-workers: ## List cluster worker Nodes.
-	docker ps --filter="name=$(CLUSTER)-worker-*"
+	$(DOCKER) ps --filter="name=$(CLUSTER)-worker-*"
 
 .PHONY: cluster-nodes
 cluster-nodes: kind ## Get cluster nodes.
@@ -35,18 +35,18 @@ cluster-nodes: kind ## Get cluster nodes.
 
 .PHONY: stop-control-plane
 stop-control-plane: ## Stop control-plane Node.
-	docker stop $(CLUSTER)-control-plane
+	$(DOCKER) stop $(CLUSTER)-control-plane
 
 .PHONY: start-control-plane
 start-control-plane: ## Start control-plane Node.
-	docker start $(CLUSTER)-control-plane
+	$(DOCKER) start $(CLUSTER)-control-plane
 
 ##@ Registry
 
 .PHONY: registry
 registry: ## Configure registry auth.
 	@for node in $$(make -s cluster-nodes); do \
-		docker cp $(DOCKER_CONFIG) $$node:/var/lib/kubelet/config.json; \
+		$(DOCKER) cp $(DOCKER_CONFIG) $$node:/var/lib/kubelet/config.json; \
 	done
 
 REGISTRY_PULL_SECRET ?= registry
@@ -60,10 +60,10 @@ registry-secret: ## Configure registry pull secret.
 MARIADB_INSTANCE ?= mariadb-galera
 
 stop-mariadb-%: ## Stop mariadb Node
-	docker stop $(shell kubectl get pod "$(MARIADB_INSTANCE)-$*" -o jsonpath="{.spec.nodeName}")
+	$(DOCKER) stop $(shell kubectl get pod "$(MARIADB_INSTANCE)-$*" -o jsonpath="{.spec.nodeName}")
 
 start-mariadb-%: ## Stop mariadb Node
-	docker start $(shell kubectl get pod "$(MARIADB_INSTANCE)-$*" -o jsonpath="{.spec.nodeName}")
+	$(DOCKER) start $(shell kubectl get pod "$(MARIADB_INSTANCE)-$*" -o jsonpath="{.spec.nodeName}")
 
 .PHONY: stop-all-mariadb
 stop-all-mariadb: ## Stop all mariadb Nodes

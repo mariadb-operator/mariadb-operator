@@ -62,7 +62,7 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f Dockerfile.bundle -t $(BUNDLE_IMG) .
+	$(DOCKER) build -f Dockerfile.bundle -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
@@ -70,7 +70,7 @@ bundle-push: ## Push the bundle image.
 
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+	$(OPM) index add --container-tool $(DOCKER) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
 
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
