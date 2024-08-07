@@ -25,6 +25,22 @@ type UserSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
+	// PasswordHashSecretKeyRef is a reference to the password hash to be used by the User.
+	// If both PasswordHashSecretKeyRef and PasswordSecretKeyRef are provided, PasswordHashSecretKeyRef will be used.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordHashSecretKeyRef *corev1.SecretKeySelector `json:"passwordHashSecretKeyRef,omitempty"`
+	// PasswordViaSecretKeyRef is a reference to the authentication plugin to be used by the User.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordViaSecretKeyRef *corev1.SecretKeySelector `json:"passwordViaSecretKeyRef,omitempty"`
+	// PasswordViaUsingSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordViaUsingSecretKeyRef *corev1.SecretKeySelector `json:"passwordViaUsingSecretKeyRef,omitempty"`
 	// MaxUserConnections defines the maximum number of connections that the User can establish.
 	// +optional
 	// +kubebuilder:default=10
@@ -116,6 +132,9 @@ func (u *User) RetryInterval() *metav1.Duration {
 
 // UserPasswordSecretFieldPath is the path related to the password Secret field.
 const UserPasswordSecretFieldPath = ".spec.passwordSecretKeyRef.name"
+const UserPasswordHashSecretFieldPath = ".spec.passwordHashSecretKeyRef.name"
+const UserPasswordViaSecretFieldPath = ".spec.passwordViaSecretKeyRef.name"
+const UserPasswordViaUsingSecretFieldPath = ".spec.passwordViaUsingSecretKeyRef.name"
 
 // IndexerFuncForFieldPath returns an indexer function for a given field path.
 func (m *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
@@ -128,6 +147,39 @@ func (m *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, er
 			}
 			if user.Spec.PasswordSecretKeyRef != nil && user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name != "" {
 				return []string{user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case UserPasswordHashSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordHashSecretKeyRef != nil && user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case UserPasswordViaSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordViaSecretKeyRef != nil && user.Spec.PasswordViaSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordViaSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case UserPasswordViaUsingSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordViaUsingSecretKeyRef != nil && user.Spec.PasswordViaUsingSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordViaUsingSecretKeyRef.LocalObjectReference.Name}
 			}
 			return nil
 		}, nil

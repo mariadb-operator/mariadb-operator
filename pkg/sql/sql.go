@@ -219,8 +219,11 @@ func (c *Client) ExecFlushingPrivileges(ctx context.Context, sql string, args ..
 }
 
 type CreateUserOpts struct {
-	IdentifiedBy       string
-	MaxUserConnections int32
+	IdentifiedBy         string
+	IdentifiedByPassword string
+	IdentifiedVia        string
+	IdentifiedViaUsing   string
+	MaxUserConnections   int32
 }
 
 type CreateUserOpt func(*CreateUserOpts)
@@ -228,6 +231,24 @@ type CreateUserOpt func(*CreateUserOpts)
 func WithIdentifiedBy(password string) CreateUserOpt {
 	return func(cuo *CreateUserOpts) {
 		cuo.IdentifiedBy = password
+	}
+}
+
+func WithIdentifiedByPassword(password string) CreateUserOpt {
+	return func(cuo *CreateUserOpts) {
+		cuo.IdentifiedByPassword = password
+	}
+}
+
+func WithIdentifiedVia(via string) CreateUserOpt {
+	return func(cuo *CreateUserOpts) {
+		cuo.IdentifiedVia = via
+	}
+}
+
+func WithIdentifiedViaUsing(viaUsing string) CreateUserOpt {
+	return func(cuo *CreateUserOpts) {
+		cuo.IdentifiedViaUsing = viaUsing
 	}
 }
 
@@ -244,13 +265,20 @@ func (c *Client) CreateUser(ctx context.Context, accountName string, createUserO
 	}
 
 	query := fmt.Sprintf("CREATE USER IF NOT EXISTS %s ", accountName)
-	if opts.IdentifiedBy != "" {
+	if opts.IdentifiedVia != "" {
+		query += fmt.Sprintf("IDENTIFIED VIA %s ", opts.IdentifiedVia)
+		if opts.IdentifiedViaUsing != "" {
+			query += fmt.Sprintf("USING '%s' ", opts.IdentifiedViaUsing)
+		}
+	} else if opts.IdentifiedByPassword != "" {
+		query += fmt.Sprintf("IDENTIFIED BY PASSWORD '%s' ", opts.IdentifiedByPassword)
+	} else if opts.IdentifiedBy != "" {
 		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
 	}
 	if opts.MaxUserConnections > 0 {
 		query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", opts.MaxUserConnections)
 	}
-	if opts.IdentifiedBy == "" {
+	if opts.IdentifiedBy == "" && opts.IdentifiedByPassword == "" && opts.IdentifiedVia == "" {
 		query += "ACCOUNT LOCK PASSWORD EXPIRE "
 	}
 	query += ";"
@@ -264,8 +292,26 @@ func (c *Client) DropUser(ctx context.Context, accountName string) error {
 	return c.ExecFlushingPrivileges(ctx, query)
 }
 
-func (c *Client) AlterUser(ctx context.Context, accountName, password string) error {
-	query := fmt.Sprintf("ALTER USER '%s' IDENTIFIED BY '%s';", accountName, password)
+func (c *Client) AlterUser(ctx context.Context, accountName string, createUserOpts ...CreateUserOpt) error {
+	opts := CreateUserOpts{}
+	for _, setOpt := range createUserOpts {
+		setOpt(&opts)
+	}
+
+	query := fmt.Sprintf("ALTER USER '%s' ", accountName)
+
+	if opts.IdentifiedVia != "" {
+		query += fmt.Sprintf("IDENTIFIED VIA %s ", opts.IdentifiedVia)
+		if opts.IdentifiedViaUsing != "" {
+			query += fmt.Sprintf("USING '%s' ", opts.IdentifiedViaUsing)
+		}
+	} else if opts.IdentifiedByPassword != "" {
+		query += fmt.Sprintf("IDENTIFIED BY PASSWORD '%s' ", opts.IdentifiedByPassword)
+	} else {
+		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
+	}
+
+	query += ";"
 
 	return c.ExecFlushingPrivileges(ctx, query)
 }

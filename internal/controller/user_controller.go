@@ -103,7 +103,36 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlCl
 	var createUserOpts []sqlClient.CreateUserOpt
 
 	var password string
-	if wr.user.Spec.PasswordSecretKeyRef != nil {
+	var passwordHash string
+	var passwordVia string
+
+	//nolint:nestif
+	if wr.user.Spec.PasswordViaSecretKeyRef != nil {
+		var err error
+		passwordVia, err = wr.refResolver.SecretKeyRef(ctx, *wr.user.Spec.PasswordViaSecretKeyRef, wr.user.Namespace)
+		if err != nil {
+			return fmt.Errorf("error reading user password via secret: %v", err)
+		}
+		createUserOpts = append(createUserOpts, sqlClient.WithIdentifiedVia(passwordVia))
+
+		var passwordViaUsing string
+		if wr.user.Spec.PasswordViaUsingSecretKeyRef != nil {
+			var err error
+			passwordViaUsing, err = wr.refResolver.SecretKeyRef(ctx, *wr.user.Spec.PasswordViaUsingSecretKeyRef, wr.user.Namespace)
+			if err != nil {
+				return fmt.Errorf("error reading user password via using secret: %v", err)
+			}
+			createUserOpts = append(createUserOpts, sqlClient.WithIdentifiedViaUsing(passwordViaUsing))
+		}
+
+	} else if wr.user.Spec.PasswordHashSecretKeyRef != nil {
+		var err error
+		passwordHash, err = wr.refResolver.SecretKeyRef(ctx, *wr.user.Spec.PasswordHashSecretKeyRef, wr.user.Namespace)
+		if err != nil {
+			return fmt.Errorf("error reading user password hash secret: %v", err)
+		}
+		createUserOpts = append(createUserOpts, sqlClient.WithIdentifiedByPassword(passwordHash))
+	} else if wr.user.Spec.PasswordSecretKeyRef != nil {
 		var err error
 		password, err = wr.refResolver.SecretKeyRef(ctx, *wr.user.Spec.PasswordSecretKeyRef, wr.user.Namespace)
 		if err != nil {
@@ -132,8 +161,8 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlCl
 		if err := mdbClient.CreateUser(ctx, accountName, createUserOpts...); err != nil {
 			return fmt.Errorf("error creating User: %v", err)
 		}
-	} else if password != "" {
-		if err := mdbClient.AlterUser(ctx, username, password); err != nil {
+	} else if password != "" || passwordHash != "" || passwordVia != "" {
+		if err := mdbClient.AlterUser(ctx, username, createUserOpts...); err != nil {
 			return fmt.Errorf("error altering User: %v", err)
 		}
 	}

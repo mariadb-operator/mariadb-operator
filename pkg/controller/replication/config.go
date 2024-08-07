@@ -207,7 +207,7 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		return fmt.Errorf("error checking if replication user exists: %v", err)
 	}
 	if exists {
-		if err := client.AlterUser(ctx, opts.username, replPassword); err != nil {
+		if err := client.AlterUser(ctx, opts.username, sqlClient.WithIdentifiedBy(replPassword)); err != nil {
 			return fmt.Errorf("error altering replication user: %v", err)
 		}
 	} else {
