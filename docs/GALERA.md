@@ -14,14 +14,9 @@ To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-ope
 - [Galera cluster recovery](#galera-cluster-recovery)
 - [Wsrep provider](#wsrep-provider)
 - [IPv6 support](#ipv6-support)
+- [Backup and restore](#backup-and-restore)
 - [Quickstart](#quickstart)
 - [Troubleshooting](#troubleshooting)
-  - [Common errors](#common-errors)
-    - [Permission denied writing Galera configuration](#permission-denied-writing-galera-configuration)
-    - [Unauthorized error disabling bootstrap](#unauthorized-error-disabling-bootstrap)
-    - [Timeout waiting for Pod to be Synced](#timeout-waiting-for-pod-to-be-synced)
-    - [Galera cluster bootstrap timed out](#galera-cluster-bootstrap-timed-out)
-  - [GitHub Issues](#github-issues)
 - [Reference](#reference)
 <!-- /toc -->
 
@@ -134,6 +129,10 @@ A list of the available options can be found in the [MariaDB documentation](http
 ## IPv6 support
 
 If you have a Kubernetes cluster running with IPv6, the operator will automatically detect the IPv6 addresses of your `Pods` and it will configure several [wsrep provider](#wsrep-provider) options to ensure that the Galera protocol runs smoothly with IPv6.
+
+## Backup and restore
+
+Please refer to the [backup documentation](./BACKUP.md) to understand how to backup and restore Galera clusters. Specially, make sure you understand the [Galera backup limitations](./BACKUP.md#galera-backup-limitations).
 
 ## Quickstart
 

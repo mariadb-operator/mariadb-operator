@@ -18,10 +18,6 @@ To better understand what MaxScale is capable of you may check the [product page
 ## Table of contents
 <!-- toc -->
 - [MaxScale resources](#maxscale-resources)
-    - [Servers](#servers)
-    - [Monitors](#monitors)
-    - [Services](#services)
-    - [Listeners](#listeners)
 - [<code>MaxScale</code> CR](#maxscale-cr)
 - [<code>MariaDB</code> CR](#mariadb-cr)
 - [<code>MaxScale</code> embedded in <code>MariaDB</code>](#maxscale-embedded-in-mariadb)
@@ -37,8 +33,6 @@ To better understand what MaxScale is capable of you may check the [product page
 - [MaxScale GUI](#maxscale-gui)
 - [MaxScale API](#maxscale-api)
 - [Troubleshooting](#troubleshooting)
-  - [Common errors](#common-errors)
-    - [Permission denied writing <code>/var/lib/maxscale</code>](#permission-denied-writing-varlibmaxscale)
 - [Reference](#reference)
 <!-- /toc -->
 

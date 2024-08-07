@@ -5,8 +5,6 @@ In this guide, we will be configuring a local environment to run `mariadb-operat
 ## Table of contents
 <!-- toc -->
 - [Flavours](#flavours)
-    - [devcontainer](#devcontainer)
-    - [local](#local)
 - [Getting started](#getting-started)
 - [Cluster](#cluster)
 - [Network](#network)

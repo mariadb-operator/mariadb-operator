@@ -68,6 +68,14 @@ helm install mariadb-operator mariadb-operator/mariadb-operator \
   --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
 ```
 
+## Docker images
+
+`mariadb-operator` is only compatible with official [MariaDB Community](https://github.com/MariaDB/mariadb-docker) and [MariaDB Enterprise](https://mariadb.com/docs/server/deploy/deployment-methods/docker/enterprise-server/) server images.
+
+Supported versions:
+- MariaDB Community >= 10.5
+- MariaDB Enterprise >= 10.5
+
 ## Openshift
 
 The Openshift installation is managed separately in the [mariadb-operator-helm](https://github.com/mariadb-operator/mariadb-operator-helm) repository, which contains a [helm based operator](https://sdk.operatorframework.io/docs/building-operators/helm/) that allows you to install `mariadb-operator` via [OLM](https://olm.operatorframework.io/docs/).

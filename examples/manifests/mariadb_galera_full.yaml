@@ -58,7 +58,7 @@ spec:
     providerOptions:
       gcs.fc_limit: '64'
     agent:
-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30
       port: 5555
       kubernetesAuth:
         enabled: true
@@ -71,8 +71,18 @@ spec:
       clusterBootstrapTimeout: 10m
       podRecoveryTimeout: 5m
       podSyncTimeout: 5m
+      job:
+        metadata:
+          labels:
+            sidecar.istio.io/inject: "false"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
     initContainer:
-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30
     initJob:
       metadata:
         labels:

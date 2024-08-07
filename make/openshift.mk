@@ -12,7 +12,7 @@ endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
 BUNDLE_GEN_FLAGS ?= -q --overwrite=false --version $(VERSION) --output-dir $(BUNDLE_DIR) $(BUNDLE_METADATA_OPTS)
-USE_IMAGE_DIGESTS ?= true
+USE_IMAGE_DIGESTS ?= false # TODO: enable image digests
 ifeq ($(USE_IMAGE_DIGESTS), true)
 	BUNDLE_GEN_FLAGS += --use-image-digests
 endif

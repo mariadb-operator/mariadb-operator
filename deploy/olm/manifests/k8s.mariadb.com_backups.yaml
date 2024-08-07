@@ -996,6 +996,10 @@ spec:
                 items:
                   type: string
                 type: array
+              failedJobsHistoryLimit:
+                format: int32
+                minimum: 0
+                type: integer
               ignoreGlobalPriv:
                 description: |-
                   IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups.
@@ -3681,6 +3685,10 @@ spec:
                         type: object
                     type: object
                 type: object
+              successfulJobsHistoryLimit:
+                format: int32
+                minimum: 0
+                type: integer
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
