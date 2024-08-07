@@ -4212,7 +4212,7 @@ The agent validates the legitimacy of the service account token provided as an A
 </tr>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4382,6 +4382,12 @@ The agent validates the legitimacy of the service account token provided as an A
 <td><code>secondaryConnection</code> <em><a href="#connectiontemplate">ConnectionTemplate</a></em></td>
 <td>SecondaryConnection defines templates to configure the secondary Connection object.</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>suspend</code> <em>boolean</em></td>
+<td></td>
+<td>false</td>
 <td></td>
 </tr>
 </tbody>
@@ -4709,7 +4715,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4791,7 +4797,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4896,7 +4902,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -5064,12 +5070,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
 <td>TopologySpreadConstraints to be used in the Pod.</td>
 <td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
-<td>false</td>
 <td></td>
 </tr>
 <tr>
@@ -6324,8 +6324,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 - <a href="#mariadbspec">MariaDBSpec</a>
 - <a href="#maxscalelistener">MaxScaleListener</a>
 - <a href="#maxscalemonitor">MaxScaleMonitor</a>
-- <a href="#maxscaleservice">MaxScaleService</a>
-- <a href="#maxscalespec">MaxScaleSpec</a></p>
+- <a href="#maxscaleservice">MaxScaleService</a></p>
 <table>
 <thead>
 <tr>
@@ -6338,7 +6337,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
