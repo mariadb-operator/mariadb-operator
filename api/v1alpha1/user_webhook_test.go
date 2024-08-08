@@ -15,6 +15,20 @@ var _ = Describe("User webhook", Ordered, func() {
 			Name:      "user-create-webhook",
 			Namespace: testNamespace,
 		}
+		PasswordPlugin := PasswordPluginSpec{
+			PluginNameSecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "user-mariadb-webhook-root",
+				},
+				Key: "pluginName",
+			},
+			PluginArgSecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "user-mariadb-webhook-root",
+				},
+				Key: "pluginArg",
+			},
+		}
 		BeforeAll(func() {
 			user := User{
 				ObjectMeta: metav1.ObjectMeta{
@@ -75,6 +89,37 @@ var _ = Describe("User webhook", Ordered, func() {
 					umdb.Spec.MaxUserConnections = 20
 				},
 				true,
+			),
+			Entry(
+				"Duplicate authentication methods",
+				func(umdb *User) {
+					umdb.Spec.PasswordHashSecretKeyRef = umdb.Spec.PasswordSecretKeyRef
+				},
+				true,
+			),
+			Entry(
+				"Duplicate authentication methods",
+				func(umdb *User) {
+					umdb.Spec.PasswordPlugin = PasswordPlugin
+				},
+				true,
+			),
+			Entry(
+				"Updating PasswordPlugin",
+				func(umdb *User) {
+					umdb.Spec.PasswordSecretKeyRef = nil
+					umdb.Spec.PasswordPlugin = PasswordPlugin
+				},
+				false,
+			),
+			Entry(
+				"Updating PasswordPlugin.PluginArgSecretKeyRef",
+				func(umdb *User) {
+					umdb.Spec.PasswordSecretKeyRef = nil
+					umdb.Spec.PasswordPlugin = PasswordPlugin
+					umdb.Spec.PasswordPlugin.PluginArgSecretKeyRef.Name = "another-secret"
+				},
+				false,
 			),
 		)
 	})
