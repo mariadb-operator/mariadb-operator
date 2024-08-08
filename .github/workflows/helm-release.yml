@@ -17,7 +17,7 @@ jobs:
 
       - name: Tag
         id: tag
-        run: echo "name=helm-chart-$(make helm-chart-version)" >> $GITHUB_OUTPUT
+        run: echo "name=helm-chart-$(make helm-version)" >> $GITHUB_OUTPUT
 
       - name: Generate manifests bundle
         run: make manifests-bundle

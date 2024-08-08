@@ -13,6 +13,7 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -25,6 +26,34 @@ var _ = Describe("MariaDB", func() {
 		By("Waiting for MariaDB to be ready")
 		expectMariadbReady(testCtx, k8sClient, testMdbkey)
 	})
+
+	DescribeTable(
+		"should render default config",
+		func(mariadb *mariadbv1alpha1.MariaDB, expectedConfig string) {
+			config, err := defaultConfig(mariadb)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(config).To(BeEquivalentTo(expectedConfig))
+		},
+		Entry(
+			"no timezone",
+			&mariadbv1alpha1.MariaDB{},
+			`[mariadb]
+skip-name-resolve
+`,
+		),
+		Entry(
+			"timezone",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TimeZone: ptr.To("UTC"),
+				},
+			},
+			`[mariadb]
+skip-name-resolve
+default_time_zone = UTC
+`,
+		),
+	)
 
 	It("should default", func() {
 		By("Creating MariaDB")
@@ -55,6 +84,48 @@ var _ = Describe("MariaDB", func() {
 			}
 			return testDefaultMariaDb.Spec.Image != ""
 		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should suspend ", func() {
+		By("Creating MariaDB")
+		testSuspendKey := types.NamespacedName{
+			Name:      "test-mariadb-suspend",
+			Namespace: testNamespace,
+		}
+		testSuspendMariaDB := mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testSuspendKey.Name,
+				Namespace: testSuspendKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &testSuspendMariaDB)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariaDB(&testSuspendMariaDB)
+		})
+
+		By("Suspend MariaDB")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, testSuspendKey, &testSuspendMariaDB); err != nil {
+				return false
+			}
+			testSuspendMariaDB.Spec.Suspend = true
+
+			return k8sClient.Update(testCtx, &testSuspendMariaDB) == nil
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to eventually be suspended")
+		expectMariadbFn(testCtx, k8sClient, testSuspendKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			condition := meta.FindStatusCondition(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReady)
+			if condition == nil {
+				return false
+			}
+			return condition.Status == metav1.ConditionFalse && condition.Reason == mariadbv1alpha1.ConditionReasonSuspended
+		})
 	})
 
 	It("should reconcile", func() {
@@ -89,7 +160,7 @@ var _ = Describe("MariaDB", func() {
 			g.Expect(cm.ObjectMeta.Labels).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 			g.Expect(cm.ObjectMeta.Annotations).NotTo(BeNil())
 			g.Expect(cm.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
-			g.Expect(cm.Data).To(HaveKeyWithValue("0-default.cnf", "[mariadb]\nskip-name-resolve\ndefault_time_zone = 'UTC'\n"))
+			g.Expect(cm.Data).To(HaveKeyWithValue("0-default.cnf", "[mariadb]\nskip-name-resolve\n"))
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
 

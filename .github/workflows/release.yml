@@ -153,6 +153,14 @@ jobs:
       - name: Preflight operator image
         run: make preflight-image-submit
         env:
+          IMG_ENT: mariadb/mariadb-operator-enterprise:${{ needs.args.outputs.TAG }}
+          REDHAT_API_KEY: "${{ secrets.REDHAT_API_KEY }}"
+          REDHAT_PROJECT_ID: "${{ secrets.REDHAT_PROJECT_ID }}"
+
+      - name: Preflight operator image - latest
+        run: make preflight-image-submit
+        env:
+          IMG_ENT: mariadb/mariadb-operator-enterprise:latest
           REDHAT_API_KEY: "${{ secrets.REDHAT_API_KEY }}"
           REDHAT_PROJECT_ID: "${{ secrets.REDHAT_PROJECT_ID }}"
   
@@ -183,44 +191,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    needs: 
-      - args
-      - release
-      - release-ent
-      - goreleaser
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Dispatch docs workflow
-        run: |
-          gh workflow run docs.yaml \
-            --repo mariadb-operator/mariadb-operator \
-            -f version=${{ needs.args.outputs.TAG }} alias=latest
-        env:
-          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
-
   helm:
     name: Helm
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     needs: 
       - args
       - release
       - release-ent
       - goreleaser
-      - docs
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: "${{ secrets.GHA_TOKEN }}"
 
       - name: Configure Git
         run: |
@@ -230,32 +214,16 @@ jobs:
       - name: Helm version
         id: version
         run: |
-          VERSION=$(make helm-version-bump)
-          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "VERSION=$(make helm-version-bump)" >> $GITHUB_OUTPUT
       
       - name: Helm generate
         run: make helm-gen
 
       - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Updated helm chart (${{ steps.version.outputs.VERSION }})
-          commit_author: Martin Montes <martin11lrx@gmail.com>
-          branch: helm-${{ steps.version.outputs.VERSION }}-update
-          create_branch: true
-  
-      - name: Create pull request
         run: |
-          gh pr create \
-            -B ${{ github.event.repository.default_branch }} \
-            -H helm-${{ steps.version.outputs.VERSION }}-update \
-            --title 'Updated helm chart (${{ steps.version.outputs.VERSION }})' \
-            --body 'Automatically created by GitHub actions.'
-          gh pr merge \
-            helm-${{ steps.version.outputs.VERSION }}-update \
-            --auto --rebase --delete-branch  
-        env:
-          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
+          git add .
+          git commit -am "Updated helm chart (${{ steps.version.outputs.VERSION }})"
+          git push
 
   olm:
     name: OLM
@@ -282,5 +250,27 @@ jobs:
         run: |
           git tag "olm-${{ needs.args.outputs.VERSION }}"
           git push --tags
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    needs: 
+      - args
+      - release
+      - release-ent
+      - goreleaser
+      - helm
+      - olm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Dispatch docs workflow
+        run: |
+          gh workflow run docs.yaml \
+            --repo mariadb-operator/mariadb-operator \
+            -f version=${{ needs.args.outputs.TAG }} alias=latest
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"

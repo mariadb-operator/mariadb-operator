@@ -58,14 +58,6 @@ func (m *MaxScaleServer) SetDefaults() {
 	}
 }
 
-// SuspendTemplate indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
-type SuspendTemplate struct {
-	// Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Suspend bool `json:"suspend,omitempty"`
-}
-
 // MonitorModule defines the type of monitor module
 type MonitorModule string
 
@@ -98,7 +90,7 @@ const (
 
 // MaxScaleMonitor monitors MariaDB server instances
 type MaxScaleMonitor struct {
-	// SuspendTemplate defines how a resource can be suspended.
+	// SuspendTemplate defines how a resource can be suspended. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
@@ -145,7 +137,7 @@ func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
 
 // MaxScaleListener defines how the MaxScale server will listen for connections.
 type MaxScaleListener struct {
-	// SuspendTemplate defines how a resource can be suspended.
+	// SuspendTemplate defines how a resource can be suspended. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
@@ -191,7 +183,7 @@ const (
 
 // Services define how the traffic is forwarded to the MariaDB servers.
 type MaxScaleService struct {
-	// SuspendTemplate defines how a resource can be suspended.
+	// SuspendTemplate defines how a resource can be suspended. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
@@ -493,6 +485,10 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodTemplate `json:",inline"`
+	// SuspendTemplate defines whether the MaxScale reconciliation loop is enabled. This can be useful for maintenance, as disabling the reconciliation loop prevents the operator from interfering with user operations during maintenance activities.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SuspendTemplate `json:",inline"`
 	// MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -771,6 +767,11 @@ func (m *MaxScale) IsReady() bool {
 // IsHAEnabled indicated whether high availability is enabled.
 func (m *MaxScale) IsHAEnabled() bool {
 	return m.Spec.Replicas > 1
+}
+
+// IsSuspended whether a MaxScale is suspended.
+func (m *MaxScale) IsSuspended() bool {
+	return m.Spec.Suspend
 }
 
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled

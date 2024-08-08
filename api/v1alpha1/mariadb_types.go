@@ -340,6 +340,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodTemplate `json:",inline"`
+	// SuspendTemplate defines whether the MariaDB reconciliation loop is enabled. This can be useful for maintenance, as disabling the reconciliation loop prevents the operator from interfering with user operations during maintenance activities.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SuspendTemplate `json:",inline"`
 	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
 	// Only MariaDB official images are supported.
 	// +optional
@@ -386,6 +390,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty"`
+	// TimeZone sets the default timezone. If not provided, it defaults to SYSTEM and the timezone data is not loaded.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	TimeZone *string `json:"timeZone,omitempty" webhook:"inmutable"`
 	// BootstrapFrom defines a source to bootstrap from.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -673,6 +681,11 @@ func (m *MariaDB) IsUpdating() bool {
 		return false
 	}
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonUpdating
+}
+
+// IsSuspended whether a MariaDB is suspended.
+func (m *MariaDB) IsSuspended() bool {
+	return m.Spec.Suspend
 }
 
 const (

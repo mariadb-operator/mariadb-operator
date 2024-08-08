@@ -22,18 +22,12 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
-      - name: Login DockerHub
+      - name: Login Docker MariaDB
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login GAR
-        uses: docker/login-action@v3
-        with:
-          registry: us-central1-docker.pkg.dev
-          username: _json_key
-          password: ${{ secrets.GAR_JSON_KEY }}
+          registry: docker-registry.mariadb.com
+          username: ${{ secrets.DOCKER_MARIADB_USER }}
+          password: ${{ secrets.DOCKER_MARIADB_PASSWORD }}
 
       - name: Cluster
         run: |
@@ -43,7 +37,7 @@ jobs:
           make install-minio
           make net
 
-      - name: Test
-        run: make test-ent
+      - name: Integration tests enterprise
+        run: make test-int-ent
         env:
           RELATED_IMAGE_MARIADB_ENT: "${{ inputs.mariadb_image }}"

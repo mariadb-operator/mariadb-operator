@@ -12,7 +12,7 @@ docs-api: crd-ref-docs ## Generate API reference docs.
 docs-gen: docs-api ## Generate documentation.
 
 DOCS_IMG ?= mariadb-operator/docs:0.0.1
-DOCS_RUN ?= docker run --rm \
+DOCS_RUN ?= $(DOCKER) run --rm \
 	-u $(shell id -u):$(shell id -g) \
 	-v $(shell pwd):/docs \
 	-p 8000:8000 \
@@ -24,7 +24,7 @@ MIKE ?= $(DOCS_RUN) mike
 
 .PHONY: docs-image
 docs-image: ## Build a new docs image
-	docker build -t $(DOCS_IMG) -f docs/Dockerfile docs
+	$(DOCKER) build -t $(DOCS_IMG) -f docs/Dockerfile docs
 
 .PHONY: docs-new
 docs-new: docs-image ## Create new documentation site.

@@ -5,9 +5,12 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -1152,6 +1155,402 @@ func TestInitJobMeta(t *testing.T) {
 	}
 }
 
+func TestGaleraRecoveryJobMeta(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "recovery-obj",
+	}
+	mariadbObjMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name        string
+		mariadb     *mariadbv1alpha1.MariaDB
+		recoveryJob *mariadbv1alpha1.GaleraRecoveryJob
+		wantJobMeta *mariadbv1alpha1.Metadata
+		wantPodMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "inherit meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "extra meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{
+				Metadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "Pod meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "override Pod meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{
+				Metadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "true",
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "true",
+				},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "true",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "all",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+				},
+			},
+			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{},
+				Annotations: map[string]string{
+					"database.myorg.io":       "mariadb",
+					"sidecar.istio.io/inject": "false",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io":       "mariadb",
+					"sidecar.istio.io/inject": "false",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, tt.recoveryJob, 0)
+			if err != nil {
+				t.Fatalf("unexpected error building Galera recovery Job: %v", err)
+			}
+			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+		})
+	}
+}
+
+func TestGaleraRecoveryJobVolumes(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "job-obj",
+	}
+	objMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name        string
+		mariadb     *mariadbv1alpha1.MariaDB
+		wantVolumes []string
+	}{
+		{
+			name: "galera",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						},
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
+								VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+									PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+										Resources: corev1.VolumeResourceRequirements{
+											Requests: corev1.ResourceList{
+												"storage": resource.MustParse("1Gi"),
+											},
+										},
+										AccessModes: []corev1.PersistentVolumeAccessMode{
+											corev1.ReadWriteOnce,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantVolumes: []string{StorageVolume, galeraresources.GaleraConfigVolume},
+		},
+		{
+			name: "galera resuse storage",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+							},
+						},
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
+								ReuseStorageVolume: ptr.To(true),
+							},
+						},
+					},
+				},
+			},
+			wantVolumes: []string{StorageVolume},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, nil, 0)
+			if err != nil {
+				t.Errorf("unexpected error building Galera recovery Job: %v", err)
+			}
+			for _, wantVolume := range tt.wantVolumes {
+				if !hasVolumePVC(job.Spec.Template.Spec.Volumes, wantVolume) {
+					t.Errorf("expecting Volume PVC \"%s\", but it was not found", wantVolume)
+				}
+			}
+		})
+	}
+}
+
+func TestGaleraRecoveryJobAffinity(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "job-obj",
+	}
+	objMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name    string
+		mariadb *mariadbv1alpha1.MariaDB
+	}{
+		{
+			name: "no mariadb affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+		},
+		{
+			name: "mariadb affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						Affinity: &mariadbv1alpha1.AffinityConfig{
+							AntiAffinityEnabled: ptr.To(true),
+						},
+						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+							{
+								MaxSkew:     1,
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, nil, 0)
+			if err != nil {
+				t.Errorf("unexpected error building Galera recovery Job: %v", err)
+			}
+			if job.Spec.Template.Spec.Affinity != nil {
+				t.Error("expected Galera recovery Job to not have affinity")
+			}
+			if job.Spec.Template.Spec.TopologySpreadConstraints != nil {
+				t.Error("expected Galera recovery Job to not have topologySpreadConstraints")
+			}
+		})
+	}
+}
+
 func TestSqlJobMeta(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
@@ -1329,4 +1728,13 @@ func TestSqlJobMeta(t *testing.T) {
 			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
+}
+
+func hasVolumePVC(volumes []corev1.Volume, volumeName string) bool {
+	for _, v := range volumes {
+		if v.PersistentVolumeClaim != nil && v.Name == volumeName {
+			return true
+		}
+	}
+	return false
 }

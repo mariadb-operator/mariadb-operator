@@ -62,7 +62,7 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f Dockerfile.bundle -t $(BUNDLE_IMG) .
+	$(DOCKER) build -f Dockerfile.bundle -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
@@ -70,7 +70,7 @@ bundle-push: ## Push the bundle image.
 
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+	$(OPM) index add --container-tool $(DOCKER) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
 
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
@@ -105,9 +105,10 @@ preflight-bundle: preflight ## Run preflight tests on the bundle image and submi
 licenses: go-licenses ## Generate licenses folder.
 	$(GO_LICENSES) save ./... --save_path=licenses/go-licenses --force
 
+OPENSHIFT_CTX ?= crc-admin
 .PHONY: openshift-ctx
 openshift-ctx: oc ## Sets OpenShift context.
-	$(OC) config use-context crc-admin
+	$(OC) config use-context $(OPENSHIFT_CTX)
 
 OCP_REGISTRY_URL ?= https://index.docker.io/v1/
 .PHONY: openshift-registry
@@ -122,7 +123,7 @@ openshift-registry-add: oc jq ## Add catalog registry in OpenShift global config
 .PHONY: openshift-registry
 openshift-registry: openshift-ctx ## Setup registries in OpenShift global config.
 	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=https://index.docker.io/v1/
-	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=us-central1-docker.pkg.dev
+	$(MAKE) openshift-registry-add OCP_REGISTRY_URL=docker-registry.mariadb.com
 
 CERTIFIED_REPO ?= "https://github.com/mariadb-operator/certified-operators"
 CERTIFIED_BRANCH ?= cert-test

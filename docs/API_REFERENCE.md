@@ -62,8 +62,6 @@ Backup is the Schema for the backups API. It is used to define backup jobs and i
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Backup` | | |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[BackupSpec](#backupspec)_ |  |  |  |
 
@@ -102,6 +100,8 @@ _Appears in:_
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully take a Backup. |  |  |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
+| `successfulJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
+| `failedJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
 
 
 #### BackupStorage
@@ -156,8 +156,6 @@ Connection is the Schema for the connections API. It is used to configure connec
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Connection` | | |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ConnectionSpec](#connectionspec)_ |  |  |  |
 
@@ -300,8 +298,6 @@ Database is the Schema for the databases API. It is used to define a logical dat
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Database` | | |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[DatabaseSpec](#databasespec)_ |  |  |  |
 
@@ -462,8 +458,27 @@ _Appears in:_
 | `clusterMonitorInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterMonitorInterval represents the interval used to monitor the Galera cluster health. |  |  |
 | `clusterHealthyTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,<br />is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator. |  |  |
 | `clusterBootstrapTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterBootstrapTimeout is the time limit for bootstrapping a cluster.<br />Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted. |  |  |
-| `podRecoveryTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.<br />Once this timeout is reached, the Pod is restarted. |  |  |
-| `podSyncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.<br />Once this timeout is reached, the Pod is restarted. |  |  |
+| `podRecoveryTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery. |  |  |
+| `podSyncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery. |  |  |
+| `forceClusterBootstrapInPod` _string_ | ForceClusterBootstrapInPod allows you to manually initiate the bootstrap process in a specific Pod.<br />IMPORTANT: Use this option only in exceptional circumstances. Not selecting the Pod with the highest sequence number may result in data loss.<br />IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery. |  |  |
+| `job` _[GaleraRecoveryJob](#galerarecoveryjob)_ | Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster. |  |  |
+
+
+#### GaleraRecoveryJob
+
+
+
+GaleraRecoveryJob defines a Job used to be used to recover the Galera cluster.
+
+
+
+_Appears in:_
+- [GaleraRecovery](#galerarecovery)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |  |  |
 
 
 #### GaleraSpec
@@ -508,7 +523,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ | Name of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br />TODO: Add other useful fields. apiVersion, kind, uid? |  |  |
+| `name` _string_ | Name of the referent.<br />This field is effectively required, but due to backwards compatibility is<br />allowed to be empty. Instances of this type with an empty value here are<br />almost certainly wrong.<br />TODO: Add other useful fields. apiVersion, kind, uid?<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br />TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896. |  |  |
 | `key` _string_ | The key of the secret to select from.  Must be a valid secret key. |  |  |
 | `optional` _boolean_ | Specify whether the Secret or its key must be defined |  |  |
 | `generate` _boolean_ | Generate indicates whether the Secret should be generated if the Secret referenced is not present. | false |  |
@@ -528,8 +543,6 @@ Grant is the Schema for the grants API. It is used to define grants as if you we
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Grant` | | |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[GrantSpec](#grantspec)_ |  |  |  |
 
@@ -688,8 +701,6 @@ MariaDB is the Schema for the mariadbs API. It is used to define MariaDB cluster
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `MariaDB` | | |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[MariaDBSpec](#mariadbspec)_ |  |  |  |
 
@@ -789,6 +800,7 @@ _Appears in:_
 | `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.<br />Only MariaDB official images are supported. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
@@ -799,6 +811,7 @@ _Appears in:_
 | `passwordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
 | `myCnf` _string_ | MyCnf allows to specify the my.cnf file mounted by Mariadb.<br />Updating this field will trigger an update to the Mariadb resource. |  |  |
 | `myCnfConfigMapKeyRef` _[ConfigMapKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core)_ | MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.<br />If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.<br />If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated. |  |  |
+| `timeZone` _string_ | TimeZone sets the default timezone. If not provided, it defaults to SYSTEM and the timezone data is not loaded. |  |  |
 | `bootstrapFrom` _[BootstrapFrom](#bootstrapfrom)_ | BootstrapFrom defines a source to bootstrap from. |  |  |
 | `storage` _[Storage](#storage)_ | Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB. |  |  |
 | `metrics` _[MariadbMetrics](#mariadbmetrics)_ | Metrics configures metrics and how to scrape them. |  |  |
@@ -816,6 +829,7 @@ _Appears in:_
 | `primaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | PrimaryConnection defines templates to configure the primary Connection object. |  |  |
 | `secondaryService` _[ServiceTemplate](#servicetemplate)_ | SecondaryService defines templates to configure the secondary Service object. |  |  |
 | `secondaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | SecondaryConnection defines templates to configure the secondary Connection object. |  |  |
+| `suspend` _boolean_ |  | false |  |
 
 
 #### MariadbMetrics
@@ -852,8 +866,6 @@ MaxScale is the Schema for the maxscales API. It is used to define MaxScale clus
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `MaxScale` | | |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[MaxScaleSpec](#maxscalespec)_ |  |  |  |
 
@@ -960,7 +972,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |  |  |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `name` _string_ | Name is the identifier of the listener. It is defaulted if not provided |  |  |
 | `port` _integer_ | Port is the network port where the MaxScale server will listen. |  | Required: {} <br /> |
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol. |  |  |
@@ -1000,7 +1012,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |  |  |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `name` _string_ | Name is the identifier of the monitor. It is defaulted if not provided. |  |  |
 | `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. It is mandatory when no MariaDB reference is provided. |  |  |
 | `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. It is defaulted if not provided. |  |  |
@@ -1043,7 +1055,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |  |  |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `name` _string_ | Name is the identifier of the MaxScale service. |  | Required: {} <br /> |
 | `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |  | Enum: [readwritesplit readconnroute] <br />Required: {} <br /> |
 | `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |  | Required: {} <br /> |
@@ -1115,6 +1127,7 @@ Metadata defines the metadata to added to resources.
 _Appears in:_
 - [BackupSpec](#backupspec)
 - [Exporter](#exporter)
+- [GaleraRecoveryJob](#galerarecoveryjob)
 - [Job](#job)
 - [JobPodTemplate](#jobpodtemplate)
 - [MariaDBSpec](#mariadbspec)
@@ -1290,17 +1303,6 @@ _Appears in:_
 | `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
 
 
-#### ReplicationState
-
-_Underlying type:_ _string_
-
-
-
-
-
-_Appears in:_
-- [ReplicationStatus](#replicationstatus)
-
 
 
 #### Restore
@@ -1317,8 +1319,6 @@ Restore is the Schema for the restores API. It is used to define restore jobs an
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Restore` | | |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[RestoreSpec](#restorespec)_ |  |  |  |
 
@@ -1552,8 +1552,6 @@ SqlJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `SqlJob` | | |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SqlJobSpec](#sqljobspec)_ |  |  |  |
 
@@ -1593,6 +1591,8 @@ _Appears in:_
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob. | 5 |  |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the SqlJob Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
+| `successfulJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
+| `failedJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
 
 
 #### Storage
@@ -1620,18 +1620,19 @@ _Appears in:_
 
 
 
-SuspendTemplate indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
+SuspendTemplate indicates whether the current resource should be suspended or not.
 
 
 
 _Appears in:_
+- [MariaDBSpec](#mariadbspec)
 - [MaxScaleListener](#maxscalelistener)
 - [MaxScaleMonitor](#maxscalemonitor)
 - [MaxScaleService](#maxscaleservice)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this. |  |  |
+| `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities. | false |  |
 
 
 #### TLS
@@ -1695,8 +1696,6 @@ User is the Schema for the users API.  It is used to define grants as if you wer
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `User` | | |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[UserSpec](#userspec)_ |  |  |  |
 
@@ -1746,7 +1745,7 @@ _Appears in:_
 | `volumeMode` _[PersistentVolumeMode](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#persistentvolumemode-v1-core)_ | volumeMode defines what type of volume is required by the claim.<br />Value of Filesystem is implied when not included in claim spec. |  |  |
 | `dataSource` _[TypedLocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#typedlocalobjectreference-v1-core)_ | dataSource field can be used to specify either:<br />* An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot)<br />* An existing PVC (PersistentVolumeClaim)<br />If the provisioner or an external controller can support the specified data source,<br />it will create a new volume based on the contents of the specified data source.<br />When the AnyVolumeDataSource feature gate is enabled, dataSource contents will be copied to dataSourceRef,<br />and dataSourceRef contents will be copied to dataSource when dataSourceRef.namespace is not specified.<br />If the namespace is specified, then dataSourceRef will not be copied to dataSource. |  |  |
 | `dataSourceRef` _[TypedObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#typedobjectreference-v1-core)_ | dataSourceRef specifies the object from which to populate the volume with data, if a non-empty<br />volume is desired. This may be any object from a non-empty API group (non<br />core object) or a PersistentVolumeClaim object.<br />When this field is specified, volume binding will only succeed if the type of<br />the specified object matches some installed volume populator or dynamic<br />provisioner.<br />This field will replace the functionality of the dataSource field and as such<br />if both fields are non-empty, they must have the same value. For backwards<br />compatibility, when namespace isn't specified in dataSourceRef,<br />both fields (dataSource and dataSourceRef) will be set to the same<br />value automatically if one of them is empty and the other is non-empty.<br />When namespace is specified in dataSourceRef,<br />dataSource isn't set to the same value and must be empty.<br />There are three important differences between dataSource and dataSourceRef:<br />* While dataSource only allows two specific types of objects, dataSourceRef<br />  allows any non-core object, as well as PersistentVolumeClaim objects.<br />* While dataSource ignores disallowed values (dropping them), dataSourceRef<br />  preserves all values, and generates an error if a disallowed value is<br />  specified.<br />* While dataSource only allows local objects, dataSourceRef allows objects<br />  in any namespaces.<br />(Beta) Using this field requires the AnyVolumeDataSource feature gate to be enabled.<br />(Alpha) Using the namespace field of dataSourceRef requires the CrossNamespaceVolumeDataSource feature gate to be enabled. |  |  |
-| `volumeAttributesClassName` _string_ | volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.<br />If specified, the CSI driver will create or update the volume with the attributes defined<br />in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,<br />it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass<br />will be applied to the claim but it's not allowed to reset this field to empty string once it is set.<br />If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass<br />will be set by the persistentvolume controller if it exists.<br />If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be<br />set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource<br />exists.<br />More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#volumeattributesclass<br />(Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled. |  |  |
+| `volumeAttributesClassName` _string_ | volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.<br />If specified, the CSI driver will create or update the volume with the attributes defined<br />in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,<br />it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass<br />will be applied to the claim but it's not allowed to reset this field to empty string once it is set.<br />If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass<br />will be set by the persistentvolume controller if it exists.<br />If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be<br />set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource<br />exists.<br />More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/<br />(Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled. |  |  |
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 
 

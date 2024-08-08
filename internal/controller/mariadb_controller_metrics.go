@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"text/template"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -212,8 +211,4 @@ func (r *MariaDBReconciler) reconcileServiceMonitor(ctx context.Context, mariadb
 		return fmt.Errorf("error building Service Monitor: %v", err)
 	}
 	return r.ServiceMonitorReconciler.Reconcile(ctx, desiredSvcMonitor)
-}
-
-func createTpl(name, t string) *template.Template {
-	return template.Must(template.New(name).Parse(t))
 }

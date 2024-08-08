@@ -198,3 +198,12 @@ func SetReadyStorageResized(c Conditioner) {
 		Message: "Storage resized",
 	})
 }
+
+func SetReadySuspended(c Conditioner) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonSuspended,
+		Message: "Suspended",
+	})
+}

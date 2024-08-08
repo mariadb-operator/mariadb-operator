@@ -166,6 +166,14 @@ func (m *MariaDB) InitKey() types.NamespacedName {
 	}
 }
 
+// RecoveryJobKey defines the key for a Galera recovery Job
+func (m *MariaDB) RecoveryJobKey(podName string) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-recovery", podName),
+		Namespace: m.Namespace,
+	}
+}
+
 // PVCKey defines the PVC keys.
 func (m *MariaDB) PVCKey(name string, index int) types.NamespacedName {
 	return types.NamespacedName{

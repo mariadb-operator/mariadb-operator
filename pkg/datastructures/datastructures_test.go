@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"k8s.io/utils/ptr"
 )
 
 func TestDataStructures(t *testing.T) {
@@ -197,6 +199,43 @@ func TestUnique(t *testing.T) {
 			elements := Unique(tt.wantElements...)
 			if !reflect.DeepEqual(elements, tt.wantElements) {
 				t.Errorf("expecting unique elements to be:\n%v\ngot:\n%v\n", tt.wantElements, elements)
+			}
+		})
+	}
+}
+
+func TestFind(t *testing.T) {
+	tests := []struct {
+		name        string
+		elements    []string
+		fn          func(string) bool
+		wantElement *string
+	}{
+		{
+			name:        "empty",
+			elements:    nil,
+			fn:          nil,
+			wantElement: nil,
+		},
+		{
+			name:        "not found",
+			elements:    []string{"a", "b", "c"},
+			fn:          func(s string) bool { return s == "d" },
+			wantElement: nil,
+		},
+		{
+			name:        "found",
+			elements:    []string{"a", "b", "c"},
+			fn:          func(s string) bool { return s == "b" },
+			wantElement: ptr.To("b"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			element := Find(tt.elements, tt.fn)
+			if !reflect.DeepEqual(element, tt.wantElement) {
+				t.Errorf("expecting Find returned value to be:\n%v\ngot:\n%v\n", tt.wantElement, element)
 			}
 		})
 	}

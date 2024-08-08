@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"text/template"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -92,6 +94,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=endpoints,verbs=create;patch;get;list;watch
 //+kubebuilder:rbac:groups="",resources=endpoints/restricted,verbs=create;patch;get;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;delete
+//+kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
@@ -111,7 +114,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
 	phases := []reconcilePhaseMariaDB{
 		{
 			Name:      "Spec",
@@ -120,6 +122,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Status",
 			Reconcile: r.reconcileStatus,
+		},
+		{
+			Name:      "Suspend",
+			Reconcile: r.reconcileSuspend,
 		},
 		{
 			Name:      "Secret",
@@ -255,6 +261,11 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 
 func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	defaultConfigMapKeyRef := mariadb.DefaultConfigMapKeyRef()
+	config, err := defaultConfig(mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting default config: %v", err)
+	}
+
 	req := configmap.ReconcileRequest{
 		Metadata: mariadb.Spec.InheritMetadata,
 		Owner:    mariadb,
@@ -263,10 +274,7 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 			Namespace: mariadb.Namespace,
 		},
 		Data: map[string]string{
-			defaultConfigMapKeyRef.Key: `[mariadb]
-skip-name-resolve
-default_time_zone = 'UTC'
-`,
+			defaultConfigMapKeyRef.Key: config,
 		},
 	}
 	if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
@@ -775,6 +783,14 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 	})
 }
 
+func (r *MariaDBReconciler) reconcileSuspend(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mariadb.IsSuspended() {
+		log.FromContext(ctx).V(1).Info("MariaDB is suspended. Skipping...")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if !mariadb.IsInitialDataEnabled() {
 		return ctrl.Result{}, nil
@@ -936,4 +952,28 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	}
 
 	return builder.Complete(r)
+}
+
+func defaultConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
+	tpl := createTpl("0-default.cnf", `[mariadb]
+skip-name-resolve
+{{- with .TimeZone }}
+default_time_zone = {{ . }}
+{{- end }}
+`)
+
+	buf := new(bytes.Buffer)
+	err := tpl.Execute(buf, struct {
+		TimeZone *string
+	}{
+		TimeZone: mariadb.Spec.TimeZone,
+	})
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func createTpl(name, t string) *template.Template {
+	return template.Must(template.New(name).Parse(t))
 }

@@ -37,7 +37,6 @@ var (
 	kubernetesAuth             bool
 	kubernetesTrustedName      string
 	kubernetesTrustedNamespace string
-	recoveryTimeout            time.Duration
 	gracefulShutdownTimeout    time.Duration
 )
 
@@ -56,8 +55,6 @@ func init() {
 	RootCmd.Flags().StringVar(&kubernetesTrustedName, "kubernetes-trusted-name", "", "Trusted Kubernetes ServiceAccount name to be verified")
 	RootCmd.Flags().StringVar(&kubernetesTrustedNamespace, "kubernetes-trusted-namespace", "", "Trusted Kubernetes ServiceAccount "+
 		"namespace to be verified")
-	RootCmd.Flags().DurationVar(&recoveryTimeout, "recovery-timeout", 1*time.Minute, "Timeout to obtain sequence number "+
-		"during the Galera cluster recovery process")
 	RootCmd.Flags().DurationVar(&gracefulShutdownTimeout, "graceful-shutdown-timeout", 5*time.Second, "Timeout to gracefully terminate "+
 		"in-flight requests")
 }
@@ -102,7 +99,6 @@ var RootCmd = &cobra.Command{
 			fileManager,
 			state,
 			&handlerLogger,
-			handler.WithRecoveryTimeout(recoveryTimeout),
 		)
 
 		routerOpts := []router.Option{

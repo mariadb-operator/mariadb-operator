@@ -8,7 +8,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: sysbench-prepare
-        image: severalnines/sysbench
+        image: zyclonite/sysbench:1.0.21
         command:
           - sysbench 
           - oltp_read_write 
@@ -22,8 +22,7 @@ spec:
           - prepare
         resources:
           requests:
-            cpu: 100m
+            cpu: 500m
             memory: 128Mi
           limits:
-            cpu: 300m
             memory: 512Mi

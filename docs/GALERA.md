@@ -94,8 +94,8 @@ spec:
       clusterMonitorInterval: 10s
       clusterHealthyTimeout: 30s
       clusterBootstrapTimeout: 10m
-      podRecoveryTimeout: 3m
-      podSyncTimeout: 3m
+      podRecoveryTimeout: 5m
+      podSyncTimeout: 5m
 ```
 
 The `minClusterSize` field indicates the minimum cluster size (either absolut number or percentage) for the operator to consider the cluster healthy. If the cluster is unhealthy for more than the period defined in `clusterHealthyTimeout`, a cluster recovery process is initiated by the operator. The process is explained in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html) and consists of the following steps:

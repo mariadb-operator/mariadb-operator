@@ -34,46 +34,33 @@ ENV_ENT ?= \
 	MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
 	MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
-	ENTERPRISE=true \
+	TEST_ENTERPRISE=true \
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
-TEST_ARGS ?= --timeout 20m -procs 1
-
-TEST ?= $(ENV) $(GINKGO) -p --coverprofile=cover.out --label-filter='!enterprise' $(TEST_ARGS)
-TEST_ENT ?= $(ENV_ENT) $(GINKGO) -p --coverprofile=cover.out $(TEST_ARGS)
+TEST_ARGS ?= --coverprofile=cover.out --timeout 25m
+TEST ?= $(ENV) $(GINKGO) $(TEST_ARGS)
+TEST_ENT ?= $(ENV_ENT) $(GINKGO) $(TEST_ARGS)
 
 GOCOVERDIR ?= .
 
 ##@ Test
 
-.PHONY: test-unit
-test-unit: envtest ginkgo ## Run unit tests.
-	$(TEST) ./pkg/... ./api/...
+.PHONY: test
+test: envtest ginkgo ## Run unit tests.
+	$(TEST) ./pkg/... ./api/... ./internal/helmtest/...
 
 .PHONY: test-int
 test-int: envtest ginkgo ## Run integration tests.
 	$(TEST) ./internal/controller/...
 
-.PHONY: test
-test: test-unit test-int ## Run tests.
-
-.PHONY: cover
-cover: ## Generate and view coverage report.
-	@go tool cover -html=cover.out -o=cover.html
-	open cover.html
-
-##@ Test Enterprise
-
-.PHONY: test-unit-ent
-test-unit-ent: envtest ginkgo ## Run enterprise unit tests.
-	$(TEST_ENT) ./pkg/... ./api/...
-
 .PHONY: test-int-ent
 test-int-ent: envtest ginkgo ## Run enterprise integration tests.
 	$(TEST_ENT) ./internal/controller/...
 
-.PHONY: test-ent
-test-ent: test-unit-ent test-int-ent ## Run enterprise tests.
+.PHONY: cover
+cover: ## Generate and view coverage report.
+	@$(GO) tool cover -html=cover.out -o=cover.html
+	open cover.html
 
 ##@ Lint
 
@@ -93,24 +80,24 @@ RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601
 
 .PHONY: run
 run: lint ## Run a controller from your host.
-	$(ENV) go run cmd/controller/*.go $(RUN_FLAGS)
+	$(ENV) $(GO) run cmd/controller/*.go $(RUN_FLAGS)
 
 .PHONY: run-ent
 run-ent: lint cert ## Run a enterprise controllers from your host.
-	$(ENV_ENT) go run cmd/enterprise/*.go $(RUN_FLAGS)
+	$(ENV_ENT) $(GO) run cmd/enterprise/*.go $(RUN_FLAGS)
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
 	--ca-cert-path=$(CA_DIR)/tls.crt --cert-dir=$(CERT_DIR) \
 	--validate-cert=false
 .PHONY: webhook
 webhook: lint cert ## Run a webhook from your host.
-	go run cmd/controller/*.go webhook $(WEBHOOK_FLAGS)
+	$(GO) run cmd/controller/*.go webhook $(WEBHOOK_FLAGS)
 
 CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
 	--ca-validity=24h --cert-validity=1h --lookahead-validity=8h --requeue-duration=1m
 .PHONY: cert-controller
 cert-controller: lint ## Run a cert-controller from your host.
-	go run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
+	$(GO) run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
 BACKUP_ENV ?= AWS_ACCESS_KEY_ID=mariadb-operator AWS_SECRET_ACCESS_KEY=Minio11!
 BACKUP_COMMON_FLAGS ?= --path=backup --target-file-path=backup/0-backup-target.txt \
@@ -120,28 +107,36 @@ BACKUP_COMMON_FLAGS ?= --path=backup --target-file-path=backup/0-backup-target.t
 BACKUP_FLAGS ?= --max-retention=8h $(BACKUP_COMMON_FLAGS)
 .PHONY: backup
 backup: lint ## Run backup from your host.
-	$(BACKUP_ENV) go run cmd/controller/*.go backup $(BACKUP_FLAGS)
+	$(BACKUP_ENV) $(GO) run cmd/controller/*.go backup $(BACKUP_FLAGS)
 
 RESTORE_FLAGS ?= --target-time=1970-01-01T00:00:00Z $(BACKUP_COMMON_FLAGS)
 .PHONY: restore
 restore: lint ## Run restore from your host.
-	$(BACKUP_ENV) go run cmd/controller/*.go backup restore $(RESTORE_FLAGS)
+	$(BACKUP_ENV) $(GO) run cmd/controller/*.go backup restore $(RESTORE_FLAGS)
 
-.PHONY: init-dir
-init-dir: ## Create config and state directories for init local development.
+.PHONY: local-dir
+local-dir: ## Create config and state directories for local development.
 	mkdir -p mariadb/config
 	mkdir -p mariadb/state
 
-INIT_ENV ?= KUBECONFIG=$(HOME)/.kube/config POD_NAME=mariadb-galera-0 MARIADB_ROOT_PASSWORD=MariaDB11!
-INIT_FLAGS ?= $(RUN_FLAGS) --mariadb-name=mariadb-galera --mariadb-namespace=default --config-dir=mariadb/config --state-dir=mariadb/state
-.PHONY: init
-init: init-dir ## Run init from your host.
-	$(INIT_ENV) go run cmd/controller/*.go init $(INIT_FLAGS)
+POD_ENV ?= \
+	CLUSTER_NAME=cluster.local  \
+	POD_NAME=mariadb-galera-0 \
+	POD_NAMESPACE=default \
+	POD_IP=10.244.0.36  \
+	MARIADB_NAME=mariadb-galera \
+	MARIADB_ROOT_PASSWORD=MariaDB11! \
+	MYSQL_TCP_PORT=3306 \
+	KUBECONFIG=$(HOME)/.kube/config
 
-AGENT_ENV ?= KUBECONFIG=$(HOME)/.kube/config
+INIT_FLAGS ?= $(RUN_FLAGS) --config-dir=mariadb/config --state-dir=mariadb/state
+.PHONY: init
+init: local-dir ## Run init from your host.
+	$(POD_ENV) $(GO) run cmd/controller/*.go init $(INIT_FLAGS)
+
 # AGENT_AUTH_FLAGS ?= --kubernetes-auth=true --kubernetes-trusted-name=mariadb-galera --kubernetes-trusted-namespace=default
 AGENT_AUTH_FLAGS ?=
 AGENT_FLAGS ?= $(RUN_FLAGS) $(AGENT_AUTH_FLAGS) --config-dir=mariadb/config --state-dir=mariadb/state
 .PHONY: agent
-agent: ## Run agent from your host.
-	$(AGENT_ENV) go run cmd/controller/*.go agent $(AGENT_FLAGS)
+agent: local-dir ## Run agent from your host.
+	$(POD_ENV) $(GO) run cmd/controller/*.go agent $(AGENT_FLAGS)

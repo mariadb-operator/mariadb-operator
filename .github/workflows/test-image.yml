@@ -29,8 +29,8 @@ jobs:
           make install-minio
           make net
 
-      - name: Test
-        run: make test
+      - name: Integration tests
+        run: make test-int
         env:
           RELATED_IMAGE_MARIADB: "${{ inputs.mariadb_image }}"
 
@@ -44,5 +44,5 @@ jobs:
           to: "Buildbot"
           type: "stream"
           topic: "CI - MariaDB Operator"
-          content: "There was an error running MariaDB Operator tests on ${{ inputs.mariadb_image }} - URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
+          content: "There was an error running MariaDB Operator integration tests on ${{ inputs.mariadb_image }} - URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
 

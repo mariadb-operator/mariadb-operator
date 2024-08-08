@@ -122,13 +122,17 @@ func Unique[T comparable](elements ...T) []T {
 	return result
 }
 
-func Any[T any](elements []T, fn func(T) bool) bool {
+func Find[T any](elements []T, fn func(T) bool) *T {
 	for _, el := range elements {
 		if fn(el) {
-			return true
+			return &el
 		}
 	}
-	return false
+	return nil
+}
+
+func Any[T any](elements []T, fn func(T) bool) bool {
+	return Find(elements, fn) != nil
 }
 
 func Remove[T any](elements []T, fn func(T) bool) []T {

@@ -20,6 +20,13 @@ import (
 )
 
 func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if req.mxs.IsSuspended() {
+		return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+			condition.SetReadySuspended(&req.mxs.Status)
+			return nil
+		})
+	}
+
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
 		return ctrl.Result{}, err
