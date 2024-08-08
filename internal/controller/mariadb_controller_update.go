@@ -23,7 +23,7 @@ import (
 )
 
 func shouldReconcileUpdates(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
+	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() || mdb.IsStopped() {
 		return false
 	}
 	if mdb.Spec.UpdateStrategy.Type != mariadbv1alpha1.ReplicasFirstPrimaryLast {
