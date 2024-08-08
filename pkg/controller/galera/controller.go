@@ -111,9 +111,6 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		if err := r.disableBootstrap(ctx, mariadb, logger); err != nil {
 			return ctrl.Result{}, err
 		}
-		if err := r.initCleanup(ctx, mariadb); err != nil {
-			return ctrl.Result{}, err
-		}
 		logger.Info("Galera cluster is healthy")
 		r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy, "Galera cluster is healthy")
 

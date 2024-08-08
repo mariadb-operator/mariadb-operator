@@ -84,8 +84,6 @@ var RootCmd = &cobra.Command{
 
 		err = patchStatus(ctx, k8sClient, &mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			condition.SetGaleraConfigured(status)
-			status.GaleraRecovery = nil
-			condition.SetGaleraNotReady(status)
 		})
 		if err != nil {
 			logger.Error(err, "Error patching MariaDB status")
