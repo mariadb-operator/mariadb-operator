@@ -328,7 +328,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 	}
 }
 
-func TestInitJobImagePullSecrets(t *testing.T) {
+func TestGaleraInitJobImagePullSecrets(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "init-image-pull-secrets",
@@ -344,7 +344,11 @@ func TestInitJobImagePullSecrets(t *testing.T) {
 			name: "No Secrets",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
-				Spec:       mariadbv1alpha1.MariaDBSpec{},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
 			},
 			wantPullSecrets: nil,
 		},
@@ -353,6 +357,9 @@ func TestInitJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						ImagePullSecrets: []corev1.LocalObjectReference{
 							{
@@ -952,6 +959,11 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			name: "empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
 			},
 			initJob: &mariadbv1alpha1.GaleraInitJob{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
@@ -959,8 +971,11 @@ func TestGaleraInitJobMeta(t *testing.T) {
 				Annotations: map[string]string{},
 			},
 			wantPodMeta: &mariadbv1alpha1.Metadata{
-				Labels:      map[string]string{},
-				Annotations: map[string]string{},
+				Labels: map[string]string{},
+				Annotations: map[string]string{
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+				},
 			},
 		},
 		{
@@ -968,6 +983,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",
@@ -992,7 +1010,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+					"database.myorg.io":       "mariadb",
 				},
 			},
 		},
@@ -1000,6 +1020,11 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			name: "extra meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
 			},
 			initJob: &mariadbv1alpha1.GaleraInitJob{
 				Job: mariadbv1alpha1.Job{
@@ -1026,7 +1051,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+					"database.myorg.io":       "mariadb",
 				},
 			},
 		},
@@ -1035,6 +1062,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -1057,7 +1087,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+					"database.myorg.io":       "mariadb",
 				},
 			},
 		},
@@ -1066,6 +1098,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -1098,7 +1133,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "true",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+					"database.myorg.io":       "mariadb",
 				},
 			},
 		},
@@ -1107,6 +1144,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -1142,6 +1182,8 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
 					"database.myorg.io":       "mariadb",
 					"sidecar.istio.io/inject": "false",
 				},
