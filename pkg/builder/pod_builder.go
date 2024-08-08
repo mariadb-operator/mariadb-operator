@@ -20,6 +20,7 @@ type mariadbPodOpts struct {
 	affinity                *mariadbv1alpha1.AffinityConfig
 	extraVolumes            []corev1.Volume
 	extraVolumeMounts       []corev1.VolumeMount
+	extraInitContainers     []corev1.Container
 	includeGaleraContainers bool
 	includeGaleraConfig     bool
 	includePorts            bool
@@ -90,6 +91,12 @@ func withAffinityEnabled(includeAffinity bool) mariadbPodOpt {
 func withExtraVolumes(volumes []corev1.Volume) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.extraVolumes = volumes
+	}
+}
+
+func withExtraInitContainers(containers []corev1.Container) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.extraInitContainers = containers
 	}
 }
 

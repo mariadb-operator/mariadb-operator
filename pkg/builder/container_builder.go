@@ -21,8 +21,9 @@ var (
 	MaxScaleContainerName = "maxscale"
 	MaxScaleAdminPortName = "admin"
 
-	InitContainerName  = "init"
-	AgentContainerName = "agent"
+	InitContainerName   = "init"
+	AgentContainerName  = "agent"
+	StatusContainerName = "status"
 
 	defaultProbe = corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
@@ -250,6 +251,9 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 
 		initContainers = append(initContainers, *initContainer)
 	}
+	if mariadbOpts.extraInitContainers != nil {
+		initContainers = append(initContainers, mariadbOpts.extraInitContainers...)
+	}
 	return initContainers, nil
 }
 
@@ -294,6 +298,35 @@ func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1
 	}()
 	container.Env = mariadbEnv(mariadb)
 	container.VolumeMounts = mariadbVolumeMounts(mariadb)
+
+	return container, nil
+}
+
+func (b *Builder) galeraStatusContainer(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) (*corev1.Container, error) {
+	if !mariadb.IsGaleraEnabled() {
+		return nil, errors.New("Galera is not enabled")
+	}
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	initJob := ptr.Deref(galera.InitJob, mariadbv1alpha1.GaleraInitJob{})
+
+	container, err := b.buildContainer(initJob.Image, initJob.ImagePullPolicy, &mariadbv1alpha1.ContainerTemplate{
+		Resources: initJob.Resources,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	container.Name = StatusContainerName
+	container.Args = func() []string {
+		args := container.Args
+		args = append(args, []string{
+			"status",
+			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
+		}...)
+		return args
+	}()
+	container.Env = mariadbEnv(mariadb)
+	container.VolumeMounts = mariadbVolumeMounts(mariadb, opts...)
 
 	return container, nil
 }
