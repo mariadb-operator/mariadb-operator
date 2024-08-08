@@ -334,8 +334,8 @@ metadata:
     capabilities: Deep Insights
     categories: Database
     certified: "true"
-    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
-    createdAt: "2024-07-16T09:49:48Z"
+    containerImage: mariadb/mariadb-operator-enterprise:v0.0.23
+    createdAt: "2024-08-08T09:55:43Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -402,6 +402,8 @@ spec:
           - description: Databases defines the logical databases to be backed up. If not provided, all databases are backed up.
             displayName: Databases
             path: databases
+          - displayName: Failed Jobs History Limit
+            path: failedJobsHistoryLimit
           - description: 'IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups. If not provided, it will default to true when the referred MariaDB instance has Galera enabled and otherwise to false. See: https://github.com/mariadb-operator/mariadb-operator/issues/556'
             displayName: Ignore Global Priv
             path: ignoreGlobalPriv
@@ -543,6 +545,8 @@ spec:
           - description: Volume is a Kubernetes volume specification.
             displayName: Volume
             path: storage.volume
+          - displayName: Successful Jobs History Limit
+            path: successfulJobsHistoryLimit
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
@@ -1155,7 +1159,7 @@ spec:
             path: galera.galeraLibPath
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: InitContainer is an init container that co-operates with mariadb-operator.
+          - description: InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
             displayName: Init Container
             path: galera.initContainer
             x-descriptors:
@@ -1214,7 +1218,7 @@ spec:
             path: galera.initContainer.volumeMounts
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: InitJob defines additional properties for the Job used to perform the initialization.
+          - description: InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.
             displayName: Init Job
             path: galera.initJob
             x-descriptors:
@@ -1233,6 +1237,15 @@ spec:
             displayName: Args
             path: galera.initJob.args
             x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Image name to be used by the Galera init job. The supported format is `<image>:<tag>`.
+            displayName: Image
+            path: galera.initJob.image
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+            displayName: Image Pull Policy
+            path: galera.initJob.imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
               - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Metadata defines additional metadata for the bootstrap Jobs.
             displayName: Metadata
@@ -1287,13 +1300,35 @@ spec:
             path: galera.recovery.enabled
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: 'ForceClusterBootstrapInPod allows you to manually initiate the bootstrap process in a specific Pod. IMPORTANT: Use this option only in exceptional circumstances. Not selecting the Pod with the highest sequence number may result in data loss. IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery.'
+            displayName: Force Cluster Bootstrap In Pod
+            path: galera.recovery.forceClusterBootstrapInPod
+          - description: Job defines a Job that co-operates with mariadb-operator by performing the Galera cluster recovery .
+            displayName: Job
+            path: galera.recovery.job
+          - description: Metadata defines additional metadata for the Galera recovery Jobs.
+            displayName: Metadata
+            path: galera.recovery.job.metadata
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Annotations to be added to children resources.
+            displayName: Annotations
+            path: galera.recovery.job.metadata.annotations
+          - description: Labels to be added to children resources.
+            displayName: Labels
+            path: galera.recovery.job.metadata.labels
+          - description: Resouces describes the compute resource requirements.
+            displayName: Resources
+            path: galera.recovery.job.resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
           - description: MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%). If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated. It defaults to '50%' of the replicas specified by the MariaDB object.
             displayName: Min Cluster Size
             path: galera.recovery.minClusterSize
-          - description: PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery. Once this timeout is reached, the Pod is restarted.
+          - description: PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.
             displayName: Pod Recovery Timeout
             path: galera.recovery.podRecoveryTimeout
-          - description: PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery. Once this timeout is reached, the Pod is restarted.
+          - description: PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.
             displayName: Pod Sync Timeout
             path: galera.recovery.podSyncTimeout
           - description: 'ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel. More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.'
@@ -2058,7 +2093,7 @@ spec:
             path: maxScale.monitor.params
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
+          - description: Suspend indicates whether the current resource should be suspended or not. This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
             displayName: Suspend
             path: maxScale.monitor.suspend
             x-descriptors:
@@ -2109,7 +2144,7 @@ spec:
             path: maxScale.services[0].listener.protocol
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
+          - description: Suspend indicates whether the current resource should be suspended or not. This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
             displayName: Suspend
             path: maxScale.services[0].listener.suspend
             x-descriptors:
@@ -2126,7 +2161,7 @@ spec:
           - description: Router is the type of router to use.
             displayName: Router
             path: maxScale.services[0].router
-          - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
+          - description: Suspend indicates whether the current resource should be suspended or not. This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
             displayName: Suspend
             path: maxScale.services[0].suspend
             x-descriptors:
@@ -2978,6 +3013,17 @@ spec:
             path: storage.waitForVolumeResize
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Suspend indicates whether the current resource should be suspended or not. This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
+            displayName: Suspend
+            path: suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: TimeZone sets the default timezone. If not provided, it defaults to SYSTEM and the timezone data is not loaded.
+            displayName: Time Zone
+            path: timeZone
+            x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
@@ -3839,7 +3885,7 @@ spec:
             path: monitor.params
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
+          - description: Suspend indicates whether the current resource should be suspended or not. This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
             displayName: Suspend
             path: monitor.suspend
             x-descriptors:
@@ -3963,7 +4009,7 @@ spec:
             path: services[0].listener.protocol
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
+          - description: Suspend indicates whether the current resource should be suspended or not. This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
             displayName: Suspend
             path: services[0].listener.suspend
             x-descriptors:
@@ -3980,7 +4026,7 @@ spec:
           - description: Router is the type of router to use.
             displayName: Router
             path: services[0].router
-          - description: Suspend indicates whether the current resource should be suspended or not. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
+          - description: Suspend indicates whether the current resource should be suspended or not. This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
             displayName: Suspend
             path: services[0].suspend
             x-descriptors:
@@ -4044,6 +4090,12 @@ spec:
             displayName: Volume Mounts
             path: sidecarContainers[0].volumeMounts
             x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Suspend indicates whether the current resource should be suspended or not. This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
+            displayName: Suspend
+            path: suspend
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
               - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
@@ -4320,6 +4372,8 @@ spec:
           - description: DependsOn defines dependencies with other SqlJob objectecs.
             displayName: Depends On
             path: dependsOn
+          - displayName: Failed Jobs History Limit
+            path: failedJobsHistoryLimit
           - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
             displayName: Image Pull Secrets
             path: imagePullSecrets
@@ -4412,6 +4466,8 @@ spec:
             path: sqlConfigMapKeyRef
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
+          - displayName: Successful Jobs History Limit
+            path: successfulJobsHistoryLimit
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
@@ -4544,6 +4600,12 @@ spec:
                 - get
                 - list
                 - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods/log
+              verbs:
+                - get
             - apiGroups:
                 - ""
               resources:
@@ -4940,19 +5002,15 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: mariadbmmontes/enterprise-server@sha256:41d23e4bbdbb054b3db0e243f578f11b077505f20b01a6c2ee02b6d7b428e8f4
+                        value: docker-registry.mariadb.com/enterprise-server:10.6.18-14
                       - name: RELATED_IMAGE_MAXSCALE
-                        value: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
+                        value: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5-ubi
                       - name: RELATED_IMAGE_EXPORTER
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
-                        value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
+                        value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
                       - name: MARIADB_OPERATOR_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
-                      - name: MARIADB_GALERA_INIT_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
-                      - name: MARIADB_GALERA_AGENT_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
                       - name: MARIADB_ENTRYPOINT_VERSION
@@ -4971,7 +5029,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
+                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -5076,18 +5134,14 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
-      name: maxscale
-    - image: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:3d666d95b205b33182e97ba9e809006ac607f8e0ec8d7b488d37664005a550c1
-      name: exporter
-    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
-      name: exporter-maxscale
-    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
-      name: mariadb-operator-enterprise
-    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9c46ec50a349d4c91a78ad34cc56e3bdad84ac7e8d92af101d98bcc55268142f
-      name: exporter_maxscale
-    - image: mariadbmmontes/enterprise-server@sha256:41d23e4bbdbb054b3db0e243f578f11b077505f20b01a6c2ee02b6d7b428e8f4
+    - image: docker-registry.mariadb.com/enterprise-server:10.6.18-14
       name: mariadb
+    - image: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5-ubi
+      name: maxscale
+    - image: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
+      name: exporter
+    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+      name: exporter-maxscale
   version: 0.0.29
   webhookdefinitions:
     - admissionReviewVersions:
