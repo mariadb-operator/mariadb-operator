@@ -22,6 +22,7 @@ var _ = Describe("Database webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: DatabaseSpec{
+					CleanupPolicy: CleanupPolicyDelete,
 					MariaDBRef: MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
 							Name: "mariadb-webhook",
@@ -71,6 +72,13 @@ var _ = Describe("Database webhook", func() {
 					db.Spec.Collate = "latin2_general_ci"
 				},
 				true,
+			),
+			Entry(
+				"Updating CleanupPolicy",
+				func(db *Database) {
+					db.Spec.CleanupPolicy = CleanupPolicySkip
+				},
+				false,
 			),
 		)
 	})

@@ -68,6 +68,16 @@ spec:
                 default: utf8
                 description: CharacterSet to use in the Database.
                 type: string
+              cleanupPolicy:
+                default: Delete
+                description: |-
+                  CleanupPolicy specifies whether the controller should delete the database when the resource is deleted or not.
+                  The default value is "Delete" to be backwards compatible.
+                  Use "Skip" to prevent the databse from being deleted from the MariaDB.
+                enum:
+                - Delete
+                - Skip
+                type: string
               collate:
                 default: utf8_general_ci
                 description: Collate to use in the Database.

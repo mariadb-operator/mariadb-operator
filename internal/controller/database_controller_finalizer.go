@@ -51,9 +51,13 @@ func (wr *wrappedDatabaseFinalizer) ContainsFinalizer() bool {
 }
 
 func (wf *wrappedDatabaseFinalizer) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
-	if err := mdbClient.DropDatabase(ctx, wf.database.DatabaseNameOrDefault()); err != nil {
-		return fmt.Errorf("error dropping database in MariaDB: %v", err)
+	// Check for the proper cleanupPolicy
+	if wf.database.Spec.CleanupPolicy == mariadbv1alpha1.CleanupPolicyDelete {
+		if err := mdbClient.DropDatabase(ctx, wf.database.DatabaseNameOrDefault()); err != nil {
+			return fmt.Errorf("error dropping database in MariaDB: %v", err)
+		}
 	}
+
 	return nil
 }
 

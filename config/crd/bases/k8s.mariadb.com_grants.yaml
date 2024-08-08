@@ -67,6 +67,16 @@ spec:
           spec:
             description: GrantSpec defines the desired state of Grant
             properties:
+              cleanupPolicy:
+                default: Revoke
+                description: |-
+                  CleanupPolicy specifies whether the controller should revoke the grant when the resource is deleted or not.
+                  The default value is "Revoke" to be backwards compatible.
+                  Use "Skip" to prevent the grant being revoken.
+                enum:
+                - Revoke
+                - Skip
+                type: string
               database:
                 default: '*'
                 description: Database to use in the Grant.

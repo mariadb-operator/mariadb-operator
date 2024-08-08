@@ -7,6 +7,14 @@ import (
 
 // DatabaseSpec defines the desired state of Database
 type DatabaseSpec struct {
+	// CleanupPolicy specifies whether the controller should delete the database when the resource is deleted or not.
+	// The default value is "Delete" to be backwards compatible.
+	// Use "Skip" to prevent the databse from being deleted from the MariaDB.
+	// +optional
+	// +kubebuilder:default="Delete"
+	// +kubebuilder:validation:Enum=Delete;Skip
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CleanupPolicy string `json:"cleanupPolicy"`
 	// SQLTemplate defines templates to configure SQL objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

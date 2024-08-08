@@ -58,6 +58,16 @@ spec:
           spec:
             description: UserSpec defines the desired state of User
             properties:
+              cleanupPolicy:
+                default: Delete
+                description: |-
+                  CleanupPolicy specifies whether the controller should delete the user when the resource is deleted or not.
+                  The default value is "Delete" to be backwards compatible.
+                  Use "Skip" to prevent the user from being deleted from the MariaDB.
+                enum:
+                - Delete
+                - Skip
+                type: string
               host:
                 description: Host related to the User.
                 maxLength: 255

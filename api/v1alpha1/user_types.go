@@ -11,6 +11,14 @@ import (
 
 // UserSpec defines the desired state of User
 type UserSpec struct {
+	// CleanupPolicy specifies whether the controller should delete the user when the resource is deleted or not.
+	// The default value is "Delete" to be backwards compatible.
+	// Use "Skip" to prevent the user from being deleted from the MariaDB.
+	// +optional
+	// +kubebuilder:default="Delete"
+	// +kubebuilder:validation:Enum=Delete;Skip
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CleanupPolicy string `json:"cleanupPolicy"`
 	// SQLTemplate defines templates to configure SQL objects.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

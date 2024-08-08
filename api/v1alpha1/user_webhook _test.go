@@ -22,6 +22,7 @@ var _ = Describe("User webhook", Ordered, func() {
 					Namespace: key.Namespace,
 				},
 				Spec: UserSpec{
+					CleanupPolicy: CleanupPolicyDelete,
 					MariaDBRef: MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
 							Name: "mariadb-webhook",
@@ -75,6 +76,13 @@ var _ = Describe("User webhook", Ordered, func() {
 					umdb.Spec.MaxUserConnections = 20
 				},
 				true,
+			),
+			Entry(
+				"Updating CleanupPolicy",
+				func(umdb *User) {
+					umdb.Spec.CleanupPolicy = CleanupPolicySkip
+				},
+				false,
 			),
 		)
 	})
