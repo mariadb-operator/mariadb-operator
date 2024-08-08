@@ -465,3 +465,12 @@ func (m *MariaDB) HasGaleraNotReadyCondition() bool {
 func (m *MariaDB) HasGaleraConfiguredCondition() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeGaleraConfigured)
 }
+
+// IsGaleraInitialized indicates that the Galera init Job has successfully completed.
+func (m *MariaDB) IsGaleraInitialized() bool {
+	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeGaleraConfigured)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonGaleraInitialized
+}

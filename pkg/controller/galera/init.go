@@ -9,6 +9,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	conditions "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	mdbembed "github.com/mariadb-operator/mariadb-operator/pkg/embed"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
@@ -23,7 +24,10 @@ import (
 )
 
 func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.HasGaleraConfiguredCondition() {
+	if mariadb.HasGaleraConfiguredCondition() || mariadb.IsGaleraInitialized() {
+		if err := r.initCleanup(ctx, mariadb); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error cleaning up init resources: %v", err)
+		}
 		return ctrl.Result{}, nil
 	}
 
@@ -49,6 +53,12 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 	if !jobpkg.IsJobComplete(&initJob) {
 		log.FromContext(ctx).V(1).Info("Init job not completed. Requeuing")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		conditions.SetGaleraInitialized(status)
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error marking MariaDB as initialized: %v", err)
 	}
 	return ctrl.Result{}, nil
 }
@@ -103,29 +113,8 @@ docker_create_db_directories
 
 # Check if MariaDB is already initialized.
 if [ -n "$DATABASE_ALREADY_EXISTS" ]; then
-	run_as_mysql
-
-	mysql_note "Starting temporary server"
-	docker_temp_server_start "mariadbd"
-	mysql_note "Temporary server started."
-
-	if mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;" &> /dev/null; then
-		mysql_note "MariaDB is already initialized. Skipping initialization."
-		
-		mysql_note "Stopping temporary server"
-		docker_temp_server_stop
-		mysql_note "Temporary server stopped"
-		exit 0
-	fi
-	
-	mysql_warn "This MariaDB instance has already been initialized."
-	mysql_warn "The root password Secret does not match the existing state available in the PVC."
-	mysql_warn "Please either update the root password Secret or delete the PVC."
-	
-	mysql_note "Stopping temporary server"
-	docker_temp_server_stop
-	mysql_note "Temporary server stopped"
-	exit 1
+	mysql_note "MariaDB Server already initialized"
+	exit 0
 fi
 
 run_as_mysql
@@ -180,19 +169,18 @@ func (r *GaleraReconciler) reconcilePVC(ctx context.Context, mariadb *mariadbv1a
 
 func (r *GaleraReconciler) initCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	var job batchv1.Job
-	if err := r.Get(ctx, mariadb.InitKey(), &job); err != nil {
-		return client.IgnoreNotFound(err)
+	if err := r.Get(ctx, mariadb.InitKey(), &job); err == nil {
+		if err := r.Delete(ctx, &job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)}); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+		}
 	}
-	if err := r.Delete(ctx, &job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)}); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-
 	var cm corev1.ConfigMap
-	if err := r.Get(ctx, mariadb.InitKey(), &cm); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	if err := r.Delete(ctx, &cm); err != nil {
-		return client.IgnoreNotFound(err)
+	if err := r.Get(ctx, mariadb.InitKey(), &cm); err == nil {
+		if err := r.Delete(ctx, &cm); err != nil {
+			return client.IgnoreNotFound(err)
+		}
 	}
 	return nil
 }
