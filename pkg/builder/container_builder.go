@@ -480,12 +480,13 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			MountPath: ProbesMountPath,
 		})
 	}
-	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGaleraConfig {
+	if mariadb.IsGaleraEnabled() {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      ServiceAccountVolume,
 			MountPath: ServiceAccountMountPath,
 		})
-
+	}
+	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGaleraConfig {
 		galeraConfigVolumeMount := corev1.VolumeMount{
 			MountPath: galeraresources.GaleraConfigMountPath,
 		}
