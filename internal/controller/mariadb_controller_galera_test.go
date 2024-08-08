@@ -314,6 +314,14 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		}
 		Expect(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, opts...)).To(Succeed())
 
+		By("Expecting MariaDB to NOT to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return !mdb.IsReady()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
 		testGaleraRecovery(key)
 	})
 
@@ -420,7 +428,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 
 func testGaleraRecovery(key types.NamespacedName) {
 	var mdb *mariadbv1alpha1.MariaDB
-	By("Expecting MariaDB to NOT to be ready eventually")
+	By("Expecting Galera to NOT to be ready eventually")
 	Eventually(func() bool {
 		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 			return false
