@@ -23,9 +23,11 @@ type mariadbPodOpts struct {
 	extraInitContainers     []corev1.Container
 	includeGaleraContainers bool
 	includeGaleraConfig     bool
+	includeMariadbResources bool
 	includePorts            bool
 	includeProbes           bool
 	includeSelectorLabels   bool
+	includeHAAnnotations    bool
 	includeAffinity         bool
 }
 
@@ -33,9 +35,11 @@ func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
 	opts := &mariadbPodOpts{
 		includeGaleraContainers: true,
 		includeGaleraConfig:     true,
+		includeMariadbResources: true,
 		includePorts:            true,
 		includeProbes:           true,
 		includeSelectorLabels:   true,
+		includeHAAnnotations:    true,
 		includeAffinity:         true,
 	}
 	for _, setOpt := range userOpts {
@@ -118,6 +122,12 @@ func withGaleraConfig(includeGaleraConfig bool) mariadbPodOpt {
 	}
 }
 
+func withMariadbResources(includeMariadbResources bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeMariadbResources = includeMariadbResources
+	}
+}
+
 func withPorts(includePorts bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.includePorts = includePorts
@@ -133,6 +143,12 @@ func withProbes(includeProbes bool) mariadbPodOpt {
 func withMariadbSelectorLabels(includeSelectorLabels bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.includeSelectorLabels = includeSelectorLabels
+	}
+}
+
+func withHAAnnotations(includeHAAnnotations bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeHAAnnotations = includeHAAnnotations
 	}
 }
 
@@ -155,9 +171,10 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 				Build()
 		objMetaBuilder = objMetaBuilder.WithLabels(selectorLabels)
 	}
-	objMeta := objMetaBuilder.
-		WithAnnotations(mariadbHAAnnotations(mariadb)).
-		Build()
+	if mariadbOpts.includeHAAnnotations {
+		objMetaBuilder = objMetaBuilder.WithAnnotations(mariadbHAAnnotations(mariadb))
+	}
+	objMeta := objMetaBuilder.Build()
 
 	initContainers, err := b.mariadbInitContainers(mariadb, opts...)
 	if err != nil {

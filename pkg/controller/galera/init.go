@@ -64,8 +64,7 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 }
 
 func (r *GaleraReconciler) createJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	job, err := r.builder.BuilGaleraInitJob(mariadb.InitKey(), mariadb, galera.InitJob)
+	job, err := r.builder.BuilGaleraInitJob(mariadb.InitKey(), mariadb)
 	if err != nil {
 		return err
 	}
