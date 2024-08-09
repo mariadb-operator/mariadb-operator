@@ -154,6 +154,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 			},
 			SuccessfulJobsHistoryLimit: backup.Spec.SuccessfulJobsHistoryLimit,
 			FailedJobsHistoryLimit:     backup.Spec.FailedJobsHistoryLimit,
+			TimeZone:                   backup.Spec.TimeZone,
 		},
 	}
 	if err := controllerutil.SetControllerReference(backup, cronJob, b.scheme); err != nil {
@@ -504,6 +505,7 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 			},
 			SuccessfulJobsHistoryLimit: sqlJob.Spec.SuccessfulJobsHistoryLimit,
 			FailedJobsHistoryLimit:     sqlJob.Spec.FailedJobsHistoryLimit,
+			TimeZone:                   sqlJob.Spec.TimeZone,
 		},
 	}
 	if err := controllerutil.SetControllerReference(sqlJob, cronJob, b.scheme); err != nil {
