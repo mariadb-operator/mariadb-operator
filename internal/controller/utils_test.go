@@ -755,3 +755,17 @@ func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
 		return len(pvcList.Items) == 0
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
+
+// applyDecoratorChain applies a set of decorator functions that modify certain field values on the object created by the builder function.
+func applyDecoratorChain[T any](
+	builderFn func(types.NamespacedName) T,
+	decoratorFns ...func(T) T,
+) func(key types.NamespacedName) T {
+	return func(key types.NamespacedName) T {
+		backup := builderFn(key)
+		for _, decoratorFn := range decoratorFns {
+			backup = decoratorFn(backup)
+		}
+		return backup
+	}
+}
