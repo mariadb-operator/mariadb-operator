@@ -314,11 +314,9 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 			if err != nil {
 				return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
 			}
-			galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
 			recoveryJobKey := mariadb.RecoveryJobKey(pod.Name)
-			recoveryJob, err := r.builder.BuildGaleraRecoveryJob(recoveryJobKey, mariadb, recovery.Job, *i)
+			recoveryJob, err := r.builder.BuildGaleraRecoveryJob(recoveryJobKey, mariadb, *i)
 			if err != nil {
 				return fmt.Errorf("error building recovery Job for Pod '%s': %v", pod.Name, err)
 			}
@@ -338,7 +336,10 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 				}
 			}()
 
+			galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 			recoveryTimeout := ptr.Deref(recovery.PodRecoveryTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+
 			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, recoveryTimeout)
 			defer cancelRecovery()
 

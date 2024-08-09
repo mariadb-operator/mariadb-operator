@@ -277,10 +277,11 @@ func (b *Builder) maxscaleInitContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev
 }
 
 func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
-	if !mariadb.IsGaleraEnabled() {
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	if !galera.Enabled {
 		return nil, errors.New("Galera is not enabled")
 	}
-	init := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).InitContainer
+	init := galera.InitContainer
 	container, err := b.buildContainer(init.Image, init.ImagePullPolicy, &init.ContainerTemplate)
 	if err != nil {
 		return nil, err
@@ -303,10 +304,10 @@ func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1
 }
 
 func (b *Builder) galeraStatusContainer(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) (*corev1.Container, error) {
-	if !mariadb.IsGaleraEnabled() {
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	if !galera.Enabled {
 		return nil, errors.New("Galera is not enabled")
 	}
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	initJob := ptr.Deref(galera.InitJob, mariadbv1alpha1.GaleraInitJob{})
 
 	container, err := b.buildContainer(initJob.Image, initJob.ImagePullPolicy, &mariadbv1alpha1.ContainerTemplate{
@@ -351,7 +352,7 @@ func (b *Builder) buildContainer(image string, pullPolicy corev1.PullPolicy, tpl
 	}
 	if mariadbOpts.resources != nil {
 		container.Resources = *mariadbOpts.resources
-	} else if tpl.Resources != nil {
+	} else if tpl.Resources != nil && mariadbOpts.includeMariadbResources {
 		container.Resources = *tpl.Resources
 	}
 	return &container, nil
