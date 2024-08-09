@@ -76,7 +76,7 @@ var _ = Describe("Backup", func() {
 		),
 		Entry("should reconcile a CronJob with PVC storage and history limits",
 			"backup-pvc-scheduled-with-limits-test",
-			applyBackupDecoratorChain(
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
 				getBackupWithPVCStorage,
 				decorateBackupWithSchedule,
 				decorateBackupWithHistoryLimits,
@@ -85,7 +85,7 @@ var _ = Describe("Backup", func() {
 		),
 		Entry("should reconcile a CronJob with Volume storage and history limits",
 			"backup-volume-scheduled-with-limits-test",
-			applyBackupDecoratorChain(
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
 				getBackupWithVolumeStorage,
 				decorateBackupWithSchedule,
 				decorateBackupWithHistoryLimits,
@@ -94,7 +94,7 @@ var _ = Describe("Backup", func() {
 		),
 		Entry("should reconcile a CronJob with S3 storage and history limits",
 			"backup-s3-scheduled-with-limits-test",
-			applyBackupDecoratorChain(
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
 				buildBackupWithS3Storage("test-backup", ""),
 				decorateBackupWithSchedule,
 				decorateBackupWithHistoryLimits,
@@ -104,7 +104,7 @@ var _ = Describe("Backup", func() {
 		Entry(
 			"should reconcile a CronJob with S3 storage with prefix and history limits",
 			"backup-s3-scheduled-with-limits-test-prefix",
-			applyBackupDecoratorChain(
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
 				buildBackupWithS3Storage("test-backup", "mariadb"),
 				decorateBackupWithSchedule,
 				decorateBackupWithHistoryLimits,
@@ -113,7 +113,7 @@ var _ = Describe("Backup", func() {
 		),
 		Entry("should reconcile a CronJob with PVC storage and time zone setting",
 			"backup-pvc-scheduled-with-tz-test",
-			applyBackupDecoratorChain(
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
 				getBackupWithPVCStorage,
 				decorateBackupWithSchedule,
 				decorateBackupWithTimeZone,
@@ -122,7 +122,7 @@ var _ = Describe("Backup", func() {
 		),
 		Entry("should reconcile a CronJob with Volume storage and time zone setting",
 			"backup-volume-scheduled-with-tz-test",
-			applyBackupDecoratorChain(
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
 				getBackupWithVolumeStorage,
 				decorateBackupWithSchedule,
 				decorateBackupWithTimeZone,
@@ -131,7 +131,7 @@ var _ = Describe("Backup", func() {
 		),
 		Entry("should reconcile a CronJob with S3 storage and time zone setting",
 			"backup-s3-scheduled-with-tz-test",
-			applyBackupDecoratorChain(
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
 				buildBackupWithS3Storage("test-backup", ""),
 				decorateBackupWithSchedule,
 				decorateBackupWithTimeZone,
@@ -141,7 +141,7 @@ var _ = Describe("Backup", func() {
 		Entry(
 			"should reconcile a CronJob with S3 storage with prefix and time zone setting",
 			"backup-s3-scheduled-with-tz-test-prefix",
-			applyBackupDecoratorChain(
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
 				buildBackupWithS3Storage("test-backup", "mariadb"),
 				decorateBackupWithSchedule,
 				decorateBackupWithTimeZone,
@@ -289,18 +289,5 @@ func decorateBackupWithTimeZone(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1
 func buildBackupWithS3Storage(bucket, prefix string) func(key types.NamespacedName) *mariadbv1alpha1.Backup {
 	return func(key types.NamespacedName) *mariadbv1alpha1.Backup {
 		return getBackupWithS3Storage(key, bucket, prefix)
-	}
-}
-
-func applyBackupDecoratorChain(
-	builderFn func(types.NamespacedName) *mariadbv1alpha1.Backup,
-	decoratorFns ...func(*mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup,
-) func(key types.NamespacedName) *mariadbv1alpha1.Backup {
-	return func(key types.NamespacedName) *mariadbv1alpha1.Backup {
-		backup := builderFn(key)
-		for _, decoratorFn := range decoratorFns {
-			backup = decoratorFn(backup)
-		}
-		return backup
 	}
 }

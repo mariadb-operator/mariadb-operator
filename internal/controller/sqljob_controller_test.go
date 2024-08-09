@@ -1,12 +1,15 @@
 package controller
 
 import (
+	"reflect"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -196,94 +199,140 @@ var _ = Describe("SqlJob", func() {
 		}
 	})
 
-	It("should reconcile a CronJob", func() {
-		scheduledSqlJob := mariadbv1alpha1.SqlJob{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "sqljob-scheduled",
+	DescribeTable("Creating an SqlJob",
+		func(
+			resourceName string,
+			builderFn func(types.NamespacedName) mariadbv1alpha1.SqlJob,
+		) {
+			key := types.NamespacedName{
+				Name:      resourceName,
 				Namespace: testNamespace,
+			}
+			scheduledSqlJob := builderFn(key)
+			testScheduledSqlJob(scheduledSqlJob)
+		},
+		Entry(
+			"should reconcile a CronJob",
+			"sqljob-scheduled",
+			buildScheduledSqlJob,
+		),
+		Entry(
+			"should reconcile a CronJob with history limits",
+			"sqljob-scheduled-with-history-limits",
+			applyDecoratorChain[mariadbv1alpha1.SqlJob](
+				buildScheduledSqlJob,
+				decorateSqlJobWithHistoryLimits,
+			),
+		),
+		Entry(
+			"should reconcile a CronJob with time zone setting",
+			"sqljob-scheduled-with-tz",
+			applyDecoratorChain[mariadbv1alpha1.SqlJob](
+				buildScheduledSqlJob,
+				decorateSqlJobWithTimeZone,
+			),
+		),
+	)
+})
+
+func buildScheduledSqlJob(key types.NamespacedName) mariadbv1alpha1.SqlJob {
+	return mariadbv1alpha1.SqlJob{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.SqlJobSpec{
+			Schedule: &mariadbv1alpha1.Schedule{
+				Cron: "*/1 * * * *",
 			},
-			Spec: mariadbv1alpha1.SqlJobSpec{
-				Schedule: &mariadbv1alpha1.Schedule{
-					Cron: "*/1 * * * *",
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: corev1.ObjectReference{
+					Name: testMdbkey.Name,
 				},
-				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
-						Name: testMdbkey.Name,
-					},
-					WaitForIt: true,
+				WaitForIt: true,
+			},
+			Username: testUser,
+			PasswordSecretKeyRef: corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: testPwdKey.Name,
 				},
-				Username: testUser,
-				PasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testPwdKey.Name,
-					},
-					Key: testPwdSecretKey,
-				},
-				Database: &testDatabase,
-				Sql: func() *string {
-					sql := `CREATE TABLE IF NOT EXISTS orders (
+				Key: testPwdSecretKey,
+			},
+			Database: &testDatabase,
+			Sql: func() *string {
+				sql := `CREATE TABLE IF NOT EXISTS orders (
 							id bigint PRIMARY KEY AUTO_INCREMENT,
 							email varchar(255) NOT NULL,
 							UNIQUE KEY email__unique_idx (email)
 						);`
-					return &sql
-				}(),
-			},
-		}
-		scheduledSqlJobWithHistoryLimits := scheduledSqlJob.DeepCopy()
-		scheduledSqlJobWithHistoryLimits.ObjectMeta.Name = "sqljob-scheduled-with-history-limits"
-		scheduledSqlJobWithHistoryLimits.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
-		scheduledSqlJobWithHistoryLimits.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
+				return &sql
+			}(),
+		},
+	}
+}
 
-		By("Creating a scheduled SqlJob")
-		Expect(k8sClient.Create(testCtx, &scheduledSqlJob)).To(Succeed())
-		DeferCleanup(func() {
-			Expect(k8sClient.Delete(testCtx, &scheduledSqlJob)).To(Succeed())
-		})
+func decorateSqlJobWithHistoryLimits(backup mariadbv1alpha1.SqlJob) mariadbv1alpha1.SqlJob {
+	backup.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
+	backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
+	return backup
+}
 
-		By("Expecting to create a CronJob eventually")
-		Eventually(func() bool {
-			var cronJob batchv1.CronJob
-			return k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob) != nil
-		}, testHighTimeout, testInterval).Should(BeTrue())
+func decorateSqlJobWithTimeZone(backup mariadbv1alpha1.SqlJob) mariadbv1alpha1.SqlJob {
+	backup.Spec.TimeZone = ptr.To[string]("Europe/Sofia")
+	return backup
+}
 
-		By("Creating a scheduled SqlJob with history limits")
-		Expect(k8sClient.Create(testCtx, scheduledSqlJobWithHistoryLimits)).To(Succeed())
-		DeferCleanup(func() {
-			Expect(k8sClient.Delete(testCtx, scheduledSqlJobWithHistoryLimits)).To(Succeed())
-		})
-
-		By("Expecting to create a CronJob with history limits eventually")
-		Eventually(func() bool {
-			var cronJob batchv1.CronJob
-			err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(scheduledSqlJobWithHistoryLimits), &cronJob)
-			if err != nil {
-				return false
-			}
-			isSuccessfulJobHistoryLimitCorrect := *cronJob.Spec.SuccessfulJobsHistoryLimit ==
-				*scheduledSqlJobWithHistoryLimits.Spec.SuccessfulJobsHistoryLimit
-			isFailedJobHistoryLimitCorrect := *cronJob.Spec.FailedJobsHistoryLimit ==
-				*scheduledSqlJobWithHistoryLimits.Spec.FailedJobsHistoryLimit
-			return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect
-		}, testHighTimeout, testInterval).Should(BeTrue())
-
-		patch := client.MergeFrom(scheduledSqlJobWithHistoryLimits.DeepCopy())
-		scheduledSqlJobWithHistoryLimits.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
-		scheduledSqlJobWithHistoryLimits.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
-		By("Updating a scheduled SqlJob's history limits")
-		Expect(k8sClient.Patch(testCtx, scheduledSqlJobWithHistoryLimits, patch)).To(Succeed())
-
-		By("Expecting to update the CronJob history limits eventually")
-		Eventually(func() bool {
-			var cronJob batchv1.CronJob
-			if k8sClient.Get(testCtx, client.ObjectKeyFromObject(scheduledSqlJobWithHistoryLimits), &cronJob) != nil {
-				return false
-			}
-			isSuccessfulJobHistoryLimitCorrect := *cronJob.Spec.SuccessfulJobsHistoryLimit ==
-				*scheduledSqlJobWithHistoryLimits.Spec.SuccessfulJobsHistoryLimit
-			isFailedJobHistoryLimitCorrect := *cronJob.Spec.FailedJobsHistoryLimit ==
-				*scheduledSqlJobWithHistoryLimits.Spec.FailedJobsHistoryLimit
-			return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect
-		}, testHighTimeout, testInterval).Should(BeTrue())
+func testScheduledSqlJob(scheduledSqlJob mariadbv1alpha1.SqlJob) {
+	By("Creating a scheduled SqlJob")
+	Expect(k8sClient.Create(testCtx, &scheduledSqlJob)).To(Succeed())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, &scheduledSqlJob)).To(Succeed())
 	})
-})
+
+	By("Expecting to create a CronJob eventually")
+	Eventually(func() bool {
+		var cronJob batchv1.CronJob
+		err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob)
+		if err != nil {
+			return false
+		}
+		isScheduleCorrect := cronJob.Spec.Schedule == scheduledSqlJob.Spec.Schedule.Cron
+
+		if scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit == nil {
+			// Kubernetes sets a default of 3 when no limit is specified.
+			scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](3)
+		}
+
+		if scheduledSqlJob.Spec.FailedJobsHistoryLimit == nil {
+			// Kubernetes sets a default of 1 when no limit is specified.
+			scheduledSqlJob.Spec.FailedJobsHistoryLimit = ptr.To[int32](1)
+		}
+
+		isSuccessfulJobHistoryLimitCorrect :=
+			reflect.DeepEqual(cronJob.Spec.SuccessfulJobsHistoryLimit, scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit)
+		isFailedJobHistoryLimitCorrect :=
+			reflect.DeepEqual(cronJob.Spec.FailedJobsHistoryLimit, scheduledSqlJob.Spec.FailedJobsHistoryLimit)
+		isTimeZoneCorrect := reflect.DeepEqual(cronJob.Spec.TimeZone, scheduledSqlJob.Spec.TimeZone)
+		return isScheduleCorrect && isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect &&
+			isTimeZoneCorrect
+	}, testHighTimeout, testInterval).Should(BeTrue())
+
+	patch := client.MergeFrom(scheduledSqlJob.DeepCopy())
+	scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
+	scheduledSqlJob.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
+	By("Updating a scheduled SqlJob's history limits")
+	Expect(k8sClient.Patch(testCtx, &scheduledSqlJob, patch)).To(Succeed())
+
+	By("Expecting to update the CronJob history limits eventually")
+	Eventually(func() bool {
+		var cronJob batchv1.CronJob
+		if k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob) != nil {
+			return false
+		}
+		isSuccessfulJobHistoryLimitCorrect := *cronJob.Spec.SuccessfulJobsHistoryLimit ==
+			*scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit
+		isFailedJobHistoryLimitCorrect := *cronJob.Spec.FailedJobsHistoryLimit ==
+			*scheduledSqlJob.Spec.FailedJobsHistoryLimit
+		return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
