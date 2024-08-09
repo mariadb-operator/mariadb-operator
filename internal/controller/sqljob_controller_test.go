@@ -308,31 +308,31 @@ func testScheduledSqlJob(scheduledSqlJob mariadbv1alpha1.SqlJob) {
 			scheduledSqlJob.Spec.FailedJobsHistoryLimit = ptr.To[int32](1)
 		}
 
-		isSuccessfulJobHistoryLimitCorrect :=
-			reflect.DeepEqual(cronJob.Spec.SuccessfulJobsHistoryLimit, scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit)
-		isFailedJobHistoryLimitCorrect :=
-			reflect.DeepEqual(cronJob.Spec.FailedJobsHistoryLimit, scheduledSqlJob.Spec.FailedJobsHistoryLimit)
-		isTimeZoneCorrect := reflect.DeepEqual(cronJob.Spec.TimeZone, scheduledSqlJob.Spec.TimeZone)
-		return isScheduleCorrect && isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect &&
-			isTimeZoneCorrect
+		return isScheduleCorrect && assertSqlJobCronJobTemplateSpecsEqual(cronJob, scheduledSqlJob)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	patch := client.MergeFrom(scheduledSqlJob.DeepCopy())
 	scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
 	scheduledSqlJob.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
-	By("Updating a scheduled SqlJob's history limits")
+	scheduledSqlJob.Spec.TimeZone = ptr.To[string]("Europe/Madrid")
+	By("Updating a scheduled SqlJob's history limits and time zone")
 	Expect(k8sClient.Patch(testCtx, &scheduledSqlJob, patch)).To(Succeed())
 
-	By("Expecting to update the CronJob history limits eventually")
+	By("Expecting to update the CronJob history limits and time zone eventually")
 	Eventually(func() bool {
 		var cronJob batchv1.CronJob
 		if k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob) != nil {
 			return false
 		}
-		isSuccessfulJobHistoryLimitCorrect := *cronJob.Spec.SuccessfulJobsHistoryLimit ==
-			*scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit
-		isFailedJobHistoryLimitCorrect := *cronJob.Spec.FailedJobsHistoryLimit ==
-			*scheduledSqlJob.Spec.FailedJobsHistoryLimit
-		return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect
+		return assertSqlJobCronJobTemplateSpecsEqual(cronJob, scheduledSqlJob)
 	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func assertSqlJobCronJobTemplateSpecsEqual(cronJob batchv1.CronJob, sqlJob mariadbv1alpha1.SqlJob) bool {
+	isSuccessfulJobHistoryLimitCorrect :=
+		reflect.DeepEqual(cronJob.Spec.SuccessfulJobsHistoryLimit, sqlJob.Spec.SuccessfulJobsHistoryLimit)
+	isFailedJobHistoryLimitCorrect :=
+		reflect.DeepEqual(cronJob.Spec.FailedJobsHistoryLimit, sqlJob.Spec.FailedJobsHistoryLimit)
+	isTimeZoneCorrect := reflect.DeepEqual(cronJob.Spec.TimeZone, sqlJob.Spec.TimeZone)
+	return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect && isTimeZoneCorrect
 }

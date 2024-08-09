@@ -240,13 +240,23 @@ func testBackupCronJob(backup *mariadbv1alpha1.Backup) {
 			backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](1)
 		}
 
-		isSuccessfulJobHistoryLimitCorrect :=
-			reflect.DeepEqual(cronJob.Spec.SuccessfulJobsHistoryLimit, backup.Spec.SuccessfulJobsHistoryLimit)
-		isFailedJobHistoryLimitCorrect :=
-			reflect.DeepEqual(cronJob.Spec.FailedJobsHistoryLimit, backup.Spec.FailedJobsHistoryLimit)
-		isTimeZoneCorrect := reflect.DeepEqual(cronJob.Spec.TimeZone, backup.Spec.TimeZone)
-		return isScheduleCorrect && isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect &&
-			isTimeZoneCorrect
+		return isScheduleCorrect && assertBackupCronJobTemplateSpecsEqual(cronJob, backup)
+	}, testHighTimeout, testInterval).Should(BeTrue())
+
+	patch := client.MergeFrom(backup.DeepCopy())
+	backup.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
+	backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
+	backup.Spec.TimeZone = ptr.To[string]("Europe/Madrid")
+	By("Updating a CronJob's history limits and time zone")
+	Expect(k8sClient.Patch(testCtx, backup, patch)).To(Succeed())
+
+	By("Expecting to update the CronJob history limits and time zone eventually")
+	Eventually(func() bool {
+		var cronJob batchv1.CronJob
+		if k8sClient.Get(testCtx, client.ObjectKeyFromObject(backup), &cronJob) != nil {
+			return false
+		}
+		return assertBackupCronJobTemplateSpecsEqual(cronJob, backup)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
@@ -290,4 +300,13 @@ func buildBackupWithS3Storage(bucket, prefix string) func(key types.NamespacedNa
 	return func(key types.NamespacedName) *mariadbv1alpha1.Backup {
 		return getBackupWithS3Storage(key, bucket, prefix)
 	}
+}
+
+func assertBackupCronJobTemplateSpecsEqual(cronJob batchv1.CronJob, backup *mariadbv1alpha1.Backup) bool {
+	isSuccessfulJobHistoryLimitCorrect :=
+		reflect.DeepEqual(cronJob.Spec.SuccessfulJobsHistoryLimit, backup.Spec.SuccessfulJobsHistoryLimit)
+	isFailedJobHistoryLimitCorrect :=
+		reflect.DeepEqual(cronJob.Spec.FailedJobsHistoryLimit, backup.Spec.FailedJobsHistoryLimit)
+	isTimeZoneCorrect := reflect.DeepEqual(cronJob.Spec.TimeZone, backup.Spec.TimeZone)
+	return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect && isTimeZoneCorrect
 }
