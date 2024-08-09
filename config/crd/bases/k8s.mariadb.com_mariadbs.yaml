@@ -5260,8 +5260,8 @@ spec:
                       More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.
                     type: string
                   initContainer:
-                    description: InitContainer is an init container that runs in the
-                      MariaDB Pod and co-operates with mariadb-operator.
+                    description: InitContainer is an init container that co-operates
+                      with mariadb-operator.
                     properties:
                       args:
                         description: Args to be used in the Container.
@@ -6092,8 +6092,8 @@ spec:
                     - image
                     type: object
                   initJob:
-                    description: InitJob defines a Job that co-operates with mariadb-operator
-                      by performing initialization tasks.
+                    description: InitJob defines additional properties for the Job
+                      used to perform the initialization.
                     properties:
                       affinity:
                         description: Affinity to be used in the Pod.
@@ -7037,19 +7037,6 @@ spec:
                         items:
                           type: string
                         type: array
-                      image:
-                        description: Image name to be used by the Galera init job.
-                          The supported format is `<image>:<tag>`.
-                        type: string
-                      imagePullPolicy:
-                        description: ImagePullPolicy is the image pull policy. One
-                          of `Always`, `Never` or `IfNotPresent`. If not defined,
-                          it defaults to `IfNotPresent`.
-                        enum:
-                        - Always
-                        - Never
-                        - IfNotPresent
-                        type: string
                       metadata:
                         description: Metadata defines additional metadata for the
                           bootstrap Jobs.
@@ -7172,8 +7159,8 @@ spec:
                           IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery.
                         type: string
                       job:
-                        description: Job defines a Job that co-operates with mariadb-operator
-                          by performing the Galera cluster recovery .
+                        description: Job allows configuration of the Galera recovery
+                          Job, which is used to recover the Galera cluster.
                         properties:
                           metadata:
                             description: Metadata defines additional metadata for
