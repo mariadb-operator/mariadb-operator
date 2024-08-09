@@ -364,6 +364,12 @@ func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, ma
 }
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if err := r.reconcileInternalService(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling internal Service: %v", err)
+	}
+	if err := r.reconcileDefaultService(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling default Service: %v", err)
+	}
 	if mariadb.IsHAEnabled() {
 		if result, err := r.reconcilePrimaryService(ctx, mariadb); !result.IsZero() || err != nil {
 			return ctrl.Result{}, err
@@ -372,10 +378,7 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 			return ctrl.Result{}, err
 		}
 	}
-	if err := r.reconcileInternalService(ctx, mariadb); err != nil {
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{}, r.reconcileDefaultService(ctx, mariadb)
+	return ctrl.Result{}, nil
 }
 
 func shouldReconcileRestore(mdb *mariadbv1alpha1.MariaDB) bool {

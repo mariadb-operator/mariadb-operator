@@ -10,7 +10,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -22,7 +22,7 @@ type recoveryStatus struct {
 
 type bootstrapSource struct {
 	bootstrap *recovery.Bootstrap
-	pod       corev1.Pod
+	pod       string
 }
 
 func (b *bootstrapSource) String() string {
@@ -30,7 +30,7 @@ func (b *bootstrapSource) String() string {
 		"{ bootstrap: { UUID: %s, seqno: %d }, pod: %s }",
 		b.bootstrap.UUID,
 		b.bootstrap.Seqno,
-		b.pod.Name,
+		b.pod,
 	)
 }
 
@@ -142,18 +142,17 @@ func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
 	return time.Now().After(deadline)
 }
 
-func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool {
-	if len(pods) == 0 {
-		return false
-	}
+func (rs *recoveryStatus) isComplete(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
+
+	pods := getPodNames(mdb)
 
 	numSkippedPods := 0
 	isComplete := true
 	for _, p := range pods {
-		state := ptr.Deref(rs.inner.State[p.Name], recovery.GaleraState{})
-		recovered := ptr.Deref(rs.inner.Recovered[p.Name], recovery.Bootstrap{})
+		state := ptr.Deref(rs.inner.State[p], recovery.GaleraState{})
+		recovered := ptr.Deref(rs.inner.Recovered[p], recovery.Bootstrap{})
 
 		if state.SafeToBootstrap {
 			return true
@@ -175,10 +174,13 @@ func (rs *recoveryStatus) isComplete(pods []corev1.Pod, logger logr.Logger) bool
 	return isComplete
 }
 
-func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, forceBootstrapInPod *string, logger logr.Logger) (*bootstrapSource, error) {
+func (rs *recoveryStatus) bootstrapSource(mdb *mariadbv1alpha1.MariaDB, forceBootstrapInPod *string,
+	logger logr.Logger) (*bootstrapSource, error) {
+	pods := getPodNames(mdb)
+
 	if forceBootstrapInPod != nil {
-		pod := datastructures.Find(pods, func(pod corev1.Pod) bool {
-			return pod.Name == *forceBootstrapInPod
+		pod := datastructures.Find(pods, func(pod string) bool {
+			return pod == *forceBootstrapInPod
 		})
 		if pod != nil {
 			return &bootstrapSource{
@@ -188,18 +190,18 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, forceBootstrapInPod
 		return nil, fmt.Errorf("Pod '%s' used to forcefully bootstrap not found", *forceBootstrapInPod)
 	}
 
-	if !rs.isComplete(pods, logger) {
+	if !rs.isComplete(mdb, logger) {
 		return nil, errors.New("recovery status not completed")
 	}
 
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 	var currentSource recovery.GaleraRecoverer
-	var currentPod corev1.Pod
+	var currentPod string
 
 	for _, p := range pods {
-		state := ptr.Deref(rs.inner.State[p.Name], recovery.GaleraState{})
-		recovered := ptr.Deref(rs.inner.Recovered[p.Name], recovery.Bootstrap{})
+		state := ptr.Deref(rs.inner.State[p], recovery.GaleraState{})
+		recovered := ptr.Deref(rs.inner.Recovered[p], recovery.Bootstrap{})
 
 		if state.SafeToBootstrap {
 			return &bootstrapSource{
@@ -211,7 +213,7 @@ func (rs *recoveryStatus) bootstrapSource(pods []corev1.Pod, forceBootstrapInPod
 			}, nil
 		}
 		if shouldSkipPod(recovered) {
-			logger.Info("Skipping Pod", "pod", p.Name)
+			logger.Info("Skipping Pod", "pod", p)
 			continue
 		}
 		if state.GetSeqno() > 0 && state.Compare(currentSource) >= 0 {
@@ -248,6 +250,14 @@ func (rs *recoveryStatus) podsRestarted() bool {
 	defer rs.mux.RUnlock()
 
 	return ptr.Deref(rs.inner.PodsRestarted, false)
+}
+
+func getPodNames(mdb *mariadbv1alpha1.MariaDB) []string {
+	podNames := make([]string, int(mdb.Spec.Replicas))
+	for i := 0; i < int(mdb.Spec.Replicas); i++ {
+		podNames[i] = statefulset.PodName(mdb.ObjectMeta, i)
+	}
+	return podNames
 }
 
 // shouldSkipPod determines whether a Pod should be skipped during the recovery process.

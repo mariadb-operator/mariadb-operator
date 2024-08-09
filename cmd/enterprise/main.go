@@ -11,6 +11,7 @@ import (
 	agentcmd "github.com/mariadb-operator/mariadb-operator/cmd/agent"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/cmd/backup"
 	initcmd "github.com/mariadb-operator/mariadb-operator/cmd/init"
+	statuscmd "github.com/mariadb-operator/mariadb-operator/cmd/status"
 	"github.com/mariadb-operator/mariadb-operator/internal/controller"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -451,6 +452,7 @@ func main() {
 	rootCmd.AddCommand(backupcmd.RootCmd)
 	rootCmd.AddCommand(initcmd.RootCmd)
 	rootCmd.AddCommand(agentcmd.RootCmd)
+	rootCmd.AddCommand(statuscmd.RootCmd)
 
 	cobra.CheckErr(rootCmd.Execute())
 }

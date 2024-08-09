@@ -328,7 +328,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 	}
 }
 
-func TestInitJobImagePullSecrets(t *testing.T) {
+func TestGaleraInitJobImagePullSecrets(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
 		Name:      "init-image-pull-secrets",
@@ -344,7 +344,11 @@ func TestInitJobImagePullSecrets(t *testing.T) {
 			name: "No Secrets",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
-				Spec:       mariadbv1alpha1.MariaDBSpec{},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
 			},
 			wantPullSecrets: nil,
 		},
@@ -353,6 +357,9 @@ func TestInitJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						ImagePullSecrets: []corev1.LocalObjectReference{
 							{
@@ -372,7 +379,7 @@ func TestInitJobImagePullSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuilInitJob(tt.mariadb.InitKey(), tt.mariadb, nil)
+			job, err := builder.BuilGaleraInitJob(tt.mariadb.InitKey(), tt.mariadb, nil)
 			if err != nil {
 				t.Fatalf("unexpected error building Job: %v", err)
 			}
@@ -933,7 +940,7 @@ func TestRestoreJobMeta(t *testing.T) {
 	}
 }
 
-func TestInitJobMeta(t *testing.T) {
+func TestGaleraInitJobMeta(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "init-obj",
@@ -944,7 +951,7 @@ func TestInitJobMeta(t *testing.T) {
 	tests := []struct {
 		name        string
 		mariadb     *mariadbv1alpha1.MariaDB
-		initJob     *mariadbv1alpha1.Job
+		initJob     *mariadbv1alpha1.GaleraInitJob
 		wantJobMeta *mariadbv1alpha1.Metadata
 		wantPodMeta *mariadbv1alpha1.Metadata
 	}{
@@ -952,15 +959,23 @@ func TestInitJobMeta(t *testing.T) {
 			name: "empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
 			},
-			initJob: &mariadbv1alpha1.Job{},
+			initJob: &mariadbv1alpha1.GaleraInitJob{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
 			wantPodMeta: &mariadbv1alpha1.Metadata{
-				Labels:      map[string]string{},
-				Annotations: map[string]string{},
+				Labels: map[string]string{},
+				Annotations: map[string]string{
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+				},
 			},
 		},
 		{
@@ -968,6 +983,9 @@ func TestInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",
@@ -978,7 +996,7 @@ func TestInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			initJob: &mariadbv1alpha1.Job{},
+			initJob: &mariadbv1alpha1.GaleraInitJob{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
@@ -992,7 +1010,9 @@ func TestInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+					"database.myorg.io":       "mariadb",
 				},
 			},
 		},
@@ -1000,14 +1020,21 @@ func TestInitJobMeta(t *testing.T) {
 			name: "extra meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
-			},
-			initJob: &mariadbv1alpha1.Job{
-				Metadata: &mariadbv1alpha1.Metadata{
-					Labels: map[string]string{
-						"sidecar.istio.io/inject": "false",
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
 					},
-					Annotations: map[string]string{
-						"database.myorg.io": "mariadb",
+				},
+			},
+			initJob: &mariadbv1alpha1.GaleraInitJob{
+				Job: mariadbv1alpha1.Job{
+					Metadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
 					},
 				},
 			},
@@ -1024,7 +1051,9 @@ func TestInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+					"database.myorg.io":       "mariadb",
 				},
 			},
 		},
@@ -1033,6 +1062,9 @@ func TestInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -1045,7 +1077,7 @@ func TestInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			initJob: &mariadbv1alpha1.Job{},
+			initJob: &mariadbv1alpha1.GaleraInitJob{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
@@ -1055,7 +1087,9 @@ func TestInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+					"database.myorg.io":       "mariadb",
 				},
 			},
 		},
@@ -1064,6 +1098,9 @@ func TestInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -1076,10 +1113,12 @@ func TestInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			initJob: &mariadbv1alpha1.Job{
-				Metadata: &mariadbv1alpha1.Metadata{
-					Labels: map[string]string{
-						"sidecar.istio.io/inject": "true",
+			initJob: &mariadbv1alpha1.GaleraInitJob{
+				Job: mariadbv1alpha1.Job{
+					Metadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "true",
+						},
 					},
 				},
 			},
@@ -1094,7 +1133,9 @@ func TestInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "true",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
+					"database.myorg.io":       "mariadb",
 				},
 			},
 		},
@@ -1103,6 +1144,9 @@ func TestInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -1117,10 +1161,12 @@ func TestInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			initJob: &mariadbv1alpha1.Job{
-				Metadata: &mariadbv1alpha1.Metadata{
-					Annotations: map[string]string{
-						"sidecar.istio.io/inject": "false",
+			initJob: &mariadbv1alpha1.GaleraInitJob{
+				Job: mariadbv1alpha1.Job{
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
 					},
 				},
 			},
@@ -1136,6 +1182,8 @@ func TestInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{
+					"k8s.mariadb.com/mariadb": "mariadb-obj",
+					"k8s.mariadb.com/galera":  "",
 					"database.myorg.io":       "mariadb",
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1145,7 +1193,7 @@ func TestInitJobMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuilInitJob(key, tt.mariadb, tt.initJob)
+			job, err := builder.BuilGaleraInitJob(key, tt.mariadb, tt.initJob)
 			if err != nil {
 				t.Fatalf("unexpected error building init Job: %v", err)
 			}

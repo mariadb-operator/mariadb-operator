@@ -20,6 +20,7 @@ const (
 	ConditionReasonSwitchPrimary       string = "SwitchPrimary"
 	ConditionReasonGaleraReady         string = "GaleraReady"
 	ConditionReasonGaleraNotReady      string = "GaleraNotReady"
+	ConditionReasonGaleraInitialized   string = "GaleraInitialized"
 	ConditionReasonGaleraConfigured    string = "GaleraConfigured"
 	ConditionReasonResizingStorage     string = "ResizingStorage"
 	ConditionReasonWaitStorageResize   string = "WaitStorageResize"

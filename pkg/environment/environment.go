@@ -18,8 +18,6 @@ type OperatorEnv struct {
 	RelatedMaxscaleImage         string `env:"RELATED_IMAGE_MAXSCALE,required"`
 	RelatedExporterImage         string `env:"RELATED_IMAGE_EXPORTER,required"`
 	RelatedExporterMaxscaleImage string `env:"RELATED_IMAGE_EXPORTER_MAXSCALE,required"`
-	MariadbGaleraInitImage       string `env:"MARIADB_GALERA_INIT_IMAGE,required"`
-	MariadbGaleraAgentImage      string `env:"MARIADB_GALERA_AGENT_IMAGE,required"`
 	MariadbGaleraLibPath         string `env:"MARIADB_GALERA_LIB_PATH,required"`
 	MariadbEntrypointVersion     string `env:"MARIADB_ENTRYPOINT_VERSION,required"`
 	WatchNamespace               string `env:"WATCH_NAMESPACE"`

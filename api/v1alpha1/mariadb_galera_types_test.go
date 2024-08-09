@@ -15,9 +15,8 @@ import (
 
 var _ = Describe("MariaDB Galera types", func() {
 	env := &environment.OperatorEnv{
-		MariadbGaleraInitImage:  "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-		MariadbGaleraAgentImage: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-		MariadbGaleraLibPath:    "/usr/lib/galera/libgalera_smm.so",
+		MariadbOperatorImage: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+		MariadbGaleraLibPath: "/usr/lib/galera/libgalera_smm.so",
 	}
 	Context("When creating a MariaDB Galera object", func() {
 		mdbObjMeta := metav1.ObjectMeta{
@@ -47,8 +46,10 @@ var _ = Describe("MariaDB Galera types", func() {
 						SST:            SSTMariaBackup,
 						ReplicaThreads: 1,
 						InitContainer: Container{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+						},
+						InitJob: &GaleraInitJob{
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 						},
 						AvailableWhenDonor: ptr.To(false),
 						GaleraLibPath:      "/usr/lib/galera/libgalera_smm.so",
@@ -72,9 +73,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(true),
 						},
 						Agent: GaleraAgent{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Port:            5555,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Port:  5555,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: true,
 							},
@@ -110,8 +110,10 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(false),
 						},
 						InitContainer: Container{
-							Image:           "mariadb/mariadb-operator-enterprise:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
+						},
+						InitJob: &GaleraInitJob{
+							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
 						},
 						Agent: GaleraAgent{
 							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
@@ -133,8 +135,10 @@ var _ = Describe("MariaDB Galera types", func() {
 						GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
 						ReplicaThreads: 1,
 						InitContainer: Container{
-							Image:           "mariadb/mariadb-operator-enterprise:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
+						},
+						InitJob: &GaleraInitJob{
+							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
 						},
 						AvailableWhenDonor: ptr.To(true),
 						Config: GaleraConfig{
@@ -157,9 +161,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(false),
 						},
 						Agent: GaleraAgent{
-							Image:           "mariadb/mariadb-operator-enterprise:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Port:            5555,
+							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
+							Port:  5555,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: false,
 							},
@@ -200,8 +203,10 @@ var _ = Describe("MariaDB Galera types", func() {
 						SST:            SSTMariaBackup,
 						ReplicaThreads: 1,
 						InitContainer: Container{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+						},
+						InitJob: &GaleraInitJob{
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 						},
 						GaleraLibPath:      "/usr/lib/galera/libgalera_smm.so",
 						AvailableWhenDonor: ptr.To(false),
@@ -225,9 +230,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(true),
 						},
 						Agent: GaleraAgent{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Port:            5555,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Port:  5555,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: true,
 							},
@@ -254,9 +258,12 @@ var _ = Describe("MariaDB Galera types", func() {
 						Recovery: &GaleraRecovery{
 							Enabled: false,
 						},
-						InitJob: &Job{
-							Affinity: &AffinityConfig{
-								AntiAffinityEnabled: ptr.To(true),
+						InitJob: &GaleraInitJob{
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Job: Job{
+								Affinity: &AffinityConfig{
+									AntiAffinityEnabled: ptr.To(true),
+								},
 							},
 						},
 					},
@@ -267,8 +274,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						SST:            SSTMariaBackup,
 						ReplicaThreads: 1,
 						InitContainer: Container{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 						},
 						GaleraLibPath:      "/usr/lib/galera/libgalera_smm.so",
 						AvailableWhenDonor: ptr.To(false),
@@ -292,9 +298,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(true),
 						},
 						Agent: GaleraAgent{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Port:            5555,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Port:  5555,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: true,
 							},
@@ -303,25 +308,28 @@ var _ = Describe("MariaDB Galera types", func() {
 						Recovery: &GaleraRecovery{
 							Enabled: false,
 						},
-						InitJob: &Job{
-							Affinity: &AffinityConfig{
-								AntiAffinityEnabled: ptr.To(true),
-								Affinity: corev1.Affinity{
-									PodAntiAffinity: &corev1.PodAntiAffinity{
-										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-											{
-												LabelSelector: &metav1.LabelSelector{
-													MatchExpressions: []metav1.LabelSelectorRequirement{
-														{
-															Key:      "app.kubernetes.io/instance",
-															Operator: metav1.LabelSelectorOpIn,
-															Values: []string{
-																mdbObjMeta.Name,
+						InitJob: &GaleraInitJob{
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Job: Job{
+								Affinity: &AffinityConfig{
+									AntiAffinityEnabled: ptr.To(true),
+									Affinity: corev1.Affinity{
+										PodAntiAffinity: &corev1.PodAntiAffinity{
+											RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+												{
+													LabelSelector: &metav1.LabelSelector{
+														MatchExpressions: []metav1.LabelSelectorRequirement{
+															{
+																Key:      "app.kubernetes.io/instance",
+																Operator: metav1.LabelSelectorOpIn,
+																Values: []string{
+																	mdbObjMeta.Name,
+																},
 															},
 														},
 													},
+													TopologyKey: "kubernetes.io/hostname",
 												},
-												TopologyKey: "kubernetes.io/hostname",
 											},
 										},
 									},

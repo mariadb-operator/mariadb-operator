@@ -309,6 +309,8 @@ spec:
           provided, all databases are backed up.
         displayName: Databases
         path: databases
+      - displayName: Failed Jobs History Limit
+        path: failedJobsHistoryLimit
       - description: 'IgnoreGlobalPriv indicates to ignore the mysql.global_priv in
           backups. If not provided, it will default to true when the referred MariaDB
           instance has Galera enabled and otherwise to false. See: https://github.com/mariadb-operator/mariadb-operator/issues/556'
@@ -468,6 +470,8 @@ spec:
       - description: Volume is a Kubernetes volume specification.
         displayName: Volume
         path: storage.volume
+      - displayName: Successful Jobs History Limit
+        path: successfulJobsHistoryLimit
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: tolerations
@@ -1132,7 +1136,8 @@ spec:
         path: galera.galeraLibPath
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: InitContainer is an init container that co-operates with mariadb-operator.
+      - description: InitContainer is an init container that runs in the MariaDB Pod
+          and co-operates with mariadb-operator.
         displayName: Init Container
         path: galera.initContainer
         x-descriptors:
@@ -1196,8 +1201,8 @@ spec:
         path: galera.initContainer.volumeMounts
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: InitJob defines additional properties for the Job used to perform
-          the initialization.
+      - description: InitJob defines a Job that co-operates with mariadb-operator
+          by performing initialization tasks.
         displayName: Init Job
         path: galera.initJob
         x-descriptors:
@@ -1218,6 +1223,17 @@ spec:
         displayName: Args
         path: galera.initJob.args
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Image name to be used by the Galera init job. The supported format
+          is `<image>:<tag>`.
+        displayName: Image
+        path: galera.initJob.image
+      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
+          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+        displayName: Image Pull Policy
+        path: galera.initJob.imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Metadata defines additional metadata for the bootstrap Jobs.
         displayName: Metadata
@@ -1281,6 +1297,35 @@ spec:
         path: galera.recovery.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: 'ForceClusterBootstrapInPod allows you to manually initiate the
+          bootstrap process in a specific Pod. IMPORTANT: Use this option only in
+          exceptional circumstances. Not selecting the Pod with the highest sequence
+          number may result in data loss. IMPORTANT: Ensure you unset this field after
+          completing the bootstrap to allow the operator to choose the appropriate
+          Pod to bootstrap from in an event of cluster recovery.'
+        displayName: Force Cluster Bootstrap In Pod
+        path: galera.recovery.forceClusterBootstrapInPod
+      - description: Job defines a Job that co-operates with mariadb-operator by performing
+          the Galera cluster recovery .
+        displayName: Job
+        path: galera.recovery.job
+      - description: Metadata defines additional metadata for the Galera recovery
+          Jobs.
+        displayName: Metadata
+        path: galera.recovery.job.metadata
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Annotations to be added to children resources.
+        displayName: Annotations
+        path: galera.recovery.job.metadata.annotations
+      - description: Labels to be added to children resources.
+        displayName: Labels
+        path: galera.recovery.job.metadata.labels
+      - description: Resouces describes the compute resource requirements.
+        displayName: Resources
+        path: galera.recovery.job.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - description: MinClusterSize is the minimum number of replicas to consider
           the cluster healthy. It can be either a number of replicas (3) or a percentage
           (50%). If Galera consistently reports less replicas than this value for
@@ -1289,13 +1334,11 @@ spec:
         displayName: Min Cluster Size
         path: galera.recovery.minClusterSize
       - description: PodRecoveryTimeout is the time limit for recevorying the sequence
-          of a Pod during the cluster recovery. Once this timeout is reached, the
-          Pod is restarted.
+          of a Pod during the cluster recovery.
         displayName: Pod Recovery Timeout
         path: galera.recovery.podRecoveryTimeout
       - description: PodSyncTimeout is the time limit for a Pod to join the cluster
           after having performed a cluster bootstrap during the cluster recovery.
-          Once this timeout is reached, the Pod is restarted.
         displayName: Pod Sync Timeout
         path: galera.recovery.podSyncTimeout
       - description: 'ReplicaThreads is the number of replica threads used to apply
@@ -2162,8 +2205,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Suspend indicates whether the current resource should be suspended
-          or not. Feature flag --feature-maxscale-suspend is required in the controller
-          to enable this.
+          or not. This can be useful for maintenance, as disabling the reconciliation
+          prevents the operator from interfering with user operations during maintenance
+          activities.
         displayName: Suspend
         path: maxScale.monitor.suspend
         x-descriptors:
@@ -2219,8 +2263,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Suspend indicates whether the current resource should be suspended
-          or not. Feature flag --feature-maxscale-suspend is required in the controller
-          to enable this.
+          or not. This can be useful for maintenance, as disabling the reconciliation
+          prevents the operator from interfering with user operations during maintenance
+          activities.
         displayName: Suspend
         path: maxScale.services[0].listener.suspend
         x-descriptors:
@@ -2241,8 +2286,9 @@ spec:
         displayName: Router
         path: maxScale.services[0].router
       - description: Suspend indicates whether the current resource should be suspended
-          or not. Feature flag --feature-maxscale-suspend is required in the controller
-          to enable this.
+          or not. This can be useful for maintenance, as disabling the reconciliation
+          prevents the operator from interfering with user operations during maintenance
+          activities.
         displayName: Suspend
         path: maxScale.services[0].suspend
         x-descriptors:
@@ -3178,6 +3224,21 @@ spec:
         path: storage.waitForVolumeResize
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Suspend indicates whether the current resource should be suspended
+          or not. This can be useful for maintenance, as disabling the reconciliation
+          prevents the operator from interfering with user operations during maintenance
+          activities.
+        displayName: Suspend
+        path: suspend
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: TimeZone sets the default timezone. If not provided, it defaults
+          to SYSTEM and the timezone data is not loaded.
+        displayName: Time Zone
+        path: timeZone
+        x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
@@ -4144,8 +4205,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Suspend indicates whether the current resource should be suspended
-          or not. Feature flag --feature-maxscale-suspend is required in the controller
-          to enable this.
+          or not. This can be useful for maintenance, as disabling the reconciliation
+          prevents the operator from interfering with user operations during maintenance
+          activities.
         displayName: Suspend
         path: monitor.suspend
         x-descriptors:
@@ -4283,8 +4345,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Suspend indicates whether the current resource should be suspended
-          or not. Feature flag --feature-maxscale-suspend is required in the controller
-          to enable this.
+          or not. This can be useful for maintenance, as disabling the reconciliation
+          prevents the operator from interfering with user operations during maintenance
+          activities.
         displayName: Suspend
         path: services[0].listener.suspend
         x-descriptors:
@@ -4305,8 +4368,9 @@ spec:
         displayName: Router
         path: services[0].router
       - description: Suspend indicates whether the current resource should be suspended
-          or not. Feature flag --feature-maxscale-suspend is required in the controller
-          to enable this.
+          or not. This can be useful for maintenance, as disabling the reconciliation
+          prevents the operator from interfering with user operations during maintenance
+          activities.
         displayName: Suspend
         path: services[0].suspend
         x-descriptors:
@@ -4375,6 +4439,15 @@ spec:
         displayName: Volume Mounts
         path: sidecarContainers[0].volumeMounts
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Suspend indicates whether the current resource should be suspended
+          or not. This can be useful for maintenance, as disabling the reconciliation
+          prevents the operator from interfering with user operations during maintenance
+          activities.
+        displayName: Suspend
+        path: suspend
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
@@ -4680,6 +4753,8 @@ spec:
       - description: DependsOn defines dependencies with other SqlJob objectecs.
         displayName: Depends On
         path: dependsOn
+      - displayName: Failed Jobs History Limit
+        path: failedJobsHistoryLimit
       - description: ImagePullSecrets is the list of pull Secrets to be used to pull
           the image.
         displayName: Image Pull Secrets
@@ -4781,6 +4856,8 @@ spec:
         path: sqlConfigMapKeyRef
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
+      - displayName: Successful Jobs History Limit
+        path: successfulJobsHistoryLimit
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: tolerations
