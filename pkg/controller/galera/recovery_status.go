@@ -213,7 +213,7 @@ func (rs *recoveryStatus) bootstrapSource(mdb *mariadbv1alpha1.MariaDB, forceBoo
 			}, nil
 		}
 		if shouldSkipPod(recovered) {
-			logger.Info("Skipping Pod", "pod", p)
+			logger.Info("Skipping Pod while looking for a bootstrap source", "pod", p)
 			continue
 		}
 		if state.GetSeqno() > 0 && state.Compare(currentSource) >= 0 {

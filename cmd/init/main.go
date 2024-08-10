@@ -183,7 +183,7 @@ func configureGaleraBootstrap(fm *filemanager.FileManager, podIndex int, isGaler
 
 func waitForPreviousPod(ctx context.Context, k8sClient client.Client, env *environment.PodEnvironment,
 	mdb *mariadbv1alpha1.MariaDB, podIndex int, isGaleraInit bool) error {
-	if podIndex == 0 || isGaleraInit {
+	if podIndex == 0 || mdb.HasGaleraConfiguredCondition() || isGaleraInit {
 		return nil
 	}
 	previousPodName, err := getPreviousPodName(mdb, podIndex)
