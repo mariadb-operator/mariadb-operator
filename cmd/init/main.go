@@ -75,7 +75,7 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		isGaleraInit, err := state.IsGaleraInit()
+		hasGaleraState, err := state.HasGaleraState()
 		if err != nil {
 			logger.Error(err, "Error checking Galera init state")
 			os.Exit(1)
@@ -106,10 +106,10 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "error configuring Galera")
 			os.Exit(1)
 		}
-		if err := configureGaleraBootstrap(fileManager, *podIndex, isGaleraInit); err != nil {
+		if err := configureGaleraBootstrap(fileManager, &mdb, hasGaleraState, *podIndex); err != nil {
 			logger.Error(err, "error configuring Galera bootstrap")
 		}
-		if err := waitForPreviousPod(ctx, k8sClient, env, &mdb, *podIndex, isGaleraInit); err != nil {
+		if err := waitForPreviousPod(ctx, k8sClient, env, &mdb, hasGaleraState, *podIndex); err != nil {
 			logger.Error(err, "error waiting for previous Pod")
 			os.Exit(1)
 		}
@@ -170,20 +170,21 @@ func updateGaleraConfig(fm *filemanager.FileManager, env *environment.PodEnviron
 	return nil
 }
 
-func configureGaleraBootstrap(fm *filemanager.FileManager, podIndex int, isGaleraInit bool) error {
-	if podIndex == 0 && !isGaleraInit {
-		logger.Info("Configuring Galera bootstrap")
+func configureGaleraBootstrap(fm *filemanager.FileManager, mdb *mariadbv1alpha1.MariaDB, hasGaleraState bool, podIndex int) error {
+	if mdb.HasGaleraConfiguredCondition() || hasGaleraState || podIndex != 0 {
+		return nil
+	}
+	logger.Info("Configuring Galera bootstrap")
 
-		if err := fm.WriteConfigFile(config.BootstrapFileName, config.BootstrapFile); err != nil {
-			return fmt.Errorf("error configuring Galera bootstrap: %v", err)
-		}
+	if err := fm.WriteConfigFile(config.BootstrapFileName, config.BootstrapFile); err != nil {
+		return fmt.Errorf("error configuring Galera bootstrap: %v", err)
 	}
 	return nil
 }
 
 func waitForPreviousPod(ctx context.Context, k8sClient client.Client, env *environment.PodEnvironment,
-	mdb *mariadbv1alpha1.MariaDB, podIndex int, isGaleraInit bool) error {
-	if podIndex == 0 || mdb.HasGaleraConfiguredCondition() || isGaleraInit {
+	mdb *mariadbv1alpha1.MariaDB, hasGaleraState bool, podIndex int) error {
+	if mdb.HasGaleraConfiguredCondition() || hasGaleraState || podIndex == 0 {
 		return nil
 	}
 	previousPodName, err := getPreviousPodName(mdb, podIndex)

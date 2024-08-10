@@ -11,11 +11,9 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	conditions "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
-	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	stspkg "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -46,14 +44,6 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	if mxsErr != nil {
 		log.FromContext(ctx).V(1).Info("error getting MaxScale primary Pod", "err", mxsErr)
 	}
-	var initJob *batchv1.Job
-	if mdb.IsGaleraEnabled() && !mdb.HasGaleraConfiguredCondition() {
-		var err error
-		initJob, err = r.getInitJob(ctx, mdb)
-		if err != nil {
-			log.FromContext(ctx).V(1).Info("error getting init Job", "err", err)
-		}
-	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		status.Replicas = sts.Status.ReadyReplicas
@@ -68,16 +58,12 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 			r.ConditionReady.PatcherRefResolver(mxsErr, mariadbv1alpha1.MaxScale{})(&mdb.Status)
 			return nil
 		}
-		if initJob != nil && !jobpkg.IsJobComplete(initJob) {
-			condition.SetReadyWithInitJob(&mdb.Status, initJob)
-			return nil
-		}
 		if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
 			return nil
 		}
 
 		if err := r.setUpdatedCondition(ctx, mdb); err != nil {
-			return err
+			log.FromContext(ctx).V(1).Info("error setting MariaDB updated condition", "err", err)
 		}
 		condition.SetReadyWithMariaDB(&mdb.Status, &sts, mdb)
 		return nil
@@ -147,14 +133,6 @@ func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mari
 		return nil, fmt.Errorf("error getting Pod for MaxScale server '%s': %v", *primarySrv, err)
 	}
 	return podIndex, nil
-}
-
-func (r *MariaDBReconciler) getInitJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
-	var job batchv1.Job
-	if err := r.Get(ctx, mdb.InitKey(), &job); err != nil {
-		return nil, err
-	}
-	return &job, nil
 }
 
 func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {

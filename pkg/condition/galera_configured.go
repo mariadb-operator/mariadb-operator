@@ -13,12 +13,3 @@ func SetGaleraConfigured(c Conditioner) {
 		Message: "Galera configured",
 	})
 }
-
-func SetGaleraInitialized(c Conditioner) {
-	c.SetCondition(metav1.Condition{
-		Type:    mariadbv1alpha1.ConditionTypeGaleraConfigured,
-		Status:  metav1.ConditionFalse,
-		Reason:  mariadbv1alpha1.ConditionReasonGaleraInitialized,
-		Message: "Galera initialized",
-	})
-}

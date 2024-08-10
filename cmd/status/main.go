@@ -62,12 +62,12 @@ var RootCmd = &cobra.Command{
 		}
 		state := state.NewState(stateDir)
 
-		isInit, err := state.IsGaleraInit()
+		hasGaleraState, err := state.HasGaleraState()
 		if err != nil {
 			logger.Error(err, "Error checking Galera init state")
 			os.Exit(1)
 		}
-		if !isInit {
+		if !hasGaleraState {
 			logger.Info("MariaDB not initialized. Skipping status patch...")
 			os.Exit(0)
 		}
