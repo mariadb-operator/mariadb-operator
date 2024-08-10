@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"reflect"
 	"sort"
 	"time"
@@ -14,6 +15,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	galeraclient "github.com/mariadb-operator/mariadb-operator/pkg/galera/client"
+	galeraerrors "github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	galerarecovery "github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
@@ -273,7 +275,11 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 				}
 				galeraState, err := client.Galera.GetState(ctx)
 				if err != nil {
-					return err
+					if galeraErr, ok := err.(*galeraerrors.Error); ok && galeraErr.HTTPCode == http.StatusNotFound {
+						stateLogger.Info("Galera state not found. Skipping Pod...")
+						return nil
+					}
+					return fmt.Errorf("error getting Galera state for Pod '%s': %v", pod.Name, err)
 				}
 
 				stateLogger.Info(
