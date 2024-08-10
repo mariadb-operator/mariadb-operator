@@ -9,7 +9,8 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	conditions "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	mdbembed "github.com/mariadb-operator/mariadb-operator/pkg/embed"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
@@ -17,18 +18,40 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if mariadb.HasGaleraConfiguredCondition() || mariadb.IsGaleraInitialized() {
-		if err := r.initCleanup(ctx, mariadb); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error cleaning up init resources: %v", err)
-		}
 		return ctrl.Result{}, nil
+	}
+
+	if !mariadb.IsGaleraInitializing() {
+		pvcs, err := r.listPVCs(ctx, mariadb)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
+		}
+		if len(pvcs) > 0 {
+			if err = r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+				condition.SetGaleraConfigured(status)
+				status.GaleraRecovery = nil
+				condition.SetGaleraNotReady(status)
+			}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+			}
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+	}
+
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		condition.SetGaleraInitializing(status)
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
 	if err := r.reconcilePVC(ctx, mariadb); err != nil {
@@ -55,12 +78,33 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
+	if err := r.initCleanup(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error cleaning up init resources: %v", err)
+	}
+
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		conditions.SetGaleraInitialized(status)
+		condition.SetGaleraInitialized(status)
 	}); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error marking MariaDB as initialized: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *GaleraReconciler) listPVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.PersistentVolumeClaim, error) {
+	list := corev1.PersistentVolumeClaimList{}
+	listOpts := &ctrlclient.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mariadb).
+				WithPVCRole(builder.StorageVolumeRole).
+				Build(),
+		),
+		Namespace: mariadb.GetNamespace(),
+	}
+	if err := r.List(ctx, &list, listOpts); err != nil {
+		return nil, fmt.Errorf("error listing PVCs: %v", err)
+	}
+	return list.Items, nil
 }
 
 func (r *GaleraReconciler) createJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
