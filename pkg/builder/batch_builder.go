@@ -257,7 +257,7 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 	if !galera.Enabled {
 		return nil, errors.New("Galera must be enabled")
 	}
-	initJob := ptr.Deref(galera.InitJob, mariadbv1alpha1.GaleraInitJob{})
+	initJob := ptr.Deref(galera.InitJob, mariadbv1alpha1.Job{})
 	extraMeta := ptr.Deref(initJob.Metadata, mariadbv1alpha1.Metadata{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
@@ -303,22 +303,15 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 				MountPath: InitConfigPath,
 			},
 		}),
+		withMariadbResources(false),
+		withMariadbSelectorLabels(false),
 		withGaleraContainers(false),
 		withGaleraConfig(false),
-		withMariadbResources(false),
+		withServiceAccount(false),
 		withPorts(false),
 		withProbes(false),
-		withMariadbSelectorLabels(false),
 		withHAAnnotations(false),
 	}
-
-	statusContainer, err := b.galeraStatusContainer(mariadb, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("error creating status container: %v", err)
-	}
-	opts = append(opts, withExtraInitContainers([]corev1.Container{
-		*statusContainer,
-	}))
 
 	podTpl, err := b.mariadbPodTemplate(mariadb, opts...)
 	if err != nil {
@@ -388,12 +381,13 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		withResources(recoveryJob.Resources),
 		withExtraVolumes(volumes),
 		withAffinityEnabled(false), // We need to schedule the recovery Job even if MariaDB defines anti-affinity.
+		withMariadbResources(false),
+		withMariadbSelectorLabels(false),
 		withGaleraContainers(false),
 		withGaleraConfig(true),
-		withMariadbResources(false),
+		withServiceAccount(false),
 		withPorts(false),
 		withProbes(false),
-		withMariadbSelectorLabels(false),
 		withHAAnnotations(false),
 	)
 	if err != nil {

@@ -7037,19 +7037,6 @@ spec:
                         items:
                           type: string
                         type: array
-                      image:
-                        description: Image name to be used by the Galera init job.
-                          The supported format is `<image>:<tag>`.
-                        type: string
-                      imagePullPolicy:
-                        description: ImagePullPolicy is the image pull policy. One
-                          of `Always`, `Never` or `IfNotPresent`. If not defined,
-                          it defaults to `IfNotPresent`.
-                        enum:
-                        - Always
-                        - Never
-                        - IfNotPresent
-                        type: string
                       metadata:
                         description: Metadata defines additional metadata for the
                           bootstrap Jobs.
