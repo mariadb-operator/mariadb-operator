@@ -858,15 +858,13 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							InitJob: &mariadbv1alpha1.GaleraInitJob{
-								Job: mariadbv1alpha1.Job{
-									Metadata: &mariadbv1alpha1.Metadata{
-										Labels: map[string]string{
-											"sidecar.istio.io/inject": "false",
-										},
-										Annotations: map[string]string{
-											"database.myorg.io": "mariadb",
-										},
+							InitJob: &mariadbv1alpha1.Job{
+								Metadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"sidecar.istio.io/inject": "false",
+									},
+									Annotations: map[string]string{
+										"database.myorg.io": "mariadb",
 									},
 								},
 							},
@@ -932,12 +930,10 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							InitJob: &mariadbv1alpha1.GaleraInitJob{
-								Job: mariadbv1alpha1.Job{
-									Metadata: &mariadbv1alpha1.Metadata{
-										Labels: map[string]string{
-											"sidecar.istio.io/inject": "true",
-										},
+							InitJob: &mariadbv1alpha1.Job{
+								Metadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"sidecar.istio.io/inject": "true",
 									},
 								},
 							},
@@ -978,12 +974,10 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							InitJob: &mariadbv1alpha1.GaleraInitJob{
-								Job: mariadbv1alpha1.Job{
-									Metadata: &mariadbv1alpha1.Metadata{
-										Annotations: map[string]string{
-											"sidecar.istio.io/inject": "false",
-										},
+							InitJob: &mariadbv1alpha1.Job{
+								Metadata: &mariadbv1alpha1.Metadata{
+									Annotations: map[string]string{
+										"sidecar.istio.io/inject": "false",
 									},
 								},
 							},
@@ -1086,12 +1080,10 @@ func TestGaleraInitJobResources(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							InitJob: &mariadbv1alpha1.GaleraInitJob{
-								Job: mariadbv1alpha1.Job{
-									Resources: &corev1.ResourceRequirements{
-										Requests: corev1.ResourceList{
-											"cpu": resource.MustParse("100m"),
-										},
+							InitJob: &mariadbv1alpha1.Job{
+								Resources: &corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"cpu": resource.MustParse("100m"),
 									},
 								},
 							},
@@ -1114,18 +1106,10 @@ func TestGaleraInitJobResources(t *testing.T) {
 				t.Fatalf("unexpected error building Galera init Job: %v", err)
 			}
 			podTpl := job.Spec.Template
-			if len(podTpl.Spec.InitContainers) != 1 {
-				t.Error("expecting to have one init container")
-			}
-			resources := podTpl.Spec.InitContainers[0].Resources
-			if !reflect.DeepEqual(resources, tt.wantResources) {
-				t.Errorf("unexpected resources, got: %v, expected: %v", resources, tt.wantResources)
-			}
-
 			if len(podTpl.Spec.Containers) != 1 {
 				t.Error("expecting to have one container")
 			}
-			resources = podTpl.Spec.Containers[0].Resources
+			resources := podTpl.Spec.Containers[0].Resources
 			if !reflect.DeepEqual(resources, tt.wantResources) {
 				t.Errorf("unexpected resources, got: %v, expected: %v", resources, tt.wantResources)
 			}

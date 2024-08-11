@@ -12,35 +12,36 @@ import (
 )
 
 type mariadbPodOpts struct {
-	meta                    *mariadbv1alpha1.Metadata
-	command                 []string
-	args                    []string
-	restartPolicy           *corev1.RestartPolicy
-	resources               *corev1.ResourceRequirements
-	affinity                *mariadbv1alpha1.AffinityConfig
-	extraVolumes            []corev1.Volume
-	extraVolumeMounts       []corev1.VolumeMount
-	extraInitContainers     []corev1.Container
-	includeGaleraContainers bool
-	includeGaleraConfig     bool
-	includeMariadbResources bool
-	includePorts            bool
-	includeProbes           bool
-	includeSelectorLabels   bool
-	includeHAAnnotations    bool
-	includeAffinity         bool
+	meta                         *mariadbv1alpha1.Metadata
+	command                      []string
+	args                         []string
+	restartPolicy                *corev1.RestartPolicy
+	resources                    *corev1.ResourceRequirements
+	affinity                     *mariadbv1alpha1.AffinityConfig
+	extraVolumes                 []corev1.Volume
+	extraVolumeMounts            []corev1.VolumeMount
+	includeMariadbResources      bool
+	includeMariadbSelectorLabels bool
+	includeGaleraContainers      bool
+	includeGaleraConfig          bool
+	includeServiceAccount        bool
+	includePorts                 bool
+	includeProbes                bool
+	includeHAAnnotations         bool
+	includeAffinity              bool
 }
 
 func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
 	opts := &mariadbPodOpts{
-		includeGaleraContainers: true,
-		includeGaleraConfig:     true,
-		includeMariadbResources: true,
-		includePorts:            true,
-		includeProbes:           true,
-		includeSelectorLabels:   true,
-		includeHAAnnotations:    true,
-		includeAffinity:         true,
+		includeMariadbResources:      true,
+		includeMariadbSelectorLabels: true,
+		includeGaleraContainers:      true,
+		includeGaleraConfig:          true,
+		includeServiceAccount:        true,
+		includePorts:                 true,
+		includeProbes:                true,
+		includeHAAnnotations:         true,
+		includeAffinity:              true,
 	}
 	for _, setOpt := range userOpts {
 		setOpt(opts)
@@ -98,15 +99,21 @@ func withExtraVolumes(volumes []corev1.Volume) mariadbPodOpt {
 	}
 }
 
-func withExtraInitContainers(containers []corev1.Container) mariadbPodOpt {
-	return func(opts *mariadbPodOpts) {
-		opts.extraInitContainers = containers
-	}
-}
-
 func withExtraVolumeMounts(volumeMounts []corev1.VolumeMount) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.extraVolumeMounts = volumeMounts
+	}
+}
+
+func withMariadbResources(includeMariadbResources bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeMariadbResources = includeMariadbResources
+	}
+}
+
+func withMariadbSelectorLabels(includeMariadbSelectorLabels bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeMariadbSelectorLabels = includeMariadbSelectorLabels
 	}
 }
 
@@ -122,9 +129,9 @@ func withGaleraConfig(includeGaleraConfig bool) mariadbPodOpt {
 	}
 }
 
-func withMariadbResources(includeMariadbResources bool) mariadbPodOpt {
+func withServiceAccount(includeServiceAccount bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
-		opts.includeMariadbResources = includeMariadbResources
+		opts.includeServiceAccount = includeServiceAccount
 	}
 }
 
@@ -137,12 +144,6 @@ func withPorts(includePorts bool) mariadbPodOpt {
 func withProbes(includeProbes bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.includeProbes = includeProbes
-	}
-}
-
-func withMariadbSelectorLabels(includeSelectorLabels bool) mariadbPodOpt {
-	return func(opts *mariadbPodOpts) {
-		opts.includeSelectorLabels = includeSelectorLabels
 	}
 }
 
@@ -164,7 +165,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithMetadata(mariadb.Spec.PodMetadata).
 			WithMetadata(mariadbOpts.meta)
-	if mariadbOpts.includeSelectorLabels {
+	if mariadbOpts.includeMariadbSelectorLabels {
 		selectorLabels :=
 			labels.NewLabelsBuilder().
 				WithMariaDBSelectorLabels(mariadb).
@@ -304,7 +305,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 			},
 		})
 	}
-	if mariadb.IsGaleraEnabled() {
+	if mariadb.IsGaleraEnabled() && mariadbOpts.includeServiceAccount {
 		volumes = append(volumes, corev1.Volume{
 			Name: ServiceAccountVolume,
 			VolumeSource: corev1.VolumeSource{

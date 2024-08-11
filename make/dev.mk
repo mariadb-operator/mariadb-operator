@@ -136,8 +136,3 @@ AGENT_FLAGS ?= $(RUN_FLAGS) $(AGENT_AUTH_FLAGS) --config-dir=mariadb/config --st
 .PHONY: agent
 agent: local-dir ## Run agent from your host.
 	$(POD_ENV) $(GO) run cmd/controller/*.go agent $(AGENT_FLAGS)
-
-STATUS_FLAGS ?= $(RUN_FLAGS) --state-dir=mariadb/state
-.PHONY: status
-status: local-dir ## Run status from your host.
-	$(POD_ENV) $(GO) run cmd/controller/*.go status $(STATUS_FLAGS)

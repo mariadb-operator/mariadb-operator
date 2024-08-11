@@ -248,11 +248,7 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 		if err != nil {
 			return nil, err
 		}
-
 		initContainers = append(initContainers, *initContainer)
-	}
-	if mariadbOpts.extraInitContainers != nil {
-		initContainers = append(initContainers, mariadbOpts.extraInitContainers...)
 	}
 	return initContainers, nil
 }
@@ -299,35 +295,6 @@ func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1
 	}()
 	container.Env = mariadbEnv(mariadb)
 	container.VolumeMounts = mariadbVolumeMounts(mariadb)
-
-	return container, nil
-}
-
-func (b *Builder) galeraStatusContainer(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) (*corev1.Container, error) {
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	if !galera.Enabled {
-		return nil, errors.New("Galera is not enabled")
-	}
-	initJob := ptr.Deref(galera.InitJob, mariadbv1alpha1.GaleraInitJob{})
-
-	container, err := b.buildContainer(initJob.Image, initJob.ImagePullPolicy, &mariadbv1alpha1.ContainerTemplate{
-		Resources: initJob.Resources,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	container.Name = StatusContainerName
-	container.Args = func() []string {
-		args := container.Args
-		args = append(args, []string{
-			"status",
-			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
-		}...)
-		return args
-	}()
-	container.Env = mariadbEnv(mariadb)
-	container.VolumeMounts = mariadbVolumeMounts(mariadb, opts...)
 
 	return container, nil
 }
@@ -481,7 +448,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			MountPath: ProbesMountPath,
 		})
 	}
-	if mariadb.IsGaleraEnabled() {
+	if mariadb.IsGaleraEnabled() && mariadbOpts.includeServiceAccount {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      ServiceAccountVolume,
 			MountPath: ServiceAccountMountPath,
