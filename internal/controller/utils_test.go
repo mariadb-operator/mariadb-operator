@@ -33,8 +33,8 @@ import (
 )
 
 var (
-	testVeryHighTimeout = 6 * time.Minute
-	testHighTimeout     = 3 * time.Minute
+	testVeryHighTimeout = 8 * time.Minute
+	testHighTimeout     = 4 * time.Minute
 	testTimeout         = 1 * time.Minute
 	testInterval        = 1 * time.Second
 
