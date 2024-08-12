@@ -21,9 +21,8 @@ var (
 	MaxScaleContainerName = "maxscale"
 	MaxScaleAdminPortName = "admin"
 
-	InitContainerName   = "init"
-	AgentContainerName  = "agent"
-	StatusContainerName = "status"
+	InitContainerName  = "init"
+	AgentContainerName = "agent"
 
 	defaultProbe = corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{

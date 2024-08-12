@@ -191,7 +191,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
-			ServiceAccountName:           ptr.Deref(mariadb.Spec.ServiceAccountName, mariadb.Name),
+			ServiceAccountName:           mariadbServiceAccount(mariadb, opts...),
 			RestartPolicy:                ptr.Deref(mariadbOpts.restartPolicy, corev1.RestartPolicyAlways),
 			InitContainers:               initContainers,
 			Containers:                   containers,
@@ -285,6 +285,14 @@ func mariadbTopologySpreadConstraints(mariadb *mariadbv1alpha1.MariaDB, opts ...
 		return nil
 	}
 	return mariadb.Spec.TopologySpreadConstraints
+}
+
+func mariadbServiceAccount(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) string {
+	mariadbOpts := newMariadbPodOpts(opts...)
+	if !mariadbOpts.includeServiceAccount {
+		return ""
+	}
+	return ptr.Deref(mariadb.Spec.ServiceAccountName, mariadb.Name)
 }
 
 func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.Volume {
