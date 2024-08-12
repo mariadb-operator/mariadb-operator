@@ -5,6 +5,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -293,11 +294,13 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 	})
 
 	It("should recover after Galera cluster crash", func() {
-		By("Tearing down all Pods consistently")
+		By("Tearing down all Pods")
 		opts := []client.DeleteAllOfOption{
-			client.MatchingLabels{
-				"app.kubernetes.io/instance": mdb.Name,
-			},
+			client.MatchingLabels(
+				labels.NewLabelsBuilder().
+					WithMariaDBSelectorLabels(mdb).
+					Build(),
+			),
 			client.InNamespace(mdb.Namespace),
 		}
 		Expect(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, opts...)).To(Succeed())
@@ -313,9 +316,11 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		Eventually(func(g Gomega) bool {
 			var podList corev1.PodList
 			listOpts := []client.ListOption{
-				client.MatchingLabels{
-					"app.kubernetes.io/instance": mdb.Name,
-				},
+				client.MatchingLabels(
+					labels.NewLabelsBuilder().
+						WithMariaDBSelectorLabels(mdb).
+						Build(),
+				),
 				client.InNamespace(mdb.Namespace),
 			}
 			g.Expect(k8sClient.List(testCtx, &podList, listOpts...)).To(Succeed())
