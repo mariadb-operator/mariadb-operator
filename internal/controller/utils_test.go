@@ -703,23 +703,49 @@ func deleteMariaDB(key types.NamespacedName) {
 	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
 	Expect(k8sClient.Delete(testCtx, &mdb)).To(Succeed())
 
+	By("Expecting Pods to be terminated eventually")
 	Eventually(func(g Gomega) bool {
-		listOpts := &client.ListOptions{
-			LabelSelector: klabels.SelectorFromSet(
+		var podList corev1.PodList
+		listOpts := []client.ListOption{
+			client.MatchingLabels(
 				labels.NewLabelsBuilder().
 					WithMariaDBSelectorLabels(&mdb).
 					Build(),
 			),
-			Namespace: mdb.GetNamespace(),
+			client.InNamespace(mdb.Namespace),
 		}
-		pvcList := &corev1.PersistentVolumeClaimList{}
-		g.Expect(k8sClient.List(testCtx, pvcList, listOpts)).To(Succeed())
+		g.Expect(k8sClient.List(testCtx, &podList, listOpts...)).To(Succeed())
+		return len(podList.Items) == 0
+	}, testTimeout, testInterval).Should(BeTrue())
 
-		for _, pvc := range pvcList.Items {
-			g.Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
+	By("Expecting to delete PVCs eventually")
+	Eventually(func(g Gomega) bool {
+		opts := []client.DeleteAllOfOption{
+			client.MatchingLabels(
+				labels.NewLabelsBuilder().
+					WithMariaDBSelectorLabels(&mdb).
+					Build(),
+			),
+			client.InNamespace(mdb.Namespace),
 		}
+		g.Expect(k8sClient.DeleteAllOf(testCtx, &corev1.PersistentVolumeClaim{}, opts...)).To(Succeed())
 		return true
-	}, 30*time.Second, 1*time.Second).Should(BeTrue())
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting PVCs to be deleted eventually")
+	Eventually(func(g Gomega) bool {
+		var pvcList corev1.PersistentVolumeClaimList
+		listOpts := []client.ListOption{
+			client.MatchingLabels(
+				labels.NewLabelsBuilder().
+					WithMariaDBSelectorLabels(&mdb).
+					Build(),
+			),
+			client.InNamespace(mdb.Namespace),
+		}
+		g.Expect(k8sClient.List(testCtx, &pvcList, listOpts...)).To(Succeed())
+		return len(pvcList.Items) == 0
+	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
