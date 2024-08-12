@@ -34,6 +34,8 @@ const (
 	ReasonGaleraPodRecovered = "GaleraPodRecovered"
 	// ReasonGaleraPodSyncTimeout indicates that the Pod has timed out reaching the Sync state.
 	ReasonGaleraPodSyncTimeout = "GaleraPodSyncTimeout"
+	// ReasonGaleraPVCNotBound indicates that a Galera PVC is not in Bound phase, therefore the init process cannot be started.
+	ReasonGaleraPVCNotBound = "GaleraPVCNotBound"
 
 	// ReasonPrimarySwitching indicates that primary is being switched.
 	ReasonPrimarySwitching = "PrimarySwitching"
