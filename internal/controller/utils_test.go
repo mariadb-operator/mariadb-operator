@@ -200,10 +200,7 @@ func testCleanupInitialData(ctx context.Context) {
 	var password corev1.Secret
 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
-
-	var mdb mariadbv1alpha1.MariaDB
-	Expect(k8sClient.Get(ctx, testMdbkey, &mdb)).To(Succeed())
-	Expect(k8sClient.Delete(ctx, &mdb)).To(Succeed())
+	deleteMariaDB(testMdbkey)
 }
 
 func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
@@ -701,14 +698,16 @@ func deploymentReady(deploy *appsv1.Deployment) bool {
 	return false
 }
 
-func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
-	Expect(k8sClient.Delete(testCtx, mdb)).To(Succeed())
+func deleteMariaDB(key types.NamespacedName) {
+	var mdb mariadbv1alpha1.MariaDB
+	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
+	Expect(k8sClient.Delete(testCtx, &mdb)).To(Succeed())
 
 	Eventually(func(g Gomega) bool {
 		listOpts := &client.ListOptions{
 			LabelSelector: klabels.SelectorFromSet(
 				labels.NewLabelsBuilder().
-					WithMariaDBSelectorLabels(mdb).
+					WithMariaDBSelectorLabels(&mdb).
 					Build(),
 			),
 			Namespace: mdb.GetNamespace(),
