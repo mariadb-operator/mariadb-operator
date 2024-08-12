@@ -4,11 +4,11 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -34,6 +34,14 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 				Namespace: key.Namespace,
 			},
 			Spec: mariadbv1alpha1.MariaDBSpec{
+				RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+				},
 				Username: &testUser,
 				PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
 					SecretKeySelector: corev1.SecretKeySelector{
@@ -145,27 +153,20 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		By("Creating MariaDB Galera")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(mdb)
+			deleteMariaDB(key)
 		})
-
-		By("Expecting init Job to be created eventually")
-		Eventually(func(g Gomega) bool {
-			var job batchv1.Job
-			g.Expect(k8sClient.Get(testCtx, mdb.InitKey(), &job)).To(Succeed())
-
-			g.Expect(job.ObjectMeta.Labels).NotTo(BeNil())
-			g.Expect(job.ObjectMeta.Labels).To(HaveKeyWithValue("sidecar.istio.io/inject", "false"))
-
-			return true
-		}, testHighTimeout, testInterval).Should(BeTrue())
 	})
 
 	It("should default", func() {
 		By("Creating MariaDB")
-		testDefaultMariaDb := mariadbv1alpha1.MariaDB{
+		key := types.NamespacedName{
+			Name:      "mariadb-galera-default",
+			Namespace: testNamespace,
+		}
+		mdb := mariadbv1alpha1.MariaDB{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "mariadb-galera-default",
-				Namespace: testNamespace,
+				Name:      key.Name,
+				Namespace: key.Namespace,
 			},
 			Spec: mariadbv1alpha1.MariaDBSpec{
 				Galera: &mariadbv1alpha1.Galera{
@@ -177,23 +178,23 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 				},
 			},
 		}
-		Expect(k8sClient.Create(testCtx, &testDefaultMariaDb)).To(Succeed())
+		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(&testDefaultMariaDb)
+			deleteMariaDB(key)
 		})
 
 		By("Expecting to eventually default")
 		Eventually(func(g Gomega) bool {
-			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testDefaultMariaDb), &testDefaultMariaDb); err != nil {
+			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
 				return false
 			}
-			g.Expect(testDefaultMariaDb.Spec.Galera).ToNot(BeZero())
-			g.Expect(testDefaultMariaDb.Spec.Galera.Primary).ToNot(BeZero())
-			g.Expect(testDefaultMariaDb.Spec.Galera.SST).ToNot(BeZero())
-			g.Expect(testDefaultMariaDb.Spec.Galera.ReplicaThreads).ToNot(BeZero())
-			g.Expect(testDefaultMariaDb.Spec.Galera.Recovery).ToNot(BeZero())
-			g.Expect(testDefaultMariaDb.Spec.Galera.InitContainer).ToNot(BeZero())
-			g.Expect(testDefaultMariaDb.Spec.Galera.Config).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.Primary).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.SST).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.ReplicaThreads).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.Recovery).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.InitContainer).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.Config).ToNot(BeZero())
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
@@ -304,6 +305,45 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		testGaleraRecovery(key)
 	})
 
+	It("should recover from existing PVCs", func() {
+		By("Deleting MariaDB")
+		Expect(k8sClient.Delete(testCtx, mdb)).To(Succeed())
+
+		By("Expecting to delete Pods eventually")
+		Eventually(func(g Gomega) bool {
+			var podList corev1.PodList
+			listOpts := []client.ListOption{
+				client.MatchingLabels{
+					"app.kubernetes.io/instance": mdb.Name,
+				},
+				client.InNamespace(mdb.Namespace),
+			}
+			g.Expect(k8sClient.List(testCtx, &podList, listOpts...)).To(Succeed())
+			return len(podList.Items) == 0
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting to delete PVC eventually")
+		Eventually(func(g Gomega) bool {
+			key := types.NamespacedName{
+				Name:      mdb.PVCKey(builder.StorageVolume, 0).Name,
+				Namespace: mdb.Namespace,
+			}
+			var pvc corev1.PersistentVolumeClaim
+			g.Expect(k8sClient.Get(testCtx, key, &pvc)).To(Succeed())
+			g.Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Creating MariaDB")
+		mdb.ObjectMeta = metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		}
+		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+
+		testGaleraRecovery(key)
+	})
+
 	It("should update", func() {
 		By("Updating MariaDB")
 		testMariadbUpdate(mdb)
@@ -369,20 +409,12 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 
 func testGaleraRecovery(key types.NamespacedName) {
 	var mdb mariadbv1alpha1.MariaDB
-	By("Expecting MariaDB NOT to be ready eventually")
+	By("Expecting MariaDB to NOT be ready eventually")
 	Eventually(func() bool {
 		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
 			return false
 		}
-		return !mdb.IsReady()
-	}, testHighTimeout, testInterval).Should(BeTrue())
-
-	By("Expecting Galera NOT to be ready eventually")
-	Eventually(func() bool {
-		if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
-			return false
-		}
-		return mdb.HasGaleraNotReadyCondition()
+		return !mdb.IsReady() && mdb.HasGaleraNotReadyCondition()
 	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting MariaDB to be ready eventually")
