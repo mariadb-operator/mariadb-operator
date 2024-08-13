@@ -21331,6 +21331,10 @@ spec:
                 description: Replicas indicates the number of desired instances.
                 format: int32
                 type: integer
+              replicasAllowEvenNumber:
+                default: false
+                description: disables the validation check for an odd number of replicas.
+                type: boolean
               replication:
                 description: Replication configures high availability via replication.
                   This feature is still in alpha, use Galera if you are looking for
@@ -25055,6 +25059,11 @@ spec:
                   type: object
                 type: array
             type: object
+            x-kubernetes-validations:
+            - message: 'An odd number of MariaDB instances (mariadb.spec.replicas)
+                is required to avoid split brain situations. Use ''mariadb.spec.replicasAllowEvenNumber:
+                true'' to disable this validation.'
+              rule: self.replicas %2 == 1 || self.replicasAllowEvenNumber
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:
