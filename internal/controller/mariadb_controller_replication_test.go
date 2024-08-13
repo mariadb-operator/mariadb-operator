@@ -194,7 +194,7 @@ var _ = Describe("MariaDB replication", Ordered, Focus, func() {
 	})
 
 	It("should fail and switch over primary", func() {
-		Skip("TODO: re-evaluate this test when productionizing replication")
+		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
 
 		By("Expecting MariaDB primary to be set")
 		Eventually(func() bool {
@@ -299,7 +299,7 @@ var _ = Describe("MariaDB replication", Ordered, Focus, func() {
 	})
 
 	It("should reconcile with MaxScale", func() {
-		Skip("TODO: re-evaluate this test when productionizing replication")
+		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
 
 		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
