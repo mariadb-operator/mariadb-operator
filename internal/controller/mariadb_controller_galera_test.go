@@ -19,6 +19,50 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var _ = Describe("MariaDB Galera spec", func() {
+	It("should default", func() {
+		By("Creating MariaDB")
+		key := types.NamespacedName{
+			Name:      "mariadb-galera-default",
+			Namespace: testNamespace,
+		}
+		mdb := mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Galera: &mariadbv1alpha1.Galera{
+					Enabled: true,
+				},
+				Replicas: 3,
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key)
+		})
+
+		By("Expecting to eventually default")
+		Eventually(func(g Gomega) bool {
+			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
+				return false
+			}
+			g.Expect(mdb.Spec.Galera).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.Primary).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.SST).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.ReplicaThreads).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.Recovery).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.InitContainer).ToNot(BeZero())
+			g.Expect(mdb.Spec.Galera.Config).ToNot(BeZero())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+})
+
 var _ = Describe("MariaDB Galera", Ordered, func() {
 	var (
 		key = types.NamespacedName{
@@ -154,50 +198,8 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		By("Creating MariaDB Galera")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(key)
+			deleteMariadb(key)
 		})
-	})
-
-	It("should default", func() {
-		By("Creating MariaDB")
-		key := types.NamespacedName{
-			Name:      "mariadb-galera-default",
-			Namespace: testNamespace,
-		}
-		mdb := mariadbv1alpha1.MariaDB{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      key.Name,
-				Namespace: key.Namespace,
-			},
-			Spec: mariadbv1alpha1.MariaDBSpec{
-				Galera: &mariadbv1alpha1.Galera{
-					Enabled: true,
-				},
-				Replicas: 3,
-				Storage: mariadbv1alpha1.Storage{
-					Size: ptr.To(resource.MustParse("300Mi")),
-				},
-			},
-		}
-		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
-		DeferCleanup(func() {
-			deleteMariaDB(key)
-		})
-
-		By("Expecting to eventually default")
-		Eventually(func(g Gomega) bool {
-			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mdb), &mdb); err != nil {
-				return false
-			}
-			g.Expect(mdb.Spec.Galera).ToNot(BeZero())
-			g.Expect(mdb.Spec.Galera.Primary).ToNot(BeZero())
-			g.Expect(mdb.Spec.Galera.SST).ToNot(BeZero())
-			g.Expect(mdb.Spec.Galera.ReplicaThreads).ToNot(BeZero())
-			g.Expect(mdb.Spec.Galera.Recovery).ToNot(BeZero())
-			g.Expect(mdb.Spec.Galera.InitContainer).ToNot(BeZero())
-			g.Expect(mdb.Spec.Galera.Config).ToNot(BeZero())
-			return true
-		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
 	It("should reconcile", func() {

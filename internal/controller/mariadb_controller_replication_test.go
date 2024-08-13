@@ -16,7 +16,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("MariaDB replication", Ordered, Focus, func() {
+var _ = Describe("MariaDB replication", Ordered, func() {
 	var (
 		key = types.NamespacedName{
 			Name:      "mariadb-repl",
@@ -131,7 +131,7 @@ var _ = Describe("MariaDB replication", Ordered, Focus, func() {
 		By("Creating MariaDB with replication")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(key)
+			deleteMariadb(key)
 		})
 	})
 
