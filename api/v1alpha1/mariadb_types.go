@@ -428,6 +428,10 @@ type MariaDBSpec struct {
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	Replicas int32 `json:"replicas,omitempty"`
+	// disables the validation check for an odd number of replicas.
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ReplicasAllowEvenNumber bool `json:"replicasAllowEvenNumber,omitempty"`
 	// Port where the instances will be listening for connections.
 	// +optional
 	// +kubebuilder:default=3306
@@ -524,6 +528,7 @@ type MariaDB struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:validation:XValidation:rule="self.replicas %2 == 1 || self.replicasAllowEvenNumber", message="An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation."
 	Spec   MariaDBSpec   `json:"spec"`
 	Status MariaDBStatus `json:"status,omitempty"`
 }
