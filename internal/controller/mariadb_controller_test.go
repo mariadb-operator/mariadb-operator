@@ -21,14 +21,39 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("MariaDB", func() {
-	BeforeEach(func() {
-		By("Waiting for MariaDB to be ready")
-		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+var _ = Describe("MariaDB spec", func() {
+	It("should default", func() {
+		By("Creating MariaDB")
+		key := types.NamespacedName{
+			Name:      "test-mariadb-default",
+			Namespace: testNamespace,
+		}
+		mdb := mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key)
+		})
+
+		By("Expecting to eventually default")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
+				return false
+			}
+			return mdb.Spec.Image != ""
+		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
-	DescribeTable(
-		"should render default config",
+	DescribeTable("should render default config",
 		func(mariadb *mariadbv1alpha1.MariaDB, expectedConfig string) {
 			config, err := defaultConfig(mariadb)
 			Expect(err).ToNot(HaveOccurred())
@@ -54,11 +79,18 @@ default_time_zone = UTC
 `,
 		),
 	)
+})
 
-	It("should default", func() {
+var _ = Describe("MariaDB", func() {
+	BeforeEach(func() {
+		By("Waiting for MariaDB to be ready")
+		expectMariadbReady(testCtx, k8sClient, testMdbkey)
+	})
+
+	It("should suspend ", func() {
 		By("Creating MariaDB")
 		key := types.NamespacedName{
-			Name:      "test-mariadb-default",
+			Name:      "test-mariadb-suspend",
 			Namespace: testNamespace,
 		}
 		mdb := mariadbv1alpha1.MariaDB{
@@ -74,48 +106,17 @@ default_time_zone = UTC
 		}
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(key)
-		})
-
-		By("Expecting to eventually default")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
-				return false
-			}
-			return mdb.Spec.Image != ""
-		}, testTimeout, testInterval).Should(BeTrue())
-	})
-
-	It("should suspend ", func() {
-		By("Creating MariaDB")
-		key := types.NamespacedName{
-			Name:      "test-mariadb-suspend",
-			Namespace: testNamespace,
-		}
-		testSuspendMariaDB := mariadbv1alpha1.MariaDB{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      key.Name,
-				Namespace: key.Namespace,
-			},
-			Spec: mariadbv1alpha1.MariaDBSpec{
-				Storage: mariadbv1alpha1.Storage{
-					Size: ptr.To(resource.MustParse("300Mi")),
-				},
-			},
-		}
-		Expect(k8sClient.Create(testCtx, &testSuspendMariaDB)).To(Succeed())
-		DeferCleanup(func() {
-			deleteMariaDB(key)
+			deleteMariadb(key)
 		})
 
 		By("Suspend MariaDB")
 		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, key, &testSuspendMariaDB); err != nil {
+			if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
 				return false
 			}
-			testSuspendMariaDB.Spec.Suspend = true
+			mdb.Spec.Suspend = true
 
-			return k8sClient.Update(testCtx, &testSuspendMariaDB) == nil
+			return k8sClient.Update(testCtx, &mdb) == nil
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting MariaDB to eventually be suspended")
@@ -424,7 +425,7 @@ default_time_zone = UTC
 		By("Creating MariaDB")
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(key)
+			deleteMariadb(key)
 		})
 
 		By("Expecting MariaDB to be ready eventually")
@@ -470,7 +471,7 @@ default_time_zone = UTC
 		By("Creating MariaDB")
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(key)
+			deleteMariadb(key)
 		})
 
 		By("Expecting MariaDB to be ready eventually")
@@ -555,7 +556,7 @@ default_time_zone = UTC
 		By("Creating MariaDB")
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(key)
+			deleteMariadb(key)
 		})
 
 		By("Expecting MariaDB to be ready eventually")
@@ -724,7 +725,7 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 	By("Creating MariaDB")
 	Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 	DeferCleanup(func() {
-		deleteMariaDB(key)
+		deleteMariadb(key)
 	})
 
 	By("Expecting MariaDB to be ready eventually")

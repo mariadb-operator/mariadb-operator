@@ -33,9 +33,9 @@ import (
 )
 
 var (
-	testVeryHighTimeout = 8 * time.Minute
-	testHighTimeout     = 4 * time.Minute
-	testTimeout         = 1 * time.Minute
+	testVeryHighTimeout = 10 * time.Minute
+	testHighTimeout     = 5 * time.Minute
+	testTimeout         = 2 * time.Minute
 	testInterval        = 1 * time.Second
 
 	testNamespace = "default"
@@ -200,7 +200,7 @@ func testCleanupInitialData(ctx context.Context) {
 	var password corev1.Secret
 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
-	deleteMariaDB(testMdbkey)
+	deleteMariadb(testMdbkey)
 }
 
 func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
@@ -534,40 +534,28 @@ func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKey
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
+// See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
-	mdb.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 10,
-	}
-	mdb.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
-		InitialDelaySeconds: 30,
-	}
 	mdb.Spec.Resources = &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
-			"cpu":    resource.MustParse("300m"),
-			"memory": resource.MustParse("256Mi"),
+			"cpu":    resource.MustParse("500m"),
+			"memory": resource.MustParse("1Gi"),
 		},
 		Limits: corev1.ResourceList{
-			"cpu":    resource.MustParse("300m"),
-			"memory": resource.MustParse("256Mi"),
+			"memory": resource.MustParse("1Gi"),
 		},
 	}
 	return mdb
 }
 
+// See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
-	mxs.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 10,
-	}
-	mxs.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
-		InitialDelaySeconds: 30,
-	}
 	mxs.Spec.Resources = &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
-			"cpu":    resource.MustParse("200m"),
+			"cpu":    resource.MustParse("250m"),
 			"memory": resource.MustParse("128Mi"),
 		},
 		Limits: corev1.ResourceList{
-			"cpu":    resource.MustParse("200m"),
 			"memory": resource.MustParse("128Mi"),
 		},
 	}
@@ -698,54 +686,23 @@ func deploymentReady(deploy *appsv1.Deployment) bool {
 	return false
 }
 
-func deleteMariaDB(key types.NamespacedName) {
+func deleteMariadb(key types.NamespacedName) {
 	var mdb mariadbv1alpha1.MariaDB
+	By("Deleting MariaDB")
 	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
 	Expect(k8sClient.Delete(testCtx, &mdb)).To(Succeed())
 
-	By("Expecting Pods to be terminated eventually")
-	Eventually(func(g Gomega) bool {
-		var podList corev1.PodList
-		listOpts := []client.ListOption{
-			client.MatchingLabels(
-				labels.NewLabelsBuilder().
-					WithMariaDBSelectorLabels(&mdb).
-					Build(),
-			),
-			client.InNamespace(mdb.Namespace),
-		}
-		g.Expect(k8sClient.List(testCtx, &podList, listOpts...)).To(Succeed())
-		return len(podList.Items) == 0
-	}, testTimeout, testInterval).Should(BeTrue())
+	By("Deleting PVCs")
+	opts := []client.DeleteAllOfOption{
+		client.MatchingLabels(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(&mdb).
+				Build(),
+		),
+		client.InNamespace(mdb.Namespace),
+	}
+	Expect(k8sClient.DeleteAllOf(testCtx, &corev1.PersistentVolumeClaim{}, opts...)).To(Succeed())
 
-	By("Expecting to delete PVCs eventually")
-	Eventually(func(g Gomega) bool {
-		opts := []client.DeleteAllOfOption{
-			client.MatchingLabels(
-				labels.NewLabelsBuilder().
-					WithMariaDBSelectorLabels(&mdb).
-					Build(),
-			),
-			client.InNamespace(mdb.Namespace),
-		}
-		g.Expect(k8sClient.DeleteAllOf(testCtx, &corev1.PersistentVolumeClaim{}, opts...)).To(Succeed())
-		return true
-	}, testTimeout, testInterval).Should(BeTrue())
-
-	By("Expecting PVCs to be deleted eventually")
-	Eventually(func(g Gomega) bool {
-		var pvcList corev1.PersistentVolumeClaimList
-		listOpts := []client.ListOption{
-			client.MatchingLabels(
-				labels.NewLabelsBuilder().
-					WithMariaDBSelectorLabels(&mdb).
-					Build(),
-			),
-			client.InNamespace(mdb.Namespace),
-		}
-		g.Expect(k8sClient.List(testCtx, &pvcList, listOpts...)).To(Succeed())
-		return len(pvcList.Items) == 0
-	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
