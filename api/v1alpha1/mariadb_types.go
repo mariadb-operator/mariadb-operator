@@ -530,6 +530,7 @@ type MariaDB struct {
 
 	// +kubebuilder:validation:XValidation:rule="self.replicas %2 == 1 || self.replicasAllowEvenNumber", message="An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation."
 	// +kubebuilder:validation:XValidation:rule="self.galera.enabled && self.replication.enabled", message="You may only enable one HA method at a time, either 'mariadb.spec.galera.enabled' or 'mariadb.spec.replication.enabled'"
+	// +kubebuilder:validation:XValidation:rule="self.replicas > 1 && (self.galera.enabled || self.replication.enabled)", message="Multiple replicas (mariadb.spec.replicas) can only be specified when 'mariadb.spec.galera.enabled' or 'mariadb.spec.replication.enabled' are true"
 	Spec   MariaDBSpec   `json:"spec"`
 	Status MariaDBStatus `json:"status,omitempty"`
 }
