@@ -478,6 +478,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#backup-and-restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup and restore
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quickstart" class="md-nav__link">
     <span class="md-ellipsis">
       Quickstart
@@ -908,6 +917,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#backup-and-restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup and restore
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quickstart" class="md-nav__link">
     <span class="md-ellipsis">
       Quickstart
@@ -1031,16 +1049,9 @@
 <li><a href="#galera-cluster-recovery">Galera cluster recovery</a></li>
 <li><a href="#wsrep-provider">Wsrep provider</a></li>
 <li><a href="#ipv6-support">IPv6 support</a></li>
+<li><a href="#backup-and-restore">Backup and restore</a></li>
 <li><a href="#quickstart">Quickstart</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
-<li><a href="#common-errors">Common errors</a><ul>
-<li><a href="#permission-denied-writing-galera-configuration">Permission denied writing Galera configuration</a></li>
-<li><a href="#unauthorized-error-disabling-bootstrap">Unauthorized error disabling bootstrap</a></li>
-<li><a href="#timeout-waiting-for-pod-to-be-synced">Timeout waiting for Pod to be Synced</a></li>
-<li><a href="#galera-cluster-bootstrap-timed-out">Galera cluster bootstrap timed out</a></li>
-</ul>
-</li>
-<li><a href="#github-issues">GitHub Issues</a></li>
 <li><a href="#reference">Reference</a></li>
 </ul>
 <!-- /toc -->
@@ -1127,6 +1138,8 @@ spec:
 <p>A list of the available options can be found in the <a href="https://mariadb.com/kb/en/wsrep_provider_options/">MariaDB documentation</a>.</p>
 <h2 id="ipv6-support">IPv6 support</h2>
 <p>If you have a Kubernetes cluster running with IPv6, the operator will automatically detect the IPv6 addresses of your <code>Pods</code> and it will configure several <a href="#wsrep-provider">wsrep provider</a> options to ensure that the Galera protocol runs smoothly with IPv6.</p>
+<h2 id="backup-and-restore">Backup and restore</h2>
+<p>Please refer to the <a href="../BACKUP/">backup documentation</a> to understand how to backup and restore Galera clusters. Specially, make sure you understand the <a href="../BACKUP/#galera-backup-limitations">Galera backup limitations</a>.</p>
 <h2 id="quickstart">Quickstart</h2>
 <p>First of all, install the following configuration manifests that will be referenced by the CRDs further:</p>
 <pre><code class="language-bash">kubectl apply -f examples/manifests/config

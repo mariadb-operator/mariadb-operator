@@ -463,6 +463,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#cronjobtemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      CronJobTemplate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#database" class="md-nav__link">
     <span class="md-ellipsis">
       Database
@@ -1540,6 +1549,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#cronjobtemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      CronJobTemplate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#database" class="md-nav__link">
     <span class="md-ellipsis">
       Database
@@ -2338,6 +2356,24 @@
 <td></td>
 </tr>
 <tr>
+<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>timeZone</code> <em>string</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
 <td>MariaDBRef is a reference to a MariaDB object.</td>
 <td></td>
@@ -2396,18 +2432,6 @@
 <td>InheritMetadata defines the metadata to be inherited by children resources.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
 </tr>
 </tbody>
 </table>
@@ -2839,6 +2863,41 @@
 See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/</p>
 <p><em>Appears in:</em>
 - <a href="#maxscalemonitor">MaxScaleMonitor</a></p>
+<h4 id="cronjobtemplate">CronJobTemplate</h4>
+<p>CronJobTemplate defines parameters for configuring CronJob objects.</p>
+<p><em>Appears in:</em>
+- <a href="#backupspec">BackupSpec</a>
+- <a href="#sqljobspec">SqlJobSpec</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>timeZone</code> <em>string</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <h4 id="database">Database</h4>
 <p>Database is the Schema for the databases API. It is used to define a logical database as if you were running a 'CREATE DATABASE' statement.</p>
 <table>
@@ -3154,13 +3213,13 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 </tr>
 <tr>
 <td><code>initContainer</code> <em><a href="#container">Container</a></em></td>
-<td>InitContainer is an init container that co-operates with mariadb-operator.</td>
+<td>InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>initJob</code> <em><a href="#job">Job</a></em></td>
-<td>InitJob defines additional properties for the Job used to perform the initialization.</td>
+<td>InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.</td>
 <td></td>
 <td></td>
 </tr>
@@ -3374,7 +3433,7 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </tr>
 <tr>
 <td><code>job</code> <em><a href="#galerarecoveryjob">GaleraRecoveryJob</a></em></td>
-<td>Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster.</td>
+<td>Job defines a Job that co-operates with mariadb-operator by performing the Galera cluster recovery .</td>
 <td></td>
 <td></td>
 </tr>
@@ -3472,13 +3531,13 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </tr>
 <tr>
 <td><code>initContainer</code> <em><a href="#container">Container</a></em></td>
-<td>InitContainer is an init container that co-operates with mariadb-operator.</td>
+<td>InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>initJob</code> <em><a href="#job">Job</a></em></td>
-<td>InitJob defines additional properties for the Job used to perform the initialization.</td>
+<td>InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.</td>
 <td></td>
 <td></td>
 </tr>
@@ -4212,7 +4271,7 @@ The agent validates the legitimacy of the service account token provided as an A
 </tr>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4331,6 +4390,12 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
+<td><code>replicasAllowEvenNumber</code> <em>boolean</em></td>
+<td>disables the validation check for an odd number of replicas.</td>
+<td>false</td>
+<td></td>
+</tr>
+<tr>
 <td><code>port</code> <em>integer</em></td>
 <td>Port where the instances will be listening for connections.</td>
 <td>3306</td>
@@ -4382,12 +4447,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <td><code>secondaryConnection</code> <em><a href="#connectiontemplate">ConnectionTemplate</a></em></td>
 <td>SecondaryConnection defines templates to configure the secondary Connection object.</td>
 <td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>suspend</code> <em>boolean</em></td>
-<td></td>
-<td>false</td>
 <td></td>
 </tr>
 </tbody>
@@ -4715,7 +4774,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4797,7 +4856,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4902,7 +4961,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -5070,6 +5129,12 @@ The agent validates the legitimacy of the service account token provided as an A
 <td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
 <td>TopologySpreadConstraints to be used in the Pod.</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>suspend</code> <em>boolean</em></td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>false</td>
 <td></td>
 </tr>
 <tr>
@@ -6187,6 +6252,24 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
+<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>timeZone</code> <em>string</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
 <td>MariaDBRef is a reference to a MariaDB object.</td>
 <td></td>
@@ -6252,18 +6335,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 <td></td>
 </tr>
-<tr>
-<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
 </tbody>
 </table>
 <h4 id="storage">Storage</h4>
@@ -6324,7 +6395,8 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 - <a href="#mariadbspec">MariaDBSpec</a>
 - <a href="#maxscalelistener">MaxScaleListener</a>
 - <a href="#maxscalemonitor">MaxScaleMonitor</a>
-- <a href="#maxscaleservice">MaxScaleService</a></p>
+- <a href="#maxscaleservice">MaxScaleService</a>
+- <a href="#maxscalespec">MaxScaleSpec</a></p>
 <table>
 <thead>
 <tr>
@@ -6337,7 +6409,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
