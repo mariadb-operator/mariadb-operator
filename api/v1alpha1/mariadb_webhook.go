@@ -250,12 +250,5 @@ func (r *MariaDB) validateUpdateStorage(old *MariaDB) error {
 }
 
 func (r *MariaDB) validateRootPassword() error {
-	if r.IsRootPasswordEmpty() && r.IsRootPasswordDefined() {
-		return field.Invalid(
-			field.NewPath("spec").Child("rootEmptyPassword"),
-			r.Spec.RootEmptyPassword,
-			"'spec.rootEmptyPassword' must be disabled when 'spec.rootPasswordSecretKeyRef' is specified",
-		)
-	}
 	return nil
 }
