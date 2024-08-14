@@ -93,13 +93,6 @@ func (r *MariaDB) ValidateDelete() (admission.Warnings, error) {
 }
 
 func (r *MariaDB) validateHA() error {
-	if r.IsHAEnabled() && r.Spec.Replicas <= 1 {
-		return field.Invalid(
-			field.NewPath("spec").Child("replicas"),
-			r.Spec.Replicas,
-			"Multiple replicas must be specified when 'spec.replication' or 'spec.galera' are configured",
-		)
-	}
 	return nil
 }
 

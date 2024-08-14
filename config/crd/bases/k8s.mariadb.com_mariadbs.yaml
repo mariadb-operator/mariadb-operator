@@ -25071,6 +25071,10 @@ spec:
                 when 'mariadb.spec.galera.enabled' or 'mariadb.spec.replication.enabled'
                 are true
               rule: self.replicas > 1 && (self.galera.enabled || self.replication.enabled)
+            - message: If 'mariadb.spec.replicas' is set to 1 or less than 'mariadb.spec.galera.enabled'
+                and 'mariadb.spec.replication.enabled' have to be false to disable
+                HA
+              rule: self.replicas <= 1 && (!self.galera.enabled && !self.replication.enabled)
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:
