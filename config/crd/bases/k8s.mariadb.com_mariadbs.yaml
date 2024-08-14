@@ -25064,6 +25064,9 @@ spec:
                 is required to avoid split brain situations. Use ''mariadb.spec.replicasAllowEvenNumber:
                 true'' to disable this validation.'
               rule: self.replicas %2 == 1 || self.replicasAllowEvenNumber
+            - message: You may only enable one HA method at a time, either 'mariadb.spec.galera.enabled'
+                or 'mariadb.spec.replication.enabled'
+              rule: self.galera.enabled && self.replication.enabled
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:
