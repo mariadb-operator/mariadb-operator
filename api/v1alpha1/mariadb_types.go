@@ -532,6 +532,7 @@ type MariaDB struct {
 	// +kubebuilder:validation:XValidation:rule="self.galera.enabled && self.replication.enabled", message="You may only enable one HA method at a time, either 'mariadb.spec.galera.enabled' or 'mariadb.spec.replication.enabled'"
 	// +kubebuilder:validation:XValidation:rule="self.replicas > 1 && (self.galera.enabled || self.replication.enabled)", message="Multiple replicas (mariadb.spec.replicas) can only be specified when 'mariadb.spec.galera.enabled' or 'mariadb.spec.replication.enabled' are true"
 	// +kubebuilder:validation:XValidation:rule="self.replicas <= 1 && (!self.galera.enabled && !self.replication.enabled)", message="If 'mariadb.spec.replicas' is set to 1 or less than 'mariadb.spec.galera.enabled' and 'mariadb.spec.replication.enabled' have to be false to disable HA"
+	// +kubebuilder:validation:XValidation:rule="(self.galera.replicaThreads > 0 && self.galera.enabled) || !self.galera.enabled", message="If 'mariadb.spec.galera.enabled' is true than 'mariadb.spec.galera.replicaThreads' must be at least 1"
 	Spec   MariaDBSpec   `json:"spec"`
 	Status MariaDBStatus `json:"status,omitempty"`
 }

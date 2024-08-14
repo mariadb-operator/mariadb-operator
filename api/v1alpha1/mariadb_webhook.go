@@ -130,13 +130,6 @@ func (r *MariaDB) validateGalera() error {
 			)
 		}
 	}
-	if galera.ReplicaThreads < 0 {
-		return field.Invalid(
-			field.NewPath("spec").Child("galera").Child("replicaThreads"),
-			galera.ReplicaThreads,
-			"'spec.galera.replicaThreads' must be at least 1",
-		)
-	}
 	_, exists := galera.ProviderOptions[galerakeys.WsrepOptISTRecvAddr]
 	if exists {
 		return field.Invalid(

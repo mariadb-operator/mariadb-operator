@@ -25075,6 +25075,9 @@ spec:
                 and 'mariadb.spec.replication.enabled' have to be false to disable
                 HA
               rule: self.replicas <= 1 && (!self.galera.enabled && !self.replication.enabled)
+            - message: If 'mariadb.spec.galera.enabled' is true than 'mariadb.spec.galera.replicaThreads'
+                must be at least 1
+              rule: (self.galera.replicaThreads > 0 && self.galera.enabled) || !self.galera.enabled
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:
