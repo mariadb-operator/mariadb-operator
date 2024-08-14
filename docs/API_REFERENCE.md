@@ -90,6 +90,9 @@ _Appears in:_
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
+| `successfulJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
+| `failedJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
+| `timeZone` _string_ |  |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: {} <br /> |
 | `storage` _[BackupStorage](#backupstorage)_ | Storage to be used in the Backup. |  | Required: {} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
@@ -100,8 +103,6 @@ _Appears in:_
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully take a Backup. |  |  |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
-| `successfulJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
-| `failedJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
 
 
 #### BackupStorage
@@ -284,6 +285,25 @@ _Appears in:_
 
 
 
+#### CronJobTemplate
+
+
+
+CronJobTemplate defines parameters for configuring CronJob objects.
+
+
+
+_Appears in:_
+- [BackupSpec](#backupspec)
+- [SqlJobSpec](#sqljobspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `successfulJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
+| `failedJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
+| `timeZone` _string_ |  |  |  |
+
+
 #### Database
 
 
@@ -384,8 +404,8 @@ _Appears in:_
 | `providerOptions` _object (keys:string, values:string)_ | ProviderOptions is map of Galera configuration parameters.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options. |  |  |
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
-| `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |  |  |
-| `initJob` _[Job](#job)_ | InitJob defines additional properties for the Job used to perform the initialization. |  |  |
+| `initContainer` _[Container](#container)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `initJob` _[Job](#job)_ | InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Galera. |  |  |
 
@@ -461,7 +481,7 @@ _Appears in:_
 | `podRecoveryTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery. |  |  |
 | `podSyncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery. |  |  |
 | `forceClusterBootstrapInPod` _string_ | ForceClusterBootstrapInPod allows you to manually initiate the bootstrap process in a specific Pod.<br />IMPORTANT: Use this option only in exceptional circumstances. Not selecting the Pod with the highest sequence number may result in data loss.<br />IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery. |  |  |
-| `job` _[GaleraRecoveryJob](#galerarecoveryjob)_ | Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster. |  |  |
+| `job` _[GaleraRecoveryJob](#galerarecoveryjob)_ | Job defines a Job that co-operates with mariadb-operator by performing the Galera cluster recovery . |  |  |
 
 
 #### GaleraRecoveryJob
@@ -502,8 +522,8 @@ _Appears in:_
 | `providerOptions` _object (keys:string, values:string)_ | ProviderOptions is map of Galera configuration parameters.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options. |  |  |
 | `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
-| `initContainer` _[Container](#container)_ | InitContainer is an init container that co-operates with mariadb-operator. |  |  |
-| `initJob` _[Job](#job)_ | InitJob defines additional properties for the Job used to perform the initialization. |  |  |
+| `initContainer` _[Container](#container)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `initJob` _[Job](#job)_ | InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
 
 
@@ -820,6 +840,7 @@ _Appears in:_
 | `maxScaleRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectreference-v1-core)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this field implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
 | `maxScale` _[MariaDBMaxScaleSpec](#mariadbmaxscalespec)_ | MaxScale is the MaxScale specification that defines the MaxScale resource to be used with the current MariaDB.<br />When enabling this field, MaxScaleRef is automatically set. |  |  |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. | 1 |  |
+| `replicasAllowEvenNumber` _boolean_ | disables the validation check for an odd number of replicas. | false |  |
 | `port` _integer_ | Port where the instances will be listening for connections. | 3306 |  |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |  |  |
 | `updateStrategy` _[UpdateStrategy](#updatestrategy)_ | UpdateStrategy defines how a MariaDB resource is updated. |  |  |
@@ -1580,6 +1601,9 @@ _Appears in:_
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
+| `successfulJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
+| `failedJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
+| `timeZone` _string_ |  |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: {} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the SqlJob will be executed. |  | Required: {} <br /> |
 | `username` _string_ | Username to be impersonated when executing the SqlJob. |  | Required: {} <br /> |
@@ -1591,8 +1615,6 @@ _Appears in:_
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob. | 5 |  |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core)_ | RestartPolicy to be added to the SqlJob Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
-| `successfulJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
-| `failedJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
 
 
 #### Storage

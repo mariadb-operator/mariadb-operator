@@ -335,7 +335,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise:v0.0.23
-    createdAt: "2024-08-05T14:00:49Z"
+    createdAt: "2024-08-14T09:22:03Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -547,6 +547,8 @@ spec:
             path: storage.volume
           - displayName: Successful Jobs History Limit
             path: successfulJobsHistoryLimit
+          - displayName: Time Zone
+            path: timeZone
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
@@ -1159,7 +1161,7 @@ spec:
             path: galera.galeraLibPath
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: InitContainer is an init container that co-operates with mariadb-operator.
+          - description: InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
             displayName: Init Container
             path: galera.initContainer
             x-descriptors:
@@ -1218,7 +1220,7 @@ spec:
             path: galera.initContainer.volumeMounts
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: InitJob defines additional properties for the Job used to perform the initialization.
+          - description: InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.
             displayName: Init Job
             path: galera.initJob
             x-descriptors:
@@ -1294,7 +1296,7 @@ spec:
           - description: 'ForceClusterBootstrapInPod allows you to manually initiate the bootstrap process in a specific Pod. IMPORTANT: Use this option only in exceptional circumstances. Not selecting the Pod with the highest sequence number may result in data loss. IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery.'
             displayName: Force Cluster Bootstrap In Pod
             path: galera.recovery.forceClusterBootstrapInPod
-          - description: Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster.
+          - description: Job defines a Job that co-operates with mariadb-operator by performing the Galera cluster recovery .
             displayName: Job
             path: galera.recovery.job
           - description: Metadata defines additional metadata for the Galera recovery Jobs.
@@ -2641,6 +2643,9 @@ spec:
             path: replicas
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:podCount
+          - description: disables the validation check for an odd number of replicas.
+            displayName: Replicas Allow Even Number
+            path: replicasAllowEvenNumber
           - description: Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA.
             displayName: Replication
             path: replication
@@ -4459,6 +4464,8 @@ spec:
               - urn:alm:descriptor:com.tectonic.ui:advanced
           - displayName: Successful Jobs History Limit
             path: successfulJobsHistoryLimit
+          - displayName: Time Zone
+            path: timeZone
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: tolerations
@@ -5003,9 +5010,9 @@ spec:
                       - name: MARIADB_OPERATOR_IMAGE
                         value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
                       - name: MARIADB_GALERA_INIT_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
+                        value: /usr/lib64/galera/libgalera_smm.so
                       - name: MARIADB_GALERA_AGENT_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
+                        value: "11.4"
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
                       - name: MARIADB_ENTRYPOINT_VERSION

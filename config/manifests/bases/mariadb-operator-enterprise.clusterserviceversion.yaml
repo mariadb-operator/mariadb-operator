@@ -472,6 +472,8 @@ spec:
         path: storage.volume
       - displayName: Successful Jobs History Limit
         path: successfulJobsHistoryLimit
+      - displayName: Time Zone
+        path: timeZone
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: tolerations
@@ -1136,7 +1138,8 @@ spec:
         path: galera.galeraLibPath
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: InitContainer is an init container that co-operates with mariadb-operator.
+      - description: InitContainer is an init container that runs in the MariaDB Pod
+          and co-operates with mariadb-operator.
         displayName: Init Container
         path: galera.initContainer
         x-descriptors:
@@ -1200,8 +1203,8 @@ spec:
         path: galera.initContainer.volumeMounts
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: InitJob defines additional properties for the Job used to perform
-          the initialization.
+      - description: InitJob defines a Job that co-operates with mariadb-operator
+          by performing initialization tasks.
         displayName: Init Job
         path: galera.initJob
         x-descriptors:
@@ -1293,8 +1296,8 @@ spec:
           Pod to bootstrap from in an event of cluster recovery.'
         displayName: Force Cluster Bootstrap In Pod
         path: galera.recovery.forceClusterBootstrapInPod
-      - description: Job allows configuration of the Galera recovery Job, which is
-          used to recover the Galera cluster.
+      - description: Job defines a Job that co-operates with mariadb-operator by performing
+          the Galera cluster recovery .
         displayName: Job
         path: galera.recovery.job
       - description: Metadata defines additional metadata for the Galera recovery
@@ -2806,6 +2809,9 @@ spec:
         path: replicas
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: disables the validation check for an odd number of replicas.
+        displayName: Replicas Allow Even Number
+        path: replicasAllowEvenNumber
       - description: Replication configures high availability via replication. This
           feature is still in alpha, use Galera if you are looking for a more production-ready
           HA.
@@ -4846,6 +4852,8 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - displayName: Successful Jobs History Limit
         path: successfulJobsHistoryLimit
+      - displayName: Time Zone
+        path: timeZone
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: tolerations
