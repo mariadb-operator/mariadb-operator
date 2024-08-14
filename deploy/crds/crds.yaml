@@ -3688,6 +3688,8 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              timeZone:
+                type: string
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
@@ -9859,8 +9861,8 @@ spec:
                       More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.
                     type: string
                   initContainer:
-                    description: InitContainer is an init container that co-operates
-                      with mariadb-operator.
+                    description: InitContainer is an init container that runs in the
+                      MariaDB Pod and co-operates with mariadb-operator.
                     properties:
                       args:
                         description: Args to be used in the Container.
@@ -10691,8 +10693,8 @@ spec:
                     - image
                     type: object
                   initJob:
-                    description: InitJob defines additional properties for the Job
-                      used to perform the initialization.
+                    description: InitJob defines a Job that co-operates with mariadb-operator
+                      by performing initialization tasks.
                     properties:
                       affinity:
                         description: Affinity to be used in the Pod.
@@ -11758,8 +11760,8 @@ spec:
                           IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery.
                         type: string
                       job:
-                        description: Job allows configuration of the Galera recovery
-                          Job, which is used to recover the Galera cluster.
+                        description: Job defines a Job that co-operates with mariadb-operator
+                          by performing the Galera cluster recovery .
                         properties:
                           metadata:
                             description: Metadata defines additional metadata for
@@ -25930,6 +25932,10 @@ spec:
                 description: Replicas indicates the number of desired instances.
                 format: int32
                 type: integer
+              replicasAllowEvenNumber:
+                default: false
+                description: disables the validation check for an odd number of replicas.
+                type: boolean
               replication:
                 description: Replication configures high availability via replication.
                   This feature is still in alpha, use Galera if you are looking for
@@ -29654,6 +29660,11 @@ spec:
                   type: object
                 type: array
             type: object
+            x-kubernetes-validations:
+            - message: 'An odd number of MariaDB instances (mariadb.spec.replicas)
+                is required to avoid split brain situations. Use ''mariadb.spec.replicasAllowEvenNumber:
+                true'' to disable this validation.'
+              rule: self.replicas %2 == 1 || self.replicasAllowEvenNumber
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:
@@ -47594,6 +47605,8 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              timeZone:
+                type: string
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
