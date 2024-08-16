@@ -148,7 +148,11 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 					Key: &testConnSecretKey,
 				},
 			},
+			// MariaDB Enterprise has --strict-password-validation enabled by default.
+			// This way we can test both Community and and Enterprise server.
+			// https://mariadb.com/docs/server/ref/mdb/cli/mariadbd/strict-password-validation/
 			MyCnf: ptr.To(`[mariadb]
+skip-strict-password-validation
 bind-address=*
 default_storage_engine=InnoDB
 binlog_format=row
