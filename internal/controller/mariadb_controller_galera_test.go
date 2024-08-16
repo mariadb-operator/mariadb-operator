@@ -93,6 +93,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 								},
 							},
 						},
+						ReplicaThreads: 1,
 					},
 				},
 				Replicas: 3,
