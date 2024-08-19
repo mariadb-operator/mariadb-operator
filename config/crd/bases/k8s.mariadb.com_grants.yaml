@@ -67,6 +67,13 @@ spec:
           spec:
             description: GrantSpec defines the desired state of Grant
             properties:
+              cleanupPolicy:
+                description: CleanupPolicy defines the behavior for cleaning up a
+                  SQL resource.
+                enum:
+                - Skip
+                - Delete
+                type: string
               database:
                 default: '*'
                 description: Database to use in the Grant.

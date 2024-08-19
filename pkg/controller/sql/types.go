@@ -17,6 +17,7 @@ type Resource interface {
 	IsBeingDeleted() bool
 	RequeueInterval() *metav1.Duration
 	RetryInterval() *metav1.Duration
+	CleanupPolicy() *mariadbv1alpha1.CleanupPolicy
 }
 
 type Reconciler interface {

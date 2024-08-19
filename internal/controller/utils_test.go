@@ -497,7 +497,7 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	}
 }
 
-func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKeySelector) {
+func testConnection(username string, passwordSecretKeyRef corev1.SecretKeySelector, database string, isValid bool) {
 	key := types.NamespacedName{
 		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
 		Namespace: testNamespace,
@@ -520,7 +520,7 @@ func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKey
 			},
 			Username:             username,
 			PasswordSecretKeyRef: passwordSecretKeyRef,
-			Database:             &testDatabase,
+			Database:             &database,
 		},
 	}
 	By("Creating Connection")
@@ -529,12 +529,20 @@ func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKey
 		Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
 	})
 
-	By("Expecting Connection to be ready eventually")
+	if isValid {
+		By("Expecting Connection to be valid eventually")
+	} else {
+		By("Expecting Connection to be invalid eventually")
+	}
 	Eventually(func() bool {
 		if err := k8sClient.Get(testCtx, key, &conn); err != nil {
 			return false
 		}
-		return conn.IsReady()
+		if isValid {
+			return conn.IsReady()
+		} else {
+			return !conn.IsReady()
+		}
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 

@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -126,7 +127,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testValidCredentials(user.Name, *user.Spec.PasswordSecretKeyRef)
+		testConnection(user.Name, *user.Spec.PasswordSecretKeyRef, testDatabase, true)
 
 		By("Updating password Secret")
 		Eventually(func(g Gomega) bool {
@@ -137,7 +138,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testValidCredentials(user.Name, *user.Spec.PasswordSecretKeyRef)
+		testConnection(user.Name, *user.Spec.PasswordSecretKeyRef, testDatabase, true)
 	})
 
 	It("should update password hash", func() {
@@ -210,7 +211,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testValidCredentials(user.Name, *PasswordSecretKeyRef)
+		testConnection(user.Name, *PasswordSecretKeyRef, testDatabase, true)
 
 		By("Updating password Secret")
 		Eventually(func(g Gomega) bool {
@@ -222,7 +223,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testValidCredentials(user.Name, *PasswordSecretKeyRef)
+		testConnection(user.Name, *PasswordSecretKeyRef, testDatabase, true)
 	})
 
 	It("should update password plugin", func() {
@@ -305,7 +306,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testValidCredentials(user.Name, *PasswordSecretKeyRef)
+		testConnection(user.Name, *PasswordSecretKeyRef, testDatabase, true)
 
 		By("Updating password Secret")
 		Eventually(func(g Gomega) bool {
@@ -317,6 +318,210 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testValidCredentials(user.Name, *PasswordSecretKeyRef)
+		testConnection(user.Name, *PasswordSecretKeyRef, testDatabase, true)
+	})
+
+	It("should clean up", func() {
+		By("Creating User")
+		userKey := types.NamespacedName{
+			Name:      "test-clean-up-user",
+			Namespace: testNamespace,
+		}
+		passwordSecretKeyRef := corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: testPwdKey.Name,
+			},
+			Key: testPwdSecretKey,
+		}
+		user := mariadbv1alpha1.User{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      userKey.Name,
+				Namespace: userKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.UserSpec{
+				SQLTemplate: mariadbv1alpha1.SQLTemplate{
+					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicyDelete),
+				},
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				PasswordSecretKeyRef: &passwordSecretKeyRef,
+				MaxUserConnections:   20,
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+
+		By("Creating Database")
+		databaseKey := types.NamespacedName{
+			Name:      "test-clean-up-database",
+			Namespace: testNamespace,
+		}
+		database := mariadbv1alpha1.Database{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      databaseKey.Name,
+				Namespace: databaseKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.DatabaseSpec{
+				SQLTemplate: mariadbv1alpha1.SQLTemplate{
+					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicyDelete),
+				},
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
+
+		By("Creating Grant")
+		grantKey := types.NamespacedName{
+			Name:      "test-clean-up-grant",
+			Namespace: testNamespace,
+		}
+		grant := mariadbv1alpha1.Grant{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      grantKey.Name,
+				Namespace: grantKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.GrantSpec{
+				SQLTemplate: mariadbv1alpha1.SQLTemplate{
+					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicyDelete),
+				},
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				Privileges: []string{
+					"ALL PRIVILEGES",
+				},
+				Database: databaseKey.Name,
+				Table:    "*",
+				Username: userKey.Name,
+				Host:     ptr.To("%"),
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &grant)).To(Succeed())
+
+		By("Expecting credentials to be valid")
+		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
+
+		By("Deleting Grant")
+		Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+		By("Deleting Database")
+		Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
+		By("Deleting User")
+		Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+
+		By("Expecting credentials to be invalid")
+		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, false)
+	})
+
+	It("should skip clean up", func() {
+		By("Creating User")
+		userKey := types.NamespacedName{
+			Name:      "test-skip-clean-up-user",
+			Namespace: testNamespace,
+		}
+		passwordSecretKeyRef := corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: testPwdKey.Name,
+			},
+			Key: testPwdSecretKey,
+		}
+		user := mariadbv1alpha1.User{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      userKey.Name,
+				Namespace: userKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.UserSpec{
+				SQLTemplate: mariadbv1alpha1.SQLTemplate{
+					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
+				},
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				PasswordSecretKeyRef: &passwordSecretKeyRef,
+				MaxUserConnections:   20,
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+
+		By("Creating Database")
+		databaseKey := types.NamespacedName{
+			Name:      "test-skip-clean-up-database",
+			Namespace: testNamespace,
+		}
+		database := mariadbv1alpha1.Database{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      databaseKey.Name,
+				Namespace: databaseKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.DatabaseSpec{
+				SQLTemplate: mariadbv1alpha1.SQLTemplate{
+					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
+				},
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
+
+		By("Creating Grant")
+		grantKey := types.NamespacedName{
+			Name:      "test-skip-clean-up-grant",
+			Namespace: testNamespace,
+		}
+		grant := mariadbv1alpha1.Grant{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      grantKey.Name,
+				Namespace: grantKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.GrantSpec{
+				SQLTemplate: mariadbv1alpha1.SQLTemplate{
+					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
+				},
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: corev1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				Privileges: []string{
+					"ALL PRIVILEGES",
+				},
+				Database: databaseKey.Name,
+				Table:    "*",
+				Username: userKey.Name,
+				Host:     ptr.To("%"),
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &grant)).To(Succeed())
+
+		By("Expecting credentials to be valid")
+		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
+
+		By("Deleting Grant")
+		Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+		By("Deleting Database")
+		Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
+		By("Deleting User")
+		Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
+
+		By("Expecting credentials to be invalid")
+		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
 	})
 })
