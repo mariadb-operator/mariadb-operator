@@ -5,19 +5,21 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type UserOpts struct {
-	Name                 string
-	Host                 string
-	PasswordSecretKeyRef *v1.SecretKeySelector
-	MaxUserConnections   int32
-	Metadata             *mariadbv1alpha1.Metadata
-	MariaDBRef           mariadbv1alpha1.MariaDBRef
+	Name                     string
+	Host                     string
+	PasswordSecretKeyRef     *corev1.SecretKeySelector
+	PasswordHashSecretKeyRef *corev1.SecretKeySelector
+	PasswordPlugin           *mariadbv1alpha1.PasswordPlugin
+	MaxUserConnections       int32
+	Metadata                 *mariadbv1alpha1.Metadata
+	MariaDBRef               mariadbv1alpha1.MariaDBRef
 }
 
 func (b *Builder) BuildUser(key types.NamespacedName, owner metav1.Object, opts UserOpts) (*mariadbv1alpha1.User, error) {
@@ -28,11 +30,15 @@ func (b *Builder) BuildUser(key types.NamespacedName, owner metav1.Object, opts 
 	user := &mariadbv1alpha1.User{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.UserSpec{
-			MariaDBRef:           opts.MariaDBRef,
-			Name:                 opts.Name,
-			Host:                 opts.Host,
-			PasswordSecretKeyRef: opts.PasswordSecretKeyRef,
+			MariaDBRef:               opts.MariaDBRef,
+			Name:                     opts.Name,
+			Host:                     opts.Host,
+			PasswordSecretKeyRef:     opts.PasswordSecretKeyRef,
+			PasswordHashSecretKeyRef: opts.PasswordHashSecretKeyRef,
 		},
+	}
+	if opts.PasswordPlugin != nil {
+		user.Spec.PasswordPlugin = *opts.PasswordPlugin
 	}
 	if opts.MaxUserConnections > 0 {
 		user.Spec.MaxUserConnections = opts.MaxUserConnections

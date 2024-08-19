@@ -9,20 +9,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// PasswordPluginSpec defines the User's password plugin and arguments
-type PasswordPluginSpec struct {
-	// PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User.
-	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PluginNameSecretKeyRef *corev1.SecretKeySelector `json:"pluginNameSecretKeyRef,omitempty"`
-	// PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.
-	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PluginArgSecretKeyRef *corev1.SecretKeySelector `json:"pluginArgSecretKeyRef,omitempty"`
-}
-
 // UserSpec defines the desired state of User
 type UserSpec struct {
 	// SQLTemplate defines templates to configure SQL objects.
@@ -47,7 +33,7 @@ type UserSpec struct {
 	// PasswordPlugin is a reference to the password plugin and arguments to be used by the User.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordPlugin PasswordPluginSpec `json:"passwordPlugin,omitempty"`
+	PasswordPlugin PasswordPlugin `json:"passwordPlugin,omitempty"`
 	// MaxUserConnections defines the maximum number of connections that the User can establish.
 	// +optional
 	// +kubebuilder:default=10
