@@ -58,6 +58,13 @@ spec:
           spec:
             description: UserSpec defines the desired state of User
             properties:
+              cleanupPolicy:
+                description: CleanupPolicy defines the behavior for cleaning up a
+                  SQL resource.
+                enum:
+                - Skip
+                - Delete
+                type: string
               host:
                 description: Host related to the User.
                 maxLength: 255

@@ -123,6 +123,10 @@ func (u *User) RetryInterval() *metav1.Duration {
 	return u.Spec.RetryInterval
 }
 
+func (u *User) CleanupPolicy() *CleanupPolicy {
+	return u.Spec.CleanupPolicy
+}
+
 // UserPasswordSecretFieldPath is the path related to the password Secret field.
 const UserPasswordSecretFieldPath = ".spec.passwordSecretKeyRef.name"
 const UserPasswordHashSecretFieldPath = ".spec.passwordHashSecretKeyRef.name"

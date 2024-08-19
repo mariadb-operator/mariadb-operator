@@ -96,6 +96,10 @@ func (d *Database) RetryInterval() *metav1.Duration {
 	return d.Spec.RetryInterval
 }
 
+func (d *Database) CleanupPolicy() *CleanupPolicy {
+	return d.Spec.CleanupPolicy
+}
+
 // +kubebuilder:object:root=true
 
 // DatabaseList contains a list of Database

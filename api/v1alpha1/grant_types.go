@@ -107,6 +107,10 @@ func (g *Grant) RetryInterval() *metav1.Duration {
 	return g.Spec.RetryInterval
 }
 
+func (g *Grant) CleanupPolicy() *CleanupPolicy {
+	return g.Spec.CleanupPolicy
+}
+
 func (g *Grant) AccountName() string {
 	return fmt.Sprintf("'%s'@'%s'", g.Spec.Username, g.HostnameOrDefault())
 }

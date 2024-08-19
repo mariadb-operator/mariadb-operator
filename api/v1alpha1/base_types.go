@@ -493,6 +493,11 @@ type SQLTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
+	// CleanupPolicy defines the behavior for cleaning up a SQL resource.
+	// +optional
+	// +kubebuilder:validation:Enum=Skip;Delete
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	CleanupPolicy *CleanupPolicy `json:"cleanupPolicy,omitempty"`
 }
 
 type TLS struct {
@@ -699,4 +704,24 @@ type PasswordPlugin struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PluginArgSecretKeyRef *corev1.SecretKeySelector `json:"pluginArgSecretKeyRef,omitempty"`
+}
+
+// CleanupPolicy defines the behavior for cleaning up a resource.
+type CleanupPolicy string
+
+const (
+	// CleanupPolicySkip indicates that the resource will NOT be deleted from the database after the CR is deleted.
+	CleanupPolicySkip CleanupPolicy = "Skip"
+	// CleanupPolicyDelete indicates that the resource will be deleted from the database after the CR is deleted.
+	CleanupPolicyDelete CleanupPolicy = "Delete"
+)
+
+// Validate returns an error if the CleanupPolicy is not valid.
+func (c CleanupPolicy) Validate() error {
+	switch c {
+	case CleanupPolicySkip, CleanupPolicyDelete:
+		return nil
+	default:
+		return fmt.Errorf("invalid CleanupPolicy: %v", c)
+	}
 }

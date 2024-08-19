@@ -68,6 +68,13 @@ spec:
                 default: utf8
                 description: CharacterSet to use in the Database.
                 type: string
+              cleanupPolicy:
+                description: CleanupPolicy defines the behavior for cleaning up a
+                  SQL resource.
+                enum:
+                - Skip
+                - Delete
+                type: string
               collate:
                 default: utf8_general_ci
                 description: Collate to use in the Database.
