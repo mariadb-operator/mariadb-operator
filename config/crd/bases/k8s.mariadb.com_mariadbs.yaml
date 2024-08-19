@@ -3996,7 +3996,7 @@ spec:
                     type: string
                 type: object
               database:
-                description: Database is the name of the initial Database-
+                description: Database is the name of the initial Database.
                 type: string
               env:
                 description: Env represents the environment variables to be injected
