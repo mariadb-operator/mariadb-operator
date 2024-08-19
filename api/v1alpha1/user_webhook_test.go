@@ -15,7 +15,7 @@ var _ = Describe("User webhook", Ordered, func() {
 			Name:      "user-create-webhook",
 			Namespace: testNamespace,
 		}
-		PasswordPlugin := PasswordPluginSpec{
+		PasswordPlugin := PasswordPlugin{
 			PluginNameSecretKeyRef: &corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: "user-mariadb-webhook-root",

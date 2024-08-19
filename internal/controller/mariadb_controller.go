@@ -239,7 +239,7 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 		}
 	}
 
-	if mariadb.IsInitialDataEnabled() && mariadb.Spec.PasswordSecretKeyRef != nil {
+	if mariadb.Spec.PasswordSecretKeyRef != nil {
 		secretKeyRef := *mariadb.Spec.PasswordSecretKeyRef
 		req := secret.PasswordRequest{
 			Owner:    mariadb,
@@ -735,7 +735,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	if mariadb.Spec.Database != nil && mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
+	if mariadb.IsInitialUserEnabled() {
 		userKey := mariadb.MariadbUserKey()
 		user := builder.UserOpts{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -744,11 +744,15 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 					Namespace: mariadb.Namespace,
 				},
 			},
-			Metadata:             mariadb.Spec.InheritMetadata,
-			MaxUserConnections:   20,
-			Name:                 *mariadb.Spec.Username,
-			Host:                 "%",
-			PasswordSecretKeyRef: &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
+			Metadata:                 mariadb.Spec.InheritMetadata,
+			MaxUserConnections:       20,
+			Name:                     *mariadb.Spec.Username,
+			Host:                     "%",
+			PasswordHashSecretKeyRef: mariadb.Spec.PasswordHashSecretKeyRef,
+			PasswordPlugin:           mariadb.Spec.PasswordPlugin,
+		}
+		if mariadb.Spec.PasswordSecretKeyRef != nil {
+			user.PasswordSecretKeyRef = &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector
 		}
 		grant := auth.GrantOpts{
 			Key: mariadb.MariadbGrantKey(),
@@ -795,7 +799,7 @@ func (r *MariaDBReconciler) reconcileSuspend(ctx context.Context, mariadb *maria
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsInitialDataEnabled() {
+	if !mariadb.IsInitialUserEnabled() {
 		return ctrl.Result{}, nil
 	}
 	if !mariadb.IsReady() {

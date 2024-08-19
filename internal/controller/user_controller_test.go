@@ -274,7 +274,7 @@ var _ = Describe("User", func() {
 					},
 					WaitForIt: true,
 				},
-				PasswordPlugin: mariadbv1alpha1.PasswordPluginSpec{
+				PasswordPlugin: mariadbv1alpha1.PasswordPlugin{
 					PluginNameSecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: key.Name,

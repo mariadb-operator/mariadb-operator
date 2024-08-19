@@ -3923,8 +3923,10 @@ spec:
                   type: string
                 type: array
               connection:
-                description: Connection defines templates to configure the general
-                  Connection object.
+                description: |-
+                  Connection defines a template to configure the general Connection object.
+                  This Connection provides the initial User access to the initial Database.
+                  It will make use of the Service to route network traffic to all Pods.
                 properties:
                   healthCheck:
                     description: HealthCheck to be used in the Connection.
@@ -3994,8 +3996,7 @@ spec:
                     type: string
                 type: object
               database:
-                description: Database is the initial database to be created by the
-                  operator once MariaDB is ready.
+                description: Database is the name of the initial Database-
                 type: string
               env:
                 description: Env represents the environment variables to be injected
@@ -20787,9 +20788,97 @@ spec:
                   type: string
                 description: NodeSelector to be used in the Pod.
                 type: object
+              passwordHashSecretKeyRef:
+                description: |-
+                  PasswordHashSecretKeyRef is a reference to the password hash to be used by the initial User.
+                  If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a
+                      valid secret key.
+                    type: string
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      TODO: Add other useful fields. apiVersion, kind, uid?
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                type: object
+                x-kubernetes-map-type: atomic
+              passwordPlugin:
+                description: PasswordPlugin is a reference to the password plugin
+                  and arguments to be used by the initial User.
+                properties:
+                  pluginArgSecretKeyRef:
+                    description: |-
+                      PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.
+                      If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          TODO: Add other useful fields. apiVersion, kind, uid?
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  pluginNameSecretKeyRef:
+                    description: |-
+                      PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User.
+                      If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          TODO: Add other useful fields. apiVersion, kind, uid?
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                type: object
               passwordSecretKeyRef:
                 description: |-
-                  PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user.
+                  PasswordSecretKeyRef is a reference to a Secret that contains the password to be used by the initial User.
                   If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
                 properties:
                   generate:
@@ -21057,8 +21146,10 @@ spec:
                 format: int32
                 type: integer
               primaryConnection:
-                description: PrimaryConnection defines templates to configure the
-                  primary Connection object.
+                description: |-
+                  PrimaryConnection defines a template to configure the primary Connection object.
+                  This Connection provides the initial User access to the initial Database.
+                  It will make use of the PrimaryService to route network traffic to the primary Pod.
                 properties:
                   healthCheck:
                     description: HealthCheck to be used in the Connection.
@@ -21128,8 +21219,9 @@ spec:
                     type: string
                 type: object
               primaryService:
-                description: PrimaryService defines templates to configure the primary
-                  Service object.
+                description: |-
+                  PrimaryService defines a template to configure the primary Service object.
+                  The network traffic of this Service will be routed to the primary Pod.
                 properties:
                   allocateLoadBalancerNodePorts:
                     description: AllocateLoadBalancerNodePorts Service field.
@@ -21528,8 +21620,10 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               secondaryConnection:
-                description: SecondaryConnection defines templates to configure the
-                  secondary Connection object.
+                description: |-
+                  SecondaryConnection defines a template to configure the secondary Connection object.
+                  This Connection provides the initial User access to the initial Database.
+                  It will make use of the SecondaryService to route network traffic to the secondary Pods.
                 properties:
                   healthCheck:
                     description: HealthCheck to be used in the Connection.
@@ -21599,8 +21693,9 @@ spec:
                     type: string
                 type: object
               secondaryService:
-                description: SecondaryService defines templates to configure the secondary
-                  Service object.
+                description: |-
+                  SecondaryService defines a template to configure the secondary Service object.
+                  The network traffic of this Service will be routed to the secondary Pods.
                 properties:
                   allocateLoadBalancerNodePorts:
                     description: AllocateLoadBalancerNodePorts Service field.
@@ -21836,8 +21931,9 @@ spec:
                     type: object
                 type: object
               service:
-                description: Service defines templates to configure the general Service
-                  object.
+                description: |-
+                  Service defines a template to configure the general Service object.
+                  The network traffic of this Service will be routed to all Pods.
                 properties:
                   allocateLoadBalancerNodePorts:
                     description: AllocateLoadBalancerNodePorts Service field.
@@ -23230,9 +23326,9 @@ spec:
                     type: string
                 type: object
               username:
-                description: Username is the initial username to be created by the
-                  operator once MariaDB is ready. It has all privileges on the initial
-                  database.
+                description: |-
+                  Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.
+                  The initial User will have ALL PRIVILEGES in the initial Database.
                 type: string
               volumeMounts:
                 description: VolumeMounts to be used in the Container.

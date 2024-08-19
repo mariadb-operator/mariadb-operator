@@ -366,19 +366,29 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch", "urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RootEmptyPassword *bool `json:"rootEmptyPassword,omitempty" webhook:"inmutableinit"`
-	// Database is the initial database to be created by the operator once MariaDB is ready.
+	// Database is the name of the initial Database-
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Database *string `json:"database,omitempty" webhook:"inmutable"`
 	// Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.
+	// The initial User will have ALL PRIVILEGES in the initial Database.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Username *string `json:"username,omitempty" webhook:"inmutable"`
-	// PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user.
+	// PasswordSecretKeyRef is a reference to a Secret that contains the password to be used by the initial User.
 	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordSecretKeyRef *GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty"`
+	// PasswordHashSecretKeyRef is a reference to the password hash to be used by the initial User.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordHashSecretKeyRef *corev1.SecretKeySelector `json:"passwordHashSecretKeyRef,omitempty"`
+	// PasswordPlugin is a reference to the password plugin and arguments to be used by the initial User.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordPlugin *PasswordPlugin `json:"passwordPlugin,omitempty"`
 	// MyCnf allows to specify the my.cnf file mounted by Mariadb.
 	// Updating this field will trigger an update to the Mariadb resource.
 	// +optional
@@ -445,27 +455,36 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	UpdateStrategy UpdateStrategy `json:"updateStrategy,omitempty"`
-	// Service defines templates to configure the general Service object.
+	// Service defines a template to configure the general Service object.
+	// The network traffic of this Service will be routed to all Pods.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Service *ServiceTemplate `json:"service,omitempty"`
-	// Connection defines templates to configure the general Connection object.
+	// Connection defines a template to configure the general Connection object.
+	// This Connection provides the initial User access to the initial Database.
+	// It will make use of the Service to route network traffic to all Pods.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Connection *ConnectionTemplate `json:"connection,omitempty" webhook:"inmutable"`
-	// PrimaryService defines templates to configure the primary Service object.
+	// PrimaryService defines a template to configure the primary Service object.
+	// The network traffic of this Service will be routed to the primary Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PrimaryService *ServiceTemplate `json:"primaryService,omitempty"`
-	// PrimaryConnection defines templates to configure the primary Connection object.
+	// PrimaryConnection defines a template to configure the primary Connection object.
+	// This Connection provides the initial User access to the initial Database.
+	// It will make use of the PrimaryService to route network traffic to the primary Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PrimaryConnection *ConnectionTemplate `json:"primaryConnection,omitempty" webhook:"inmutable"`
-	// SecondaryService defines templates to configure the secondary Service object.
+	// SecondaryService defines a template to configure the secondary Service object.
+	// The network traffic of this Service will be routed to the secondary Pods.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryService *ServiceTemplate `json:"secondaryService,omitempty"`
-	// SecondaryConnection defines templates to configure the secondary Connection object.
+	// SecondaryConnection defines a template to configure the secondary Connection object.
+	// This Connection provides the initial User access to the initial Database.
+	// It will make use of the SecondaryService to route network traffic to the secondary Pods.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
@@ -552,7 +571,8 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 	if m.Spec.MyCnf != nil && m.Spec.MyCnfConfigMapKeyRef == nil {
 		m.Spec.MyCnfConfigMapKeyRef = ptr.To(m.MyCnfConfigMapKeyRef())
 	}
-	if m.IsInitialDataEnabled() && m.Spec.PasswordSecretKeyRef == nil {
+	if m.Spec.Username != nil &&
+		m.Spec.PasswordSecretKeyRef == nil && m.Spec.PasswordHashSecretKeyRef == nil && m.Spec.PasswordPlugin == nil {
 		secretKeyRef := m.PasswordSecretKeyRef()
 		m.Spec.PasswordSecretKeyRef = &secretKeyRef
 	}
@@ -621,9 +641,10 @@ func (m *MariaDB) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MariadbMetrics{}).Enabled
 }
 
-// IsInitialDataEnabled indicates whether the MariaDB instance has initial data enabled
-func (m *MariaDB) IsInitialDataEnabled() bool {
-	return m.Spec.Username != nil
+// IsInitialUserEnabled indicates whether the initial User is enabled
+func (m *MariaDB) IsInitialUserEnabled() bool {
+	return m.Spec.Username != nil && m.Spec.Database != nil &&
+		(m.Spec.PasswordSecretKeyRef != nil || m.Spec.PasswordHashSecretKeyRef != nil || m.Spec.PasswordPlugin != nil)
 }
 
 // IsRootPasswordEmpty indicates whether the MariaDB instance has an empty root password

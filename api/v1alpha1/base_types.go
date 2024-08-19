@@ -686,3 +686,17 @@ type SuspendTemplate struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Suspend bool `json:"suspend,omitempty"`
 }
+
+// PasswordPlugin defines the password plugin and its arguments.
+type PasswordPlugin struct {
+	// PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PluginNameSecretKeyRef *corev1.SecretKeySelector `json:"pluginNameSecretKeyRef,omitempty"`
+	// PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PluginArgSecretKeyRef *corev1.SecretKeySelector `json:"pluginArgSecretKeyRef,omitempty"`
+}
