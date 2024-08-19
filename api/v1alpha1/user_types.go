@@ -28,11 +28,11 @@ type UserSpec struct {
 	// PasswordHashSecretKeyRef is a reference to the password hash to be used by the User.
 	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordHashSecretKeyRef *corev1.SecretKeySelector `json:"passwordHashSecretKeyRef,omitempty"`
 	// PasswordPlugin is a reference to the password plugin and arguments to be used by the User.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordPlugin PasswordPlugin `json:"passwordPlugin,omitempty"`
 	// MaxUserConnections defines the maximum number of connections that the User can establish.
 	// +optional
