@@ -25,6 +25,7 @@ var _ webhook.Validator = &User{}
 func (r *User) ValidateCreate() (admission.Warnings, error) {
 	validateFns := []func() error{
 		r.validatePassword,
+		r.validateCleanupPolicy,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -44,6 +45,7 @@ func (r *User) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	}
 	validateFns := []func() error{
 		r.validatePassword,
+		r.validateCleanupPolicy,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -90,6 +92,19 @@ func (r *User) validatePassword() error {
 			"Only one of 'spec.passwordSecretKeyRef', 'spec.passwordHashSecretKeyRef', or "+
 				"'spec.passwordPlugin.pluginNameSecretKeyRef' can be defined",
 		)
+	}
+	return nil
+}
+
+func (r *User) validateCleanupPolicy() error {
+	if r.Spec.CleanupPolicy != nil {
+		if err := r.Spec.CleanupPolicy.Validate(); err != nil {
+			return field.Invalid(
+				field.NewPath("spec").Child("cleanupPolicy"),
+				r.Spec.CleanupPolicy,
+				err.Error(),
+			)
+		}
 	}
 	return nil
 }
