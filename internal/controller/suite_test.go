@@ -165,6 +165,7 @@ var _ = BeforeSuite(func() {
 	)
 
 	podReplicationController := NewPodController(
+		"pod-replication",
 		client,
 		refResolver,
 		NewPodReplicationController(
@@ -180,6 +181,7 @@ var _ = BeforeSuite(func() {
 		},
 	)
 	podGaleraController := NewPodController(
+		"pod-galera",
 		client,
 		refResolver,
 		NewPodGaleraController(client, galeraRecorder),

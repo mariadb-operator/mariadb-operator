@@ -211,6 +211,7 @@ var rootCmd = &cobra.Command{
 		)
 
 		podReplicationController := controller.NewPodController(
+			"pod-replication",
 			client,
 			refResolver,
 			controller.NewPodReplicationController(
@@ -226,6 +227,7 @@ var rootCmd = &cobra.Command{
 			},
 		)
 		podGaleraController := controller.NewPodController(
+			"pod-galera",
 			client,
 			refResolver,
 			controller.NewPodGaleraController(client, galeraRecorder),
