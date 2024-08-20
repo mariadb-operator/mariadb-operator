@@ -353,6 +353,9 @@ var _ = Describe("User", func() {
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(removeFinalizerAndDelete(&user)).To(Succeed())
+		})
 
 		By("Creating Database")
 		databaseKey := types.NamespacedName{
@@ -377,6 +380,9 @@ var _ = Describe("User", func() {
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(removeFinalizerAndDelete(&database)).To(Succeed())
+		})
 
 		By("Creating Grant")
 		grantKey := types.NamespacedName{
@@ -408,16 +414,24 @@ var _ = Describe("User", func() {
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &grant)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(removeFinalizerAndDelete(&grant)).To(Succeed())
+		})
 
 		By("Expecting credentials to be valid")
 		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
 
 		By("Deleting Grant")
-		Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+		Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
+		expectToNotExist(testCtx, k8sClient, &grant)
+
 		By("Deleting Database")
 		Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
+		expectToNotExist(testCtx, k8sClient, &database)
+
 		By("Deleting User")
 		Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+		expectToNotExist(testCtx, k8sClient, &user)
 
 		By("Expecting credentials to be invalid")
 		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, false)
@@ -455,6 +469,9 @@ var _ = Describe("User", func() {
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(removeFinalizerAndDelete(&user)).To(Succeed())
+		})
 
 		By("Creating Database")
 		databaseKey := types.NamespacedName{
@@ -479,6 +496,9 @@ var _ = Describe("User", func() {
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(removeFinalizerAndDelete(&database)).To(Succeed())
+		})
 
 		By("Creating Grant")
 		grantKey := types.NamespacedName{
@@ -510,16 +530,24 @@ var _ = Describe("User", func() {
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &grant)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(removeFinalizerAndDelete(&grant)).To(Succeed())
+		})
 
 		By("Expecting credentials to be valid")
 		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
 
 		By("Deleting Grant")
-		Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+		Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
+		expectToNotExist(testCtx, k8sClient, &grant)
+
 		By("Deleting Database")
 		Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
+		expectToNotExist(testCtx, k8sClient, &database)
+
 		By("Deleting User")
-		Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
+		Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+		expectToNotExist(testCtx, k8sClient, &user)
 
 		By("Expecting credentials to be invalid")
 		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
