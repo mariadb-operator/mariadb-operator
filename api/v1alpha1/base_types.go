@@ -722,6 +722,6 @@ func (c CleanupPolicy) Validate() error {
 	case CleanupPolicySkip, CleanupPolicyDelete:
 		return nil
 	default:
-		return fmt.Errorf("invalid CleanupPolicy: %v", c)
+		return fmt.Errorf("invalid cleanupPolicy: %v", c)
 	}
 }

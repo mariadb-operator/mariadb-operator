@@ -549,7 +549,7 @@ var _ = Describe("User", func() {
 		Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
 		expectToNotExist(testCtx, k8sClient, &user)
 
-		By("Expecting credentials to be invalid")
+		By("Expecting credentials to be valid")
 		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
 	})
 })
