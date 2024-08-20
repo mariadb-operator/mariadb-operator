@@ -6,13 +6,88 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("User webhook", Ordered, func() {
-	Context("When updating a User", func() {
+var _ = Describe("User webhook", func() {
+	Context("When creating a User", func() {
 		key := types.NamespacedName{
 			Name:      "user-create-webhook",
+			Namespace: testNamespace,
+		}
+		DescribeTable(
+			"Should validate",
+			func(user *User, wantErr bool) {
+				err := k8sClient.Create(testCtx, user)
+				if wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			},
+			Entry(
+				"Valid cleanupPolicy",
+				&User{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      key.Name,
+						Namespace: key.Namespace,
+					},
+					Spec: UserSpec{
+						SQLTemplate: SQLTemplate{
+							CleanupPolicy: ptr.To(CleanupPolicyDelete),
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						PasswordSecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "user-mariadb-webhook-root",
+							},
+							Key: "password",
+						},
+						MaxUserConnections: 10,
+					},
+				},
+				false,
+			),
+			Entry(
+				"Invalid cleanupPolicy",
+				&User{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      key.Name,
+						Namespace: key.Namespace,
+					},
+					Spec: UserSpec{
+						SQLTemplate: SQLTemplate{
+							CleanupPolicy: ptr.To(CleanupPolicy("")),
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: corev1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						PasswordSecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "user-mariadb-webhook-root",
+							},
+							Key: "password",
+						},
+						MaxUserConnections: 10,
+					},
+				},
+				true,
+			),
+		)
+	})
+
+	Context("When updating a User", Ordered, func() {
+		key := types.NamespacedName{
+			Name:      "user-update-webhook",
 			Namespace: testNamespace,
 		}
 		PasswordPlugin := PasswordPlugin{
@@ -120,6 +195,20 @@ var _ = Describe("User webhook", Ordered, func() {
 					umdb.Spec.PasswordPlugin.PluginArgSecretKeyRef.Name = "another-secret"
 				},
 				false,
+			),
+			Entry(
+				"Updating to valid CleanupPolicy",
+				func(umdb *User) {
+					umdb.Spec.CleanupPolicy = ptr.To(CleanupPolicySkip)
+				},
+				false,
+			),
+			Entry(
+				"Updating to invalid CleanupPolicy",
+				func(umdb *User) {
+					umdb.Spec.CleanupPolicy = ptr.To(CleanupPolicy(""))
+				},
+				true,
 			),
 		)
 	})
