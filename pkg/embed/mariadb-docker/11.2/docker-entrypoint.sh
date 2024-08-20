@@ -204,9 +204,11 @@ docker_create_db_directories() {
 
 	if [ "$user" = "0" ]; then
 		# this will cause less disk access than `chown -R`
-		find "$DATADIR" \! -user mysql -exec chown mysql: '{}' +
+		find "$DATADIR" \! -user mysql \( -exec chown mysql: '{}' + -o -true \)
 		# See https://github.com/MariaDB/mariadb-docker/issues/363
-		find "${SOCKET%/*}" -maxdepth 0 \! -user mysql -exec chown mysql: '{}' \;
+		if [ "${SOCKET:0:1}" != '@' ]; then # not abstract sockets
+			find "${SOCKET%/*}" -maxdepth 0 \! -user mysql \( -exec chown mysql: '{}' \; -o -true \)
+		fi
 
 		# memory.pressure
 		local cgroup; cgroup=$(</proc/self/cgroup)
@@ -220,7 +222,7 @@ docker_create_db_directories() {
 }
 
 _mariadb_version() {
-	echo -n "11.2.4-MariaDB"
+	echo -n "11.2.5-MariaDB"
 }
 
 # initializes the database directory
@@ -353,7 +355,7 @@ create_healthcheck_users() {
 	local maskPreserve
 	maskPreserve=$(umask -p)
 	umask 0077
-	echo -e "[mariadb-client]\\nport=$PORT\\nsocket=$SOCKET\\nuser=healthcheck\\npassword=$healthCheckConnectPass\\nprotocol=tcp\\n" > "$DATADIR"/.my-healthcheck.cnf
+	echo -e "[mariadb-client]\\nport=$PORT\\nsocket=$SOCKET\\nuser=healthcheck\\npassword=$healthCheckConnectPass\\n" > "$DATADIR"/.my-healthcheck.cnf
 	$maskPreserve
 }
 
@@ -526,7 +528,7 @@ docker_mariadb_init()
 			rm -rf "$DATADIR"/.init "$DATADIR"/.restore
 			if [ "$(id -u)" = "0" ]; then
 				# this will cause less disk access than `chown -R`
-				find "$DATADIR" \! -user mysql -exec chown mysql: '{}' +
+				find "$DATADIR" \! -user mysql \( -exec chown mysql: '{}' + -o -true \)
 			fi
 		done
 		if _check_if_upgrade_is_needed; then
