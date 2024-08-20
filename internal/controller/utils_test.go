@@ -689,6 +689,15 @@ func expectSecretToExist(ctx context.Context, k8sClient client.Client, key types
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
+func expectToNotExist(ctx context.Context, k8sClient client.Client, obj client.Object) {
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+			return apierrors.IsNotFound(err)
+		}
+		return false
+	}, testTimeout, testInterval).Should(BeTrue())
+}
+
 func deploymentReady(deploy *appsv1.Deployment) bool {
 	for _, c := range deploy.Status.Conditions {
 		if c.Type == appsv1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
@@ -748,6 +757,21 @@ func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
 		}
 		return len(pvcList.Items) == 0
 	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func removeFinalizerAndDelete(obj client.Object) error {
+	if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	obj.SetFinalizers(nil)
+	if err := k8sClient.Update(testCtx, obj); err != nil {
+		return err
+	}
+	return k8sClient.Delete(testCtx, obj)
 }
 
 // applyDecoratorChain applies a set of decorator functions that modify certain field values on the object created by the builder function.
