@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("Database webhook", func() {
-	Context("When creating a Grant", func() {
+	Context("When creating a Database", func() {
 		key := types.NamespacedName{
 			Name:      "database-create-webhook",
 			Namespace: testNamespace,
