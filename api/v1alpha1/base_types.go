@@ -420,11 +420,11 @@ type ServiceTemplate struct {
 // PodDisruptionBudget is the Pod availability bundget for a MariaDB
 type PodDisruptionBudget struct {
 	// MinAvailable defines the number of minimum available Pods.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MinAvailable *intstr.IntOrString `json:"minAvailable,omitempty"`
 	// MaxUnavailable defines the number of maximum unavailable Pods.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
 }

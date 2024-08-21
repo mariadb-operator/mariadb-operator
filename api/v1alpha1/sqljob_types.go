@@ -22,7 +22,7 @@ type SqlJobSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// Schedule defines when the SqlJob will be executed.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Schedule *Schedule `json:"schedule,omitempty"`
 	// Username to be impersonated when executing the SqlJob.

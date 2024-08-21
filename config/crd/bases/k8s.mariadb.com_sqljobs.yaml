@@ -1708,7 +1708,6 @@ spec:
             required:
             - mariaDbRef
             - passwordSecretKeyRef
-            - schedule
             - username
             type: object
           status:
