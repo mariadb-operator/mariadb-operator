@@ -3916,8 +3916,6 @@ spec:
                         - volumePath
                         type: object
                     type: object
-                required:
-                - ""
                 type: object
               command:
                 description: Command to be used in the Container.
@@ -5235,8 +5233,6 @@ spec:
                             description: volumeName is the binding reference to the
                               PersistentVolume backing this claim.
                             type: string
-                        required:
-                        - ""
                         type: object
                     type: object
                   enabled:
@@ -8326,7 +8322,6 @@ spec:
                               be defined
                             type: boolean
                         required:
-                        - ""
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
@@ -8369,7 +8364,6 @@ spec:
                               be defined
                             type: boolean
                         required:
-                        - ""
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
@@ -8415,7 +8409,6 @@ spec:
                               be defined
                             type: boolean
                         required:
-                        - ""
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
@@ -8458,7 +8451,6 @@ spec:
                               be defined
                             type: boolean
                         required:
-                        - ""
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
@@ -8502,7 +8494,6 @@ spec:
                               be defined
                             type: boolean
                         required:
-                        - ""
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
@@ -8545,7 +8536,6 @@ spec:
                               be defined
                             type: boolean
                         required:
-                        - ""
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
@@ -8797,8 +8787,6 @@ spec:
                             description: volumeName is the binding reference to the
                               PersistentVolume backing this claim.
                             type: string
-                        required:
-                        - ""
                         type: object
                     type: object
                   connection:
@@ -20657,7 +20645,6 @@ spec:
                           defined
                         type: boolean
                     required:
-                    - ""
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
@@ -20829,7 +20816,6 @@ spec:
                     description: Specify whether the Secret or its key must be defined
                     type: boolean
                 required:
-                - ""
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
@@ -21437,7 +21423,6 @@ spec:
                               be defined
                             type: boolean
                         required:
-                        - ""
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
@@ -21552,7 +21537,6 @@ spec:
                     description: Specify whether the Secret or its key must be defined
                     type: boolean
                 required:
-                - ""
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
@@ -22976,8 +22960,6 @@ spec:
                         description: volumeName is the binding reference to the PersistentVolume
                           backing this claim.
                         type: string
-                    required:
-                    - ""
                     type: object
                   waitForVolumeResize:
                     description: |-

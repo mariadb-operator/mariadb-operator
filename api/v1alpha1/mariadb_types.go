@@ -18,11 +18,9 @@ import (
 // Exporter defines a metrics exporter container.
 type Exporter struct {
 	// ContainerTemplate defines a template to configure Container objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
 	// PodTemplate defines templates to configure Pod objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodTemplate `json:",inline"`
 	// Image name to be used as metrics exporter. The supported format is `<image>:<tag>`.
@@ -283,7 +281,6 @@ type MariaDBMaxScaleSpec struct {
 // BootstrapFrom defines a source to bootstrap MariaDB from.
 type BootstrapFrom struct {
 	// RestoreSource indicates where the initial data to bootstrap MariaDB with is located.
-	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RestoreSource `json:",inline"`
 	// RestoreJob defines additional properties for the Job used to perform the Restore.
@@ -333,15 +330,12 @@ func (u *UpdateStrategy) SetDefaults() {
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
 	// PodTemplate defines templates to configure Pod objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodTemplate `json:",inline"`
 	// SuspendTemplate defines whether the MariaDB reconciliation loop is enabled. This can be useful for maintenance, as disabling the reconciliation loop prevents the operator from interfering with user operations during maintenance activities.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SuspendTemplate `json:",inline"`
 	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.

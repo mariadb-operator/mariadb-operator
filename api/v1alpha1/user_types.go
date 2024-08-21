@@ -12,7 +12,6 @@ import (
 // UserSpec defines the desired state of User
 type UserSpec struct {
 	// SQLTemplate defines templates to configure SQL objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SQLTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
