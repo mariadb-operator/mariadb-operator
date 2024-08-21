@@ -93,8 +93,8 @@ _Appears in:_
 | `successfulJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
 | `failedJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
 | `timeZone` _string_ |  |  |  |
-| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: {} <br /> |
-| `storage` _[BackupStorage](#backupstorage)_ | Storage to be used in the Backup. |  | Required: {} <br /> |
+| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
+| `storage` _[BackupStorage](#backupstorage)_ | Storage to be used in the Backup. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
 | `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
 | `databases` _string array_ | Databases defines the logical databases to be backed up. If not provided, all databases are backed up. |  |  |
@@ -143,6 +143,26 @@ _Appears in:_
 | `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the Job used to perform the Restore. |  |  |
 
 
+#### CleanupPolicy
+
+_Underlying type:_ _string_
+
+CleanupPolicy defines the behavior for cleaning up a resource.
+
+
+
+_Appears in:_
+- [DatabaseSpec](#databasespec)
+- [GrantSpec](#grantspec)
+- [SQLTemplate](#sqltemplate)
+- [UserSpec](#userspec)
+
+| Field | Description |
+| --- | --- |
+| `Skip` | CleanupPolicySkip indicates that the resource will NOT be deleted from the database after the CR is deleted.<br /> |
+| `Delete` | CleanupPolicyDelete indicates that the resource will be deleted from the database after the CR is deleted.<br /> |
+
+
 #### Connection
 
 
@@ -182,8 +202,8 @@ _Appears in:_
 | `port` _integer_ | Port to connect to. If not provided, it defaults to the MariaDB port or to the first MaxScale listener. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to the MariaDB to connect to. Either MariaDBRef or MaxScaleRef must be provided. |  |  |
 | `maxScaleRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectreference-v1-core)_ | MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided. |  |  |
-| `username` _string_ | Username to use for configuring the Connection. |  | Required: {} <br /> |
-| `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  | Required: {} <br /> |
+| `username` _string_ | Username to use for configuring the Connection. |  | Required: \{\} <br /> |
+| `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  | Required: \{\} <br /> |
 | `host` _string_ | Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host. |  |  |
 | `database` _string_ | Database to use when configuring the Connection. |  |  |
 
@@ -239,7 +259,7 @@ _Appears in:_
 | `readinessProbe` _[Probe](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)_ | ReadinessProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
-| `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  | Required: {} <br /> |
+| `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 
 
@@ -283,6 +303,10 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 _Appears in:_
 - [MaxScaleMonitor](#maxscalemonitor)
 
+| Field | Description |
+| --- | --- |
+| `majority_of_all` | CooperativeMonitoringMajorityOfAll requires a lock from the majority of the MariaDB servers, even the ones that are down.<br /> |
+| `majority_of_running` | CooperativeMonitoringMajorityOfRunning requires a lock from the majority of the MariaDB servers.<br /> |
 
 
 #### CronJobTemplate
@@ -337,7 +361,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
 | `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
-| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: {} <br /> |
+| `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up a SQL resource. |  | Enum: [Skip Delete] <br /> |
+| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `characterSet` _string_ | CharacterSet to use in the Database. | utf8 |  |
 | `collate` _string_ | Collate to use in the Database. | utf8_general_ci |  |
 | `name` _string_ | Name overrides the default Database name provided by metadata.name. |  | MaxLength: 80 <br /> |
@@ -474,7 +499,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `enabled` _boolean_ | Enabled is a flag to enable GaleraRecovery. |  |  |
-| `minClusterSize` _[IntOrString](#intorstring)_ | MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%).<br />If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.<br />It defaults to '50%' of the replicas specified by the MariaDB object. |  |  |
+| `minClusterSize` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#intorstring-intstr-util)_ | MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%).<br />If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.<br />It defaults to '50%' of the replicas specified by the MariaDB object. |  |  |
 | `clusterMonitorInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterMonitorInterval represents the interval used to monitor the Galera cluster health. |  |  |
 | `clusterHealthyTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,<br />is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator. |  |  |
 | `clusterBootstrapTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | ClusterBootstrapTimeout is the time limit for bootstrapping a cluster.<br />Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted. |  |  |
@@ -582,11 +607,12 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
 | `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
-| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: {} <br /> |
-| `privileges` _string array_ | Privileges to use in the Grant. |  | MinItems: 1 <br />Required: {} <br /> |
+| `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up a SQL resource. |  | Enum: [Skip Delete] <br /> |
+| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
+| `privileges` _string array_ | Privileges to use in the Grant. |  | MinItems: 1 <br />Required: \{\} <br /> |
 | `database` _string_ | Database to use in the Grant. | * |  |
 | `table` _string_ | Table to use in the Grant. | * |  |
-| `username` _string_ | Username to use in the Grant. |  | Required: {} <br /> |
+| `username` _string_ | Username to use in the Grant. |  | Required: \{\} <br /> |
 | `host` _string_ | Host to use in the Grant. It can be localhost, an IP or '%'. |  |  |
 | `grantOption` _boolean_ | GrantOption to use in the Grant. | false |  |
 
@@ -603,6 +629,10 @@ See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
 _Appears in:_
 - [ReplicaReplication](#replicareplication)
 
+| Field | Description |
+| --- | --- |
+| `CurrentPos` | GtidCurrentPos indicates the union of gtid_binlog_pos and gtid_slave_pos will be used when replicating from master.<br />This is the default Gtid mode.<br /> |
+| `SlavePos` | GtidSlavePos indicates that gtid_slave_pos will be used when replicating from master.<br /> |
 
 
 #### HealthCheck
@@ -779,10 +809,10 @@ _Appears in:_
 | `kind` _string_ | Kind of the referent.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
 | `namespace` _string_ | Namespace of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/ |  |  |
 | `name` _string_ | Name of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names |  |  |
-| `uid` _[UID](#uid)_ | UID of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids |  |  |
+| `uid` _[UID](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#uid-types-pkg)_ | UID of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids |  |  |
 | `apiVersion` _string_ | API version of the referent. |  |  |
 | `resourceVersion` _string_ | Specific resourceVersion to which this reference is made, if any.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency |  |  |
-| `fieldPath` _string_ | If referring to a piece of an object instead of an entire object, this string<br />should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].<br />For example, if the object reference is to a container within a pod, this would take on a value like:<br />"spec.containers{name}" (where "name" refers to the name of the container that triggered<br />the event) or if no container name is specified "spec.containers[2]" (container with<br />index 2 in this pod). This syntax is chosen only to have some well-defined way of<br />referencing a part of an object.<br />TODO: this design is not final and this field is subject to change in the future. |  |  |
+| `fieldPath` _string_ | If referring to a piece of an object instead of an entire object, this string<br />should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].<br />For example, if the object reference is to a container within a pod, this would take on a value like:<br />"spec.containers\{name\}" (where "name" refers to the name of the container that triggered<br />the event) or if no container name is specified "spec.containers[2]" (container with<br />index 2 in this pod). This syntax is chosen only to have some well-defined way of<br />referencing a part of an object.<br />TODO: this design is not final and this field is subject to change in the future. |  |  |
 | `waitForIt` _boolean_ | WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready. | true |  |
 
 
@@ -826,9 +856,11 @@ _Appears in:_
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 | `rootPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | RootPasswordSecretKeyRef is a reference to a Secret key containing the root password. |  |  |
 | `rootEmptyPassword` _boolean_ | RootEmptyPassword indicates if the root password should be empty. Don't use this feature in production, it is only intended for development and test environments. |  |  |
-| `database` _string_ | Database is the initial database to be created by the operator once MariaDB is ready. |  |  |
-| `username` _string_ | Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database. |  |  |
-| `passwordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
+| `database` _string_ | Database is the name of the initial Database. |  |  |
+| `username` _string_ | Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.<br />The initial User will have ALL PRIVILEGES in the initial Database. |  |  |
+| `passwordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | PasswordSecretKeyRef is a reference to a Secret that contains the password to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
+| `passwordHashSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordHashSecretKeyRef is a reference to the password hash to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash. |  |  |
+| `passwordPlugin` _[PasswordPlugin](#passwordplugin)_ | PasswordPlugin is a reference to the password plugin and arguments to be used by the initial User. |  |  |
 | `myCnf` _string_ | MyCnf allows to specify the my.cnf file mounted by Mariadb.<br />Updating this field will trigger an update to the Mariadb resource. |  |  |
 | `myCnfConfigMapKeyRef` _[ConfigMapKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core)_ | MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.<br />If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.<br />If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated. |  |  |
 | `timeZone` _string_ | TimeZone sets the default timezone. If not provided, it defaults to SYSTEM and the timezone data is not loaded. |  |  |
@@ -844,12 +876,12 @@ _Appears in:_
 | `port` _integer_ | Port where the instances will be listening for connections. | 3306 |  |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |  |  |
 | `updateStrategy` _[UpdateStrategy](#updatestrategy)_ | UpdateStrategy defines how a MariaDB resource is updated. |  |  |
-| `service` _[ServiceTemplate](#servicetemplate)_ | Service defines templates to configure the general Service object. |  |  |
-| `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection defines templates to configure the general Connection object. |  |  |
-| `primaryService` _[ServiceTemplate](#servicetemplate)_ | PrimaryService defines templates to configure the primary Service object. |  |  |
-| `primaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | PrimaryConnection defines templates to configure the primary Connection object. |  |  |
-| `secondaryService` _[ServiceTemplate](#servicetemplate)_ | SecondaryService defines templates to configure the secondary Service object. |  |  |
-| `secondaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | SecondaryConnection defines templates to configure the secondary Connection object. |  |  |
+| `service` _[ServiceTemplate](#servicetemplate)_ | Service defines a template to configure the general Service object.<br />The network traffic of this Service will be routed to all Pods. |  |  |
+| `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection defines a template to configure the general Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the Service to route network traffic to all Pods. |  |  |
+| `primaryService` _[ServiceTemplate](#servicetemplate)_ | PrimaryService defines a template to configure the primary Service object.<br />The network traffic of this Service will be routed to the primary Pod. |  |  |
+| `primaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | PrimaryConnection defines a template to configure the primary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the PrimaryService to route network traffic to the primary Pod. |  |  |
+| `secondaryService` _[ServiceTemplate](#servicetemplate)_ | SecondaryService defines a template to configure the secondary Service object.<br />The network traffic of this Service will be routed to the secondary Pods. |  |  |
+| `secondaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | SecondaryConnection defines a template to configure the secondary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the SecondaryService to route network traffic to the secondary Pods. |  |  |
 
 
 #### MariadbMetrics
@@ -994,7 +1026,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `name` _string_ | Name is the identifier of the listener. It is defaulted if not provided |  |  |
-| `port` _integer_ | Port is the network port where the MaxScale server will listen. |  | Required: {} <br /> |
+| `port` _integer_ | Port is the network port where the MaxScale server will listen. |  | Required: \{\} <br /> |
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with the client. If not provided, it defaults to MariaDBProtocol. |  |  |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the listener.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1. |  |  |
 
@@ -1053,8 +1085,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ | Name is the identifier of the MariaDB server. |  | Required: {} <br /> |
-| `address` _string_ | Address is the network address of the MariaDB server. |  | Required: {} <br /> |
+| `name` _string_ | Name is the identifier of the MariaDB server. |  | Required: \{\} <br /> |
+| `address` _string_ | Address is the network address of the MariaDB server. |  | Required: \{\} <br /> |
 | `port` _integer_ | Port is the network port of the MariaDB server. If not provided, it defaults to 3306. |  |  |
 | `protocol` _string_ | Protocol is the MaxScale protocol to use when communicating with this MariaDB server. If not provided, it defaults to MariaDBBackend. |  |  |
 | `maintenance` _boolean_ | Maintenance indicates whether the server is in maintenance mode. |  |  |
@@ -1076,9 +1108,9 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
-| `name` _string_ | Name is the identifier of the MaxScale service. |  | Required: {} <br /> |
-| `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |  | Enum: [readwritesplit readconnroute] <br />Required: {} <br /> |
-| `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |  | Required: {} <br /> |
+| `name` _string_ | Name is the identifier of the MaxScale service. |  | Required: \{\} <br /> |
+| `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |  | Enum: [readwritesplit readconnroute] <br />Required: \{\} <br /> |
+| `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |  | Required: \{\} <br /> |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the service.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.<br />Router specific parameter are also suported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration. |  |  |
 
 
@@ -1177,6 +1209,28 @@ MonitorModule defines the type of monitor module
 _Appears in:_
 - [MaxScaleMonitor](#maxscalemonitor)
 
+| Field | Description |
+| --- | --- |
+| `mariadbmon` | MonitorModuleMariadb is a monitor to be used with MariaDB servers.<br /> |
+| `galeramon` | MonitorModuleGalera is a monitor to be used with Galera servers.<br /> |
+
+
+#### PasswordPlugin
+
+
+
+PasswordPlugin defines the password plugin and its arguments.
+
+
+
+_Appears in:_
+- [MariaDBSpec](#mariadbspec)
+- [UserSpec](#userspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `pluginNameSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin. |  |  |
+| `pluginArgSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments. |  |  |
 
 
 #### PodDisruptionBudget
@@ -1194,8 +1248,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `minAvailable` _[IntOrString](#intorstring)_ | MinAvailable defines the number of minimum available Pods. |  | Required: {} <br /> |
-| `maxUnavailable` _[IntOrString](#intorstring)_ | MaxUnavailable defines the number of maximum unavailable Pods. |  | Required: {} <br /> |
+| `minAvailable` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#intorstring-intstr-util)_ | MinAvailable defines the number of minimum available Pods. |  | Required: \{\} <br /> |
+| `maxUnavailable` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#intorstring-intstr-util)_ | MaxUnavailable defines the number of maximum unavailable Pods. |  | Required: \{\} <br /> |
 
 
 #### PodTemplate
@@ -1392,7 +1446,7 @@ _Appears in:_
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
 | `volume` _[VolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumesource-v1-core)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
-| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: {} <br /> |
+| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `database` _string_ | Database defines the logical database to be restored. If not provided, all databases available in the backup are restored.<br />IMPORTANT: The database must previously exist. |  |  |
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. | info |  |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully perform a Backup. | 5 |  |
@@ -1416,12 +1470,12 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `bucket` _string_ | Bucket is the name Name of the bucket to store backups. |  | Required: {} <br /> |
-| `endpoint` _string_ | Endpoint is the S3 API endpoint without scheme. |  | Required: {} <br /> |
+| `bucket` _string_ | Bucket is the name Name of the bucket to store backups. |  | Required: \{\} <br /> |
+| `endpoint` _string_ | Endpoint is the S3 API endpoint without scheme. |  | Required: \{\} <br /> |
 | `region` _string_ | Region is the S3 region name to use. |  |  |
 | `prefix` _string_ | Prefix indicates a folder/subfolder in the bucket. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided. |  |  |
-| `accessKeyIdSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id. |  | Required: {} <br /> |
-| `secretAccessKeySecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key. |  | Required: {} <br /> |
+| `accessKeyIdSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id. |  | Required: \{\} <br /> |
+| `secretAccessKeySecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key. |  | Required: \{\} <br /> |
 | `sessionTokenSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token. |  |  |
 | `tls` _[TLS](#tls)_ | TLS provides the configuration required to establish TLS connections with S3. |  |  |
 
@@ -1443,6 +1497,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
 | `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
+| `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up a SQL resource. |  | Enum: [Skip Delete] <br /> |
 
 
 #### SST
@@ -1458,6 +1513,11 @@ _Appears in:_
 - [Galera](#galera)
 - [GaleraSpec](#galeraspec)
 
+| Field | Description |
+| --- | --- |
+| `rsync` | SSTRsync is an SST based on rsync.<br /> |
+| `mariabackup` | SSTMariaBackup is an SST based on mariabackup. It is the recommended SST.<br /> |
+| `mysqldump` | SSTMysqldump is an SST based on mysqldump.<br /> |
 
 
 #### Schedule
@@ -1474,7 +1534,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `cron` _string_ | Cron is a cron expression that defines the schedule. |  | Required: {} <br /> |
+| `cron` _string_ | Cron is a cron expression that defines the schedule. |  | Required: \{\} <br /> |
 | `suspend` _boolean_ | Suspend defines whether the schedule is active or not. | false |  |
 
 
@@ -1533,6 +1593,10 @@ ServiceRouter defines the type of service router.
 _Appears in:_
 - [MaxScaleService](#maxscaleservice)
 
+| Field | Description |
+| --- | --- |
+| `readwritesplit` | ServiceRouterReadWriteSplit splits the load based on the queries. Write queries are performed on master and read queries on the replicas.<br /> |
+| `readconnroute` | ServiceRouterReadConnRoute splits the load based on the connections. Each connection is assigned to a server.<br /> |
 
 
 #### ServiceTemplate
@@ -1604,10 +1668,10 @@ _Appears in:_
 | `successfulJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
 | `failedJobsHistoryLimit` _integer_ |  |  | Minimum: 0 <br /> |
 | `timeZone` _string_ |  |  |  |
-| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: {} <br /> |
-| `schedule` _[Schedule](#schedule)_ | Schedule defines when the SqlJob will be executed. |  | Required: {} <br /> |
-| `username` _string_ | Username to be impersonated when executing the SqlJob. |  | Required: {} <br /> |
-| `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | UserPasswordSecretKeyRef is a reference to the impersonated user's password to be used when executing the SqlJob. |  | Required: {} <br /> |
+| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
+| `schedule` _[Schedule](#schedule)_ | Schedule defines when the SqlJob will be executed. |  | Required: \{\} <br /> |
+| `username` _string_ | Username to be impersonated when executing the SqlJob. |  | Required: \{\} <br /> |
+| `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | UserPasswordSecretKeyRef is a reference to the impersonated user's password to be used when executing the SqlJob. |  | Required: \{\} <br /> |
 | `database` _string_ | Username to be used when executing the SqlJob. |  |  |
 | `dependsOn` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core) array_ | DependsOn defines dependencies with other SqlJob objectecs. |  |  |
 | `sql` _string_ | Sql is the script to be executed by the SqlJob. |  |  |
@@ -1631,7 +1695,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `ephemeral` _boolean_ | Ephemeral indicates whether to use ephemeral storage in the PVCs. It is only compatible with non HA MariaDBs. |  |  |
-| `size` _[Quantity](#quantity)_ | Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'. |  |  |
+| `size` _[Quantity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#quantity-resource-api)_ | Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'. |  |  |
 | `storageClassName` _string_ | StorageClassName to be used to provision the PVCS. It superseeds the 'StorageClassName' specified in 'VolumeClaimTemplate'.<br />If not provided, the default 'StorageClass' configured in the cluster is used. |  |  |
 | `resizeInUseVolumes` _boolean_ | ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing.<br />It defaults to true. |  |  |
 | `waitForVolumeResize` _boolean_ | WaitForVolumeResize indicates whether to wait for the PVCs to be resized before marking the MariaDB object as ready. This will block other operations such as cluster recovery while the resize is in progress.<br />It defaults to true. |  |  |
@@ -1703,6 +1767,11 @@ UpdateType defines the type of update for a MariaDB resource.
 _Appears in:_
 - [UpdateStrategy](#updatestrategy)
 
+| Field | Description |
+| --- | --- |
+| `ReplicasFirstPrimaryLast` | ReplicasFirstPrimaryLast indicates that the update will be applied to all replica Pods first and later on to the primary Pod.<br />The updates are applied one by one waiting until each Pod passes the readiness probe<br />i.e. the Pod gets synced and it is ready to receive traffic.<br /> |
+| `RollingUpdate` | RollingUpdateUpdateType indicates that the update will be applied by the StatefulSet controller using the RollingUpdate strategy.<br />This strategy is unaware of the roles that the Pod have (primary or replica) and it will<br />perform the update following the StatefulSet ordinal, from higher to lower.<br /> |
+| `OnDelete` | OnDeleteUpdateType indicates that the update will be applied by the StatefulSet controller using the OnDelete strategy.<br />The update will be done when the Pods get manually deleted by the user.<br /> |
 
 
 #### User
@@ -1738,8 +1807,11 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
 | `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
-| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: {} <br /> |
+| `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up a SQL resource. |  | Enum: [Skip Delete] <br /> |
+| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `passwordSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordSecretKeyRef is a reference to the password to be used by the User.<br />If not provided, the account will be locked and the password will expire.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
+| `passwordHashSecretKeyRef` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core)_ | PasswordHashSecretKeyRef is a reference to the password hash to be used by the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash. |  |  |
+| `passwordPlugin` _[PasswordPlugin](#passwordplugin)_ | PasswordPlugin is a reference to the password plugin and arguments to be used by the User. |  |  |
 | `maxUserConnections` _integer_ | MaxUserConnections defines the maximum number of connections that the User can establish. | 10 |  |
 | `name` _string_ | Name overrides the default name provided by metadata.name. |  | MaxLength: 80 <br /> |
 | `host` _string_ | Host related to the User. |  | MaxLength: 255 <br /> |
@@ -1784,5 +1856,9 @@ More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_
 _Appears in:_
 - [ReplicaReplication](#replicareplication)
 
+| Field | Description |
+| --- | --- |
+| `AfterSync` | WaitPointAfterSync indicates that the primary waits for the replica ACK before committing the transaction to the storage engine.<br />This is the default WaitPoint. It trades off performance for consistency.<br /> |
+| `AfterCommit` | WaitPointAfterCommit indicates that the primary commits the transaction to the storage engine and waits for the replica ACK afterwards.<br />It trades off consistency for performance.<br /> |
 
 
