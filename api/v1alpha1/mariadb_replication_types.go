@@ -179,7 +179,6 @@ func (r *ReplicaReplication) Validate() error {
 // Replication allows you to enable single-master HA via semi-synchronours replication in your MariaDB cluster.
 type Replication struct {
 	// ReplicationSpec is the Replication desired state specification.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicationSpec `json:",inline"`
 	// Enabled is a flag to enable Replication.

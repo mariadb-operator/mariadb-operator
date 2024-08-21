@@ -1029,7 +1029,6 @@ spec:
                           defined
                         type: boolean
                     required:
-                    - ""
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
@@ -1072,7 +1071,6 @@ spec:
                           defined
                         type: boolean
                     required:
-                    - ""
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
@@ -1118,7 +1116,6 @@ spec:
                           defined
                         type: boolean
                     required:
-                    - ""
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
@@ -1161,7 +1158,6 @@ spec:
                           defined
                         type: boolean
                     required:
-                    - ""
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
@@ -1204,7 +1200,6 @@ spec:
                           defined
                         type: boolean
                     required:
-                    - ""
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
@@ -1247,7 +1242,6 @@ spec:
                           defined
                         type: boolean
                     required:
-                    - ""
                     - key
                     type: object
                     x-kubernetes-map-type: atomic
@@ -1504,8 +1498,6 @@ spec:
                         description: volumeName is the binding reference to the PersistentVolume
                           backing this claim.
                         type: string
-                    required:
-                    - ""
                     type: object
                 type: object
               connection:
@@ -2902,8 +2894,6 @@ spec:
                     description: WaitForIt indicates whether the controller using
                       this reference should wait for MariaDB to be ready.
                     type: boolean
-                required:
-                - ""
                 type: object
                 x-kubernetes-map-type: atomic
               metrics:

@@ -1092,8 +1092,6 @@ spec:
                     description: WaitForIt indicates whether the controller using
                       this reference should wait for MariaDB to be ready.
                     type: boolean
-                required:
-                - ""
                 type: object
                 x-kubernetes-map-type: atomic
               maxRetention:

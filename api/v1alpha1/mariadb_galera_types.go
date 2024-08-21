@@ -107,7 +107,6 @@ func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string
 // GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
 type GaleraAgent struct {
 	// ContainerTemplate defines a template to configure Container objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
 	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
@@ -304,7 +303,6 @@ func (g *GaleraConfig) SetDefaults() {
 // Galera allows you to enable multi-master HA via Galera in your MariaDB cluster.
 type Galera struct {
 	// GaleraSpec is the Galera desired state specification.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GaleraSpec `json:",inline"`
 	// Enabled is a flag to enable Galera.

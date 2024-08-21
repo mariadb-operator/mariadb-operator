@@ -46,15 +46,12 @@ func (b *BackupStorage) Validate() error {
 // BackupSpec defines the desired state of Backup
 type BackupSpec struct {
 	// JobContainerTemplate defines templates to configure Container objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	JobContainerTemplate `json:",inline"`
 	// JobPodTemplate defines templates to configure Pod objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	JobPodTemplate `json:",inline"`
 	// CronJobTemplate defines parameters for configuring CronJob objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CronJobTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.

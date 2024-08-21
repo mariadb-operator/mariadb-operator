@@ -12,7 +12,6 @@ import (
 // GrantSpec defines the desired state of Grant
 type GrantSpec struct {
 	// SQLTemplate defines templates to configure SQL objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SQLTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.

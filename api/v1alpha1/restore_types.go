@@ -9,15 +9,12 @@ import (
 // RestoreSpec defines the desired state of restore
 type RestoreSpec struct {
 	// JobContainerTemplate defines templates to configure Container objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	JobContainerTemplate `json:",inline"`
 	// JobPodTemplate defines templates to configure Pod objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	JobPodTemplate `json:",inline"`
 	// RestoreSource defines a source for restoring a MariaDB.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RestoreSource `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
