@@ -5,6 +5,20 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+func IsJobFailed(job *batchv1.Job) bool {
+	if job == nil {
+		return false
+	}
+	return IsStatusConditionTrue(job.Status.Conditions, batchv1.JobFailed)
+}
+
+func IsJobSuspended(job *batchv1.Job) bool {
+	if job == nil {
+		return false
+	}
+	return IsStatusConditionTrue(job.Status.Conditions, batchv1.JobSuspended)
+}
+
 func IsJobComplete(job *batchv1.Job) bool {
 	if job == nil {
 		return false
