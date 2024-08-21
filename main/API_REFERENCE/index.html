@@ -409,15 +409,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cleanuppolicy" class="md-nav__link">
-    <span class="md-ellipsis">
-      CleanupPolicy
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#connection" class="md-nav__link">
     <span class="md-ellipsis">
       Connection
@@ -466,15 +457,6 @@
   <a href="#cooperativemonitoring" class="md-nav__link">
     <span class="md-ellipsis">
       CooperativeMonitoring
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cronjobtemplate" class="md-nav__link">
-    <span class="md-ellipsis">
-      CronJobTemplate
     </span>
   </a>
   
@@ -799,15 +781,6 @@
   <a href="#monitormodule" class="md-nav__link">
     <span class="md-ellipsis">
       MonitorModule
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#passwordplugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      PasswordPlugin
     </span>
   </a>
   
@@ -1513,15 +1486,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cleanuppolicy" class="md-nav__link">
-    <span class="md-ellipsis">
-      CleanupPolicy
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#connection" class="md-nav__link">
     <span class="md-ellipsis">
       Connection
@@ -1570,15 +1534,6 @@
   <a href="#cooperativemonitoring" class="md-nav__link">
     <span class="md-ellipsis">
       CooperativeMonitoring
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cronjobtemplate" class="md-nav__link">
-    <span class="md-ellipsis">
-      CronJobTemplate
     </span>
   </a>
   
@@ -1903,15 +1858,6 @@
   <a href="#monitormodule" class="md-nav__link">
     <span class="md-ellipsis">
       MonitorModule
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#passwordplugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      PasswordPlugin
     </span>
   </a>
   
@@ -2392,24 +2338,6 @@
 <td></td>
 </tr>
 <tr>
-<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>timeZone</code> <em>string</em></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
 <td>MariaDBRef is a reference to a MariaDB object.</td>
 <td></td>
@@ -2468,6 +2396,18 @@
 <td>InheritMetadata defines the metadata to be inherited by children resources.</td>
 <td></td>
 <td></td>
+</tr>
+<tr>
+<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
 </tr>
 </tbody>
 </table>
@@ -2548,32 +2488,6 @@
 <td>RestoreJob defines additional properties for the Job used to perform the Restore.</td>
 <td></td>
 <td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="cleanuppolicy">CleanupPolicy</h4>
-<p><em>Underlying type:</em> <em>string</em></p>
-<p>CleanupPolicy defines the behavior for cleaning up a resource.</p>
-<p><em>Appears in:</em>
-- <a href="#databasespec">DatabaseSpec</a>
-- <a href="#grantspec">GrantSpec</a>
-- <a href="#sqltemplate">SQLTemplate</a>
-- <a href="#userspec">UserSpec</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>Skip</code></td>
-<td>CleanupPolicySkip indicates that the resource will NOT be deleted from the database after the CR is deleted.<br /></td>
-</tr>
-<tr>
-<td><code>Delete</code></td>
-<td>CleanupPolicyDelete indicates that the resource will be deleted from the database after the CR is deleted.<br /></td>
 </tr>
 </tbody>
 </table>
@@ -2925,59 +2839,6 @@
 See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/</p>
 <p><em>Appears in:</em>
 - <a href="#maxscalemonitor">MaxScaleMonitor</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>majority_of_all</code></td>
-<td>CooperativeMonitoringMajorityOfAll requires a lock from the majority of the MariaDB servers, even the ones that are down.<br /></td>
-</tr>
-<tr>
-<td><code>majority_of_running</code></td>
-<td>CooperativeMonitoringMajorityOfRunning requires a lock from the majority of the MariaDB servers.<br /></td>
-</tr>
-</tbody>
-</table>
-<h4 id="cronjobtemplate">CronJobTemplate</h4>
-<p>CronJobTemplate defines parameters for configuring CronJob objects.</p>
-<p><em>Appears in:</em>
-- <a href="#backupspec">BackupSpec</a>
-- <a href="#sqljobspec">SqlJobSpec</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-<th>Default</th>
-<th>Validation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>timeZone</code> <em>string</em></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
 <h4 id="database">Database</h4>
 <p>Database is the Schema for the databases API. It is used to define a logical database as if you were running a 'CREATE DATABASE' statement.</p>
 <table>
@@ -3041,12 +2902,6 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td>RetryInterval is the interval used to perform retries.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>cleanupPolicy</code> <em><a href="#cleanuppolicy">CleanupPolicy</a></em></td>
-<td>CleanupPolicy defines the behavior for cleaning up a SQL resource.</td>
-<td></td>
-<td>Enum: [Skip Delete] <br /></td>
 </tr>
 <tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
@@ -3299,13 +3154,13 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 </tr>
 <tr>
 <td><code>initContainer</code> <em><a href="#container">Container</a></em></td>
-<td>InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.</td>
+<td>InitContainer is an init container that co-operates with mariadb-operator.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>initJob</code> <em><a href="#job">Job</a></em></td>
-<td>InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.</td>
+<td>InitJob defines additional properties for the Job used to perform the initialization.</td>
 <td></td>
 <td></td>
 </tr>
@@ -3476,7 +3331,7 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 <td></td>
 </tr>
 <tr>
-<td><code>minClusterSize</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#intorstring-intstr-util">IntOrString</a></em></td>
+<td><code>minClusterSize</code> <em><a href="#intorstring">IntOrString</a></em></td>
 <td>MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%).<br />If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.<br />It defaults to '50%' of the replicas specified by the MariaDB object.</td>
 <td></td>
 <td></td>
@@ -3519,7 +3374,7 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </tr>
 <tr>
 <td><code>job</code> <em><a href="#galerarecoveryjob">GaleraRecoveryJob</a></em></td>
-<td>Job defines a Job that co-operates with mariadb-operator by performing the Galera cluster recovery .</td>
+<td>Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster.</td>
 <td></td>
 <td></td>
 </tr>
@@ -3617,13 +3472,13 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </tr>
 <tr>
 <td><code>initContainer</code> <em><a href="#container">Container</a></em></td>
-<td>InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.</td>
+<td>InitContainer is an init container that co-operates with mariadb-operator.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>initJob</code> <em><a href="#job">Job</a></em></td>
-<td>InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.</td>
+<td>InitJob defines additional properties for the Job used to perform the initialization.</td>
 <td></td>
 <td></td>
 </tr>
@@ -3743,12 +3598,6 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 <td></td>
 </tr>
 <tr>
-<td><code>cleanupPolicy</code> <em><a href="#cleanuppolicy">CleanupPolicy</a></em></td>
-<td>CleanupPolicy defines the behavior for cleaning up a SQL resource.</td>
-<td></td>
-<td>Enum: [Skip Delete] <br /></td>
-</tr>
-<tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
 <td>MariaDBRef is a reference to a MariaDB object.</td>
 <td></td>
@@ -3798,24 +3647,6 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.</p>
 <p><em>Appears in:</em>
 - <a href="#replicareplication">ReplicaReplication</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>CurrentPos</code></td>
-<td>GtidCurrentPos indicates the union of gtid_binlog_pos and gtid_slave_pos will be used when replicating from master.<br />This is the default Gtid mode.<br /></td>
-</tr>
-<tr>
-<td><code>SlavePos</code></td>
-<td>GtidSlavePos indicates that gtid_slave_pos will be used when replicating from master.<br /></td>
-</tr>
-</tbody>
-</table>
 <h4 id="healthcheck">HealthCheck</h4>
 <p>HealthCheck defines intervals for performing health checks.</p>
 <p><em>Appears in:</em>
@@ -4208,7 +4039,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>uid</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#uid-types-pkg">UID</a></em></td>
+<td><code>uid</code> <em><a href="#uid">UID</a></em></td>
 <td>UID of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids</td>
 <td></td>
 <td></td>
@@ -4381,7 +4212,7 @@ The agent validates the legitimacy of the service account token provided as an A
 </tr>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4417,31 +4248,19 @@ The agent validates the legitimacy of the service account token provided as an A
 </tr>
 <tr>
 <td><code>database</code> <em>string</em></td>
-<td>Database is the name of the initial Database.</td>
+<td>Database is the initial database to be created by the operator once MariaDB is ready.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>username</code> <em>string</em></td>
-<td>Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.<br />The initial User will have ALL PRIVILEGES in the initial Database.</td>
+<td>Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>passwordSecretKeyRef</code> <em><a href="#generatedsecretkeyref">GeneratedSecretKeyRef</a></em></td>
-<td>PasswordSecretKeyRef is a reference to a Secret that contains the password to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>passwordHashSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
-<td>PasswordHashSecretKeyRef is a reference to the password hash to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>passwordPlugin</code> <em><a href="#passwordplugin">PasswordPlugin</a></em></td>
-<td>PasswordPlugin is a reference to the password plugin and arguments to be used by the initial User.</td>
+<td>PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.</td>
 <td></td>
 <td></td>
 </tr>
@@ -4512,12 +4331,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>replicasAllowEvenNumber</code> <em>boolean</em></td>
-<td>disables the validation check for an odd number of replicas.</td>
-<td>false</td>
-<td></td>
-</tr>
-<tr>
 <td><code>port</code> <em>integer</em></td>
 <td>Port where the instances will be listening for connections.</td>
 <td>3306</td>
@@ -4537,38 +4350,44 @@ The agent validates the legitimacy of the service account token provided as an A
 </tr>
 <tr>
 <td><code>service</code> <em><a href="#servicetemplate">ServiceTemplate</a></em></td>
-<td>Service defines a template to configure the general Service object.<br />The network traffic of this Service will be routed to all Pods.</td>
+<td>Service defines templates to configure the general Service object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>connection</code> <em><a href="#connectiontemplate">ConnectionTemplate</a></em></td>
-<td>Connection defines a template to configure the general Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the Service to route network traffic to all Pods.</td>
+<td>Connection defines templates to configure the general Connection object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>primaryService</code> <em><a href="#servicetemplate">ServiceTemplate</a></em></td>
-<td>PrimaryService defines a template to configure the primary Service object.<br />The network traffic of this Service will be routed to the primary Pod.</td>
+<td>PrimaryService defines templates to configure the primary Service object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>primaryConnection</code> <em><a href="#connectiontemplate">ConnectionTemplate</a></em></td>
-<td>PrimaryConnection defines a template to configure the primary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the PrimaryService to route network traffic to the primary Pod.</td>
+<td>PrimaryConnection defines templates to configure the primary Connection object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>secondaryService</code> <em><a href="#servicetemplate">ServiceTemplate</a></em></td>
-<td>SecondaryService defines a template to configure the secondary Service object.<br />The network traffic of this Service will be routed to the secondary Pods.</td>
+<td>SecondaryService defines templates to configure the secondary Service object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>secondaryConnection</code> <em><a href="#connectiontemplate">ConnectionTemplate</a></em></td>
-<td>SecondaryConnection defines a template to configure the secondary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the SecondaryService to route network traffic to the secondary Pods.</td>
+<td>SecondaryConnection defines templates to configure the secondary Connection object.</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>suspend</code> <em>boolean</em></td>
+<td></td>
+<td>false</td>
 <td></td>
 </tr>
 </tbody>
@@ -4896,7 +4715,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4978,7 +4797,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -5083,7 +4902,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -5254,12 +5073,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
-<td>false</td>
-<td></td>
-</tr>
-<tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
 <td>MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.</td>
 <td></td>
@@ -5414,53 +5227,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <p>MonitorModule defines the type of monitor module</p>
 <p><em>Appears in:</em>
 - <a href="#maxscalemonitor">MaxScaleMonitor</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>mariadbmon</code></td>
-<td>MonitorModuleMariadb is a monitor to be used with MariaDB servers.<br /></td>
-</tr>
-<tr>
-<td><code>galeramon</code></td>
-<td>MonitorModuleGalera is a monitor to be used with Galera servers.<br /></td>
-</tr>
-</tbody>
-</table>
-<h4 id="passwordplugin">PasswordPlugin</h4>
-<p>PasswordPlugin defines the password plugin and its arguments.</p>
-<p><em>Appears in:</em>
-- <a href="#mariadbspec">MariaDBSpec</a>
-- <a href="#userspec">UserSpec</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-<th>Default</th>
-<th>Validation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>pluginNameSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
-<td>PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>pluginArgSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
-<td>PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
 <h4 id="poddisruptionbudget">PodDisruptionBudget</h4>
 <p>PodDisruptionBudget is the Pod availability bundget for a MariaDB</p>
 <p><em>Appears in:</em>
@@ -5478,13 +5244,13 @@ The agent validates the legitimacy of the service account token provided as an A
 </thead>
 <tbody>
 <tr>
-<td><code>minAvailable</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#intorstring-intstr-util">IntOrString</a></em></td>
+<td><code>minAvailable</code> <em><a href="#intorstring">IntOrString</a></em></td>
 <td>MinAvailable defines the number of minimum available Pods.</td>
 <td></td>
 <td>Required: {} <br /></td>
 </tr>
 <tr>
-<td><code>maxUnavailable</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#intorstring-intstr-util">IntOrString</a></em></td>
+<td><code>maxUnavailable</code> <em><a href="#intorstring">IntOrString</a></em></td>
 <td>MaxUnavailable defines the number of maximum unavailable Pods.</td>
 <td></td>
 <td>Required: {} <br /></td>
@@ -6093,12 +5859,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 <td></td>
 </tr>
-<tr>
-<td><code>cleanupPolicy</code> <em><a href="#cleanuppolicy">CleanupPolicy</a></em></td>
-<td>CleanupPolicy defines the behavior for cleaning up a SQL resource.</td>
-<td></td>
-<td>Enum: [Skip Delete] <br /></td>
-</tr>
 </tbody>
 </table>
 <h4 id="sst">SST</h4>
@@ -6108,28 +5868,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <p><em>Appears in:</em>
 - <a href="#galera">Galera</a>
 - <a href="#galeraspec">GaleraSpec</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>rsync</code></td>
-<td>SSTRsync is an SST based on rsync.<br /></td>
-</tr>
-<tr>
-<td><code>mariabackup</code></td>
-<td>SSTMariaBackup is an SST based on mariabackup. It is the recommended SST.<br /></td>
-</tr>
-<tr>
-<td><code>mysqldump</code></td>
-<td>SSTMysqldump is an SST based on mysqldump.<br /></td>
-</tr>
-</tbody>
-</table>
 <h4 id="schedule">Schedule</h4>
 <p>Schedule contains parameters to define a schedule</p>
 <p><em>Appears in:</em>
@@ -6270,24 +6008,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <p>ServiceRouter defines the type of service router.</p>
 <p><em>Appears in:</em>
 - <a href="#maxscaleservice">MaxScaleService</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>readwritesplit</code></td>
-<td>ServiceRouterReadWriteSplit splits the load based on the queries. Write queries are performed on master and read queries on the replicas.<br /></td>
-</tr>
-<tr>
-<td><code>readconnroute</code></td>
-<td>ServiceRouterReadConnRoute splits the load based on the connections. Each connection is assigned to a server.<br /></td>
-</tr>
-</tbody>
-</table>
 <h4 id="servicetemplate">ServiceTemplate</h4>
 <p>ServiceTemplate defines a template to customize Service objects.</p>
 <p><em>Appears in:</em>
@@ -6467,24 +6187,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>timeZone</code> <em>string</em></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
 <td>MariaDBRef is a reference to a MariaDB object.</td>
 <td></td>
@@ -6550,6 +6252,18 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 <td></td>
 </tr>
+<tr>
+<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
 </tbody>
 </table>
 <h4 id="storage">Storage</h4>
@@ -6573,7 +6287,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>size</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#quantity-resource-api">Quantity</a></em></td>
+<td><code>size</code> <em><a href="#quantity">Quantity</a></em></td>
 <td>Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.</td>
 <td></td>
 <td></td>
@@ -6610,8 +6324,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 - <a href="#mariadbspec">MariaDBSpec</a>
 - <a href="#maxscalelistener">MaxScaleListener</a>
 - <a href="#maxscalemonitor">MaxScaleMonitor</a>
-- <a href="#maxscaleservice">MaxScaleService</a>
-- <a href="#maxscalespec">MaxScaleSpec</a></p>
+- <a href="#maxscaleservice">MaxScaleService</a></p>
 <table>
 <thead>
 <tr>
@@ -6624,7 +6337,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -6690,28 +6403,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <p>UpdateType defines the type of update for a MariaDB resource.</p>
 <p><em>Appears in:</em>
 - <a href="#updatestrategy">UpdateStrategy</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>ReplicasFirstPrimaryLast</code></td>
-<td>ReplicasFirstPrimaryLast indicates that the update will be applied to all replica Pods first and later on to the primary Pod.<br />The updates are applied one by one waiting until each Pod passes the readiness probe<br />i.e. the Pod gets synced and it is ready to receive traffic.<br /></td>
-</tr>
-<tr>
-<td><code>RollingUpdate</code></td>
-<td>RollingUpdateUpdateType indicates that the update will be applied by the StatefulSet controller using the RollingUpdate strategy.<br />This strategy is unaware of the roles that the Pod have (primary or replica) and it will<br />perform the update following the StatefulSet ordinal, from higher to lower.<br /></td>
-</tr>
-<tr>
-<td><code>OnDelete</code></td>
-<td>OnDeleteUpdateType indicates that the update will be applied by the StatefulSet controller using the OnDelete strategy.<br />The update will be done when the Pods get manually deleted by the user.<br /></td>
-</tr>
-</tbody>
-</table>
 <h4 id="user">User</h4>
 <p>User is the Schema for the users API.  It is used to define grants as if you were running a 'CREATE USER' statement.</p>
 <table>
@@ -6777,12 +6468,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>cleanupPolicy</code> <em><a href="#cleanuppolicy">CleanupPolicy</a></em></td>
-<td>CleanupPolicy defines the behavior for cleaning up a SQL resource.</td>
-<td></td>
-<td>Enum: [Skip Delete] <br /></td>
-</tr>
-<tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
 <td>MariaDBRef is a reference to a MariaDB object.</td>
 <td></td>
@@ -6791,18 +6476,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <tr>
 <td><code>passwordSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
 <td>PasswordSecretKeyRef is a reference to the password to be used by the User.<br />If not provided, the account will be locked and the password will expire.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>passwordHashSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
-<td>PasswordHashSecretKeyRef is a reference to the password hash to be used by the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>passwordPlugin</code> <em><a href="#passwordplugin">PasswordPlugin</a></em></td>
-<td>PasswordPlugin is a reference to the password plugin and arguments to be used by the User.</td>
 <td></td>
 <td></td>
 </tr>
@@ -6910,24 +6583,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.</p>
 <p><em>Appears in:</em>
 - <a href="#replicareplication">ReplicaReplication</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>AfterSync</code></td>
-<td>WaitPointAfterSync indicates that the primary waits for the replica ACK before committing the transaction to the storage engine.<br />This is the default WaitPoint. It trades off performance for consistency.<br /></td>
-</tr>
-<tr>
-<td><code>AfterCommit</code></td>
-<td>WaitPointAfterCommit indicates that the primary commits the transaction to the storage engine and waits for the replica ACK afterwards.<br />It trades off consistency for performance.<br /></td>
-</tr>
-</tbody>
-</table>
 
 
 
