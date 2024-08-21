@@ -14769,9 +14769,6 @@ spec:
                         description: MinAvailable defines the number of minimum available
                           Pods.
                         x-kubernetes-int-or-string: true
-                    required:
-                    - maxUnavailable
-                    - minAvailable
                     type: object
                   replicas:
                     description: Replicas indicates the number of desired instances.
@@ -20836,9 +20833,6 @@ spec:
                     description: MinAvailable defines the number of minimum available
                       Pods.
                     x-kubernetes-int-or-string: true
-                required:
-                - maxUnavailable
-                - minAvailable
                 type: object
               podMetadata:
                 description: PodMetadata defines extra metadata for the Pod.
