@@ -630,6 +630,11 @@ spec:
       - description: CharacterSet to use in the Database.
         displayName: Character Set
         path: characterSet
+      - description: CleanupPolicy defines the behavior for cleaning up a SQL resource.
+        displayName: Cleanup Policy
+        path: cleanupPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Collate to use in the Database.
         displayName: Collate
         path: collate
@@ -673,6 +678,11 @@ spec:
         name: ""
         version: v1alpha1
       specDescriptors:
+      - description: CleanupPolicy defines the behavior for cleaning up a SQL resource.
+        displayName: Cleanup Policy
+        path: cleanupPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Database to use in the Grant.
         displayName: Database
         path: database
@@ -903,8 +913,10 @@ spec:
         path: command
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Connection defines templates to configure the general Connection
-          object.
+      - description: Connection defines a template to configure the general Connection
+          object. This Connection provides the initial User access to the initial
+          Database. It will make use of the Service to route network traffic to all
+          Pods.
         displayName: Connection
         path: connection
       - description: HealthCheck to be used in the Connection.
@@ -985,8 +997,7 @@ spec:
         path: connection.serviceName
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Database is the initial database to be created by the operator
-          once MariaDB is ready.
+      - description: Database is the name of the initial Database.
         displayName: Database
         path: database
         x-descriptors:
@@ -2619,10 +2630,35 @@ spec:
         path: nodeSelector
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: PasswordHashSecretKeyRef is a reference to the password hash
+          to be used by the initial User. If the referred Secret is labeled with "k8s.mariadb.com/watch",
+          updates may be performed to the Secret in order to update the password hash.
+        displayName: Password Hash Secret Key Ref
+        path: passwordHashSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: PasswordPlugin is a reference to the password plugin and arguments
+          to be used by the initial User.
+        displayName: Password Plugin
+        path: passwordPlugin
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: PluginArgSecretKeyRef is a reference to the arguments to be provided
+          to the authentication plugin for the User. If the referred Secret is labeled
+          with "k8s.mariadb.com/watch", updates may be performed to the Secret in
+          order to update the authentication plugin arguments.
+        displayName: Plugin Arg Secret Key Ref
+        path: passwordPlugin.pluginArgSecretKeyRef
+      - description: PluginNameSecretKeyRef is a reference to the authentication plugin
+          to be used by the User. If the referred Secret is labeled with "k8s.mariadb.com/watch",
+          updates may be performed to the Secret in order to update the authentication
+          plugin.
+        displayName: Plugin Name Secret Key Ref
+        path: passwordPlugin.pluginNameSecretKeyRef
       - description: PasswordSecretKeyRef is a reference to a Secret that contains
-          the password for the initial user. If the referred Secret is labeled with
-          "k8s.mariadb.com/watch", updates may be performed to the Secret in order
-          to update the password.
+          the password to be used by the initial User. If the referred Secret is labeled
+          with "k8s.mariadb.com/watch", updates may be performed to the Secret in
+          order to update the password.
         displayName: Password Secret Key Ref
         path: passwordSecretKeyRef
         x-descriptors:
@@ -2667,8 +2703,10 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: PrimaryConnection defines templates to configure the primary
-          Connection object.
+      - description: PrimaryConnection defines a template to configure the primary
+          Connection object. This Connection provides the initial User access to the
+          initial Database. It will make use of the PrimaryService to route network
+          traffic to the primary Pod.
         displayName: Primary Connection
         path: primaryConnection
       - description: HealthCheck to be used in the Connection.
@@ -2749,8 +2787,9 @@ spec:
         path: primaryConnection.serviceName
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: PrimaryService defines templates to configure the primary Service
-          object.
+      - description: PrimaryService defines a template to configure the primary Service
+          object. The network traffic of this Service will be routed to the primary
+          Pod.
         displayName: Primary Service
         path: primaryService
       - description: AllocateLoadBalancerNodePorts Service field.
@@ -2917,8 +2956,10 @@ spec:
         path: rootPasswordSecretKeyRef.generate
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: SecondaryConnection defines templates to configure the secondary
-          Connection object.
+      - description: SecondaryConnection defines a template to configure the secondary
+          Connection object. This Connection provides the initial User access to the
+          initial Database. It will make use of the SecondaryService to route network
+          traffic to the secondary Pods.
         displayName: Secondary Connection
         path: secondaryConnection
       - description: HealthCheck to be used in the Connection.
@@ -2999,8 +3040,9 @@ spec:
         path: secondaryConnection.serviceName
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: SecondaryService defines templates to configure the secondary
-          Service object.
+      - description: SecondaryService defines a template to configure the secondary
+          Service object. The network traffic of this Service will be routed to the
+          secondary Pods.
         displayName: Secondary Service
         path: secondaryService
       - description: AllocateLoadBalancerNodePorts Service field.
@@ -3050,7 +3092,8 @@ spec:
         path: securityContext
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Service defines templates to configure the general Service object.
+      - description: Service defines a template to configure the general Service object.
+          The network traffic of this Service will be routed to all Pods.
         displayName: Service
         path: service
       - description: AllocateLoadBalancerNodePorts Service field.
@@ -3255,7 +3298,8 @@ spec:
         displayName: Type
         path: updateStrategy.type
       - description: Username is the initial username to be created by the operator
-          once MariaDB is ready. It has all privileges on the initial database.
+          once MariaDB is ready. It has all privileges on the initial database. The
+          initial User will have ALL PRIVILEGES in the initial Database.
         displayName: Username
         path: username
         x-descriptors:
@@ -4879,6 +4923,11 @@ spec:
         name: ""
         version: v1alpha1
       specDescriptors:
+      - description: CleanupPolicy defines the behavior for cleaning up a SQL resource.
+        displayName: Cleanup Policy
+        path: cleanupPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Host related to the User.
         displayName: Host
         path: host
@@ -4901,6 +4950,31 @@ spec:
       - description: Name overrides the default name provided by metadata.name.
         displayName: Name
         path: name
+      - description: PasswordHashSecretKeyRef is a reference to the password hash
+          to be used by the User. If the referred Secret is labeled with "k8s.mariadb.com/watch",
+          updates may be performed to the Secret in order to update the password hash.
+        displayName: Password Hash Secret Key Ref
+        path: passwordHashSecretKeyRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: PasswordPlugin is a reference to the password plugin and arguments
+          to be used by the User.
+        displayName: Password Plugin
+        path: passwordPlugin
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: PluginArgSecretKeyRef is a reference to the arguments to be provided
+          to the authentication plugin for the User. If the referred Secret is labeled
+          with "k8s.mariadb.com/watch", updates may be performed to the Secret in
+          order to update the authentication plugin arguments.
+        displayName: Plugin Arg Secret Key Ref
+        path: passwordPlugin.pluginArgSecretKeyRef
+      - description: PluginNameSecretKeyRef is a reference to the authentication plugin
+          to be used by the User. If the referred Secret is labeled with "k8s.mariadb.com/watch",
+          updates may be performed to the Secret in order to update the authentication
+          plugin.
+        displayName: Plugin Name Secret Key Ref
+        path: passwordPlugin.pluginNameSecretKeyRef
       - description: PasswordSecretKeyRef is a reference to the password to be used
           by the User. If not provided, the account will be locked and the password
           will expire. If the referred Secret is labeled with "k8s.mariadb.com/watch",

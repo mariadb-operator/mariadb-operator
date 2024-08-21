@@ -334,8 +334,8 @@ metadata:
     capabilities: Deep Insights
     categories: Database
     certified: "true"
-    containerImage: mariadb/mariadb-operator-enterprise:v0.0.23
-    createdAt: "2024-08-14T09:25:43Z"
+    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
+    createdAt: "2024-08-21T17:06:31Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -696,6 +696,11 @@ spec:
           - description: CharacterSet to use in the Database.
             displayName: Character Set
             path: characterSet
+          - description: CleanupPolicy defines the behavior for cleaning up a SQL resource.
+            displayName: Cleanup Policy
+            path: cleanupPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Collate to use in the Database.
             displayName: Collate
             path: collate
@@ -737,6 +742,11 @@ spec:
             name: ""
             version: v1alpha1
         specDescriptors:
+          - description: CleanupPolicy defines the behavior for cleaning up a SQL resource.
+            displayName: Cleanup Policy
+            path: cleanupPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Database to use in the Grant.
             displayName: Database
             path: database
@@ -948,7 +958,7 @@ spec:
             path: command
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Connection defines templates to configure the general Connection object.
+          - description: Connection defines a template to configure the general Connection object. This Connection provides the initial User access to the initial Database. It will make use of the Service to route network traffic to all Pods.
             displayName: Connection
             path: connection
           - description: HealthCheck to be used in the Connection.
@@ -1028,7 +1038,7 @@ spec:
             path: connection.serviceName
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Database is the initial database to be created by the operator once MariaDB is ready.
+          - description: Database is the name of the initial Database.
             displayName: Database
             path: database
             x-descriptors:
@@ -2462,7 +2472,23 @@ spec:
             path: nodeSelector
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
+          - description: PasswordHashSecretKeyRef is a reference to the password hash to be used by the initial User. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.
+            displayName: Password Hash Secret Key Ref
+            path: passwordHashSecretKeyRef
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: PasswordPlugin is a reference to the password plugin and arguments to be used by the initial User.
+            displayName: Password Plugin
+            path: passwordPlugin
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.
+            displayName: Plugin Arg Secret Key Ref
+            path: passwordPlugin.pluginArgSecretKeyRef
+          - description: PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.
+            displayName: Plugin Name Secret Key Ref
+            path: passwordPlugin.pluginNameSecretKeyRef
+          - description: PasswordSecretKeyRef is a reference to a Secret that contains the password to be used by the initial User. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
             x-descriptors:
@@ -2505,7 +2531,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:number
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: PrimaryConnection defines templates to configure the primary Connection object.
+          - description: PrimaryConnection defines a template to configure the primary Connection object. This Connection provides the initial User access to the initial Database. It will make use of the PrimaryService to route network traffic to the primary Pod.
             displayName: Primary Connection
             path: primaryConnection
           - description: HealthCheck to be used in the Connection.
@@ -2585,7 +2611,7 @@ spec:
             path: primaryConnection.serviceName
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: PrimaryService defines templates to configure the primary Service object.
+          - description: PrimaryService defines a template to configure the primary Service object. The network traffic of this Service will be routed to the primary Pod.
             displayName: Primary Service
             path: primaryService
           - description: AllocateLoadBalancerNodePorts Service field.
@@ -2730,7 +2756,7 @@ spec:
             path: rootPasswordSecretKeyRef.generate
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-          - description: SecondaryConnection defines templates to configure the secondary Connection object.
+          - description: SecondaryConnection defines a template to configure the secondary Connection object. This Connection provides the initial User access to the initial Database. It will make use of the SecondaryService to route network traffic to the secondary Pods.
             displayName: Secondary Connection
             path: secondaryConnection
           - description: HealthCheck to be used in the Connection.
@@ -2810,7 +2836,7 @@ spec:
             path: secondaryConnection.serviceName
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: SecondaryService defines templates to configure the secondary Service object.
+          - description: SecondaryService defines a template to configure the secondary Service object. The network traffic of this Service will be routed to the secondary Pods.
             displayName: Secondary Service
             path: secondaryService
           - description: AllocateLoadBalancerNodePorts Service field.
@@ -2858,7 +2884,7 @@ spec:
             path: securityContext
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: Service defines templates to configure the general Service object.
+          - description: Service defines a template to configure the general Service object. The network traffic of this Service will be routed to all Pods.
             displayName: Service
             path: service
           - description: AllocateLoadBalancerNodePorts Service field.
@@ -3040,7 +3066,7 @@ spec:
           - description: Type defines the type of updates. One of `ReplicasFirstPrimaryLast`, `RollingUpdate` or `OnDelete`. If not defined, it defaults to `ReplicasFirstPrimaryLast`.
             displayName: Type
             path: updateStrategy.type
-          - description: Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.
+          - description: Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database. The initial User will have ALL PRIVILEGES in the initial Database.
             displayName: Username
             path: username
             x-descriptors:
@@ -4490,6 +4516,11 @@ spec:
             name: ""
             version: v1alpha1
         specDescriptors:
+          - description: CleanupPolicy defines the behavior for cleaning up a SQL resource.
+            displayName: Cleanup Policy
+            path: cleanupPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Host related to the User.
             displayName: Host
             path: host
@@ -4510,6 +4541,22 @@ spec:
           - description: Name overrides the default name provided by metadata.name.
             displayName: Name
             path: name
+          - description: PasswordHashSecretKeyRef is a reference to the password hash to be used by the User. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.
+            displayName: Password Hash Secret Key Ref
+            path: passwordHashSecretKeyRef
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: PasswordPlugin is a reference to the password plugin and arguments to be used by the User.
+            displayName: Password Plugin
+            path: passwordPlugin
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.
+            displayName: Plugin Arg Secret Key Ref
+            path: passwordPlugin.pluginArgSecretKeyRef
+          - description: PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.
+            displayName: Plugin Name Secret Key Ref
+            path: passwordPlugin.pluginNameSecretKeyRef
           - description: PasswordSecretKeyRef is a reference to the password to be used by the User. If not provided, the account will be locked and the password will expire. If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
             displayName: Password Secret Key Ref
             path: passwordSecretKeyRef
@@ -4554,15 +4601,6 @@ spec:
                 - ""
               resources:
                 - endpoints
-              verbs:
-                - create
-                - get
-                - list
-                - patch
-                - watch
-            - apiGroups:
-                - ""
-              resources:
                 - endpoints/restricted
               verbs:
                 - create
@@ -4574,6 +4612,9 @@ spec:
                 - ""
               resources:
                 - events
+                - secrets
+                - serviceaccounts
+                - services
               verbs:
                 - create
                 - list
@@ -4604,33 +4645,6 @@ spec:
                 - pods/log
               verbs:
                 - get
-            - apiGroups:
-                - ""
-              resources:
-                - secrets
-              verbs:
-                - create
-                - list
-                - patch
-                - watch
-            - apiGroups:
-                - ""
-              resources:
-                - serviceaccounts
-              verbs:
-                - create
-                - list
-                - patch
-                - watch
-            - apiGroups:
-                - ""
-              resources:
-                - services
-              verbs:
-                - create
-                - list
-                - patch
-                - watch
             - apiGroups:
                 - apps
               resources:
@@ -4686,6 +4700,14 @@ spec:
                 - k8s.mariadb.com
               resources:
                 - backups
+                - connections
+                - databases
+                - grants
+                - mariadbs
+                - maxscales
+                - restores
+                - sqljobs
+                - users
               verbs:
                 - create
                 - delete
@@ -4698,248 +4720,41 @@ spec:
                 - k8s.mariadb.com
               resources:
                 - backups/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - backups/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - connections
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - connections
-                - grants
-                - maxscale
-                - restores
-                - users
-              verbs:
-                - create
-                - list
-                - patch
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - connections
-                - grants
-                - users
-              verbs:
-                - create
-                - list
-                - patch
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
                 - connections/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - connections/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - databases
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
                 - databases/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - databases/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - grants
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
                 - grants/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - grants/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - mariadbs
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
                 - mariadbs/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - mariadbs/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - maxscales
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
                 - maxscales/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - maxscales/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - restores
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
                 - restores/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - restores/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - sqljobs
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
                 - sqljobs/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - sqljobs/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
-                - users
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - k8s.mariadb.com
-              resources:
                 - users/finalizers
               verbs:
                 - update
             - apiGroups:
                 - k8s.mariadb.com
               resources:
+                - backups/status
+                - connections/status
+                - databases/status
+                - grants/status
+                - mariadbs/status
+                - maxscales/status
+                - restores/status
+                - sqljobs/status
                 - users/status
               verbs:
                 - get
                 - patch
                 - update
+            - apiGroups:
+                - k8s.mariadb.com
+              resources:
+                - maxscale
+              verbs:
+                - create
+                - list
+                - patch
+                - watch
             - apiGroups:
                 - monitoring.coreos.com
               resources:
@@ -5000,15 +4815,15 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: docker-registry.mariadb.com/enterprise-server:10.6.18-14
+                        value: docker-registry.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d
                       - name: RELATED_IMAGE_MAXSCALE
-                        value: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5-ubi
+                        value: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
                       - name: RELATED_IMAGE_EXPORTER
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
-                        value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+                        value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
                       - name: MARIADB_OPERATOR_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
                       - name: MARIADB_ENTRYPOINT_VERSION
@@ -5027,7 +4842,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
+                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -5132,14 +4947,18 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: docker-registry.mariadb.com/enterprise-server:10.6.18-14
-      name: mariadb
-    - image: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5-ubi
-      name: maxscale
-    - image: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
-      name: exporter
-    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
       name: exporter-maxscale
+    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
+      name: mariadb-operator-enterprise
+    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
+      name: exporter_maxscale
+    - image: docker-registry.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d
+      name: mariadb
+    - image: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
+      name: maxscale
+    - image: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
+      name: exporter
   version: 0.0.29
   webhookdefinitions:
     - admissionReviewVersions:
