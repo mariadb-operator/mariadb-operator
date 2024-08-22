@@ -27,6 +27,7 @@ spec:
       storageClassName: standard
 
   replicas: 3
+  replicasAllowEvenNumber: false
 
   # point to an existing MaxScale instance. Doing this will delegate tasks such as primary failover to MaxScale.
   # maxScaleRef:
