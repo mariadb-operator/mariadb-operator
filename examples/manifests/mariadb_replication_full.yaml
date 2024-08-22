@@ -117,6 +117,8 @@ spec:
     innodb_buffer_pool_size=1024M
     max_allowed_packet=256M
 
+  timeZone: "UTC"
+
   resources:
     requests:
       cpu: 100m
