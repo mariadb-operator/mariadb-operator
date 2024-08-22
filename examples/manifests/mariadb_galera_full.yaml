@@ -159,6 +159,8 @@ spec:
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
 
+  timeZone: "UTC"
+
   resources:
     requests:
       cpu: 100m
