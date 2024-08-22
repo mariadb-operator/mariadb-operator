@@ -76,6 +76,12 @@ Supported versions:
 - MariaDB Community >= 10.5
 - MariaDB Enterprise >= 10.5
 
+## Kubernetes
+
+Supported versions:
+- Kubernetes >= 1.26
+- OpenShift >= 1.13
+
 ## Openshift
 
 The Openshift installation is managed separately in the [mariadb-operator-helm](https://github.com/mariadb-operator/mariadb-operator-helm) repository, which contains a [helm based operator](https://sdk.operatorframework.io/docs/building-operators/helm/) that allows you to install `mariadb-operator` via [OLM](https://olm.operatorframework.io/docs/).
