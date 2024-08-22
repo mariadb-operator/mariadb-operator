@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-auth
+stringData:
+  # -- SELECT PASSWORD('MariaDB11!');
+  passwordHash: "*57685B4F0FF9D049082E296E2C39354B7A98774E"
+  # -- CREATE FUNCTION ed25519_password RETURNS STRING SONAME "auth_ed25519.so";
+  # -- SELECT ed25519_password("MariaDB11!");
+  ed25519Hash: LaiG/7DSlQ+t1zlYnMR7he1kSf3u7Hzo2ElLon4mJ4w
+  ed25519Plugin: ed25519
+  nativePasswordPlugin: mysql_native_password
