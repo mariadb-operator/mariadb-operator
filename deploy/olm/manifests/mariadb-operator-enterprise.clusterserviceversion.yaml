@@ -335,7 +335,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
-    createdAt: "2024-08-21T17:06:31Z"
+    createdAt: "2024-08-22T10:50:50Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4948,10 +4948,6 @@ spec:
     name: MariaDB Corporation
   relatedImages:
     - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
-      name: exporter-maxscale
-    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
-      name: mariadb-operator-enterprise
-    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
       name: exporter_maxscale
     - image: docker-registry.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d
       name: mariadb
@@ -4959,6 +4955,10 @@ spec:
       name: maxscale
     - image: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
       name: exporter
+    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
+      name: exporter-maxscale
+    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
+      name: mariadb-operator-enterprise
   version: 0.0.29
   webhookdefinitions:
     - admissionReviewVersions:
