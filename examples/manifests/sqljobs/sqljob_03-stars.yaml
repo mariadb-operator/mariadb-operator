@@ -11,6 +11,7 @@ spec:
   schedule:
     cron: "*/1 * * * *"
     suspend: false
+  timeZone: "UTC"
   username: mariadb
   passwordSecretKeyRef:
     name: mariadb

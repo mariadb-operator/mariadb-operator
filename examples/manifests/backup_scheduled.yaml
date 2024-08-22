@@ -8,6 +8,7 @@ spec:
   schedule:
     cron: "*/1 * * * *"
     suspend: false
+  timeZone: "UTC"
   maxRetention: 720h # 30 days
   storage:
     s3:
