@@ -744,14 +744,16 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 					Namespace: mariadb.Namespace,
 				},
 			},
-			Metadata:                 mariadb.Spec.InheritMetadata,
-			MaxUserConnections:       20,
-			Name:                     *mariadb.Spec.Username,
-			Host:                     "%",
-			PasswordHashSecretKeyRef: mariadb.Spec.PasswordHashSecretKeyRef,
-			PasswordPlugin:           mariadb.Spec.PasswordPlugin,
+			Metadata:           mariadb.Spec.InheritMetadata,
+			MaxUserConnections: 20,
+			Name:               *mariadb.Spec.Username,
+			Host:               "%",
 		}
-		if mariadb.Spec.PasswordSecretKeyRef != nil {
+		if mariadb.Spec.PasswordPlugin != nil {
+			user.PasswordPlugin = mariadb.Spec.PasswordPlugin
+		} else if mariadb.Spec.PasswordHashSecretKeyRef != nil {
+			user.PasswordHashSecretKeyRef = mariadb.Spec.PasswordHashSecretKeyRef
+		} else if mariadb.Spec.PasswordSecretKeyRef != nil {
 			user.PasswordSecretKeyRef = &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector
 		}
 		grant := auth.GrantOpts{
