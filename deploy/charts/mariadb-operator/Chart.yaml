@@ -6,7 +6,7 @@ icon: https://mariadb-operator.github.io/mariadb-operator/assets/mariadb_profile
 type: application
 version: 0.29.0
 appVersion: "v0.0.30"
-kubeVersion: ">= 1.16.0-0"
+kubeVersion: ">=1.26.0-0"
 maintainers:
   - name: mmontes11
     email: mariadb-operator@proton.me
