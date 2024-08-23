@@ -309,8 +309,8 @@ var _ = Describe("MaxScale webhook", func() {
 							Module: MonitorModuleMariadb,
 						},
 						PodDisruptionBudget: &PodDisruptionBudget{
-							MaxUnavailable: func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
-							MinAvailable:   func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
+							MaxUnavailable: ptr.To(intstr.FromString("50%")),
+							MinAvailable:   ptr.To(intstr.FromString("50%")),
 						},
 					},
 				},
@@ -336,7 +336,7 @@ var _ = Describe("MaxScale webhook", func() {
 							},
 						},
 						PodDisruptionBudget: &PodDisruptionBudget{
-							MaxUnavailable: func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
+							MaxUnavailable: ptr.To(intstr.FromString("50%")),
 						},
 					},
 				},
@@ -366,7 +366,7 @@ var _ = Describe("MaxScale webhook", func() {
 							Module: MonitorModuleMariadb,
 						},
 						PodDisruptionBudget: &PodDisruptionBudget{
-							MaxUnavailable: func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
+							MaxUnavailable: ptr.To(intstr.FromString("50%")),
 						},
 					},
 				},

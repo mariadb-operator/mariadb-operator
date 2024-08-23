@@ -79,7 +79,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 						Recovery: &GaleraRecovery{
 							Enabled:                 true,
-							MinClusterSize:          ptr.To(intstr.FromString("50%")),
+							MinClusterSize:          ptr.To(intstr.FromInt(1)),
 							ClusterMonitorInterval:  ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 							ClusterHealthyTimeout:   ptr.To(metav1.Duration{Duration: 30 * time.Second}),
 							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Minute}),
@@ -344,6 +344,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
+									Enabled:        true,
 									MinClusterSize: ptr.To(intstr.FromString("foo")),
 								},
 							},
@@ -354,7 +355,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				true,
 			),
 			Entry(
-				"Zero replicas",
+				"Less than min fixed size",
 				0,
 				&MariaDB{
 					Spec: MariaDBSpec{
@@ -362,7 +363,8 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
-									MinClusterSize: ptr.To(intstr.FromString("50%")),
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(1)),
 								},
 							},
 						},
@@ -372,7 +374,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				false,
 			),
 			Entry(
-				"Less than min size",
+				"Exact min fixed size",
 				1,
 				&MariaDB{
 					Spec: MariaDBSpec{
@@ -380,6 +382,45 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(1)),
+								},
+							},
+						},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"More than min fixed size",
+				3,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(2)),
+								},
+							},
+						},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"Less than min relative size",
+				1,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
 									MinClusterSize: ptr.To(intstr.FromString("50%")),
 								},
 							},
@@ -390,7 +431,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				false,
 			),
 			Entry(
-				"Exact min size",
+				"Exact min relative size",
 				2,
 				&MariaDB{
 					Spec: MariaDBSpec{
@@ -398,6 +439,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
+									Enabled:        true,
 									MinClusterSize: ptr.To(intstr.FromString("50%")),
 								},
 							},
@@ -408,7 +450,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				false,
 			),
 			Entry(
-				"More than min size",
+				"More than min relative size",
 				3,
 				&MariaDB{
 					Spec: MariaDBSpec{
@@ -437,6 +479,24 @@ var _ = Describe("MariaDB Galera types", func() {
 								Recovery: &GaleraRecovery{
 									Enabled:        true,
 									MinClusterSize: ptr.To(intstr.FromString("50%")),
+								},
+							},
+						},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"Default min cluster size",
+				1,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled: true,
 								},
 							},
 						},
@@ -498,8 +558,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
-									Enabled:        false,
-									MinClusterSize: ptr.To(intstr.FromString("foo")),
+									Enabled: false,
 								},
 							},
 						},
