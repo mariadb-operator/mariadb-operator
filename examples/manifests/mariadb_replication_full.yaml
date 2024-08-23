@@ -138,3 +138,5 @@ spec:
 
   metrics:
     enabled: true
+
+  suspend: false
