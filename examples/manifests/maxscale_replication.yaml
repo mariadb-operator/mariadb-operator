@@ -76,4 +76,7 @@ spec:
     secretName: mxs-repl-conn
     port: 3306
 
+  metrics:
+    enabled: true
+
   requeueInterval: 10s

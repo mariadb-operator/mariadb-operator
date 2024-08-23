@@ -47,6 +47,9 @@ spec:
       secretName: mxs-galera-conn
       port: 3306
 
+    metrics:
+      enabled: true
+
   galera:
     enabled: true
     primary:
