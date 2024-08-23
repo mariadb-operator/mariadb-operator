@@ -85,7 +85,7 @@ spec:
     enabled: true
     recovery:
       enabled: true
-      minClusterSize: 50%
+      minClusterSize: 1
       clusterMonitorInterval: 10s
       clusterHealthyTimeout: 30s
       clusterBootstrapTimeout: 10m
