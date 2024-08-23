@@ -53,7 +53,7 @@ The mariadb-operator uses a variety of docker images depending on how it’s con
     </tr>
         <tr>
       <td>Community Operator</td>
-      <td><a href=ghcr.io/mariadb-operator/mariadb-operator>ghcr.io/mariadb-operator/mariadb-operator</a></td>
+      <td><a href=https://github.com/mariadb-operator/mariadb-operator/pkgs/container/mariadb-operator>ghcr.io/mariadb-operator/mariadb-operator</a></td>
       <td><code>v0.0.30</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30</code></td>
