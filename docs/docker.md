@@ -2,7 +2,8 @@
 
 The mariadb-operator uses a variety of docker images depending on how it’s configured and what mix of open source or commercial software you’d like to use. As only the latest version of MariaDB Community Server is supported, the community server version will increment frequently with only a best effort made to keep current with the latest release(s). Only MariaDB Enterprise Server offers support for older versions.
 
-> **Note**: Using Docker images other than the supported ones in this document is not recommended at this time.
+> [!NOTE]  
+> Using Docker images other than the supported ones in this document is not recommended at this time.
 
 <table width="100%">
   <thead>
