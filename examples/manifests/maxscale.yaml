@@ -17,3 +17,6 @@ spec:
     metadata:
       annotations:
         metallb.universe.tf/loadBalancerIPs: 172.18.0.231
+
+  metrics:
+    enabled: true

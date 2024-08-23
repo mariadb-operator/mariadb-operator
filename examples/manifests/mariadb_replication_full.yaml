@@ -47,6 +47,9 @@ spec:
       secretName: mxs-repl-conn
       port: 3306
 
+    metrics:
+      enabled: true
+
   replication:
     enabled: true
     primary:
