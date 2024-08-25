@@ -409,15 +409,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cleanuppolicy" class="md-nav__link">
-    <span class="md-ellipsis">
-      CleanupPolicy
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#connection" class="md-nav__link">
     <span class="md-ellipsis">
       Connection
@@ -466,15 +457,6 @@
   <a href="#cooperativemonitoring" class="md-nav__link">
     <span class="md-ellipsis">
       CooperativeMonitoring
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cronjobtemplate" class="md-nav__link">
-    <span class="md-ellipsis">
-      CronJobTemplate
     </span>
   </a>
   
@@ -799,15 +781,6 @@
   <a href="#monitormodule" class="md-nav__link">
     <span class="md-ellipsis">
       MonitorModule
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#passwordplugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      PasswordPlugin
     </span>
   </a>
   
@@ -1513,15 +1486,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cleanuppolicy" class="md-nav__link">
-    <span class="md-ellipsis">
-      CleanupPolicy
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#connection" class="md-nav__link">
     <span class="md-ellipsis">
       Connection
@@ -1570,15 +1534,6 @@
   <a href="#cooperativemonitoring" class="md-nav__link">
     <span class="md-ellipsis">
       CooperativeMonitoring
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cronjobtemplate" class="md-nav__link">
-    <span class="md-ellipsis">
-      CronJobTemplate
     </span>
   </a>
   
@@ -1903,15 +1858,6 @@
   <a href="#monitormodule" class="md-nav__link">
     <span class="md-ellipsis">
       MonitorModule
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#passwordplugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      PasswordPlugin
     </span>
   </a>
   
@@ -2248,6 +2194,24 @@
 </thead>
 <tbody>
 <tr>
+<td><code>nodeAffinity</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#nodeaffinity-v1-core">NodeAffinity</a></em></td>
+<td>Describes node affinity scheduling rules for the pod.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>podAffinity</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podaffinity-v1-core">PodAffinity</a></em></td>
+<td>Describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s)).</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>podAntiAffinity</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podantiaffinity-v1-core">PodAntiAffinity</a></em></td>
+<td>Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s)).</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><code>antiAffinityEnabled</code> <em>boolean</em></td>
 <td>AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.<br />Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.</td>
 <td></td>
@@ -2280,7 +2244,7 @@
 <td></td>
 </tr>
 <tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
 <td></td>
@@ -2314,13 +2278,13 @@
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -2332,13 +2296,13 @@
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
+<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
 <td>ImagePullSecrets is the list of pull Secrets to be used to pull the image.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
+<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
 <td>SecurityContext holds pod-level security attributes and common container settings.</td>
 <td></td>
 <td></td>
@@ -2362,7 +2326,7 @@
 <td></td>
 </tr>
 <tr>
-<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#toleration-v1-core">Toleration</a> array</em></td>
+<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core">Toleration</a> array</em></td>
 <td>Tolerations to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -2370,24 +2334,6 @@
 <tr>
 <td><code>priorityClassName</code> <em>string</em></td>
 <td>PriorityClassName to be used in the Pod.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>timeZone</code> <em>string</em></td>
-<td></td>
 <td></td>
 <td></td>
 </tr>
@@ -2410,7 +2356,7 @@
 <td></td>
 </tr>
 <tr>
-<td><code>maxRetention</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>maxRetention</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days.</td>
 <td></td>
 <td></td>
@@ -2440,7 +2386,7 @@
 <td></td>
 </tr>
 <tr>
-<td><code>restartPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#restartpolicy-v1-core">RestartPolicy</a></em></td>
+<td><code>restartPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core">RestartPolicy</a></em></td>
 <td>RestartPolicy to be added to the Backup Pod.</td>
 <td>OnFailure</td>
 <td>Enum: [Always OnFailure Never] <br /></td>
@@ -2450,6 +2396,18 @@
 <td>InheritMetadata defines the metadata to be inherited by children resources.</td>
 <td></td>
 <td></td>
+</tr>
+<tr>
+<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
+</tr>
+<tr>
+<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
+<td></td>
+<td></td>
+<td>Minimum: 0 <br /></td>
 </tr>
 </tbody>
 </table>
@@ -2474,13 +2432,13 @@
 <td></td>
 </tr>
 <tr>
-<td><code>persistentVolumeClaim</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimspec-v1-core">PersistentVolumeClaimSpec</a></em></td>
+<td><code>persistentVolumeClaim</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#persistentvolumeclaimspec-v1-core">PersistentVolumeClaimSpec</a></em></td>
 <td>PersistentVolumeClaim is a Kubernetes PVC specification.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volume</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumesource-v1-core">VolumeSource</a></em></td>
+<td><code>volume</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumesource-v1-core">VolumeSource</a></em></td>
 <td>Volume is a Kubernetes volume specification.</td>
 <td></td>
 <td></td>
@@ -2502,7 +2460,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>backupRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
+<td><code>backupRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
 <td>BackupRef is a reference to a Backup object. It has priority over S3 and Volume.</td>
 <td></td>
 <td></td>
@@ -2514,13 +2472,13 @@
 <td></td>
 </tr>
 <tr>
-<td><code>volume</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumesource-v1-core">VolumeSource</a></em></td>
+<td><code>volume</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumesource-v1-core">VolumeSource</a></em></td>
 <td>Volume is a Kubernetes Volume object that contains a backup.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>targetRecoveryTime</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta">Time</a></em></td>
+<td><code>targetRecoveryTime</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta">Time</a></em></td>
 <td>TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time.</td>
 <td></td>
 <td></td>
@@ -2530,32 +2488,6 @@
 <td>RestoreJob defines additional properties for the Job used to perform the Restore.</td>
 <td></td>
 <td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="cleanuppolicy">CleanupPolicy</h4>
-<p><em>Underlying type:</em> <em>string</em></p>
-<p>CleanupPolicy defines the behavior for cleaning up a resource.</p>
-<p><em>Appears in:</em>
-- <a href="#databasespec">DatabaseSpec</a>
-- <a href="#grantspec">GrantSpec</a>
-- <a href="#sqltemplate">SQLTemplate</a>
-- <a href="#userspec">UserSpec</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>Skip</code></td>
-<td>CleanupPolicySkip indicates that the resource will NOT be deleted from the database after the CR is deleted.<br /></td>
-</tr>
-<tr>
-<td><code>Delete</code></td>
-<td>CleanupPolicyDelete indicates that the resource will be deleted from the database after the CR is deleted.<br /></td>
 </tr>
 </tbody>
 </table>
@@ -2584,7 +2516,7 @@
 <td></td>
 </tr>
 <tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
 <td></td>
@@ -2654,7 +2586,7 @@
 <td></td>
 </tr>
 <tr>
-<td><code>maxScaleRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectreference-v1-core">ObjectReference</a></em></td>
+<td><code>maxScaleRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectreference-v1-core">ObjectReference</a></em></td>
 <td>MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided.</td>
 <td></td>
 <td></td>
@@ -2666,7 +2598,7 @@
 <td>Required: {} <br /></td>
 </tr>
 <tr>
-<td><code>passwordSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
+<td><code>passwordSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
 <td>PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.</td>
 <td></td>
 <td>Required: {} <br /></td>
@@ -2772,43 +2704,43 @@
 <td></td>
 </tr>
 <tr>
-<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvar-v1-core">EnvVar</a> array</em></td>
+<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core">EnvVar</a> array</em></td>
 <td>Env represents the environment variables to be injected in a container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
+<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
 <td>EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core">VolumeMount</a> array</em></td>
+<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core">VolumeMount</a> array</em></td>
 <td>VolumeMounts to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>LivenessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>ReadinessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -2820,7 +2752,7 @@
 <td>Required: {} <br /></td>
 </tr>
 <tr>
-<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#pullpolicy-v1-core">PullPolicy</a></em></td>
+<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core">PullPolicy</a></em></td>
 <td>ImagePullPolicy is the image pull policy. One of <code>Always</code>, <code>Never</code> or <code>IfNotPresent</code>. If not defined, it defaults to <code>IfNotPresent</code>.</td>
 <td></td>
 <td>Enum: [Always Never IfNotPresent] <br /></td>
@@ -2858,43 +2790,43 @@
 <td></td>
 </tr>
 <tr>
-<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvar-v1-core">EnvVar</a> array</em></td>
+<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core">EnvVar</a> array</em></td>
 <td>Env represents the environment variables to be injected in a container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
+<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
 <td>EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core">VolumeMount</a> array</em></td>
+<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core">VolumeMount</a> array</em></td>
 <td>VolumeMounts to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>LivenessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>ReadinessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -2907,59 +2839,6 @@
 See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/mariadbmon/use-cooperative-locking-ha-maxscale-mariadb-monitor/</p>
 <p><em>Appears in:</em>
 - <a href="#maxscalemonitor">MaxScaleMonitor</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>majority_of_all</code></td>
-<td>CooperativeMonitoringMajorityOfAll requires a lock from the majority of the MariaDB servers, even the ones that are down.<br /></td>
-</tr>
-<tr>
-<td><code>majority_of_running</code></td>
-<td>CooperativeMonitoringMajorityOfRunning requires a lock from the majority of the MariaDB servers.<br /></td>
-</tr>
-</tbody>
-</table>
-<h4 id="cronjobtemplate">CronJobTemplate</h4>
-<p>CronJobTemplate defines parameters for configuring CronJob objects.</p>
-<p><em>Appears in:</em>
-- <a href="#backupspec">BackupSpec</a>
-- <a href="#sqljobspec">SqlJobSpec</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-<th>Default</th>
-<th>Validation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>successfulJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>failedJobsHistoryLimit</code> <em>integer</em></td>
-<td></td>
-<td></td>
-<td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>timeZone</code> <em>string</em></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
 <h4 id="database">Database</h4>
 <p>Database is the Schema for the databases API. It is used to define a logical database as if you were running a 'CREATE DATABASE' statement.</p>
 <table>
@@ -2985,7 +2864,7 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
 <td></td>
@@ -3013,22 +2892,16 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 </thead>
 <tbody>
 <tr>
-<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RequeueInterval is used to perform requeue reconciliations.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RetryInterval is the interval used to perform retries.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>cleanupPolicy</code> <em><a href="#cleanuppolicy">CleanupPolicy</a></em></td>
-<td>CleanupPolicy defines the behavior for cleaning up a SQL resource.</td>
-<td></td>
-<td>Enum: [Skip Delete] <br /></td>
 </tr>
 <tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
@@ -3084,43 +2957,43 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvar-v1-core">EnvVar</a> array</em></td>
+<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core">EnvVar</a> array</em></td>
 <td>Env represents the environment variables to be injected in a container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
+<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
 <td>EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core">VolumeMount</a> array</em></td>
+<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core">VolumeMount</a> array</em></td>
 <td>VolumeMounts to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>LivenessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>ReadinessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -3132,7 +3005,7 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
+<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
 <td>ImagePullSecrets is the list of pull Secrets to be used to pull the image.</td>
 <td></td>
 <td></td>
@@ -3150,7 +3023,7 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
+<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
 <td>SecurityContext holds pod-level security attributes and common container settings.</td>
 <td></td>
 <td></td>
@@ -3174,13 +3047,13 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#toleration-v1-core">Toleration</a> array</em></td>
+<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core">Toleration</a> array</em></td>
 <td>Tolerations to be used in the Pod.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumes</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core">Volume</a> array</em></td>
+<td><code>volumes</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core">Volume</a> array</em></td>
 <td>Volumes to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -3192,7 +3065,7 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
+<td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
 <td>TopologySpreadConstraints to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -3204,7 +3077,7 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#pullpolicy-v1-core">PullPolicy</a></em></td>
+<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core">PullPolicy</a></em></td>
 <td>ImagePullPolicy is the image pull policy. One of <code>Always</code>, <code>Never</code> or <code>IfNotPresent</code>. If not defined, it defaults to <code>IfNotPresent</code>.</td>
 <td></td>
 <td>Enum: [Always Never IfNotPresent] <br /></td>
@@ -3281,13 +3154,13 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 </tr>
 <tr>
 <td><code>initContainer</code> <em><a href="#container">Container</a></em></td>
-<td>InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.</td>
+<td>InitContainer is an init container that co-operates with mariadb-operator.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>initJob</code> <em><a href="#job">Job</a></em></td>
-<td>InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.</td>
+<td>InitJob defines additional properties for the Job used to perform the initialization.</td>
 <td></td>
 <td></td>
 </tr>
@@ -3333,43 +3206,43 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvar-v1-core">EnvVar</a> array</em></td>
+<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core">EnvVar</a> array</em></td>
 <td>Env represents the environment variables to be injected in a container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
+<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
 <td>EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core">VolumeMount</a> array</em></td>
+<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core">VolumeMount</a> array</em></td>
 <td>VolumeMounts to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>LivenessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>ReadinessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -3381,7 +3254,7 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#pullpolicy-v1-core">PullPolicy</a></em></td>
+<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core">PullPolicy</a></em></td>
 <td>ImagePullPolicy is the image pull policy. One of <code>Always</code>, <code>Never</code> or <code>IfNotPresent</code>. If not defined, it defaults to <code>IfNotPresent</code>.</td>
 <td></td>
 <td>Enum: [Always Never IfNotPresent] <br /></td>
@@ -3399,7 +3272,7 @@ See: https://mariadb.com/docs/server/architecture/components/maxscale/monitors/m
 <td></td>
 </tr>
 <tr>
-<td><code>gracefulShutdownTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>gracefulShutdownTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests.</td>
 <td></td>
 <td></td>
@@ -3458,37 +3331,37 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 <td></td>
 </tr>
 <tr>
-<td><code>minClusterSize</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#intorstring-intstr-util">IntOrString</a></em></td>
-<td>MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%).<br />If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.<br />It defaults to '1' replica.</td>
+<td><code>minClusterSize</code> <em><a href="#intorstring">IntOrString</a></em></td>
+<td>MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%).<br />If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.<br />It defaults to '50%' of the replicas specified by the MariaDB object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>clusterMonitorInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>clusterMonitorInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>ClusterMonitorInterval represents the interval used to monitor the Galera cluster health.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>clusterHealthyTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>clusterHealthyTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,<br />is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>clusterBootstrapTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>clusterBootstrapTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>ClusterBootstrapTimeout is the time limit for bootstrapping a cluster.<br />Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>podRecoveryTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>podRecoveryTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>podSyncTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>podSyncTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery.</td>
 <td></td>
 <td></td>
@@ -3501,7 +3374,7 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </tr>
 <tr>
 <td><code>job</code> <em><a href="#galerarecoveryjob">GaleraRecoveryJob</a></em></td>
-<td>Job defines a Job that co-operates with mariadb-operator by performing the Galera cluster recovery .</td>
+<td>Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster.</td>
 <td></td>
 <td></td>
 </tr>
@@ -3528,7 +3401,7 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
@@ -3599,13 +3472,13 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </tr>
 <tr>
 <td><code>initContainer</code> <em><a href="#container">Container</a></em></td>
-<td>InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.</td>
+<td>InitContainer is an init container that co-operates with mariadb-operator.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>initJob</code> <em><a href="#job">Job</a></em></td>
-<td>InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.</td>
+<td>InitJob defines additional properties for the Job used to perform the initialization.</td>
 <td></td>
 <td></td>
 </tr>
@@ -3634,6 +3507,24 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>name</code> <em>string</em></td>
+<td>Name of the referent.<br />This field is effectively required, but due to backwards compatibility is<br />allowed to be empty. Instances of this type with an empty value here are<br />almost certainly wrong.<br />TODO: Add other useful fields. apiVersion, kind, uid?<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br />TODO: Drop <code>kubebuilder:default</code> when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>key</code> <em>string</em></td>
+<td>The key of the secret to select from.  Must be a valid secret key.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>optional</code> <em>boolean</em></td>
+<td>Specify whether the Secret or its key must be defined</td>
+<td></td>
+<td></td>
+</tr>
 <tr>
 <td><code>generate</code> <em>boolean</em></td>
 <td>Generate indicates whether the Secret should be generated if the Secret referenced is not present.</td>
@@ -3667,7 +3558,7 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 <td></td>
 </tr>
 <tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
 <td></td>
@@ -3695,22 +3586,16 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 </thead>
 <tbody>
 <tr>
-<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RequeueInterval is used to perform requeue reconciliations.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RetryInterval is the interval used to perform retries.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>cleanupPolicy</code> <em><a href="#cleanuppolicy">CleanupPolicy</a></em></td>
-<td>CleanupPolicy defines the behavior for cleaning up a SQL resource.</td>
-<td></td>
-<td>Enum: [Skip Delete] <br /></td>
 </tr>
 <tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
@@ -3762,24 +3647,6 @@ More info: https://galeracluster.com/library/documentation/crash-recovery.html.<
 See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.</p>
 <p><em>Appears in:</em>
 - <a href="#replicareplication">ReplicaReplication</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>CurrentPos</code></td>
-<td>GtidCurrentPos indicates the union of gtid_binlog_pos and gtid_slave_pos will be used when replicating from master.<br />This is the default Gtid mode.<br /></td>
-</tr>
-<tr>
-<td><code>SlavePos</code></td>
-<td>GtidSlavePos indicates that gtid_slave_pos will be used when replicating from master.<br /></td>
-</tr>
-</tbody>
-</table>
 <h4 id="healthcheck">HealthCheck</h4>
 <p>HealthCheck defines intervals for performing health checks.</p>
 <p><em>Appears in:</em>
@@ -3796,13 +3663,13 @@ See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>interval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>interval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>Interval used to perform health checks.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RetryInterval is the interval used to perform health check retries.</td>
 <td></td>
 <td></td>
@@ -3838,7 +3705,7 @@ See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
@@ -3874,13 +3741,13 @@ See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -3910,13 +3777,13 @@ See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
+<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
 <td>ImagePullSecrets is the list of pull Secrets to be used to pull the image.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
+<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
 <td>SecurityContext holds pod-level security attributes and common container settings.</td>
 <td></td>
 <td></td>
@@ -3940,7 +3807,7 @@ See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#toleration-v1-core">Toleration</a> array</em></td>
+<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core">Toleration</a> array</em></td>
 <td>Tolerations to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -4007,7 +3874,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
 <td></td>
@@ -4047,7 +3914,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#pullpolicy-v1-core">PullPolicy</a></em></td>
+<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core">PullPolicy</a></em></td>
 <td>ImagePullPolicy is the image pull policy. One of <code>Always</code>, <code>Never</code> or <code>IfNotPresent</code>. If not defined, it defaults to <code>IfNotPresent</code>.</td>
 <td></td>
 <td>Enum: [Always Never IfNotPresent] <br /></td>
@@ -4107,7 +3974,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>updateStrategy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#statefulsetupdatestrategy-v1-apps">StatefulSetUpdateStrategy</a></em></td>
+<td><code>updateStrategy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps">StatefulSetUpdateStrategy</a></em></td>
 <td>UpdateStrategy defines the update strategy for the StatefulSet object.</td>
 <td></td>
 <td></td>
@@ -4125,7 +3992,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RequeueInterval is used to perform requeue reconciliations.</td>
 <td></td>
 <td></td>
@@ -4153,6 +4020,48 @@ The agent validates the legitimacy of the service account token provided as an A
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind of the referent.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>namespace</code> <em>string</em></td>
+<td>Namespace of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>name</code> <em>string</em></td>
+<td>Name of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>uid</code> <em><a href="#uid">UID</a></em></td>
+<td>UID of the referent.<br />More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>apiVersion</code> <em>string</em></td>
+<td>API version of the referent.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>resourceVersion</code> <em>string</em></td>
+<td>Specific resourceVersion to which this reference is made, if any.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>fieldPath</code> <em>string</em></td>
+<td>If referring to a piece of an object instead of an entire object, this string<br />should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].<br />For example, if the object reference is to a container within a pod, this would take on a value like:<br />"spec.containers{name}" (where "name" refers to the name of the container that triggered<br />the event) or if no container name is specified "spec.containers[2]" (container with<br />index 2 in this pod). This syntax is chosen only to have some well-defined way of<br />referencing a part of an object.<br />TODO: this design is not final and this field is subject to change in the future.</td>
+<td></td>
+<td></td>
+</tr>
 <tr>
 <td><code>waitForIt</code> <em>boolean</em></td>
 <td>WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.</td>
@@ -4188,43 +4097,43 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvar-v1-core">EnvVar</a> array</em></td>
+<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core">EnvVar</a> array</em></td>
 <td>Env represents the environment variables to be injected in a container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
+<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
 <td>EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core">VolumeMount</a> array</em></td>
+<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core">VolumeMount</a> array</em></td>
 <td>VolumeMounts to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>LivenessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>ReadinessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -4236,7 +4145,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
+<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
 <td>ImagePullSecrets is the list of pull Secrets to be used to pull the image.</td>
 <td></td>
 <td></td>
@@ -4254,7 +4163,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
+<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
 <td>SecurityContext holds pod-level security attributes and common container settings.</td>
 <td></td>
 <td></td>
@@ -4278,13 +4187,13 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#toleration-v1-core">Toleration</a> array</em></td>
+<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core">Toleration</a> array</em></td>
 <td>Tolerations to be used in the Pod.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumes</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core">Volume</a> array</em></td>
+<td><code>volumes</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core">Volume</a> array</em></td>
 <td>Volumes to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -4296,14 +4205,14 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
+<td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
 <td>TopologySpreadConstraints to be used in the Pod.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4314,7 +4223,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#pullpolicy-v1-core">PullPolicy</a></em></td>
+<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core">PullPolicy</a></em></td>
 <td>ImagePullPolicy is the image pull policy. One of <code>Always</code>, <code>Never</code> or <code>IfNotPresent</code>. If not defined, it defaults to <code>IfNotPresent</code>.</td>
 <td></td>
 <td>Enum: [Always Never IfNotPresent] <br /></td>
@@ -4339,31 +4248,19 @@ The agent validates the legitimacy of the service account token provided as an A
 </tr>
 <tr>
 <td><code>database</code> <em>string</em></td>
-<td>Database is the name of the initial Database.</td>
+<td>Database is the initial database to be created by the operator once MariaDB is ready.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>username</code> <em>string</em></td>
-<td>Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.<br />The initial User will have ALL PRIVILEGES in the initial Database.</td>
+<td>Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>passwordSecretKeyRef</code> <em><a href="#generatedsecretkeyref">GeneratedSecretKeyRef</a></em></td>
-<td>PasswordSecretKeyRef is a reference to a Secret that contains the password to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>passwordHashSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
-<td>PasswordHashSecretKeyRef is a reference to the password hash to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>passwordPlugin</code> <em><a href="#passwordplugin">PasswordPlugin</a></em></td>
-<td>PasswordPlugin is a reference to the password plugin and arguments to be used by the initial User.</td>
+<td>PasswordSecretKeyRef is a reference to a Secret that contains the password for the initial user.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.</td>
 <td></td>
 <td></td>
 </tr>
@@ -4374,7 +4271,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>myCnfConfigMapKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapkeyselector-v1-core">ConfigMapKeySelector</a></em></td>
+<td><code>myCnfConfigMapKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core">ConfigMapKeySelector</a></em></td>
 <td>MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.<br />If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.<br />If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated.</td>
 <td></td>
 <td></td>
@@ -4416,7 +4313,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>maxScaleRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectreference-v1-core">ObjectReference</a></em></td>
+<td><code>maxScaleRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectreference-v1-core">ObjectReference</a></em></td>
 <td>MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this field implies delegating high availability tasks such as primary failover to MaxScale.</td>
 <td></td>
 <td></td>
@@ -4431,12 +4328,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <td><code>replicas</code> <em>integer</em></td>
 <td>Replicas indicates the number of desired instances.</td>
 <td>1</td>
-<td></td>
-</tr>
-<tr>
-<td><code>replicasAllowEvenNumber</code> <em>boolean</em></td>
-<td>disables the validation check for an odd number of replicas.</td>
-<td>false</td>
 <td></td>
 </tr>
 <tr>
@@ -4459,38 +4350,44 @@ The agent validates the legitimacy of the service account token provided as an A
 </tr>
 <tr>
 <td><code>service</code> <em><a href="#servicetemplate">ServiceTemplate</a></em></td>
-<td>Service defines a template to configure the general Service object.<br />The network traffic of this Service will be routed to all Pods.</td>
+<td>Service defines templates to configure the general Service object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>connection</code> <em><a href="#connectiontemplate">ConnectionTemplate</a></em></td>
-<td>Connection defines a template to configure the general Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the Service to route network traffic to all Pods.</td>
+<td>Connection defines templates to configure the general Connection object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>primaryService</code> <em><a href="#servicetemplate">ServiceTemplate</a></em></td>
-<td>PrimaryService defines a template to configure the primary Service object.<br />The network traffic of this Service will be routed to the primary Pod.</td>
+<td>PrimaryService defines templates to configure the primary Service object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>primaryConnection</code> <em><a href="#connectiontemplate">ConnectionTemplate</a></em></td>
-<td>PrimaryConnection defines a template to configure the primary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the PrimaryService to route network traffic to the primary Pod.</td>
+<td>PrimaryConnection defines templates to configure the primary Connection object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>secondaryService</code> <em><a href="#servicetemplate">ServiceTemplate</a></em></td>
-<td>SecondaryService defines a template to configure the secondary Service object.<br />The network traffic of this Service will be routed to the secondary Pods.</td>
+<td>SecondaryService defines templates to configure the secondary Service object.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>secondaryConnection</code> <em><a href="#connectiontemplate">ConnectionTemplate</a></em></td>
-<td>SecondaryConnection defines a template to configure the secondary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the SecondaryService to route network traffic to the secondary Pods.</td>
+<td>SecondaryConnection defines templates to configure the secondary Connection object.</td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>suspend</code> <em>boolean</em></td>
+<td></td>
+<td>false</td>
 <td></td>
 </tr>
 </tbody>
@@ -4566,7 +4463,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
 <td></td>
@@ -4789,13 +4686,13 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>interval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>interval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>Interval defines the config synchronization interval. It is defaulted if not provided.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>timeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>timeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>Interval defines the config synchronization timeout. It is defaulted if not provided.</td>
 <td></td>
 <td></td>
@@ -4818,7 +4715,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4900,7 +4797,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -4917,7 +4814,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>interval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>interval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>Interval used to monitor MariaDB servers. It is defaulted if not provided.</td>
 <td></td>
 <td></td>
@@ -5005,7 +4902,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -5062,43 +4959,43 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvar-v1-core">EnvVar</a> array</em></td>
+<td><code>env</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core">EnvVar</a> array</em></td>
 <td>Env represents the environment variables to be injected in a container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
+<td><code>envFrom</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envfromsource-v1-core">EnvFromSource</a> array</em></td>
 <td>EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core">VolumeMount</a> array</em></td>
+<td><code>volumeMounts</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumemount-v1-core">VolumeMount</a> array</em></td>
 <td>VolumeMounts to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>livenessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>LivenessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core">Probe</a></em></td>
+<td><code>readinessProbe</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core">Probe</a></em></td>
 <td>ReadinessProbe to be used in the Container.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -5110,7 +5007,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
+<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
 <td>ImagePullSecrets is the list of pull Secrets to be used to pull the image.</td>
 <td></td>
 <td></td>
@@ -5128,7 +5025,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
+<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
 <td>SecurityContext holds pod-level security attributes and common container settings.</td>
 <td></td>
 <td></td>
@@ -5152,13 +5049,13 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#toleration-v1-core">Toleration</a> array</em></td>
+<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core">Toleration</a> array</em></td>
 <td>Tolerations to be used in the Pod.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumes</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core">Volume</a> array</em></td>
+<td><code>volumes</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core">Volume</a> array</em></td>
 <td>Volumes to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -5170,15 +5067,9 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
+<td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
 <td>TopologySpreadConstraints to be used in the Pod.</td>
 <td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
-<td>false</td>
 <td></td>
 </tr>
 <tr>
@@ -5200,7 +5091,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#pullpolicy-v1-core">PullPolicy</a></em></td>
+<td><code>imagePullPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#pullpolicy-v1-core">PullPolicy</a></em></td>
 <td>ImagePullPolicy is the image pull policy. One of <code>Always</code>, <code>Never</code> or <code>IfNotPresent</code>. If not defined, it defaults to <code>IfNotPresent</code>.</td>
 <td></td>
 <td>Enum: [Always Never IfNotPresent] <br /></td>
@@ -5266,7 +5157,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>updateStrategy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#statefulsetupdatestrategy-v1-apps">StatefulSetUpdateStrategy</a></em></td>
+<td><code>updateStrategy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#statefulsetupdatestrategy-v1-apps">StatefulSetUpdateStrategy</a></em></td>
 <td>UpdateStrategy defines the update strategy for the StatefulSet object.</td>
 <td></td>
 <td></td>
@@ -5284,7 +5175,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RequeueInterval is used to perform requeue reconciliations. If not defined, it defaults to 10s.</td>
 <td></td>
 <td></td>
@@ -5336,53 +5227,6 @@ The agent validates the legitimacy of the service account token provided as an A
 <p>MonitorModule defines the type of monitor module</p>
 <p><em>Appears in:</em>
 - <a href="#maxscalemonitor">MaxScaleMonitor</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>mariadbmon</code></td>
-<td>MonitorModuleMariadb is a monitor to be used with MariaDB servers.<br /></td>
-</tr>
-<tr>
-<td><code>galeramon</code></td>
-<td>MonitorModuleGalera is a monitor to be used with Galera servers.<br /></td>
-</tr>
-</tbody>
-</table>
-<h4 id="passwordplugin">PasswordPlugin</h4>
-<p>PasswordPlugin defines the password plugin and its arguments.</p>
-<p><em>Appears in:</em>
-- <a href="#mariadbspec">MariaDBSpec</a>
-- <a href="#userspec">UserSpec</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-<th>Default</th>
-<th>Validation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>pluginNameSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
-<td>PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>pluginArgSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
-<td>PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
 <h4 id="poddisruptionbudget">PodDisruptionBudget</h4>
 <p>PodDisruptionBudget is the Pod availability bundget for a MariaDB</p>
 <p><em>Appears in:</em>
@@ -5400,16 +5244,16 @@ The agent validates the legitimacy of the service account token provided as an A
 </thead>
 <tbody>
 <tr>
-<td><code>minAvailable</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#intorstring-intstr-util">IntOrString</a></em></td>
+<td><code>minAvailable</code> <em><a href="#intorstring">IntOrString</a></em></td>
 <td>MinAvailable defines the number of minimum available Pods.</td>
 <td></td>
-<td></td>
+<td>Required: {} <br /></td>
 </tr>
 <tr>
-<td><code>maxUnavailable</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#intorstring-intstr-util">IntOrString</a></em></td>
+<td><code>maxUnavailable</code> <em><a href="#intorstring">IntOrString</a></em></td>
 <td>MaxUnavailable defines the number of maximum unavailable Pods.</td>
 <td></td>
-<td></td>
+<td>Required: {} <br /></td>
 </tr>
 </tbody>
 </table>
@@ -5436,7 +5280,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
+<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
 <td>ImagePullSecrets is the list of pull Secrets to be used to pull the image.</td>
 <td></td>
 <td></td>
@@ -5454,7 +5298,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
+<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
 <td>SecurityContext holds pod-level security attributes and common container settings.</td>
 <td></td>
 <td></td>
@@ -5478,13 +5322,13 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#toleration-v1-core">Toleration</a> array</em></td>
+<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core">Toleration</a> array</em></td>
 <td>Tolerations to be used in the Pod.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>volumes</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core">Volume</a> array</em></td>
+<td><code>volumes</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volume-v1-core">Volume</a> array</em></td>
 <td>Volumes to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -5496,7 +5340,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
+<td><code>topologySpreadConstraints</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#topologyspreadconstraint-v1-core">TopologySpreadConstraint</a> array</em></td>
 <td>TopologySpreadConstraints to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -5595,7 +5439,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>connectionTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>connectionTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>ConnectionTimeout to be used when the replica connects to the primary.</td>
 <td></td>
 <td></td>
@@ -5607,7 +5451,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>syncTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>syncTimeout</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.<br />If the timeout is reached, the replica GTID will be reset and the switchover will continue.</td>
 <td></td>
 <td></td>
@@ -5725,7 +5569,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
 <td></td>
@@ -5754,7 +5598,7 @@ The agent validates the legitimacy of the service account token provided as an A
 </thead>
 <tbody>
 <tr>
-<td><code>backupRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
+<td><code>backupRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
 <td>BackupRef is a reference to a Backup object. It has priority over S3 and Volume.</td>
 <td></td>
 <td></td>
@@ -5766,13 +5610,13 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>volume</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumesource-v1-core">VolumeSource</a></em></td>
+<td><code>volume</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumesource-v1-core">VolumeSource</a></em></td>
 <td>Volume is a Kubernetes Volume object that contains a backup.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>targetRecoveryTime</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta">Time</a></em></td>
+<td><code>targetRecoveryTime</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta">Time</a></em></td>
 <td>TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time.</td>
 <td></td>
 <td></td>
@@ -5800,13 +5644,13 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -5818,13 +5662,13 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
+<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
 <td>ImagePullSecrets is the list of pull Secrets to be used to pull the image.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
+<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
 <td>SecurityContext holds pod-level security attributes and common container settings.</td>
 <td></td>
 <td></td>
@@ -5848,7 +5692,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#toleration-v1-core">Toleration</a> array</em></td>
+<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core">Toleration</a> array</em></td>
 <td>Tolerations to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -5860,7 +5704,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>backupRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
+<td><code>backupRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
 <td>BackupRef is a reference to a Backup object. It has priority over S3 and Volume.</td>
 <td></td>
 <td></td>
@@ -5872,13 +5716,13 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>volume</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumesource-v1-core">VolumeSource</a></em></td>
+<td><code>volume</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumesource-v1-core">VolumeSource</a></em></td>
 <td>Volume is a Kubernetes Volume object that contains a backup.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>targetRecoveryTime</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta">Time</a></em></td>
+<td><code>targetRecoveryTime</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta">Time</a></em></td>
 <td>TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time.</td>
 <td></td>
 <td></td>
@@ -5908,7 +5752,7 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>restartPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#restartpolicy-v1-core">RestartPolicy</a></em></td>
+<td><code>restartPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core">RestartPolicy</a></em></td>
 <td>RestartPolicy to be added to the Backup Job.</td>
 <td>OnFailure</td>
 <td>Enum: [Always OnFailure Never] <br /></td>
@@ -5962,19 +5806,19 @@ The agent validates the legitimacy of the service account token provided as an A
 <td></td>
 </tr>
 <tr>
-<td><code>accessKeyIdSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
+<td><code>accessKeyIdSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
 <td>AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.</td>
 <td></td>
 <td>Required: {} <br /></td>
 </tr>
 <tr>
-<td><code>secretAccessKeySecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
+<td><code>secretAccessKeySecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
 <td>AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.</td>
 <td></td>
 <td>Required: {} <br /></td>
 </tr>
 <tr>
-<td><code>sessionTokenSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
+<td><code>sessionTokenSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
 <td>SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.</td>
 <td></td>
 <td></td>
@@ -6004,22 +5848,16 @@ The agent validates the legitimacy of the service account token provided as an A
 </thead>
 <tbody>
 <tr>
-<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RequeueInterval is used to perform requeue reconciliations.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RetryInterval is the interval used to perform retries.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>cleanupPolicy</code> <em><a href="#cleanuppolicy">CleanupPolicy</a></em></td>
-<td>CleanupPolicy defines the behavior for cleaning up a SQL resource.</td>
-<td></td>
-<td>Enum: [Skip Delete] <br /></td>
 </tr>
 </tbody>
 </table>
@@ -6030,28 +5868,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <p><em>Appears in:</em>
 - <a href="#galera">Galera</a>
 - <a href="#galeraspec">GaleraSpec</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>rsync</code></td>
-<td>SSTRsync is an SST based on rsync.<br /></td>
-</tr>
-<tr>
-<td><code>mariabackup</code></td>
-<td>SSTMariaBackup is an SST based on mariabackup. It is the recommended SST.<br /></td>
-</tr>
-<tr>
-<td><code>mysqldump</code></td>
-<td>SSTMysqldump is an SST based on mysqldump.<br /></td>
-</tr>
-</tbody>
-</table>
 <h4 id="schedule">Schedule</h4>
 <p>Schedule contains parameters to define a schedule</p>
 <p><em>Appears in:</em>
@@ -6192,24 +6008,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <p>ServiceRouter defines the type of service router.</p>
 <p><em>Appears in:</em>
 - <a href="#maxscaleservice">MaxScaleService</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>readwritesplit</code></td>
-<td>ServiceRouterReadWriteSplit splits the load based on the queries. Write queries are performed on master and read queries on the replicas.<br /></td>
-</tr>
-<tr>
-<td><code>readconnroute</code></td>
-<td>ServiceRouterReadConnRoute splits the load based on the connections. Each connection is assigned to a server.<br /></td>
-</tr>
-</tbody>
-</table>
 <h4 id="servicetemplate">ServiceTemplate</h4>
 <p>ServiceTemplate defines a template to customize Service objects.</p>
 <p><em>Appears in:</em>
@@ -6227,7 +6025,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>type</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#servicetype-v1-core">ServiceType</a></em></td>
+<td><code>type</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#servicetype-v1-core">ServiceType</a></em></td>
 <td>Type is the Service type. One of <code>ClusterIP</code>, <code>NodePort</code> or <code>LoadBalancer</code>. If not defined, it defaults to <code>ClusterIP</code>.</td>
 <td>ClusterIP</td>
 <td>Enum: [ClusterIP NodePort LoadBalancer] <br /></td>
@@ -6251,13 +6049,13 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>externalTrafficPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#serviceexternaltrafficpolicy-v1-core">ServiceExternalTrafficPolicy</a></em></td>
+<td><code>externalTrafficPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#serviceexternaltrafficpolicy-v1-core">ServiceExternalTrafficPolicy</a></em></td>
 <td>ExternalTrafficPolicy Service field.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>sessionAffinity</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#serviceaffinity-v1-core">ServiceAffinity</a></em></td>
+<td><code>sessionAffinity</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#serviceaffinity-v1-core">ServiceAffinity</a></em></td>
 <td>SessionAffinity Service field.</td>
 <td></td>
 <td></td>
@@ -6295,7 +6093,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
 <td></td>
@@ -6329,13 +6127,13 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a></em></td>
 <td>Resouces describes the compute resource requirements.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core">SecurityContext</a></em></td>
+<td><code>securityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#securitycontext-v1-core">SecurityContext</a></em></td>
 <td>SecurityContext holds security configuration that will be applied to a container.</td>
 <td></td>
 <td></td>
@@ -6347,13 +6145,13 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
+<td><code>imagePullSecrets</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
 <td>ImagePullSecrets is the list of pull Secrets to be used to pull the image.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
+<td><code>podSecurityContext</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#podsecuritycontext-v1-core">PodSecurityContext</a></em></td>
 <td>SecurityContext holds pod-level security attributes and common container settings.</td>
 <td></td>
 <td></td>
@@ -6377,7 +6175,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#toleration-v1-core">Toleration</a> array</em></td>
+<td><code>tolerations</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#toleration-v1-core">Toleration</a> array</em></td>
 <td>Tolerations to be used in the Pod.</td>
 <td></td>
 <td></td>
@@ -6385,6 +6183,72 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <tr>
 <td><code>priorityClassName</code> <em>string</em></td>
 <td>PriorityClassName to be used in the Pod.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
+<td>MariaDBRef is a reference to a MariaDB object.</td>
+<td></td>
+<td>Required: {} <br /></td>
+</tr>
+<tr>
+<td><code>schedule</code> <em><a href="#schedule">Schedule</a></em></td>
+<td>Schedule defines when the SqlJob will be executed.</td>
+<td></td>
+<td>Required: {} <br /></td>
+</tr>
+<tr>
+<td><code>username</code> <em>string</em></td>
+<td>Username to be impersonated when executing the SqlJob.</td>
+<td></td>
+<td>Required: {} <br /></td>
+</tr>
+<tr>
+<td><code>passwordSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
+<td>UserPasswordSecretKeyRef is a reference to the impersonated user's password to be used when executing the SqlJob.</td>
+<td></td>
+<td>Required: {} <br /></td>
+</tr>
+<tr>
+<td><code>database</code> <em>string</em></td>
+<td>Username to be used when executing the SqlJob.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>dependsOn</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
+<td>DependsOn defines dependencies with other SqlJob objectecs.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>sql</code> <em>string</em></td>
+<td>Sql is the script to be executed by the SqlJob.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>sqlConfigMapKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#configmapkeyselector-v1-core">ConfigMapKeySelector</a></em></td>
+<td>SqlConfigMapKeyRef is a reference to a ConfigMap containing the Sql script.<br />It is defaulted to a ConfigMap with the contents of the Sql field.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>backoffLimit</code> <em>integer</em></td>
+<td>BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob.</td>
+<td>5</td>
+<td></td>
+</tr>
+<tr>
+<td><code>restartPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#restartpolicy-v1-core">RestartPolicy</a></em></td>
+<td>RestartPolicy to be added to the SqlJob Pod.</td>
+<td>OnFailure</td>
+<td>Enum: [Always OnFailure Never] <br /></td>
+</tr>
+<tr>
+<td><code>inheritMetadata</code> <em><a href="#metadata">Metadata</a></em></td>
+<td>InheritMetadata defines the metadata to be inherited by children resources.</td>
 <td></td>
 <td></td>
 </tr>
@@ -6399,78 +6263,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 <td></td>
 <td>Minimum: 0 <br /></td>
-</tr>
-<tr>
-<td><code>timeZone</code> <em>string</em></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
-<td>MariaDBRef is a reference to a MariaDB object.</td>
-<td></td>
-<td>Required: {} <br /></td>
-</tr>
-<tr>
-<td><code>schedule</code> <em><a href="#schedule">Schedule</a></em></td>
-<td>Schedule defines when the SqlJob will be executed.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>username</code> <em>string</em></td>
-<td>Username to be impersonated when executing the SqlJob.</td>
-<td></td>
-<td>Required: {} <br /></td>
-</tr>
-<tr>
-<td><code>passwordSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
-<td>UserPasswordSecretKeyRef is a reference to the impersonated user's password to be used when executing the SqlJob.</td>
-<td></td>
-<td>Required: {} <br /></td>
-</tr>
-<tr>
-<td><code>database</code> <em>string</em></td>
-<td>Username to be used when executing the SqlJob.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>dependsOn</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core">LocalObjectReference</a> array</em></td>
-<td>DependsOn defines dependencies with other SqlJob objectecs.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>sql</code> <em>string</em></td>
-<td>Sql is the script to be executed by the SqlJob.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>sqlConfigMapKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapkeyselector-v1-core">ConfigMapKeySelector</a></em></td>
-<td>SqlConfigMapKeyRef is a reference to a ConfigMap containing the Sql script.<br />It is defaulted to a ConfigMap with the contents of the Sql field.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>backoffLimit</code> <em>integer</em></td>
-<td>BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob.</td>
-<td>5</td>
-<td></td>
-</tr>
-<tr>
-<td><code>restartPolicy</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#restartpolicy-v1-core">RestartPolicy</a></em></td>
-<td>RestartPolicy to be added to the SqlJob Pod.</td>
-<td>OnFailure</td>
-<td>Enum: [Always OnFailure Never] <br /></td>
-</tr>
-<tr>
-<td><code>inheritMetadata</code> <em><a href="#metadata">Metadata</a></em></td>
-<td>InheritMetadata defines the metadata to be inherited by children resources.</td>
-<td></td>
-<td></td>
 </tr>
 </tbody>
 </table>
@@ -6495,7 +6287,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>size</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#quantity-resource-api">Quantity</a></em></td>
+<td><code>size</code> <em><a href="#quantity">Quantity</a></em></td>
 <td>Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.</td>
 <td></td>
 <td></td>
@@ -6532,8 +6324,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 - <a href="#mariadbspec">MariaDBSpec</a>
 - <a href="#maxscalelistener">MaxScaleListener</a>
 - <a href="#maxscalemonitor">MaxScaleMonitor</a>
-- <a href="#maxscaleservice">MaxScaleService</a>
-- <a href="#maxscalespec">MaxScaleSpec</a></p>
+- <a href="#maxscaleservice">MaxScaleService</a></p>
 <table>
 <thead>
 <tr>
@@ -6546,7 +6337,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <tbody>
 <tr>
 <td><code>suspend</code> <em>boolean</em></td>
-<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.</td>
+<td>Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation and/or monitoring prevents the operator from interfering with user operations during maintenance activities.</td>
 <td>false</td>
 <td></td>
 </tr>
@@ -6572,7 +6363,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>caSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
+<td><code>caSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
 <td>CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.<br />By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.</td>
 <td></td>
 <td></td>
@@ -6600,7 +6391,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td>Enum: [ReplicasFirstPrimaryLast RollingUpdate OnDelete] <br /></td>
 </tr>
 <tr>
-<td><code>rollingUpdate</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#rollingupdatestatefulsetstrategy-v1-apps">RollingUpdateStatefulSetStrategy</a></em></td>
+<td><code>rollingUpdate</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#rollingupdatestatefulsetstrategy-v1-apps">RollingUpdateStatefulSetStrategy</a></em></td>
 <td>RollingUpdate defines parameters for the RollingUpdate type.</td>
 <td></td>
 <td></td>
@@ -6612,28 +6403,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <p>UpdateType defines the type of update for a MariaDB resource.</p>
 <p><em>Appears in:</em>
 - <a href="#updatestrategy">UpdateStrategy</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>ReplicasFirstPrimaryLast</code></td>
-<td>ReplicasFirstPrimaryLast indicates that the update will be applied to all replica Pods first and later on to the primary Pod.<br />The updates are applied one by one waiting until each Pod passes the readiness probe<br />i.e. the Pod gets synced and it is ready to receive traffic.<br /></td>
-</tr>
-<tr>
-<td><code>RollingUpdate</code></td>
-<td>RollingUpdateUpdateType indicates that the update will be applied by the StatefulSet controller using the RollingUpdate strategy.<br />This strategy is unaware of the roles that the Pod have (primary or replica) and it will<br />perform the update following the StatefulSet ordinal, from higher to lower.<br /></td>
-</tr>
-<tr>
-<td><code>OnDelete</code></td>
-<td>OnDeleteUpdateType indicates that the update will be applied by the StatefulSet controller using the OnDelete strategy.<br />The update will be done when the Pods get manually deleted by the user.<br /></td>
-</tr>
-</tbody>
-</table>
 <h4 id="user">User</h4>
 <p>User is the Schema for the users API.  It is used to define grants as if you were running a 'CREATE USER' statement.</p>
 <table>
@@ -6659,7 +6428,7 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td></td>
 </tr>
 <tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta">ObjectMeta</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
 <td></td>
@@ -6687,22 +6456,16 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>requeueInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RequeueInterval is used to perform requeue reconciliations.</td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta">Duration</a></em></td>
+<td><code>retryInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#duration-v1-meta">Duration</a></em></td>
 <td>RetryInterval is the interval used to perform retries.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>cleanupPolicy</code> <em><a href="#cleanuppolicy">CleanupPolicy</a></em></td>
-<td>CleanupPolicy defines the behavior for cleaning up a SQL resource.</td>
-<td></td>
-<td>Enum: [Skip Delete] <br /></td>
 </tr>
 <tr>
 <td><code>mariaDbRef</code> <em><a href="#mariadbref">MariaDBRef</a></em></td>
@@ -6711,20 +6474,8 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 <td>Required: {} <br /></td>
 </tr>
 <tr>
-<td><code>passwordSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
+<td><code>passwordSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
 <td>PasswordSecretKeyRef is a reference to the password to be used by the User.<br />If not provided, the account will be locked and the password will expire.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>passwordHashSecretKeyRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core">SecretKeySelector</a></em></td>
-<td>PasswordHashSecretKeyRef is a reference to the password hash to be used by the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>passwordPlugin</code> <em><a href="#passwordplugin">PasswordPlugin</a></em></td>
-<td>PasswordPlugin is a reference to the password plugin and arguments to be used by the User.</td>
 <td></td>
 <td></td>
 </tr>
@@ -6765,6 +6516,60 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>accessModes</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#persistentvolumeaccessmode-v1-core">PersistentVolumeAccessMode</a> array</em></td>
+<td>accessModes contains the desired access modes the volume should have.<br />More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>selector</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#labelselector-v1-meta">LabelSelector</a></em></td>
+<td>selector is a label query over volumes to consider for binding.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>resources</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#volumeresourcerequirements-v1-core">VolumeResourceRequirements</a></em></td>
+<td>resources represents the minimum resources the volume should have.<br />If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements<br />that are lower than previous value but must still be higher than capacity recorded in the<br />status field of the claim.<br />More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>volumeName</code> <em>string</em></td>
+<td>volumeName is the binding reference to the PersistentVolume backing this claim.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>storageClassName</code> <em>string</em></td>
+<td>storageClassName is the name of the StorageClass required by the claim.<br />More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>volumeMode</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#persistentvolumemode-v1-core">PersistentVolumeMode</a></em></td>
+<td>volumeMode defines what type of volume is required by the claim.<br />Value of Filesystem is implied when not included in claim spec.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>dataSource</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#typedlocalobjectreference-v1-core">TypedLocalObjectReference</a></em></td>
+<td>dataSource field can be used to specify either:<br /><em> An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot)<br /></em> An existing PVC (PersistentVolumeClaim)<br />If the provisioner or an external controller can support the specified data source,<br />it will create a new volume based on the contents of the specified data source.<br />When the AnyVolumeDataSource feature gate is enabled, dataSource contents will be copied to dataSourceRef,<br />and dataSourceRef contents will be copied to dataSource when dataSourceRef.namespace is not specified.<br />If the namespace is specified, then dataSourceRef will not be copied to dataSource.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>dataSourceRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#typedobjectreference-v1-core">TypedObjectReference</a></em></td>
+<td>dataSourceRef specifies the object from which to populate the volume with data, if a non-empty<br />volume is desired. This may be any object from a non-empty API group (non<br />core object) or a PersistentVolumeClaim object.<br />When this field is specified, volume binding will only succeed if the type of<br />the specified object matches some installed volume populator or dynamic<br />provisioner.<br />This field will replace the functionality of the dataSource field and as such<br />if both fields are non-empty, they must have the same value. For backwards<br />compatibility, when namespace isn't specified in dataSourceRef,<br />both fields (dataSource and dataSourceRef) will be set to the same<br />value automatically if one of them is empty and the other is non-empty.<br />When namespace is specified in dataSourceRef,<br />dataSource isn't set to the same value and must be empty.<br />There are three important differences between dataSource and dataSourceRef:<br /><em> While dataSource only allows two specific types of objects, dataSourceRef<br />  allows any non-core object, as well as PersistentVolumeClaim objects.<br /></em> While dataSource ignores disallowed values (dropping them), dataSourceRef<br />  preserves all values, and generates an error if a disallowed value is<br />  specified.<br />* While dataSource only allows local objects, dataSourceRef allows objects<br />  in any namespaces.<br />(Beta) Using this field requires the AnyVolumeDataSource feature gate to be enabled.<br />(Alpha) Using the namespace field of dataSourceRef requires the CrossNamespaceVolumeDataSource feature gate to be enabled.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>volumeAttributesClassName</code> <em>string</em></td>
+<td>volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.<br />If specified, the CSI driver will create or update the volume with the attributes defined<br />in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,<br />it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass<br />will be applied to the claim but it's not allowed to reset this field to empty string once it is set.<br />If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass<br />will be set by the persistentvolume controller if it exists.<br />If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be<br />set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource<br />exists.<br />More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/<br />(Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><code>metadata</code> <em><a href="#metadata">Metadata</a></em></td>
 <td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
 <td></td>
@@ -6778,24 +6583,6 @@ More info: https://galeracluster.com/library/documentation/sst.html.</p>
 More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.</p>
 <p><em>Appears in:</em>
 - <a href="#replicareplication">ReplicaReplication</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>AfterSync</code></td>
-<td>WaitPointAfterSync indicates that the primary waits for the replica ACK before committing the transaction to the storage engine.<br />This is the default WaitPoint. It trades off performance for consistency.<br /></td>
-</tr>
-<tr>
-<td><code>AfterCommit</code></td>
-<td>WaitPointAfterCommit indicates that the primary commits the transaction to the storage engine and waits for the replica ACK afterwards.<br />It trades off consistency for performance.<br /></td>
-</tr>
-</tbody>
-</table>
 
 
 
