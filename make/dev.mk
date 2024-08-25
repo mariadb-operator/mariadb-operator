@@ -68,7 +68,7 @@ lint: golangci-lint ## Lint.
 
 .PHONY: release
 release: goreleaser ## Test release locally.
-	$(GORELEASER) release --snapshot --rm-dist
+	$(GORELEASER) release --snapshot --clean
 
 ##@ Run
 

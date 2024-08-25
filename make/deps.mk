@@ -93,7 +93,7 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 .PHONY: goreleaser
 goreleaser: $(GORELEASER) ## Download goreleaser locally if necessary.
 $(GORELEASER): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(GO) install github.com/goreleaser/goreleaser@$(GORELEASER_VERSION)
+	GOBIN=$(LOCALBIN) $(GO) install github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION)
 
 .PHONY: go-licenses
 go-licenses: $(GO_LICENSES) ## Download go-licenses locally if necessary.
