@@ -511,6 +511,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#bootstrap-galera-cluster-from-existing-pvcs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bootstrap Galera cluster from existing PVCs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quickstart" class="md-nav__link">
     <span class="md-ellipsis">
       Quickstart
@@ -974,6 +983,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#bootstrap-galera-cluster-from-existing-pvcs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bootstrap Galera cluster from existing PVCs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quickstart" class="md-nav__link">
     <span class="md-ellipsis">
       Quickstart
@@ -1098,6 +1116,7 @@
 <li><a href="#ipv6-support">IPv6 support</a></li>
 <li><a href="#backup-and-restore">Backup and restore</a></li>
 <li><a href="#galera-cluster-recovery">Galera cluster recovery</a></li>
+<li><a href="#bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</a></li>
 <li><a href="#quickstart">Quickstart</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
 <li><a href="#reference">Reference</a></li>
@@ -1271,6 +1290,9 @@ spec:
 </code></pre>
 <p>In this case, assuming that <code>mariadb-galera-2</code> sequence is lower than <code>350454</code>, it should be safe to bootstrap from <code>mariadb-galera-0</code>.</p>
 <p>Finally, after your cluster has been bootstrapped, remember to unset <code>forceClusterBootstrapInPod</code> to allow the operator to select the appropriate node for bootstrapping in the event of a cluster recovery.</p>
+<h2 id="bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</h2>
+<p><code>mariadb-operator</code> will never delete your <code>MariaDB</code> PVCs! Whenever you delete a <code>MariaDB</code> resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.</p>
+<p>That said, Galera is unable to form a cluster from pre-existing state, it requires a <a href="#galera-cluster-recovery">cluster recovery</a> process to identify which <code>Pod</code> has the highest sequence number to bootstrap a new cluster. That's exactly what the operator does: whenever a new <code>MariaDB</code> Galera cluster is created and previously created PVCs exist, a cluster recovery process is automatically triggered.</p>
 <h2 id="quickstart">Quickstart</h2>
 <p>First of all, install the following configuration manifests that will be referenced by the CRDs further:</p>
 <pre><code class="language-bash">kubectl apply -f examples/manifests/config
@@ -1344,8 +1366,8 @@ kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.galeraRecovery}&qu
 {&quot;lastTransitionTime&quot;:&quot;2023-07-13T19:27:51Z&quot;,&quot;message&quot;:&quot;Galera ready&quot;,&quot;reason&quot;:&quot;GaleraReady&quot;,&quot;status&quot;:&quot;True&quot;,&quot;type&quot;:&quot;GaleraReady&quot;}
 
 kubectl get mariadb mariadb-galera
-NAME             READY   STATUS    PRIMARY POD   AGE
-mariadb-galera   True    Running   All           82m
+NAME             READY   STATUS    PRIMARY POD          AGE
+mariadb-galera   True    Running   mariadb-galera-0     82m
 </code></pre>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <p>The aim of this section is showing you how to diagnose your Galera cluster when something goes wrong. In this situations, observability is a key factor to understand the problem, so we recommend following these steps before jumping into debugging the problem.</p>
