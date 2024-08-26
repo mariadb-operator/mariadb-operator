@@ -1255,7 +1255,7 @@ Use this option only in exceptional circumstances. Not selecting the <code>Pod</
 <p>[!WARNING]
 Ensure you unset <code>forceClusterBootstrapInPod</code> after completing the bootstrap to allow the operator to choose the appropriate <code>Pod</code> to bootstrap from in an event of cluster recovery.</p>
 </blockquote>
-<p>You have the ability to forcefully bootstrap in a specific <code>Pod</code> by setting <code>forceClusterBootstrapInPod</code>:</p>
+<p>You have the ability to manually select which <code>Pod</code> is used to bootstrap a new cluster during the recovery process by setting <code>forceClusterBootstrapInPod</code>:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
