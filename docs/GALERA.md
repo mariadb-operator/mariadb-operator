@@ -172,7 +172,7 @@ For example, if you're using a service mesh like Istio, it's important to add th
 > [!WARNING]
 > Ensure you unset `forceClusterBootstrapInPod` after completing the bootstrap to allow the operator to choose the appropriate `Pod` to bootstrap from in an event of cluster recovery.
 
-You have the ability to forcefully bootstrap in a specific `Pod` by setting `forceClusterBootstrapInPod`:
+You have the ability to manually select which `Pod` is used to bootstrap a new cluster during the recovery process by setting `forceClusterBootstrapInPod`:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
