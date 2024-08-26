@@ -70,6 +70,7 @@ spec:
     recovery:
       enabled: true
       minClusterSize: 1
+      forceClusterBootstrapInPod: mariadb-galera-0
       clusterMonitorInterval: 10s
       clusterHealthyTimeout: 30s
       clusterBootstrapTimeout: 10m
