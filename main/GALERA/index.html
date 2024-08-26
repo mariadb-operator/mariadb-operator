@@ -549,6 +549,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#galera-cluster-recovery-not-progressing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster recovery not progressing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#permission-denied-writing-galera-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       Permission denied writing Galera configuration
@@ -1021,6 +1030,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#galera-cluster-recovery-not-progressing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster recovery not progressing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#permission-denied-writing-galera-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       Permission denied writing Galera configuration
@@ -1473,6 +1491,21 @@ kubectl logs mariadb-galera-0 -c mariadb
 </code></pre>
 <p>Once you are done with these steps, you will have the context required to jump ahead to the <a href="#common-errors">Common errors</a> section to see if any of them matches your case.  If they don't, feel free to open an issue or even a PR updating this document if you managed to resolve it.</p>
 <h3 id="common-errors">Common errors</h3>
+<h4 id="galera-cluster-recovery-not-progressing">Galera cluster recovery not progressing</h4>
+<p>If your <code>MariaDB</code> Galera cluster has been in <code>GaleraNotReady</code> state for a long time, the recovery process might not be progressing. You can diagnose this by checking:
+- The operator logs.
+- Galera recovery status:</p>
+<pre><code class="language-bash">kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.galeraRecovery}&quot; | jq
+</code></pre>
+<ul>
+<li>If you have <code>Pods</code> named <code>&lt;mariadb-name&gt;-&lt;ordinal&gt;-recovery-&lt;suffix&gt;</code> running for a long time, check its logs to understand if something is wrong.</li>
+</ul>
+<p>One of the reasons could be misconfigured Galera recovery <code>Jobs</code>, please make sure you read <a href="#galera-recovery-job">this section</a>. If after checking all the points above, there are still no clear symptoms of what could be wrong, continue reading.</p>
+<p>First af all, you could attempt to forcefully bootstrap a new cluster as it is described in <a href="#force-cluster-bootstrap">this section</a>. Please, refrain from doing so if the conditions described in the docs are not met.</p>
+<p>Alternatively, if you can afford some downtime and your PVCs are in healthy state, you may follow this procedure:
+- Delete your existing <code>MariaDB</code>, this will leave your PVCs intact.
+- Create your <code>MariaDB</code> again, this will trigger a Galera recovery process as described in <a href="#bootstrap-galera-cluster-from-existing-pvcs">this section</a>.</p>
+<p>As a last resource, you can always delete the PVCs and bootstrap a new <code>MariaDB</code> from a backup as documented <a href="../BACKUP/#bootstrap-new-mariadb-instances">here</a>.</p>
 <h4 id="permission-denied-writing-galera-configuration">Permission denied writing Galera configuration</h4>
 <p>This error occurs when the user that runs the container does not have enough privileges to write in <code>/etc/mysql/mariadb.conf.d</code>:</p>
 <pre><code class="language-bash"> Error writing Galera config: open /etc/mysql/mariadb.conf.d/0-galera.cnf: permission denied
