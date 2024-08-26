@@ -433,6 +433,27 @@ Once you are done with these steps, you will have the context required to jump a
 
 ### Common errors
 
+
+#### Galera cluster recovery not progressing
+
+If your `MariaDB` Galera cluster has been in `GaleraNotReady` state for a long time, the recovery process might not be progressing. You can diagnose this by checking:
+- The operator logs.
+- Galera recovery status:
+```bash
+kubectl get mariadb mariadb-galera -o jsonpath="{.status.galeraRecovery}" | jq
+```
+- If you have `Pods` named `<mariadb-name>-<ordinal>-recovery-<suffix>` running for a long time, check its logs to understand if something is wrong.
+
+One of the reasons could be misconfigured Galera recovery `Jobs`, please make sure you read [this section](#galera-recovery-job). If after checking all the points above, there are still no clear symptoms of what could be wrong, continue reading.
+
+First af all, you could attempt to forcefully bootstrap a new cluster as it is described in [this section](#force-cluster-bootstrap). Please, refrain from doing so if the conditions described in the docs are not met.
+
+Alternatively, if you can afford some downtime and your PVCs are in healthy state, you may follow this procedure:
+- Delete your existing `MariaDB`, this will leave your PVCs intact.
+- Create your `MariaDB` again, this will trigger a Galera recovery process as described in [this section](#bootstrap-galera-cluster-from-existing-pvcs).
+
+As a last resource, you can always delete the PVCs and bootstrap a new `MariaDB` from a backup as documented [here](./BACKUP.md#bootstrap-new-mariadb-instances).
+ 
 #### Permission denied writing Galera configuration
 
 This error occurs when the user that runs the container does not have enough privileges to write in `/etc/mysql/mariadb.conf.d`:
