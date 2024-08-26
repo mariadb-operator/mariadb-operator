@@ -11,10 +11,10 @@ To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-ope
 - [Components](#components)
 - [<code>MariaDB</code> configuration](#mariadb-configuration)
 - [Storage](#storage)
-- [Galera cluster recovery](#galera-cluster-recovery)
 - [Wsrep provider](#wsrep-provider)
 - [IPv6 support](#ipv6-support)
 - [Backup and restore](#backup-and-restore)
+- [Galera cluster recovery](#galera-cluster-recovery)
 - [Quickstart](#quickstart)
 - [Troubleshooting](#troubleshooting)
 - [Reference](#reference)
@@ -70,42 +70,6 @@ spec:
       reuseStorageVolume: true
 ```
 
-## Galera cluster recovery
-
-`mariadb-operator` is able to monitor the Galera cluster and act accordinly to recover it if needed. This feature is enabled by default, but you may tune it as you need:
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  ...
-  galera:
-    enabled: true
-    recovery:
-      enabled: true
-      minClusterSize: 1
-      clusterMonitorInterval: 10s
-      clusterHealthyTimeout: 30s
-      clusterBootstrapTimeout: 10m
-      podRecoveryTimeout: 5m
-      podSyncTimeout: 5m
-```
-
-The `minClusterSize` field indicates the minimum cluster size (either absolut number or percentage) for the operator to consider the cluster healthy. If the cluster is unhealthy for more than the period defined in `clusterHealthyTimeout`, a cluster recovery process is initiated by the operator. The process is explained in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html) and consists of the following steps:
-
-- Recover the sequence number from the `grastate.dat` on each node.
-- Put the nodes in recovery mode and restart them to obtain the sequence number. This step is skipped if we have already obtained a valid sequence number in the previous step.
-- Mark the node with highest sequence (bootstrap node) as safe to bootstrap.
-- Bootstrap a new cluster in the bootstrap node.
-- Wait until the bootstrap node becomes ready.
-- Restart the rest of the nodes one by one so they can join the new cluster.
-
-The operator monitors the Galera cluster health periodically and performs the cluster recovery described above if needed. You are able to tune the monitoring interval via the `clusterMonitorInterval` field.
-
-Refer to the [reference](#reference) section to better understand the purpose of each field.
-
 ## Wsrep provider
 
 You are able to pass extra options to the Galera wsrep provider by using the `galera.providerOptions` field:
@@ -133,6 +97,141 @@ If you have a Kubernetes cluster running with IPv6, the operator will automatica
 ## Backup and restore
 
 Please refer to the [backup documentation](./BACKUP.md) to understand how to backup and restore Galera clusters. Specially, make sure you understand the [Galera backup limitations](./BACKUP.md#galera-backup-limitations).
+
+
+## Galera cluster recovery
+
+`mariadb-operator` is able to monitor the Galera cluster and act accordinly to recover it if needed. This feature is enabled by default, but you may tune it as you need:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    recovery:
+      enabled: true
+      minClusterSize: 1
+      clusterMonitorInterval: 10s
+      clusterHealthyTimeout: 30s
+      clusterBootstrapTimeout: 10m
+      podRecoveryTimeout: 5m
+      podSyncTimeout: 5m
+```
+
+The `minClusterSize` field indicates the minimum cluster size (either absolut number of replicas or percentage) for the operator to consider the cluster healthy. If the cluster is unhealthy for more than the period defined in `clusterHealthyTimeout` (`30s` by default), a cluster recovery process is initiated by the operator. The process is explained in the [Galera documentation](https://galeracluster.com/library/documentation/crash-recovery.html) and consists of the following steps:
+
+- Recover the sequence number from the `grastate.dat` on each node.
+- Trigger a [recovery `Job`](#galera-recovery-job) to obtain the sequence numbers in case that the previous step didn't manage to.
+- Mark the node with highest sequence (bootstrap node) as safe to bootstrap.
+- Bootstrap a new cluster in the bootstrap node.
+- Restart and wait until the bootstrap node becomes ready.
+- Restart the rest of the nodes one by one so they can join the new cluster.
+
+The operator monitors the Galera cluster health periodically and performs the cluster recovery described above if needed. You are able to tune the monitoring interval via the `clusterMonitorInterval` field.
+
+Refer to the [reference](#reference) section to better understand the purpose of each field.
+
+#### Galera recovery `Job`
+
+During the recovery process, a `Job` is triggered for each `MariaDB` `Pod` to obtain the sequence numbers. It's crucial for this `Job` to succeed; otherwise, the recovery process will fail. As a user, you are responsible for adjusting this `Job` to allocate sufficient resources and provide the necessary metadata to ensure its successful completion.
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    recovery:
+      job:
+        metadata:
+          labels:
+            sidecar.istio.io/inject: "false"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
+```
+
+For example, if you're using a service mesh like Istio, it's important to add the `sidecar.istio.io/inject=false` label. Without this label, the `Job` will not complete, which would prevent the recovery process from finishing successfully.
+
+#### Force cluster bootstrap
+ 
+> [!CAUTION]
+> Use this option only in exceptional circumstances. Not selecting the `Pod` with the highest sequence number may result in data loss.
+
+> [!WARNING]
+> Ensure you unset `forceClusterBootstrapInPod` after completing the bootstrap to allow the operator to choose the appropriate `Pod` to bootstrap from in an event of cluster recovery.
+
+You have the ability to forcefully bootstrap in a specific `Pod` by setting `forceClusterBootstrapInPod`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    recovery:
+      enabled: true
+      forceClusterBootstrapInPod: "mariadb-galera-0"
+```
+
+This should only be used in exceptional circumstances:
+- You are absolutely certain that the chosen `Pod` has the highest sequence number.
+- The operator has not yet selected a `Pod` to bootstrap from.
+
+You can verify this with the following command:
+
+```bash
+kubectl get mariadb mariadb-galera -o jsonpath="{.status.galeraRecovery}" | jq
+{
+  "recovered": {
+    "mariadb-galera-0": {
+      "seqno": 350454,
+      "uuid": "67a44ea9-63a8-11ef-98a2-2b0c0aa0a627"
+    },
+    "mariadb-galera-1": {
+      "seqno": 350450,
+      "uuid": "67a44ea9-63a8-11ef-98a2-2b0c0aa0a627"
+    }
+  },
+  "state": {
+    "mariadb-galera-0": {
+      "safeToBootstrap": false,
+      "seqno": -1,
+      "uuid": "67a44ea9-63a8-11ef-98a2-2b0c0aa0a627",
+      "version": "2.1"
+    },
+    "mariadb-galera-1": {
+      "safeToBootstrap": false,
+      "seqno": -1,
+      "uuid": "67a44ea9-63a8-11ef-98a2-2b0c0aa0a627",
+      "version": "2.1"
+    },
+    "mariadb-galera-2": {
+      "safeToBootstrap": false,
+      "seqno": -1,
+      "uuid": "67a44ea9-63a8-11ef-98a2-2b0c0aa0a627",
+      "version": "2.1"
+    }
+  }
+}
+```
+
+In this case, assuming that `mariadb-galera-2` sequence is lower than `350454`, it should be safe to bootstrap from `mariadb-galera-0`.
+
+Finally, after your cluster has been bootstrapped, remember to unset `forceClusterBootstrapInPod` to allow the operator to select the appropriate node for bootstrapping in the event of a cluster recovery.
 
 ## Quickstart
 
