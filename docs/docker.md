@@ -31,11 +31,18 @@ The mariadb-operator uses a variety of docker images depending on how it’s con
 	  <td><code>docker pull docker-registry.mariadb.com/enterprise-server:10.6.18-14</code></td>
     </tr>
         <tr>
-      <td>MariaDB MaxScale</td>
+      <td>MariaDB MaxScale UBI</td>
       <td><a href=https://hub.docker.com/repository/docker/mariadb/maxscale/tags?page=&page_size=&ordering=&name=23.08.5-ubi>mariadb/maxscale</a></td>
       <td><code>23.08.6-ubi-1</code> <code>24.02.2-ubi-1</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry2.mariadb.com/mariadb/maxscale:23.08.6-ubi-1</code></td>
+    </tr> 
+	          <tr>
+      <td>MariaDB MaxScale Rocky Linux</td>
+      <td><a href=https://hub.docker.com/repository/docker/mariadb/maxscale/tags?page=&page_size=&ordering=&name=23.08.5>mariadb/maxscale</a></td>
+      <td><code>mariadb/maxscale:23.08.5</code></td>
+      <td><code>amd64</code> <code>arm64</code></td>
+	  <td><code>docker pull docker-registry2.mariadb.com/mariadb/maxscale:23.08.5</code></td>
     </tr>
          <tr>
       <td>MariaDB Prometheus Exporter</td>
