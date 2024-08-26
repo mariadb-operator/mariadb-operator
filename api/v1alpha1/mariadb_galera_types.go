@@ -169,9 +169,9 @@ type GaleraRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
-	// MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%).
+	// MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%).
 	// If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.
-	// It defaults to '50%' of the replicas specified by the MariaDB object.
+	// It defaults to '1' replica.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MinClusterSize *intstr.IntOrString `json:"minClusterSize,omitempty"`
@@ -237,7 +237,7 @@ func (g *GaleraRecovery) Validate(mdb *MariaDB) error {
 // SetDefaults sets reasonable defaults.
 func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 	if g.MinClusterSize == nil {
-		g.MinClusterSize = ptr.To(intstr.FromString("50%"))
+		g.MinClusterSize = ptr.To(intstr.FromInt(1))
 	}
 	if g.ClusterMonitorInterval == nil {
 		g.ClusterMonitorInterval = ptr.To(metav1.Duration{Duration: 10 * time.Second})
@@ -258,7 +258,7 @@ func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 
 // HasMinClusterSize returns whether the current cluster has the minimum number of replicas. If not, a cluster recovery will be performed.
 func (g *GaleraRecovery) HasMinClusterSize(currentSize int, mdb *MariaDB) (bool, error) {
-	minClusterSize := ptr.Deref(g.MinClusterSize, intstr.FromString("50%"))
+	minClusterSize := ptr.Deref(g.MinClusterSize, intstr.FromInt(1))
 	scaled, err := intstr.GetScaledValueFromIntOrPercent(&minClusterSize, int(mdb.Spec.Replicas), true)
 	if err != nil {
 		return false, err

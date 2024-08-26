@@ -152,6 +152,11 @@ spec:
     secretName: mxs-galera-conn
     port: 3306
 
+  metrics:
+    enabled: true
+  
+  suspend: false
+
   resources:
     requests:
       cpu: 100m
