@@ -15,6 +15,7 @@ To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-ope
 - [IPv6 support](#ipv6-support)
 - [Backup and restore](#backup-and-restore)
 - [Galera cluster recovery](#galera-cluster-recovery)
+- [Bootstrap Galera cluster from existing PVCs](#bootstrap-galera-cluster-from-existing-pvcs)
 - [Quickstart](#quickstart)
 - [Troubleshooting](#troubleshooting)
 - [Reference](#reference)
@@ -233,6 +234,12 @@ In this case, assuming that `mariadb-galera-2` sequence is lower than `350454`, 
 
 Finally, after your cluster has been bootstrapped, remember to unset `forceClusterBootstrapInPod` to allow the operator to select the appropriate node for bootstrapping in the event of a cluster recovery.
 
+## Bootstrap Galera cluster from existing PVCs
+
+`mariadb-operator` will never delete your `MariaDB` PVCs! Whenever you delete a `MariaDB` resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.
+
+That said, Galera is unable to form a cluster from pre-existing state, it requires a [cluster recovery](#galera-cluster-recovery) process to identify which `Pod` has the highest sequence number to bootstrap a new cluster. That's exactly what the operator does: whenever a new `MariaDB` Galera cluster is created and previously created PVCs exist, a cluster recovery process is automatically triggered.
+
 ## Quickstart
 
 First of all, install the following configuration manifests that will be referenced by the CRDs further:
@@ -314,8 +321,8 @@ kubectl get mariadb mariadb-galera -o jsonpath="{.status.conditions[?(@.type=='G
 {"lastTransitionTime":"2023-07-13T19:27:51Z","message":"Galera ready","reason":"GaleraReady","status":"True","type":"GaleraReady"}
 
 kubectl get mariadb mariadb-galera
-NAME             READY   STATUS    PRIMARY POD   AGE
-mariadb-galera   True    Running   All           82m
+NAME             READY   STATUS    PRIMARY POD          AGE
+mariadb-galera   True    Running   mariadb-galera-0     82m
 ```
 
 ## Troubleshooting
