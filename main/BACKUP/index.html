@@ -517,6 +517,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrating an external MariaDB to a MariaDB running in Kubernetes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#migrating-to-a-mariadb-with-different-topology" class="md-nav__link">
     <span class="md-ellipsis">
       Migrating to a MariaDB with different topology
@@ -1108,6 +1117,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrating an external MariaDB to a MariaDB running in Kubernetes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#migrating-to-a-mariadb-with-different-topology" class="md-nav__link">
     <span class="md-ellipsis">
       Migrating to a MariaDB with different topology
@@ -1216,6 +1234,7 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.2
 <li><a href="#backup-and-restore-specific-databases">Backup and restore specific databases</a></li>
 <li><a href="#extra-options">Extra options</a></li>
 <li><a href="#important-considerations-and-limitations">Important considerations and limitations</a></li>
+<li><a href="#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes">Migrating an external MariaDB to a <code>MariaDB</code> running in Kubernetes</a></li>
 <li><a href="#migrating-to-a-mariadb-with-different-topology">Migrating to a <code>MariaDB</code> with different topology</a></li>
 <li><a href="#minio-reference-installation">Minio reference installation</a></li>
 <li><a href="#reference">Reference</a></li>
@@ -1364,12 +1383,8 @@ kind: MariaDB
 metadata:
   name: mariadb-from-backup
 spec:
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
   bootstrapFrom:
     backupRef:
       name: backup
@@ -1381,12 +1396,8 @@ kind: MariaDB
 metadata:
   name: mariadb-from-backup
 spec:
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
   bootstrapFrom:
     s3:
       bucket: backups
@@ -1468,8 +1479,10 @@ spec:
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb-galera
+  name: mariadb
 spec:
+  storage:
+    size: 1Gi
   bootstrapFrom:
     restoreJob:
       args:
@@ -1513,6 +1526,64 @@ spec:
 <p>Galera is not compatible with the <code>LOCK TABLES</code> statement:
 - https://mariadb.com/kb/en/lock-tables/#limitations</p>
 <p>For this reason, the operator automatically adds the <code>--skip-add-locks</code> option to the <code>Backup</code> to overcome this limitation.</p>
+<h2 id="migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes">Migrating an external MariaDB to a <code>MariaDB</code> running in Kubernetes</h2>
+<p>You can leverage logical backups to bring your external MariaDB data into a new <code>MariaDB</code> instance running in Kubernetes. Follow this runbook for doing so:</p>
+<ol>
+<li>Take a logical backup of your external MariaDB using one of the commands below:</li>
+</ol>
+<pre><code class="language-bash">mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases &gt; backup.2024-08-26T12:24:34Z.sql
+</code></pre>
+<blockquote>
+<p>[!IMPORTANT]<br />
+If you are using Galera or planning to migrate to a Galera instance, make sure you understand the <a href="#galera-backup-limitations">Galera backup limitations</a> and use the following command instead:</p>
+</blockquote>
+<pre><code class="language-bash">mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases --skip-add-locks --ignore-table=mysql.global_priv &gt; backup.2024-08-26T12:24:34Z.sql
+</code></pre>
+<ol>
+<li>
+<p>Ensure that your backup file is named in the following format: <code>backup.2024-08-26T12:24:34Z.sql</code>. If the file name does not follow this format, it will be ignored by the operator.</p>
+</li>
+<li>
+<p>Upload the backup file to one of the supported <a href="#storage-types">storage types</a>. We recommend using S3.</p>
+</li>
+<li>
+<p>Create your <code>MariaDB</code> resource declaring that you want to <a href="#bootstrap-new-mariadb-instances">bootstrap from the previous backup</a> and providing a <a href="#root-credentials">root password <code>Secret</code></a> that matches the backup:</p>
+</li>
+</ol>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+  replicas: 3
+  galera:
+    enabled: true
+  storage:
+    size: 1Gi
+  bootstrapFrom:
+    s3:
+      bucket: backups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+    targetRecoveryTime: 2024-08-26T12:24:34Z
+</code></pre>
+<ol>
+<li>If you are using Galera in your new instance, migrate your previous users and grants to use the <code>User</code> and <code>Grant</code> CRs.</li>
+</ol>
 <h2 id="migrating-to-a-mariadb-with-different-topology">Migrating to a <code>MariaDB</code> with different topology</h2>
 <p>Logical backups serve not just as a source of restoration, but also enable data mobility between <code>MariaDB</code> instances. These backups are called "logical" because they are independent from the <code>MariaDB</code> topology, as they only contain DDLs and <code>INSERT</code> statements to populate data.</p>
 <p>Although backing up and restoring data from <code>MariaDBs</code> with different topologies is possible, there are a couple of technical details that you need to be aware of in the following scenarios:</p>
@@ -1536,8 +1607,11 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
+  replicas: 3
   galera:
     enabled: true
+  storage:
+    size: 1Gi
   bootstrapFrom:
     backupRef:
       name: backup-standalone
