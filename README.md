@@ -35,6 +35,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
 - [Rolling updates](./docs/UPDATES.md): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod.
 - [my.cnf configuration](./docs/CONFIGURATION.md#mycnf). Automatically trigger [rolling updates](./docs/UPDATES.md) when my.cnf changes.
+- [Suspend](./docs/SUSPEND.md) the operator reconciliation for maintenance and progressive upgrades.
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter).
 - Manage [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
