@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../REGISTRY/">
+        <link rel="prev" href="../STORAGE/">
       
       
-        <link rel="next" href="../SUSPEND/">
+        <link rel="next" href="../UPDATES/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Storage - MariaDB Operator</title>
+        <title>Suspend - MariaDB Operator</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#storage" class="md-skip">
+        <a href="#suspend" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Storage
+              Suspend
             
           </span>
         </div>
@@ -506,6 +506,26 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../STORAGE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Storage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -522,7 +542,7 @@
           
   
   <span class="md-ellipsis">
-    Storage
+    Suspend
   </span>
   
 
@@ -533,7 +553,7 @@
         
   
   <span class="md-ellipsis">
-    Storage
+    Suspend
   </span>
   
 
@@ -564,38 +584,62 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
+  <a href="#suspended-state" class="md-nav__link">
     <span class="md-ellipsis">
-      Configuration
+      Suspended state
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#volume-resize" class="md-nav__link">
+  <a href="#suspend-a-resource" class="md-nav__link">
     <span class="md-ellipsis">
-      Volume resize
+      Suspend a resource
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#ephemeral-storage" class="md-nav__link">
+  <a href="#use-cases" class="md-nav__link">
     <span class="md-ellipsis">
-      Ephemeral storage
+      Use cases
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Use cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#progressive-fleet-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Progressive fleet upgrades
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#reference" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#operator-upgrades" class="md-nav__link">
     <span class="md-ellipsis">
-      Reference
+      Operator upgrades
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Maintenance
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -603,26 +647,6 @@
   
 </nav>
       
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../SUSPEND/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Suspend
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -783,38 +807,62 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
+  <a href="#suspended-state" class="md-nav__link">
     <span class="md-ellipsis">
-      Configuration
+      Suspended state
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#volume-resize" class="md-nav__link">
+  <a href="#suspend-a-resource" class="md-nav__link">
     <span class="md-ellipsis">
-      Volume resize
+      Suspend a resource
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#ephemeral-storage" class="md-nav__link">
+  <a href="#use-cases" class="md-nav__link">
     <span class="md-ellipsis">
-      Ephemeral storage
+      Use cases
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Use cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#progressive-fleet-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Progressive fleet upgrades
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#reference" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#operator-upgrades" class="md-nav__link">
     <span class="md-ellipsis">
-      Reference
+      Operator upgrades
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Maintenance
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -836,100 +884,52 @@
   
 
 
-<h1 id="storage">Storage</h1>
+<h1 id="suspend">Suspend</h1>
 <blockquote>
 <p>[!NOTE]<br />
-This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.26</p>
+This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.30</p>
 </blockquote>
-<p>This operator gives you flexibility to define the storage that will back the <code>/var/lib/mysql</code> data directoty mounted by <code>MariaDB</code>.</p>
+<p>By leveraging the automation provided by <code>mariadb-operator</code>, you can declaratively manage large fleets of databases using CRs. This also covers day two operations, such as upgrades, which can be risky when rolling out updates to thousands of instances simultaneously.</p>
+<p>To mitigate this, and to give you more control on when these operations are performed, you are able to selectively suspend a subset of <code>MariaDB</code> resources, temporarily stopping the upgrades and other operations on them.</p>
 <h2 id="table-of-contents">Table of contents</h2>
 <!-- toc -->
 <ul>
-<li><a href="#configuration">Configuration</a></li>
-<li><a href="#volume-resize">Volume resize</a></li>
-<li><a href="#ephemeral-storage">Ephemeral storage</a></li>
-<li><a href="#reference">Reference</a></li>
+<li><a href="#suspended-state">Suspended state</a></li>
+<li><a href="#suspend-a-resource">Suspend a resource</a></li>
+<li><a href="#use-cases">Use cases</a></li>
 </ul>
 <!-- /toc -->
 
-<h2 id="configuration">Configuration</h2>
-<p>The simplest way to configure storage for your <code>MariaDB</code> is:</p>
+<h2 id="suspended-state">Suspended state</h2>
+<p>When a resource is suspended, all operations performed by the operator are disabled, including but not limited to:
+- Provisioning
+- Upgrades
+- Volume resize
+- Galera cluster recovery</p>
+<p>More specifically, the reconciliation loop of the operator is omitted, anything part of it will not happen while the resource is suspended.</p>
+<h2 id="suspend-a-resource">Suspend a resource</h2>
+<p>Currently, only <code>MariaDB</code> and <code>MaxScale</code> resources support suspension. You can enable it by setting <code>suspend=true</code>:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
   ...
-  storage:
-    size: 1Gi
+  suspend: true
 </code></pre>
-<p>This will make use of the default <code>StorageClass</code> available in your cluster, but you can also provide a different one:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  ...
-  storage:
-    size: 1Gi
-    storageClassName: my-storage-class
+<p>This results in the reconciliation loop being disabled and the status being marked as <code>Suspended</code>:</p>
+<pre><code class="language-bash">kubectl get mariadbs
+NAME             READY   STATUS      PRIMARY POD        AGE
+mariadb-galera   False   Suspended   mariadb-galera-0   25h
 </code></pre>
-<p>Under the scenes, the operator is configuring the <code>StatefulSet</code>'s <code>volumeClaimTemplate</code> property, which you are also able to provide yourself:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  ...
-  storage:
-    size: 1Gi
-    storageClassName: standard
-    volumeClaimTemplate:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 1Gi
-      storageClassName: standard
-</code></pre>
-<h2 id="volume-resize">Volume resize</h2>
-<blockquote>
-<p>[!WARNING]<br />
-The <code>StorageClass</code> used for volume resizing must define <code>allowVolumeExpansion = true</code>.</p>
-</blockquote>
-<p>It is possible to resize your storage after having provisioned a <code>MariaDB</code>. We need to distinguish between:
-- PVCs already in use.
-- <code>StatefulSet</code> storage size, which will be used when provisioning new replicas.</p>
-<p>It is important to note that, for the first case, your <code>StorageClass</code> must support volume expansion by declaring the <code>allowVolumeExpansion = true</code>. In such case, it will be safe to expand the storage by increasing the <code>size</code> and setting <code>resizeInUseVolumes = true</code>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  ...
-  storage:
-    size: 2Gi
-    resizeInUseVolumes: true
-    waitForVolumeResize: true
-</code></pre>
-<p>Depending on your storage provider, this operation might take a while, and you can decide to wait for this operation before the <code>MariaDB</code> becomes ready by setting <code>waitForVolumeResize = true</code>. Operations such as <a href="../GALERA/#galera-cluster-recovery">cluster recovery</a> and <a href="../HA/">primary switchover</a> will not be performed if the <code>MariaDB</code> resource is not ready.</p>
-<h2 id="ephemeral-storage">Ephemeral storage</h2>
-<p>Provisioning standalone <code>MariaDB</code> instances is also possible by setting <code>ephemeral = true</code>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  ...
-  storage:
-    ephemeral: true   
-</code></pre>
-<p>This may be useful more multiple use cases, like provisioning ephemeral <code>MariaDBs</code> for the integration tests of your CI.</p>
-<h2 id="reference">Reference</h2>
-<ul>
-<li><a href="../API_REFERENCE/">API reference</a></li>
-<li><a href="../examples/">Example suite</a></li>
-</ul>
+<p>To re-enable it, simply remove the <code>suspend</code> setting or set it to <code>suspend=false</code>.</p>
+<h2 id="use-cases">Use cases</h2>
+<h4 id="progressive-fleet-upgrades">Progressive fleet upgrades</h4>
+<p>If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.</p>
+<h4 id="operator-upgrades">Operator upgrades</h4>
+<p>When upgrading <code>mariadb-operator</code>, changes to the <code>StatefulSet</code> or the <code>Pod</code> template may occur from one version to another, which could trigger a rolling update of your <code>MariaDB</code> instances.</p>
+<h4 id="maintenance">Maintenance</h4>
+<p>Disabling the reconciliation loop can be useful when manual operations need to be performed on an instance, as it helps prevent conflicts with the operator.</p>
 
 
 
