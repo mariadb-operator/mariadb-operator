@@ -388,8 +388,7 @@ For this reason, the operator automatically adds the `--skip-add-locks` option t
 
 Logical backups serve not just as a source of restoration, but also enable data mobility between `MariaDB` instances. These backups are called "logical" because they are independent from the `MariaDB` topology, as they only contain DDLs and `INSERT` statements to populate data.
 
-As of today, `mariadb-operator` only supports logical backups, but we have plans to implement Point-In-Time-Recovery(PITR) based on physical backups and binary logs. This will allow to restore the state of a `MariaDB` instance in a particular point in time, minimizing the RPO (data loss) and RTO (time to recover). See the tracking issue:
-- https://github.com/mariadb-operator/mariadb-operator/issues/507
+As of today, `mariadb-operator` only supports logical backups, but we have plans to implement Point-In-Time-Recovery(PITR) based on physical backups and binary logs. This will allow to restore the state of a `MariaDB` instance in a particular point in time, minimizing the RPO (data loss) and RTO (time to recover). See https://github.com/mariadb-operator/mariadb-operator/issues/507.
 
 ## Migrating an external MariaDB to a `MariaDB` running in Kubernetes
 
