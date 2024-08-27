@@ -54,6 +54,8 @@ To re-enable it, simply remove the `suspend` setting or set it to `suspend=false
 
 If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
 
+Refer to the [updates documentation](./UPDATES.md) for further detail.
+
 #### Operator upgrades
 
 When upgrading `mariadb-operator`, changes to the `StatefulSet` or the `Pod` template may occur from one version to another, which could trigger a rolling update of your `MariaDB` instances.
