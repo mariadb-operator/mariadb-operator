@@ -1547,8 +1547,7 @@ spec:
 <p>For this reason, the operator automatically adds the <code>--skip-add-locks</code> option to the <code>Backup</code> to overcome this limitation.</p>
 <h2 id="logical-backups">Logical backups</h2>
 <p>Logical backups serve not just as a source of restoration, but also enable data mobility between <code>MariaDB</code> instances. These backups are called "logical" because they are independent from the <code>MariaDB</code> topology, as they only contain DDLs and <code>INSERT</code> statements to populate data.</p>
-<p>As of today, <code>mariadb-operator</code> only supports logical backups, but we have plans to implement Point-In-Time-Recovery(PITR) based on physical backups and binary logs. This will allow to restore the state of a <code>MariaDB</code> instance in a particular point in time, minimizing the RPO (data loss) and RTO (time to recover). See the tracking issue:
-- https://github.com/mariadb-operator/mariadb-operator/issues/507</p>
+<p>As of today, <code>mariadb-operator</code> only supports logical backups, but we have plans to implement Point-In-Time-Recovery(PITR) based on physical backups and binary logs. This will allow to restore the state of a <code>MariaDB</code> instance in a particular point in time, minimizing the RPO (data loss) and RTO (time to recover). See https://github.com/mariadb-operator/mariadb-operator/issues/507.</p>
 <h2 id="migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes">Migrating an external MariaDB to a <code>MariaDB</code> running in Kubernetes</h2>
 <p>You can leverage <a href="#logical-backups">logical backups</a> to bring your external MariaDB data into a new <code>MariaDB</code> instance running in Kubernetes. Follow this runbook for doing so:</p>
 <ol>
