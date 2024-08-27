@@ -14,7 +14,8 @@
 - [Backup and restore specific databases](#backup-and-restore-specific-databases)
 - [Extra options](#extra-options)
 - [Important considerations and limitations](#important-considerations-and-limitations)
-- [Migrating to a <code>MariaDB</code> with different topology](#migrating-to-a-mariadb-with-different-topology)
+- [Migrating an external MariaDB to a `MariaDB` running in Kubernetes](#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes)
+- [Migrating to a `MariaDB` with different topology](#migrating-to-a-mariadb-with-different-topology)
 - [Minio reference installation](#minio-reference-installation)
 - [Reference](#reference)
 - [Troubleshooting](#troubleshooting)
@@ -198,12 +199,8 @@ kind: MariaDB
 metadata:
   name: mariadb-from-backup
 spec:
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
   bootstrapFrom:
     backupRef:
       name: backup
@@ -218,12 +215,8 @@ kind: MariaDB
 metadata:
   name: mariadb-from-backup
 spec:
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 1Gi
-    accessModes:
-      - ReadWriteOnce
+  storage:
+    size: 1Gi
   bootstrapFrom:
     s3:
       bucket: backups
@@ -327,8 +320,10 @@ Restoring large backups can consume significant compute resources and may cause 
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb-galera
+  name: mariadb
 spec:
+  storage:
+    size: 1Gi
   bootstrapFrom:
     restoreJob:
       args:
@@ -388,6 +383,63 @@ Galera is not compatible with the `LOCK TABLES` statement:
 
 For this reason, the operator automatically adds the `--skip-add-locks` option to the `Backup` to overcome this limitation.
 
+## Migrating an external MariaDB to a `MariaDB` running in Kubernetes
+
+You can leverage logical backups to bring your external MariaDB data into a new `MariaDB` instance running in Kubernetes. Follow this runbook for doing so:
+
+
+1. Take a logical backup of your external MariaDB using one of the commands below:
+```bash
+mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases > backup.2024-08-26T12:24:34Z.sql
+```
+> [!IMPORTANT]  
+> If you are using Galera or planning to migrate to a Galera instance, make sure you understand the [Galera backup limitations](#galera-backup-limitations) and use the following command instead:
+
+```bash
+mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases --skip-add-locks --ignore-table=mysql.global_priv > backup.2024-08-26T12:24:34Z.sql
+```
+
+2. Ensure that your backup file is named in the following format: `backup.2024-08-26T12:24:34Z.sql`. If the file name does not follow this format, it will be ignored by the operator.
+
+3. Upload the backup file to one of the supported [storage types](#storage-types). We recommend using S3.
+
+4. Create your `MariaDB` resource declaring that you want to [bootstrap from the previous backup](#bootstrap-new-mariadb-instances) and providing a [root password `Secret`](#root-credentials) that matches the backup:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+  replicas: 3
+  galera:
+    enabled: true
+  storage:
+    size: 1Gi
+  bootstrapFrom:
+    s3:
+      bucket: backups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+    targetRecoveryTime: 2024-08-26T12:24:34Z
+```
+
+5. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs.
+
 ## Migrating to a `MariaDB` with different topology
 
 Logical backups serve not just as a source of restoration, but also enable data mobility between `MariaDB` instances. These backups are called "logical" because they are independent from the `MariaDB` topology, as they only contain DDLs and `INSERT` statements to populate data.
@@ -423,12 +475,15 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
+  replicas: 3
   galera:
     enabled: true
+  storage:
+    size: 1Gi
   bootstrapFrom:
     backupRef:
       name: backup-standalone
-``` 
+```
 
 ## Minio reference installation
 
