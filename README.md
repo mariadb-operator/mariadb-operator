@@ -68,17 +68,14 @@ helm install mariadb-operator mariadb-operator/mariadb-operator \
   --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
 ```
 
-## Docker images
+## Image compatibility
+`mariadb-operator` is only compatible with official MariaDB images. Refer to the [images documentation](./docs/DOCKER.md) for further detail.
 
-`mariadb-operator` is only compatible with official [MariaDB Community](https://github.com/MariaDB/mariadb-docker) and [MariaDB Enterprise](https://mariadb.com/docs/server/deploy/deployment-methods/docker/enterprise-server/) server images.
-
-Supported versions:
+## MariaDB compatibility
 - MariaDB Community >= 10.5
 - MariaDB Enterprise >= 10.5
 
-## Kubernetes
-
-Supported versions:
+## Kubernetes compatibility
 - Kubernetes >= 1.26
 - OpenShift >= 1.13
 
