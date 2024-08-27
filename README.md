@@ -22,7 +22,7 @@
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 - [Easily provision](./examples/manifests/mariadb_minimal.yaml) MariaDB servers in Kubernetes.
 - [Highly configurable](./examples/manifests/mariadb_full.yaml) MariaDB servers.
-- Multiple [HA modes](./docs/HA.md): SemiSync Replication and Galera.
+- Multiple [HA modes](./docs/HA.md): Galera and SemiSync Replication.
 - Automated [primary failover](./docs/HA.md).
 - Automated [Galera cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
 - Enhanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB.
@@ -83,6 +83,10 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 ## Kubernetes compatibility
 - Kubernetes >= 1.26
 - OpenShift >= 1.13
+
+## Migrate your MariaDB instance to Kubernetes
+
+This [migration guide](./docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will help you migrating your data into a `MariaDB` instance running in Kubernetes.
 
 ## Quickstart
 
