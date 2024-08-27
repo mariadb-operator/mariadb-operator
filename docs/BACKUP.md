@@ -8,9 +8,9 @@
 ## Table of contents
 <!-- toc -->
 - [Storage types](#storage-types)
-- [<code>Backup</code> CR](#backup-cr)
-- [<code>Restore</code> CR](#restore-cr)
-- [Bootstrap new <code>MariaDB</code> instances](#bootstrap-new-mariadb-instances)
+- [`Backup` CR](#backup-cr)
+- [`Restore` CR](#restore-cr)
+- [Bootstrap new `MariaDB` instances](#bootstrap-new-mariadb-instances)
 - [Backup and restore specific databases](#backup-and-restore-specific-databases)
 - [Extra options](#extra-options)
 - [Important considerations and limitations](#important-considerations-and-limitations)
