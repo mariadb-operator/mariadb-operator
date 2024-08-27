@@ -14,6 +14,7 @@
 - [Backup and restore specific databases](#backup-and-restore-specific-databases)
 - [Extra options](#extra-options)
 - [Important considerations and limitations](#important-considerations-and-limitations)
+- [Logical backups](#logical-backups)
 - [Migrating an external MariaDB to a `MariaDB` running in Kubernetes](#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes)
 - [Migrating to a `MariaDB` with different topology](#migrating-to-a-mariadb-with-different-topology)
 - [Minio reference installation](#minio-reference-installation)
@@ -383,20 +384,26 @@ Galera is not compatible with the `LOCK TABLES` statement:
 
 For this reason, the operator automatically adds the `--skip-add-locks` option to the `Backup` to overcome this limitation.
 
+## Logical backups
+
+Logical backups serve not just as a source of restoration, but also enable data mobility between `MariaDB` instances. These backups are called "logical" because they are independent from the `MariaDB` topology, as they only contain DDLs and `INSERT` statements to populate data.
+
+As of today, `mariadb-operator` only supports logical backups, but we have plans to implement Point-In-Time-Recovery(PITR) based on physical backups and binary logs. This will allow to restore the state of a `MariaDB` instance in a particular point in time, minimizing the RPO (data loss) and RTO (time to recover). See the tracking issue:
+- https://github.com/mariadb-operator/mariadb-operator/issues/507
+
 ## Migrating an external MariaDB to a `MariaDB` running in Kubernetes
 
-You can leverage logical backups to bring your external MariaDB data into a new `MariaDB` instance running in Kubernetes. Follow this runbook for doing so:
-
+You can leverage [logical backups](#logical-backups) to bring your external MariaDB data into a new `MariaDB` instance running in Kubernetes. Follow this runbook for doing so:
 
 1. Take a logical backup of your external MariaDB using one of the commands below:
 ```bash
-mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases > backup.2024-08-26T12:24:34Z.sql
+mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD} --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases > backup.2024-08-26T12:24:34Z.sql
 ```
 > [!IMPORTANT]  
 > If you are using Galera or planning to migrate to a Galera instance, make sure you understand the [Galera backup limitations](#galera-backup-limitations) and use the following command instead:
 
 ```bash
-mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases --skip-add-locks --ignore-table=mysql.global_priv > backup.2024-08-26T12:24:34Z.sql
+mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD} --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases --skip-add-locks --ignore-table=mysql.global_priv > backup.2024-08-26T12:24:34Z.sql
 ```
 
 2. Ensure that your backup file is named in the following format: `backup.2024-08-26T12:24:34Z.sql`. If the file name does not follow this format, it will be ignored by the operator.
@@ -442,9 +449,7 @@ spec:
 
 ## Migrating to a `MariaDB` with different topology
 
-Logical backups serve not just as a source of restoration, but also enable data mobility between `MariaDB` instances. These backups are called "logical" because they are independent from the `MariaDB` topology, as they only contain DDLs and `INSERT` statements to populate data.
-
-Although backing up and restoring data from `MariaDBs` with different topologies is possible, there are a couple of technical details that you need to be aware of in the following scenarios:
+Databa mobility between `MariaDB` instances with different topologies is possible with [logical backups](#logical-backups). However, there are a couple of technical details that you need to be aware of in the following scenarios:
 
 #### Migrating between standalone and replicated `MariaDBs`
 
