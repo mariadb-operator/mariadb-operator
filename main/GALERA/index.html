@@ -1533,9 +1533,14 @@ kubectl logs mariadb-galera-0 -c mariadb
 <h3 id="common-errors">Common errors</h3>
 <h4 id="galera-cluster-recovery-not-progressing">Galera cluster recovery not progressing</h4>
 <p>If your <code>MariaDB</code> Galera cluster has been in <code>GaleraNotReady</code> state for a long time, the recovery process might not be progressing. You can diagnose this by checking:
-- The operator logs.
+- Operator logs.
 - Galera recovery status:</p>
 <pre><code class="language-bash">kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.galeraRecovery}&quot; | jq
+</code></pre>
+<ul>
+<li><code>MariaDB</code> events:</li>
+</ul>
+<pre><code class="language-bash">kubectl get events --field-selector involvedObject.name=mariadb-galera
 </code></pre>
 <ul>
 <li>If you have <code>Pods</code> named <code>&lt;mariadb-name&gt;-&lt;ordinal&gt;-recovery-&lt;suffix&gt;</code> running for a long time, check its logs to understand if something is wrong.</li>
