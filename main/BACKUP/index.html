@@ -1580,7 +1580,7 @@ spec:
 </code></pre>
 <p>Also, to avoid situations where <code>mysql.global_priv</code> is unreplicated, all the entries in that table must be managed via DDLs. This is the recommended approach suggested in the <a href="https://galeracluster.com/library/kb/user-changes.html">Galera docs</a>. There are a couple of ways that we can guarantee this:
 - Use the <code>rootPasswordSecretKeyRef</code>, <code>username</code> and <code>passwordSecretKeyRef</code> fields of the <code>MariaDB</code> CR to create the root and initial user respectively. This fields will be translated into DDLs by the image entrypoint.
-- Rely on the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml"><code>User</code></a> and <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml"><code>Grant</code></a> CRs to create additional users and grants. Refer to the <a href="./docs/SQL_RESOURCES.md">SQL resource documentation</a> for further detail.</p>
+- Rely on the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml"><code>User</code></a> and <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml"><code>Grant</code></a> CRs to create additional users and grants. Refer to the <a href="../SQL_RESOURCES/">SQL resource documentation</a> for further detail.</p>
 <h4 id="lock-tables"><code>LOCK TABLES</code></h4>
 <p>Galera is not compatible with the <code>LOCK TABLES</code> statement:
 - https://mariadb.com/kb/en/lock-tables/#limitations</p>
@@ -1644,7 +1644,7 @@ spec:
     targetRecoveryTime: 2024-08-26T12:24:34Z
 </code></pre>
 <ol>
-<li>If you are using Galera in your new instance, migrate your previous users and grants to use the <code>User</code> and <code>Grant</code> CRs. Refer to the <a href="./docs/SQL_RESOURCES.md">SQL resource documentation</a> for further detail.</li>
+<li>If you are using Galera in your new instance, migrate your previous users and grants to use the <code>User</code> and <code>Grant</code> CRs. Refer to the <a href="../SQL_RESOURCES/">SQL resource documentation</a> for further detail.</li>
 </ol>
 <h2 id="migrating-to-a-mariadb-with-different-topology">Migrating to a <code>MariaDB</code> with different topology</h2>
 <p>Databa mobility between <code>MariaDB</code> instances with different topologies is possible with <a href="#logical-backups">logical backups</a>. However, there are a couple of technical details that you need to be aware of in the following scenarios:</p>

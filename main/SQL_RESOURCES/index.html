@@ -1038,7 +1038,7 @@
 
 <h1 id="sql-resources">SQL resources</h1>
 <p><code>mariadb-operator</code> enables you to manage SQL resources declaratively through CRs. By SQL resources, we refer to users, grants, and databases that are typically created using SQL statements.</p>
-<p>The key advantage of this approach is that, unlike executing SQL statements, which is a one-time action, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator. This provides a guarantee that the resource will be recreated if it gets manually deleted. Additionally, it helps prevent state drifts, as the operator will regularly update the resource according to the CR specification.</p>
+<p>The key advantage of this approach is that, unlike executing SQL statements, which is a one-time action, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator. This provides a guarantee that the resource will be recreated if it gets manually deleted. Additionally, it prevents state drifts, as the operator will regularly update the resource according to the CR specification.</p>
 <h2 id="table-of-contents">Table of contents</h2>
 <!-- toc -->
 <ul>
@@ -1124,7 +1124,7 @@ spec:
   name: database-custom
 </code></pre>
 <h2 id="initial-user-grant-and-database">Initial <code>User</code>, <code>Grant</code> and <code>Database</code></h2>
-<p>If you only need one user to interact with a single logical database, you can make use of the <code>MariaDB</code> resource to configure it, instead of creating the <code>User</code>, <code>Grant</code> and <code>Database</code> resources separately:</p>
+<p>If you only need one user to interact with a single logical database, you can use of the <code>MariaDB</code> resource to configure it, instead of creating the <code>User</code>, <code>Grant</code> and <code>Database</code> resources separately:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
@@ -1138,8 +1138,8 @@ spec:
 </code></pre>
 <p>Behind the scenes, the operator will be creating an <code>User</code> resource with <code>ALL PRIVILEGES</code> in the initial <code>Database</code>. </p>
 <h2 id="authentication-plugins">Authentication plugins</h2>
-<p>Passwords can be supplied using the <code>passwordSecretKeyRef</code> field in the <code>User</code> CR. This is a reference to a <code>Secret</code> that containers password in plain text. </p>
-<p>Alternatively, you can use <a href="https://mariadb.com/kb/en/authentication-plugins/">MariaDB authentication plugins</a> to avoid storing passwords in plain text and provide the password in a hashed format instead. This doesn't affect the end user experience, they will still need to provide the password in plain text to authenticate.</p>
+<p>Passwords can be supplied using the <code>passwordSecretKeyRef</code> field in the <code>User</code> CR. This is a reference to a <code>Secret</code> that contains password in plain text. </p>
+<p>Alternatively, you can use <a href="https://mariadb.com/kb/en/authentication-plugins/">MariaDB authentication plugins</a> to avoid storing passwords in plain text and provide the password in a hashed format instead. This doesn't affect the end user experience, as they will still need to provide the password in plain text to authenticate.</p>
 <h4 id="password-hash">Password hash</h4>
 <p>Provide the password hashed using the <a href="https://mariadb.com/kb/en/password/">MariaDB <code>PASSWORD</code> </a>function:</p>
 <pre><code class="language-yaml">kind: Secret
@@ -1188,7 +1188,7 @@ spec:
 </code></pre>
 <p>The plugin name should be available in a <code>Secret</code> referenced by <code>pluginNameSecretKeyRef</code> and the argument passed to it in <code>pluginArgSecretKeyRef</code>. The argument is the hashed password in most cases, refer to the <a href="https://mariadb.com/kb/en/authentication-plugins/">MariaDB docs</a> for further detail.</p>
 <h2 id="configure-reconciliation">Configure reconciliation</h2>
-<p>As we previously mentioned, SQL resources are periodically reconciled by the operator into SQL statements. You are able to tweak the reconciliation interval using the following fields:</p>
+<p>As we previously mentioned, SQL resources are periodically reconciled by the operator into SQL statements. You are able to configure the reconciliation interval using the following fields:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
