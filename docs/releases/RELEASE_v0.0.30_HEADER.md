@@ -55,7 +55,7 @@ Kudos to @ChrisHubinger for this contribution! 🙏🏻
 
 ## Migrate your MariaDB instance to Kubernetes
 
-This [migration guide](./docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
+This [migration guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
 
 ---
 
