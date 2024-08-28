@@ -931,6 +931,10 @@
 <!-- /toc -->
 
 <h2 id="topologies">Topologies</h2>
+<blockquote>
+<p>[!WARNING]<br />
+SemiSync Replication is in alpha stage and not ready for production. Use it at your own risk.</p>
+</blockquote>
 <ul>
 <li><strong>Multi master HA via <a href="../GALERA/">Galera</a></strong>: All nodes support reads and writes. We have a designated primary where the writes are performed.</li>
 <li><strong>Single master HA via <a href="../examples/manifests/mariadb_replication.yaml">SemiSync Replication</a></strong>: The primary node allows both reads and writes, while secondary nodes only allow reads.</li>
