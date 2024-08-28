@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../SQL_RESOURCES/">
+        <link rel="prev" href="../REGISTRY/">
       
       
-        <link rel="next" href="../SUSPEND/">
+        <link rel="next" href="../STORAGE/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Storage - MariaDB Operator</title>
+        <title>SQL resources - MariaDB Operator</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#storage" class="md-skip">
+        <a href="#sql-resources" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Storage
+              SQL resources
             
           </span>
         </div>
@@ -506,26 +506,6 @@
       
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../SQL_RESOURCES/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    SQL resources
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
     
   
   
@@ -542,7 +522,7 @@
           
   
   <span class="md-ellipsis">
-    Storage
+    SQL resources
   </span>
   
 
@@ -553,7 +533,7 @@
         
   
   <span class="md-ellipsis">
-    Storage
+    SQL resources
   </span>
   
 
@@ -584,27 +564,117 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
+  <a href="#user-cr" class="md-nav__link">
     <span class="md-ellipsis">
-      Configuration
+      User CR
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="User CR">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom name
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grant-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      Grant CR
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#volume-resize" class="md-nav__link">
+  <a href="#database-cr" class="md-nav__link">
     <span class="md-ellipsis">
-      Volume resize
+      Database CR
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Database CR">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-name_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom name
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#initial-user-grant-and-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initial User, Grant and Database
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#ephemeral-storage" class="md-nav__link">
+  <a href="#authentication-plugins" class="md-nav__link">
     <span class="md-ellipsis">
-      Ephemeral storage
+      Authentication plugins
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#password-hash" class="md-nav__link">
+    <span class="md-ellipsis">
+      Password hash
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#password-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      Password plugin
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configure-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure reconciliation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup policy
     </span>
   </a>
   
@@ -623,6 +693,26 @@
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STORAGE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Storage
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -803,27 +893,117 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
+  <a href="#user-cr" class="md-nav__link">
     <span class="md-ellipsis">
-      Configuration
+      User CR
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="User CR">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom name
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grant-cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      Grant CR
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#volume-resize" class="md-nav__link">
+  <a href="#database-cr" class="md-nav__link">
     <span class="md-ellipsis">
-      Volume resize
+      Database CR
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Database CR">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-name_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom name
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#initial-user-grant-and-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initial User, Grant and Database
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#ephemeral-storage" class="md-nav__link">
+  <a href="#authentication-plugins" class="md-nav__link">
     <span class="md-ellipsis">
-      Ephemeral storage
+      Authentication plugins
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#password-hash" class="md-nav__link">
+    <span class="md-ellipsis">
+      Password hash
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#password-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      Password plugin
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configure-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure reconciliation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup policy
     </span>
   </a>
   
@@ -856,95 +1036,178 @@
   
 
 
-<h1 id="storage">Storage</h1>
-<blockquote>
-<p>[!NOTE]<br />
-This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.26</p>
-</blockquote>
-<p>This operator gives you flexibility to define the storage that will back the <code>/var/lib/mysql</code> data directoty mounted by <code>MariaDB</code>.</p>
+<h1 id="sql-resources">SQL resources</h1>
+<p><code>mariadb-operator</code> enables you to manage SQL resources declaratively through CRs. By SQL resources, we refer to users, grants, and databases that are typically created using SQL statements.</p>
+<p>The key advantage of this approach is that, unlike executing SQL statements, which is a one-time action, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator. This provides a guarantee that the resource will be recreated if it gets manually deleted. Additionally, it helps prevent state drifts, as the operator will regularly update the resource according to the CR specification.</p>
 <h2 id="table-of-contents">Table of contents</h2>
 <!-- toc -->
 <ul>
-<li><a href="#configuration">Configuration</a></li>
-<li><a href="#volume-resize">Volume resize</a></li>
-<li><a href="#ephemeral-storage">Ephemeral storage</a></li>
+<li><a href="#user-cr"><code>User</code> CR</a></li>
+<li><a href="#grant-cr"><code>Grant</code> CR</a></li>
+<li><a href="#database-cr"><code>Database</code> CR</a></li>
+<li><a href="#initial-user-grant-and-database">Initial <code>User</code>, <code>Grant</code> and <code>Database</code></a></li>
+<li><a href="#authentication-plugins">Authentication plugins</a></li>
+<li><a href="#configure-reconciliation">Configure reconciliation</a></li>
+<li><a href="#cleanup-policy">Cleanup policy</a></li>
 <li><a href="#reference">Reference</a></li>
 </ul>
 <!-- /toc -->
 
-<h2 id="configuration">Configuration</h2>
-<p>The simplest way to configure storage for your <code>MariaDB</code> is:</p>
+<h2 id="user-cr"><code>User</code> CR</h2>
+<p>By creating this resource, you are declaring an intent to create an user in the referred <code>MariaDB</code> instance, just like a <a href="https://mariadb.com/kb/en/create-user/"><code>CREATE USER</code></a> statement would do:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: bob
+spec:
+  mariaDbRef:
+    name: mariadb
+  passwordSecretKeyRef:
+    name: bob-password
+    key: password
+  maxUserConnections: 20
+  host: &quot;%&quot;
+  cleanupPolicy: Delete  
+</code></pre>
+<p>In the example above, a user named <code>bob</code> identified by the password available in the <code>bob-password</code> <code>Secret</code> will be created in the <code>mariadb</code> instance.</p>
+<p>Refer to the <a href="#reference">reference section</a> for more detailed information about every field.</p>
+<h4 id="custom-name">Custom name</h4>
+<p>By default, the CR name is used to create the user in the database, but you can specify a different one providing the <code>name</code> field under spec:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: user
+spec:
+  name: user-custom
+</code></pre>
+<h2 id="grant-cr"><code>Grant</code> CR</h2>
+<p>By creating this resource, you are declaring an intent to grant permissions to a given user in the referred <code>MariaDB</code> instance, just like a <a href="https://mariadb.com/kb/en/grant/"><code>GRANT</code></a> statement would do.</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Grant
+metadata:
+  name: grant-bob
+spec:
+  mariaDbRef:
+    name: mariadb
+  privileges:
+    - &quot;SELECT&quot;
+    - &quot;INSERT&quot;
+    - &quot;UPDATE&quot;
+  database: &quot;*&quot;
+  table: &quot;*&quot;
+  username: bob
+  grantOption: true
+  host: &quot;%&quot;
+</code></pre>
+<p>You may provide any set of <a href="https://mariadb.com/kb/en/grant/#privilege-levels">privileges supported by MariaDB</a>.</p>
+<p>Refer to the <a href="#reference">reference section</a> for more detailed information about every field.</p>
+<h2 id="database-cr"><code>Database</code> CR</h2>
+<p>By creating this resource, you are declaring an intent to create a logical database in the referred <code>MariaDB</code> instance, just like a <a href="https://mariadb.com/kb/en/create-database/"><code>CREATE DATABASE</code></a> statement would do:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Database
+metadata:
+  name: wordpress
+spec:
+  mariaDbRef:
+    name: mariadb
+  characterSet: utf8
+  collate: utf8_general_ci
+</code></pre>
+<p>Refer to the <a href="#reference">reference section</a> for more detailed information about every field.</p>
+<h4 id="custom-name_1">Custom name</h4>
+<p>By default, the CR name is used to create the user in the database, but you can specify a different one providing the <code>name</code> field under spec:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Database
+metadata:
+  name: database
+spec:
+  name: database-custom
+</code></pre>
+<h2 id="initial-user-grant-and-database">Initial <code>User</code>, <code>Grant</code> and <code>Database</code></h2>
+<p>If you only need one user to interact with a single logical database, you can make use of the <code>MariaDB</code> resource to configure it, instead of creating the <code>User</code>, <code>Grant</code> and <code>Database</code> resources separately:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb-galera
+  name: mariadb
 spec:
-  ...
-  storage:
-    size: 1Gi
+  username: bob
+  passwordSecretKeyRef:
+    name: bob-password
+    key: password
+  database: wordpress
 </code></pre>
-<p>This will make use of the default <code>StorageClass</code> available in your cluster, but you can also provide a different one:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
+<p>Behind the scenes, the operator will be creating an <code>User</code> resource with <code>ALL PRIVILEGES</code> in the initial <code>Database</code>. </p>
+<h2 id="authentication-plugins">Authentication plugins</h2>
+<p>Passwords can be supplied using the <code>passwordSecretKeyRef</code> field in the <code>User</code> CR. This is a reference to a <code>Secret</code> that containers password in plain text. </p>
+<p>Alternatively, you can use <a href="https://mariadb.com/kb/en/authentication-plugins/">MariaDB authentication plugins</a> to avoid storing passwords in plain text and provide the password in a hashed format instead. This doesn't affect the end user experience, they will still need to provide the password in plain text to authenticate.</p>
+<h4 id="password-hash">Password hash</h4>
+<p>Provide the password hashed using the <a href="https://mariadb.com/kb/en/password/">MariaDB <code>PASSWORD</code> </a>function:</p>
+<pre><code class="language-yaml">kind: Secret
 metadata:
-  name: mariadb-galera
-spec:
-  ...
-  storage:
-    size: 1Gi
-    storageClassName: my-storage-class
-</code></pre>
-<p>Under the scenes, the operator is configuring the <code>StatefulSet</code>'s <code>volumeClaimTemplate</code> property, which you are also able to provide yourself:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
+  name: mariadb-auth
+stringData:
+  passwordHash: &quot;*57685B4F0FF9D049082E296E2C39354B7A98774E&quot;
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
 metadata:
-  name: mariadb-galera
+  name: user-password-hash
 spec:
-  ...
-  storage:
-    size: 1Gi
-    storageClassName: standard
-    volumeClaimTemplate:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 1Gi
-      storageClassName: standard
+  mariaDbRef:
+    name: mariadb
+  passwordHashSecretKeyRef:
+    name: mariadb-auth
+    key: passwordHash
+  host: &quot;%&quot;
 </code></pre>
-<h2 id="volume-resize">Volume resize</h2>
-<blockquote>
-<p>[!WARNING]<br />
-The <code>StorageClass</code> used for volume resizing must define <code>allowVolumeExpansion = true</code>.</p>
-</blockquote>
-<p>It is possible to resize your storage after having provisioned a <code>MariaDB</code>. We need to distinguish between:
-- PVCs already in use.
-- <code>StatefulSet</code> storage size, which will be used when provisioning new replicas.</p>
-<p>It is important to note that, for the first case, your <code>StorageClass</code> must support volume expansion by declaring the <code>allowVolumeExpansion = true</code>. In such case, it will be safe to expand the storage by increasing the <code>size</code> and setting <code>resizeInUseVolumes = true</code>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
+<p>The password hash can be obtaned by executing <code>SELECT PASSWORD('&lt;password&gt;');</code> in an existing MariaDB installation.</p>
+<h4 id="password-plugin">Password plugin</h4>
+<p>Provide the password hashed using any of the available <a href="https://mariadb.com/kb/en/authentication-plugins/">MariaDB authentication plugins</a>, for example <code>mysql_native_password</code>:</p>
+<pre><code class="language-yaml">kind: Secret
 metadata:
-  name: mariadb-galera
-spec:
-  ...
-  storage:
-    size: 2Gi
-    resizeInUseVolumes: true
-    waitForVolumeResize: true
-</code></pre>
-<p>Depending on your storage provider, this operation might take a while, and you can decide to wait for this operation before the <code>MariaDB</code> becomes ready by setting <code>waitForVolumeResize = true</code>. Operations such as <a href="../GALERA/#galera-cluster-recovery">cluster recovery</a> and <a href="../HA/">primary switchover</a> will not be performed if the <code>MariaDB</code> resource is not ready.</p>
-<h2 id="ephemeral-storage">Ephemeral storage</h2>
-<p>Provisioning standalone <code>MariaDB</code> instances is also possible by setting <code>ephemeral = true</code>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
+  name: mariadb-auth
+stringData:
+  passwordHash: &quot;*57685B4F0FF9D049082E296E2C39354B7A98774E&quot;
+  nativePasswordPlugin: mysql_native_password
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
 metadata:
-  name: mariadb-galera
+  name: user-password-plugin
 spec:
-  ...
-  storage:
-    ephemeral: true   
+  mariaDbRef:
+    name: mariadb
+  passwordPlugin:
+    pluginNameSecretKeyRef:
+        name: mariadb-auth
+        key: nativePasswordPlugin
+    pluginArgSecretKeyRef:
+        name: mariadb-auth
+        key: passwordHash
+  host: &quot;%&quot;
 </code></pre>
-<p>This may be useful more multiple use cases, like provisioning ephemeral <code>MariaDBs</code> for the integration tests of your CI.</p>
+<p>The plugin name should be available in a <code>Secret</code> referenced by <code>pluginNameSecretKeyRef</code> and the argument passed to it in <code>pluginArgSecretKeyRef</code>. The argument is the hashed password in most cases, refer to the <a href="https://mariadb.com/kb/en/authentication-plugins/">MariaDB docs</a> for further detail.</p>
+<h2 id="configure-reconciliation">Configure reconciliation</h2>
+<p>As we previously mentioned, SQL resources are periodically reconciled by the operator into SQL statements. You are able to tweak the reconciliation interval using the following fields:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: user
+spec:
+  requeueInterval: 30s
+  retryInterval: 5s
+</code></pre>
+<p>If the SQL statement executed by the operator is successful, it will schedule the next reconciliation cycle using the <code>requeueInterval</code>. If the statement encounters an error, the operator will use the <code>retryInterval</code> instead.</p>
+<h2 id="cleanup-policy">Cleanup policy</h2>
+<p>Whenever you delete a SQL resource, the operator will also delete the associated resource in the database. This is the default behaviour, that can also be achieved by setting <code>cleanupPolicy=Delete</code>:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: user
+spec:
+  cleanupPolicy: Delete
+</code></pre>
+<p>You can opt-out from this cleanup process using <code>cleanupPolicy=Skip</code>. Note that this resources will remain in the database.</p>
 <h2 id="reference">Reference</h2>
 <ul>
 <li><a href="../API_REFERENCE/">API reference</a></li>
