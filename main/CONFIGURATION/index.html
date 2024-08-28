@@ -393,6 +393,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#timezones" class="md-nav__link">
+    <span class="md-ellipsis">
+      Timezones
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#passwords" class="md-nav__link">
     <span class="md-ellipsis">
       Passwords
@@ -414,15 +423,6 @@
   <a href="#probes" class="md-nav__link">
     <span class="md-ellipsis">
       Probes
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#timezones" class="md-nav__link">
-    <span class="md-ellipsis">
-      TimeZones
     </span>
   </a>
   
@@ -801,6 +801,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#timezones" class="md-nav__link">
+    <span class="md-ellipsis">
+      Timezones
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#passwords" class="md-nav__link">
     <span class="md-ellipsis">
       Passwords
@@ -822,15 +831,6 @@
   <a href="#probes" class="md-nav__link">
     <span class="md-ellipsis">
       Probes
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#timezones" class="md-nav__link">
-    <span class="md-ellipsis">
-      TimeZones
     </span>
   </a>
   
@@ -864,10 +864,10 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.2
 <!-- toc -->
 <ul>
 <li><a href="#mycnf">my.cnf</a></li>
+<li><a href="#timezones">Timezones</a></li>
 <li><a href="#passwords">Passwords</a></li>
 <li><a href="#external-resources">External resources</a></li>
 <li><a href="#probes">Probes</a></li>
-<li><a href="#timezones">TimeZones</a></li>
 </ul>
 <!-- /toc -->
 
@@ -901,6 +901,31 @@ spec:
     key: mycnf
 </code></pre>
 <p>To ensure your configuration changes take effect, the operator triggers a <a href="../UPDATES/">rolling update</a> whenever the <code>myCnf</code> field or a <code>ConfigMap</code> is updated. For the operator to detect changes in a <code>ConfigMap</code>, it must be labeled with <code>k8s.mariadb.com/watch</code>. Refer to the <a href="#external-resources">external resources</a> section for further detail.</p>
+<h2 id="timezones">Timezones</h2>
+<p>By default, MariaDB does not load timezone data on startup for performance reasons and defaults the timezone to <code>SYSTEM</code>, obtaining the timezone information from the environment where it runs. See the <a href="https://mariadb.com/kb/en/time-zones/">MariaDB docs</a> for further information.</p>
+<p>You can explicitly configure a timezone in your <code>MariaDB</code> instance by setting the <code>timeZone</code> field: </p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  timeZone: &quot;UTC&quot;
+</code></pre>
+<p>This setting is immutable and implies loading the timezone data on startup.</p>
+<p>In regards to <code>Backup</code> and <code>SqlJob</code> resources, which get reconciled into <code>CronJobs</code>, you can also define a <code>timeZone</code> associated with their cron expression:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-scheduled
+spec:
+  mariaDbRef:
+    name: mariadb
+  schedule:
+    cron: &quot;*/1 * * * *&quot;
+    suspend: false
+  timeZone: &quot;UTC&quot;
+</code></pre>
+<p>If <code>timeZone</code> is not provided, the local timezone will be used, as described in the <a href="https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#time-zones">Kubernetes docs</a>.</p>
 <h2 id="passwords">Passwords</h2>
 <p>Some CRs require passwords provided as <code>Secret</code> references to function properly. For instance, the root password for a <code>MariaDB</code> resource:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
@@ -989,31 +1014,6 @@ spec:
     timeoutSeconds: 5
 </code></pre>
 <p>There isn't an universally correct default value for these thresholds, so we recommend determining your own based on factors like the compute resources, network, storage, and other aspects of the environment where your <code>MariaDB</code> and <code>MaxScale</code> instances are running.</p>
-<h2 id="timezones">TimeZones</h2>
-<p>By default, MariaDB does not load timezone data on startup for performance reasons and defaults the timezone to <code>SYSTEM</code>, obtaining the timezone information from the environment where it runs. See the <a href="https://mariadb.com/kb/en/time-zones/">MariaDB docs</a> for further information.</p>
-<p>You can explicitly configure a timezone in your <code>MariaDB</code> instance by setting the <code>timeZone</code> field: </p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  timeZone: &quot;UTC&quot;
-</code></pre>
-<p>This setting is immutable and implies loading the timezone data on startup.</p>
-<p>In regards to <code>Backup</code> and <code>SqlJob</code> resources, which get reconciled into <code>CronJobs</code>, you can also define a <code>timeZone</code> associated with their cron expression:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: Backup
-metadata:
-  name: backup-scheduled
-spec:
-  mariaDbRef:
-    name: mariadb
-  schedule:
-    cron: &quot;*/1 * * * *&quot;
-    suspend: false
-  timeZone: &quot;UTC&quot;
-</code></pre>
-<p>If <code>timeZone</code> is not provided, the local timezone will be used, as described in the <a href="https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#time-zones">Kubernetes docs</a>.</p>
 
 
 
