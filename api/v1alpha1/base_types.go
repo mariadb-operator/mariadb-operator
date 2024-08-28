@@ -652,14 +652,17 @@ func (s *Schedule) Validate() error {
 
 // CronJobTemplate defines parameters for configuring CronJob objects.
 type CronJobTemplate struct {
+	// SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+	// FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
+	// TimeZone defines the timezone associated with the cron expression.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TimeZone *string `json:"timeZone,omitempty"`
