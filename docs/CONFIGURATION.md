@@ -11,6 +11,7 @@ This documentation aims to provide guidance on various configuration aspects acr
 - [Passwords](#passwords)
 - [External resources](#external-resources)
 - [Probes](#probes)
+- [TimeZones](#timezones)
 <!-- /toc -->
 
 ## my.cnf
@@ -162,3 +163,38 @@ spec:
 ```
 
 There isn't an universally correct default value for these thresholds, so we recommend determining your own based on factors like the compute resources, network, storage, and other aspects of the environment where your `MariaDB` and `MaxScale` instances are running.
+
+## TimeZones
+
+By default, MariaDB does not load timezone data on startup for performance reasons and defaults the timezone to `SYSTEM`, obtaining the timezone information from the environment where it runs. See the [MariaDB docs](https://mariadb.com/kb/en/time-zones/) for further information.
+
+You can explicitly configure a timezone in your `MariaDB` instance by setting the `timeZone` field: 
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  timeZone: "UTC"
+```
+
+This setting is immutable and implies loading the timezone data on startup.
+
+In regards to `Backup` and `SqlJob` resources, which get reconciled into `CronJobs`, you can also define a `timeZone` associated with their cron expression:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-scheduled
+spec:
+  mariaDbRef:
+    name: mariadb
+  schedule:
+    cron: "*/1 * * * *"
+    suspend: false
+  timeZone: "UTC"
+```
+
+If `timeZone` is not provided, the local timezone will be used, as described in the [Kubernetes docs](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#time-zones).
