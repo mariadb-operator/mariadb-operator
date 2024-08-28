@@ -21,6 +21,9 @@ Refer to the following sections for further detail.
 
 ## Topologies
 
+> [!WARNING]  
+> SemiSync Replication is in alpha stage and not ready for production. Use it at your own risk.
+
 - **Multi master HA via [Galera](./GALERA.md)**: All nodes support reads and writes. We have a designated primary where the writes are performed.
 - **Single master HA via [SemiSync Replication](../examples/manifests/mariadb_replication.yaml)**: The primary node allows both reads and writes, while secondary nodes only allow reads.
 
