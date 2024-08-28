@@ -374,7 +374,7 @@ spec:
 
 Also, to avoid situations where `mysql.global_priv` is unreplicated, all the entries in that table must be managed via DDLs. This is the recommended approach suggested in the [Galera docs](https://galeracluster.com/library/kb/user-changes.html). There are a couple of ways that we can guarantee this:
 - Use the `rootPasswordSecretKeyRef`, `username` and `passwordSecretKeyRef` fields of the `MariaDB` CR to create the root and initial user respectively. This fields will be translated into DDLs by the image entrypoint.
-- Rely on the [`User`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml) and [`Grant`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml) CRs to create additional users and grants. They will be translated into DDL statements (`CREATE USER`, `GRANT`) by the operator.
+- Rely on the [`User`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml) and [`Grant`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml) CRs to create additional users and grants. Refer to the [SQL resource documentation](./docs/SQL_RESOURCES.md) for further detail.
 
 
 #### `LOCK TABLES` 
@@ -444,7 +444,7 @@ spec:
     targetRecoveryTime: 2024-08-26T12:24:34Z
 ```
 
-5. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs.
+5. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs. Refer to the [SQL resource documentation](./docs/SQL_RESOURCES.md) for further detail.
 
 ## Migrating to a `MariaDB` with different topology
 
