@@ -34,7 +34,6 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
-  ...
   suspend: true
 ```
 
