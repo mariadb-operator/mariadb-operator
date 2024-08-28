@@ -433,14 +433,17 @@ Once you are done with these steps, you will have the context required to jump a
 
 ### Common errors
 
-
 #### Galera cluster recovery not progressing
 
 If your `MariaDB` Galera cluster has been in `GaleraNotReady` state for a long time, the recovery process might not be progressing. You can diagnose this by checking:
-- The operator logs.
+- Operator logs.
 - Galera recovery status:
 ```bash
 kubectl get mariadb mariadb-galera -o jsonpath="{.status.galeraRecovery}" | jq
+```
+- `MariaDB` events:
+```bash
+kubectl get events --field-selector involvedObject.name=mariadb-galera
 ```
 - If you have `Pods` named `<mariadb-name>-<ordinal>-recovery-<suffix>` running for a long time, check its logs to understand if something is wrong.
 
