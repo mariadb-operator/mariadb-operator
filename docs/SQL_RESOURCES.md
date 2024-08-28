@@ -158,7 +158,7 @@ spec:
   host: "%"
 ```
 
-The password hash can be obtaned by executing `SELECT PASSWORD('<password>');` in an existing MariaDB installation.
+The password hash can be obtained by executing `SELECT PASSWORD('<password>');` in an existing MariaDB installation.
 
 #### Password plugin
 
