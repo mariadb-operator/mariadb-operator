@@ -443,8 +443,7 @@ spec:
           key: ca.crt
     targetRecoveryTime: 2024-08-26T12:24:34Z
 ```
-
-1. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs. Refer to the [SQL resource documentation](./SQL_RESOURCES.md) for further detail.
+5. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs. Refer to the [SQL resource documentation](./SQL_RESOURCES.md) for further detail.
 
 ## Migrating to a `MariaDB` with different topology
 
