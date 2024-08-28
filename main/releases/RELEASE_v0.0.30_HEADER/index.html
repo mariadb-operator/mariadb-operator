@@ -9,25 +9,23 @@
       
       
       
-        <link rel="prev" href="../CONFIGURATION/">
+        <link rel="prev" href="../../UPGRADE_v0.0.30/">
       
       
-        <link rel="next" href="../DOCKER/">
       
-      
-      <link rel="icon" href="../assets/mariadb_favicon.svg">
+      <link rel="icon" href="../../assets/mariadb_favicon.svg">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.27">
     
     
       
-        <title>Development guide - MariaDB Operator</title>
+        <title>RELEASE v0.0.30 HEADER - MariaDB Operator</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6543a935.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,9 +44,9 @@
       
     
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#development-guide" class="md-skip">
+        <a href="#galera-enhanced-recovery" class="md-skip">
           Skip to content
         </a>
       
@@ -91,7 +89,7 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../..">
+  <a href="../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
@@ -108,9 +106,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+    <a href="../.." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
       
-  <img src="../assets/mariadb_medium.svg" alt="logo">
+  <img src="../../assets/mariadb_medium.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -127,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Development guide
+              RELEASE v0.0.30 HEADER
             
           </span>
         </div>
@@ -240,9 +238,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+    <a href="../.." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
       
-  <img src="../assets/mariadb_medium.svg" alt="logo">
+  <img src="../../assets/mariadb_medium.svg" alt="logo">
 
     </a>
     MariaDB Operator
@@ -269,7 +267,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -289,7 +287,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../API_REFERENCE/" class="md-nav__link">
+      <a href="../../API_REFERENCE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -309,7 +307,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../BACKUP/" class="md-nav__link">
+      <a href="../../BACKUP/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -329,7 +327,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CONFIGURATION/" class="md-nav__link">
+      <a href="../../CONFIGURATION/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -346,30 +344,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Development guide
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../DEVELOPMENT/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -378,158 +356,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#flavours" class="md-nav__link">
-    <span class="md-ellipsis">
-      Flavours
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flavours">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#devcontainer" class="md-nav__link">
-    <span class="md-ellipsis">
-      devcontainer
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#local" class="md-nav__link">
-    <span class="md-ellipsis">
-      local
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
-    <span class="md-ellipsis">
-      Getting started
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cluster" class="md-nav__link">
-    <span class="md-ellipsis">
-      Cluster
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#network" class="md-nav__link">
-    <span class="md-ellipsis">
-      Network
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Dependencies
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#generate" class="md-nav__link">
-    <span class="md-ellipsis">
-      Generate
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install" class="md-nav__link">
-    <span class="md-ellipsis">
-      Install
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build" class="md-nav__link">
-    <span class="md-ellipsis">
-      Build
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#unit-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Unit tests
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Integration tests
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -541,7 +367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../DOCKER/" class="md-nav__link">
+      <a href="../../DOCKER/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -561,7 +387,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../GALERA/" class="md-nav__link">
+      <a href="../../GALERA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -581,7 +407,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../HA/" class="md-nav__link">
+      <a href="../../HA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -601,7 +427,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../MAXSCALE/" class="md-nav__link">
+      <a href="../../MAXSCALE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -621,7 +447,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../METADATA/" class="md-nav__link">
+      <a href="../../METADATA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -641,7 +467,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../METRICS/" class="md-nav__link">
+      <a href="../../METRICS/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -661,7 +487,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../REGISTRY/" class="md-nav__link">
+      <a href="../../REGISTRY/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -681,7 +507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../SQL_RESOURCES/" class="md-nav__link">
+      <a href="../../SQL_RESOURCES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -701,7 +527,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../STORAGE/" class="md-nav__link">
+      <a href="../../STORAGE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -721,7 +547,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../SUSPEND/" class="md-nav__link">
+      <a href="../../SUSPEND/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -741,7 +567,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPDATES/" class="md-nav__link">
+      <a href="../../UPDATES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -761,7 +587,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.20/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -781,7 +607,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.21/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -801,7 +627,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.24/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -821,7 +647,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.26/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -841,7 +667,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.28/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -861,7 +687,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.30/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.30/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -878,17 +704,19 @@
       
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_23" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_23" checked>
         
           
           <label class="md-nav__link" for="__nav_23" id="__nav_23_label" tabindex="0">
@@ -902,7 +730,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_23_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_23_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_23">
             <span class="md-nav__icon md-icon"></span>
             Releases
@@ -913,10 +741,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../releases/RELEASE_v0.0.30_HEADER/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    RELEASE v0.0.30 HEADER
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -925,6 +771,60 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#galera-enhanced-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera enhanced recovery
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap-galera-cluster-from-existing-pvcs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bootstrap Galera cluster from existing PVCs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suspend" class="md-nav__link">
+    <span class="md-ellipsis">
+      Suspend
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sql-resource-cleanup-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      SQL resource cleanup policy
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -954,8 +854,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -964,132 +862,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
+  <a href="#galera-enhanced-recovery" class="md-nav__link">
     <span class="md-ellipsis">
-      Table of contents
+      Galera enhanced recovery
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#flavours" class="md-nav__link">
+  <a href="#bootstrap-galera-cluster-from-existing-pvcs" class="md-nav__link">
     <span class="md-ellipsis">
-      Flavours
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flavours">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#devcontainer" class="md-nav__link">
-    <span class="md-ellipsis">
-      devcontainer
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#local" class="md-nav__link">
-    <span class="md-ellipsis">
-      local
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
-    <span class="md-ellipsis">
-      Getting started
+      Bootstrap Galera cluster from existing PVCs
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#cluster" class="md-nav__link">
+  <a href="#suspend" class="md-nav__link">
     <span class="md-ellipsis">
-      Cluster
+      Suspend
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#network" class="md-nav__link">
+  <a href="#sql-resource-cleanup-policy" class="md-nav__link">
     <span class="md-ellipsis">
-      Network
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Dependencies
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#generate" class="md-nav__link">
-    <span class="md-ellipsis">
-      Generate
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install" class="md-nav__link">
-    <span class="md-ellipsis">
-      Install
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build" class="md-nav__link">
-    <span class="md-ellipsis">
-      Build
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#unit-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Unit tests
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Integration tests
+      SQL resource cleanup policy
     </span>
   </a>
   
@@ -1113,124 +915,40 @@
   
 
 
-<h1 id="development-guide">Development guide</h1>
-<p>In this guide, we will be configuring a local environment to run <code>mariadb-operator</code> so you can develop and test features without hassle. The local <code>mariadb-operator</code> will be able to resolve DNS and connect to MariaDB as if it was running inside a Kubernetes cluster.</p>
-<h2 id="table-of-contents">Table of contents</h2>
-<!-- toc -->
-<ul>
-<li><a href="#flavours">Flavours</a></li>
-<li><a href="#getting-started">Getting started</a></li>
-<li><a href="#cluster">Cluster</a></li>
-<li><a href="#network">Network</a></li>
-<li><a href="#dependencies">Dependencies</a></li>
-<li><a href="#generate">Generate</a></li>
-<li><a href="#install">Install</a></li>
-<li><a href="#build">Build</a></li>
-<li><a href="#run">Run</a></li>
-<li><a href="#test">Test</a></li>
-</ul>
-<!-- /toc -->
+  <h1>RELEASE v0.0.30 HEADER</h1>
 
-<h2 id="flavours">Flavours</h2>
-<h4 id="devcontainer">devcontainer</h4>
-<p>Spin up a <a href="https://containers.dev/implementors/json_reference/">devcontainer</a> with everything you need to develop. This can be used in conjunction with many tools, such as <a href="https://code.visualstudio.com/docs/devcontainers/containers">vscode</a>, <a href="https://github.com/features/codespaces">GitHub codespaces</a> and <a href="https://devpod.sh/">DevPod</a>, which will automatically detect the <a href="../.devcontainer/devcontainer.json">devcontainer.json</a>.</p>
-<p>The only dependency you need is <a href="https://www.docker.com/">docker</a> in case that choose to run your devcontainer locally.</p>
-<h4 id="local">local</h4>
-<p>Run the operator locally in your machine using <code>go run</code>. It requires the following dependencies:
-- <a href="https://www.gnu.org/software/make/manual/make.html">make</a>
-- <a href="https://go.dev/doc/install">go</a>
-- <a href="https://www.docker.com/">docker</a></p>
-<p>This flavour uses <a href="https://kind.sigs.k8s.io/">KIND</a> and <a href="https://metallb.universe.tf/">MetalLB</a> under the hood to provision Kubernetes clusters and assign local IPs to <code>LoadBalancer</code> <code>Services</code>. It has some <a href="https://kind.sigs.k8s.io/docs/user/loadbalancer/">limitations</a> in Mac and Windows which will make the operator unable to connect to MariaDB via the <code>LoadBalancer</code> <code>Service</code>, leading to errors when reconciling SQL-related resources. Alternatively, use the <a href="#devcontainer">devcontainer</a> flavour.</p>
-<h2 id="getting-started">Getting started</h2>
-<p>After having decided which <a href="#flavours">flavour</a> to use and install the required dependencies, you will be able to use the <code>Makefile</code> targets we provide. For convenience, every development action has an associated <code>Makefile</code> target. You can list all of them by running <code>make</code>:</p>
-<pre><code class="language-bash">make
-
-Usage:
-  make &lt;target&gt;
-
-General
-  help             Display this help.
-
-...
-
-Install
-  install-crds     Install CRDs.
-  uninstall-crds   Uninstall CRDs.
-  install          Install CRDs and dependencies for local development.
-  install-samples  Install sample configuration.
-  serviceaccount   Create long-lived ServiceAccount token for development.
-
-Dev
-  certs            Generates development certificates.
-  lint             Lint.
-  build            Build binary.
-  test             Run tests.
-  cover            Run tests and generate coverage.
-  release          Test release locally.
-
-Operator
-  run              Run a controller from your host. 
-
-...
-</code></pre>
-<h2 id="cluster">Cluster</h2>
-<p>To start with, you will need a Kubernetes cluster for developing locally. You can provision a <a href="https://kind.sigs.k8s.io/">KIND</a> cluster by using the following target:</p>
-<pre><code class="language-bash">make cluster
-</code></pre>
-<p>To decommission the cluster:</p>
-<pre><code class="language-bash">make cluster-delete
-</code></pre>
-<h2 id="network">Network</h2>
-<p>You can configure the network connectivity so the operator is able to resolve DNS and address MariaDB as if it was running in-cluster:</p>
-<pre><code class="language-bash">make net
-</code></pre>
-<p>This connectivity leverages <a href="https://metallb.universe.tf/">MetalLB</a> to assign local IPs to the <code>LoadBalancer</code> <code>Services</code> for the operator to connect to MariaDB. For this to happen, these local IPs need to be within the docker CIDR, which can be queried using:</p>
-<pre><code class="language-bash">make cidr
-172.18.0.0/16
-</code></pre>
-<p>When deploying <a href="../examples/manifests/">example manifests</a>, take into account that <code>LoadBalancer</code> <code>Services</code> need to be within the docker CIDR to function properly, see:
-- <a href="https://github.com/mariadb-operator/mariadb-operator/blob/6f79a8e9e73977c433fb2d5c39a4b7210349b46c/examples/manifests/mariadb_v1alpha1_mariadb.yaml#L95">examples/manifests/mariadb_v1alpha1_mariadb.yaml</a>
-- <a href="https://github.com/mariadb-operator/mariadb-operator/blob/160b7cc937c031f6faf7c1f50fcae78053faf766/examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml#L87">examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml</a>
-- <a href="https://github.com/mariadb-operator/mariadb-operator/blob/6f79a8e9e73977c433fb2d5c39a4b7210349b46c/examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml#L102">examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml</a></p>
-<h2 id="dependencies">Dependencies</h2>
-<p>You might need the following third party dependencies to test certain features of <code>mariadb-operator</code>, to install them run:</p>
-<pre><code class="language-bash">make install-prometheus
-make install-cert-manager
-make install-minio
-</code></pre>
-<p>Some of this dependencies have ports mapped to the host (i.e. Grafana and Minio to expose the dashboard) so be sure to check the <a href="../.devcontainer/devcontainer.json">forwarded ports</a> to access. This step requires running <code>make net</code> previously.</p>
-<h2 id="generate">Generate</h2>
-<p>This target generates code, CRDs and deployment manifests. Make sure to run this before pushing a commit, as it is required by the CI:</p>
-<pre><code class="language-bash">make gen
-</code></pre>
-<h2 id="install">Install</h2>
-<p>Install CRDs and everything you need to run the operator locally:</p>
-<pre><code class="language-bash">make install
-</code></pre>
-<h2 id="build">Build</h2>
-<p>Build the operator binary:</p>
-<pre><code class="language-bash">make build
-</code></pre>
-<p>Build the docker image and load it into KIND:</p>
-<pre><code class="language-bash">make docker-build
-make docker-load
-</code></pre>
-<h2 id="run">Run</h2>
-<pre><code class="language-bash">make cluster
-make install
-make net
-make run
-</code></pre>
-<h2 id="unit-tests">Unit tests</h2>
-<pre><code class="language-bash">make test
-</code></pre>
-<h2 id="integration-tests">Integration tests</h2>
-<pre><code class="language-bash">make cluster
-make install
-make install-minio
-make net
-make test-int
-</code></pre>
+<p>We’re beyond excited to unveil <code>{{ .ProjectName }}</code>🦭 <strong><a href="https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.30">v0.0.30</a></strong>!</p>
+<p>This release includes significant updates that notably enhance the robustness and reliability of Galera.</p>
+<p>It has also been the release with the most external contributions so far, and we couldn't be more thrilled! A massive thank you to all the contributors for your time, dedication, and incredible effort. Your high-quality contributions are the hearbeat of projects like this, fueling our success and driving us forward! 🙏🏻🦭🎉</p>
+<p>To upgrade from older versions, be sure to follow the <strong><a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.30.md">UPGRADE GUIDE</a></strong>.</p>
+<h2 id="galera-enhanced-recovery">Galera enhanced recovery</h2>
+<p>We have notably polished the recovery process fixing issues and covering cases that before resulted in the recovery getting stucked.</p>
+<p>The sequence numbers required for the recovery are now obtained by <code>Jobs</code>, which mount the <code>MariaDB</code> PVCs and run <code>mariadbd --wsrep-recover</code>. This is a game changer in terms of reliability and recovery speed, as the <code>MariaDB</code> <code>Pods</code> don't need to be restarted in order to achieve this. You can get more details about this new <code>Jobs</code> in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#galera-recovery-job">documentation</a>.</p>
+<p>To ensure that you have full control of the recovery process in exceptional circumstances, we are also introducing the <code>forceClusterBootstrapInPod</code> field, which allows you to manually specify which <code>Pod</code> to use to bootstrap the new Galera cluster and bypass the operator recovery process. Read more about this field in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/release-v0.0.30/docs/GALERA.md#force-cluster-bootstrap">documentation</a>.</p>
+<p>Finally, we have created this <a href="https://github.com/mariadb-operator/mariadb-operator/blob/release-v0.0.30/docs/GALERA.md#galera-cluster-recovery-not-progressing">troubleshooting section</a> to help you triaging and operating the Galera recovery process.</p>
+<p>Read more about this in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md">Galera documentation</a>.</p>
+<h2 id="bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</h2>
+<p><code>mariadb-operator</code> will never delete your <code>MariaDB</code> PVCs! Whenever you delete a <code>MariaDB</code> resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.</p>
+<p>That said, the operator is able now to bootstrap a new <code>MariaDB</code> Galera cluster when previous PVCs still exist. During the provisioning phase, the operator automatically triggers the Galera recovery process if pre-existing PVCs are detected.</p>
+<p>This is a massive improvement in terms of usability, as you don't need to care about whether you have previous PVCs or not and enables seamless Galera cluster recreation without data loss.</p>
+<p>Read more about this in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md">Galera documentation</a>.</p>
+<h2 id="suspend">Suspend</h2>
+<p>By leveraging the automation provided this operator, you can declaratively manage large fleets of databases using CRs. This also covers day two operations, such as upgrades, which can be risky when rolling out updates to thousands of instances simultaneously.</p>
+<p>To mitigate this, and to give you more control on when these operations are performed, you are able to selectively suspend a subset of <code>MariaDB</code> resources, temporarily stopping the upgrades and other operations on them.</p>
+<p>This has multiple applications, including:
+- Progressive fleet upgrades
+- Operator upgrades
+- Maintenance</p>
+<p>Read more about this new feature in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SUSPEND.md">Suspend documentation</a>.</p>
+<p>Kudos to @harunkucuk5 for this contribution! 🙏🏻</p>
+<h2 id="sql-resource-cleanup-policy">SQL resource cleanup policy</h2>
+<p>This operator enables you to manage SQL resources declaratively through CRs. By SQL resources, we refer to users, grants, and databases that are typically created using SQL statements. The key advantage of this approach is that, unlike executing SQL statements, which is a one-time action, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator.</p>
+<p>We have introduced a new <code>cleanupPolicy</code> field in our SQL CRs (<code>User</code>, <code>Grant</code>, <code>Database</code>) which allows you to control the termination logic of these resources. Whenever they are deleted, the operator takes into account this new field and determines whether the database resources should be deleted (<code>cleanupPolicy=Delete</code>) or not (<code>cleanupPolicy=Skip</code>).</p>
+<p>Read more about this new feature in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SQL_RESOURCES.md">SQL resources documentation</a>.</p>
+<p>Kudos to @ChrisHubinger for this contribution! 🙏🏻</p>
+<hr />
+<p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
+<p>Join us on Slack: <strong><a href="https://r.mariadb.com/join-community-slack">MariaDB Community Slack</a></strong>.</p>
 
 
 
@@ -1314,10 +1032,10 @@ make test-int
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
+      <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
       
     
   </body>
