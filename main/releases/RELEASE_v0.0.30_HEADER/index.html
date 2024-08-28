@@ -821,6 +821,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#migrate-your-mariadb-instance-to-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrate your MariaDB instance to Kubernetes
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -897,6 +906,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#migrate-your-mariadb-instance-to-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrate your MariaDB instance to Kubernetes
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -946,6 +964,8 @@
 <p>We have introduced a new <code>cleanupPolicy</code> field in our SQL CRs (<code>User</code>, <code>Grant</code>, <code>Database</code>) which allows you to control the termination logic of these resources. Whenever they are deleted, the operator takes into account this new field and determines whether the database resources should be deleted (<code>cleanupPolicy=Delete</code>) or not (<code>cleanupPolicy=Skip</code>).</p>
 <p>Read more about this new feature in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SQL_RESOURCES.md">SQL resources documentation</a>.</p>
 <p>Kudos to @ChrisHubinger for this contribution! 🙏🏻</p>
+<h2 id="migrate-your-mariadb-instance-to-kubernetes">Migrate your MariaDB instance to Kubernetes</h2>
+<p>This <a href="./docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes">migration guide</a> will streamline your onboarding process and assist you in migrating your data into a <code>MariaDB</code> instance running on Kubernetes.</p>
 <hr />
 <p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
 <p>Join us on Slack: <strong><a href="https://r.mariadb.com/join-community-slack">MariaDB Community Slack</a></strong>.</p>
