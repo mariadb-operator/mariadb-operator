@@ -86,7 +86,7 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 
 ## Migrate your MariaDB instance to Kubernetes
 
-This [migration guide](./docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will help you migrating your data into a `MariaDB` instance running in Kubernetes.
+This [migration guide](./docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
 
 ## Quickstart
 

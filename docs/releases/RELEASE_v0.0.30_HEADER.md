@@ -53,6 +53,10 @@ Read more about this new feature in the [SQL resources documentation](https://gi
 
 Kudos to @ChrisHubinger for this contribution! 🙏🏻
 
+## Migrate your MariaDB instance to Kubernetes
+
+This [migration guide](./docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
+
 ---
 
 We value your feedback! If you encounter any issues or have suggestions, please [open an issue on GitHub](https://github.com/mariadb-operator/mariadb-operator/issues/new/choose). Your input is crucial to improve `{{ .ProjectName }}`🦭.
