@@ -55,6 +55,6 @@ jobs:
           fetch-depth: 0
 
       - name: Dispatch helm OLM workflow
-        run: gh workflow run bundle.yaml --repo mariadb-operator/mariadb-operator-helm -f version=$(make helm-chart-version)
+        run: gh workflow run bundle.yaml --repo mariadb-operator/mariadb-operator-helm -f version=$(make helm-version)
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
