@@ -142,5 +142,5 @@ jobs:
           ci-path-file: "deploy/olm/ci.yaml"
           user-name: "Martin Montes"
           user-email: "martin11lrx@gmail.com"
-          draft: true # TODO: switch to dry-run mode once PR is verified
-          # dry-run: true
+          draft: false
+          dry-run: true
