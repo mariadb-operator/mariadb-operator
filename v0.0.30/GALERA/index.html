@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../DEVELOPMENT/">
+        <link rel="prev" href="../DOCKER/">
       
       
         <link rel="next" href="../HA/">
@@ -366,6 +366,26 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../DOCKER/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Docker Images for MariaDB Operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -451,15 +471,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#galera-cluster-recovery" class="md-nav__link">
-    <span class="md-ellipsis">
-      Galera cluster recovery
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#wsrep-provider" class="md-nav__link">
     <span class="md-ellipsis">
       Wsrep provider
@@ -472,6 +483,57 @@
   <a href="#ipv6-support" class="md-nav__link">
     <span class="md-ellipsis">
       IPv6 support
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-and-restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup and restore
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#galera-cluster-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster recovery
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Galera cluster recovery">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#galera-recovery-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera recovery Job
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-cluster-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      Force cluster bootstrap
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap-galera-cluster-from-existing-pvcs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bootstrap Galera cluster from existing PVCs
     </span>
   </a>
   
@@ -505,6 +567,15 @@
   
     <nav class="md-nav" aria-label="Common errors">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#galera-cluster-recovery-not-progressing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster recovery not progressing
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#permission-denied-writing-galera-configuration" class="md-nav__link">
@@ -685,11 +756,51 @@
   
   
     <li class="md-nav__item">
+      <a href="../SQL_RESOURCES/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SQL resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../STORAGE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Storage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SUSPEND/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Suspend
   </span>
   
 
@@ -818,6 +929,26 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.30/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.30
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -881,15 +1012,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#galera-cluster-recovery" class="md-nav__link">
-    <span class="md-ellipsis">
-      Galera cluster recovery
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#wsrep-provider" class="md-nav__link">
     <span class="md-ellipsis">
       Wsrep provider
@@ -902,6 +1024,57 @@
   <a href="#ipv6-support" class="md-nav__link">
     <span class="md-ellipsis">
       IPv6 support
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-and-restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backup and restore
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#galera-cluster-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster recovery
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Galera cluster recovery">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#galera-recovery-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera recovery Job
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-cluster-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      Force cluster bootstrap
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap-galera-cluster-from-existing-pvcs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bootstrap Galera cluster from existing PVCs
     </span>
   </a>
   
@@ -935,6 +1108,15 @@
   
     <nav class="md-nav" aria-label="Common errors">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#galera-cluster-recovery-not-progressing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Galera cluster recovery not progressing
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#permission-denied-writing-galera-configuration" class="md-nav__link">
@@ -1028,19 +1210,13 @@
 <li><a href="#components">Components</a></li>
 <li><a href="#mariadb-configuration"><code>MariaDB</code> configuration</a></li>
 <li><a href="#storage">Storage</a></li>
-<li><a href="#galera-cluster-recovery">Galera cluster recovery</a></li>
 <li><a href="#wsrep-provider">Wsrep provider</a></li>
 <li><a href="#ipv6-support">IPv6 support</a></li>
+<li><a href="#backup-and-restore">Backup and restore</a></li>
+<li><a href="#galera-cluster-recovery">Galera cluster recovery</a></li>
+<li><a href="#bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</a></li>
 <li><a href="#quickstart">Quickstart</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
-<li><a href="#common-errors">Common errors</a><ul>
-<li><a href="#permission-denied-writing-galera-configuration">Permission denied writing Galera configuration</a></li>
-<li><a href="#unauthorized-error-disabling-bootstrap">Unauthorized error disabling bootstrap</a></li>
-<li><a href="#timeout-waiting-for-pod-to-be-synced">Timeout waiting for Pod to be Synced</a></li>
-<li><a href="#galera-cluster-bootstrap-timed-out">Galera cluster bootstrap timed out</a></li>
-</ul>
-</li>
-<li><a href="#github-issues">GitHub Issues</a></li>
 <li><a href="#reference">Reference</a></li>
 </ul>
 <!-- /toc -->
@@ -1081,36 +1257,6 @@ spec:
     config:
       reuseStorageVolume: true
 </code></pre>
-<h2 id="galera-cluster-recovery">Galera cluster recovery</h2>
-<p><code>mariadb-operator</code> is able to monitor the Galera cluster and act accordinly to recover it if needed. This feature is enabled by default, but you may tune it as you need:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  ...
-  galera:
-    enabled: true
-    recovery:
-      enabled: true
-      minClusterSize: 50%
-      clusterMonitorInterval: 10s
-      clusterHealthyTimeout: 30s
-      clusterBootstrapTimeout: 10m
-      podRecoveryTimeout: 3m
-      podSyncTimeout: 3m
-</code></pre>
-<p>The <code>minClusterSize</code> field indicates the minimum cluster size (either absolut number or percentage) for the operator to consider the cluster healthy. If the cluster is unhealthy for more than the period defined in <code>clusterHealthyTimeout</code>, a cluster recovery process is initiated by the operator. The process is explained in the <a href="https://galeracluster.com/library/documentation/crash-recovery.html">Galera documentation</a> and consists of the following steps:</p>
-<ul>
-<li>Recover the sequence number from the <code>grastate.dat</code> on each node.</li>
-<li>Put the nodes in recovery mode and restart them to obtain the sequence number. This step is skipped if we have already obtained a valid sequence number in the previous step.</li>
-<li>Mark the node with highest sequence (bootstrap node) as safe to bootstrap.</li>
-<li>Bootstrap a new cluster in the bootstrap node.</li>
-<li>Wait until the bootstrap node becomes ready.</li>
-<li>Restart the rest of the nodes one by one so they can join the new cluster.</li>
-</ul>
-<p>The operator monitors the Galera cluster health periodically and performs the cluster recovery described above if needed. You are able to tune the monitoring interval via the <code>clusterMonitorInterval</code> field.</p>
-<p>Refer to the <a href="#reference">reference</a> section to better understand the purpose of each field.</p>
 <h2 id="wsrep-provider">Wsrep provider</h2>
 <p>You are able to pass extra options to the Galera wsrep provider by using the <code>galera.providerOptions</code> field:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
@@ -1127,6 +1273,124 @@ spec:
 <p>A list of the available options can be found in the <a href="https://mariadb.com/kb/en/wsrep_provider_options/">MariaDB documentation</a>.</p>
 <h2 id="ipv6-support">IPv6 support</h2>
 <p>If you have a Kubernetes cluster running with IPv6, the operator will automatically detect the IPv6 addresses of your <code>Pods</code> and it will configure several <a href="#wsrep-provider">wsrep provider</a> options to ensure that the Galera protocol runs smoothly with IPv6.</p>
+<h2 id="backup-and-restore">Backup and restore</h2>
+<p>Please refer to the <a href="../BACKUP/">backup documentation</a> to understand how to backup and restore Galera clusters. Specially, make sure you understand the <a href="../BACKUP/#galera-backup-limitations">Galera backup limitations</a>.</p>
+<h2 id="galera-cluster-recovery">Galera cluster recovery</h2>
+<p><code>mariadb-operator</code> is able to monitor the Galera cluster and act accordinly to recover it if needed. This feature is enabled by default, but you may tune it as you need:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    recovery:
+      enabled: true
+      minClusterSize: 1
+      clusterMonitorInterval: 10s
+      clusterHealthyTimeout: 30s
+      clusterBootstrapTimeout: 10m
+      podRecoveryTimeout: 5m
+      podSyncTimeout: 5m
+</code></pre>
+<p>The <code>minClusterSize</code> field indicates the minimum cluster size (either absolut number of replicas or percentage) for the operator to consider the cluster healthy. If the cluster is unhealthy for more than the period defined in <code>clusterHealthyTimeout</code> (<code>30s</code> by default), a cluster recovery process is initiated by the operator. The process is explained in the <a href="https://galeracluster.com/library/documentation/crash-recovery.html">Galera documentation</a> and consists of the following steps:</p>
+<ul>
+<li>Recover the sequence number from the <code>grastate.dat</code> on each node.</li>
+<li>Trigger a <a href="#galera-recovery-job">recovery <code>Job</code></a> to obtain the sequence numbers in case that the previous step didn't manage to.</li>
+<li>Mark the node with highest sequence (bootstrap node) as safe to bootstrap.</li>
+<li>Bootstrap a new cluster in the bootstrap node.</li>
+<li>Restart and wait until the bootstrap node becomes ready.</li>
+<li>Restart the rest of the nodes one by one so they can join the new cluster.</li>
+</ul>
+<p>The operator monitors the Galera cluster health periodically and performs the cluster recovery described above if needed. You are able to tune the monitoring interval via the <code>clusterMonitorInterval</code> field.</p>
+<p>Refer to the <a href="#reference">reference</a> section to better understand the purpose of each field.</p>
+<h4 id="galera-recovery-job">Galera recovery <code>Job</code></h4>
+<p>During the recovery process, a <code>Job</code> is triggered for each <code>MariaDB</code> <code>Pod</code> to obtain the sequence numbers. It's crucial for this <code>Job</code> to succeed; otherwise, the recovery process will fail. As a user, you are responsible for adjusting this <code>Job</code> to allocate sufficient resources and provide the necessary metadata to ensure its successful completion.</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    recovery:
+      job:
+        metadata:
+          labels:
+            sidecar.istio.io/inject: &quot;false&quot;
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
+</code></pre>
+<p>For example, if you're using a service mesh like Istio, it's important to add the <code>sidecar.istio.io/inject=false</code> label. Without this label, the <code>Job</code> will not complete, which would prevent the recovery process from finishing successfully.</p>
+<h4 id="force-cluster-bootstrap">Force cluster bootstrap</h4>
+<blockquote>
+<p>[!CAUTION]
+Use this option only in exceptional circumstances. Not selecting the <code>Pod</code> with the highest sequence number may result in data loss.</p>
+<p>[!WARNING]
+Ensure you unset <code>forceClusterBootstrapInPod</code> after completing the bootstrap to allow the operator to choose the appropriate <code>Pod</code> to bootstrap from in an event of cluster recovery.</p>
+</blockquote>
+<p>You have the ability to manually select which <code>Pod</code> is used to bootstrap a new cluster during the recovery process by setting <code>forceClusterBootstrapInPod</code>:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  galera:
+    enabled: true
+    recovery:
+      enabled: true
+      forceClusterBootstrapInPod: &quot;mariadb-galera-0&quot;
+</code></pre>
+<p>This should only be used in exceptional circumstances:
+- You are absolutely certain that the chosen <code>Pod</code> has the highest sequence number.
+- The operator has not yet selected a <code>Pod</code> to bootstrap from.</p>
+<p>You can verify this with the following command:</p>
+<pre><code class="language-bash">kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.galeraRecovery}&quot; | jq
+{
+  &quot;recovered&quot;: {
+    &quot;mariadb-galera-0&quot;: {
+      &quot;seqno&quot;: 350454,
+      &quot;uuid&quot;: &quot;67a44ea9-63a8-11ef-98a2-2b0c0aa0a627&quot;
+    },
+    &quot;mariadb-galera-1&quot;: {
+      &quot;seqno&quot;: 350450,
+      &quot;uuid&quot;: &quot;67a44ea9-63a8-11ef-98a2-2b0c0aa0a627&quot;
+    }
+  },
+  &quot;state&quot;: {
+    &quot;mariadb-galera-0&quot;: {
+      &quot;safeToBootstrap&quot;: false,
+      &quot;seqno&quot;: -1,
+      &quot;uuid&quot;: &quot;67a44ea9-63a8-11ef-98a2-2b0c0aa0a627&quot;,
+      &quot;version&quot;: &quot;2.1&quot;
+    },
+    &quot;mariadb-galera-1&quot;: {
+      &quot;safeToBootstrap&quot;: false,
+      &quot;seqno&quot;: -1,
+      &quot;uuid&quot;: &quot;67a44ea9-63a8-11ef-98a2-2b0c0aa0a627&quot;,
+      &quot;version&quot;: &quot;2.1&quot;
+    },
+    &quot;mariadb-galera-2&quot;: {
+      &quot;safeToBootstrap&quot;: false,
+      &quot;seqno&quot;: -1,
+      &quot;uuid&quot;: &quot;67a44ea9-63a8-11ef-98a2-2b0c0aa0a627&quot;,
+      &quot;version&quot;: &quot;2.1&quot;
+    }
+  }
+}
+</code></pre>
+<p>In this case, assuming that <code>mariadb-galera-2</code> sequence is lower than <code>350454</code>, it should be safe to bootstrap from <code>mariadb-galera-0</code>.</p>
+<p>Finally, after your cluster has been bootstrapped, remember to unset <code>forceClusterBootstrapInPod</code> to allow the operator to select the appropriate node for bootstrapping in the event of a cluster recovery.</p>
+<h2 id="bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</h2>
+<p><code>mariadb-operator</code> will never delete your <code>MariaDB</code> PVCs. Whenever you delete a <code>MariaDB</code> resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.</p>
+<p>That said, Galera is unable to form a cluster from pre-existing state, it requires a <a href="#galera-cluster-recovery">cluster recovery</a> process to identify which <code>Pod</code> has the highest sequence number to bootstrap a new cluster. That's exactly what the operator does: whenever a new <code>MariaDB</code> Galera cluster is created and previously created PVCs exist, a cluster recovery process is automatically triggered.</p>
 <h2 id="quickstart">Quickstart</h2>
 <p>First of all, install the following configuration manifests that will be referenced by the CRDs further:</p>
 <pre><code class="language-bash">kubectl apply -f examples/manifests/config
@@ -1200,8 +1464,8 @@ kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.galeraRecovery}&qu
 {&quot;lastTransitionTime&quot;:&quot;2023-07-13T19:27:51Z&quot;,&quot;message&quot;:&quot;Galera ready&quot;,&quot;reason&quot;:&quot;GaleraReady&quot;,&quot;status&quot;:&quot;True&quot;,&quot;type&quot;:&quot;GaleraReady&quot;}
 
 kubectl get mariadb mariadb-galera
-NAME             READY   STATUS    PRIMARY POD   AGE
-mariadb-galera   True    Running   All           82m
+NAME             READY   STATUS    PRIMARY POD          AGE
+mariadb-galera   True    Running   mariadb-galera-0     82m
 </code></pre>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <p>The aim of this section is showing you how to diagnose your Galera cluster when something goes wrong. In this situations, observability is a key factor to understand the problem, so we recommend following these steps before jumping into debugging the problem.</p>
@@ -1307,6 +1571,26 @@ kubectl logs mariadb-galera-0 -c mariadb
 </code></pre>
 <p>Once you are done with these steps, you will have the context required to jump ahead to the <a href="#common-errors">Common errors</a> section to see if any of them matches your case.  If they don't, feel free to open an issue or even a PR updating this document if you managed to resolve it.</p>
 <h3 id="common-errors">Common errors</h3>
+<h4 id="galera-cluster-recovery-not-progressing">Galera cluster recovery not progressing</h4>
+<p>If your <code>MariaDB</code> Galera cluster has been in <code>GaleraNotReady</code> state for a long time, the recovery process might not be progressing. You can diagnose this by checking:
+- Operator logs.
+- Galera recovery status:</p>
+<pre><code class="language-bash">kubectl get mariadb mariadb-galera -o jsonpath=&quot;{.status.galeraRecovery}&quot; | jq
+</code></pre>
+<ul>
+<li><code>MariaDB</code> events:</li>
+</ul>
+<pre><code class="language-bash">kubectl get events --field-selector involvedObject.name=mariadb-galera
+</code></pre>
+<ul>
+<li>If you have <code>Pods</code> named <code>&lt;mariadb-name&gt;-&lt;ordinal&gt;-recovery-&lt;suffix&gt;</code> running for a long time, check its logs to understand if something is wrong.</li>
+</ul>
+<p>One of the reasons could be misconfigured Galera recovery <code>Jobs</code>, please make sure you read <a href="#galera-recovery-job">this section</a>. If after checking all the points above, there are still no clear symptoms of what could be wrong, continue reading.</p>
+<p>First af all, you could attempt to forcefully bootstrap a new cluster as it is described in <a href="#force-cluster-bootstrap">this section</a>. Please, refrain from doing so if the conditions described in the docs are not met.</p>
+<p>Alternatively, if you can afford some downtime and your PVCs are in healthy state, you may follow this procedure:
+- Delete your existing <code>MariaDB</code>, this will leave your PVCs intact.
+- Create your <code>MariaDB</code> again, this will trigger a Galera recovery process as described in <a href="#bootstrap-galera-cluster-from-existing-pvcs">this section</a>.</p>
+<p>As a last resource, you can always delete the PVCs and bootstrap a new <code>MariaDB</code> from a backup as documented <a href="../BACKUP/#bootstrap-new-mariadb-instances">here</a>.</p>
 <h4 id="permission-denied-writing-galera-configuration">Permission denied writing Galera configuration</h4>
 <p>This error occurs when the user that runs the container does not have enough privileges to write in <code>/etc/mysql/mariadb.conf.d</code>:</p>
 <pre><code class="language-bash"> Error writing Galera config: open /etc/mysql/mariadb.conf.d/0-galera.cnf: permission denied

@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../UPDATES/">
+        <link rel="prev" href="../DEVELOPMENT/">
       
       
-        <link rel="next" href="../UPGRADE_v0.0.21/">
+        <link rel="next" href="../GALERA/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Upgrade guide v0.0.20 - MariaDB Operator</title>
+        <title>Docker Images for MariaDB Operator - MariaDB Operator</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#upgrade-guide-v0020" class="md-skip">
+        <a href="#docker-images-for-mariadb-operator" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Upgrade guide v0.0.20
+              Docker Images for MariaDB Operator
             
           </span>
         </div>
@@ -366,10 +366,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../DOCKER/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -378,6 +387,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -586,19 +596,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -607,7 +608,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -748,69 +748,81 @@
   
 
 
-<h1 id="upgrade-guide-v0020">Upgrade guide v0.0.20</h1>
+<h1 id="docker-images-for-mariadb-operator">Docker Images for MariaDB Operator</h1>
+<p>The mariadb-operator uses a variety of docker images depending on how it’s configured and what mix of open source or commercial software you’d like to use. As only the latest version of MariaDB Community Server is supported, the community server version will increment frequently with only a best effort made to keep current with the latest release(s). Only MariaDB Enterprise Server offers support for older versions.</p>
 <blockquote>
 <p>[!NOTE]<br />
-APIs are currently in <code>v1alpha1</code>, which implies that non backward compatible changes might happen. See <a href="https://kubernetes.io/docs/reference/using-api/#api-versioning">Kubernetes API versioning</a> for more detail.</p>
+Using Docker images other than the supported ones in this document is not recommended at this time.</p>
 </blockquote>
-<p>This guide illustrates, step by step, how to migrate to <code>v0.0.20</code> from previous versions, as some breaking changes have been introduced. See:
-- https://github.com/mariadb-operator/mariadb-operator/pull/197
-- https://github.com/mariadb-operator/mariadb-operator/pull/211</p>
-<p>It's important to note that this migration process only applies if:
-- You have created a <code>MariaDB</code> resource using a <code>mariadb-operator</code> version &lt; <code>v0.0.20</code> and you are upgrading to &gt;= <code>v0.0.20</code>.
-- Your <code>MariaDB</code> resource has <code>spec.replication</code> enabled.</p>
-<p>If that's your case follow these steps for upgrading:</p>
-<ul>
-<li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
-</ul>
-<pre><code class="language-bash">helm uninstall mariadb-operator
-</code></pre>
-<p>Alternatively, you may only downscale and delete the webhook configurations:</p>
-<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=0
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=0
-kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
-kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
-</code></pre>
-<ul>
-<li>In case you are manually applying manifests, get a copy of your <code>MariaDB</code> resources, as the CRD upgrade will wipe out fields that are no longer supported:</li>
-</ul>
-<pre><code class="language-bash">kubectl get mariadb mariadb-repl -n default -o yaml &gt; mariadb-repl.yaml
-</code></pre>
-<ul>
-<li>Upgrade CRDs to <code>v0.0.20</code>:<blockquote>
-<p>[!IMPORTANT]<br />
-Helm does not handle CRD upgrades. See <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">helm docs</a>.</p>
-</blockquote>
-</li>
-</ul>
-<blockquote>
-<p>[!WARNING]<br />
-This step will delete fields that are no longer supported in your resources.</p>
-</blockquote>
-<pre><code class="language-bash">kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.20.0/crds.yaml
-</code></pre>
-<ul>
-<li>Perform migrations in your <code>MariaDB</code> resouces:</li>
-<li>Set <code>spec.replication.enabled = true</code>.</li>
-<li>If you had previously set <code>spec.replication.primary.service</code>, move it to <code>spec.primaryService</code>.</li>
-<li>Rename your resources to point to the new <code>&lt;mariadb-name&gt;-primary</code> <code>Service</code> instead of  <code>primary-&lt;mariadb-name&gt;</code>.</li>
-<li>If you had previously set  <code>spec.replication.primary.connection</code>, move it to <code>spec.primaryConnection</code>.</li>
-<li>
-<p>Rename your resources to point to the new <code>&lt;mariadb-name&gt;-primary</code> <code>Connection</code> instead of  <code>primary-&lt;mariadb-name&gt;</code>.</p>
-</li>
-<li>
-<p>Upgrade <code>mariadb-operator</code> to <code>v0.0.20</code>:</p>
-</li>
-</ul>
-<pre><code class="language-bash">helm repo update mariadb-operator
-helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.20.0 
-</code></pre>
-<ul>
-<li>If you previously decided to downscale the operator, make sure you upscale it back:</li>
-</ul>
-<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=1
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
-</code></pre>
+<table width="100%">
+  <thead>
+    <tr>
+      <th width="15%">Component</th>
+      <th width="20%">Docker Registry</th>
+      <th width="20%">Supported Tags</th>
+      <th width="5%">CPU</th>
+      <th width="40%">Pull Command</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>MariaDB Community Server</td>
+      <td><a href=https://hub.docker.com/_/mariadb/tags?page=&page_size=&ordering=&name=11.4.3-ubi9>mariadb</a></td>
+      <td><code>11.4.3</code> (Used with Community Operator)<br/><code>11.4.3-ubi9</code> (Used with Enterprise Operator)</td>
+      <td><code>amd64</code> <code>arm64</code> <code>ppc64le</code> <code>s390x</code></td>
+      <td><code>docker pull docker-registry1.mariadb.com/library/mariadb:11.4.3</code><br/><code>docker pull docker-registry1.mariadb.com/library/mariadb:11.4.3-ubi9</code></td>
+    </tr>
+    <tr>
+      <td>MariaDB Enterprise Server</td>
+      <td><a href=https://hub.docker.com/_/mariadb/tags?page=&page_size=&ordering=&name=11.4.3-ubi9>docker.mariadb.com</a><br>Login required, click link for instructions</td>
+      <td><code>10.6.18-14</code> <code>10.6.17-13</code> <code>10.5.25-19</code> <code>10.5.24-18</code></td>
+      <td><code>amd64</code> <code>arm64</code></td>
+      <td><code>docker pull docker-registry.mariadb.com/enterprise-server:10.6.18-14</code></td>
+    </tr>
+        <tr>
+      <td>MariaDB MaxScale UBI</td>
+      <td><a href=https://hub.docker.com/repository/docker/mariadb/maxscale/tags?page=&page_size=&ordering=&name=23.08.5-ubi>mariadb/maxscale</a></td>
+      <td><code>23.08.6-ubi-1</code> <code>24.02.2-ubi-1</code></td>
+      <td><code>amd64</code> <code>arm64</code></td>
+      <td><code>docker pull docker-registry2.mariadb.com/mariadb/maxscale:23.08.6-ubi-1</code></td>
+    </tr> 
+              <tr>
+      <td>MariaDB MaxScale Rocky Linux</td>
+      <td><a href=https://hub.docker.com/repository/docker/mariadb/maxscale/tags?page=&page_size=&ordering=&name=23.08.5>mariadb/maxscale</a></td>
+      <td><code>mariadb/maxscale:23.08.5</code></td>
+      <td><code>amd64</code> <code>arm64</code></td>
+      <td><code>docker pull docker-registry2.mariadb.com/mariadb/maxscale:23.08.5</code></td>
+    </tr>
+         <tr>
+      <td>MariaDB Prometheus Exporter</td>
+      <td><a href=https://hub.docker.com/repository/docker/mariadb/mariadb-prometheus-exporter-ubi/tags?page=&page_size=&ordering=&name=v0.0.1>mariadb/mariadb-prometheus-exporter</a></td>
+      <td><code>v0.0.1</code></td>
+      <td><code>amd64</code> <code>arm64</code></td>
+      <td><code>docker pull docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1</code></td>
+    </tr>
+        <tr>
+      <td>MariaDB MaxScale prometheus exporter</td>
+      <td><a href=https://hub.docker.com/repository/docker/mariadb/maxscale-prometheus-exporter-ubi/tags?page=&page_size=&ordering=&name=%20>mariadb/maxscale-prometheus-exporter-ubi</a></td>
+      <td><code>v0.0.1</code></td>
+      <td><code>amd64</code> <code>arm64</code></td>
+      <td><code>docker pull docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1</code></td>
+    </tr>
+        <tr>
+      <td>Community Operator</td>
+      <td><a href=https://github.com/mariadb-operator/mariadb-operator/pkgs/container/mariadb-operator>ghcr.io/mariadb-operator/mariadb-operator</a></td>
+      <td><code>v0.0.30</code></td>
+      <td><code>amd64</code> <code>arm64</code></td>
+      <td><code>docker pull docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30</code></td>
+    </tr>
+         <tr>
+      <td>Enterprise Operator</td>
+      <td><a href=https://hub.docker.com/repository/docker/mariadb/mariadb-operator-enterprise/tags?page=&page_size=&ordering=&name=v0.0.29</a>mariadb/mariadb-operator-enterprise</td>
+      <td><code>v0.0.30</code></td>
+      <td><code>amd64</code> <code>arm64</code></td>
+      <td><code>docker pull docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.30</code></td>
+    </tr>
+  </tbody>
+</table>
 
 
 

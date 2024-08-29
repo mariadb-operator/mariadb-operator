@@ -369,6 +369,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../DOCKER/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Docker Images for MariaDB Operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../GALERA/" class="md-nav__link">
         
   
@@ -763,11 +783,51 @@
   
   
     <li class="md-nav__item">
+      <a href="../SQL_RESOURCES/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SQL resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../STORAGE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Storage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SUSPEND/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Suspend
   </span>
   
 
@@ -888,6 +948,26 @@
   
   <span class="md-ellipsis">
     Upgrade guide v0.0.28
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.30/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.30
   </span>
   
 
@@ -1179,7 +1259,7 @@
 <p>[!NOTE]<br />
 This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.25</p>
 <p>[!IMPORTANT]<br />
-MaxScale 23.08 is licensed under <a href="https://github.com/mariadb-corporation/MaxScale/blob/23.08/LICENSE2308.TXT">Business Source License</a>. Make sure you understand the implications before using it!</p>
+MaxScale 23.08 is licensed under <a href="https://github.com/mariadb-corporation/MaxScale/blob/23.08/LICENSE.TXT">Business Source License</a>. Make sure you understand the implications before using it!</p>
 </blockquote>
 <p>MaxScale is a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB. It provides a range of features that ensure optimal high availability:
 - Query-based routing: Transparently route write queries to the primary nodes and read queries to the replica nodes.
@@ -1191,13 +1271,7 @@ MaxScale 23.08 is licensed under <a href="https://github.com/mariadb-corporation
 <h2 id="table-of-contents">Table of contents</h2>
 <!-- toc -->
 <ul>
-<li><a href="#maxscale-resources">MaxScale resources</a><ul>
-<li><a href="#servers">Servers</a></li>
-<li><a href="#monitors">Monitors</a></li>
-<li><a href="#services">Services</a></li>
-<li><a href="#listeners">Listeners</a></li>
-</ul>
-</li>
+<li><a href="#maxscale-resources">MaxScale resources</a></li>
 <li><a href="#maxscale-cr"><code>MaxScale</code> CR</a></li>
 <li><a href="#mariadb-cr"><code>MariaDB</code> CR</a></li>
 <li><a href="#maxscale-embedded-in-mariadb"><code>MaxScale</code> embedded in <code>MariaDB</code></a></li>
@@ -1213,10 +1287,6 @@ MaxScale 23.08 is licensed under <a href="https://github.com/mariadb-corporation
 <li><a href="#maxscale-gui">MaxScale GUI</a></li>
 <li><a href="#maxscale-api">MaxScale API</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
-<li><a href="#common-errors">Common errors</a><ul>
-<li><a href="#permission-denied-writing-varlibmaxscale">Permission denied writing <code>/var/lib/maxscale</code></a></li>
-</ul>
-</li>
 <li><a href="#reference">Reference</a></li>
 </ul>
 <!-- /toc -->

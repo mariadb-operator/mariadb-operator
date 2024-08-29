@@ -12,7 +12,7 @@
         <link rel="prev" href="../CONFIGURATION/">
       
       
-        <link rel="next" href="../GALERA/">
+        <link rel="next" href="../DOCKER/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -509,9 +509,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#test" class="md-nav__link">
+  <a href="#unit-tests" class="md-nav__link">
     <span class="md-ellipsis">
-      Test
+      Unit tests
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration tests
     </span>
   </a>
   
@@ -521,6 +530,26 @@
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DOCKER/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Docker Images for MariaDB Operator
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -652,11 +681,51 @@
   
   
     <li class="md-nav__item">
+      <a href="../SQL_RESOURCES/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SQL resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../STORAGE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Storage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SUSPEND/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Suspend
   </span>
   
 
@@ -777,6 +846,26 @@
   
   <span class="md-ellipsis">
     Upgrade guide v0.0.28
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.30/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.30
   </span>
   
 
@@ -926,9 +1015,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#test" class="md-nav__link">
+  <a href="#unit-tests" class="md-nav__link">
     <span class="md-ellipsis">
-      Test
+      Unit tests
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration tests
     </span>
   </a>
   
@@ -957,11 +1055,7 @@
 <h2 id="table-of-contents">Table of contents</h2>
 <!-- toc -->
 <ul>
-<li><a href="#flavours">Flavours</a><ul>
-<li><a href="#devcontainer">devcontainer</a></li>
-<li><a href="#local">local</a></li>
-</ul>
-</li>
+<li><a href="#flavours">Flavours</a></li>
 <li><a href="#getting-started">Getting started</a></li>
 <li><a href="#cluster">Cluster</a></li>
 <li><a href="#network">Network</a></li>
@@ -1064,12 +1158,15 @@ make install
 make net
 make run
 </code></pre>
-<h2 id="test">Test</h2>
+<h2 id="unit-tests">Unit tests</h2>
+<pre><code class="language-bash">make test
+</code></pre>
+<h2 id="integration-tests">Integration tests</h2>
 <pre><code class="language-bash">make cluster
 make install
 make install-minio
 make net
-make test
+make test-int
 </code></pre>
 
 

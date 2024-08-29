@@ -9,10 +9,8 @@
       
       
       
-        <link rel="prev" href="../UPDATES/">
+        <link rel="prev" href="../UPGRADE_v0.0.28/">
       
-      
-        <link rel="next" href="../UPGRADE_v0.0.21/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -20,7 +18,7 @@
     
     
       
-        <title>Upgrade guide v0.0.20 - MariaDB Operator</title>
+        <title>Upgrade guide v0.0.30 - MariaDB Operator</title>
       
     
     
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#upgrade-guide-v0020" class="md-skip">
+        <a href="#upgrade-guide-v0030" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Upgrade guide v0.0.20
+              Upgrade guide v0.0.30
             
           </span>
         </div>
@@ -586,19 +584,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -607,7 +596,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -696,10 +684,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.30/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -708,6 +705,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -748,62 +746,88 @@
   
 
 
-<h1 id="upgrade-guide-v0020">Upgrade guide v0.0.20</h1>
-<blockquote>
-<p>[!NOTE]<br />
-APIs are currently in <code>v1alpha1</code>, which implies that non backward compatible changes might happen. See <a href="https://kubernetes.io/docs/reference/using-api/#api-versioning">Kubernetes API versioning</a> for more detail.</p>
-</blockquote>
-<p>This guide illustrates, step by step, how to migrate to <code>v0.0.20</code> from previous versions, as some breaking changes have been introduced. See:
-- https://github.com/mariadb-operator/mariadb-operator/pull/197
-- https://github.com/mariadb-operator/mariadb-operator/pull/211</p>
-<p>It's important to note that this migration process only applies if:
-- You have created a <code>MariaDB</code> resource using a <code>mariadb-operator</code> version &lt; <code>v0.0.20</code> and you are upgrading to &gt;= <code>v0.0.20</code>.
-- Your <code>MariaDB</code> resource has <code>spec.replication</code> enabled.</p>
-<p>If that's your case follow these steps for upgrading:</p>
+<h1 id="upgrade-guide-v0030">Upgrade guide v0.0.30</h1>
+<p>This guide illustrates, step by step, how to migrate to <code>v0.0.30</code> from previous versions. </p>
+<p>This release ships outstanding changes that make the Galera recovery process notably more robust. For making this possible, the <code>v0.0.30</code> operator relies some functionality available in both the <code>init</code> and <code>agent</code> containers used for Galera, so they both need to be updated to <code>v0.0.30</code> as detailed in further steps.</p>
 <ul>
 <li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
 </ul>
 <pre><code class="language-bash">helm uninstall mariadb-operator
 </code></pre>
 <p>Alternatively, you may only downscale and delete the webhook configurations:</p>
-<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=0
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=0
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator --replicas=0
+kubectl scale deployment mariadb-operator-webhook --replicas=0
 kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 </code></pre>
 <ul>
-<li>In case you are manually applying manifests, get a copy of your <code>MariaDB</code> resources, as the CRD upgrade will wipe out fields that are no longer supported:</li>
-</ul>
-<pre><code class="language-bash">kubectl get mariadb mariadb-repl -n default -o yaml &gt; mariadb-repl.yaml
-</code></pre>
-<ul>
-<li>Upgrade CRDs to <code>v0.0.20</code>:<blockquote>
+<li>Upgrade CRDs to <code>v0.0.30</code>:<blockquote>
 <p>[!IMPORTANT]<br />
 Helm does not handle CRD upgrades. See <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">helm docs</a>.</p>
 </blockquote>
 </li>
 </ul>
-<blockquote>
-<p>[!WARNING]<br />
-This step will delete fields that are no longer supported in your resources.</p>
-</blockquote>
-<pre><code class="language-bash">kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.20.0/crds.yaml
+<pre><code class="language-bash">kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.30.0/crds.yaml
 </code></pre>
 <ul>
-<li>Perform migrations in your <code>MariaDB</code> resouces:</li>
-<li>Set <code>spec.replication.enabled = true</code>.</li>
-<li>If you had previously set <code>spec.replication.primary.service</code>, move it to <code>spec.primaryService</code>.</li>
-<li>Rename your resources to point to the new <code>&lt;mariadb-name&gt;-primary</code> <code>Service</code> instead of  <code>primary-&lt;mariadb-name&gt;</code>.</li>
-<li>If you had previously set  <code>spec.replication.primary.connection</code>, move it to <code>spec.primaryConnection</code>.</li>
-<li>
-<p>Rename your resources to point to the new <code>&lt;mariadb-name&gt;-primary</code> <code>Connection</code> instead of  <code>primary-&lt;mariadb-name&gt;</code>.</p>
-</li>
-<li>
-<p>Upgrade <code>mariadb-operator</code> to <code>v0.0.20</code>:</p>
-</li>
+<li>If you are using Galera, apply the following changes in the <code>MariaDB</code> resources:</li>
+</ul>
+<p>Update the <code>init</code> and <code>agent</code> containers to <code>v0.0.30</code>:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  galera:
+    agent:
+-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
++      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30
+    initContainer:
+-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
++      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30
+</code></pre>
+<p><code>podSyncTimeout</code> and <code>podRecoveryTimeout</code> defaults have been bumped to <code>5m</code>, make sure you bump them as well to at least <code>5m</code>:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  galera:
+    recovery:
+-      podRecoveryTimeout: 3m
++      podRecoveryTimeout: 5m
+-      podSyncTimeout: 3m
++      podSyncTimeout: 5m
+</code></pre>
+<p><code>minClusterSize</code> defaults to <code>1</code> replica now, which means that the recovery process will only be triggered when all the <code>Pods</code> are down. This is the recommended setting now, as it fits better the new recovery process:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  galera:
+    recovery:
+-      minClusterSize: &quot;50%&quot;
++      minClusterSize: 1
+</code></pre>
+<p>If you are using a service mesh like Istio or Linkerd, make sure you add the corresponding metadata to make sure that the new recovery <code>Jobs</code> complete, more information can be found <a href="../GALERA/#galera-recovery-job">here</a>:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  galera:
+    recovery:
++      job:
++        metadata:
++          labels:
++            sidecar.istio.io/inject: &quot;false&quot;
+</code></pre>
+<ul>
+<li>Upgrade <code>mariadb-operator</code> to <code>v0.0.30</code>:</li>
 </ul>
 <pre><code class="language-bash">helm repo update mariadb-operator
-helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.20.0 
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.30.0 
 </code></pre>
 <ul>
 <li>If you previously decided to downscale the operator, make sure you upscale it back:</li>

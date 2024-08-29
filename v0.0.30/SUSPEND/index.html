@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../UPDATES/">
+        <link rel="prev" href="../STORAGE/">
       
       
-        <link rel="next" href="../UPGRADE_v0.0.21/">
+        <link rel="next" href="../UPDATES/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Upgrade guide v0.0.20 - MariaDB Operator</title>
+        <title>Suspend - MariaDB Operator</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#upgrade-guide-v0020" class="md-skip">
+        <a href="#suspend" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Upgrade guide v0.0.20
+              Suspend
             
           </span>
         </div>
@@ -546,10 +546,30 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../SUSPEND/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Suspend
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -558,6 +578,95 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suspended-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      Suspended state
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suspend-a-resource" class="md-nav__link">
+    <span class="md-ellipsis">
+      Suspend a resource
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Use cases
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Use cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#progressive-fleet-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Progressive fleet upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operator-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operator upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Maintenance
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -586,19 +695,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -607,7 +707,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -732,6 +831,83 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suspended-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      Suspended state
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suspend-a-resource" class="md-nav__link">
+    <span class="md-ellipsis">
+      Suspend a resource
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Use cases
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Use cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#progressive-fleet-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Progressive fleet upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operator-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operator upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Maintenance
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -748,69 +924,52 @@
   
 
 
-<h1 id="upgrade-guide-v0020">Upgrade guide v0.0.20</h1>
+<h1 id="suspend">Suspend</h1>
 <blockquote>
 <p>[!NOTE]<br />
-APIs are currently in <code>v1alpha1</code>, which implies that non backward compatible changes might happen. See <a href="https://kubernetes.io/docs/reference/using-api/#api-versioning">Kubernetes API versioning</a> for more detail.</p>
+This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.30</p>
 </blockquote>
-<p>This guide illustrates, step by step, how to migrate to <code>v0.0.20</code> from previous versions, as some breaking changes have been introduced. See:
-- https://github.com/mariadb-operator/mariadb-operator/pull/197
-- https://github.com/mariadb-operator/mariadb-operator/pull/211</p>
-<p>It's important to note that this migration process only applies if:
-- You have created a <code>MariaDB</code> resource using a <code>mariadb-operator</code> version &lt; <code>v0.0.20</code> and you are upgrading to &gt;= <code>v0.0.20</code>.
-- Your <code>MariaDB</code> resource has <code>spec.replication</code> enabled.</p>
-<p>If that's your case follow these steps for upgrading:</p>
+<p>By leveraging the automation provided by <code>mariadb-operator</code>, you can declaratively manage large fleets of databases using CRs. This also covers day two operations, such as upgrades, which can be risky when rolling out updates to thousands of instances simultaneously.</p>
+<p>To mitigate this, and to give you more control on when these operations are performed, you are able to selectively suspend a subset of <code>MariaDB</code> resources, temporarily stopping the upgrades and other operations on them.</p>
+<h2 id="table-of-contents">Table of contents</h2>
+<!-- toc -->
 <ul>
-<li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
+<li><a href="#suspended-state">Suspended state</a></li>
+<li><a href="#suspend-a-resource">Suspend a resource</a></li>
+<li><a href="#use-cases">Use cases</a></li>
 </ul>
-<pre><code class="language-bash">helm uninstall mariadb-operator
+<!-- /toc -->
+
+<h2 id="suspended-state">Suspended state</h2>
+<p>When a resource is suspended, all operations performed by the operator are disabled, including but not limited to:
+- Provisioning
+- Upgrades
+- Volume resize
+- Galera cluster recovery</p>
+<p>More specifically, the reconciliation loop of the operator is omitted, anything part of it will not happen while the resource is suspended.</p>
+<h2 id="suspend-a-resource">Suspend a resource</h2>
+<p>Currently, only <code>MariaDB</code> and <code>MaxScale</code> resources support suspension. You can enable it by setting <code>suspend=true</code>:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  suspend: true
 </code></pre>
-<p>Alternatively, you may only downscale and delete the webhook configurations:</p>
-<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=0
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=0
-kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
-kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
+<p>This results in the reconciliation loop being disabled and the status being marked as <code>Suspended</code>:</p>
+<pre><code class="language-bash">kubectl get mariadbs
+NAME             READY   STATUS      PRIMARY POD        AGE
+mariadb-galera   False   Suspended   mariadb-galera-0   25h
 </code></pre>
-<ul>
-<li>In case you are manually applying manifests, get a copy of your <code>MariaDB</code> resources, as the CRD upgrade will wipe out fields that are no longer supported:</li>
-</ul>
-<pre><code class="language-bash">kubectl get mariadb mariadb-repl -n default -o yaml &gt; mariadb-repl.yaml
-</code></pre>
-<ul>
-<li>Upgrade CRDs to <code>v0.0.20</code>:<blockquote>
-<p>[!IMPORTANT]<br />
-Helm does not handle CRD upgrades. See <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">helm docs</a>.</p>
-</blockquote>
-</li>
-</ul>
-<blockquote>
-<p>[!WARNING]<br />
-This step will delete fields that are no longer supported in your resources.</p>
-</blockquote>
-<pre><code class="language-bash">kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.20.0/crds.yaml
-</code></pre>
-<ul>
-<li>Perform migrations in your <code>MariaDB</code> resouces:</li>
-<li>Set <code>spec.replication.enabled = true</code>.</li>
-<li>If you had previously set <code>spec.replication.primary.service</code>, move it to <code>spec.primaryService</code>.</li>
-<li>Rename your resources to point to the new <code>&lt;mariadb-name&gt;-primary</code> <code>Service</code> instead of  <code>primary-&lt;mariadb-name&gt;</code>.</li>
-<li>If you had previously set  <code>spec.replication.primary.connection</code>, move it to <code>spec.primaryConnection</code>.</li>
-<li>
-<p>Rename your resources to point to the new <code>&lt;mariadb-name&gt;-primary</code> <code>Connection</code> instead of  <code>primary-&lt;mariadb-name&gt;</code>.</p>
-</li>
-<li>
-<p>Upgrade <code>mariadb-operator</code> to <code>v0.0.20</code>:</p>
-</li>
-</ul>
-<pre><code class="language-bash">helm repo update mariadb-operator
-helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.20.0 
-</code></pre>
-<ul>
-<li>If you previously decided to downscale the operator, make sure you upscale it back:</li>
-</ul>
-<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=1
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
-</code></pre>
+<p>To re-enable it, simply remove the <code>suspend</code> setting or set it to <code>suspend=false</code>.</p>
+<h2 id="use-cases">Use cases</h2>
+<h4 id="progressive-fleet-upgrades">Progressive fleet upgrades</h4>
+<p>If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.</p>
+<p>Refer to the <a href="../UPDATES/">updates documentation</a> for further detail.</p>
+<h4 id="operator-upgrades">Operator upgrades</h4>
+<p>When upgrading <code>mariadb-operator</code>, changes to the <code>StatefulSet</code> or the <code>Pod</code> template may occur from one version to another, which could trigger a rolling update of your <code>MariaDB</code> instances.</p>
+<h4 id="maintenance">Maintenance</h4>
+<p>Disabling the reconciliation loop can be useful when manual operations need to be performed on an instance, as it helps prevent conflicts with the operator.</p>
 
 
 
