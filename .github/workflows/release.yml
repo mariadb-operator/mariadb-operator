@@ -213,6 +213,8 @@ jobs:
 
       - name: Helm version
         id: version
+        env:
+          HELM_APP_VERSION: ${{ needs.args.outputs.TAG }}
         run: |
           echo "VERSION=$(make helm-version-bump)" >> $GITHUB_OUTPUT
       
