@@ -309,7 +309,9 @@ spec:
           provided, all databases are backed up.
         displayName: Databases
         path: databases
-      - displayName: Failed Jobs History Limit
+      - description: FailedJobsHistoryLimit defines the maximum number of failed Jobs
+          to be displayed.
+        displayName: Failed Jobs History Limit
         path: failedJobsHistoryLimit
       - description: 'IgnoreGlobalPriv indicates to ignore the mysql.global_priv in
           backups. If not provided, it will default to true when the referred MariaDB
@@ -470,9 +472,12 @@ spec:
       - description: Volume is a Kubernetes volume specification.
         displayName: Volume
         path: storage.volume
-      - displayName: Successful Jobs History Limit
+      - description: SuccessfulJobsHistoryLimit defines the maximum number of successful
+          Jobs to be displayed.
+        displayName: Successful Jobs History Limit
         path: successfulJobsHistoryLimit
-      - displayName: Time Zone
+      - description: TimeZone defines the timezone associated with the cron expression.
+        displayName: Time Zone
         path: timeZone
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
@@ -1329,10 +1334,10 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - description: MinClusterSize is the minimum number of replicas to consider
-          the cluster healthy. It can be either a number of replicas (3) or a percentage
+          the cluster healthy. It can be either a number of replicas (1) or a percentage
           (50%). If Galera consistently reports less replicas than this value for
           the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.
-          It defaults to '50%' of the replicas specified by the MariaDB object.
+          It defaults to '1' replica.
         displayName: Min Cluster Size
         path: galera.recovery.minClusterSize
       - description: PodRecoveryTimeout is the time limit for recevorying the sequence
@@ -4791,7 +4796,9 @@ spec:
       - description: DependsOn defines dependencies with other SqlJob objectecs.
         displayName: Depends On
         path: dependsOn
-      - displayName: Failed Jobs History Limit
+      - description: FailedJobsHistoryLimit defines the maximum number of failed Jobs
+          to be displayed.
+        displayName: Failed Jobs History Limit
         path: failedJobsHistoryLimit
       - description: ImagePullSecrets is the list of pull Secrets to be used to pull
           the image.
@@ -4894,9 +4901,12 @@ spec:
         path: sqlConfigMapKeyRef
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - displayName: Successful Jobs History Limit
+      - description: SuccessfulJobsHistoryLimit defines the maximum number of successful
+          Jobs to be displayed.
+        displayName: Successful Jobs History Limit
         path: successfulJobsHistoryLimit
-      - displayName: Time Zone
+      - description: TimeZone defines the timezone associated with the cron expression.
+        displayName: Time Zone
         path: timeZone
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations

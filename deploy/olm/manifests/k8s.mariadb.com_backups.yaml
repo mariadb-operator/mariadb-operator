@@ -997,6 +997,8 @@ spec:
                   type: string
                 type: array
               failedJobsHistoryLimit:
+                description: FailedJobsHistoryLimit defines the maximum number of
+                  failed Jobs to be displayed.
                 format: int32
                 minimum: 0
                 type: integer
@@ -3691,10 +3693,14 @@ spec:
                     type: object
                 type: object
               successfulJobsHistoryLimit:
+                description: SuccessfulJobsHistoryLimit defines the maximum number
+                  of successful Jobs to be displayed.
                 format: int32
                 minimum: 0
                 type: integer
               timeZone:
+                description: TimeZone defines the timezone associated with the cron
+                  expression.
                 type: string
               tolerations:
                 description: Tolerations to be used in the Pod.

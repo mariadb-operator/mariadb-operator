@@ -7222,9 +7222,9 @@ spec:
                         - type: integer
                         - type: string
                         description: |-
-                          MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%).
+                          MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%).
                           If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.
-                          It defaults to '50%' of the replicas specified by the MariaDB object.
+                          It defaults to '1' replica.
                         x-kubernetes-int-or-string: true
                       podRecoveryTimeout:
                         description: PodRecoveryTimeout is the time limit for recevorying

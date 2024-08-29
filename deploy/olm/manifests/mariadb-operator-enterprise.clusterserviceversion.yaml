@@ -334,8 +334,8 @@ metadata:
     capabilities: Deep Insights
     categories: Database
     certified: "true"
-    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
-    createdAt: "2024-08-22T10:50:50Z"
+    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:a136ad14e968d062845b7adef402919eba0cc94b133d947141add2a38095a66f
+    createdAt: "2024-08-29T17:17:25Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -344,14 +344,14 @@ metadata:
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
     operators.openshift.io/valid-subscription: '["MariaDB Enterprise Server License"]'
-    operators.operatorframework.io/builder: operator-sdk-v1.34.1
+    operators.operatorframework.io/builder: operator-sdk-v1.35.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     support: MariaDB Corporation
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: mariadb-operator-enterprise.v0.0.29
+  name: mariadb-operator-enterprise.v0.0.30
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -402,7 +402,8 @@ spec:
           - description: Databases defines the logical databases to be backed up. If not provided, all databases are backed up.
             displayName: Databases
             path: databases
-          - displayName: Failed Jobs History Limit
+          - description: FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed.
+            displayName: Failed Jobs History Limit
             path: failedJobsHistoryLimit
           - description: 'IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups. If not provided, it will default to true when the referred MariaDB instance has Galera enabled and otherwise to false. See: https://github.com/mariadb-operator/mariadb-operator/issues/556'
             displayName: Ignore Global Priv
@@ -545,9 +546,11 @@ spec:
           - description: Volume is a Kubernetes volume specification.
             displayName: Volume
             path: storage.volume
-          - displayName: Successful Jobs History Limit
+          - description: SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed.
+            displayName: Successful Jobs History Limit
             path: successfulJobsHistoryLimit
-          - displayName: Time Zone
+          - description: TimeZone defines the timezone associated with the cron expression.
+            displayName: Time Zone
             path: timeZone
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
@@ -1325,7 +1328,7 @@ spec:
             path: galera.recovery.job.resources
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-          - description: MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%). If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated. It defaults to '50%' of the replicas specified by the MariaDB object.
+          - description: MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%). If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated. It defaults to '1' replica.
             displayName: Min Cluster Size
             path: galera.recovery.minClusterSize
           - description: PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.
@@ -4394,7 +4397,8 @@ spec:
           - description: DependsOn defines dependencies with other SqlJob objectecs.
             displayName: Depends On
             path: dependsOn
-          - displayName: Failed Jobs History Limit
+          - description: FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed.
+            displayName: Failed Jobs History Limit
             path: failedJobsHistoryLimit
           - description: ImagePullSecrets is the list of pull Secrets to be used to pull the image.
             displayName: Image Pull Secrets
@@ -4488,9 +4492,11 @@ spec:
             path: sqlConfigMapKeyRef
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - displayName: Successful Jobs History Limit
+          - description: SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed.
+            displayName: Successful Jobs History Limit
             path: successfulJobsHistoryLimit
-          - displayName: Time Zone
+          - description: TimeZone defines the timezone associated with the cron expression.
+            displayName: Time Zone
             path: timeZone
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
@@ -4817,13 +4823,13 @@ spec:
                       - name: RELATED_IMAGE_MARIADB
                         value: docker-registry.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d
                       - name: RELATED_IMAGE_MAXSCALE
-                        value: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
+                        value: docker-registry2.mariadb.com/mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
                       - name: RELATED_IMAGE_EXPORTER
                         value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
                         value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
                       - name: MARIADB_OPERATOR_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:a136ad14e968d062845b7adef402919eba0cc94b133d947141add2a38095a66f
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
                       - name: MARIADB_ENTRYPOINT_VERSION
@@ -4842,7 +4848,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
+                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:a136ad14e968d062845b7adef402919eba0cc94b133d947141add2a38095a66f
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -4947,19 +4953,19 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
-      name: exporter_maxscale
     - image: docker-registry.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d
       name: mariadb
-    - image: docker-registry2.mariadb.com/mariadb/maxscale@sha256:5e3d39d26829673c7b4f6f21fb1d57902c9bb64367a76dc2b74e5909027f25a3
+    - image: docker-registry2.mariadb.com/mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
       name: maxscale
     - image: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
       name: exporter
     - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
       name: exporter-maxscale
-    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:f6ed1b371d72544842825d92f947542e23b11ca833efc5a61883782e8e441861
+    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:a136ad14e968d062845b7adef402919eba0cc94b133d947141add2a38095a66f
       name: mariadb-operator-enterprise
-  version: 0.0.29
+    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
+      name: exporter_maxscale
+  version: 0.0.30
   webhookdefinitions:
     - admissionReviewVersions:
         - v1
