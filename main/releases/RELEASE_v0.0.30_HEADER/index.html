@@ -1036,7 +1036,7 @@
 <p>Finally, we've added a <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#galera-cluster-recovery-not-progressing">troubleshooting section</a> to assist you in diagnosing and managing the Galera recovery process.</p>
 <p>Read more about this in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md">Galera documentation</a>.</p>
 <h3 id="bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</h3>
-<p><code>mariadb-operator</code> will never delete your <code>MariaDB</code> PVCs. Whenever you delete a <code>MariaDB</code> resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.</p>
+<p><code>{{ .ProjectName }}</code> will never delete your <code>MariaDB</code> PVCs. Whenever you delete a <code>MariaDB</code> resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.</p>
 <p>That said, the operator is able now to bootstrap a new <code>MariaDB</code> Galera cluster from previous PVCs. During the provisioning phase, the operator automatically triggers the Galera recovery process if pre-existing PVCs are detected. This is a massive improvement in terms of usability, as it enables seamless Galera cluster recreation without data loss.</p>
 <p>Read more about this in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md">Galera documentation</a>.</p>
 <h3 id="suspend">Suspend</h3>
@@ -1076,8 +1076,8 @@
 <li>Support for <code>view</code> and <code>edit</code> aggregated <code>ClusterRoles</code>.</li>
 <li>New <code>extraEnvFrom</code> value: Inject environment variables to the controller via <code>ConfigMaps</code> or <code>Secrets</code>.</li>
 <li>Added <code>revisionHistoryLimit</code> to the webhook <code>Certificate</code> to prevent being overwhelmed by <code>CertificateRequests</code>.</li>
-<li>Fix webhook <code>Certificate</code> errors in the context of <code>secretTemplate</code>. </li>
-<li>Introduce helm chart unit testing to prevent rendering regressions like the previous one. Contributions are welcome here, see https://github.com/mariadb-operator/mariadb-operator/issues/767.</li>
+<li>Fix webhook <code>Certificate</code> rendering regressions in the context of <code>secretTemplate</code>. </li>
+<li>Introduce helm chart unit testing to prevent regressions like the previous one. Contributions are welcome here, see https://github.com/mariadb-operator/mariadb-operator/issues/767.</li>
 </ul>
 <p>Kudos do @gprossliner @kettil for the contributions! 🙏🏻</p>
 <h3 id="migrate-your-mariadb-instance-to-kubernetes">Migrate your MariaDB instance to Kubernetes</h3>
