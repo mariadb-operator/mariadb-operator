@@ -156,13 +156,6 @@ jobs:
           IMG_ENT: mariadb/mariadb-operator-enterprise:${{ needs.args.outputs.TAG }}
           REDHAT_API_KEY: "${{ secrets.REDHAT_API_KEY }}"
           REDHAT_PROJECT_ID: "${{ secrets.REDHAT_PROJECT_ID }}"
-
-      - name: Preflight operator image - latest
-        run: make preflight-image-submit
-        env:
-          IMG_ENT: mariadb/mariadb-operator-enterprise:latest
-          REDHAT_API_KEY: "${{ secrets.REDHAT_API_KEY }}"
-          REDHAT_PROJECT_ID: "${{ secrets.REDHAT_PROJECT_ID }}"
   
   goreleaser:
     name: Goreleaser
