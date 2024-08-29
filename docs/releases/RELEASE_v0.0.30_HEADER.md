@@ -89,18 +89,17 @@ With the introduction of CEL in Kubernetes 1.26, this version now becomes our mi
 
 Kudos to @businessbean for this initiative! 🙏🏻
 
-## Migrate your MariaDB instance to Kubernetes
-
-This [migration guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
-
 ### Helm chart improvements
 
 - Support for `view` and `edit` aggregated `ClusterRoles`.
 - New `extraEnvFrom` value: Inject environment variables to the controller via `ConfigMaps` or `Secrets`.
 - Added `revisionHistoryLimit` to the webhook `Certificate` to avoid getting flooded with `CertificateRequests`.
 
-
 Kudos do @gprossliner @kettil for the contributions! 🙏🏻
+
+### Migrate your MariaDB instance to Kubernetes
+
+This [migration guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
 
 ---
 
