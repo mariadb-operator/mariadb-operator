@@ -236,7 +236,7 @@ Finally, after your cluster has been bootstrapped, remember to unset `forceClust
 
 ## Bootstrap Galera cluster from existing PVCs
 
-`mariadb-operator` will never delete your `MariaDB` PVCs! Whenever you delete a `MariaDB` resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.
+`mariadb-operator` will never delete your `MariaDB` PVCs. Whenever you delete a `MariaDB` resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.
 
 That said, Galera is unable to form a cluster from pre-existing state, it requires a [cluster recovery](#galera-cluster-recovery) process to identify which `Pod` has the highest sequence number to bootstrap a new cluster. That's exactly what the operator does: whenever a new `MariaDB` Galera cluster is created and previously created PVCs exist, a cluster recovery process is automatically triggered.
 
