@@ -1452,7 +1452,7 @@ spec:
 <p>In this case, assuming that <code>mariadb-galera-2</code> sequence is lower than <code>350454</code>, it should be safe to bootstrap from <code>mariadb-galera-0</code>.</p>
 <p>Finally, after your cluster has been bootstrapped, remember to unset <code>forceClusterBootstrapInPod</code> to allow the operator to select the appropriate node for bootstrapping in the event of a cluster recovery.</p>
 <h2 id="bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</h2>
-<p><code>mariadb-operator</code> will never delete your <code>MariaDB</code> PVCs! Whenever you delete a <code>MariaDB</code> resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.</p>
+<p><code>mariadb-operator</code> will never delete your <code>MariaDB</code> PVCs. Whenever you delete a <code>MariaDB</code> resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.</p>
 <p>That said, Galera is unable to form a cluster from pre-existing state, it requires a <a href="#galera-cluster-recovery">cluster recovery</a> process to identify which <code>Pod</code> has the highest sequence number to bootstrap a new cluster. That's exactly what the operator does: whenever a new <code>MariaDB</code> Galera cluster is created and previously created PVCs exist, a cluster recovery process is automatically triggered.</p>
 <h2 id="quickstart">Quickstart</h2>
 <p>First of all, install the following configuration manifests that will be referenced by the CRDs further:</p>

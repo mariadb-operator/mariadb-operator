@@ -822,11 +822,62 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#authentication-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication plugins
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#timezones" class="md-nav__link">
+    <span class="md-ellipsis">
+      Timezones
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#job-history-limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      Job history limit
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#initial-cel-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initial CEL support
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#migrate-your-mariadb-instance-to-kubernetes" class="md-nav__link">
     <span class="md-ellipsis">
       Migrate your MariaDB instance to Kubernetes
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Migrate your MariaDB instance to Kubernetes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#helm-chart-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Helm chart improvements
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -907,11 +958,62 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#authentication-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication plugins
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#timezones" class="md-nav__link">
+    <span class="md-ellipsis">
+      Timezones
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#job-history-limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      Job history limit
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#initial-cel-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initial CEL support
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#migrate-your-mariadb-instance-to-kubernetes" class="md-nav__link">
     <span class="md-ellipsis">
       Migrate your MariaDB instance to Kubernetes
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Migrate your MariaDB instance to Kubernetes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#helm-chart-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Helm chart improvements
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -937,20 +1039,20 @@
 
 <p>We’re beyond excited to unveil <code>{{ .ProjectName }}</code>🦭 <strong><a href="https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.30">v0.0.30</a></strong>!</p>
 <p>This release includes significant updates that notably enhance the robustness and reliability of Galera.</p>
-<p>It has also been the release with the most external contributions so far, and we couldn't be more thrilled! A massive thank you to all the contributors for your time, dedication, and incredible effort. Your high-quality contributions are the hearbeat of projects like this, fueling our success and driving us forward! 🙏🏻🦭🎉</p>
+<p>It has also been the release with the most external contributions so far, and we couldn't be more thrilled! A massive thank you to all the contributors for your time, dedication, and incredible effort. Your high-quality contributions are the hearbeat of projects like this, fueling our success and driving us forward! 🙏🏻🦭</p>
 <p>To upgrade from older versions, be sure to follow the <strong><a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.30.md">UPGRADE GUIDE</a></strong>.</p>
-<h2 id="galera-enhanced-recovery">Galera enhanced recovery</h2>
+<h3 id="galera-enhanced-recovery">Galera enhanced recovery</h3>
 <p>We have notably polished the recovery process fixing issues and covering cases that before resulted in the recovery getting stucked.</p>
-<p>The sequence numbers required for the recovery are now obtained by <code>Jobs</code>, which mount the <code>MariaDB</code> PVCs and run <code>mariadbd --wsrep-recover</code>. This is a game changer in terms of reliability and recovery speed, as the <code>MariaDB</code> <code>Pods</code> don't need to be restarted in order to achieve this. You can get more details about this new <code>Jobs</code> in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#galera-recovery-job">documentation</a>.</p>
+<p>The sequence numbers required for the recovery are now obtained by <code>Jobs</code>, which mount the <code>MariaDB</code> PVCs and run <code>mariadbd --wsrep-recover</code>. This is a game changer in terms of reliability and recovery speed, as the <code>MariaDB</code> <code>Pods</code> no longer need to be restarted to fetch the sequence numbers. You can get more details about this new <code>Jobs</code> in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#galera-recovery-job">documentation</a>.</p>
 <p>To ensure that you have full control of the recovery process in exceptional circumstances, we are also introducing the <code>forceClusterBootstrapInPod</code> field, which allows you to manually specify which <code>Pod</code> to use to bootstrap the new Galera cluster and bypass the operator recovery process. Read more about this field in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/release-v0.0.30/docs/GALERA.md#force-cluster-bootstrap">documentation</a>.</p>
 <p>Finally, we have created this <a href="https://github.com/mariadb-operator/mariadb-operator/blob/release-v0.0.30/docs/GALERA.md#galera-cluster-recovery-not-progressing">troubleshooting section</a> to help you triaging and operating the Galera recovery process.</p>
 <p>Read more about this in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md">Galera documentation</a>.</p>
-<h2 id="bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</h2>
-<p><code>mariadb-operator</code> will never delete your <code>MariaDB</code> PVCs! Whenever you delete a <code>MariaDB</code> resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.</p>
+<h3 id="bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</h3>
+<p><code>mariadb-operator</code> will never delete your <code>MariaDB</code> PVCs. Whenever you delete a <code>MariaDB</code> resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.</p>
 <p>That said, the operator is able now to bootstrap a new <code>MariaDB</code> Galera cluster when previous PVCs still exist. During the provisioning phase, the operator automatically triggers the Galera recovery process if pre-existing PVCs are detected.</p>
 <p>This is a massive improvement in terms of usability, as you don't need to care about whether you have previous PVCs or not and enables seamless Galera cluster recreation without data loss.</p>
 <p>Read more about this in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md">Galera documentation</a>.</p>
-<h2 id="suspend">Suspend</h2>
+<h3 id="suspend">Suspend</h3>
 <p>By leveraging the automation provided this operator, you can declaratively manage large fleets of databases using CRs. This also covers day two operations, such as upgrades, which can be risky when rolling out updates to thousands of instances simultaneously.</p>
 <p>To mitigate this, and to give you more control on when these operations are performed, you are able to selectively suspend a subset of <code>MariaDB</code> resources, temporarily stopping the upgrades and other operations on them.</p>
 <p>This has multiple applications, including:
@@ -959,13 +1061,38 @@
 - Maintenance</p>
 <p>Read more about this new feature in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SUSPEND.md">Suspend documentation</a>.</p>
 <p>Kudos to @harunkucuk5 for this contribution! 🙏🏻</p>
-<h2 id="sql-resource-cleanup-policy">SQL resource cleanup policy</h2>
-<p>This operator enables you to manage SQL resources declaratively through CRs. By SQL resources, we refer to users, grants, and databases that are typically created using SQL statements. The key advantage of this approach is that, unlike executing SQL statements, which is a one-time action, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator.</p>
+<h3 id="sql-resource-cleanup-policy">SQL resource cleanup policy</h3>
+<p>This operator enables you to manage SQL resources declaratively through CRs. By SQL resources, we refer to users, grants, and databases that are typically created using SQL statements. The key advantage of this approach is that, unlike executing SQL statements, which is a one-time operatopm, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator.</p>
 <p>We have introduced a new <code>cleanupPolicy</code> field in our SQL CRs (<code>User</code>, <code>Grant</code>, <code>Database</code>) which allows you to control the termination logic of these resources. Whenever they are deleted, the operator takes into account this new field and determines whether the database resources should be deleted (<code>cleanupPolicy=Delete</code>) or not (<code>cleanupPolicy=Skip</code>).</p>
 <p>Read more about this new feature in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SQL_RESOURCES.md">SQL resources documentation</a>.</p>
 <p>Kudos to @ChrisHubinger for this contribution! 🙏🏻</p>
+<h3 id="authentication-plugins">Authentication plugins</h3>
+<p>User passwords can be supplied using the <code>passwordSecretKeyRef</code> field in the <code>User</code> CR. This is a reference to a <code>Secret</code> that contains password in plain text. </p>
+<p>Alternatively, you can now use <a href="https://mariadb.com/kb/en/authentication-plugins/">MariaDB authentication plugins</a> to avoid passing passwords in plain text and provide the password in a hashed format instead. This doesn't affect the end user experience, as they will still need to provide the password in plain text to authenticate.</p>
+<p>Read more about this new feature in the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SQL_RESOURCES.md">SQL resources documentation</a>.</p>
+<p>Kudos to @NHellFire for this contribution! 🙏🏻</p>
+<h3 id="timezones">Timezones</h3>
+<p>By default, MariaDB does not load timezone data on startup for performance reasons and defaults the timezone to <code>SYSTEM</code>, obtaining the timezone information from the environment where it runs. Starting from this version, you can explicitly configure a timezone in your <code>MariaDB</code> instance by setting the <code>timeZone</code> field.</p>
+<p><code>Backup</code> and <code>SqlJob</code> resources, which get reconciled into <code>CronJobs</code>, an also define a <code>timeZone</code> associated with their cron expression.</p>
+<p>Read more about this new feature <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/CONFIGURATION.md#timezones">here</a>.</p>
+<p>Kudos to @mbezhanov for this contribution! 🙏🏻</p>
+<h3 id="job-history-limit">Job history limit</h3>
+<p><code>Backup</code>, <code>Restore</code> and <code>SqlJob</code> resources support now history limits via the new <code>successfulJobsHistoryLimit</code> and <code>failedJobsHistoryLimit</code> fields.</p>
+<p>Kudos to @mbezhanov for this contribution! 🙏🏻</p>
+<h3 id="initial-cel-support">Initial CEL support</h3>
+<p>We have introduced new declarative validations leveraging the <a href="https://kubernetes.io/docs/reference/using-api/cel/">Common Expression Language</a>. The idea is progressively migrate the webhook validations to CEL in further releases. </p>
+<p>Some initial validations have already been merged (see #783), but there's still more work to be done. Check out #788 for the details. Contributions are welcome!</p>
+<p>With the introduction of CEL in Kubernetes 1.26, this version now becomes our minimum supported version. Please ensure you update to Kubernetes 1.26 or later to stay compatible.</p>
+<p>Kudos to @businessbean for this initiative! 🙏🏻</p>
 <h2 id="migrate-your-mariadb-instance-to-kubernetes">Migrate your MariaDB instance to Kubernetes</h2>
 <p>This <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes">migration guide</a> will streamline your onboarding process and assist you in migrating your data into a <code>MariaDB</code> instance running on Kubernetes.</p>
+<h3 id="helm-chart-improvements">Helm chart improvements</h3>
+<ul>
+<li>Support for <code>view</code> and <code>edit</code> aggregated <code>ClusterRoles</code>.</li>
+<li>New <code>extraEnvFrom</code> value: Inject environment variables to the controller via <code>ConfigMaps</code> or <code>Secrets</code>.</li>
+<li>Added <code>revisionHistoryLimit</code> to the webhook <code>Certificate</code> to avoid getting flooded with <code>CertificateRequests</code>.</li>
+</ul>
+<p>Kudos do @gprossliner @kettil for the contributions! 🙏🏻</p>
 <hr />
 <p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
 <p>Join us on Slack: <strong><a href="https://r.mariadb.com/join-community-slack">MariaDB Community Slack</a></strong>.</p>
