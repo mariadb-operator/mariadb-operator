@@ -20,7 +20,7 @@ Read more about this in the [Galera documentation](https://github.com/mariadb-op
 
 ### Bootstrap Galera cluster from existing PVCs
 
-`mariadb-operator` will never delete your `MariaDB` PVCs. Whenever you delete a `MariaDB` resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.
+`{{ .ProjectName }}` will never delete your `MariaDB` PVCs. Whenever you delete a `MariaDB` resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.
 
 That said, the operator is able now to bootstrap a new `MariaDB` Galera cluster from previous PVCs. During the provisioning phase, the operator automatically triggers the Galera recovery process if pre-existing PVCs are detected. This is a massive improvement in terms of usability, as it enables seamless Galera cluster recreation without data loss.
 
@@ -92,8 +92,8 @@ Kudos to @businessbean for this initiative! 🙏🏻
 - Support for `view` and `edit` aggregated `ClusterRoles`.
 - New `extraEnvFrom` value: Inject environment variables to the controller via `ConfigMaps` or `Secrets`.
 - Added `revisionHistoryLimit` to the webhook `Certificate` to prevent being overwhelmed by `CertificateRequests`.
-- Fix webhook `Certificate` errors in the context of `secretTemplate`. 
-- Introduce helm chart unit testing to prevent rendering regressions like the previous one. Contributions are welcome here, see https://github.com/mariadb-operator/mariadb-operator/issues/767.
+- Fix webhook `Certificate` rendering regressions in the context of `secretTemplate`. 
+- Introduce helm chart unit testing to prevent regressions like the previous one. Contributions are welcome here, see https://github.com/mariadb-operator/mariadb-operator/issues/767.
 
 Kudos do @gprossliner @kettil for the contributions! 🙏🏻
 
