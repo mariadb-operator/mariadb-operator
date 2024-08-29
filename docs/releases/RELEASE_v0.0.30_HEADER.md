@@ -95,7 +95,7 @@ Kudos to @businessbean for this initiative! 🙏🏻
 - Fix webhook `Certificate` rendering regressions in the context of `secretTemplate`. 
 - Introduce helm chart unit testing to prevent regressions like the previous one. Contributions are welcome here, see https://github.com/mariadb-operator/mariadb-operator/issues/767.
 
-Kudos do @gprossliner @kettil for the contributions! 🙏🏻
+Kudos to @gprossliner and @kettil for all these contributions! 🙏🏻
 
 ### Migrate your MariaDB instance to Kubernetes
 
