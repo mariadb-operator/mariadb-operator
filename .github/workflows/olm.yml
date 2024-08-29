@@ -54,6 +54,7 @@ jobs:
         with:
           fetch-depth: 0
           token: "${{ secrets.GHA_TOKEN }}"
+          ref: "${{ github.event.repository.default_branch }}"
 
       - name: Configure Git
         run: |
