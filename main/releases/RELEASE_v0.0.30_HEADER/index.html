@@ -858,16 +858,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#migrate-your-mariadb-instance-to-kubernetes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Migrate your MariaDB instance to Kubernetes
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Migrate your MariaDB instance to Kubernetes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#helm-chart-improvements" class="md-nav__link">
     <span class="md-ellipsis">
       Helm chart improvements
@@ -875,9 +865,13 @@
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#migrate-your-mariadb-instance-to-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrate your MariaDB instance to Kubernetes
+    </span>
+  </a>
   
 </li>
       
@@ -994,16 +988,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#migrate-your-mariadb-instance-to-kubernetes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Migrate your MariaDB instance to Kubernetes
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Migrate your MariaDB instance to Kubernetes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#helm-chart-improvements" class="md-nav__link">
     <span class="md-ellipsis">
       Helm chart improvements
@@ -1011,9 +995,13 @@
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#migrate-your-mariadb-instance-to-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Migrate your MariaDB instance to Kubernetes
+    </span>
+  </a>
   
 </li>
       
@@ -1084,8 +1072,6 @@
 <p>Some initial validations have already been merged (see #783), but there's still more work to be done. Check out #788 for the details. Contributions are welcome!</p>
 <p>With the introduction of CEL in Kubernetes 1.26, this version now becomes our minimum supported version. Please ensure you update to Kubernetes 1.26 or later to stay compatible.</p>
 <p>Kudos to @businessbean for this initiative! 🙏🏻</p>
-<h2 id="migrate-your-mariadb-instance-to-kubernetes">Migrate your MariaDB instance to Kubernetes</h2>
-<p>This <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes">migration guide</a> will streamline your onboarding process and assist you in migrating your data into a <code>MariaDB</code> instance running on Kubernetes.</p>
 <h3 id="helm-chart-improvements">Helm chart improvements</h3>
 <ul>
 <li>Support for <code>view</code> and <code>edit</code> aggregated <code>ClusterRoles</code>.</li>
@@ -1093,6 +1079,8 @@
 <li>Added <code>revisionHistoryLimit</code> to the webhook <code>Certificate</code> to avoid getting flooded with <code>CertificateRequests</code>.</li>
 </ul>
 <p>Kudos do @gprossliner @kettil for the contributions! 🙏🏻</p>
+<h3 id="migrate-your-mariadb-instance-to-kubernetes">Migrate your MariaDB instance to Kubernetes</h3>
+<p>This <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes">migration guide</a> will streamline your onboarding process and assist you in migrating your data into a <code>MariaDB</code> instance running on Kubernetes.</p>
 <hr />
 <p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
 <p>Join us on Slack: <strong><a href="https://r.mariadb.com/join-community-slack">MariaDB Community Slack</a></strong>.</p>
