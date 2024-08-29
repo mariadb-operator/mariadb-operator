@@ -81,7 +81,7 @@ Kudos to @mbezhanov for this contribution! 🙏🏻
 
 We have introduced new declarative validations leveraging the [Common Expression Language](https://kubernetes.io/docs/reference/using-api/cel/). The idea is progressively migrating the webhook validations to CEL in further releases. 
 
-Some initial validations have already been merged (see https://github.com/mariadb-operator/mariadb-operator/pull/783), but there's still more work to be done. Check out https://github.com/mariadb-operator/mariadb-operator/pull/788 for the details. Contributions are welcome!
+Some initial validations have already been merged (see https://github.com/mariadb-operator/mariadb-operator/pull/783), but there's still more work to be done. Check out https://github.com/mariadb-operator/mariadb-operator/pull/788 for the details. Contributions are welcome.
 
 With the [introduction of CEL in Kubernetes 1.26](https://kubernetes.io/blog/2022/12/20/validating-admission-policies-alpha/), this version now becomes our minimum supported version. Please ensure you update to Kubernetes 1.26 or later to stay compatible.
 
@@ -92,6 +92,8 @@ Kudos to @businessbean for this initiative! 🙏🏻
 - Support for `view` and `edit` aggregated `ClusterRoles`.
 - New `extraEnvFrom` value: Inject environment variables to the controller via `ConfigMaps` or `Secrets`.
 - Added `revisionHistoryLimit` to the webhook `Certificate` to prevent being overwhelmed by `CertificateRequests`.
+- Fix webhook `Certificate` errors in the context of `secretTemplate`. 
+- Introduce helm chart unit testing to prevent rendering regressions like the previous one. Contributions are welcome here, see https://github.com/mariadb-operator/mariadb-operator/issues/767.
 
 Kudos do @gprossliner @kettil for the contributions! 🙏🏻
 
