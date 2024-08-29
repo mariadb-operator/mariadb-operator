@@ -150,7 +150,6 @@ spec:
     key: mycnf
 ```
 
-
 These external resources should be labeled with `k8s.mariadb.com/watch` so the operator can watch them and perform reconciliations based on their changes. For example, see the `my.cnf` `ConfigMap`:
 
 ```yaml

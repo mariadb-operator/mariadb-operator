@@ -2,7 +2,7 @@
 
 `mariadb-operator` enables you to manage SQL resources declaratively through CRs. By SQL resources, we refer to users, grants, and databases that are typically created using SQL statements.
 
-The key advantage of this approach is that, unlike executing SQL statements, which is a one-time action, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator. This provides a guarantee that the resource will be recreated if it gets manually deleted. Additionally, it prevents state drifts, as the operator will regularly update the resource according to the CR specification.
+The key advantage of this approach is that, unlike executing SQL statements, which is a one-time operation, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator. This provides a guarantee that the resource will be recreated if it gets manually deleted. Additionally, it prevents state drifts, as the operator will regularly update the resource according to the CR specification.
 
 ## Table of contents
 <!-- toc -->
@@ -132,7 +132,7 @@ Behind the scenes, the operator will be creating an `User` resource with `ALL PR
 
 Passwords can be supplied using the `passwordSecretKeyRef` field in the `User` CR. This is a reference to a `Secret` that contains password in plain text. 
 
-Alternatively, you can use [MariaDB authentication plugins](https://mariadb.com/kb/en/authentication-plugins/) to avoid storing passwords in plain text and provide the password in a hashed format instead. This doesn't affect the end user experience, as they will still need to provide the password in plain text to authenticate.
+Alternatively, you can use [MariaDB authentication plugins](https://mariadb.com/kb/en/authentication-plugins/) to avoid passing passwords in plain text and provide the password in a hashed format instead. This doesn't affect the end user experience, as they will still need to provide the password in plain text to authenticate.
 
 #### Password hash
 
