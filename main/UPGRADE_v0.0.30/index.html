@@ -875,6 +875,19 @@ spec:
 -      minClusterSize: &quot;50%&quot;
 +      minClusterSize: 1
 </code></pre>
+<p>If you are using a service mesh like Istio or Linkerd, make sure you add the corresponding metadata to make sure that the new recovery <code>Jobs</code> complete, more information can be found <a href="../GALERA/#galera-recovery-job">here</a>:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  galera:
+    recovery:
++      job:
++        metadata:
++          labels:
++            sidecar.istio.io/inject: &quot;false&quot;
+</code></pre>
 <ul>
 <li>Upgrade <code>mariadb-operator</code> to <code>v0.0.30</code>:</li>
 </ul>
