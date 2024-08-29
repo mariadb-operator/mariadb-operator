@@ -266,7 +266,7 @@ jobs:
 
       - name: Dispatch docs workflow
         run: |
-          gh workflow run docs.yaml \
+          gh workflow run docs.yml \
             --repo mariadb-operator/mariadb-operator \
             -f version=${{ needs.args.outputs.TAG }} alias=latest
         env:
