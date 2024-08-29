@@ -46,7 +46,7 @@ helm-version-bump: yq ## Bump helm minor version and return it to stdout.
 ifndef HELM_APP_VERSION
 	$(error HELM_APP_VERSION is not set. Please set it before running this target)
 endif
-	VERSION=$$($(YQ) e '.version' $(HELM_CHART_FILE)); \
+	@VERSION=$$($(YQ) e '.version' $(HELM_CHART_FILE)); \
 	MAJOR=$$(echo $$VERSION | cut -d'.' -f1); \
 	MINOR=$$(echo $$VERSION | cut -d'.' -f2); \
 	NEW_MINOR=$$((MINOR + 1)); \
