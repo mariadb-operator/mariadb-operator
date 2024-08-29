@@ -1068,7 +1068,7 @@
 <p>Kudos to @mbezhanov for this contribution! 🙏🏻</p>
 <h3 id="initial-cel-support">Initial CEL support</h3>
 <p>We have introduced new declarative validations leveraging the <a href="https://kubernetes.io/docs/reference/using-api/cel/">Common Expression Language</a>. The idea is progressively migrating the webhook validations to CEL in further releases. </p>
-<p>Some initial validations have already been merged (see https://github.com/mariadb-operator/mariadb-operator/pull/783), but there's still more work to be done. Check out https://github.com/mariadb-operator/mariadb-operator/pull/788 for the details. Contributions are welcome!</p>
+<p>Some initial validations have already been merged (see https://github.com/mariadb-operator/mariadb-operator/pull/783), but there's still more work to be done. Check out https://github.com/mariadb-operator/mariadb-operator/pull/788 for the details. Contributions are welcome.</p>
 <p>With the <a href="https://kubernetes.io/blog/2022/12/20/validating-admission-policies-alpha/">introduction of CEL in Kubernetes 1.26</a>, this version now becomes our minimum supported version. Please ensure you update to Kubernetes 1.26 or later to stay compatible.</p>
 <p>Kudos to @businessbean for this initiative! 🙏🏻</p>
 <h3 id="helm-chart-improvements">Helm chart improvements</h3>
@@ -1076,6 +1076,8 @@
 <li>Support for <code>view</code> and <code>edit</code> aggregated <code>ClusterRoles</code>.</li>
 <li>New <code>extraEnvFrom</code> value: Inject environment variables to the controller via <code>ConfigMaps</code> or <code>Secrets</code>.</li>
 <li>Added <code>revisionHistoryLimit</code> to the webhook <code>Certificate</code> to prevent being overwhelmed by <code>CertificateRequests</code>.</li>
+<li>Fix webhook <code>Certificate</code> errors in the context of <code>secretTemplate</code>. </li>
+<li>Introduce helm chart unit testing to prevent rendering errors like the previous one. Contributions are welcome here, see https://github.com/mariadb-operator/mariadb-operator/issues/767).</li>
 </ul>
 <p>Kudos do @gprossliner @kettil for the contributions! 🙏🏻</p>
 <h3 id="migrate-your-mariadb-instance-to-kubernetes">Migrate your MariaDB instance to Kubernetes</h3>
