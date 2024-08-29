@@ -130,7 +130,7 @@ Behind the scenes, the operator will be creating an `User` resource with `ALL PR
 
 ## Authentication plugins
 
-Passwords can be supplied using the `passwordSecretKeyRef` field in the `User` CR. This is a reference to a `Secret` that contains password in plain text. 
+Passwords can be supplied using the `passwordSecretKeyRef` field in the `User` CR. This is a reference to a `Secret` that contains a password in plain text. 
 
 Alternatively, you can use [MariaDB authentication plugins](https://mariadb.com/kb/en/authentication-plugins/) to avoid passing passwords in plain text and provide the password in a hashed format instead. This doesn't affect the end user experience, as they will still need to provide the password in plain text to authenticate.
 

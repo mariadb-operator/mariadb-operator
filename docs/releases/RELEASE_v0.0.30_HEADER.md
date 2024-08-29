@@ -8,13 +8,13 @@ To upgrade from older versions, be sure to follow the __[UPGRADE GUIDE](https://
 
 ### Galera enhanced recovery
 
-We have notably polished the recovery process fixing issues and covering cases that before resulted in the recovery getting stucked.
+We've significantly refined the Galera recovery process, addressing issues and covering scenarios that previously caused the recovery to get stuck.
 
-The sequence numbers required for the recovery are now obtained by `Jobs`, which mount the `MariaDB` PVCs and run `mariadbd --wsrep-recover`. This is a game changer in terms of reliability and recovery speed, as the `MariaDB` `Pods` no longer need to be restarted to fetch the sequence numbers. You can get more details about this new `Jobs` in the [documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#galera-recovery-job).
+The sequence numbers needed for recovery are now retrieved by `Jobs` that mount the `MariaDB` PVCs and execute `mariadbd --wsrep-recover`. This is a game changer for reliability and recovery speed, as it eliminates the need to restart `MariaDB` `Pods` just to fetch sequence numbers. For more details on these new `Jobs`, check out the [documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#galera-recovery-job).
 
-To ensure that you have full control of the recovery process in exceptional circumstances, we are also introducing the `forceClusterBootstrapInPod` field, which allows you to manually specify which `Pod` to use to bootstrap the new Galera cluster and bypass the operator recovery process. Read more about this field in the [documentation](https://github.com/mariadb-operator/mariadb-operator/blob/release-v0.0.30/docs/GALERA.md#force-cluster-bootstrap).
+To give you full control over the recovery process in exceptional situations, we are introducing the `forceClusterBootstrapInPod` field. This allows you to manually select which `Pod` to use for bootstrapping a new Galera cluster, bypassing the operator’s recovery process. For more details on how to use this feature, check out the [documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#force-cluster-bootstrap).
 
-Finally, we have created this [troubleshooting section](https://github.com/mariadb-operator/mariadb-operator/blob/release-v0.0.30/docs/GALERA.md#galera-cluster-recovery-not-progressing) to help you triaging and operating the Galera recovery process.
+Finally, we've added a [troubleshooting section](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#galera-cluster-recovery-not-progressing) to assist you in diagnosing and managing the Galera recovery process.
 
 Read more about this in the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md).
 
@@ -22,9 +22,7 @@ Read more about this in the [Galera documentation](https://github.com/mariadb-op
 
 `mariadb-operator` will never delete your `MariaDB` PVCs. Whenever you delete a `MariaDB` resource, the PVCs will remain intact so you could reuse them to re-provision a new cluster.
 
-That said, the operator is able now to bootstrap a new `MariaDB` Galera cluster when previous PVCs still exist. During the provisioning phase, the operator automatically triggers the Galera recovery process if pre-existing PVCs are detected.
-
-This is a massive improvement in terms of usability, as you don't need to care about whether you have previous PVCs or not and enables seamless Galera cluster recreation without data loss.
+That said, the operator is able now to bootstrap a new `MariaDB` Galera cluster from previous PVCs. During the provisioning phase, the operator automatically triggers the Galera recovery process if pre-existing PVCs are detected. This is a massive improvement in terms of usability, as it enables seamless Galera cluster recreation without data loss.
 
 Read more about this in the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md).
 
@@ -45,9 +43,9 @@ Kudos to @harunkucuk5 for this contribution! 🙏🏻
 
 ### SQL resource cleanup policy
 
-This operator enables you to manage SQL resources declaratively through CRs. By SQL resources, we refer to users, grants, and databases that are typically created using SQL statements. The key advantage of this approach is that, unlike executing SQL statements, which is a one-time operatopm, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator.
+This operator enables you to manage SQL resources declaratively through CRs. By SQL resources, we refer to users, grants, and databases that are typically created using SQL statements. The key advantage of this approach is that, unlike executing SQL statements, which is a one-time operation, declaring a SQL resource via a CR ensures that the resource is periodically reconciled by the operator.
 
-We have introduced a new `cleanupPolicy` field in our SQL CRs (`User`, `Grant`, `Database`) which allows you to control the termination logic of these resources. Whenever they are deleted, the operator takes into account this new field and determines whether the database resources should be deleted (`cleanupPolicy=Delete`) or not (`cleanupPolicy=Skip`).
+We have introduced a new `cleanupPolicy` field to our SQL CRs (`User`, `Grant`, `Database`), giving you control over the termination logic for these resources. When a resource is deleted, the operator evaluates this field to decide whether the corresponding database resources should be deleted (`cleanupPolicy=Delete`) or preserved (`cleanupPolicy=Skip`).
 
 Read more about this new feature in the [SQL resources documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SQL_RESOURCES.md).
 
@@ -55,9 +53,9 @@ Kudos to @ChrisHubinger for this contribution! 🙏🏻
 
 ### Authentication plugins
 
-User passwords can be supplied using the `passwordSecretKeyRef` field in the `User` CR. This is a reference to a `Secret` that contains password in plain text. 
+User passwords can be provided using the `passwordSecretKeyRef` field in the `User` CR, which references a `Secret` containing the password in plain text.
 
-Alternatively, you can now use [MariaDB authentication plugins](https://mariadb.com/kb/en/authentication-plugins/) to avoid passing passwords in plain text and provide the password in a hashed format instead. This doesn't affect the end user experience, as they will still need to provide the password in plain text to authenticate.
+Alternatively, you can now use [MariaDB authentication plugins](https://mariadb.com/kb/en/authentication-plugins/) to supply passwords in a hashed format instead of plain text. This approach doesn't change the user experience, as users will still need to provide their passwords in plain text to authenticate.
 
 Read more about this new feature in the [SQL resources documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SQL_RESOURCES.md).
 
@@ -65,9 +63,9 @@ Kudos to @NHellFire for this contribution! 🙏🏻
 
 ### Timezones
 
-By default, MariaDB does not load timezone data on startup for performance reasons and defaults the timezone to `SYSTEM`, obtaining the timezone information from the environment where it runs. Starting from this version, you can explicitly configure a timezone in your `MariaDB` instance by setting the `timeZone` field.
+By default, MariaDB does not load timezone data on startup for performance reasons and defaults the timezone to `SYSTEM`, obtaining the timezone information from the environment where it runs. However, starting with this version, you can explicitly set a timezone for your `MariaDB` instance by configuring the `timeZone` field.
 
-`Backup` and `SqlJob` resources, which get reconciled into `CronJobs`, an also define a `timeZone` associated with their cron expression.
+Additionally, `Backup` and `SqlJob` resources, which are reconciled into `CronJobs`, can also specify a `timeZone` for their cron expressions.
 
 Read more about this new feature [here](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/CONFIGURATION.md#timezones).
 
@@ -75,17 +73,17 @@ Kudos to @mbezhanov for this contribution! 🙏🏻
 
 ### Job history limit
 
-`Backup`, `Restore` and `SqlJob` resources support now history limits via the new `successfulJobsHistoryLimit` and `failedJobsHistoryLimit` fields.
+`Backup`, `Restore`, and `SqlJob` resources now support history limits through the newly introduced `successfulJobsHistoryLimit` and `failedJobsHistoryLimit` fields.
 
 Kudos to @mbezhanov for this contribution! 🙏🏻
 
 ### Initial CEL support
 
-We have introduced new declarative validations leveraging the [Common Expression Language](https://kubernetes.io/docs/reference/using-api/cel/). The idea is progressively migrate the webhook validations to CEL in further releases. 
+We have introduced new declarative validations leveraging the [Common Expression Language](https://kubernetes.io/docs/reference/using-api/cel/). The idea is progressively migrating the webhook validations to CEL in further releases. 
 
-Some initial validations have already been merged (see #783), but there's still more work to be done. Check out #788 for the details. Contributions are welcome!
+Some initial validations have already been merged (see https://github.com/mariadb-operator/mariadb-operator/pull/783), but there's still more work to be done. Check out https://github.com/mariadb-operator/mariadb-operator/pull/788 for the details. Contributions are welcome!
 
-With the introduction of CEL in Kubernetes 1.26, this version now becomes our minimum supported version. Please ensure you update to Kubernetes 1.26 or later to stay compatible.
+With the [introduction of CEL in Kubernetes 1.26](https://kubernetes.io/blog/2022/12/20/validating-admission-policies-alpha/), this version now becomes our minimum supported version. Please ensure you update to Kubernetes 1.26 or later to stay compatible.
 
 Kudos to @businessbean for this initiative! 🙏🏻
 
@@ -93,7 +91,7 @@ Kudos to @businessbean for this initiative! 🙏🏻
 
 - Support for `view` and `edit` aggregated `ClusterRoles`.
 - New `extraEnvFrom` value: Inject environment variables to the controller via `ConfigMaps` or `Secrets`.
-- Added `revisionHistoryLimit` to the webhook `Certificate` to avoid getting flooded with `CertificateRequests`.
+- Added `revisionHistoryLimit` to the webhook `Certificate` to prevent being overwhelmed by `CertificateRequests`.
 
 Kudos do @gprossliner @kettil for the contributions! 🙏🏻
 
