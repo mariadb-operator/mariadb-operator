@@ -56,11 +56,7 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	$(DOCKER) build -f Dockerfile.bundle -t $(BUNDLE_IMG) .
-
-.PHONY: bundle-push
-bundle-push: ## Push the bundle image.
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
+	$(DOCKER) buildx build -f Dockerfile.bundle -t $(BUNDLE_IMG) . $(DOCKER_ARGS)
 
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
@@ -135,10 +131,12 @@ openshift-minio: openshift-ctx cert-minio ## Deploy minio.
 		--dry-run=client -o yaml -n openshift-operators | $(OC) apply -f -
 
 .PHONY: openshift-image
-openshift-image: docker-build-ent docker-push-ent ## Build and push enterprise image.
+openshift-image: ## Build and push enterprise image.
+	DOCKER_ARGS="--load --push" $(MAKE) docker-build-ent
 
 .PHONY: openshift-bundle
-openshift-bundle: bundle bundle-build bundle-push ## Build and push bundle image.
+openshift-bundle: bundle  ## Build and push bundle image.
+	DOCKER_ARGS="--load --push" $(MAKE) bundle-build
 
 .PHONY: openshift-catalog
 openshift-catalog: catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy catalog images.
