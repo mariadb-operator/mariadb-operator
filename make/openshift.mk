@@ -68,7 +68,7 @@ catalog-build: opm ## Build a catalog image.
 
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
-	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+	$(DOCKER) push $(CATALOG_IMG)
 
 .PHONY: catalog-deploy
 catalog-deploy: openshift-registry ## Deploy catalog to a OpenShift cluster.
@@ -134,8 +134,14 @@ openshift-minio: openshift-ctx cert-minio ## Deploy minio.
 		--from-file=ca.crt=$(CA_DIR)/tls.crt \
 		--dry-run=client -o yaml -n openshift-operators | $(OC) apply -f -
 
+.PHONY: openshift-image
+openshift-image: docker-build-ent docker-push-ent ## Build and push enterprise image.
+
+.PHONY: openshift-bundle
+openshift-bundle: bundle bundle-build bundle-push ## Build and push bundle image.
+
 .PHONY: openshift-catalog
-openshift-catalog: docker-build-ent docker-push-ent bundle bundle-build bundle-push catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy images needed for the catalog.
+openshift-catalog: catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy catalog images.
 
 .PHONY: openshift-deploy
 openshift-deploy: openshift-registry openshift-minio openshift-catalog ## Deploy dependencies to test mariadb-operator.
