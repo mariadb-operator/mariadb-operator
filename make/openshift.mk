@@ -122,13 +122,14 @@ BUNDLE_PATH ?= "operators/mariadb-operator/${VERSION}"
 openshift-cert-test: openshift-ctx openshift-registry ## Run certification tests.
 	CERTIFIED_REPO=$(CERTIFIED_REPO) CERTIFIED_BRANCH=$(CERTIFIED_BRANCH) BUNDLE_PATH=$(BUNDLE_PATH) ./hack/certification_test.sh 
 
+MINI_CA_SECRET ?= mariadb
 .PHONY: openshift-minio
 openshift-minio: openshift-ctx cert-minio ## Deploy minio.
 	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
 	$(OC) apply -f examples/manifests/config/minio-secret.yaml -n openshift-operators 
 	$(OC) create secret generic minio-ca \
 		--from-file=ca.crt=$(CA_DIR)/tls.crt \
-		--dry-run=client -o yaml -n openshift-operators | $(OC) apply -f -
+		--dry-run=client -o yaml -n $(MINI_CA_SECRET)| $(OC) apply -f -
 
 .PHONY: openshift-image
 openshift-image: ## Build and push enterprise image.
