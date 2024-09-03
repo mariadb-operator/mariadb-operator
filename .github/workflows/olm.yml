@@ -129,18 +129,10 @@ jobs:
           tag_name: "${{ needs.args.outputs.TAG }}"
           files: deploy/olm/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
 
-      - name: Operator PR
-        uses: mariadb-operator/openshift-operator-pr@v1
+      - name: Dispatch olm-release workflow
+        run: |
+          gh workflow run olm-release.yml \
+            --repo mariadb-operator/mariadb-operator \
+            -f version=${{ needs.args.outputs.VERSION }} draft=true
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
-        with:
-          name: "mariadb-operator-enterprise"
-          version: "${{ needs.args.outputs.VERSION }}"
-          fork-repo-name: "mariadb-operator/certified-operators"
-          upstream-repo-name: "redhat-openshift-ecosystem/certified-operators"
-          bundle-path-dir: "deploy/olm"
-          ci-path-file: "deploy/olm/ci.yaml"
-          user-name: "Martin Montes"
-          user-email: "martin11lrx@gmail.com"
-          draft: false
-          dry-run: true
