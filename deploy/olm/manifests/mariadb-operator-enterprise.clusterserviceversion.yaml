@@ -334,8 +334,8 @@ metadata:
     capabilities: Deep Insights
     categories: Database
     certified: "true"
-    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:ee1e3a5fd719e34a0d9d0f1a36ba5be9755b95998589f611eb63f2ca2ece8fd8
-    createdAt: "2024-09-02T13:56:19Z"
+    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
+    createdAt: "2024-09-03T09:26:25Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4592,7 +4592,7 @@ spec:
     - Basic HA with Primary Replica
     - Enhanced HA with Galera Clusters
     - Advanced HA with MaxScale
-    - Auto Storage Volume Resizing
+    - Storage Volume Resizing
     - Backup and Restore
     - Monitoring with Prometheus Metrics
     - OLM install
@@ -4841,7 +4841,7 @@ spec:
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
                         value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
                       - name: MARIADB_OPERATOR_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:ee1e3a5fd719e34a0d9d0f1a36ba5be9755b95998589f611eb63f2ca2ece8fd8
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
                       - name: MARIADB_ENTRYPOINT_VERSION
@@ -4860,7 +4860,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:ee1e3a5fd719e34a0d9d0f1a36ba5be9755b95998589f611eb63f2ca2ece8fd8
+                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -4952,20 +4952,22 @@ spec:
     - maxscale
   links:
     - name: MariaDB
-      url: https://mariadb.com/
+      url: https://mariadb.com/products/enterprise/
+    - name: MaxScale
+      url: https://mariadb.com/products/maxscale/
     - name: Documentation
-      url: https://mariadb.com/kb/en/documentation/
+      url: https://github.com/mariadb-operator/mariadb-operator/tree/main/docs
   maintainers:
     - email: martin.montes@mariadb.com
       name: Martin Montes
     - email: pieter.humphrey@mariadb.com
       name: Pieter Humphrey
-  maturity: alpha
-  minKubeVersion: 1.16.0
+  maturity: beta
+  minKubeVersion: 1.26.0
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:ee1e3a5fd719e34a0d9d0f1a36ba5be9755b95998589f611eb63f2ca2ece8fd8
+    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
       name: mariadb-operator-enterprise
     - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
       name: exporter_maxscale

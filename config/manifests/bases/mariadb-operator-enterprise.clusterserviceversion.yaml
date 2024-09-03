@@ -5017,7 +5017,7 @@ spec:
     - Basic HA with Primary Replica
     - Enhanced HA with Galera Clusters
     - Advanced HA with MaxScale
-    - Auto Storage Volume Resizing
+    - Storage Volume Resizing
     - Backup and Restore
     - Monitoring with Prometheus Metrics
     - OLM install
@@ -5047,16 +5047,18 @@ spec:
   - maxscale
   links:
   - name: MariaDB
-    url: https://mariadb.com/
+    url: https://mariadb.com/products/enterprise/
+  - name: MaxScale
+    url: https://mariadb.com/products/maxscale/
   - name: Documentation
-    url: https://mariadb.com/kb/en/documentation/
+    url: https://github.com/mariadb-operator/mariadb-operator/tree/main/docs
   maintainers:
   - email: martin.montes@mariadb.com
     name: Martin Montes
   - email: pieter.humphrey@mariadb.com
     name: Pieter Humphrey
-  maturity: alpha
-  minKubeVersion: 1.16.0
+  maturity: beta
+  minKubeVersion: 1.26.0
   provider:
     name: MariaDB Corporation
   version: 0.0.0
