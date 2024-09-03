@@ -1,10 +1,19 @@
-name: OLM draft
+name: OLM release
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Operator version to be released in "redhat-openshift-ecosystem/certified-operators".
+        required: true
+        type: string
+      draft:
+        type: boolean
+        default: true
+        description: Mark the PR as draft.
 
 jobs:
-  draft-release:
+  release:
     name: Release
     runs-on: ubuntu-latest
     steps:
@@ -19,11 +28,11 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
         with:
           name: "mariadb-operator-enterprise"
-          version: "$(make version)-draft-$(uuidgen)"
+          version: "${{ inputs.version }}"
           fork-repo-name: "mariadb-operator/certified-operators"
           upstream-repo-name: "redhat-openshift-ecosystem/certified-operators"
           bundle-path-dir: "deploy/olm"
           ci-path-file: "deploy/olm/ci.yaml"
           user-name: "Martin Montes"
           user-email: "martin11lrx@gmail.com"
-          draft: true
+          draft: ${{ inputs.draft }}
