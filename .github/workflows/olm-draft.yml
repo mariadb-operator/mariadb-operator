@@ -1,0 +1,29 @@
+name: OLM draft
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  draft-release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Operator PR
+        uses: mariadb-operator/openshift-operator-pr@v1
+        env:
+          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
+        with:
+          name: "mariadb-operator-enterprise"
+          version: "$(make version)-draft-$(uuidgen)"
+          fork-repo-name: "mariadb-operator/certified-operators"
+          upstream-repo-name: "redhat-openshift-ecosystem/certified-operators"
+          bundle-path-dir: "deploy/olm"
+          ci-path-file: "deploy/olm/ci.yaml"
+          user-name: "Martin Montes"
+          user-email: "martin11lrx@gmail.com"
+          draft: true
