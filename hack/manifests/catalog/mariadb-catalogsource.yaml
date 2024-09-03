@@ -1,11 +1,11 @@
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
-  name: alpha-catalog
+  name: mariadb-catalog
   namespace: openshift-marketplace
 spec:
   sourceType: grpc
-  displayName: Alpha Catalog
+  displayName: MariaDB Catalog
   image: catalog:latest
   publisher: MariaDB Corporation
   updateStrategy:

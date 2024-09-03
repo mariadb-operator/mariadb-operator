@@ -132,12 +132,14 @@ openshift-minio: openshift-ctx cert-minio ## Deploy minio.
 		--dry-run=client -o yaml -n $(MINI_CA_SECRET)| $(OC) apply -f -
 
 .PHONY: openshift-image
-openshift-image: ## Build and push enterprise image.
-	DOCKER_ARGS="--load --push" $(MAKE) docker-build-ent
+openshift-image: ## Build and push operator enterprise image.
+	$(DOCKER) build -f Dockerfile.ent -t mariadb/mariadb-operator-enterprise:$(IMG_ENT_VERSION) .
+	$(DOCKER) push mariadb/mariadb-operator-enterprise:$(IMG_ENT_VERSION)
 
 .PHONY: openshift-bundle
 openshift-bundle: bundle  ## Build and push bundle image.
-	DOCKER_ARGS="--load --push" $(MAKE) bundle-build
+	$(DOCKER) build -f Dockerfile.bundle -t mariadb/mariadb-operator-enterprise-bundle:$(IMG_ENT_VERSION) .
+	$(DOCKER) push mariadb/mariadb-operator-enterprise-bundle:$(IMG_ENT_VERSION)
 
 .PHONY: openshift-catalog
 openshift-catalog: catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy catalog images.
