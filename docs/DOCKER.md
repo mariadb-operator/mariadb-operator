@@ -18,56 +18,56 @@ The mariadb-operator uses a variety of docker images depending on how it’s con
   <tbody>
     <tr>
       <td>MariaDB Community Server</td>
-      <td><a href=https://hub.docker.com/_/mariadb/tags?page=&page_size=&ordering=&name=11.4.3-ubi9>mariadb</a></td>
+      <td>Public</td>
       <td><code>11.4.3</code> (Used with Community Operator)<br/><code>11.4.3-ubi9</code> (Used with Enterprise Operator)</td>
       <td><code>amd64</code> <code>arm64</code> <code>ppc64le</code> <code>s390x</code></td>
 	  <td><code>docker pull docker-registry1.mariadb.com/library/mariadb:11.4.3</code><br/><code>docker pull docker-registry1.mariadb.com/library/mariadb:11.4.3-ubi9</code></td>
     </tr>
     <tr>
       <td>MariaDB Enterprise Server</td>
-      <td><a href=https://hub.docker.com/_/mariadb/tags?page=&page_size=&ordering=&name=11.4.3-ubi9>docker.mariadb.com</a><br>Login required, click link for instructions</td>
-      <td><code>10.6.18-14</code> <code>10.6.17-13</code> <code>10.5.25-19</code> <code>10.5.24-18</code></td>
+      <td>Private<br><a href=https://docker.mariadb.com>docker.mariadb.com</a><br>Login required, click link for instructions</td>
+      <td><code>10.6.18-14</code> <code>10.6.17-13.1</code> <code>10.5.25-19</code> <code>10.5.24-18</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry.mariadb.com/enterprise-server:10.6.18-14</code></td>
     </tr>
         <tr>
       <td>MariaDB MaxScale UBI</td>
-      <td><a href=https://hub.docker.com/repository/docker/mariadb/maxscale/tags?page=&page_size=&ordering=&name=23.08.5-ubi>mariadb/maxscale</a></td>
+       <td>Public</td>
       <td><code>23.08.6-ubi-1</code> <code>24.02.2-ubi-1</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry2.mariadb.com/mariadb/maxscale:23.08.6-ubi-1</code></td>
     </tr> 
 	          <tr>
       <td>MariaDB MaxScale Rocky Linux</td>
-      <td><a href=https://hub.docker.com/repository/docker/mariadb/maxscale/tags?page=&page_size=&ordering=&name=23.08.5>mariadb/maxscale</a></td>
+          <td>Public</td>
       <td><code>mariadb/maxscale:23.08.5</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry2.mariadb.com/mariadb/maxscale:23.08.5</code></td>
     </tr>
          <tr>
       <td>MariaDB Prometheus Exporter</td>
-      <td><a href=https://hub.docker.com/repository/docker/mariadb/mariadb-prometheus-exporter-ubi/tags?page=&page_size=&ordering=&name=v0.0.1>mariadb/mariadb-prometheus-exporter</a></td>
+       <td>Public</td>
       <td><code>v0.0.1</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1</code></td>
     </tr>
         <tr>
       <td>MariaDB MaxScale prometheus exporter</td>
-      <td><a href=https://hub.docker.com/repository/docker/mariadb/maxscale-prometheus-exporter-ubi/tags?page=&page_size=&ordering=&name=%20>mariadb/maxscale-prometheus-exporter-ubi</a></td>
+       <td>Public</td>
       <td><code>v0.0.1</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1</code></td>
     </tr>
         <tr>
       <td>Community Operator</td>
-      <td><a href=https://github.com/mariadb-operator/mariadb-operator/pkgs/container/mariadb-operator>ghcr.io/mariadb-operator/mariadb-operator</a></td>
+       <td>Public</td>
       <td><code>v0.0.30</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30</code></td>
     </tr>
          <tr>
       <td>Enterprise Operator</td>
-      <td><a href=https://hub.docker.com/repository/docker/mariadb/mariadb-operator-enterprise/tags?page=&page_size=&ordering=&name=v0.0.29</a>mariadb/mariadb-operator-enterprise</td>
+       <td>Public</td>
       <td><code>v0.0.30</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.30</code></td>
