@@ -26,7 +26,7 @@ The mariadb-operator uses a variety of docker images depending on how it’s con
     <tr>
       <td>MariaDB Enterprise Server</td>
       <td>Private<br><a href=https://docker.mariadb.com>docker.mariadb.com</a><br>Login required, click link for instructions</td>
-      <td><code>10.6.18-14</code> <code>10.6.17-13.1</code> <code>10.5.25-19</code> <code>10.5.24-18</code></td>
+      <td><code>10.6.18-14.1</code> <code>10.6.17-13.1</code> <code>10.5.25-19.1</code> <code>10.5.24-18.1</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
 	  <td><code>docker pull docker-registry.mariadb.com/enterprise-server:10.6.18-14</code></td>
     </tr>
