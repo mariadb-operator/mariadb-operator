@@ -335,7 +335,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
-    createdAt: "2024-09-04T10:18:37Z"
+    createdAt: "2024-09-04T10:28:13Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4835,7 +4835,7 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: docker-registry.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d
+                        value: docker-registry.mariadb.com/enterprise-server@sha256:d2cf32def245daba522c09ae10c74eb8c1e509062be5ec2ebe705dc4b3fd78c7
                       - name: RELATED_IMAGE_MAXSCALE
                         value: mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
                       - name: RELATED_IMAGE_EXPORTER
@@ -4969,7 +4969,7 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: docker-registry.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d
+    - image: docker-registry.mariadb.com/enterprise-server@sha256:d2cf32def245daba522c09ae10c74eb8c1e509062be5ec2ebe705dc4b3fd78c7
       name: mariadb
     - image: mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
       name: maxscale
