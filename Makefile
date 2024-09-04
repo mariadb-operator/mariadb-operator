@@ -67,7 +67,9 @@ MARIADB_GALERA_LIB_PATH_ENT ?= /usr/lib64/galera/libgalera_smm.so
 MARIADB_DOCKER_REPO ?= https://github.com/MariaDB/mariadb-docker
 MARIADB_DOCKER_COMMIT_HASH ?= 8b9a47d0544826a8fb7c01b4308b400c3f6e529f
 MARIADB_ENTRYPOINT_PATH ?= pkg/embed/mariadb-docker
+
 MARIADB_ENTRYPOINT_VERSION ?= 11.4
+MARIADB_ENTRYPOINT_VERSION_ENT ?= 10.6
 
 DOCKER_CONFIG ?= $(HOME)/.docker/config.json 
 

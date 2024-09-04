@@ -56,7 +56,7 @@ spec:
             - name: MARIADB_GALERA_LIB_PATH
               value: /usr/lib64/galera/libgalera_smm.so
             - name: MARIADB_ENTRYPOINT_VERSION
-              value: "11.4"
+              value: "10.6"
             - name: WATCH_NAMESPACE
               valueFrom:
                 fieldRef:
