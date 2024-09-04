@@ -334,8 +334,8 @@ metadata:
     capabilities: Deep Insights
     categories: Database
     certified: "true"
-    containerImage: mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
-    createdAt: "2024-09-04T11:35:17Z"
+    containerImage: mariadb/mariadb-operator-enterprise:v0.0.23
+    createdAt: "2024-09-04T11:37:07Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4835,13 +4835,13 @@ spec:
                       - --webhook-port=9443
                     env:
                       - name: RELATED_IMAGE_MARIADB
-                        value: docker-registry.mariadb.com/enterprise-server@sha256:d2cf32def245daba522c09ae10c74eb8c1e509062be5ec2ebe705dc4b3fd78c7
+                        value: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
                       - name: RELATED_IMAGE_MAXSCALE
-                        value: mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
+                        value: mariadb/maxscale:23.08.6-ubi-1
                       - name: RELATED_IMAGE_EXPORTER
-                        value: mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
+                        value: mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
-                        value: mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
+                        value: mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
                       - name: MARIADB_OPERATOR_IMAGE
                         value: mariadb/mariadb-operator-enterprise:v0.0.31-dev
                       - name: MARIADB_GALERA_LIB_PATH
@@ -4862,7 +4862,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
+                    image: mariadb/mariadb-operator-enterprise:v0.0.31-dev
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -4969,18 +4969,14 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
-      name: exporter
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
-      name: exporter-maxscale
-    - image: mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
-      name: mariadb-operator-enterprise
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
-      name: exporter_maxscale
-    - image: docker-registry.mariadb.com/enterprise-server@sha256:d2cf32def245daba522c09ae10c74eb8c1e509062be5ec2ebe705dc4b3fd78c7
+    - image: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
       name: mariadb
-    - image: mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
+    - image: mariadb/maxscale:23.08.6-ubi-1
       name: maxscale
+    - image: mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
+      name: exporter
+    - image: mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+      name: exporter-maxscale
   version: 0.0.31-dev
   webhookdefinitions:
     - admissionReviewVersions:
