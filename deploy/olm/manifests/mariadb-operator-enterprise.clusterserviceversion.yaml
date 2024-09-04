@@ -335,7 +335,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
-    createdAt: "2024-09-04T09:47:54Z"
+    createdAt: "2024-09-04T10:18:37Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4596,6 +4596,7 @@ spec:
     - Flexible Backup and Restore
     - Monitoring with Prometheus Metrics
     - OLM install
+
     Learn more about [MariaDB Operator](https://github.com/mariadb-operator/mariadb-operator) on GitHub and join the [community slack](https://r.mariadb.com/join-community-slack) today!
   displayName: MariaDB Operator Enterprise
   icon:

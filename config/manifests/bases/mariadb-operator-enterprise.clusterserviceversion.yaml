@@ -5021,6 +5021,7 @@ spec:
     - Flexible Backup and Restore
     - Monitoring with Prometheus Metrics
     - OLM install
+
     Learn more about [MariaDB Operator](https://github.com/mariadb-operator/mariadb-operator) on GitHub and join the [community slack](https://r.mariadb.com/join-community-slack) today!
   displayName: MariaDB Operator Enterprise
   icon:
