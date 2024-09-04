@@ -137,9 +137,8 @@ openshift-image: ## Build and push operator enterprise image.
 	$(DOCKER) push mariadb/mariadb-operator-enterprise:$(IMG_ENT_VERSION)
 
 .PHONY: openshift-bundle
-openshift-bundle: bundle  ## Build and push bundle image.
-	$(DOCKER) build -f Dockerfile.bundle -t mariadb/mariadb-operator-enterprise-bundle:$(IMG_ENT_VERSION) .
-	$(DOCKER) push mariadb/mariadb-operator-enterprise-bundle:$(IMG_ENT_VERSION)
+openshift-bundle: bundle bundle-build  ## Build and push bundle image.
+	$(DOCKER) push $(BUNDLE_IMG) 
 
 .PHONY: openshift-catalog
 openshift-catalog: catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy catalog images.
