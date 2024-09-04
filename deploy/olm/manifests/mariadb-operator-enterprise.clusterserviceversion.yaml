@@ -334,8 +334,8 @@ metadata:
     capabilities: Deep Insights
     categories: Database
     certified: "true"
-    containerImage: mariadb/mariadb-operator-enterprise:v0.0.23
-    createdAt: "2024-09-04T11:37:07Z"
+    containerImage: mariadb/mariadb-operator-enterprise:v0.0.31-dev
+    createdAt: "2024-09-04T11:49:37Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4888,7 +4888,7 @@ spec:
                       periodSeconds: 10
                     resources:
                       limits:
-                        memory: 2Gi
+                        memory: 4Gi
                       requests:
                         cpu: 100m
                         memory: 128Mi
