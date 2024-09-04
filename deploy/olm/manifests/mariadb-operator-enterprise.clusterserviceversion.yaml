@@ -335,7 +335,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
-    createdAt: "2024-09-04T10:28:13Z"
+    createdAt: "2024-09-04T11:35:17Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4847,7 +4847,7 @@ spec:
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
                       - name: MARIADB_ENTRYPOINT_VERSION
-                        value: "11.4"
+                        value: "10.6"
                       - name: WATCH_NAMESPACE
                         valueFrom:
                           fieldRef:
@@ -4969,10 +4969,6 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-    - image: docker-registry.mariadb.com/enterprise-server@sha256:d2cf32def245daba522c09ae10c74eb8c1e509062be5ec2ebe705dc4b3fd78c7
-      name: mariadb
-    - image: mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
-      name: maxscale
     - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
       name: exporter
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
@@ -4981,6 +4977,10 @@ spec:
       name: mariadb-operator-enterprise
     - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
       name: exporter_maxscale
+    - image: docker-registry.mariadb.com/enterprise-server@sha256:d2cf32def245daba522c09ae10c74eb8c1e509062be5ec2ebe705dc4b3fd78c7
+      name: mariadb
+    - image: mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
+      name: maxscale
   version: 0.0.31-dev
   webhookdefinitions:
     - admissionReviewVersions:
