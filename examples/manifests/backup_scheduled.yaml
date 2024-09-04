@@ -4,7 +4,7 @@ metadata:
   name: backup-scheduled
 spec:
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb
   schedule:
     cron: "*/1 * * * *"
     suspend: false
