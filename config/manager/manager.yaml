@@ -90,7 +90,7 @@ spec:
             periodSeconds: 10
           resources:
             limits:
-              memory: 2Gi
+              memory: 4Gi
             requests:
               cpu: 100m
               memory: 128Mi
