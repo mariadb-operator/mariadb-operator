@@ -51,7 +51,7 @@ oc registry login \
 oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson
 ```
 
-Alternatively, instead of updating the [global pull secret](https://docs.openshift.com/container-platform/4.10/openshift_images/managing_images/using-image-pull-secrets.html#images-update-global-pull-secret_using-image-pull-secrets), you can configure credentials in a per-`MariaDB` basis:
+Alternatively, instead of updating the [global pull secret](https://docs.openshift.com/container-platform/4.10/openshift_images/managing_images/using-image-pull-secrets.html#images-update-global-pull-secret_using-image-pull-secrets), you can configure credentials on a per-`MariaDB` basis:
 - Create a `Secret` with the registry credentials as described in the [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/).
 - Provide an `imagePullSecrets` field to your `MariaDB` resource as described in the [registry documentation](./REGISTRY.md).
 
