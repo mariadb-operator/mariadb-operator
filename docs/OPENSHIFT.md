@@ -82,6 +82,8 @@ You can read more about [Security Context Constraints in the OpenShift documenta
 
 ## Installation in all namespaces
 
+To install the operator watching resources from all namespaces, you need to to create a `Subscription` object for the `mariadb-operator-enterprise` operator using the `fast` channel. This will use a default `OperatorGroup` called `global-operators`: 
+
 ```yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -95,9 +97,11 @@ spec:
   source: certified-operators
   sourceNamespace: openshift-marketplace
   startingCSV: mariadb-operator-enterprise.v0.0.31
-``` 
+```
 
 ## Installation in specific namespaces
+
+In order to define which namespaces the operator will be watching, you need to create an `OperatorGroup:
 
 ```yaml
 apiVersion: operators.coreos.com/v1
@@ -112,6 +116,9 @@ spec:
   - mariadb-bar
   upgradeStrategy: Default
 ``` 
+You can read more about [`OperatorGroups` in the OLM documentation](https://olm.operatorframework.io/docs/advanced-tasks/operator-scoping-with-operatorgroups/#configuring-operatorgroups).
+
+Then, the operator can be installed by creating a `Subscription`:
 
 ```yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -130,4 +137,8 @@ spec:
 
 ## Installation via OpenShift console
 
+As an alternative to create `Subscription` objects via the command line, you can install operators by using the OpenShift console. Go to the `Operators > OperatorHub` and search by `mariadb`: 
+
 ![Certified Operator](https://mariadb-operator.github.io/mariadb-operator/assets/certified-operator.png)
+
+Select `MariaDB Operator Enterprise`, click on install, and you will be able to create a `Subscription` object via the UI.
