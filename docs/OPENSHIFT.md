@@ -52,16 +52,33 @@ oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson
 ```
 
 Alternatively, instead of updating the [global pull secret](https://docs.openshift.com/container-platform/4.10/openshift_images/managing_images/using-image-pull-secrets.html#images-update-global-pull-secret_using-image-pull-secrets), you can configure credentials in a per-`MariaDB` basis:
-- Create a `Secret` with the registry credentials as described in the [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
+- Create a `Secret` with the registry credentials as described in the [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/).
 - Provide an `imagePullSecrets` field to your `MariaDB` resource as described in the [registry documentation](./REGISTRY.md).
 
 ## Channels
 
-https://olm.operatorframework.io/docs/best-practices/channel-naming/
+Currently, since the certified operator is in beta phase, we only provide `fast` as a release channel. Once it reaches GA, we have plans to create a `stable` channel.
+
+You can read more about [channels in the OLM documentation](https://olm.operatorframework.io/docs/best-practices/channel-naming/)
 
 ## `SecurityContextConstraints`
 
-https://github.com/acornett21/kubetruth-operator/blob/98828c17a9866d92b187e2e9d6f804460d75807d/readme.md?plain=1#L24
+Both the operator and the operand `Pods` run with the `restricted-v2` `SecurityContextConstraint`, the most restrictive SCC in OpenShift in terms of permissions. This implies that OpenShift automatically assigns a `SecurityContext` for the `Pods` with minimum permissions, for example:
+
+```yaml
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  runAsNonRoot: true
+  runAsUser: 1000660000
+```
+
+> [!IMPORTANT]  
+>  OpenShift does not assign `SecurityContexts` in the `default` and `kube-system` namespaces. Please refrain from deploying operands on them, as it will result in permission errors when trying to write to the filesystem.
+
+You can read more about [Security Context Constraints in the OpenShift documentation](https://docs.openshift.com/container-platform/4.16/authentication/managing-security-context-constraints.html)
 
 ## Installation in all namespaces
 
