@@ -41,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -1367,7 +1368,7 @@ func (r *MaxScaleReconciler) requeueResult(ctx context.Context, mxs *mariadbv1al
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *MaxScaleReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *MaxScaleReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MaxScale{}).
 		Owns(&mariadbv1alpha1.User{}).
@@ -1377,7 +1378,8 @@ func (r *MaxScaleReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Mana
 		Owns(&corev1.Service{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&appsv1.StatefulSet{}).
-		Owns(&appsv1.Deployment{})
+		Owns(&appsv1.Deployment{}).
+		WithOptions(opts)
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
 	if err := watcherIndexer.Watch(
