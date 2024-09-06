@@ -36,6 +36,7 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	if !shouldReconcileUpdates(mdb) {
 		return ctrl.Result{}, nil
 	}
+	mariadbKey := client.ObjectKeyFromObject(mdb)
 	logger := log.FromContext(ctx).WithName("update")
 
 	stsUpdateRevision, err := r.getStatefulSetRevision(ctx, mdb)
@@ -68,7 +69,7 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 			continue
 		}
 		logger.Info("Updating replica Pod", "pod", replicaPod.Name)
-		if err := r.updatePod(ctx, &replicaPod, stsUpdateRevision, logger); err != nil {
+		if err := r.updatePod(ctx, mariadbKey, &replicaPod, stsUpdateRevision, logger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error updating replica Pod '%s': %v", replicaPod.Name, err)
 		}
 		return ctrl.Result{Requeue: true}, nil
@@ -81,7 +82,7 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 
 	logger.Info("Updating primary Pod", "pod", primaryPod.Name)
-	if err := r.updatePod(ctx, &primaryPod, stsUpdateRevision, logger); err != nil {
+	if err := r.updatePod(ctx, mariadbKey, &primaryPod, stsUpdateRevision, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error updating primary Pod '%s': %v", primaryPod.Name, err)
 	}
 	return ctrl.Result{}, nil
@@ -110,22 +111,23 @@ func (r *MariaDBReconciler) waitForReadyStatus(ctx context.Context, mdb *mariadb
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) updatePod(ctx context.Context, pod *corev1.Pod, updateRevision string, logger logr.Logger) error {
+func (r *MariaDBReconciler) updatePod(ctx context.Context, mariadbKey types.NamespacedName, pod *corev1.Pod, updateRevision string,
+	logger logr.Logger) error {
 	if err := r.Delete(ctx, pod); err != nil {
 		return fmt.Errorf("error deleting Pod '%s': %v", pod.Name, err)
 	}
 
 	updateCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
-	if err := r.pollUntilPodUpdated(updateCtx, client.ObjectKeyFromObject(pod), updateRevision, logger); err != nil {
+	if err := r.pollUntilPodUpdated(updateCtx, mariadbKey, client.ObjectKeyFromObject(pod), updateRevision, logger); err != nil {
 		return fmt.Errorf("error waiting for Pod '%s' to be updated: %v", pod.Name, err)
 	}
 	return nil
 }
 
-func (r *MariaDBReconciler) pollUntilPodUpdated(ctx context.Context, podKey types.NamespacedName, updateRevision string,
+func (r *MariaDBReconciler) pollUntilPodUpdated(ctx context.Context, mariadbKey, podKey types.NamespacedName, updateRevision string,
 	logger logr.Logger) error {
-	return wait.PollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
+	return wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
 		if err := r.Get(ctx, podKey, &pod); err != nil {
 			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
