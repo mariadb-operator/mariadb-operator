@@ -47,6 +47,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -914,7 +915,7 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MariaDB{}).
 		Owns(&mariadbv1alpha1.MaxScale{}).
@@ -932,7 +933,8 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Owns(&rbacv1.ClusterRoleBinding{})
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		WithOptions(opts)
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
 	if err := watcherIndexer.Watch(
