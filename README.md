@@ -69,7 +69,7 @@ helm install mariadb-operator mariadb-operator/mariadb-operator \
   --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
 ```
 
-## Openshift installations
+## Openshift installation
 
 We have 2 different operator flavours to install in OpenShift:
 - Certified operator for MariaDB Enterprise. Refer to the [OpenShift documentation](./docs/OPENSHIFT.md).
