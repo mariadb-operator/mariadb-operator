@@ -5009,18 +5009,19 @@ spec:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
   description: |
-    Run and Operate MariaDB and MaxScale on OpenShift.  Declaratively manage your MariaDB and MaxScale containers, for:
-    - Provisioning and Configuring MariaDB
-    - Bootstrapping from backup
-    - Managing users, grants, logical DBs, client connections
-    - Orchestrating and scheduling of SQL scripts
-    - Basic HA with Primary Replica
-    - Enhanced HA with Galera Clusters
+    Run and Operate MariaDB and MaxScale on Openshift declaratively, versus using manual commands to:
+    - Provision & Configure MariaDB
+    - Bootstrap from backup, S3, PVCs, K8s Volumes
+    - Manage users, grants, logical DBs, client connections
+    - Orchestrate / schedule SQL scripts
+    - Basic HA with Primary/Replica
+    - Enhanced HA with Galera Clusters 
     - Advanced HA with MaxScale
+    - Cluster aware rolling update
     - Storage Volume Resizing
-    - Flexible Backup and Restore
-    - Monitoring with Prometheus Metrics
-    - OLM install
+    - Backup & Restore
+    - Monitor with Prometheus Metrics 
+    - OpenShift Certified
 
     Learn more about [MariaDB Operator](https://github.com/mariadb-operator/mariadb-operator) on GitHub and join the [community slack](https://r.mariadb.com/join-community-slack) today!
   displayName: MariaDB Operator Enterprise
