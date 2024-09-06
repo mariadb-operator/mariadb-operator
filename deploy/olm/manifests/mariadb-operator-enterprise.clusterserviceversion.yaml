@@ -301,7 +301,7 @@ metadata:
             },
             "passwordSecretKeyRef": {
               "key": "password",
-              "name": "mariadb"
+              "name": "mariadb-password"
             },
             "schedule": {
               "cron": "*/1 * * * *",
@@ -335,7 +335,7 @@ metadata:
     categories: Database
     certified: "true"
     containerImage: mariadb/mariadb-operator-enterprise:v0.0.31-dev
-    createdAt: "2024-09-04T11:49:37Z"
+    createdAt: "2024-09-06T10:20:32Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
