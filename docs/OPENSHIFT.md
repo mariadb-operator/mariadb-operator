@@ -15,7 +15,7 @@ Operators are deployed into OpenShift by using [Operator Lifecycle Manager](http
 - [`SecurityContextConstraints`](#channels)
 - [Installation in all namespaces](#installation-in-all-namespaces)
 - [Installation in specific namespaces](#installation-in-specific-namespaces)
-- [Installation via OpenShift console](#installation-via-openshift-console)
+- [OpenShift console](#openshift-console)
 <!-- /toc -->
 
 ## `PackageManifest`
@@ -135,10 +135,20 @@ spec:
   startingCSV: mariadb-operator-enterprise.v0.0.31
 ``` 
 
-## Installation via OpenShift console
+## OpenShift console
 
 As an alternative to create `Subscription` objects via the command line, you can install operators by using the OpenShift console. Go to the `Operators > OperatorHub` section and search by `mariadb`: 
 
 ![Certified Operator](https://mariadb-operator.github.io/mariadb-operator/assets/certified-operator.png)
 
 Select `MariaDB Operator Enterprise`, click on install, and you will be able to create a `Subscription` object via the UI.
+
+Once deployed, the operator comes with a small suite of examples that can be deployed from the console directly. For instance, to create a `MariaDB`:
+
+![Create a MariaDB via OpenShift console](https://mariadb-operator.github.io/mariadb-operator/assets/openshift-console-form.png)
+
+As you can see in the previous screenshot, the form view that the OpenShift console offers is limited, we recommend using the YAML view:
+
+![Create a MariaDB via OpenShift console](https://mariadb-operator.github.io/mariadb-operator/assets/openshift-console-yaml.png)
+
+Refer to the [full suite of examples](../examples/) and the [API reference](./API_REFERENCE.md) for further detail.
