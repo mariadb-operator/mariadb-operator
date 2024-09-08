@@ -1,8 +1,12 @@
 package backup
 
 import (
+	"compress/gzip"
+	"compress/zlib"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,6 +30,7 @@ var (
 	s3CACertPath   string
 	s3Prefix       string
 	maxRetention   time.Duration
+	compression    string
 )
 
 func init() {
@@ -48,6 +53,12 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
 	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
 	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
+
+	RootCmd.PersistentFlags().StringVar(&compression, "compression", "none", "Compression algorithm, none, gzip or zlib.")
+	if compression != "none" && compression != "gzip" && compression != "zlib" {
+		fmt.Printf("%s compression algorithm is not supported, valid choices are [none|gzip|zlib], compression is disabled!", compression)
+		compression = "none"
+	}
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
@@ -84,9 +95,23 @@ var RootCmd = &cobra.Command{
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		logger.Info("pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
-		if err := backupStorage.Push(ctx, backupTargetFile); err != nil {
-			logger.Error(err, "error pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
+		var backupFile = backupTargetFile
+
+		if compression != "none" {
+
+			backupFile = fmt.Sprintf("%sz", backupTargetFile)
+
+			logger.Info("compressing target backup", backupTargetFile)
+			err := compressFile(backupTargetFile, backupFile, compression)
+			if err != nil {
+				logger.Error(err, "error compressing file", "path", backupTargetFile, "error", err)
+				os.Exit(1)
+			}
+		}
+
+		logger.Info("pushing target backup", "file", backupFile, "prefix", s3Prefix)
+		if err := backupStorage.Push(ctx, backupFile); err != nil {
+			logger.Error(err, "error pushing target backup", "file", backupFile, "prefix", s3Prefix)
 			os.Exit(1)
 		}
 
@@ -154,4 +179,42 @@ func readTargetFile() (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+func compressFile(sourceFilePath string, destFilePath string, compression string) error {
+	originalFile, err := os.Open(sourceFilePath)
+	if err != nil {
+		panic(err)
+	}
+	defer originalFile.Close()
+
+	compressedFile, err := os.Create(destFilePath)
+	if err != nil {
+		panic(err)
+	}
+	defer compressedFile.Close()
+
+	if compression == "gzip" {
+		writer := gzip.NewWriter(compressedFile)
+		defer writer.Close()
+		_, err = io.Copy(writer, originalFile)
+		if err != nil {
+			return (err)
+		}
+		writer.Flush()
+		return nil
+	}
+
+	if compression == "zlib" {
+		writer := zlib.NewWriter(compressedFile)
+		defer writer.Close()
+		_, err = io.Copy(writer, originalFile)
+		if err != nil {
+			return (err)
+		}
+		writer.Flush()
+		return nil
+	}
+
+	return errors.New("Unknown compression algorithm")
 }
