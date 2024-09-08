@@ -152,13 +152,16 @@ func (b *Backup) Validate() error {
 	if err := b.Spec.Storage.Validate(); err != nil {
 		return fmt.Errorf("invalid Storage: %v", err)
 	}
-	if b.Spec.Compression != "" && b.Spec.Compression != "gzip" && b.Spec.Compression != "zlib" {
+	if b.Spec.Compression != "none" && b.Spec.Compression != "gzip" && b.Spec.Compression != "zlib" {
 		return fmt.Errorf("invalid compression: %s", b.Spec.Compression)
 	}
 	return nil
 }
 
 func (b *Backup) SetDefaults(mariadb *MariaDB) {
+	if b.Spec.Compression == "" {
+		b.Spec.Compression = "none"
+	}
 	if b.Spec.MaxRetention == (metav1.Duration{}) {
 		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
 	}

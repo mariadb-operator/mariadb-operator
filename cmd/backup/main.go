@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -94,24 +95,19 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
-
-		var backupFile = backupTargetFile
-
+		
 		if compression != "none" {
-
-			backupFile = fmt.Sprintf("%sz", backupTargetFile)
-
-			logger.Info("compressing target backup", backupTargetFile)
-			err := compressFile(backupTargetFile, backupFile, compression)
+			logger.Info("compressing target backup", "file", backupTargetFile)
+			err := compressFile(filepath.Join(path, backupTargetFile), compression)
 			if err != nil {
 				logger.Error(err, "error compressing file", "path", backupTargetFile, "error", err)
 				os.Exit(1)
 			}
 		}
 
-		logger.Info("pushing target backup", "file", backupFile, "prefix", s3Prefix)
-		if err := backupStorage.Push(ctx, backupFile); err != nil {
-			logger.Error(err, "error pushing target backup", "file", backupFile, "prefix", s3Prefix)
+		logger.Info("pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
+		if err := backupStorage.Push(ctx, backupTargetFile); err != nil {
+			logger.Error(err, "error pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
 			os.Exit(1)
 		}
 
@@ -181,14 +177,19 @@ func readTargetFile() (string, error) {
 	return string(bytes), nil
 }
 
-func compressFile(sourceFilePath string, destFilePath string, compression string) error {
-	originalFile, err := os.Open(sourceFilePath)
+func compressFile(f string, compression string) error {
+	tmpf := f + ".tmp"
+	err := os.Rename(f,tmpf)
+	if err != nil {
+		panic(err)
+	}
+	originalFile, err := os.Open(tmpf)
 	if err != nil {
 		panic(err)
 	}
 	defer originalFile.Close()
 
-	compressedFile, err := os.Create(destFilePath)
+	compressedFile, err := os.Create(f)
 	if err != nil {
 		panic(err)
 	}
@@ -202,6 +203,10 @@ func compressFile(sourceFilePath string, destFilePath string, compression string
 			return (err)
 		}
 		writer.Flush()
+		err = os.Remove(tmpf)
+		if err != nil {
+			return (err)
+		}
 		return nil
 	}
 
@@ -213,6 +218,10 @@ func compressFile(sourceFilePath string, destFilePath string, compression string
 			return (err)
 		}
 		writer.Flush()
+		err = os.Remove(tmpf)
+		if err != nil {
+			return (err)
+		}
 		return nil
 	}
 

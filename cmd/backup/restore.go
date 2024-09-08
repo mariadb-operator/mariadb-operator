@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
@@ -19,6 +20,7 @@ var targetTimeRaw string
 func init() {
 	restoreCommand.Flags().StringVar(&targetTimeRaw, "target-time", "",
 		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the backup target time.")
+	restoreCommand.Flags().StringVar(&path, "path", "/backup", "Directory path where the backup files are located.")
 }
 
 var restoreCommand = &cobra.Command{
@@ -67,8 +69,14 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
+		logger.Info("uncompressing file", "path", backupTargetFile)
+		if err := uncompressFile(filepath.Join(path, backupTargetFile) ); err != nil {
+			logger.Error(err, "error uncompressing file", "path", backupTargetFile)
+			os.Exit(1)
+		}
+
 		logger.Info("writing target file", "path", targetFilePath)
-		if err := uncompressFile(backupTargetFile, targetFilePath); err != nil {
+		if err := writeTargetFile(backupTargetFile); err != nil {
 			logger.Error(err, "error writing target file", "path", targetFilePath)
 			os.Exit(1)
 		}
@@ -86,14 +94,19 @@ func writeTargetFile(backupTargetFilePath string) error {
 	return os.WriteFile(targetFilePath, []byte(backupTargetFilePath), 0777)
 }
 
-func uncompressFile(sourceFilePath string, destFilePath string) error {
-	compressedFile, err := os.Open(sourceFilePath)
+func uncompressFile(f string) error {
+	tmpf := f + ".tmp"
+	err := os.Rename(f,tmpf)
+	if err != nil {
+		panic(err)
+	}
+	compressedFile, err := os.Open(tmpf)
 	if err != nil {
 		return (err)
 	}
 	defer compressedFile.Close()
 
-	originalFile, err := os.Create(destFilePath)
+	originalFile, err := os.Create(f)
 	if err != nil {
 		return (err)
 	}
@@ -106,7 +119,8 @@ func uncompressFile(sourceFilePath string, destFilePath string) error {
 	}
 	if testBytes[0] == 31 && testBytes[1] == 139 {
 		//gzip
-		reader, err := gzip.NewReader(compressedFile)
+		logger.Info("found gzip compression")
+		reader, err := gzip.NewReader(bReader)
 		if err != nil {
 			return (err)
 		}
@@ -117,7 +131,8 @@ func uncompressFile(sourceFilePath string, destFilePath string) error {
 		}
 	} else if testBytes[0] == 120 && (testBytes[1] == 1 || testBytes[1] == 156 || testBytes[1] == 218) {
 		// zlib
-		reader, err := zlib.NewReader(compressedFile)
+		logger.Info("found zlib compression")
+		reader, err := zlib.NewReader(bReader)
 		if err != nil {
 			return (err)
 		}
@@ -127,11 +142,15 @@ func uncompressFile(sourceFilePath string, destFilePath string) error {
 			return (err)
 		}
 	} else {
-		// no compression, just copy
-		_, err = io.Copy(originalFile, compressedFile)
+		// no compression, do nothing
+		_, err = io.Copy(originalFile, bReader)
 		if err != nil {
 			return (err)
 		}
+	}
+	err = os.Remove(tmpf)
+	if err != nil {
+		return (err)
 	}
 	return nil
 }

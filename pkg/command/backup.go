@@ -180,6 +180,8 @@ func (b *BackupCommand) MariadbOperatorBackup() *Command {
 		b.TargetFilePath,
 		"--max-retention",
 		b.MaxRetentionDuration.String(),
+		"--compression",
+		b.Compression,
 		"--log-level",
 		b.LogLevel,
 	}
