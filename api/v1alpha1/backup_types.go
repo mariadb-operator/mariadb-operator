@@ -58,6 +58,10 @@ type BackupSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// Compression algorithm to be used in the Backup.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Compression string `json:"compression,omitempty" webhook:"inmutable"`
 	// Storage to be used in the Backup.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -147,6 +151,9 @@ func (b *Backup) Validate() error {
 	}
 	if err := b.Spec.Storage.Validate(); err != nil {
 		return fmt.Errorf("invalid Storage: %v", err)
+	}
+	if b.Spec.Compression != "" && b.Spec.Compression != "gzip" && b.Spec.Compression != "zlib" {
+		return fmt.Errorf("invalid compression: %s", b.Spec.Compression)
 	}
 	return nil
 }

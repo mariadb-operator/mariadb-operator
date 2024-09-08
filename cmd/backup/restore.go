@@ -1,7 +1,11 @@
 package backup
 
 import (
+	"bufio"
+	"compress/gzip"
+	"compress/zlib"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -64,7 +68,7 @@ var restoreCommand = &cobra.Command{
 		}
 
 		logger.Info("writing target file", "path", targetFilePath)
-		if err := writeTargetFile(backupTargetFile); err != nil {
+		if err := uncompressFile(backupTargetFile, targetFilePath); err != nil {
 			logger.Error(err, "error writing target file", "path", targetFilePath)
 			os.Exit(1)
 		}
@@ -80,4 +84,54 @@ func getTargetTime() (time.Time, error) {
 
 func writeTargetFile(backupTargetFilePath string) error {
 	return os.WriteFile(targetFilePath, []byte(backupTargetFilePath), 0777)
+}
+
+func uncompressFile(sourceFilePath string, destFilePath string) error {
+	compressedFile, err := os.Open(sourceFilePath)
+	if err != nil {
+		return (err)
+	}
+	defer compressedFile.Close()
+
+	originalFile, err := os.Create(destFilePath)
+	if err != nil {
+		return (err)
+	}
+	defer originalFile.Close()
+
+	bReader := bufio.NewReader(compressedFile)
+	testBytes, err := bReader.Peek(2)
+	if err != nil {
+		return (err)
+	}
+	if testBytes[0] == 31 && testBytes[1] == 139 {
+		//gzip
+		reader, err := gzip.NewReader(compressedFile)
+		if err != nil {
+			return (err)
+		}
+		defer reader.Close()
+		_, err = io.Copy(originalFile, reader)
+		if err != nil {
+			return (err)
+		}
+	} else if testBytes[0] == 120 && (testBytes[1] == 1 || testBytes[1] == 156 || testBytes[1] == 218) {
+		// zlib
+		reader, err := zlib.NewReader(compressedFile)
+		if err != nil {
+			return (err)
+		}
+		defer reader.Close()
+		_, err = io.Copy(originalFile, reader)
+		if err != nil {
+			return (err)
+		}
+	} else {
+		// no compression, just copy
+		_, err = io.Copy(originalFile, compressedFile)
+		if err != nil {
+			return (err)
+		}
+	}
+	return nil
 }

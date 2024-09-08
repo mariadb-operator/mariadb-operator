@@ -18,6 +18,7 @@ type BackupOpts struct {
 	TargetFilePath       string
 	MaxRetentionDuration time.Duration
 	TargetTime           time.Time
+	Compression          string
 	S3                   bool
 	S3Bucket             string
 	S3Endpoint           string
@@ -47,6 +48,12 @@ func WithBackupMaxRetention(d time.Duration) BackupOpt {
 func WithBackupTargetTime(t time.Time) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.TargetTime = t
+	}
+}
+
+func WithBackupCompression(c string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.Compression = c
 	}
 }
 

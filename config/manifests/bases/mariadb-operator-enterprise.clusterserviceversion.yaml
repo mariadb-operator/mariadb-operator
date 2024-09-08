@@ -305,6 +305,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
         - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Compression algorithm to be used in the Backup.
+        displayName: Compression
+        path: compression
       - description: Databases defines the logical databases to be backed up. If not
           provided, all databases are backed up.
         displayName: Databases
