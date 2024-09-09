@@ -2,7 +2,9 @@ package init
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,6 +34,11 @@ var (
 	logger    = ctrl.Log
 	configDir string
 	stateDir  string
+)
+
+const (
+	sstInProgressFile = "sst_in_progress"
+	wsrepSSTPidFile   = "wsrep_sst.pid"
 )
 
 func init() {
@@ -111,6 +118,10 @@ var RootCmd = &cobra.Command{
 		}
 		if err := waitForPreviousPod(ctx, k8sClient, env, &mdb, hasGaleraState, *podIndex); err != nil {
 			logger.Error(err, "error waiting for previous Pod")
+			os.Exit(1)
+		}
+		if err := cleanupPreviousSST(fileManager); err != nil {
+			logger.Error(err, "error cleaning up previous SST")
 			os.Exit(1)
 		}
 		logger.Info("Init done")
@@ -200,6 +211,22 @@ func waitForPreviousPod(ctx context.Context, k8sClient client.Client, env *envir
 	if err := waitForPodReady(ctx, previousKey, k8sClient); err != nil {
 		logger.Info("Waiting for previous Pod to be ready", "pod", previousPodName)
 		return fmt.Errorf("error waiting for previous Pod '%s' to be ready: %v", previousPodName, err)
+	}
+	return nil
+}
+
+func cleanupPreviousSST(fm *filemanager.FileManager) error {
+	for _, file := range []string{wsrepSSTPidFile, sstInProgressFile} {
+		exists, err := fm.StateFileExists(file)
+		if err != nil {
+			return fmt.Errorf("error checking if %s exists: %v", file, err)
+		}
+		if exists {
+			logger.Info("Deleting pending SST file", "file", file)
+			if err := fm.DeleteStateFile(file); err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+		}
 	}
 	return nil
 }
