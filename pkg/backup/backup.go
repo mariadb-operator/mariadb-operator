@@ -90,7 +90,7 @@ func ParseBackupDate(timeRaw string) (time.Time, error) {
 
 func parseDateInBackupFile(fileName string) (time.Time, error) {
 	parts := strings.Split(fileName, ".")
-	if len(parts) != 3 {
+	if len(parts) != 3 && len(parts) != 4 {
 		return time.Time{}, fmt.Errorf("invalid backup file name: %s", fileName)
 	}
 	return ParseBackupDate(parts[1])
