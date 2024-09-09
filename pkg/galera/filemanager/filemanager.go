@@ -66,7 +66,7 @@ func (f *FileManager) DeleteConfigFile(name string) error {
 
 func (f *FileManager) ConfigFileExists(name string) (bool, error) {
 	if _, err := os.Stat(filepath.Join(f.configDir, name)); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
 		}
 		return false, err
