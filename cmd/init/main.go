@@ -37,8 +37,8 @@ var (
 )
 
 const (
-	sstInProgressFile = "sst_in_progress"
 	wsrepSSTPidFile   = "wsrep_sst.pid"
+	sstInProgressFile = "sst_in_progress"
 )
 
 func init() {
@@ -219,12 +219,12 @@ func cleanupPreviousSST(fm *filemanager.FileManager) error {
 	for _, file := range []string{wsrepSSTPidFile, sstInProgressFile} {
 		exists, err := fm.StateFileExists(file)
 		if err != nil {
-			return fmt.Errorf("error checking if %s exists: %v", file, err)
+			return fmt.Errorf("error checking if %s file exists: %v", file, err)
 		}
 		if exists {
 			logger.Info("Deleting pending SST file", "file", file)
 			if err := fm.DeleteStateFile(file); err != nil && !errors.Is(err, fs.ErrNotExist) {
-				return err
+				return fmt.Errorf("error deleting %s file: %v", file, err)
 			}
 		}
 	}
