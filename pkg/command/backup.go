@@ -18,7 +18,7 @@ type BackupOpts struct {
 	TargetFilePath       string
 	MaxRetentionDuration time.Duration
 	TargetTime           time.Time
-	Compression          string
+	Compression          mariadbv1alpha1.CompressAlgorithm
 	S3                   bool
 	S3Bucket             string
 	S3Endpoint           string
@@ -51,7 +51,7 @@ func WithBackupTargetTime(t time.Time) BackupOpt {
 	}
 }
 
-func WithBackupCompression(c string) BackupOpt {
+func WithBackupCompression(c mariadbv1alpha1.CompressAlgorithm) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Compression = c
 	}
@@ -181,7 +181,7 @@ func (b *BackupCommand) MariadbOperatorBackup() *Command {
 		"--max-retention",
 		b.MaxRetentionDuration.String(),
 		"--compression",
-		b.Compression,
+		string(b.Compression),
 		"--log-level",
 		b.LogLevel,
 	}
@@ -226,9 +226,17 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 }
 
 func (b *BackupCommand) newBackupFile() string {
+	var calg string
+	switch b.Compression {
+	case mariadbv1alpha1.CompressNone:
+		calg = ""
+	default:
+		calg = fmt.Sprintf(".%v", b.Compression)
+	}
 	return fmt.Sprintf(
-		"backup.$(date -u +'%s').sql",
+		"backup.$(date -u +'%s')%s.sql",
 		"%Y-%m-%dT%H:%M:%SZ",
+		calg,
 	)
 }
 

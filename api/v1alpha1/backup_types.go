@@ -43,6 +43,27 @@ func (b *BackupStorage) Validate() error {
 	return nil
 }
 
+// CompressAlgorithm defines the compression algorithm for a Backup resource.
+type CompressAlgorithm string
+
+const (
+	// No compression
+	CompressNone CompressAlgorithm = "none"
+	// Zlib compression
+	CompressZlib CompressAlgorithm = "zlib"
+	// Gzip compression
+	CompressGzip CompressAlgorithm = "gzip"
+)
+
+func (c CompressAlgorithm) Validate() error {
+	switch c {
+	case CompressAlgorithm(""), CompressNone, CompressZlib, CompressGzip:
+		return nil
+	default:
+		return fmt.Errorf("invalid compression: %v, supported agorithms: [%v|%v|%v]", c, CompressNone, CompressZlib, CompressGzip)
+	}
+}
+
 // BackupSpec defines the desired state of Backup
 type BackupSpec struct {
 	// JobContainerTemplate defines templates to configure Container objects.
@@ -61,7 +82,7 @@ type BackupSpec struct {
 	// Compression algorithm to be used in the Backup.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Compression string `json:"compression,omitempty" webhook:"inmutable"`
+	Compression CompressAlgorithm `json:"compression,omitempty"`
 	// Storage to be used in the Backup.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -152,15 +173,15 @@ func (b *Backup) Validate() error {
 	if err := b.Spec.Storage.Validate(); err != nil {
 		return fmt.Errorf("invalid Storage: %v", err)
 	}
-	if b.Spec.Compression != "none" && b.Spec.Compression != "gzip" && b.Spec.Compression != "zlib" {
-		return fmt.Errorf("invalid compression: %s", b.Spec.Compression)
+	if err := b.Spec.Compression.Validate(); err != nil {
+		return fmt.Errorf("invalid Compression: %v", err)
 	}
 	return nil
 }
 
 func (b *Backup) SetDefaults(mariadb *MariaDB) {
-	if b.Spec.Compression == "" {
-		b.Spec.Compression = "none"
+	if b.Spec.Compression == CompressAlgorithm("") {
+		b.Spec.Compression = CompressNone
 	}
 	if b.Spec.MaxRetention == (metav1.Duration{}) {
 		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}

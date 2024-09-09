@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/spf13/cobra"
@@ -55,10 +56,12 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
 	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
 
-	RootCmd.PersistentFlags().StringVar(&compression, "compression", "none", "Compression algorithm, none, gzip or zlib.")
-	if compression != "none" && compression != "gzip" && compression != "zlib" {
-		fmt.Printf("%s compression algorithm is not supported, valid choices are [none|gzip|zlib], compression is disabled!", compression)
-		compression = "none"
+	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone), "Compression algorithm, none, gzip or zlib.")
+
+	err := mariadbv1alpha1.CompressAlgorithm(compression).Validate()
+	if err != nil {
+		fmt.Printf("compression algorithm not supported: %v", err)
+		os.Exit(1)
 	}
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
@@ -95,10 +98,10 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
-		
-		if compression != "none" {
+
+		if compression != string(mariadbv1alpha1.CompressNone) {
 			logger.Info("compressing target backup", "file", backupTargetFile)
-			err := compressFile(filepath.Join(path, backupTargetFile), compression)
+			err := compressFile(filepath.Join(path, backupTargetFile), mariadbv1alpha1.CompressAlgorithm(compression))
 			if err != nil {
 				logger.Error(err, "error compressing file", "path", backupTargetFile, "error", err)
 				os.Exit(1)
@@ -177,25 +180,24 @@ func readTargetFile() (string, error) {
 	return string(bytes), nil
 }
 
-func compressFile(f string, compression string) error {
-	tmpf := f + ".tmp"
-	err := os.Rename(f,tmpf)
+func compressFile(f string, compression mariadbv1alpha1.CompressAlgorithm) error {
+
+	originalFile, err := os.Open(f)
 	if err != nil {
-		panic(err)
-	}
-	originalFile, err := os.Open(tmpf)
-	if err != nil {
-		panic(err)
+		return err
 	}
 	defer originalFile.Close()
 
-	compressedFile, err := os.Create(f)
+	tmpf := f + ".tmp"
+	compressedFile, err := os.Create(tmpf)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer compressedFile.Close()
 
-	if compression == "gzip" {
+	switch compression {
+
+	case mariadbv1alpha1.CompressGzip:
 		writer := gzip.NewWriter(compressedFile)
 		defer writer.Close()
 		_, err = io.Copy(writer, originalFile)
@@ -203,14 +205,8 @@ func compressFile(f string, compression string) error {
 			return (err)
 		}
 		writer.Flush()
-		err = os.Remove(tmpf)
-		if err != nil {
-			return (err)
-		}
-		return nil
-	}
 
-	if compression == "zlib" {
+	case mariadbv1alpha1.CompressZlib:
 		writer := zlib.NewWriter(compressedFile)
 		defer writer.Close()
 		_, err = io.Copy(writer, originalFile)
@@ -218,12 +214,24 @@ func compressFile(f string, compression string) error {
 			return (err)
 		}
 		writer.Flush()
+
+	default:
 		err = os.Remove(tmpf)
 		if err != nil {
 			return (err)
 		}
-		return nil
+		return errors.New("Unknown compression algorithm")
 	}
 
-	return errors.New("Unknown compression algorithm")
+	err = os.Remove(f)
+	if err != nil {
+		return (err)
+	}
+
+	err = os.Rename(tmpf, f)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

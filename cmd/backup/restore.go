@@ -1,15 +1,16 @@
 package backup
 
 import (
-	"bufio"
 	"compress/gzip"
 	"compress/zlib"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/spf13/cobra"
@@ -70,13 +71,14 @@ var restoreCommand = &cobra.Command{
 		}
 
 		logger.Info("uncompressing file", "path", backupTargetFile)
-		if err := uncompressFile(filepath.Join(path, backupTargetFile) ); err != nil {
+		backupFile, err := uncompressFile(path, backupTargetFile)
+		if err != nil {
 			logger.Error(err, "error uncompressing file", "path", backupTargetFile)
 			os.Exit(1)
 		}
 
 		logger.Info("writing target file", "path", targetFilePath)
-		if err := writeTargetFile(backupTargetFile); err != nil {
+		if err := writeTargetFile(backupFile); err != nil {
 			logger.Error(err, "error writing target file", "path", targetFilePath)
 			os.Exit(1)
 		}
@@ -94,63 +96,66 @@ func writeTargetFile(backupTargetFilePath string) error {
 	return os.WriteFile(targetFilePath, []byte(backupTargetFilePath), 0777)
 }
 
-func uncompressFile(f string) error {
-	tmpf := f + ".tmp"
-	err := os.Rename(f,tmpf)
-	if err != nil {
-		panic(err)
+func uncompressFile(path string, f string) (string, error) {
+
+	parts := strings.Split(f, ".")
+	if len(parts) == 3 {
+		// uncompressed file, do nothing
+		return f, nil
 	}
-	compressedFile, err := os.Open(tmpf)
+
+	if len(parts) != 4 {
+		return "", fmt.Errorf("Invalid filename: %s", f)
+	}
+
+	calg := mariadbv1alpha1.CompressAlgorithm(parts[2])
+
+	err := calg.Validate()
 	if err != nil {
-		return (err)
+		return "", err
+	}
+
+	if calg == mariadbv1alpha1.CompressNone {
+		// uncompressed file, do nothing
+		return f, nil
+	}
+
+	compressedFile, err := os.Open(filepath.Join(path, f))
+	if err != nil {
+		return "", err
 	}
 	defer compressedFile.Close()
 
-	originalFile, err := os.Create(f)
-	if err != nil {
-		return (err)
-	}
-	defer originalFile.Close()
+	plainFileName := fmt.Sprintf("%s.%s.%s", parts[0], parts[1], parts[3])
 
-	bReader := bufio.NewReader(compressedFile)
-	testBytes, err := bReader.Peek(2)
+	plainFile, err := os.Create(filepath.Join(path, plainFileName))
 	if err != nil {
-		return (err)
+		return "", err
 	}
-	if testBytes[0] == 31 && testBytes[1] == 139 {
-		//gzip
-		logger.Info("found gzip compression")
-		reader, err := gzip.NewReader(bReader)
+	defer plainFile.Close()
+
+	switch calg {
+	case mariadbv1alpha1.CompressGzip:
+		reader, err := gzip.NewReader(compressedFile)
 		if err != nil {
-			return (err)
+			return "", err
 		}
 		defer reader.Close()
-		_, err = io.Copy(originalFile, reader)
+		_, err = io.Copy(plainFile, reader)
 		if err != nil {
-			return (err)
+			return "", err
 		}
-	} else if testBytes[0] == 120 && (testBytes[1] == 1 || testBytes[1] == 156 || testBytes[1] == 218) {
-		// zlib
-		logger.Info("found zlib compression")
-		reader, err := zlib.NewReader(bReader)
+	case mariadbv1alpha1.CompressZlib:
+		reader, err := zlib.NewReader(compressedFile)
 		if err != nil {
-			return (err)
+			return "", err
 		}
 		defer reader.Close()
-		_, err = io.Copy(originalFile, reader)
+		_, err = io.Copy(plainFile, reader)
 		if err != nil {
-			return (err)
-		}
-	} else {
-		// no compression, do nothing
-		_, err = io.Copy(originalFile, bReader)
-		if err != nil {
-			return (err)
+			return "", err
 		}
 	}
-	err = os.Remove(tmpf)
-	if err != nil {
-		return (err)
-	}
-	return nil
+
+	return plainFileName, nil
 }
