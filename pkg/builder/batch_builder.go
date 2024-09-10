@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -11,6 +12,7 @@ import (
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -372,6 +374,12 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		})
 	}
 
+	affinityEnabled := ptr.Deref(recoveryJob.PodAffinity, true)
+	affinity, err := galeraRecoveryJobAffinity(mariadb, podIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error getting recovery Job affinity: %v", err)
+	}
+
 	podTpl, err := b.mariadbPodTemplate(
 		mariadb,
 		withMeta(mariadb.Spec.InheritMetadata),
@@ -381,7 +389,8 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
 		withResources(recoveryJob.Resources),
 		withExtraVolumes(volumes),
-		withAffinityEnabled(false), // We need to schedule the recovery Job even if MariaDB defines anti-affinity.
+		withAffinityEnabled(affinityEnabled),
+		withAffinity(affinity),
 		withMariadbResources(false),
 		withMariadbSelectorLabels(false),
 		withGaleraContainers(false),
@@ -541,4 +550,38 @@ func batchImagePullSecrets(mariadb *mariadbv1alpha1.MariaDB, pullSecrets []corev
 	secrets = append(secrets, mariadb.Spec.ImagePullSecrets...)
 	secrets = append(secrets, pullSecrets...)
 	return secrets
+}
+
+func galeraRecoveryJobAffinity(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (*mariadbv1alpha1.AffinityConfig, error) {
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	if !galera.Enabled {
+		return nil, errors.New("Galera must be enabled")
+	}
+
+	return &mariadbv1alpha1.AffinityConfig{
+		AntiAffinityEnabled: ptr.To(false),
+		Affinity: corev1.Affinity{
+			PodAffinity: &corev1.PodAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "app.kubernetes.io/instance",
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   []string{mariadb.Name},
+								},
+								{
+									Key:      "apps.kubernetes.io/pod-index",
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   []string{strconv.Itoa(podIndex)},
+								},
+							},
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		},
+	}, nil
 }

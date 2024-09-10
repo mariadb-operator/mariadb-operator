@@ -1580,11 +1580,12 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 		Name: "mariadb-obj",
 	}
 	tests := []struct {
-		name    string
-		mariadb *mariadbv1alpha1.MariaDB
+		name         string
+		mariadb      *mariadbv1alpha1.MariaDB
+		wantAffinity *corev1.Affinity
 	}{
 		{
-			name: "no mariadb affinity",
+			name: "no recovery Job affinity",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -1593,6 +1594,9 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									PodAffinity: ptr.To(false),
+								},
 							},
 						},
 					},
@@ -1601,9 +1605,10 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 					},
 				},
 			},
+			wantAffinity: nil,
 		},
 		{
-			name: "mariadb affinity",
+			name: "recovery Job affinity",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -1612,22 +1617,37 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
-							},
-						},
-					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						Affinity: &mariadbv1alpha1.AffinityConfig{
-							AntiAffinityEnabled: ptr.To(true),
-						},
-						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
-							{
-								MaxSkew:     1,
-								TopologyKey: "kubernetes.io/hostname",
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									PodAffinity: ptr.To(true),
+								},
 							},
 						},
 					},
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+				},
+			},
+			wantAffinity: &corev1.Affinity{
+				PodAffinity: &corev1.PodAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+						{
+							LabelSelector: &metav1.LabelSelector{
+								MatchExpressions: []metav1.LabelSelectorRequirement{
+									{
+										Key:      "app.kubernetes.io/instance",
+										Operator: metav1.LabelSelectorOpIn,
+										Values:   []string{objMeta.Name},
+									},
+									{
+										Key:      "apps.kubernetes.io/pod-index",
+										Operator: metav1.LabelSelectorOpIn,
+										Values:   []string{"0"},
+									},
+								},
+							},
+							TopologyKey: "kubernetes.io/hostname",
+						},
 					},
 				},
 			},
@@ -1640,11 +1660,8 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 			if err != nil {
 				t.Errorf("unexpected error building Galera recovery Job: %v", err)
 			}
-			if job.Spec.Template.Spec.Affinity != nil {
-				t.Error("expected Galera recovery Job to not have affinity")
-			}
-			if job.Spec.Template.Spec.TopologySpreadConstraints != nil {
-				t.Error("expected Galera recovery Job to not have topologySpreadConstraints")
+			if !reflect.DeepEqual(tt.wantAffinity, job.Spec.Template.Spec.Affinity) {
+				t.Errorf("unexpected Affinity, want: %v got: %v", tt.wantAffinity, job.Spec.Template.Spec.Affinity)
 			}
 		})
 	}
