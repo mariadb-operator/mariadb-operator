@@ -211,6 +211,10 @@ spec:
                 type: integer
               compression:
                 description: Compression algorithm to be used in the Backup.
+                enum:
+                - none
+                - zlib
+                - gzip
                 type: string
               databases:
                 description: Databases defines the logical databases to be backed
