@@ -56,7 +56,8 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
 	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
 
-	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone), "Compression algorithm, none, gzip or zlib.")
+	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
+		"Compression algorithm, none, gzip or zlib.")
 
 	err := mariadbv1alpha1.CompressAlgorithm(compression).Validate()
 	if err != nil {
