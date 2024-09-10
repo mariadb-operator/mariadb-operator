@@ -55,6 +55,15 @@ const (
 	CompressGzip CompressAlgorithm = "gzip"
 )
 
+func (c CompressAlgorithm) Validate() error {
+	switch c {
+	case CompressAlgorithm(""), CompressNone, CompressZlib, CompressGzip:
+		return nil
+	default:
+		return fmt.Errorf("invalid compression: %v, supported agorithms: [%v|%v|%v]", c, CompressNone, CompressZlib, CompressGzip)
+	}
+}
+
 // BackupSpec defines the desired state of Backup
 type BackupSpec struct {
 	// JobContainerTemplate defines templates to configure Container objects.
@@ -164,6 +173,9 @@ func (b *Backup) Validate() error {
 	}
 	if err := b.Spec.Storage.Validate(); err != nil {
 		return fmt.Errorf("invalid Storage: %v", err)
+	}
+	if err := b.Spec.Compression.Validate(); err != nil {
+		return fmt.Errorf("invalid Compression: %v", err)
 	}
 	return nil
 }
