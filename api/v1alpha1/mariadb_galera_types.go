@@ -160,6 +160,10 @@ type GaleraRecoveryJob struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// PodAffinity indicates whether the recovery Jobs should run in the same Node and the MariaDB Pods. It defaults to true.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	PodAffinity *bool `json:"podAffinity,omitempty"`
 }
 
 // GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
