@@ -150,11 +150,6 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 			"printf \"${BACKUP_FILE}\" > %s",
 			b.TargetFilePath,
 		),
-		"echo 💾 Setting target file permissions",
-		fmt.Sprintf(
-			"chmod 777 %s",
-			b.TargetFilePath,
-		),
 		fmt.Sprintf(
 			"echo 💾 Taking backup: %s",
 			b.getTargetFilePath(),
