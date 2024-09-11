@@ -7158,7 +7158,7 @@ spec:
                             type: object
                           podAffinity:
                             description: PodAffinity indicates whether the recovery
-                              Jobs should run in the same Node and the MariaDB Pods.
+                              Jobs should run in the same Node as the MariaDB Pods.
                               It defaults to true.
                             type: boolean
                           resources:
