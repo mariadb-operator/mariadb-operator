@@ -1582,6 +1582,7 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 	tests := []struct {
 		name         string
 		mariadb      *mariadbv1alpha1.MariaDB
+		podIndex     int
 		wantAffinity *corev1.Affinity
 	}{
 		{
@@ -1605,6 +1606,7 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 					},
 				},
 			},
+			podIndex:     0,
 			wantAffinity: nil,
 		},
 		{
@@ -1628,6 +1630,7 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 					},
 				},
 			},
+			podIndex: 0,
 			wantAffinity: &corev1.Affinity{
 				PodAffinity: &corev1.PodAffinity{
 					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -1656,7 +1659,7 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, 0)
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, tt.podIndex)
 			if err != nil {
 				t.Errorf("unexpected error building Galera recovery Job: %v", err)
 			}
