@@ -43,14 +43,33 @@ var _ = Describe("Backup", func() {
 			getBackupWithVolumeStorage,
 			testBackup,
 		),
+		Entry("should reconcile a Job with Volume storage and gzip compression",
+			"backup-volume-gzip-test",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				getBackupWithVolumeStorage,
+				decorateBackupWithGzipCompression,
+			),
+			testBackup,
+		),
 		Entry("should reconcile a Job with S3 storage",
 			"backup-s3-test",
 			buildBackupWithS3Storage("test-backup", ""),
 			testS3Backup,
 		),
+		Entry("should reconcile a Job with S3 storage and bzip2 compression",
+			"backup-s3-zlib-test",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				buildBackupWithS3Storage("test-backup", ""),
+				decorateBackupWithBzip2Compression,
+			),
+			testS3Backup,
+		),
 		Entry("should reconcile a Job with S3 storage with prefix",
 			"backup-s3-test-prefix",
-			buildBackupWithS3Storage("test-backup", "mariadb"),
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				buildBackupWithS3Storage("test-backup", "mariadb"),
+				decorateBackupWithNoneCompression,
+			),
 			testS3Backup,
 		),
 		Entry("should reconcile a CronJob with PVC storage",
@@ -293,6 +312,21 @@ func decorateBackupWithHistoryLimits(backup *mariadbv1alpha1.Backup) *mariadbv1a
 
 func decorateBackupWithTimeZone(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
 	backup.Spec.TimeZone = ptr.To[string]("Europe/Sofia")
+	return backup
+}
+
+func decorateBackupWithNoneCompression(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+	backup.Spec.Compression = mariadbv1alpha1.CompressNone
+	return backup
+}
+
+func decorateBackupWithGzipCompression(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+	backup.Spec.Compression = mariadbv1alpha1.CompressGzip
+	return backup
+}
+
+func decorateBackupWithBzip2Compression(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+	backup.Spec.Compression = mariadbv1alpha1.CompressBzip2
 	return backup
 }
 
