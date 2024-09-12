@@ -70,8 +70,8 @@ var _ = BeforeSuite(func() {
 
 	var err error
 	testCidrPrefix, err = docker.GetKindCidrPrefix()
-	Expect(testCidrPrefix).NotTo(BeEmpty())
 	Expect(err).NotTo(HaveOccurred())
+	Expect(testCidrPrefix).NotTo(BeEmpty())
 
 	err = mariadbv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
