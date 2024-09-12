@@ -191,6 +191,126 @@ var _ = Describe("Restore", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
+	It("should reconcile a Job with Volume storage and gzip compression", func() {
+		By("Creating Backup")
+		key := types.NamespacedName{
+			Name:      "restore-volume-test",
+			Namespace: testNamespace,
+		}
+		backupKey := types.NamespacedName{
+			Name:      fmt.Sprintf("%s-%s", key.Name, "backup"),
+			Namespace: testNamespace,
+		}
+		backup := decorateBackupWithGzipCompression(getBackupWithPVCStorage(backupKey))
+		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+		})
+
+		By("Expecting Backup to complete eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
+				return false
+			}
+			return backup.IsComplete()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Creating Restore")
+		restore := &mariadbv1alpha1.Restore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.RestoreSpec{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				RestoreSource: mariadbv1alpha1.RestoreSource{
+					Volume: &mariadbv1alpha1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: backupKey.Name,
+						},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
+		})
+
+		By("Expecting Restore to complete eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, restore); err != nil {
+				return false
+			}
+			return restore.IsComplete()
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should reconcile a Job with Volume storage and bzip2 compression", func() {
+		By("Creating Backup")
+		key := types.NamespacedName{
+			Name:      "restore-volume-test",
+			Namespace: testNamespace,
+		}
+		backupKey := types.NamespacedName{
+			Name:      fmt.Sprintf("%s-%s", key.Name, "backup"),
+			Namespace: testNamespace,
+		}
+		backup := decorateBackupWithBzip2Compression(getBackupWithPVCStorage(backupKey))
+		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+		})
+
+		By("Expecting Backup to complete eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
+				return false
+			}
+			return backup.IsComplete()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Creating Restore")
+		restore := &mariadbv1alpha1.Restore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.RestoreSpec{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				RestoreSource: mariadbv1alpha1.RestoreSource{
+					Volume: &mariadbv1alpha1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: backupKey.Name,
+						},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
+		})
+
+		By("Expecting Restore to complete eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, restore); err != nil {
+				return false
+			}
+			return restore.IsComplete()
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
 	It("should reconcile a Job with S3 storage", func() {
 		key := types.NamespacedName{
 			Name:      "restore-s3-test",
