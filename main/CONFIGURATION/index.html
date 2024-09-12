@@ -929,7 +929,7 @@ spec:
     max_allowed_packet=256M 
 </code></pre>
 <p>In this field, you may provide any <a href="https://mariadb.com/kb/en/mariadbd-options/">configuration option</a> or <a href="https://mariadb.com/kb/en/server-system-variables/">system variable</a> supported by MariaDB.</p>
-<p>Under the hood, the operator automatically creates a <code>ConfigMap</code> with the contents of  the <code>myCnf</code> field, which will be mounted in the <code>MariaDB</code> instance. Alternatively, you can manage your own configuration using a pre-existing <code>ConfigMap</code> by linking it via <code>myCnfConfigMapKeyRef</code>:</p>
+<p>Under the hood, the operator automatically creates a <code>ConfigMap</code> with the contents of  the <code>myCnf</code> field, which will be mounted in the <code>MariaDB</code> instance. Alternatively, you can manage your own configuration using a pre-existing <code>ConfigMap</code> by linking it via <code>myCnfConfigMapKeyRef</code>. It is important to note that the key in this <code>Configmap</code> i.e. the config file name, must have a <code>.cnf</code> extension in order to be detected by MariaDB:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
