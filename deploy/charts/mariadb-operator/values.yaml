@@ -60,7 +60,9 @@ rbac:
 extrArgs: []
 
 # -- Extra environment variables to be passed to the controller
-extraEnv: []
+extraEnv:
+  - name: WATCH_NAMESPACE
+    value: default
 
 # -- Extra environment variables from preexiting ConfigMap / Secret objects used by the controller using envFrom
 extraEnvFrom: []

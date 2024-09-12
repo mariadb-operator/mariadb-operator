@@ -1,0 +1,19 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  storage:
+    size: 1Gi
+
+  replicas: 3
+
+  galera:
+    enabled: true
+    agent:
+      kubernetesAuth:
+        enabled: false
