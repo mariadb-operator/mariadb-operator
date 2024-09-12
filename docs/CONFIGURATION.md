@@ -36,7 +36,7 @@ spec:
 ```
 In this field, you may provide any [configuration option](https://mariadb.com/kb/en/mariadbd-options/) or [system variable](https://mariadb.com/kb/en/server-system-variables/) supported by MariaDB.
 
-Under the hood, the operator automatically creates a `ConfigMap` with the contents of  the `myCnf` field, which will be mounted in the `MariaDB` instance. Alternatively, you can manage your own configuration using a pre-existing `ConfigMap` by linking it via `myCnfConfigMapKeyRef`:
+Under the hood, the operator automatically creates a `ConfigMap` with the contents of  the `myCnf` field, which will be mounted in the `MariaDB` instance. Alternatively, you can manage your own configuration using a pre-existing `ConfigMap` by linking it via `myCnfConfigMapKeyRef`. It is important to note that the key in this `Configmap` i.e. the config file name, must have a `.cnf` extension in order to be detected by MariaDB:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
