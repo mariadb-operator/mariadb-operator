@@ -937,7 +937,7 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Owns(&rbacv1.ClusterRoleBinding{}).
+		// Owns(&rbacv1.ClusterRoleBinding{}).
 		WithOptions(opts)
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
