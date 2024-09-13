@@ -46,13 +46,13 @@ spec:
             - name: RELATED_IMAGE_MARIADB
               value: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
             - name: RELATED_IMAGE_MAXSCALE
-              value: mariadb/maxscale:23.08.6-ubi-1
+              value: docker-registry2.mariadb.com/mariadb/maxscale:23.08.6-ubi-1
             - name: RELATED_IMAGE_EXPORTER
-              value: mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
+              value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
             - name: RELATED_IMAGE_EXPORTER_MAXSCALE
-              value: mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+              value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
             - name: MARIADB_OPERATOR_IMAGE
-              value: mariadb/mariadb-operator-enterprise:v0.0.31-dev
+              value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.31-dev
             - name: MARIADB_GALERA_LIB_PATH
               value: /usr/lib64/galera/libgalera_smm.so
             - name: MARIADB_ENTRYPOINT_VERSION
