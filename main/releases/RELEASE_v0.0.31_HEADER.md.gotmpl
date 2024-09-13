@@ -1,6 +1,6 @@
 This is a patch release to fix some regressions related to the Galera. If you are using Galera with `ReadWriteOnce` storage, it is highly recommended to upgrade. Please, follow the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.31.md)__.
 
-When using `ReadWriteOnce` storage, if the Galera recovery `Jobs` (introduced in [v0.0.30](https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.30)) are not scheduled in the same node as the `MariaDB` `Pods`, they will not be to attach the PVC and the recovery will not progress. See the following issues for further detail: https://github.com/mariadb-operator/mariadb-operator/issues/840
+When using `ReadWriteOnce` storage, if the Galera recovery `Jobs` (introduced in [v0.0.30](https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.30)) are not scheduled in the same node as the `MariaDB` `Pods`, they won't be able to attach the PVC and the recovery will not progress. See the following issues for further detail: https://github.com/mariadb-operator/mariadb-operator/issues/840
 
 By default, we have configured `podAffinity` to the recovery `Jobs` to make sure the attachment succeeds. See the PR: https://github.com/mariadb-operator/mariadb-operator/pull/843
 
