@@ -11724,6 +11724,11 @@ spec:
                                 description: Labels to be added to children resources.
                                 type: object
                             type: object
+                          podAffinity:
+                            description: PodAffinity indicates whether the recovery
+                              Jobs should run in the same Node as the MariaDB Pods.
+                              It defaults to true.
+                            type: boolean
                           resources:
                             description: Resouces describes the compute resource requirements.
                             properties:

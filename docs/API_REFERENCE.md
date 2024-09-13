@@ -521,6 +521,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core)_ | Resouces describes the compute resource requirements. |  |  |
+| `podAffinity` _boolean_ | PodAffinity indicates whether the recovery Jobs should run in the same Node as the MariaDB Pods. It defaults to true. |  |  |
 
 
 #### GaleraSpec

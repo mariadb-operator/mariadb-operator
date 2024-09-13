@@ -334,16 +334,8 @@ metadata:
     capabilities: Deep Insights
     categories: Database
     certified: "true"
-<<<<<<< HEAD
     containerImage: mariadb/mariadb-operator-enterprise:v0.0.31-dev
     createdAt: "2024-09-04T11:49:37Z"
-||||||| fedd9848 (Generated bundle for testing. TODO: revert)
-    containerImage: mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
-    createdAt: "2024-09-03T09:34:29Z"
-=======
-    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
-    createdAt: "2024-09-03T09:26:25Z"
->>>>>>> parent of fedd9848 (Generated bundle for testing. TODO: revert)
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -4845,31 +4837,13 @@ spec:
                       - name: RELATED_IMAGE_MARIADB
                         value: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
                       - name: RELATED_IMAGE_MAXSCALE
-<<<<<<< HEAD
                         value: mariadb/maxscale:23.08.6-ubi-1
-||||||| fedd9848 (Generated bundle for testing. TODO: revert)
-                        value: mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
-=======
-                        value: docker-registry2.mariadb.com/mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
->>>>>>> parent of fedd9848 (Generated bundle for testing. TODO: revert)
                       - name: RELATED_IMAGE_EXPORTER
-<<<<<<< HEAD
                         value: mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
-||||||| fedd9848 (Generated bundle for testing. TODO: revert)
-                        value: mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
-=======
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
->>>>>>> parent of fedd9848 (Generated bundle for testing. TODO: revert)
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
-<<<<<<< HEAD
                         value: mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
-||||||| fedd9848 (Generated bundle for testing. TODO: revert)
-                        value: mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
-=======
-                        value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
->>>>>>> parent of fedd9848 (Generated bundle for testing. TODO: revert)
                       - name: MARIADB_OPERATOR_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
+                        value: mariadb/mariadb-operator-enterprise:v0.0.31-dev
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
                       - name: MARIADB_ENTRYPOINT_VERSION
@@ -4888,13 +4862,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-<<<<<<< HEAD
                     image: mariadb/mariadb-operator-enterprise:v0.0.31-dev
-||||||| fedd9848 (Generated bundle for testing. TODO: revert)
-                    image: mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
-=======
-                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
->>>>>>> parent of fedd9848 (Generated bundle for testing. TODO: revert)
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -5001,41 +4969,13 @@ spec:
   provider:
     name: MariaDB Corporation
   relatedImages:
-<<<<<<< HEAD
     - image: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
-||||||| fedd9848 (Generated bundle for testing. TODO: revert)
-    - image: docker-registry.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d
-=======
-    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:39df1f048a8e9625cd9b186bacb18214e630a1aff94ccd044d68eac74aadd96b
-      name: mariadb-operator-enterprise
-    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
-      name: exporter_maxscale
-    - image: docker-registry.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d
->>>>>>> parent of fedd9848 (Generated bundle for testing. TODO: revert)
       name: mariadb
-<<<<<<< HEAD
     - image: mariadb/maxscale:23.08.6-ubi-1
-||||||| fedd9848 (Generated bundle for testing. TODO: revert)
-    - image: mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
-=======
-    - image: docker-registry2.mariadb.com/mariadb/maxscale@sha256:2723e13f72b0c830e0e03ca388c6557b9cfd057a0af7b030e588e4a951188dd1
->>>>>>> parent of fedd9848 (Generated bundle for testing. TODO: revert)
       name: maxscale
-<<<<<<< HEAD
     - image: mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
-||||||| fedd9848 (Generated bundle for testing. TODO: revert)
-    - image: mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
-=======
-    - image: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi@sha256:c9eaabedbc111f9a90aac48798f45cbf953f2d6cf9e98c823a9e39f52ddb459b
->>>>>>> parent of fedd9848 (Generated bundle for testing. TODO: revert)
       name: exporter
-<<<<<<< HEAD
     - image: mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
-||||||| fedd9848 (Generated bundle for testing. TODO: revert)
-    - image: mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
-=======
-    - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
->>>>>>> parent of fedd9848 (Generated bundle for testing. TODO: revert)
       name: exporter-maxscale
   version: 0.0.31-dev
   webhookdefinitions:
