@@ -14,7 +14,7 @@ spec:
   storage:
     size: 10Gi
 
-  # Delete MariaDB resource, uncomment this, and recreate the MariaDB resource in case that something was wrong.
+  # Uncomment this and recreate the MariaDB resource in case that something was wrong.
   # bootstrapFrom:
   #   s3:
   #     bucket: backups
