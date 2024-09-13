@@ -1,0 +1,77 @@
+# Please, take a look at our HA guide to configure production-ready MariaDB instances:
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HA.md
+# You should have a backup and recovery strategy in case that something goes wrong, take a look at our backup docs:
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  storage:
+    size: 10Gi
+
+  # Delete MariaDB resource, uncomment this, and recreate the MariaDB resource in case that something was wrong.
+  # bootstrapFrom:
+  #   s3:
+  #     bucket: backups
+  #     prefix: mariadb
+  #     endpoint: minio.minio.svc.cluster.local:9000
+  #     accessKeyIdSecretKeyRef:
+  #       name: minio
+  #       key: access-key-id
+  #     secretAccessKeySecretKeyRef:
+  #       name: minio
+  #       key: secret-access-key
+  #     tls:
+  #       enabled: true
+  #       caSecretKeyRef:
+  #         name: minio-ca
+  #         key: ca.crt
+
+  replicas: 3
+
+  galera:
+    enabled: true
+
+  metrics:
+    enabled: true
+
+  updateStrategy:
+    type: ReplicasFirstPrimaryLast
+
+  # Configure enough compute resources. This is just an example, take a look at your historic compute metrics to estimate.
+  resources:
+    requests:
+      cpu: 1
+      memory: 4Gi
+    limits:
+      memory: 4Gi
+
+  # innodb_buffer_pool_size: 80% of memory limits.
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=3200MB
+    max_allowed_packet=1GB
+
+  # Select a node type with enough compute capacity.
+  nodeSelector:
+    node.mycompany.io/type: compute
+
+  # Schedule Pods in different Nodes to achieve real HA.
+  affinity:
+    antiAffinityEnabled: true
+
+  # When draining Nodes, make sure that you have at least 2 Pods available.
+  podDisruptionBudget:
+    maxUnavailable: 66%
+
+  # Ensure that the Pods are not preempted by Kubernetes to make room for new scheduled Pods.
+  priorityClassName: system-node-critical
