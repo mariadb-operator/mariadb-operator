@@ -26,10 +26,7 @@ func shouldReconcileUpdates(mdb *mariadbv1alpha1.MariaDB) bool {
 	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
 		return false
 	}
-	if mdb.Spec.UpdateStrategy.Type != mariadbv1alpha1.ReplicasFirstPrimaryLast {
-		return false
-	}
-	return true
+	return mdb.Spec.UpdateStrategy.Type == mariadbv1alpha1.ReplicasFirstPrimaryLast
 }
 
 func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {

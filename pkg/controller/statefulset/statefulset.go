@@ -20,6 +20,11 @@ func NewStatefulSetReconciler(client client.Client) *StatefulSetReconciler {
 }
 
 func (r *StatefulSetReconciler) Reconcile(ctx context.Context, desiredSts *appsv1.StatefulSet) error {
+	return r.ReconcileWithUpdates(ctx, desiredSts, true)
+}
+
+func (r *StatefulSetReconciler) ReconcileWithUpdates(ctx context.Context, desiredSts *appsv1.StatefulSet,
+	shouldUpdate bool) error {
 	key := client.ObjectKeyFromObject(desiredSts)
 	var existingSts appsv1.StatefulSet
 	if err := r.Get(ctx, key, &existingSts); err != nil {
@@ -32,9 +37,12 @@ func (r *StatefulSetReconciler) Reconcile(ctx context.Context, desiredSts *appsv
 		return nil
 	}
 
-	patch := client.MergeFrom(existingSts.DeepCopy())
-	existingSts.Spec.Template = desiredSts.Spec.Template
-	existingSts.Spec.UpdateStrategy = desiredSts.Spec.UpdateStrategy
-	existingSts.Spec.Replicas = desiredSts.Spec.Replicas
-	return r.Patch(ctx, &existingSts, patch)
+	if shouldUpdate {
+		patch := client.MergeFrom(existingSts.DeepCopy())
+		existingSts.Spec.Template = desiredSts.Spec.Template
+		existingSts.Spec.UpdateStrategy = desiredSts.Spec.UpdateStrategy
+		existingSts.Spec.Replicas = desiredSts.Spec.Replicas
+		return r.Patch(ctx, &existingSts, patch)
+	}
+	return nil
 }

@@ -333,7 +333,9 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
-	if err := r.StatefulSetReconciler.Reconcile(ctx, desiredSts); err != nil {
+	shouldUpdate := mariadb.Spec.UpdateStrategy.Type != mariadbv1alpha1.NeverUpdateType
+
+	if err := r.StatefulSetReconciler.ReconcileWithUpdates(ctx, desiredSts, shouldUpdate); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling StatefulSet: %v", err)
 	}
 
