@@ -2,7 +2,8 @@
 {{ $fullName := include "mariadb-operator.fullname" . }}
 # the mariadb-view ClusterRole allows viewing all k8s.mariadb.com resources
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+# kind: ClusterRole
+kind: Role
 metadata:
   name: {{ $fullName }}-view
   {{- if .Values.rbac.aggregation.enabled }}
@@ -16,7 +17,7 @@ rules:
 ---
 # the mariadb-edit ClusterRole allows editing k8s.mariadb.com resources
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   name: {{ $fullName }}-edit
   {{- if .Values.rbac.aggregation.enabled }}
