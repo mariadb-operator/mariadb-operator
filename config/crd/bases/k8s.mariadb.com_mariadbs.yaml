@@ -24,7 +24,10 @@ spec:
       name: Status
       type: string
     - jsonPath: .status.currentPrimary
-      name: Primary Pod
+      name: Primary
+      type: string
+    - jsonPath: .spec.updateStrategy.type
+      name: Updates
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -23229,6 +23232,7 @@ spec:
                     - ReplicasFirstPrimaryLast
                     - RollingUpdate
                     - OnDelete
+                    - Never
                     type: string
                 type: object
               username:

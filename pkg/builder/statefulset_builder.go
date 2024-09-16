@@ -154,6 +154,8 @@ func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSetUpd
 		return &appsv1.StatefulSetUpdateStrategy{
 			Type: appsv1.OnDeleteStatefulSetStrategyType,
 		}, nil
+	case mariadbv1alpha1.NeverUpdateType:
+		return &appsv1.StatefulSetUpdateStrategy{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported update strategy type: %v", mdb.Spec.UpdateStrategy.Type)
 	}

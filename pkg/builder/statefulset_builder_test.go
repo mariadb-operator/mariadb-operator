@@ -415,6 +415,19 @@ func TestMariaDBUpdateStrategy(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "never",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.NeverUpdateType,
+					},
+				},
+			},
+			wantUpdateStrategy: &appsv1.StatefulSetUpdateStrategy{},
+			wantErr:            false,
+		},
 	}
 
 	for _, tt := range tests {
