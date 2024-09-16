@@ -1,3 +1,4 @@
+{{ if .Values.webhook.enabled }}
 {{ if and .Values.metrics.enabled .Values.webhook.serviceMonitor.enabled }}
 apiVersion: v1
 kind: Service
@@ -33,4 +34,5 @@ spec:
   - port: metrics
     interval: {{ .Values.webhook.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.webhook.serviceMonitor.scrapeTimeout }}
+{{ end }}
 {{ end }}
