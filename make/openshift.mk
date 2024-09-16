@@ -11,7 +11,7 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
-BUNDLE_GEN_FLAGS ?= -q --overwrite=false --version $(VERSION) --output-dir $(BUNDLE_DIR) $(BUNDLE_METADATA_OPTS)
+BUNDLE_GEN_FLAGS ?= -q --use-image-digests --overwrite=false --version $(VERSION) --output-dir $(BUNDLE_DIR) $(BUNDLE_METADATA_OPTS)
 
 ifneq ($(origin CATALOG_BASE_IMG), undefined)
 FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
