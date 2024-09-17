@@ -2,18 +2,18 @@ package version
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/go-version"
+	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 )
 
 func GetMinorVersion(image string) (string, error) {
-	parts := strings.SplitN(image, ":", 2)
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid image format: %s", image)
+	tag, err := docker.GetTag(image)
+	if err != nil {
+		return "", fmt.Errorf("invalid image: %v", err)
 	}
 
-	v, err := version.NewSemver(parts[1])
+	v, err := version.NewSemver(tag)
 	if err != nil {
 		return "", fmt.Errorf("error parsing version: %v", err)
 	}

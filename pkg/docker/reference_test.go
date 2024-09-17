@@ -3,6 +3,68 @@ package docker
 import "testing"
 
 // nolint:lll
+func TestGetTag(t *testing.T) {
+	tests := []struct {
+		name    string
+		image   string
+		wantTag string
+		wantErr bool
+	}{
+		{
+			name:    "invalid image",
+			image:   "foo",
+			wantTag: "",
+			wantErr: true,
+		},
+		{
+			name:    "empty tag",
+			image:   "mariadb:",
+			wantTag: "",
+			wantErr: true,
+		},
+		{
+			name:    "image",
+			image:   "mariadb:10.6",
+			wantTag: "10.6",
+			wantErr: false,
+		},
+		{
+			name:    "image with namespace",
+			image:   "mariadb/maxscale:23.08.5",
+			wantTag: "23.08.5",
+			wantErr: false,
+		},
+		{
+			name:    "image with namespace and host",
+			image:   "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+			wantTag: "v0.0.1",
+			wantErr: false,
+		},
+		{
+			name:    "digest",
+			image:   "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
+			wantTag: "",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tag, err := GetTag(tt.image)
+			if tt.wantTag != tag {
+				t.Errorf("unexpected image, expected: %v got: %v", tt.wantTag, tag)
+			}
+			if tt.wantErr && err == nil {
+				t.Error("expect error to have occurred, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("expect error to not have occurred, got: %v", err)
+			}
+		})
+	}
+}
+
+// nolint:lll
 func TestSetTagOrDigest(t *testing.T) {
 	tests := []struct {
 		name        string
