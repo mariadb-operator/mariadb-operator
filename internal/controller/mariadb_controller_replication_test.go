@@ -122,7 +122,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					},
 				},
 				UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-					Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+					Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 				},
 			},
 		}

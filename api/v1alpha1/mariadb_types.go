@@ -293,10 +293,10 @@ type BootstrapFrom struct {
 type UpdateType string
 
 const (
-	// ReplicasFirstPrimaryLast indicates that the update will be applied to all replica Pods first and later on to the primary Pod.
+	// ReplicasFirstPrimaryLastUpdateType indicates that the update will be applied to all replica Pods first and later on to the primary Pod.
 	// The updates are applied one by one waiting until each Pod passes the readiness probe
 	// i.e. the Pod gets synced and it is ready to receive traffic.
-	ReplicasFirstPrimaryLast UpdateType = "ReplicasFirstPrimaryLast"
+	ReplicasFirstPrimaryLastUpdateType UpdateType = "ReplicasFirstPrimaryLast"
 	// RollingUpdateUpdateType indicates that the update will be applied by the StatefulSet controller using the RollingUpdate strategy.
 	// This strategy is unaware of the roles that the Pod have (primary or replica) and it will
 	// perform the update following the StatefulSet ordinal, from higher to lower.
@@ -331,7 +331,7 @@ type UpdateStrategy struct {
 // SetDefaults sets reasonable defaults.
 func (u *UpdateStrategy) SetDefaults() {
 	if u.Type == "" {
-		u.Type = ReplicasFirstPrimaryLast
+		u.Type = ReplicasFirstPrimaryLastUpdateType
 	}
 	if u.AutoUpdateDataPlane == nil {
 		u.AutoUpdateDataPlane = ptr.To(false)

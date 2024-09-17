@@ -323,30 +323,65 @@ var _ = Describe("MariaDB Galera types", func() {
 			),
 		)
 
-		// TODO
-		// DescribeTable("Should auto update data-plane",
-		// 	func(mdb *MariaDB, galera, expected *Galera, env *environment.OperatorEnv, wantErr bool) {
-		// 		err := galera.SetDefaults(mdb, env)
-		// 		if wantErr {
-		// 			Expect(err).To(HaveOccurred())
-		// 		} else {
-		// 			Expect(err).ToNot(HaveOccurred())
-		// 			Expect(galera).To(BeEquivalentTo(expected))
-		// 		}
-		// 	},
-		// 	Entry(
-		// 		"auto update disabled",
-		// 	),
-		// 	Entry(
-		// 		"auto update disabled",
-		// 	),
-		// 	Entry(
-		// 		"auto update",
-		// 	),
-		// 	Entry(
-		// 		"already updated",
-		// 	),
-		// )
+		DescribeTable("Should auto update data-plane",
+			func(mdb *MariaDB, env *environment.OperatorEnv, galera *Galera, expectedImage string) {
+				Expect(galera.SetDefaults(mdb, env)).ToNot(HaveOccurred())
+				Expect(galera.Agent.Image).To(BeEquivalentTo(expectedImage))
+				Expect(galera.InitContainer.Image).To(BeEquivalentTo(expectedImage))
+			},
+			Entry(
+				"auto update disabled",
+				&MariaDB{
+					ObjectMeta: mdbObjMeta,
+					Spec: MariaDBSpec{
+						UpdateStrategy: UpdateStrategy{
+							AutoUpdateDataPlane: ptr.To(false),
+						},
+					},
+				},
+				&environment.OperatorEnv{
+					MariadbOperatorImage: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.2",
+				},
+				&Galera{
+					Enabled: true,
+					GaleraSpec: GaleraSpec{
+						Agent: GaleraAgent{
+							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+						},
+						InitContainer: Container{
+							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+						},
+					},
+				},
+				"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+			),
+			Entry(
+				"auto update enabled",
+				&MariaDB{
+					ObjectMeta: mdbObjMeta,
+					Spec: MariaDBSpec{
+						UpdateStrategy: UpdateStrategy{
+							AutoUpdateDataPlane: ptr.To(true),
+						},
+					},
+				},
+				&environment.OperatorEnv{
+					MariadbOperatorImage: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.2",
+				},
+				&Galera{
+					Enabled: true,
+					GaleraSpec: GaleraSpec{
+						Agent: GaleraAgent{
+							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+						},
+						InitContainer: Container{
+							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+						},
+					},
+				},
+				"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.2",
+			),
+		)
 
 		DescribeTable("Has minimum cluster size",
 			func(currentSize int, mdb *MariaDB, wantBool bool, wantErr bool) {
