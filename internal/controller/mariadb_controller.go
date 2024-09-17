@@ -790,8 +790,8 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 }
 
 func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	return ctrl.Result{}, r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
-		mdb.SetDefaults(r.Environment)
+	return ctrl.Result{}, r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
+		return mdb.SetDefaults(r.Environment)
 	})
 }
 
@@ -910,9 +910,11 @@ func (r *MariaDBReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1a
 }
 
 func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	patcher func(*mariadbv1alpha1.MariaDB)) error {
+	patcher func(*mariadbv1alpha1.MariaDB) error) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
-	patcher(mariadb)
+	if err := patcher(mariadb); err != nil {
+		return err
+	}
 	return r.Patch(ctx, mariadb, patch)
 }
 

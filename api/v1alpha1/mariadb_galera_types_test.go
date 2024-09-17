@@ -23,10 +23,9 @@ var _ = Describe("MariaDB Galera types", func() {
 			Name:      "mariadb-galera",
 			Namespace: testNamespace,
 		}
-		DescribeTable(
-			"Should default",
+		DescribeTable("Should default",
 			func(mdb *MariaDB, galera, expected *Galera, env *environment.OperatorEnv) {
-				galera.SetDefaults(mdb, env)
+				Expect(galera.SetDefaults(mdb, env)).To(Succeed())
 				Expect(galera).To(BeEquivalentTo(expected))
 			},
 			Entry(
@@ -324,8 +323,32 @@ var _ = Describe("MariaDB Galera types", func() {
 			),
 		)
 
-		DescribeTable(
-			"Has minimum cluster size",
+		// TODO
+		// DescribeTable("Should auto update data-plane",
+		// 	func(mdb *MariaDB, galera, expected *Galera, env *environment.OperatorEnv, wantErr bool) {
+		// 		err := galera.SetDefaults(mdb, env)
+		// 		if wantErr {
+		// 			Expect(err).To(HaveOccurred())
+		// 		} else {
+		// 			Expect(err).ToNot(HaveOccurred())
+		// 			Expect(galera).To(BeEquivalentTo(expected))
+		// 		}
+		// 	},
+		// 	Entry(
+		// 		"auto update disabled",
+		// 	),
+		// 	Entry(
+		// 		"auto update disabled",
+		// 	),
+		// 	Entry(
+		// 		"auto update",
+		// 	),
+		// 	Entry(
+		// 		"already updated",
+		// 	),
+		// )
+
+		DescribeTable("Has minimum cluster size",
 			func(currentSize int, mdb *MariaDB, wantBool bool, wantErr bool) {
 				clusterHasMinSize, err := mdb.Spec.Galera.Recovery.HasMinClusterSize(currentSize, mdb)
 				if wantErr {
@@ -507,8 +530,7 @@ var _ = Describe("MariaDB Galera types", func() {
 			),
 		)
 
-		DescribeTable(
-			"Validate",
+		DescribeTable("Validate",
 			func(mdb *MariaDB, wantErr bool) {
 				err := mdb.Spec.Galera.Recovery.Validate(mdb)
 				if wantErr {

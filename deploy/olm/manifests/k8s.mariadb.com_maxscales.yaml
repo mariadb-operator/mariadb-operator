@@ -24,7 +24,7 @@ spec:
       name: Status
       type: string
     - jsonPath: .status.primaryServer
-      name: Primary Server
+      name: Primary
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
