@@ -213,7 +213,7 @@ spec:
                 description: Compression algorithm to be used in the Backup.
                 enum:
                 - none
-                - zlib
+                - bzip2
                 - gzip
                 type: string
               databases:

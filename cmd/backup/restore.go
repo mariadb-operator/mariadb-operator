@@ -2,7 +2,6 @@ package backup
 
 import (
 	"compress/gzip"
-	"compress/zlib"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dsnet/compress/bzip2"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
@@ -145,8 +145,9 @@ func uncompressFile(path string, f string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-	case mariadbv1alpha1.CompressZlib:
-		reader, err := zlib.NewReader(compressedFile)
+	case mariadbv1alpha1.CompressBzip2:
+		reader, err := bzip2.NewReader(compressedFile,
+			&bzip2.ReaderConfig{})
 		if err != nil {
 			return "", err
 		}
