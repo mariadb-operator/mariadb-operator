@@ -1,10 +1,23 @@
 package docker
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/distribution/reference"
 )
+
+func GetTag(image string) (string, error) {
+	ref, err := reference.Parse(image)
+	if err != nil {
+		return "", fmt.Errorf("error parsing reference: %v", err)
+	}
+
+	if tagged, ok := ref.(reference.NamedTagged); ok {
+		return tagged.Tag(), nil
+	}
+	return "", errors.New("image does not have a tag")
+}
 
 func SetTagOrDigest(sourceImage, targetImage string) (string, error) {
 	sourceRef, err := reference.Parse(sourceImage)
