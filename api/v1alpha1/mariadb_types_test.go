@@ -56,7 +56,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -108,7 +108,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -140,7 +140,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -200,7 +200,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -266,7 +266,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -317,7 +317,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -375,7 +375,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -433,7 +433,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -523,7 +523,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -595,7 +595,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -654,7 +654,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -738,7 +738,7 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -819,7 +819,7 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 					},
@@ -859,7 +859,7 @@ var _ = Describe("MariaDB types", func() {
 							WaitForVolumeResize: ptr.To(true),
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLast,
+							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
 						PodTemplate: PodTemplate{

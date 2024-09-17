@@ -141,7 +141,7 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 
 func mariadbUpdateStrategy(mdb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSetUpdateStrategy, error) {
 	switch mdb.Spec.UpdateStrategy.Type {
-	case mariadbv1alpha1.ReplicasFirstPrimaryLast:
+	case mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType:
 		return &appsv1.StatefulSetUpdateStrategy{
 			Type: appsv1.OnDeleteStatefulSetStrategyType,
 		}, nil

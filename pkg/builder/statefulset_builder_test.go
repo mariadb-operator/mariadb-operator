@@ -34,7 +34,7 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 					},
 				},
 			},
@@ -53,7 +53,7 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 						},
 					},
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 					},
 				},
 			},
@@ -154,7 +154,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 					},
 				},
 			},
@@ -185,7 +185,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 						},
 					},
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 					},
 				},
 			},
@@ -218,7 +218,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 						Enabled: true,
 					},
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 					},
 				},
 			},
@@ -254,7 +254,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 						},
 					},
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 					},
 				},
 			},
@@ -300,7 +300,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 						},
 					},
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 					},
 				},
 			},
@@ -370,7 +370,7 @@ func TestMariaDBUpdateStrategy(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						Type: mariadbv1alpha1.ReplicasFirstPrimaryLast,
+						Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 					},
 				},
 			},
