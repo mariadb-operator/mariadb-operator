@@ -16,6 +16,7 @@ func SetTagOrDigest(sourceImage, targetImage string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error parsing target reference: %v", err)
 	}
+	targetRef = reference.TrimNamed(targetRef)
 
 	var ref reference.Reference
 	if tagged, ok := sourceRef.(reference.NamedTagged); ok {
