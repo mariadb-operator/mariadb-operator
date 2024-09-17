@@ -329,6 +329,9 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
 	if g.ReplicaThreads == 0 {
 		g.ReplicaThreads = 1
 	}
+
+	// autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
+
 	if reflect.ValueOf(g.InitContainer).IsZero() {
 		g.InitContainer = Container{
 			Image: env.MariadbOperatorImage,
