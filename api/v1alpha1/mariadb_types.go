@@ -558,8 +558,9 @@ type MariaDB struct {
 	Status MariaDBStatus `json:"status,omitempty"`
 }
 
+// nolint:gocyclo
 // SetDefaults sets reasonable defaults.
-func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
+func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	if m.Spec.Image == "" {
 		m.Spec.Image = env.RelatedMariadbImage
 	}
@@ -607,7 +608,9 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 	}
 
 	if m.IsGaleraEnabled() {
-		m.Spec.Galera.SetDefaults(m, env)
+		if err := m.Spec.Galera.SetDefaults(m, env); err != nil {
+			return fmt.Errorf("error setting Galera defaults: %v", err)
+		}
 	}
 
 	if m.Spec.UpdateStrategy == (UpdateStrategy{}) {
@@ -616,6 +619,8 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) {
 
 	m.Spec.Storage.SetDefaults()
 	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
+
+	return nil
 }
 
 // Replication with defaulting accessor

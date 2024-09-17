@@ -24,7 +24,7 @@ var _ = Describe("MariaDB types", func() {
 		DescribeTable(
 			"Should default",
 			func(mdb, expected *MariaDB, env *environment.OperatorEnv) {
-				mdb.SetDefaults(env)
+				Expect(mdb.SetDefaults(env)).To(Succeed())
 				Expect(mdb).To(BeEquivalentTo(expected))
 			},
 			Entry(

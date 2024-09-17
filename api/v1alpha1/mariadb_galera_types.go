@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -316,7 +317,7 @@ type Galera struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
+func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 	if g.SST == "" {
 		g.SST = SSTMariaBackup
 	}
@@ -329,8 +330,6 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
 	if g.ReplicaThreads == 0 {
 		g.ReplicaThreads = 1
 	}
-
-	// autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
 
 	if reflect.ValueOf(g.InitContainer).IsZero() {
 		g.InitContainer = Container{
@@ -353,6 +352,23 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
 	if g.InitJob != nil {
 		g.InitJob.SetDefaults(mdb.ObjectMeta)
 	}
+
+	autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
+	if autoUpdateDataPlane {
+		initBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, g.InitContainer.Image)
+		if err != nil {
+			return fmt.Errorf("error bumping Galera init image: %v", err)
+		}
+		g.InitContainer.Image = initBumped
+
+		agentBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, g.Agent.Image)
+		if err != nil {
+			return fmt.Errorf("error bumping Galera agent image: %v", err)
+		}
+		g.Agent.Image = agentBumped
+	}
+
+	return nil
 }
 
 // GaleraSpec is the Galera desired state specification.
