@@ -4,6 +4,7 @@ go 1.23.1
 
 require (
 	github.com/distribution/reference v0.6.0
+	github.com/dsnet/compress v0.0.1
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/httprate v0.14.1
 	github.com/go-logr/logr v1.4.2

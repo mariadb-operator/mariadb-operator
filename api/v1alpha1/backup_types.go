@@ -49,18 +49,18 @@ type CompressAlgorithm string
 const (
 	// No compression
 	CompressNone CompressAlgorithm = "none"
-	// Zlib compression
-	CompressZlib CompressAlgorithm = "zlib"
+	// Bzip2 compression
+	CompressBzip2 CompressAlgorithm = "bzip2"
 	// Gzip compression
 	CompressGzip CompressAlgorithm = "gzip"
 )
 
 func (c CompressAlgorithm) Validate() error {
 	switch c {
-	case CompressAlgorithm(""), CompressNone, CompressZlib, CompressGzip:
+	case CompressAlgorithm(""), CompressNone, CompressBzip2, CompressGzip:
 		return nil
 	default:
-		return fmt.Errorf("invalid compression: %v, supported agorithms: [%v|%v|%v]", c, CompressNone, CompressZlib, CompressGzip)
+		return fmt.Errorf("invalid compression: %v, supported agorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
 	}
 }
 
@@ -81,7 +81,7 @@ type BackupSpec struct {
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// Compression algorithm to be used in the Backup.
 	// +optional
-	// +kubebuilder:validation:Enum=none;zlib;gzip
+	// +kubebuilder:validation:Enum=none;bzip2;gzip
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Compression CompressAlgorithm `json:"compression,omitempty"`
 	// Storage to be used in the Backup.

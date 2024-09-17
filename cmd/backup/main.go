@@ -2,7 +2,6 @@ package backup
 
 import (
 	"compress/gzip"
-	"compress/zlib"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dsnet/compress/bzip2"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
@@ -57,7 +57,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
 
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
-		"Compression algorithm, none, gzip or zlib.")
+		"Compression algorithm, none, gzip or bzip2.")
 
 	err := mariadbv1alpha1.CompressAlgorithm(compression).Validate()
 	if err != nil {
@@ -207,21 +207,24 @@ func compressFile(f string, compression mariadbv1alpha1.CompressAlgorithm) error
 		}
 		writer.Flush()
 
-	case mariadbv1alpha1.CompressZlib:
-		writer := zlib.NewWriter(compressedFile)
+	case mariadbv1alpha1.CompressBzip2:
+		writer, err := bzip2.NewWriter(compressedFile,
+			&bzip2.WriterConfig{Level: bzip2.DefaultCompression})
 		defer writer.Close()
+		if err != nil {
+			return (err)
+		}
 		_, err = io.Copy(writer, originalFile)
 		if err != nil {
 			return (err)
 		}
-		writer.Flush()
 
 	default:
 		err = os.Remove(tmpf)
 		if err != nil {
 			return (err)
 		}
-		return errors.New("Unknown compression algorithm")
+		return errors.New("unknown compression algorithm")
 	}
 
 	err = os.Remove(f)
